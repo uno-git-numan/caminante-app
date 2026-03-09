@@ -3,10 +3,9 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { signOut } from "@/lib/auth/actions";
 
 const navItems = [
-  { href: "/caminante", label: "Inicio" },
-  { href: "/caminante/search", label: "Buscar" },
-  { href: "/caminante/compare/activities", label: "Comparar actividades" },
-  { href: "/caminante/compare/packages", label: "Comparar paquetes" },
+  { href: "/caminante/search", label: "Explorar" },
+  { href: "/caminante/compare/activities", label: "Actividades" },
+  { href: "/caminante/compare/packages", label: "Paquetes" },
   { href: "/caminante/magazine", label: "Magazine" },
   { href: "/caminante/admin", label: "Admin" },
 ];
@@ -19,19 +18,19 @@ export default async function CaminanteLayout({
   const user = await getCurrentUser();
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900">
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-emerald-700">numanhub.com</p>
-            <h1 className="text-2xl font-semibold">Caminante</h1>
-          </div>
-          <nav className="flex flex-wrap gap-2 text-sm">
+    <div className="min-h-screen bg-white text-stone-900">
+      <header className="border-b border-stone-100 bg-white">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/caminante" className="flex flex-col leading-none">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-stone-400">numanhub</span>
+            <span className="text-xl font-light tracking-wide text-stone-900">Caminante</span>
+          </Link>
+          <nav className="flex items-center gap-6 text-sm text-stone-500">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-full border border-stone-300 px-3 py-1.5 hover:border-emerald-700 hover:text-emerald-700"
+                className="transition-colors hover:text-stone-900"
               >
                 {item.label}
               </Link>
@@ -40,15 +39,15 @@ export default async function CaminanteLayout({
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="rounded-full border border-stone-300 px-3 py-1.5 hover:border-emerald-700 hover:text-emerald-700"
+                  className="transition-colors hover:text-stone-900"
                 >
-                  Salir ({user.email})
+                  Salir
                 </button>
               </form>
             ) : (
               <Link
                 href="/caminante/login"
-                className="rounded-full border border-stone-300 px-3 py-1.5 hover:border-emerald-700 hover:text-emerald-700"
+                className="transition-colors hover:text-stone-900"
               >
                 Entrar
               </Link>
@@ -56,7 +55,7 @@ export default async function CaminanteLayout({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-8">{children}</main>
+      <main>{children}</main>
     </div>
   );
 }

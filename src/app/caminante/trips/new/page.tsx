@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createTripAction } from "@/lib/trips/actions";
 
 interface NewTripPageProps {
@@ -8,32 +9,83 @@ export default async function NewTripPage({ searchParams }: NewTripPageProps) {
   const { error } = await searchParams;
 
   return (
-    <section className="space-y-4">
-      <h2 className="text-2xl font-semibold">Crear viaje</h2>
-      <p className="text-stone-600">Crea un viaje base y luego agrega items (actividades, hospedaje, transporte).</p>
-      {error ? (
-        <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{decodeURIComponent(error)}</p>
-      ) : null}
-      <form action={createTripAction} className="grid gap-3 rounded-xl border border-stone-200 bg-white p-4 md:grid-cols-2">
-        <input
-          className="rounded-lg border border-stone-300 px-3 py-2"
-          name="title"
-          placeholder="Nombre del viaje"
-          required
+    <div className="flex min-h-[calc(100vh-57px)]">
+      {/* Left: photo */}
+      <div className="relative hidden w-1/2 md:block">
+        <Image
+          src="/images/trips.jpeg"
+          alt="Viaje"
+          fill
+          priority
+          className="object-cover object-center"
         />
-        <input className="rounded-lg border border-stone-300 px-3 py-2" name="destination" placeholder="Destino" />
-        <label className="space-y-1 text-sm">
-          <span>Fecha inicio</span>
-          <input className="w-full rounded-lg border border-stone-300 px-3 py-2" name="start_date" type="date" />
-        </label>
-        <label className="space-y-1 text-sm">
-          <span>Fecha fin</span>
-          <input className="w-full rounded-lg border border-stone-300 px-3 py-2" name="end_date" type="date" />
-        </label>
-        <button type="submit" className="rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800">
-          Crear viaje
-        </button>
-      </form>
-    </section>
+        <div className="absolute inset-0 bg-black/15" />
+        <div className="absolute inset-0 flex flex-col justify-end p-12 text-white">
+          <p className="text-xs uppercase tracking-[0.3em] text-white/60">Caminante</p>
+          <h2 className="mt-2 text-3xl font-light">Cada viaje<br />empieza aquí.</h2>
+        </div>
+      </div>
+
+      {/* Right: form */}
+      <div className="flex w-full flex-col justify-center px-10 py-16 md:w-1/2">
+        <div className="mx-auto w-full max-w-sm space-y-8">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-stone-400">Nuevo viaje</p>
+            <h2 className="mt-2 text-2xl font-light">Crear viaje</h2>
+            <p className="mt-2 text-sm text-stone-400">Después puedes agregar actividades, hospedaje y transporte.</p>
+          </div>
+
+          {error ? (
+            <div className="border-l-2 border-rose-400 pl-4 text-sm text-stone-600">
+              {decodeURIComponent(error)}
+            </div>
+          ) : null}
+
+          <form action={createTripAction} className="space-y-6">
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-widest text-stone-400">Nombre del viaje</label>
+              <input
+                className="w-full border-b border-stone-300 bg-transparent py-2 text-sm outline-none focus:border-stone-900"
+                name="title"
+                placeholder="p. ej. Barrancas del Cobre"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-widest text-stone-400">Destino</label>
+              <input
+                className="w-full border-b border-stone-300 bg-transparent py-2 text-sm outline-none focus:border-stone-900"
+                name="destination"
+                placeholder="p. ej. Chihuahua"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-widest text-stone-400">Inicio</label>
+                <input
+                  className="w-full border-b border-stone-300 bg-transparent py-2 text-sm outline-none focus:border-stone-900"
+                  name="start_date"
+                  type="date"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-widest text-stone-400">Fin</label>
+                <input
+                  className="w-full border-b border-stone-300 bg-transparent py-2 text-sm outline-none focus:border-stone-900"
+                  name="end_date"
+                  type="date"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="w-full border border-stone-900 py-3 text-sm tracking-widest transition-colors hover:bg-stone-900 hover:text-white"
+            >
+              Crear viaje
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
