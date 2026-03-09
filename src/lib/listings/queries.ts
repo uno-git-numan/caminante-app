@@ -34,7 +34,8 @@ export async function searchPublishedListings(filters: ListingSearchFilters = {}
   const { data, error } = await query;
 
   if (error) {
-    throw new Error(`Failed to search listings: ${error.message}`);
+    console.error("searchPublishedListings error:", error.message);
+    return [];
   }
 
   return data ?? [];
@@ -50,7 +51,8 @@ export async function getListingsByIds(listingIds: string[]) {
     .limit(20);
 
   if (error) {
-    throw new Error(`Failed to load listings for compare: ${error.message}`);
+    console.error("getListingsByIds error:", error.message);
+    return [];
   }
 
   return data ?? [];
