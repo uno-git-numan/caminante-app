@@ -12,12 +12,12 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const nextPath = next?.startsWith("/") ? next : "/caminante";
 
   return (
-    <section className="mx-auto max-w-md space-y-4 rounded-2xl border border-stone-200 bg-white p-6">
+    <section className="mx-auto max-w-md space-y-4 rounded-2xl border border-sand bg-white p-6">
       <h2 className="text-2xl font-semibold">Crear cuenta</h2>
-      <p className="text-sm text-stone-600">Usamos el mismo flujo de magic link para registro.</p>
+      <p className="text-sm text-olive">Usamos el mismo flujo de magic link para registro.</p>
       <form action={sendMagicLink} className="space-y-3">
         <input type="hidden" name="next" value={nextPath} />
-        <label className="block text-sm font-medium text-stone-700" htmlFor="email">
+        <label className="block text-sm font-medium text-lagoon" htmlFor="email">
           Email
         </label>
         <input
@@ -30,12 +30,12 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
         />
         <button
           type="submit"
-          className="w-full rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800"
+          className="w-full rounded-lg bg-lagoon px-4 py-2 font-medium text-white hover:bg-lagoon-light"
         >
           Crear cuenta con magic link
         </button>
       </form>
-      <Link className="text-sm text-emerald-700 hover:underline" href="/caminante/login">
+      <Link className="text-sm text-lagoon hover:underline" href="/caminante/login">
         Ya tengo cuenta
       </Link>
     </section>

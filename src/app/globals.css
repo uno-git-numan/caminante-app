@@ -1,24 +1,65 @@
 @import "tailwindcss";
 
+/* Caminante Design System */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand Colors */
+  --lagoon: #1E3147;
+  --lagoon-light: #2A4562;
+  --dune: #D18730;
+  --dune-light: #E09A45;
+  --cream: #F5F0E8;
+  --sand: #D4C5B0;
+  --olive: #5F5F40;
+  --sage: #A8B5A0;
+  --forest: #2C4A3E;
+  --clay: #C4724E;
+  --white: #FFFFFF;
+  --charcoal: #2D2D2D;
+
+  /* Semantic tokens */
+  --background: var(--cream);
+  --foreground: var(--lagoon);
+  --primary: var(--lagoon);
+  --primary-hover: var(--lagoon-light);
+  --accent: var(--dune);
+  --accent-hover: var(--dune-light);
+  --surface: var(--white);
+  --surface-alt: var(--cream);
+  --muted: var(--sand);
+  --text-primary: var(--lagoon);
+  --text-secondary: var(--olive);
+  --text-accent: var(--dune);
+  --border: var(--sand);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-lagoon: #1E3147;
+  --color-lagoon-light: #2A4562;
+  --color-dune: #D18730;
+  --color-dune-light: #E09A45;
+  --color-cream: #F5F0E8;
+  --color-sand: #D4C5B0;
+  --color-olive: #5F5F40;
+  --color-sage: #A8B5A0;
+  --color-forest: #2C4A3E;
+  --color-clay: #C4724E;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: "Avenir Next", "Montserrat", "Trebuchet MS", sans-serif;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--dune);
+  color: var(--white);
 }

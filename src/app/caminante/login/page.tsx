@@ -15,11 +15,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const nextPath = next?.startsWith("/") ? next : "/caminante";
 
   return (
-    <section className="mx-auto max-w-md space-y-4 rounded-2xl border border-stone-200 bg-white p-6">
+    <section className="mx-auto max-w-md space-y-4 rounded-2xl border border-sand bg-white p-6">
       <h2 className="text-2xl font-semibold">Iniciar sesión</h2>
-      <p className="text-sm text-stone-600">Te enviaremos un magic link por email para entrar.</p>
+      <p className="text-sm text-olive">Te enviaremos un magic link por email para entrar.</p>
       {sent === "1" && email ? (
-        <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+        <div className="rounded-lg bg-cream p-3 text-sm text-lagoon">
           Revisa tu correo: <strong>{email}</strong>
         </div>
       ) : null}
@@ -28,7 +28,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       ) : null}
       <form action={sendMagicLink} className="space-y-3">
         <input type="hidden" name="next" value={nextPath} />
-        <label className="block text-sm font-medium text-stone-700" htmlFor="email">
+        <label className="block text-sm font-medium text-lagoon" htmlFor="email">
           Email
         </label>
         <input
@@ -41,12 +41,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         />
         <button
           type="submit"
-          className="w-full rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800"
+          className="w-full rounded-lg bg-lagoon px-4 py-2 font-medium text-white hover:bg-lagoon-light"
         >
           Enviar magic link
         </button>
       </form>
-      <Link className="text-sm text-emerald-700 hover:underline" href="/caminante/signup">
+      <Link className="text-sm text-lagoon hover:underline" href="/caminante/signup">
         Crear cuenta
       </Link>
     </section>

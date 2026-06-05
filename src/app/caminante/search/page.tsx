@@ -36,7 +36,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           defaultValue={destination}
           placeholder="Destino"
         />
-        <button type="submit" className="rounded-lg bg-emerald-700 px-4 py-2 text-white hover:bg-emerald-800">
+        <button type="submit" className="rounded-lg bg-lagoon px-4 py-2 text-cream hover:bg-lagoon-light">
           Buscar
         </button>
       </form>
@@ -46,7 +46,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           <Link
             key={listing.id}
             href={`/caminante/listings/${listing.id}`}
-            className="rounded-xl border border-stone-200 bg-white p-4 hover:border-emerald-700"
+            className="rounded-xl border border-stone-200 bg-white p-4 hover:border-dune"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-lg font-semibold">{listing.title}</h3>

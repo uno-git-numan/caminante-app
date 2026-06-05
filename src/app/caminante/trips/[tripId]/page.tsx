@@ -35,29 +35,29 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
     return (
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold">Trip no encontrado</h2>
-        <p className="text-stone-600">Verifica acceso y el identificador del viaje.</p>
+        <p className="text-olive">Verifica acceso y el identificador del viaje.</p>
       </section>
     );
   }
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-stone-200 bg-white p-4">
+      <div className="rounded-xl border border-sand bg-white p-4">
         <h2 className="text-2xl font-semibold">{trip.title}</h2>
-        <p className="text-stone-600">
+        <p className="text-olive">
           {trip.destination ?? "Sin destino"} · {trip.start_date ?? "sin fecha"} a {trip.end_date ?? "sin fecha"} ·{" "}
           {trip.status}
         </p>
-        <Link className="text-sm text-emerald-700 hover:underline" href={`/caminante/trips/${tripId}/hub`}>
+        <Link className="text-sm text-lagoon hover:underline" href={`/caminante/trips/${tripId}/hub`}>
           Ir al Trip Hub
         </Link>
       </div>
 
       {added === "1" ? (
-        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Item agregado al viaje.</p>
+        <p className="rounded-lg bg-cream p-3 text-sm text-lagoon">Item agregado al viaje.</p>
       ) : null}
       {requestsSubmitted === "1" ? (
-        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+        <p className="rounded-lg bg-cream p-3 text-sm text-lagoon">
           Requests enviados a operadores (SLA mismo dia).
         </p>
       ) : null}
@@ -68,7 +68,7 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
       <div className="flex flex-wrap gap-2">
         <Link
           href={`/caminante/trips/${tripId}/checkout`}
-          className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+          className="rounded-lg bg-lagoon px-4 py-2 text-sm font-medium text-white hover:bg-lagoon-light"
         >
           Ir a checkout (instant)
         </Link>
@@ -76,7 +76,7 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
           <input type="hidden" name="trip_id" value={tripId} />
           <button
             type="submit"
-            className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium hover:border-emerald-700"
+            className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium hover:border-dune"
           >
             Enviar request-to-book
           </button>
@@ -84,7 +84,7 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <form action={addTripItemAction} className="space-y-3 rounded-xl border border-stone-200 bg-white p-4">
+        <form action={addTripItemAction} className="space-y-3 rounded-xl border border-sand bg-white p-4">
           <h3 className="font-semibold">Agregar item</h3>
           <input type="hidden" name="trip_id" value={tripId} />
           <label className="space-y-1 text-sm">
@@ -120,17 +120,17 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
               defaultValue={0}
             />
           </label>
-          <button type="submit" className="rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800">
+          <button type="submit" className="rounded-lg bg-lagoon px-4 py-2 font-medium text-white hover:bg-lagoon-light">
             Agregar item
           </button>
         </form>
 
-        <div className="space-y-3 rounded-xl border border-stone-200 bg-white p-4">
+        <div className="space-y-3 rounded-xl border border-sand bg-white p-4">
           <h3 className="font-semibold">Items del viaje</h3>
           {tripItems && tripItems.length > 0 ? (
             <ul className="space-y-2 text-sm">
               {tripItems.map((item) => (
-                <li key={item.id} className="rounded-lg border border-stone-200 p-3">
+                <li key={item.id} className="rounded-lg border border-sand p-3">
                   <p>
                     listing: <span className="font-mono text-xs">{item.listing_id}</span>
                   </p>
@@ -141,7 +141,7 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-stone-600">No hay items aún.</p>
+            <p className="text-sm text-olive">No hay items aún.</p>
           )}
         </div>
       </div>

@@ -19,7 +19,7 @@ export default async function TripCheckoutPage({ params }: TripCheckoutPageProps
     return (
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold">Checkout no disponible</h2>
-        <p className="text-stone-600">No encontramos el viaje o no tienes permisos.</p>
+        <p className="text-olive">No encontramos el viaje o no tienes permisos.</p>
       </section>
     );
   }
@@ -28,21 +28,21 @@ export default async function TripCheckoutPage({ params }: TripCheckoutPageProps
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-stone-200 bg-white p-4">
+      <div className="rounded-xl border border-sand bg-white p-4">
         <h2 className="text-2xl font-semibold">Checkout: {trip.title}</h2>
-        <p className="text-stone-600">
+        <p className="text-olive">
           Pago embebido para items instant. Items request-to-book se confirman por operador antes de pago.
         </p>
-        <Link className="text-sm text-emerald-700 hover:underline" href={`/caminante/trips/${tripId}`}>
+        <Link className="text-sm text-lagoon hover:underline" href={`/caminante/trips/${tripId}`}>
           Volver al viaje
         </Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-stone-200 bg-white p-4">
+        <div className="rounded-xl border border-sand bg-white p-4">
           <h3 className="font-semibold">Resumen</h3>
-          <p className="text-sm text-stone-600">Instant pendientes: {payable.length}</p>
-          <p className="text-sm text-stone-600">Request pendientes: {requestOnly.length}</p>
+          <p className="text-sm text-olive">Instant pendientes: {payable.length}</p>
+          <p className="text-sm text-olive">Request pendientes: {requestOnly.length}</p>
           <p className="mt-2 text-lg font-semibold">Total a cobrar ahora: MXN {payableTotalMxn.toFixed(2)}</p>
         </div>
 

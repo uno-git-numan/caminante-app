@@ -61,16 +61,16 @@ export default function CheckoutSuccessPage() {
       <p
         className={
           status === "done"
-            ? "rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800"
+            ? "rounded-lg bg-cream p-3 text-sm text-lagoon"
             : status === "error"
               ? "rounded-lg bg-rose-50 p-3 text-sm text-rose-800"
-              : "rounded-lg bg-stone-100 p-3 text-sm text-stone-700"
+              : "rounded-lg bg-sand p-3 text-sm text-olive"
         }
       >
         {message}
       </p>
       {tripId ? (
-        <Link className="text-emerald-700 hover:underline" href={`/caminante/trips/${tripId}`}>
+        <Link className="text-lagoon hover:underline" href={`/caminante/trips/${tripId}`}>
           Volver al viaje
         </Link>
       ) : null}

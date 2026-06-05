@@ -35,9 +35,9 @@ export default async function ProvidersAdminPage({
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-semibold">Providers</h2>
-      <p className="text-stone-600">Create providers using service-role writes (hybrid model).</p>
+      <p className="text-olive">Create providers using service-role writes (hybrid model).</p>
       {created === "1" ? (
-        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Provider creado.</p>
+        <p className="rounded-lg bg-cream p-3 text-sm text-lagoon">Provider creado.</p>
       ) : null}
       {error ? (
         <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{decodeURIComponent(error)}</p>
@@ -48,7 +48,7 @@ export default async function ProvidersAdminPage({
         </p>
       ) : (
         <>
-          <form action={createProviderAction} className="grid gap-3 rounded-xl border border-stone-200 bg-white p-4 md:grid-cols-2">
+          <form action={createProviderAction} className="grid gap-3 rounded-xl border border-sand bg-white p-4 md:grid-cols-2">
             <input
               className="rounded-lg border border-stone-300 px-3 py-2"
               name="legal_name"
@@ -64,14 +64,14 @@ export default async function ProvidersAdminPage({
             <input className="rounded-lg border border-stone-300 px-3 py-2" name="country_code" defaultValue="MX" />
             <button
               type="submit"
-              className="rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800"
+              className="rounded-lg bg-lagoon px-4 py-2 font-medium text-white hover:bg-lagoon-light"
             >
               Crear provider
             </button>
           </form>
-          <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-sand bg-white">
             <table className="min-w-full text-sm">
-              <thead className="bg-stone-100 text-left">
+              <thead className="bg-cream text-left">
                 <tr>
                   <th className="px-3 py-2">Display</th>
                   <th className="px-3 py-2">Legal</th>
@@ -82,12 +82,12 @@ export default async function ProvidersAdminPage({
               </thead>
               <tbody>
                 {providers?.map((provider) => (
-                  <tr key={provider.id} className="border-t border-stone-200">
+                  <tr key={provider.id} className="border-t border-sand">
                     <td className="px-3 py-2">{provider.display_name}</td>
                     <td className="px-3 py-2">{provider.legal_name}</td>
                     <td className="px-3 py-2">{provider.country_code}</td>
                     <td className="px-3 py-2">{provider.approval_state}</td>
-                    <td className="px-3 py-2 text-xs text-stone-500">{provider.id}</td>
+                    <td className="px-3 py-2 text-xs text-olive">{provider.id}</td>
                   </tr>
                 ))}
               </tbody>

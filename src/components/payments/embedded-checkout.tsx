@@ -43,14 +43,14 @@ function CheckoutForm({ tripId, amountMxn }: { tripId: string; amountMxn: number
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-stone-200 bg-white p-4">
-      <p className="text-sm text-stone-600">Total a pagar ahora: MXN {amountMxn.toFixed(2)}</p>
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-sand bg-white p-4">
+      <p className="text-sm text-olive">Total a pagar ahora: MXN {amountMxn.toFixed(2)}</p>
       <PaymentElement />
       {errorMessage ? <p className="text-sm text-rose-700">{errorMessage}</p> : null}
       <button
         type="submit"
         disabled={!stripe || !elements || isSubmitting}
-        className="w-full rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+        className="w-full rounded-lg bg-lagoon px-4 py-2 font-medium text-white hover:bg-lagoon-light disabled:opacity-60"
       >
         {isSubmitting ? "Procesando..." : "Pagar ahora"}
       </button>
@@ -110,12 +110,12 @@ export function EmbeddedCheckout({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-stone-600">Items instant a cobrar: {payableCount}</p>
+      <p className="text-sm text-olive">Items instant a cobrar: {payableCount}</p>
       {!clientSecret ? (
         <button
           onClick={createIntent}
           disabled={loading}
-          className="rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+          className="rounded-lg bg-lagoon px-4 py-2 font-medium text-white hover:bg-lagoon-light disabled:opacity-60"
         >
           {loading ? "Preparando checkout..." : "Continuar a pago seguro"}
         </button>

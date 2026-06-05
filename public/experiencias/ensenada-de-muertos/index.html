@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es" class="no-js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caminante · Ocean Safari — Ensenada de Muertos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ---------- Geist (local, variable) ---------- */
+@font-face{font-family:"Geist";src:url("/experiencias/ensenada-de-muertos/assets/fonts/GeistVF.woff2") format("woff2-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:"Geist";src:url("/experiencias/ensenada-de-muertos/assets/fonts/GeistVF-Italic.woff2") format("woff2-variations");font-weight:100 900;font-style:italic;font-display:swap;}
+:root{
+  --lagoon:#1E3147; --dune:#D18730; --cream:#F5F0E8; --clay:#C4724E;
+  --forest:#2C4A3E; --sand:#D4C5B0; --charcoal:#2D2D2D;
+  --paper:#F5F0E8; --paper-2:#EFE7D8;
+  --serif:"Geist",system-ui,sans-serif;
+  --sans:"Geist",system-ui,sans-serif;
+  --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --nav-h:62px;
+  --maxw:1240px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--sans); background:var(--paper); color:var(--charcoal);
+  font-size:17px; line-height:1.65; -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img{display:block; width:100%; height:100%; object-fit:cover;}
+a{color:inherit; text-decoration:none;}
+
+/* ---------- type helpers ---------- */
+.label{
+  font-family:var(--sans); font-weight:600; font-size:12px;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--dune);
+}
+.chapter-tag{
+  font-family:var(--sans); font-weight:600; font-size:11.5px;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--dune);
+  display:flex; align-items:center; gap:.9em;
+}
+.chapter-tag::before{content:""; width:34px; height:1px; background:var(--dune); display:inline-block;}
+h1,h2,h3,h4{font-family:var(--serif); color:var(--lagoon); font-weight:700; line-height:1.04; letter-spacing:-.018em;}
+.display{
+  font-family:var(--serif); color:var(--lagoon); font-weight:800;
+  font-size:clamp(2.6rem,8vw,6.2rem); line-height:.96; letter-spacing:-.03em;
+}
+.ital{font-style:italic; color:var(--dune); font-weight:500;}
+.lead{font-size:clamp(1.05rem,2.4vw,1.4rem); line-height:1.55; color:#4a4942; max-width:46ch; font-weight:400;}
+.body-sm{font-size:15px; line-height:1.6; color:#55534b;}
+
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 28px;}
+section{position:relative;}
+.chapter{padding:96px 0; scroll-margin-top:var(--nav-h);}
+
+/* ---------- edge masthead (desktop) ---------- */
+.edge{
+  position:fixed; top:50%; z-index:40; font-family:var(--sans);
+  font-size:10.5px; letter-spacing:.34em; text-transform:uppercase;
+  color:rgba(30,49,71,.42); pointer-events:none; white-space:nowrap;
+}
+.edge.left{left:-4px; transform:rotate(-90deg) translateX(-50%); transform-origin:left center;}
+.edge.right{right:-4px; transform:rotate(90deg) translateX(50%); transform-origin:right center;}
+@media(max-width:1100px){.edge{display:none;}}
+
+/* ---------- nav ---------- */
+.nav{
+  position:fixed; top:0; left:0; right:0; height:var(--nav-h); z-index:60;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; background:rgba(245,240,232,.82); backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(30,49,71,.12); transition:transform .4s ease;
+}
+.nav .brand{font-family:var(--mono); font-weight:600; font-size:16px; color:var(--lagoon); letter-spacing:.02em; text-transform:uppercase; display:flex; align-items:baseline; gap:.5em;}
+.nav .brand small{font-family:var(--sans); font-weight:600; font-size:9.5px; letter-spacing:.12em; color:var(--dune); text-transform:uppercase;}
+.nav-links{display:flex; align-items:center; gap:19px;}
+.nav-links a{
+  font-family:var(--sans); font-size:10.5px; font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--lagoon); opacity:.7; transition:opacity .2s, color .2s; white-space:nowrap;
+}
+.nav-links a:hover{opacity:1; color:var(--dune);}
+.nav-cta{
+  font-family:var(--sans); font-size:11px; font-weight:600; letter-spacing:.08em;
+  text-transform:uppercase; background:var(--lagoon); color:var(--cream);
+  padding:11px 18px; border-radius:2px; transition:background .25s; white-space:nowrap;
+}
+.nav-cta:hover{background:var(--dune);}
+.nav.on-dark{background:rgba(20,30,45,.9); border-bottom-color:rgba(245,240,232,.16);}
+.nav.on-dark .brand{color:var(--cream);}
+.nav.on-dark .nav-links a{color:var(--cream);}
+.nav.on-dark .nav-cta{background:var(--dune); color:#fff;}
+.nav.on-dark .nav-cta:hover{background:#bd7826;}
+@media(max-width:900px){
+  .nav-links{display:none;}
+}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; gap:.7em; font-family:var(--sans);
+  font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  padding:16px 26px; border-radius:2px; transition:all .25s; cursor:pointer; border:1px solid transparent; white-space:nowrap;
+}
+.btn-primary{background:var(--dune); color:#fff;}
+.btn-primary:hover{background:#bd7826;}
+.btn-ghost{background:transparent; color:var(--cream); border-color:rgba(245,240,232,.5);}
+.btn-ghost:hover{background:rgba(245,240,232,.12); border-color:var(--cream);}
+.btn-lagoon{background:var(--lagoon); color:var(--cream);}
+.btn-lagoon:hover{background:#16263a;}
+
+/* ---------- hero ---------- */
+.hero{height:100vh; min-height:640px; position:relative; display:flex; flex-direction:column; justify-content:flex-end; color:var(--cream);}
+.hero .bg{position:absolute; inset:0; z-index:0;}
+.hero .bg::after{content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(20,30,45,.45) 0%,rgba(20,30,45,.15) 38%,rgba(20,30,45,.78) 100%);}
+.hero-top{position:absolute; top:calc(var(--nav-h) + 26px); left:0; right:0; z-index:2; display:flex; justify-content:space-between; gap:16px;}
+.hero-top .label{color:var(--sand); white-space:nowrap;}
+.hero-inner{position:relative; z-index:2; padding-bottom:60px;}
+.hero h1{color:var(--cream); font-size:clamp(3.4rem,14vw,9.5rem); line-height:.82; letter-spacing:-.04em; font-weight:800;}
+.hero h1 .ital{color:var(--dune);}
+.hero .sub{font-family:var(--serif); font-style:italic; font-size:clamp(1.15rem,3vw,1.7rem); color:var(--sand); margin-top:.5em;}
+.hero-meta{display:flex; flex-wrap:wrap; gap:34px 52px; margin-top:38px; padding-top:30px; border-top:1px solid rgba(245,240,232,.25);}
+.hero-meta .item .k{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--dune); font-weight:600;}
+.hero-meta .item .v{font-family:var(--serif); font-size:1.18rem; color:var(--cream); margin-top:5px; line-height:1.2;}
+.hero-actions{display:flex; flex-wrap:wrap; gap:14px; margin-top:38px;}
+.scroll-hint{position:absolute; bottom:22px; right:28px; z-index:3; font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:rgba(245,240,232,.7); display:flex; flex-direction:column; align-items:center; gap:8px;}
+@media(max-width:900px){.scroll-hint{display:none;}}
+.scroll-hint .line{width:1px; height:34px; background:rgba(245,240,232,.5); animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:.3;transform:scaleY(.6);}50%{opacity:1;transform:scaleY(1);}}
+
+/* ---------- four caras ---------- */
+.caras{background:var(--lagoon); color:var(--cream); padding-top:90px; padding-bottom:0;}
+.caras .intro{max-width:var(--maxw); margin:0 auto; padding:0 28px 46px;}
+.caras h2{color:var(--cream); font-size:clamp(2.2rem,5.5vw,4rem);}
+.caras h2 .ital{color:var(--dune);}
+.caras .intro p{color:rgba(245,240,232,.72); max-width:50ch; margin-top:18px;}
+.chipbar{
+  position:sticky; top:var(--nav-h); z-index:50; background:var(--lagoon);
+  border-top:1px solid rgba(245,240,232,.14); border-bottom:1px solid rgba(245,240,232,.14);
+}
+.chipbar-inner{max-width:var(--maxw); margin:0 auto; padding:13px 28px; display:flex; gap:10px; overflow-x:auto; -ms-overflow-style:none; scrollbar-width:none;}
+.chipbar-inner::-webkit-scrollbar{display:none;}
+.chip{
+  flex:0 0 auto; display:inline-flex; align-items:center; gap:.55em; cursor:pointer;
+  font-family:var(--sans); font-size:11.5px; font-weight:600; letter-spacing:.13em; text-transform:uppercase;
+  padding:10px 16px; border-radius:2px; border:1px solid rgba(245,240,232,.28);
+  color:rgba(245,240,232,.82); background:transparent; transition:all .25s; white-space:nowrap;
+}
+.chip .dot{width:9px; height:9px; border-radius:50%; background:var(--c);}
+.chip:hover{border-color:rgba(245,240,232,.7); color:#fff;}
+.chip.active{background:var(--c); border-color:var(--c); color:#fff;}
+.chip[data-lens="naturaleza"]{--c:#3f7a5f;}
+.chip[data-lens="conservacion"]{--c:#6f93c4;}
+.chip[data-lens="comunidades"]{--c:var(--dune);}
+.chip[data-lens="problemas"]{--c:var(--clay);}
+
+.lens{display:grid; grid-template-columns:1fr 1fr; align-items:stretch; scroll-margin-top:calc(var(--nav-h) + 56px); min-height:520px; border-top:1px solid rgba(245,240,232,.1);}
+.lens .text{padding:74px 6vw 74px; display:flex; flex-direction:column; justify-content:center;}
+.lens .media{position:relative; overflow:hidden; min-height:340px;}
+.lens .media::after{content:""; position:absolute; inset:0; background:var(--shade); mix-blend-mode:multiply; opacity:.32;}
+.lens:nth-child(even) .text{order:2;}
+.lens .lens-no{font-family:var(--serif); font-size:13px; letter-spacing:.2em; color:var(--accent); font-weight:600;}
+.lens .lens-label{font-family:var(--sans); font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-top:18px; display:flex; align-items:center; gap:.6em;}
+.lens .lens-label .dot{width:11px; height:11px; border-radius:50%; background:var(--accent);}
+.lens h3{color:var(--cream); font-size:clamp(1.7rem,3.4vw,2.5rem); margin-top:14px; max-width:16ch;}
+.lens p{color:rgba(245,240,232,.78); margin-top:20px; font-size:16px; max-width:48ch;}
+.lens .facts{display:flex; flex-wrap:wrap; gap:26px 40px; margin-top:30px; padding-top:26px; border-top:1px solid rgba(245,240,232,.18);}
+.lens .facts .f .n{font-family:var(--serif); font-size:2rem; color:var(--accent); line-height:1;}
+.lens .facts .f .l{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:rgba(245,240,232,.6); margin-top:6px; max-width:18ch;}
+.lens[data-lens="naturaleza"]{--accent:#6cae8a; --shade:#2C4A3E;}
+.lens[data-lens="conservacion"]{--accent:#8fb0db; --shade:#1E3147;}
+.lens[data-lens="comunidades"]{--accent:#e6a44e; --shade:#D18730;}
+.lens[data-lens="problemas"]{--accent:#e08a64; --shade:#C4724E;}
+@media(max-width:760px){
+  .lens{grid-template-columns:1fr;}
+  .lens:nth-child(even) .text{order:0;}
+  .lens .media{min-height:280px; order:-1;}
+  .lens .text{padding:54px 28px;}
+}
+
+/* ---------- numbered context cards ---------- */
+.ctx-head{display:grid; grid-template-columns:1fr 1fr; gap:50px; align-items:end; margin-bottom:14px;}
+.ctx-head .lead{margin-top:26px;}
+@media(max-width:820px){.ctx-head{grid-template-columns:1fr; gap:24px;}}
+.ctx-band{margin:46px 0 64px; height:clamp(240px,40vw,460px); overflow:hidden; position:relative;}
+.ctx-band .cap{position:absolute; left:0; bottom:0; padding:14px 20px; background:rgba(20,30,45,.62); color:var(--cream); font-size:11px; letter-spacing:.18em; text-transform:uppercase; font-weight:600;}
+.numlist{max-width:780px; margin:0 auto; position:relative;}
+.numitem{position:relative; padding:0 0 0 84px; min-height:96px; padding-bottom:54px;}
+.numitem:last-child{padding-bottom:0;}
+.numitem .no{position:absolute; left:0; top:2px; font-family:var(--serif); font-size:1.5rem; color:var(--dune); font-weight:600; width:54px; text-align:center;}
+.numitem .stem{position:absolute; left:26px; top:46px; bottom:-8px; width:1px; background:rgba(30,49,71,.25);}
+.numitem:last-child .stem{display:none;}
+.numitem .arrow{position:absolute; left:20px; bottom:14px; color:var(--dune); font-size:14px;}
+.numitem h4{font-size:1.45rem; color:var(--lagoon);}
+.numitem .sub{font-family:var(--serif); font-style:italic; color:var(--clay); font-size:1.05rem; margin-top:2px;}
+.numitem p{margin-top:12px; color:#55534b; font-size:15.5px; max-width:60ch;}
+@media(max-width:560px){.numitem{padding-left:64px;} .numitem .no{width:44px; font-size:1.25rem;} .numitem .stem{left:21px;} .numitem .arrow{left:15px;}}
+
+/* ---------- experiencia splits ---------- */
+.exp-item{display:grid; grid-template-columns:1fr 1fr; gap:0; align-items:center; margin-bottom:8px; background:var(--paper-2); overflow:hidden;}
+.exp-item .media{height:100%; min-height:380px; overflow:hidden;}
+.exp-item .copy{padding:56px clamp(28px,5vw,64px);}
+.exp-item:nth-child(even) .media{order:2;}
+.exp-item .num{font-family:var(--serif); font-size:3rem; color:var(--sand); line-height:1; font-weight:600;}
+.exp-item .pill{display:inline-block; margin-top:18px; font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--dune); border:1px solid var(--dune); padding:6px 12px; border-radius:2px;}
+.exp-item h3{font-size:clamp(1.5rem,3vw,2.1rem); margin-top:20px;}
+.exp-item p{margin-top:16px; color:#55534b; max-width:44ch;}
+@media(max-width:820px){
+  .exp-item{grid-template-columns:1fr;}
+  .exp-item:nth-child(even) .media{order:0;}
+  .exp-item .media{min-height:260px;}
+}
+
+/* ---------- aliados ---------- */
+.aliados-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:rgba(30,49,71,.14); border:1px solid rgba(30,49,71,.14);}
+.ally{background:var(--paper); padding:42px clamp(26px,3vw,42px);}
+.ally .role{font-size:10.5px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--dune);}
+.ally h3{font-size:1.7rem; margin-top:14px;}
+.ally p{margin-top:14px; color:#55534b; font-size:15px;}
+.ally .people{margin-top:20px; padding-top:18px; border-top:1px solid rgba(30,49,71,.14);}
+.ally .people .pl{font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:#8a877d; font-weight:600;}
+.ally .people .pn{font-family:var(--serif); color:var(--lagoon); font-size:1.05rem; margin-top:6px; line-height:1.4;}
+@media(max-width:720px){.aliados-grid{grid-template-columns:1fr;}}
+
+/* ---------- timeline ---------- */
+.timeline{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:rgba(30,49,71,.16); border:1px solid rgba(30,49,71,.16); margin-top:46px;}
+.day{background:var(--paper); padding:30px 24px;}
+.day .dno{font-family:var(--serif); font-size:11px; letter-spacing:.24em; color:var(--dune); font-weight:600; text-transform:uppercase;}
+.day .dname{font-family:var(--serif); font-size:1.3rem; color:var(--lagoon); margin-top:8px; line-height:1.1; padding-bottom:18px; border-bottom:1px solid rgba(30,49,71,.16);}
+.beat{padding:16px 0; border-bottom:1px solid rgba(30,49,71,.1);}
+.beat:last-child{border-bottom:none;}
+.beat .t{font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--clay); font-weight:700;}
+.beat .d{font-size:13.5px; color:#55534b; margin-top:5px; line-height:1.45;}
+@media(max-width:880px){.timeline{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.timeline{grid-template-columns:1fr;}}
+
+/* ---------- full bleed band ---------- */
+.band{position:relative; min-height:clamp(440px,70vh,640px); display:flex; align-items:center; color:var(--cream); overflow:hidden;}
+.band .bg{position:absolute; inset:0; z-index:0;}
+.band .bg::after{content:""; position:absolute; inset:0;}
+.band.impact .bg::after{background:linear-gradient(100deg,rgba(30,49,71,.92) 0%,rgba(30,49,71,.7) 55%,rgba(30,49,71,.35) 100%);}
+.band-inner{position:relative; z-index:2; max-width:var(--maxw); margin:0 auto; padding:80px 28px; width:100%;}
+.band h2{color:var(--cream); font-size:clamp(2.4rem,6vw,4.6rem); max-width:14ch;}
+.band h2 .ital{color:var(--dune);}
+.band p{color:rgba(245,240,232,.85); max-width:46ch; margin-top:24px; font-size:1.05rem;}
+.band .label{color:var(--sand);}
+
+/* ---------- paquete ---------- */
+.pak{display:grid; grid-template-columns:1fr 1fr; gap:54px; margin-top:44px;}
+@media(max-width:760px){.pak{grid-template-columns:1fr; gap:42px;}}
+.pak-col h3{font-size:1.6rem;}
+.pak-col .hd{font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; font-weight:700; margin-bottom:6px;}
+.pak-col.inc .hd{color:var(--forest);}
+.pak-col.exc .hd{color:var(--clay);}
+.pak ul{list-style:none; margin-top:24px;}
+.pak li{display:flex; gap:14px; padding:13px 0; border-bottom:1px solid rgba(30,49,71,.1); font-size:15px; color:#4a4942; line-height:1.5;}
+.pak li .mk{flex:0 0 auto; font-family:var(--serif); font-size:1.2rem; line-height:1; width:18px;}
+.pak-col.inc .mk{color:var(--forest);}
+.pak-col.exc .mk{color:var(--clay);}
+
+/* ---------- mochila ---------- */
+.moch-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:34px; margin-top:44px;}
+@media(max-width:820px){.moch-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.moch-grid{grid-template-columns:1fr;}}
+.moch-cat .ct{font-size:11px; letter-spacing:.22em; text-transform:uppercase; font-weight:700; color:var(--lagoon); padding-bottom:14px; border-bottom:2px solid var(--lagoon); margin-bottom:8px;}
+.moch-cat ul{list-style:none;}
+.moch-cat li{padding:12px 0; border-bottom:1px solid rgba(30,49,71,.1); font-size:14.5px; color:#4a4942;}
+.moch-cat li .req{display:block; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; margin-top:4px; color:#9a978d;}
+.moch-cat li.must{color:var(--dune); font-weight:600;}
+.moch-cat li.must .req{color:var(--dune);}
+.moch-note{margin-top:42px; background:var(--paper-2); border-left:3px solid var(--dune); padding:26px 30px;}
+.moch-note .label{margin-bottom:10px;}
+.moch-note p{color:#4a4942; max-width:60ch;}
+
+/* ---------- practico panel + faq ---------- */
+.prac-grid{display:grid; grid-template-columns:1fr 1.25fr; gap:54px; margin-top:44px; align-items:start;}
+@media(max-width:880px){.prac-grid{grid-template-columns:1fr; gap:42px;}}
+.cost-panel{background:var(--lagoon); color:var(--cream); padding:44px 38px; position:sticky; top:calc(var(--nav-h) + 20px);}
+@media(max-width:880px){.cost-panel{position:static;}}
+.cost-panel .label{color:var(--dune);}
+.cost-panel .big{font-family:var(--serif); font-size:clamp(3.4rem,8vw,5rem); line-height:.9; margin:16px 0 4px; color:var(--cream);}
+.cost-panel .cur{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:rgba(245,240,232,.65); font-weight:600;}
+.cost-panel .desc{font-size:14px; color:rgba(245,240,232,.78); margin-top:22px; padding-top:22px; border-top:1px solid rgba(245,240,232,.2); line-height:1.6;}
+.cancel{margin-top:26px;}
+.cancel .ct{font-size:10.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--sand); font-weight:600; margin-bottom:12px;}
+.cancel .row{display:flex; justify-content:space-between; gap:16px; padding:11px 0; border-bottom:1px solid rgba(245,240,232,.16); font-size:14px;}
+.cancel .row span:first-child{color:rgba(245,240,232,.85);}
+.cancel .row span:last-child{font-family:var(--serif); color:var(--dune); font-weight:600;}
+
+.faq .label{margin-bottom:8px;}
+.faq h3{font-size:1.8rem; margin-bottom:14px;}
+.acc-item{border-bottom:1px solid rgba(30,49,71,.16);}
+.acc-q{width:100%; text-align:left; background:none; border:none; cursor:pointer; padding:22px 40px 22px 0; position:relative; font-family:var(--serif); font-size:1.18rem; color:var(--lagoon); line-height:1.3;}
+.acc-q .ic{position:absolute; right:2px; top:24px; width:18px; height:18px; transition:transform .3s;}
+.acc-q .ic::before,.acc-q .ic::after{content:""; position:absolute; background:var(--dune); transition:opacity .3s;}
+.acc-q .ic::before{left:0; top:8px; width:18px; height:2px;}
+.acc-q .ic::after{left:8px; top:0; width:2px; height:18px;}
+.acc-item.open .acc-q .ic::after{opacity:0;}
+.acc-a{max-height:0; overflow:hidden; transition:max-height .4s ease;}
+.acc-a .inner{padding:0 40px 24px 0; color:#55534b; font-size:15px; line-height:1.6; max-width:62ch;}
+
+/* ---------- reserva ---------- */
+.reserva{position:relative; color:var(--cream); overflow:hidden; min-height:90vh; display:flex; align-items:center;}
+.reserva .bg{position:absolute; inset:0; z-index:0;}
+.reserva .bg::after{content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(20,30,45,.55),rgba(20,30,45,.82));}
+.reserva-inner{position:relative; z-index:2; max-width:var(--maxw); margin:0 auto; padding:110px 28px 90px; width:100%;}
+.reserva h2{color:var(--cream); font-size:clamp(3rem,9vw,6.5rem); line-height:.9; letter-spacing:-.03em;}
+.reserva h2 .ital{color:var(--dune);}
+.contact-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:30px; margin-top:50px; padding-top:40px; border-top:1px solid rgba(245,240,232,.25);}
+@media(max-width:680px){.contact-grid{grid-template-columns:1fr; gap:24px;}}
+.contact-grid .ci .k{font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--dune); font-weight:600;}
+.contact-grid .ci .v{font-family:var(--serif); font-size:1.3rem; color:var(--cream); margin-top:8px; word-break:break-word;}
+.contact-grid .ci .v:hover{color:var(--sand);}
+.reserva-actions{display:flex; flex-wrap:wrap; gap:14px; margin-top:42px;}
+.reserva .meta-note{margin-top:38px; font-size:12.5px; letter-spacing:.04em; color:rgba(245,240,232,.62); display:flex; flex-wrap:wrap; gap:8px 26px;}
+.dates-badge{display:inline-flex; align-items:baseline; gap:12px; margin-top:30px; font-family:var(--serif); color:var(--sand);}
+.dates-badge .big{font-size:2.4rem; color:var(--cream); line-height:1;}
+
+/* ---------- footer ---------- */
+.foot{background:var(--lagoon); color:rgba(245,240,232,.7); padding:46px 28px;}
+.foot-inner{max-width:var(--maxw); margin:0 auto; display:flex; flex-wrap:wrap; justify-content:space-between; gap:24px; align-items:center;}
+.foot .brand{font-family:var(--serif); color:var(--cream); font-size:1.3rem;}
+.foot small{font-size:11px; letter-spacing:.18em; text-transform:uppercase; display:block; margin-top:6px; color:rgba(245,240,232,.5);}
+.foot .right{font-size:12.5px; max-width:48ch; line-height:1.6;}
+
+/* ---------- sticky mobile WA ---------- */
+.wa-mobile{
+  position:fixed; left:16px; right:16px; bottom:16px; z-index:70;
+  display:none; justify-content:center; gap:.6em; align-items:center;
+  background:var(--dune); color:#fff; padding:16px; border-radius:3px;
+  font-family:var(--sans); font-weight:700; font-size:13px; letter-spacing:.1em; text-transform:uppercase;
+  box-shadow:0 8px 30px rgba(0,0,0,.28);
+}
+@media(max-width:900px){.wa-mobile{display:flex;}}
+
+/* ---------- reveal ---------- */
+.js .reveal{opacity:0; transform:translateY(26px); transition:opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1);}
+.js .reveal.in{opacity:1; transform:none;}
+@media(prefers-reduced-motion:reduce){.js .reveal{opacity:1!important; transform:none!important;} html{scroll-behavior:auto;}}
+
+/* ---------- Geist Mono accents: eyebrows, labels, nav, buttons, data numbers ---------- */
+.label,.chapter-tag,.nav-links a,.nav-cta,.nav .brand small,.btn,.exp-item .pill,
+.lens-no,.lens-label,.edge,.hero-meta .item .k,.moch-cat .ct,.cost-panel .cur,
+.cancel .ct,.beat .t,.day .dno,.ally .role,.pak-col .hd,.contact-grid .ci .k,
+.reserva .meta-note,.moch-cat li .req,.foot small,
+.cost-panel .big,.lens .facts .f .n,.exp-item .num,.numitem .no,.dates-badge .big,.dates-badge .label{
+  font-family:var(--mono);
+}
+.cost-panel .big,.exp-item .num,.numitem .no,.dates-badge .big{letter-spacing:-.02em; font-weight:600;}
+.chapter-tag,.label{font-weight:500;}
+
+</style>
+</head>
+<body>
+
+<div class="edge left">Caminante · Ocean Safari 2026</div>
+<div class="edge right">23°59′N · 109°50′W</div>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <a href="#top" class="brand">Caminante<small>Ocean Safari</small></a>
+  <div class="nav-links">
+    <a href="#contexto">Contexto</a>
+    <a href="#caras">Cuatro Caras</a>
+    <a href="#experiencia">Experiencia</a>
+    <a href="#aliados">Aliados</a>
+    <a href="#itinerario">Itinerario</a>
+    <a href="#paquete">Paquete</a>
+    <a href="#practico">Inversión</a>
+  </div>
+  <a href="https://wa.me/525512020565" class="nav-cta" target="_blank" rel="noopener">Reservar</a>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="bg"><img src="/experiencias/ensenada-de-muertos/assets/photos/b.jpg" alt="Aleta dorsal de una orca emergiendo entre la bruma del Mar de Cortés" fetchpriority="high"></div>
+  <div class="wrap hero-top">
+    <span class="label">Experiencia Caminante</span>
+    <span class="label">Vol. 07 · Junio 2026</span>
+  </div>
+  <div class="wrap hero-inner">
+    <h1>OCEAN<br><span class="ital">safari.</span></h1>
+    <p class="sub">Ensenada de Muertos · Viaje con la ciencia</p>
+    <div class="hero-meta">
+      <div class="item"><div class="k">Dos fechas</div><div class="v">Junio 12–15<br>ó 18–21</div></div>
+      <div class="item"><div class="k">Duración</div><div class="v">4 días · 3 noches<br>Campamento frente al mar</div></div>
+      <div class="item"><div class="k">Lugar</div><div class="v">Ensenada de Muertos<br>Baja California Sur</div></div>
+      <div class="item"><div class="k">Cupo limitado</div><div class="v">Máx. 13 participantes<br>+ 3 operadores</div></div>
+    </div>
+    <div class="hero-actions">
+      <a href="https://wa.me/525512020565" class="btn btn-primary" target="_blank" rel="noopener">Reservar por WhatsApp →</a>
+      <a href="#itinerario" class="btn btn-ghost">Ver itinerario</a>
+    </div>
+  </div>
+  <div class="scroll-hint"><span>Scroll</span><span class="line"></span></div>
+</header>
+
+<!-- CAP 01 — CONTEXTO -->
+<section class="chapter wrap" id="contexto">
+  <div class="ctx-head reveal">
+    <div>
+      <div class="chapter-tag">Capítulo 01 · El Contexto</div>
+      <h2 class="display" style="margin-top:22px;">La historia detrás del <span class="ital">Mar de Cortés.</span></h2>
+    </div>
+    <p class="lead">Cuatro días aprendiendo de biólogos marinos y de la comunidad pesquera de Agua Amarga. Una invitación a ser parte de un proyecto de conservación marina.</p>
+  </div>
+
+  <div class="ctx-band reveal">
+    <img src="/experiencias/ensenada-de-muertos/assets/photos/dji0175.jpg" alt="Vista aérea donde el desierto de Baja se encuentra con el mar turquesa">
+    <div class="cap">Donde el desierto toca el mar · Ensenada de Muertos, BCS</div>
+  </div>
+
+  <div class="numlist">
+    <div class="numitem reveal">
+      <div class="no">01</div><div class="stem"></div><div class="arrow">↓</div>
+      <h4>Agua Amarga</h4>
+      <div class="sub">De tiburoneros a guardianes del mar.</div>
+      <p>Comunidad pesquera del Pacífico, en Baja California Sur. Durante generaciones vivieron de la pesca de tiburón. Hoy, a través del eco-turismo y la conservación, la Cooperativa Tiburón se transformó: de cazadores a protectores del océano.</p>
+    </div>
+    <div class="numitem reveal">
+      <div class="no">02</div><div class="stem"></div><div class="arrow">↓</div>
+      <h4>Dos Mares</h4>
+      <div class="sub">Un área marina protegida en proceso de creación.</div>
+      <p>Orgcas A.C. y Oregon State University proponen una Reserva de la Biósfera que conecte el Pacífico con el Mar de Cortés. Para diseñar los polígonos hace falta rastrear las rutas migratorias de orcas, ballenas y tiburones.</p>
+    </div>
+    <div class="numitem reveal">
+      <div class="no">03</div><div class="stem"></div><div class="arrow">↓</div>
+      <h4>La investigación</h4>
+      <div class="sub">Viaje con la ciencia de orcas.</div>
+      <p>En febrero de 2025, el primer viaje con la ciencia de orcas en la historia de México. En junio de 2026, los biólogos regresan a rastrear orcas y sus presas. Esos datos fundamentarán la propuesta de Dos Mares.</p>
+    </div>
+    <div class="numitem reveal">
+      <div class="no">04</div><div class="stem"></div><div class="arrow">↓</div>
+      <h4>Caminante</h4>
+      <div class="sub">No es observación pasiva. Es inmersión.</div>
+      <p>UABCS, Oregon State University, Orgcas, y la Cooperativa Tiburón invitan a Caminante a vivir esta historia desde dentro. Aprendes directo de los científicos y los pescadores, convives con quienes hacen el trabajo, y contribuyes a la causa.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CUATRO CARAS -->
+<section class="caras" id="caras">
+  <div class="intro reveal">
+    <div class="chapter-tag">Las cuatro caras de la moneda</div>
+    <h2 style="margin-top:22px;">Cada experiencia Caminante <span class="ital">tiene cuatro lentes.</span></h2>
+    <p>Una forma de leer este lugar. Naturaleza, conservación, comunidades y problemas: cuatro miradas sobre el mismo mar. Elige un lente para enfocar.</p>
+  </div>
+
+  <div class="chipbar" id="chipbar">
+    <div class="chipbar-inner">
+      <button class="chip" data-lens="naturaleza"><span class="dot"></span>Naturaleza</button>
+      <button class="chip" data-lens="conservacion"><span class="dot"></span>Conservación</button>
+      <button class="chip" data-lens="comunidades"><span class="dot"></span>Comunidades</button>
+      <button class="chip" data-lens="problemas"><span class="dot"></span>Problemas</button>
+    </div>
+  </div>
+
+  <article class="lens" data-lens="naturaleza" id="lens-naturaleza">
+    <div class="text">
+      <div class="lens-no">Cara 01</div>
+      <div class="lens-label"><span class="dot"></span>Naturaleza</div>
+      <h3>La ciencia viva del lugar.</h3>
+      <p>El Mar de Cortés es el único santuario del mundo con <strong>nueve especies de grandes ballenas</strong>. La ballena azul y la de aleta son los dos animales más grandes que han existido. Las orcas son depredadores ápice que moldean el ecosistema por depredación y por el "paisaje del miedo". En junio: rayas móbula munkiana, lobos marinos, delfines, tortugas, jorobada y azul.</p>
+      <div class="facts">
+        <div class="f"><div class="n">9</div><div class="l">especies de grandes ballenas</div></div>
+        <div class="f"><div class="n">900</div><div class="l">especies de peces</div></div>
+        <div class="f"><div class="n">2,000</div><div class="l">especies de invertebrados</div></div>
+      </div>
+    </div>
+    <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/dji0179.jpg" alt="Vista aérea de un arrecife en aguas turquesa del Mar de Cortés"></div>
+  </article>
+
+  <article class="lens" data-lens="conservacion" id="lens-conservacion">
+    <div class="text">
+      <div class="lens-no">Cara 02</div>
+      <div class="lens-label"><span class="dot"></span>Conservación</div>
+      <h3>La protección que se está construyendo.</h3>
+      <p>"Dos Mares" es la Reserva de la Biósfera propuesta que conectaría el Pacífico con el Mar de Cortés. La región concentra el <strong>70–75% de la captura pesquera del país</strong>. Impulsada por Orgcas, DEPESCA y Beta Diversidad, con apoyo de Pew Bertarelli, Patagonia, Wyss y Blue Marine Foundation. Siete años de socialización, 553+ cartas de apoyo de 4,000+ pescadores: por primera vez las voces locales se reflejan en el programa de manejo.</p>
+      <div class="facts">
+        <div class="f"><div class="n">553+</div><div class="l">cartas de apoyo de pescadores</div></div>
+        <div class="f"><div class="n">2025</div><div class="l">1er marcaje satelital de orcas en México · 3 orcas · 650 millas · 6 semanas</div></div>
+        <div class="f"><div class="n">8 tags</div><div class="l">en junio 2026 para mapear rutas migratorias</div></div>
+      </div>
+    </div>
+    <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/d.jpg" alt="Orcas avistadas entre la niebla, datos para la propuesta Dos Mares"></div>
+  </article>
+
+  <article class="lens" data-lens="comunidades" id="lens-comunidades">
+    <div class="text">
+      <div class="lens-no">Cara 03</div>
+      <div class="lens-label"><span class="dot"></span>Comunidades</div>
+      <h3>La gente del lugar y su vínculo con el mar.</h3>
+      <p>Agua Amarga: de tiburoneros a guardianes del mar. La Cooperativa Tiburón capitanea las pangas — <strong>Félix Rochin, Tobías Lucero, Salvador Ríos</strong>. Conocimiento intergeneracional que ningún laboratorio puede sustituir. La reserva beneficiaría a 11,000 pescadores ribereños y sus familias.</p>
+      <div class="facts">
+        <div class="f"><div class="n">11,000</div><div class="l">pescadores ribereños beneficiados</div></div>
+        <div class="f"><div class="n">3</div><div class="l">capitanes de la Cooperativa Tiburón</div></div>
+      </div>
+    </div>
+    <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/dsc03001.jpg" alt="Panga de la Cooperativa Tiburón navegando al amanecer"></div>
+  </article>
+
+  <article class="lens" data-lens="problemas" id="lens-problemas">
+    <div class="text">
+      <div class="lens-no">Cara 04</div>
+      <div class="lens-label"><span class="dot"></span>Problemas</div>
+      <h3>Lo que pelea contra la conservación.</h3>
+      <p>México tiene 39 Áreas Marinas Protegidas, pero permite pesca industrial en 35 — el <strong>95% de la Zona Económica Exclusiva</strong>. Hasta el 80% de las pesquerías están sobreexplotadas. La pesca industrial es apenas el 0.08% del PIB. <em>"Lo que un barco industrial captura en una noche equivale a lo que una comunidad costera captura en un año."</em> Amenazas: pesca industrial, minería submarina, turismo no regulado, gas Saguaro, cruceros, desaladoras, crimen organizado.</p>
+      <div class="facts">
+        <div class="f"><div class="n">95%</div><div class="l">de la ZEE con pesca industrial permitida</div></div>
+        <div class="f"><div class="n">80%</div><div class="l">de las pesquerías sobreexplotadas</div></div>
+        <div class="f"><div class="n">0.08%</div><div class="l">del PIB es la pesca industrial</div></div>
+      </div>
+    </div>
+    <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/dsc01754.jpg" alt="Cardumen disperso en aguas oscuras, símbolo de la presión sobre el ecosistema"></div>
+  </article>
+</section>
+
+<!-- CAP 02 — EXPERIENCIA -->
+<section class="chapter" id="experiencia">
+  <div class="wrap ctx-head reveal" style="margin-bottom:48px;">
+    <div>
+      <div class="chapter-tag">Capítulo 02 · La Experiencia</div>
+      <h2 class="display" style="margin-top:22px;">Lo que vas a <span class="ital">vivir.</span></h2>
+    </div>
+    <p class="lead">Cinco encuentros diseñados para conectarte con el mar, la ciencia y la comunidad.</p>
+  </div>
+
+  <div class="wrap" style="max-width:1180px;">
+    <div class="exp-item reveal">
+      <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/dji223.jpg" alt="Panga navegando sobre aguas cristalinas, vista aérea"></div>
+      <div class="copy">
+        <div class="num">01</div>
+        <span class="pill">2 días · Panga</span>
+        <h3>Ocean Safari en panga.</h3>
+        <p>Dos días completos navegando el Mar de Cortés con capitanes de la comunidad de Agua Amarga. Snorkel con lobos marinos, avistamiento de rayas móbula, delfines, tortugas y otras especies según las condiciones del día.</p>
+      </div>
+    </div>
+    <div class="exp-item reveal">
+      <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/a.jpg" alt="Orca emergiendo al amanecer, contexto científico a bordo"></div>
+      <div class="copy">
+        <div class="num">02</div>
+        <span class="pill">Ciencia · A bordo</span>
+        <h3>Aprendizaje con biólogos marinos.</h3>
+        <p>Sesiones con investigadores de Oregon State University y UABCS. Briefing sobre la fauna del Mar de Cortés, el proyecto Dos Mares, y contexto educativo en tiempo real durante los encuentros con fauna.</p>
+      </div>
+    </div>
+    <div class="exp-item reveal">
+      <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/dji0178.jpg" alt="Litoral de Baja California Sur al atardecer, territorio de Agua Amarga"></div>
+      <div class="copy">
+        <div class="num">03</div>
+        <span class="pill">Cultura · Cooperativa</span>
+        <h3>Convivencia con la comunidad pesquera.</h3>
+        <p>Conoce la historia de Agua Amarga y escucha de primera mano cómo los ex-tiburoneros se convirtieron en guardianes del mar. Cooperativa Tiburón, en su propio territorio.</p>
+      </div>
+    </div>
+    <div class="exp-item reveal">
+      <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/dsc08722.jpg" alt="Cholla del desierto con la luna saliendo al anochecer"></div>
+      <div class="copy">
+        <div class="num">04</div>
+        <span class="pill">3 noches · BCS</span>
+        <h3>Campamento frente al mar.</h3>
+        <p>Tres noches en Ensenada de Muertos, tiendas de campaña equipadas, fogatas y cenas bajo las estrellas. Todo el equipo de campamento incluido.</p>
+      </div>
+    </div>
+    <div class="exp-item reveal">
+      <div class="media"><img src="/experiencias/ensenada-de-muertos/assets/photos/dsc6947.jpg" alt="Amanecer sobre el desierto y las montañas de Baja"></div>
+      <div class="copy">
+        <div class="num">05</div>
+        <span class="pill">Diario · Amanecer</span>
+        <h3>Prácticas NUMAN.</h3>
+        <p>Meditación y breathwork opcionales cada amanecer, frente al mar. Un anclaje silencioso antes de salir a navegar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAP 03 — ALIADOS -->
+<section class="chapter wrap" id="aliados">
+  <div class="ctx-head reveal" style="margin-bottom:44px;">
+    <div>
+      <div class="chapter-tag">Capítulo 03 · Los Aliados</div>
+      <h2 class="display" style="margin-top:22px;">Quiénes nos <span class="ital">acompañan.</span></h2>
+    </div>
+    <p class="lead">Cuatro organizaciones trabajando juntas en el campo. Tú vas con ellas.</p>
+  </div>
+
+  <div class="aliados-grid reveal">
+    <div class="ally">
+      <div class="role">01 / ONG de conservación</div>
+      <h3>Orgcas A.C.</h3>
+      <p>Organización no gubernamental dedicada a la conservación marina. Lidera la propuesta de la Reserva de la Biósfera Dos Mares y coordina el trabajo de campo con las comunidades pesqueras y los equipos científicos.</p>
+      <div class="people"><div class="pl">Coordinadoras</div><div class="pn">Fernanda Porfiria Gómez · Carolina Márquez</div></div>
+    </div>
+    <div class="ally">
+      <div class="role">02 / Investigación científica</div>
+      <h3>Oregon State University.</h3>
+      <p>Biólogos y científicos especializados en biología marina y mamíferos marinos. Responsables del viaje con la ciencia de orcas y del análisis de rutas migratorias en el Mar de Cortés.</p>
+      <div class="people"><div class="pl">Investigadores principales</div><div class="pn">Dr. Joshua Stewart · Dr. Bob Pitman</div></div>
+    </div>
+    <div class="ally">
+      <div class="role">03 / Academia</div>
+      <h3>UABCS.</h3>
+      <p>Universidad Autónoma de Baja California Sur. Investigación local sobre fauna marina, contexto regional y vinculación con instituciones internacionales en el proyecto Dos Mares.</p>
+      <div class="people"><div class="pl">Investigadores</div><div class="pn">Dr. Jorge Urban · Dra. Lorena Viloria</div></div>
+    </div>
+    <div class="ally">
+      <div class="role">04 / Comunidad pesquera</div>
+      <h3>Cooperativa Tiburón.</h3>
+      <p>Conocimiento empírico. Ex-tiburoneros convertidos en guías y guardianes del mar. Capitanean las pangas del Ocean Safari y aportan el conocimiento intergeneracional del Mar de Cortés que ningún laboratorio puede sustituir.</p>
+      <div class="people"><div class="pl">Capitanes · Agua Amarga</div><div class="pn">Félix Rochin · Tobías Lucero · Salvador Ríos</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CAP 04 — ITINERARIO -->
+<section class="chapter wrap" id="itinerario">
+  <div class="ctx-head reveal" style="margin-bottom:8px;">
+    <div>
+      <div class="chapter-tag">Capítulo 04 · Plan de Viaje</div>
+      <h2 class="display" style="margin-top:22px;">Itinerario.</h2>
+    </div>
+    <p class="lead">Cuatro días, tres noches. Dos fechas disponibles en junio de 2026: del viernes 12 al lunes 15, o del jueves 18 al domingo 21.</p>
+  </div>
+
+  <div class="timeline reveal">
+    <div class="day">
+      <div class="dno">Día 01</div>
+      <div class="dname">Llegada · Briefing</div>
+      <div class="beat"><div class="t">Mediodía</div><div class="d">Punto de encuentro en La Paz. Participantes llegan por su cuenta.</div></div>
+      <div class="beat"><div class="t">Tarde</div><div class="d">Transporte La Paz → Ensenada de Muertos. Campamento ya montado.</div></div>
+      <div class="beat"><div class="t">Atardecer</div><div class="d">Sesión introductoria. Briefing con biólogos marinos y contexto del proyecto Dos Mares.</div></div>
+      <div class="beat"><div class="t">Noche</div><div class="d">Cena y fogata.</div></div>
+    </div>
+    <div class="day">
+      <div class="dno">Día 02</div>
+      <div class="dname">Ocean Safari I</div>
+      <div class="beat"><div class="t">Amanecer</div><div class="d">Meditación y breathwork. Práctica NUMAN.</div></div>
+      <div class="beat"><div class="t">07:00 AM</div><div class="d">Salida en panga. Ocean Safari día 1.</div></div>
+      <div class="beat"><div class="t">Mañana – Tarde</div><div class="d">Navegación, snorkel, encuentros con fauna marina. Biólogo a bordo.</div></div>
+      <div class="beat"><div class="t">Mediodía</div><div class="d">Parada en playa, ceviche fresco y botana.</div></div>
+      <div class="beat"><div class="t">Atardecer · Noche</div><div class="d">Regreso al campamento. Cena, fogata, descanso.</div></div>
+    </div>
+    <div class="day">
+      <div class="dno">Día 03</div>
+      <div class="dname">Ocean Safari II</div>
+      <div class="beat"><div class="t">Amanecer</div><div class="d">Meditación y breathwork. Práctica NUMAN.</div></div>
+      <div class="beat"><div class="t">Temprano</div><div class="d">Ocean Safari día 2. Mismo formato, diferentes encuentros.</div></div>
+      <div class="beat"><div class="t">Mediodía</div><div class="d">Parada en playa, ceviche fresco y botana.</div></div>
+      <div class="beat"><div class="t">Atardecer</div><div class="d">Regreso al campamento.</div></div>
+      <div class="beat"><div class="t">Noche</div><div class="d">Última cena grupal. Fogata de cierre.</div></div>
+    </div>
+    <div class="day">
+      <div class="dno">Día 04</div>
+      <div class="dname">Cierre · Regreso</div>
+      <div class="beat"><div class="t">Amanecer</div><div class="d">Meditación y breathwork de cierre. Práctica NUMAN.</div></div>
+      <div class="beat"><div class="t">Mañana</div><div class="d">Desayuno en campamento.</div></div>
+      <div class="beat"><div class="t">Mañana</div><div class="d">Transporte Ensenada de Muertos → La Paz. Despedida.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CAP 05 — IMPACTO -->
+<section class="band impact" id="impacto">
+  <div class="bg"><img src="/experiencias/ensenada-de-muertos/assets/photos/e.jpg" alt="Orcas distantes entre la bruma del Mar de Cortés"></div>
+  <div class="band-inner reveal">
+    <div class="chapter-tag">Capítulo 05 · El Impacto</div>
+    <h2 style="margin-top:22px;">Tu participación es <span class="ital">conservación directa.</span></h2>
+    <p>Un porcentaje del costo de tu viaje se destina directamente a Orgcas A.C. para apoyar la investigación y conservación del proyecto Dos Mares.</p>
+    <p>Al participar, no solo vives una experiencia: contribuyes activamente a la protección de uno de los ecosistemas marinos más importantes del planeta.</p>
+    <div class="label" style="margin-top:30px;">Proyecto Dos Mares · Mar de Cortés</div>
+  </div>
+</section>
+
+<!-- CAP 06 — PAQUETE -->
+<section class="chapter wrap" id="paquete">
+  <div class="ctx-head reveal" style="margin-bottom:8px;">
+    <div>
+      <div class="chapter-tag">Capítulo 06 · El Paquete</div>
+      <h2 class="display" style="margin-top:22px;">Qué incluye <span class="ital">&amp; qué no.</span></h2>
+    </div>
+    <p class="lead">Todo lo necesario para vivir el viaje. Lo demás corre por tu cuenta.</p>
+  </div>
+
+  <div class="pak reveal">
+    <div class="pak-col inc">
+      <div class="hd">Incluye</div>
+      <h3>Qué incluye.</h3>
+      <ul>
+        <li><span class="mk">+</span><span>Transporte en BCS: La Paz → Ensenada de Muertos → La Paz.</span></li>
+        <li><span class="mk">+</span><span>3 noches en campamento frente al mar (tienda, colchoneta, sleeping bag).</span></li>
+        <li><span class="mk">+</span><span>Alimentación completa: cena del jueves al desayuno del domingo. Desayunos a bordo, ceviche en playa, cenas en campamento.</span></li>
+        <li><span class="mk">+</span><span>2 días completos de Ocean Safari en panga con capitanes de Agua Amarga.</span></li>
+        <li><span class="mk">+</span><span>Acompañamiento científico de biólogos de Oregon State University y UABCS.</span></li>
+        <li><span class="mk">+</span><span>Convivencia con la Cooperativa Tiburón de Agua Amarga.</span></li>
+        <li><span class="mk">+</span><span>Equipo de snorkel completo (visor, snorkel, aletas).</span></li>
+        <li><span class="mk">+</span><span>Equipo de campamento completo.</span></li>
+        <li><span class="mk">+</span><span>Meditación y breathwork diarios al amanecer.</span></li>
+        <li><span class="mk">+</span><span>Fotos y contenido del viaje.</span></li>
+        <li><span class="mk">+</span><span>Donación a Orgcas A.C. para conservación.</span></li>
+        <li><span class="mk">+</span><span>Fogatas nocturnas.</span></li>
+      </ul>
+    </div>
+    <div class="pak-col exc">
+      <div class="hd">No incluye</div>
+      <h3>Qué no incluye.</h3>
+      <ul>
+        <li><span class="mk">−</span><span>Vuelos a La Paz.</span></li>
+        <li><span class="mk">−</span><span>Comida del jueves en La Paz (antes del transporte).</span></li>
+        <li><span class="mk">−</span><span>Bebidas alcohólicas.</span></li>
+        <li><span class="mk">−</span><span>Snacks personales adicionales.</span></li>
+        <li><span class="mk">−</span><span>Propinas para guías, capitanes o staff.</span></li>
+        <li><span class="mk">−</span><span>Seguro de viaje personal.</span></li>
+        <li><span class="mk">−</span><span>Protector solar, artículos de higiene y efectos personales.</span></li>
+        <li><span class="mk">−</span><span>Upgrade a tienda individual (si aplica).</span></li>
+        <li><span class="mk">−</span><span>Cualquier gasto fuera del itinerario.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CAP 07 — MOCHILA -->
+<section class="chapter wrap" id="mochila" style="background:var(--paper-2);">
+  <div class="ctx-head reveal" style="margin-bottom:8px;">
+    <div>
+      <div class="chapter-tag">Capítulo 07 · Tu Mochila</div>
+      <h2 class="display" style="margin-top:22px;">Equipo <span class="ital">recomendado.</span></h2>
+    </div>
+    <p class="lead">Empaca ligero. El equipo de snorkel y campamento ya está cubierto. Esto es lo personal. Los ítems marcados en naranja son obligatorios.</p>
+  </div>
+
+  <div class="moch-grid reveal">
+    <div class="moch-cat">
+      <div class="ct">Agua &amp; Sol</div>
+      <ul>
+        <li>Traje de baño<span class="req">2 recomendados</span></li>
+        <li class="must">Protector solar reef-safe<span class="req">Obligatorio · biodegradable</span></li>
+        <li>Rash guard o playera de lycra</li>
+        <li>Sandalias acuáticas o huaraches de agua</li>
+        <li>Toalla de microfibra</li>
+        <li>Botella de agua reusable<span class="req">Mínimo 1 litro</span></li>
+      </ul>
+    </div>
+    <div class="moch-cat">
+      <div class="ct">Ropa &amp; Protección</div>
+      <ul>
+        <li>Ropa ligera de secado rápido</li>
+        <li>Chamarra ligera o sudadera<span class="req">Para las noches</span></li>
+        <li>Gorra o sombrero</li>
+        <li>Lentes de sol<span class="req">Con correa para la panga</span></li>
+        <li>Mochila pequeña o dry bag<span class="req">Para la panga</span></li>
+        <li>Linterna frontal</li>
+      </ul>
+    </div>
+    <div class="moch-cat">
+      <div class="ct">Personal</div>
+      <ul>
+        <li>Artículos de higiene personal</li>
+        <li>Repelente de insectos</li>
+        <li>Medicamentos personales<span class="req">Si aplica</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="moch-note reveal">
+    <div class="label">Nota importante</div>
+    <p>El protector solar reef-safe biodegradable es obligatorio para snorkel. Cualquier otro tipo daña los corales y el ecosistema marino.</p>
+  </div>
+</section>
+
+<!-- CAP 08 — PRACTICO -->
+<section class="chapter wrap" id="practico">
+  <div class="ctx-head reveal" style="margin-bottom:8px;">
+    <div>
+      <div class="chapter-tag">Capítulo 08 · Lo Práctico</div>
+      <h2 class="display" style="margin-top:22px;">Costos &amp; preguntas <span class="ital">frecuentes.</span></h2>
+    </div>
+    <p class="lead">Lo que necesitas saber antes de reservar tu lugar.</p>
+  </div>
+
+  <div class="prac-grid">
+    <aside class="cost-panel reveal">
+      <div class="label">Inversión por persona</div>
+      <div class="big">$16,000</div>
+      <div class="cur">MXN · por persona</div>
+      <p class="desc">Incluye transporte en BCS, hospedaje, alimentación completa, dos días de Ocean Safari, equipo, acompañamiento científico y donación a Orgcas A.C.</p>
+      <div class="cancel">
+        <div class="ct">Políticas de cancelación</div>
+        <div class="row"><span>Más de 30 días antes</span><span>Sin costo</span></div>
+        <div class="row"><span>15 a 29 días antes</span><span>50%</span></div>
+        <div class="row"><span>0 a 14 días antes</span><span>100%</span></div>
+      </div>
+    </aside>
+
+    <div class="faq reveal">
+      <div class="label">Preguntas frecuentes</div>
+      <h3>Antes de reservar.</h3>
+      <div class="acc">
+        <div class="acc-item"><button class="acc-q">¿Necesito saber nadar?<span class="ic"></span></button><div class="acc-a"><div class="inner">Sí, se requiere nivel básico de nado para snorkel. Los guías están capacitados, pero no es una experiencia diseñada para no nadadores.</div></div></div>
+        <div class="acc-item"><button class="acc-q">¿Qué fauna vamos a ver?<span class="ic"></span></button><div class="acc-a"><div class="inner">Depende del día y las condiciones del mar. En junio: rayas mobula, lobos marinos, delfines, tortugas, ballena jorobada, ballena azul. Los biólogos buscan los mejores encuentros según condiciones.</div></div></div>
+        <div class="acc-item"><button class="acc-q">¿Voy a participar en el viaje con la ciencia de orcas?<span class="ic"></span></button><div class="acc-a"><div class="inner">No directamente. El viaje con la ciencia es trabajo científico especializado. Vas a aprender del proceso, convivir con los investigadores, y entender el proyecto de primera mano.</div></div></div>
+        <div class="acc-item"><button class="acc-q">¿Qué es Dos Mares?<span class="ic"></span></button><div class="acc-a"><div class="inner">Un proyecto de Orgcas A.C. para crear una Reserva de la Biósfera que conecte el Pacífico con el Mar de Cortés, protegiendo rutas migratorias de especies clave.</div></div></div>
+        <div class="acc-item"><button class="acc-q">¿Cuántas personas van?<span class="ic"></span></button><div class="acc-a"><div class="inner">Máximo 13 participantes + 3 operadores.</div></div></div>
+        <div class="acc-item"><button class="acc-q">¿Qué pasa si no se junta el grupo?<span class="ic"></span></button><div class="acc-a"><div class="inner">Reembolso completo o transferencia a otra experiencia Caminante.</div></div></div>
+        <div class="acc-item"><button class="acc-q">¿Y si el clima no permite salir al mar?<span class="ic"></span></button><div class="acc-a"><div class="inner">Se ajusta el itinerario priorizando seguridad. Los capitanes y el equipo deciden con criterio local.</div></div></div>
+        <div class="acc-item"><button class="acc-q">¿Necesito llevar equipo de snorkel o campamento?<span class="ic"></span></button><div class="acc-a"><div class="inner">No, todo está incluido.</div></div></div>
+        <div class="acc-item"><button class="acc-q">¿Cómo llego?<span class="ic"></span></button><div class="acc-a"><div class="inner">Cada participante llega por su cuenta a La Paz, BCS. Transporte terrestre La Paz ↔ Ensenada de Muertos incluido.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAP 09 — RESERVA -->
+<section class="reserva" id="reserva">
+  <div class="bg"><img src="/experiencias/ensenada-de-muertos/assets/photos/dji0178.jpg" alt="Litoral de Baja California Sur al atardecer"></div>
+  <div class="reserva-inner reveal">
+    <div class="chapter-tag">Capítulo 09 · Reserva tu lugar</div>
+    <h2 style="margin-top:22px;">Nos vemos <span class="ital">en el mar.</span></h2>
+    <div class="dates-badge"><span class="label" style="letter-spacing:.24em;">Junio 2026</span><span class="big">12–15</span><span style="font-size:1.2rem;">ó 18–21</span></div>
+    <div class="contact-grid">
+      <a class="ci" href="mailto:uno@numanhub.com"><div class="k">Correo</div><div class="v">uno@numanhub.com</div></a>
+      <a class="ci" href="https://wa.me/525512020565" target="_blank" rel="noopener"><div class="k">WhatsApp</div><div class="v">+52 55 1202 0565</div></a>
+      <a class="ci" href="https://instagram.com/somos.caminante" target="_blank" rel="noopener"><div class="k">Redes · Instagram</div><div class="v">@somos.caminante</div></a>
+    </div>
+    <div class="reserva-actions">
+      <a href="https://wa.me/525512020565" class="btn btn-primary" target="_blank" rel="noopener">Reservar por WhatsApp →</a>
+      <a href="mailto:uno@numanhub.com" class="btn btn-ghost">Escribir un correo</a>
+    </div>
+    <p style="max-width:54ch; margin-top:30px; color:rgba(245,240,232,.8); font-size:15px;">Cupo limitado a 13 participantes. Reserva tu lugar escribiendo a uno@numanhub.com o por WhatsApp al 55 1202 0565. Te confirmamos disponibilidad y compartimos el proceso de pago.</p>
+    <div class="meta-note"><span>Respuesta en 24 hrs</span><span>De 9:00 a 19:00 CST</span></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="foot">
+  <div class="foot-inner">
+    <div>
+      <div class="brand">Caminante · Ocean Safari 2026</div>
+      <small>Vol. 07 · Junio 2026 · 23°59′N · 109°50′W</small>
+    </div>
+    <div class="right">Operado en colaboración con Orgcas A.C., Oregon State University, UABCS y la Cooperativa Tiburón de Agua Amarga. Un porcentaje del costo se destina a conservación marina.</div>
+  </div>
+</footer>
+
+<a href="https://wa.me/525512020565" class="wa-mobile" target="_blank" rel="noopener">Reservar por WhatsApp →</a>
+
+<script>
+document.documentElement.classList.remove('no-js');
+document.documentElement.classList.add('js');
+
+/* scroll reveal */
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+},{threshold:0.12, rootMargin:'0px 0px -8% 0px'});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* FAQ accordion */
+document.querySelectorAll('.acc-q').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const item=btn.closest('.acc-item');
+    const ans=item.querySelector('.acc-a');
+    const open=item.classList.contains('open');
+    if(open){ item.classList.remove('open'); ans.style.maxHeight=null; }
+    else{ item.classList.add('open'); ans.style.maxHeight=ans.scrollHeight+'px'; }
+  });
+});
+
+/* four-lens chip bar */
+const chips=[...document.querySelectorAll('.chip')];
+const lenses=[...document.querySelectorAll('.lens')];
+chips.forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    const id='lens-'+chip.dataset.lens;
+    const el=document.getElementById(id);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});
+function setActiveChip(lens){
+  chips.forEach(c=>c.classList.toggle('active', c.dataset.lens===lens));
+}
+const lensIO=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ setActiveChip(e.target.dataset.lens); } });
+},{rootMargin:'-45% 0px -45% 0px', threshold:0});
+lenses.forEach(l=>lensIO.observe(l));
+
+/* nav hide on scroll down + dark theme over dark sections */
+let lastY=0;
+const nav=document.getElementById('nav');
+const NAVH=62;
+const darkSections=[...document.querySelectorAll('#caras,#impacto,#reserva')];
+function updateNav(){
+  const y=window.scrollY;
+  if(y>600 && y>lastY){ nav.style.transform='translateY(-100%)'; }
+  else{ nav.style.transform='translateY(0)'; }
+  lastY=y;
+  let dark=false;
+  for(const s of darkSections){
+    const r=s.getBoundingClientRect();
+    if(r.top<=NAVH+1 && r.bottom>NAVH+1){ dark=true; break; }
+  }
+  nav.classList.toggle('on-dark',dark);
+}
+window.addEventListener('scroll',updateNav,{passive:true});
+updateNav();
+</script>
+</body>
+</html>

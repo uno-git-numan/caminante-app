@@ -20,24 +20,24 @@ export default async function ComparePackagesPage({
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-semibold">Comparar paquetes</h2>
-      <p className="text-stone-600">Selecciona 2-4 paquetes con `?ids=id1,id2` para comparar.</p>
-      <div className="rounded-xl border border-stone-200 bg-white p-4 text-sm">
+      <p className="text-olive">Selecciona 2-4 paquetes con `?ids=id1,id2` para comparar.</p>
+      <div className="rounded-xl border border-sand bg-white p-4 text-sm">
         <h3 className="mb-2 font-semibold">Paquetes disponibles</h3>
         <ul className="space-y-1">
           {all.map((item) => (
             <li key={item.id}>
-              <Link className="text-emerald-700 hover:underline" href={`/caminante/listings/${item.id}`}>
+              <Link className="text-lagoon hover:underline" href={`/caminante/listings/${item.id}`}>
                 {item.title}
               </Link>{" "}
-              <span className="text-stone-500">({item.id})</span>
+              <span className="text-olive">({item.id})</span>
             </li>
           ))}
         </ul>
       </div>
       {selected.length >= 2 ? (
-        <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-sand bg-white">
           <table className="min-w-full text-sm">
-            <thead className="bg-stone-100 text-left">
+            <thead className="bg-cream text-left">
               <tr>
                 <th className="px-3 py-2">Paquete</th>
                 <th className="px-3 py-2">Precio</th>
@@ -48,7 +48,7 @@ export default async function ComparePackagesPage({
             </thead>
             <tbody>
               {selected.map((item) => (
-                <tr key={item.id} className="border-t border-stone-200">
+                <tr key={item.id} className="border-t border-sand">
                   <td className="px-3 py-2">{item.title}</td>
                   <td className="px-3 py-2">TODO</td>
                   <td className="px-3 py-2">{item.vibe ?? "n/a"}</td>
@@ -60,7 +60,7 @@ export default async function ComparePackagesPage({
           </table>
         </div>
       ) : (
-        <p className="text-sm text-stone-600">Agrega al menos 2 IDs para comparar.</p>
+        <p className="text-sm text-olive">Agrega al menos 2 IDs para comparar.</p>
       )}
     </section>
   );

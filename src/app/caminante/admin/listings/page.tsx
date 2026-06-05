@@ -42,9 +42,9 @@ export default async function ListingsAdminPage({
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-semibold">Listings Admin</h2>
-      <p className="text-stone-600">Manage activities, transport, accommodations, and packages.</p>
+      <p className="text-olive">Manage activities, transport, accommodations, and packages.</p>
       {created === "1" ? (
-        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Listing creado.</p>
+        <p className="rounded-lg bg-cream p-3 text-sm text-lagoon">Listing creado.</p>
       ) : null}
       {error ? (
         <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{decodeURIComponent(error)}</p>
@@ -55,7 +55,7 @@ export default async function ListingsAdminPage({
         </p>
       ) : (
         <>
-          <form action={createListingAction} className="grid gap-3 rounded-xl border border-stone-200 bg-white p-4 md:grid-cols-2">
+          <form action={createListingAction} className="grid gap-3 rounded-xl border border-sand bg-white p-4 md:grid-cols-2">
             <label className="space-y-1 text-sm">
               <span>Provider</span>
               <select className="w-full rounded-lg border border-stone-300 px-3 py-2" name="provider_id" required>
@@ -91,13 +91,13 @@ export default async function ListingsAdminPage({
                 <option value="published">published</option>
               </select>
             </label>
-            <button type="submit" className="rounded-lg bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800">
+            <button type="submit" className="rounded-lg bg-lagoon px-4 py-2 font-medium text-white hover:bg-lagoon-light">
               Crear listing
             </button>
           </form>
-          <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-sand bg-white">
             <table className="min-w-full text-sm">
-              <thead className="bg-stone-100 text-left">
+              <thead className="bg-cream text-left">
                 <tr>
                   <th className="px-3 py-2">Title</th>
                   <th className="px-3 py-2">Type</th>
@@ -108,12 +108,12 @@ export default async function ListingsAdminPage({
               </thead>
               <tbody>
                 {rows?.map((row) => (
-                  <tr key={row.id} className="border-t border-stone-200">
+                  <tr key={row.id} className="border-t border-sand">
                     <td className="px-3 py-2">{row.title}</td>
                     <td className="px-3 py-2">{row.type}</td>
                     <td className="px-3 py-2">{row.status}</td>
                     <td className="px-3 py-2">{row.destination ?? "-"}</td>
-                    <td className="px-3 py-2 text-xs text-stone-500">{row.id}</td>
+                    <td className="px-3 py-2 text-xs text-olive">{row.id}</td>
                   </tr>
                 ))}
               </tbody>

@@ -14,7 +14,7 @@ export default function AdminHomePage() {
       <h2 className="text-2xl font-semibold">Admin dashboard</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         {adminLinks.map((href) => (
-          <Link key={href} href={href} className="rounded-xl border border-stone-200 bg-white p-4 hover:border-emerald-700">
+          <Link key={href} href={href} className="rounded-xl border border-sand bg-white p-4 hover:border-dune">
             {href}
           </Link>
         ))}
