@@ -15,9 +15,16 @@ export async function createSupabaseServerClient() {
           return cookieStore.getAll();
         },
         setAll(cookieValues) {
-          cookieValues.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookieValues.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // `setAll` was called from a Server Component, where cookies are
+            // read-only. Safe to ignore: the middleware refreshes the session
+            // cookie on every request. Without this guard, any logged-in user
+            // loading a Server Component page (e.g. an experience page) 500s.
+          }
         },
       },
     },
