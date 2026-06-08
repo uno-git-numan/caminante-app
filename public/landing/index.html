@@ -384,105 +384,7 @@ section{position:relative;}
     <p class="cap">Cada experiencia tiene cuatro caras. Así se lee cada lugar.</p>
   </div>
 
-  <div class="paisajes-grid reveal">
-
-    <article class="paisaje">
-      <div class="media">
-        <img src="/landing/assets/photos/b.jpg" alt="Aleta dorsal de una orca emergiendo entre la bruma del Mar de Cortés">
-      </div>
-      <div class="pcopy">
-        <h3>Ensenada de Muertos · Ocean Safari</h3>
-        <div class="ploc">Baja California Sur · Junio 2026</div>
-        <div class="caras-row">
-          <span class="dots"><i style="background:#2C4A3E"></i><i style="background:#1E3147"></i><i style="background:#D18730"></i><i style="background:#C4724E"></i></span>
-          <span class="cr-note">Cuatro caras</span>
-        </div>
-        <p class="hook">Viaje con la ciencia de orcas en el Mar de Cortés.</p>
-        <a href="/caminante/experiencias/ensenada-de-muertos" class="card-cta">Vivir esta experiencia →</a>
-      </div>
-    </article>
-
-    <article class="paisaje">
-      <div class="media">
-        <img src="/landing/assets/photos/p-acatenango.jpg" alt="Cráter volcánico al atardecer, ladera de ceniza y la sierra al fondo">
-      </div>
-      <div class="pcopy">
-        <h3>Acatenango &amp; Fuego</h3>
-        <div class="ploc">Guatemala · Próximas fechas</div>
-        <div class="caras-row">
-          <span class="dots"><i style="background:#2C4A3E"></i><i style="background:#1E3147"></i><i style="background:#D18730"></i><i style="background:#C4724E"></i></span>
-          <span class="cr-note">Cuatro caras</span>
-        </div>
-        <p class="hook">Dos volcanes, una noche de fuego; cumbre a 3,976 m al amanecer.</p>
-        <a href="/caminante/experiencias/acatenango-fuego" class="card-cta">Vivir esta experiencia →</a>
-      </div>
-    </article>
-
-    <article class="paisaje">
-      <div class="media">
-        <img src="/landing/assets/photos/p-monarca.jpg" alt="Tronco de oyamel curtido por el viento sobre el pasto del bosque">
-      </div>
-      <div class="pcopy">
-        <h3>Monarca · Corral de Piedra</h3>
-        <div class="ploc">Estado de México · Temporada nov–feb</div>
-        <div class="caras-row">
-          <span class="dots"><i style="background:#2C4A3E"></i><i style="background:#1E3147"></i><i style="background:#D18730"></i><i style="background:#C4724E"></i></span>
-          <span class="cr-note">Cuatro caras</span>
-        </div>
-        <p class="hook">Cien millones de mariposas; un santuario de oyamel en silencio.</p>
-        <a href="/caminante/experiencias/monarca-corral-de-piedra" class="card-cta">Vivir esta experiencia →</a>
-      </div>
-    </article>
-
-    <article class="paisaje">
-      <div class="media">
-        <img src="/landing/assets/photos/p-izta.jpg" alt="La cumbre nevada de la Mujer Dormida entre nubes">
-      </div>
-      <div class="pcopy">
-        <h3>Iztaccíhuatl</h3>
-        <div class="ploc">México Central · Próximas fechas</div>
-        <div class="caras-row">
-          <span class="dots"><i style="background:#2C4A3E"></i><i style="background:#1E3147"></i><i style="background:#D18730"></i><i style="background:#C4724E"></i></span>
-          <span class="cr-note">Cuatro caras</span>
-        </div>
-        <p class="hook">La Mujer Dormida, 5,260 m; aprender a respirar en altura.</p>
-        <a href="/caminante/experiencias/iztaccihuatl" class="card-cta">Vivir esta experiencia →</a>
-      </div>
-    </article>
-
-    <article class="paisaje">
-      <div class="media">
-        <img src="/landing/assets/photos/p-orizaba.jpg" alt="La cumbre cónica y glaciar del Pico de Orizaba contra el cielo">
-      </div>
-      <div class="pcopy">
-        <h3>Pico de Orizaba</h3>
-        <div class="ploc">Veracruz / Puebla · Próximas fechas</div>
-        <div class="caras-row">
-          <span class="dots"><i style="background:#2C4A3E"></i><i style="background:#1E3147"></i><i style="background:#D18730"></i><i style="background:#C4724E"></i></span>
-          <span class="cr-note">Cuatro caras</span>
-        </div>
-        <p class="hook">El techo de México, 5,636 m, y su glaciar que se apaga.</p>
-        <a href="/caminante/experiencias/pico-de-orizaba" class="card-cta">Vivir esta experiencia →</a>
-      </div>
-    </article>
-
-    <article class="paisaje">
-      <div class="media">
-        <img src="/landing/assets/photos/p-combo.jpg" alt="Sierra escarpada de cumbres dentadas sobre el altiplano">
-      </div>
-      <div class="pcopy">
-        <h3>Combo Volcanes</h3>
-        <div class="ploc">México Central · Dos salidas</div>
-        <div class="caras-row">
-          <span class="dots"><i style="background:#2C4A3E"></i><i style="background:#1E3147"></i><i style="background:#D18730"></i><i style="background:#C4724E"></i></span>
-          <span class="cr-note">Cuatro caras</span>
-        </div>
-        <p class="hook">Un camino en dos cumbres: Iztaccíhuatl → Pico de Orizaba.</p>
-        <a href="/caminante/experiencias/combo-volcanes" class="card-cta">Vivir esta experiencia →</a>
-      </div>
-    </article>
-
-  </div>
+  <div class="paisajes-grid reveal" id="paisajes-grid"></div>
 </section>
 
 <!-- 5 · CÓMO SE VIVE — LOS CUATRO PILARES -->
@@ -612,6 +514,24 @@ function updateNav(){
 }
 window.addEventListener('scroll',updateNav,{passive:true});
 updateNav();
+</script>
+<script>
+(function(){
+  var grid=document.getElementById('paisajes-grid'); if(!grid) return;
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var dots='<span class="dots"><i style="background:#2C4A3E"></i><i style="background:#1E3147"></i><i style="background:#D18730"></i><i style="background:#C4724E"></i></span><span class="cr-note">Cuatro caras</span>';
+  fetch('/caminante/api/experiences').then(function(r){return r.json();}).then(function(d){
+    var html=(d.experiences||[]).map(function(e){
+      return '<article class="paisaje"><div class="media"><img src="'+esc(e.image)+'" alt="'+esc(e.imageAlt)+'"></div>'+
+        '<div class="pcopy"><h3>'+esc(e.title)+'</h3><div class="ploc">'+esc(e.ploc)+'</div>'+
+        '<div class="caras-row">'+dots+'</div>'+
+        '<p class="hook">'+esc(e.hook)+'</p>'+
+        '<a href="/caminante/experiencias/'+esc(e.slug)+'" class="card-cta">Vivir esta experiencia &rarr;</a></div></article>';
+    }).join('');
+    grid.innerHTML=html||'<p style="opacity:.6;color:var(--lagoon)">Pr&oacute;ximamente.</p>';
+    grid.classList.add('in');
+  }).catch(function(){});
+})();
 </script>
 </body>
 </html>

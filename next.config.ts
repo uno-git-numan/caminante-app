@@ -10,13 +10,7 @@ const nextConfig: NextConfig = {
           destination: "/landing/index.html",
         },
       ],
-      // afterFiles: static immersive experience pages (Caminante 1).
-      afterFiles: [
-        {
-          source: "/caminante/experiencias/ensenada-de-muertos",
-          destination: "/experiencias/ensenada-de-muertos/index.html",
-        },
-      ],
+      afterFiles: [],
       fallback: [],
     };
   },

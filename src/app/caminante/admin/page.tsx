@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 const adminLinks = [
+  "/caminante/admin/experiencias/nueva",
   "/caminante/admin/providers",
   "/caminante/admin/listings",
   "/caminante/admin/bookings/requests",
