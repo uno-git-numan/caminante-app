@@ -5,20 +5,23 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 async function getOrigin() {
+  // Prefer the real request host so auth works on ANY domain
+  // (caminante.numanhub.com, the vercel.app URL, localhost, future subdomains)
+  // without depending on a build-time env var.
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  if (host) {
+    const isLocal = host.includes("localhost") || host.startsWith("127.");
+    const protocol = headerStore.get("x-forwarded-proto") ?? (isLocal ? "http" : "https");
+    return `${protocol}://${host}`;
+  }
+
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (envUrl) {
     return envUrl.replace(/\/$/, "");
   }
 
-  const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
-
-  if (!host) {
-    return "http://localhost:3000";
-  }
-
-  return `${protocol}://${host}`;
+  return "http://localhost:3000";
 }
 
 function parseEmail(formData: FormData) {
