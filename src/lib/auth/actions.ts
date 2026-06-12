@@ -44,14 +44,19 @@ export async function sendMagicLink(formData: FormData) {
     redirect("/caminante/login?error=invalid_email");
   }
 
-  const next = typeof formData.get("next") === "string" ? String(formData.get("next")) : "/caminante";
+  const rawNext = typeof formData.get("next") === "string" ? String(formData.get("next")) : "/caminante";
+  // Solo rutas internas (el confirm valida origen de todos modos)
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/caminante";
   const origin = await getOrigin();
   const supabase = await createSupabaseServerClient();
 
+  // emailRedirectTo lleva el DESTINO FINAL (no la URL del confirm): el template
+  // del correo arma el link del confirm con {{ .TokenHash }} + {{ .SiteURL }} y
+  // pasa esto como ?next=. Así el link nunca depende del matching de la allowlist.
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/caminante/auth/confirm?next=${encodeURIComponent(next)}`,
+      emailRedirectTo: `${origin}${next}`,
     },
   });
 

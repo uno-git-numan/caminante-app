@@ -234,7 +234,7 @@ export default function RegistrationForm({
           </a>
         ) : (
           <a
-            href="/caminante/login?next=%2Fcaminante%2Fperfil"
+            href="/caminante/login?next=%2Fcaminante%2Fbienvenida"
             className="mt-5 rounded-full border border-sand bg-transparent px-5 py-3 text-sm font-semibold text-lagoon transition hover:border-dune hover:text-dune"
           >
             Crear mi cuenta para la próxima
