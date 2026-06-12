@@ -47,10 +47,27 @@
   --color-clay: #C4724E;
 }
 
+/* Geist (local, variable) — la tipografía de la marca en TODO el sitio.
+   Mismos archivos que usa el template de experiencias (public/shared/fonts). */
+@font-face {
+  font-family: "Geist";
+  src: url("/shared/fonts/GeistVF.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist";
+  src: url("/shared/fonts/GeistVF-Italic.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Avenir Next", "Montserrat", "Trebuchet MS", sans-serif;
+  font-family: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* Smooth scrolling */
