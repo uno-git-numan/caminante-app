@@ -48,6 +48,13 @@ export function emptyExperience(): Experience {
     price: { amount: "", currency: "MXN · por persona", desc: "" },
     stripeLink: null,
 
+    registration: {
+      active: false,
+      waiverVersion: "v1",
+      waiverDocUrl: "",
+      waiverClauses: [""],
+    },
+
     contextTag: "Capítulo 01 · El Contexto",
     contextTitle: "",
     contextTitleAccent: "",

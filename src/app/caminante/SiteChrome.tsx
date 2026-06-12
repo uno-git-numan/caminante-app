@@ -72,14 +72,22 @@ export default function SiteChrome({
             </a>
 
             {user ? (
-              <form action={signOut}>
-                <button
-                  type="submit"
-                  className="ml-1 rounded-full px-3 py-2 text-xs text-olive hover:text-lagoon"
+              <>
+                <Link
+                  href="/caminante/perfil"
+                  className="ml-1 rounded-full px-3 py-2 text-xs font-medium text-olive hover:text-lagoon"
                 >
-                  Salir
-                </button>
-              </form>
+                  Mi perfil
+                </Link>
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="rounded-full px-3 py-2 text-xs text-olive hover:text-lagoon"
+                  >
+                    Salir
+                  </button>
+                </form>
+              </>
             ) : null}
           </nav>
 

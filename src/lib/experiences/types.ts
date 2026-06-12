@@ -74,6 +74,16 @@ export type Experience = {
   price?: { amount: string; currency: string; desc: string };
   stripeLink?: string | null; // generated later
 
+  // registro nativo (deslinde + firma en /caminante/registro/[slug])
+  // El texto legal vive en el Google Doc del sistema legal (Drive); aquí solo
+  // la versión vigente, el link y el resumen de cláusulas que el form muestra.
+  registration?: {
+    active: boolean;
+    waiverVersion: string; // "v1" — sube cuando el deslinde cambia (re-firma)
+    waiverDocUrl: string;
+    waiverClauses: string[]; // resumen que se lista antes del checkbox
+  };
+
   // card / calendar metadata (for the landing grid and the calendar)
   cardTitle?: string; // defaults to subtitle
   cardPloc?: string; // "Baja California Sur · Junio 2026"

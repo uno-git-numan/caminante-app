@@ -346,6 +346,63 @@ export default function ExperienceForm({ initial }: { initial?: Experience }) {
         </div>
       </Section>
 
+      {/* REGISTRO Y DESLINDE */}
+      <Section
+        title="Registro y deslinde"
+        desc="Activa el registro nativo en /caminante/registro/[slug]. El deslinde vive en el Google Doc del sistema legal; si el texto cambia, sube la versión (los que ya firmaron quedan con la suya y los nuevos firman la vigente)."
+      >
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={exp.registration?.active ?? false}
+            onChange={(e) =>
+              set("registration", {
+                ...(exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [""] }),
+                active: e.target.checked,
+              })
+            }
+          />
+          <span className="text-sm text-lagoon">Registro activo (la página /caminante/registro/{exp.slug || "[slug]"} acepta firmas)</span>
+        </label>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field
+            label="Versión del deslinde"
+            value={exp.registration?.waiverVersion ?? "v1"}
+            onChange={(v) =>
+              set("registration", {
+                ...(exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [""] }),
+                waiverVersion: v,
+              })
+            }
+            placeholder="v1"
+          />
+          <div className="sm:col-span-2">
+            <Field
+              label="URL del deslinde (Google Doc)"
+              value={exp.registration?.waiverDocUrl ?? ""}
+              onChange={(v) =>
+                set("registration", {
+                  ...(exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [""] }),
+                  waiverDocUrl: v,
+                })
+              }
+              placeholder="https://docs.google.com/document/d/…/view"
+            />
+          </div>
+        </div>
+        <StringList
+          label="Cláusulas-resumen (se listan antes del checkbox de aceptación)"
+          items={exp.registration?.waiverClauses ?? [""]}
+          onChange={(v) =>
+            set("registration", {
+              ...(exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [""] }),
+              waiverClauses: v,
+            })
+          }
+          placeholder="Participas libre y voluntariamente; conoces los riesgos de mar abierto…"
+        />
+      </Section>
+
       {/* CONTEXTO */}
       <Section title="Capítulo 01 · El Contexto">
         <div className="grid gap-4 sm:grid-cols-2">
