@@ -36,7 +36,9 @@ export async function fetchRegistrationContext(
   const slots: SlotOption[] = (slotRows || []).map((s) => ({
     id: s.id as string,
     label: (s.label as string) || "",
-    seatsAvailable: (s.seats_available as number) ?? 0,
+    // null = salida sin tope (capacity_total NULL). NO colapsar a 0: eso la
+    // mostraría "agotada". La columna generada seats_available es NULL en ese caso.
+    seatsAvailable: s.seats_available === null ? null : (s.seats_available as number),
     status: s.status as string,
   }));
 

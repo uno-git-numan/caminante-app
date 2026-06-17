@@ -66,7 +66,10 @@ export async function submitRegistration(
     if (!slot || slot.status !== "open") {
       return { ok: false, error: "Esa salida ya no está disponible. Elige otra fecha." };
     }
-    if ((slot.seats_available as number) < numPeople) {
+    // seats_available NULL = salida sin tope → no se valida cupo. Solo se valida
+    // cuando capacity_total es finito.
+    const avail = slot.seats_available as number | null;
+    if (avail !== null && avail < numPeople) {
       return { ok: false, error: "Esa salida ya no tiene lugares suficientes." };
     }
     slotId = slot.id as string;

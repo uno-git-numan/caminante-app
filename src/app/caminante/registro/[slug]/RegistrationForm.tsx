@@ -356,14 +356,19 @@ export default function RegistrationForm({
                 }}
               >
                 <option value="" disabled>Selecciona una salida</option>
-                {slots.map((s) => (
-                  <option key={s.id} value={s.id} disabled={s.seatsAvailable <= 0}>
-                    {s.label} ·{" "}
-                    {s.seatsAvailable <= 0
-                      ? "Agotado"
-                      : `${s.seatsAvailable} ${s.seatsAvailable === 1 ? "lugar disponible" : "lugares disponibles"}`}
-                  </option>
-                ))}
+                {slots.map((s) => {
+                  // null = salida sin tope: solo la fecha, nunca "Agotado".
+                  const unlimited = s.seatsAvailable === null;
+                  const full = !unlimited && (s.seatsAvailable as number) <= 0;
+                  return (
+                    <option key={s.id} value={s.id} disabled={full}>
+                      {s.label}
+                      {unlimited
+                        ? ""
+                        : ` · ${full ? "Agotado" : `${s.seatsAvailable} ${s.seatsAvailable === 1 ? "lugar disponible" : "lugares disponibles"}`}`}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </section>

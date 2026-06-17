@@ -20,8 +20,11 @@ export default async function RegistroPage({
     ? `${experience.datesBadge.big} ${experience.datesBadge.rest || ""}`.trim()
     : experience.cardPloc || "";
 
-  // Estado (d): hay salidas en BD pero ninguna con lugares
-  const allFull = slots.length > 0 && slots.every((s) => s.seatsAvailable <= 0);
+  // Estado (d): hay salidas en BD pero ninguna con lugares. Una salida sin tope
+  // (seatsAvailable === null) JAMÁS está llena.
+  const allFull =
+    slots.length > 0 &&
+    slots.every((s) => s.seatsAvailable !== null && s.seatsAvailable <= 0);
   if (allFull) {
     return (
       <div className="mx-auto flex w-full max-w-[560px] flex-col items-center px-4 py-16 text-center sm:px-6">

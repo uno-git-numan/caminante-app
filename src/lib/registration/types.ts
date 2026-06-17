@@ -67,7 +67,7 @@ export type RegistrationResult =
 export type SlotOption = {
   id: string;
   label: string;
-  seatsAvailable: number;
+  seatsAvailable: number | null; // null = sin tope (capacity_total NULL en BD)
   status: string;
 };
 
