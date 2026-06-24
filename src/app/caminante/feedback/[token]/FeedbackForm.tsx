@@ -377,7 +377,7 @@ export default function FeedbackForm({ ctx }: { ctx: FeedbackContext }) {
         )}
       </div>
 
-      <style jsx>{`
+      <style jsx global>{`
         .shell {
           --crema: #f5f0e8; --lagoon: #1e3147; --duna: #d18730; --arena: #d4c5b0;
           --oliva: #5f5f40; --forest: #2c4a3e;
@@ -407,8 +407,7 @@ export default function FeedbackForm({ ctx }: { ctx: FeedbackContext }) {
         .stars.big { gap: 10px; }
         .star { position: relative; background: none; border: none; padding: 6px; cursor: pointer; line-height: 0; transition: transform 0.12s ease; -webkit-tap-highlight-color: transparent; }
         .stars.big .star { padding: 8px; }
-        .star :global(svg) { display: block; width: 26px; height: 26px; }
-        .stars.big .star :global(svg) { width: 42px; height: 42px; }
+        .star svg { display: block; }
         .star-base { color: var(--arena); }
         .star-fg { position: absolute; top: 6px; left: 6px; color: var(--duna); transition: clip-path 0.12s ease; }
         .stars.big .star-fg { top: 8px; left: 8px; }
@@ -454,7 +453,7 @@ export default function FeedbackForm({ ctx }: { ctx: FeedbackContext }) {
         .field-label { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
         #success { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 8px; animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
         .success-mark { width: 72px; height: 72px; border-radius: 999px; background: var(--forest); display: flex; align-items: center; justify-content: center; color: var(--crema); margin-bottom: 28px; }
-        .success-mark :global(svg) { width: 36px; height: 36px; }
+        .success-mark svg { width: 36px; height: 36px; }
         #success h1 { font-size: 28px; line-height: 1.15; font-weight: 700; letter-spacing: -0.4px; margin: 0 0 16px; max-width: 420px; }
         #success p { font-size: 16px; color: var(--oliva); line-height: 1.6; margin: 0; max-width: 380px; }
         .success-sign { margin-top: 36px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--oliva); }
