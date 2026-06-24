@@ -23,6 +23,7 @@ function Stars({
   size?: "big" | "compact";
   ariaLabel: string;
 }) {
+  const px = size === "big" ? 42 : 26;
   return (
     <div className={`stars ${size}`} role="radiogroup" aria-label={ariaLabel}>
       {[1, 2, 3, 4, 5].map((pos) => {
@@ -39,10 +40,10 @@ function Stars({
             onClick={() => onChange(value === pos ? pos - 0.5 : pos)}
           >
             <span className="star-base">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d={STAR_PATH} /></svg>
+              <svg width={px} height={px} viewBox="0 0 24 24" fill="currentColor"><path d={STAR_PATH} /></svg>
             </span>
             <span className="star-fg" style={{ clipPath: `inset(0 ${100 - pct}% 0 0)` }}>
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d={STAR_PATH} /></svg>
+              <svg width={px} height={px} viewBox="0 0 24 24" fill="currentColor"><path d={STAR_PATH} /></svg>
             </span>
           </button>
         );
@@ -61,11 +62,18 @@ const Check = ({
   children: React.ReactNode;
 }) => (
   <label className="check">
-    <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-    <span className="box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
+    <input
+      type="checkbox"
+      className="cb-input"
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+    />
+    <span className={`box${checked ? " on" : ""}`} aria-hidden="true">
+      {checked && (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </span>
     <span className="label">{children}</span>
   </label>
@@ -374,9 +382,11 @@ export default function FeedbackForm({ ctx }: { ctx: FeedbackContext }) {
           --crema: #f5f0e8; --lagoon: #1e3147; --duna: #d18730; --arena: #d4c5b0;
           --oliva: #5f5f40; --forest: #2c4a3e;
           --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-          max-width: 600px; margin: 0 auto; min-height: 100vh; display: flex;
+          max-width: 600px; width: 100%; margin: 0 auto; min-height: 100vh; display: flex;
           flex-direction: column; padding: 0 16px; color: var(--lagoon);
+          overflow-x: clip;
         }
+        .card { max-width: 100%; }
         @media (min-width: 480px) { .shell { padding: 0 24px; } }
         .progress { position: sticky; top: 0; z-index: 10; background: var(--crema); padding: 18px 0 14px; }
         .progress-track { height: 3px; background: var(--arena); border-radius: 999px; overflow: hidden; }
@@ -404,20 +414,21 @@ export default function FeedbackForm({ ctx }: { ctx: FeedbackContext }) {
         .stars.big .star-fg { top: 8px; left: 8px; }
         .star:active { transform: scale(0.88); }
         @media (hover: hover) { .star:hover { transform: scale(1.12); } }
-        .nps { display: grid; grid-template-columns: repeat(11, 1fr); gap: 5px; }
-        .nps-btn { aspect-ratio: 1; min-height: 42px; border: 1px solid var(--arena); background: #fff; border-radius: 10px; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--lagoon); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s, transform 0.12s; padding: 0; }
+        /* 11 botones que SIEMPRE caben: grid de 11 col que se reparten el ancho,
+           botones que pueden encogerse (min-width:0). Sin aspect-ratio (eso los
+           hacía cuadrados y desbordaban el celular). */
+        .nps { display: grid; grid-template-columns: repeat(11, 1fr); gap: 5px; width: 100%; }
+        .nps-btn { min-width: 0; height: 44px; border: 1px solid var(--arena); background: #fff; border-radius: 10px; font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--lagoon); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s, transform 0.12s; padding: 0; }
         .nps-btn.on { background: var(--lagoon); border-color: var(--lagoon); color: var(--crema); }
         .nps-ends { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--oliva); }
-        @media (max-width: 400px) { .nps { gap: 4px; } .nps-btn { font-size: 12px; min-height: 34px; border-radius: 8px; } }
+        @media (max-width: 430px) { .nps { gap: 3px; } .nps-btn { font-size: 13px; height: 38px; border-radius: 8px; } }
         textarea { width: 100%; border: 1px solid var(--arena); border-radius: 12px; background: #fff; padding: 14px; font-family: inherit; font-size: 15px; color: var(--lagoon); resize: vertical; min-height: 120px; line-height: 1.55; }
         textarea:focus { outline: none; border-color: var(--duna); box-shadow: 0 0 0 3px rgba(209, 135, 48, 0.18); }
         textarea.sm { min-height: 80px; }
         .check { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; padding: 4px 0; }
-        .check :global(input) { position: absolute; opacity: 0; width: 0; height: 0; }
-        .box { margin-top: 1px; flex-shrink: 0; width: 22px; height: 22px; border: 1.5px solid var(--arena); border-radius: 6px; background: #fff; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-        .box :global(svg) { width: 14px; height: 14px; opacity: 0; transform: scale(0.5); transition: all 0.15s; color: #fff; }
-        .check :global(input:checked) + .box { background: var(--forest); border-color: var(--forest); }
-        .check :global(input:checked) + .box :global(svg) { opacity: 1; transform: none; }
+        .cb-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+        .box { margin-top: 1px; flex-shrink: 0; width: 22px; height: 22px; border: 1.5px solid var(--arena); border-radius: 6px; background: #fff; color: #fff; display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s; }
+        .box.on { background: var(--forest); border-color: var(--forest); }
         .label { font-size: 14px; line-height: 1.5; }
         .muted { color: var(--oliva); }
         .actions { margin-top: 24px; }
