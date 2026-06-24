@@ -89,7 +89,10 @@ export default function FeedbackForm({ ctx }: { ctx: FeedbackContext }) {
 
   const positive = overall === 0 || overall >= 4; // sin rating → camino positivo
   const setSection = (key: string, patch: Partial<SectionRating>) =>
-    setSections((s) => ({ ...s, [key]: { stars: s[key]?.stars ?? 0, ...s[key], ...patch } }));
+    setSections((s) => {
+      const prev: SectionRating = s[key] ?? { stars: 0 };
+      return { ...s, [key]: { ...prev, ...patch } };
+    });
 
   const goTo = (s: typeof step) => {
     setStep(s);
