@@ -16,6 +16,7 @@ const navItems = [
 function isImmersive(pathname: string): boolean {
   return (
     pathname.startsWith("/caminante/experiencias/") ||
+    pathname.startsWith("/caminante/feedback/") ||
     pathname === "/caminante/calendario"
   );
 }

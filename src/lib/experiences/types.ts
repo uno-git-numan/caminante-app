@@ -84,6 +84,19 @@ export type Experience = {
     waiverClauses: string[]; // resumen que se lista antes del checkbox
   };
 
+  // encuesta de satisfacción (post-experiencia, /caminante/feedback/[token]).
+  // Lo común (pulso, NPS, testimonio, abiertas) es plantilla; lo que VARÍA por
+  // experiencia son las `sections` del desglose. Ver src/lib/feedback/types.ts.
+  feedback?: {
+    active: boolean;
+    version: string; // "v1"
+    locationLabel: string; // "Ensenada de Muertos, BCS" — referencia por LOCACIÓN
+    npsEnabled: boolean;
+    // secciones del desglose opcional (⭐ + comentario) — cambian por experiencia
+    sections: { key: string; label: string; icon?: string; prompt?: string }[];
+    testimonialPrompt?: string; // placeholder del cuadro de testimonio
+  };
+
   // card / calendar metadata (for the landing grid and the calendar)
   cardTitle?: string; // defaults to subtitle
   cardPloc?: string; // "Baja California Sur · Junio 2026"
