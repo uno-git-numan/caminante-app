@@ -125,7 +125,13 @@ def resend_send(api_key, to, name, token, base):
     r = urllib.request.Request(
         "https://api.resend.com/emails",
         data=json.dumps(body).encode(),
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            # Resend está detrás de Cloudflare; sin UApropio bloquea con 1010.
+            "User-Agent": "caminante-encuesta/1.0",
+            "Accept": "application/json",
+        },
         method="POST",
     )
     try:
