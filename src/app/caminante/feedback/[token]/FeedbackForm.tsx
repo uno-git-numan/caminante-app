@@ -79,9 +79,16 @@ const Check = ({
   </label>
 );
 
-export default function FeedbackForm({ ctx }: { ctx: FeedbackContext }) {
+export default function FeedbackForm({
+  ctx,
+  initialStars = 0,
+}: {
+  ctx: FeedbackContext;
+  initialStars?: number;
+}) {
   const [step, setStep] = useState<1 | 2 | 3 | "success">(1);
-  const [overall, setOverall] = useState(0);
+  // Pre-relleno desde el correo (cada estrella del email enlaza con ?s=N).
+  const [overall, setOverall] = useState(initialStars);
   const [nps, setNps] = useState<number | null>(null);
   const [testimonial, setTestimonial] = useState("");
   const [consentShare, setConsentShare] = useState(false);
