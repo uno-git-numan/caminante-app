@@ -386,8 +386,8 @@ export default function FeedbackForm({
 
       <style jsx global>{`
         .shell {
-          --crema: #f5f0e8; --lagoon: #1e3147; --duna: #d18730; --arena: #d4c5b0;
-          --oliva: #5f5f40; --forest: #2c4a3e;
+          --crema: #fbfbf7; --lagoon: #3e4836; --duna: #ff5d36; --arena: #d4cec6;
+          --oliva: #776f67; --forest: #5a7a4e;
           --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
           max-width: 600px; width: 100%; margin: 0 auto; min-height: 100vh; display: flex;
           flex-direction: column; padding: 0 16px; color: var(--lagoon);
