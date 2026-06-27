@@ -50,13 +50,17 @@ section{position:relative;}
 .nav{position:fixed; top:0; left:0; right:0; height:var(--nav-h); z-index:60; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:rgba(245,240,232,.82); backdrop-filter:blur(14px); border-bottom:1px solid rgba(30,49,71,.12); transition:transform .4s ease, background .3s;}
 .nav .brand{font-family:var(--mono); font-weight:600; font-size:16px; color:var(--lagoon); letter-spacing:.02em; text-transform:uppercase; display:flex; align-items:baseline; gap:.5em;}
 .nav .brand small{font-family:var(--mono); font-weight:500; font-size:9.5px; letter-spacing:.12em; color:var(--dune); text-transform:uppercase;}
+.nav .brand img{height:20px; width:auto; display:block;}
+.nav .brand .logo-dark{display:none;}
 .nav-links{display:flex; align-items:center; gap:22px;}
 .nav-links a{font-family:var(--mono); font-size:10.5px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--lagoon); opacity:.72; transition:opacity .2s, color .2s; white-space:nowrap;}
 .nav-links a:hover{opacity:1; color:var(--dune);}
 .nav-cta{font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; background:var(--lagoon); color:var(--cream); padding:11px 18px; border-radius:2px; transition:background .25s; white-space:nowrap;}
 .nav-cta:hover{background:var(--dune);}
-.nav.on-dark{background:rgba(20,30,45,.9); border-bottom-color:rgba(245,240,232,.16);}
+.nav.on-dark{background:rgba(27,32,24,.92); border-bottom-color:rgba(245,240,232,.16);}
 .nav.on-dark .brand{color:var(--cream);}
+.nav.on-dark .brand .logo-color{display:none;}
+.nav.on-dark .brand .logo-dark{display:block;}
 .nav.on-dark .nav-links a{color:var(--cream);}
 .nav.on-dark .nav-cta{background:var(--dune); color:#fff;}
 @media(max-width:900px){.nav-links{display:none;}}
@@ -261,7 +265,7 @@ section{position:relative;}
 
 <!-- NAV -->
 <nav class="nav" id="nav">
-  <a href="#top" class="brand">Caminante<small>Naturaleza en movimiento</small></a>
+  <a href="#top" class="brand" aria-label="Caminante · Naturaleza en movimiento"><img class="logo-color" src="/landing/assets/logos/caminante-logo.svg" alt="Caminante"><img class="logo-dark" src="/landing/assets/logos/caminante-logo-white.svg" alt="" aria-hidden="true"></a>
   <div class="nav-links">
     <a href="#top">Inicio</a>
     <a href="#paisajes">Calendario</a>
@@ -477,7 +481,7 @@ section{position:relative;}
 <footer class="foot">
   <div class="foot-inner">
     <div>
-      <div class="brand">Caminante · Naturaleza en movimiento</div>
+      <div class="brand"><img src="/landing/assets/logos/caminante-logo-white.svg" alt="Caminante · Naturaleza en movimiento" style="height:24px;width:auto;display:block;"></div>
       <small>Una expansión de NUMAN al mundo natural</small>
     </div>
     <div class="right">Caminante lleva la educación encarnada de NUMAN a paisajes reales. Una parte de cada experiencia se destina a la conservación del lugar que la hace posible.</div>
