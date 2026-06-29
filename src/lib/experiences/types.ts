@@ -34,7 +34,11 @@ export type Ally = {
   body: string;
   peopleLabel: string;
   people: string;
+  imageUrl?: string; // foto del aliado (diseño nuevo del form) — opcional
 };
+
+// Bloque libre extra del form nuevo (meditaciones, comunidad, "qué vas a encontrar"…)
+export type FreeBlock = { title: string; body: string; imageUrl: string };
 
 export type Beat = { t: string; d: string };
 export type Day = { dno: string; dname: string; beats: Beat[] };
@@ -51,24 +55,22 @@ export type Experience = {
   // identity / status
   slug: string;
   status: "draft" | "published";
+  estado?: string; // estado de MX (dropdown del form) — liga experiencia ↔ página de destino
 
-  // ubicación por estado — liga la experiencia con su página de DESTINO por estado
-  estado?: string; // "Baja California Sur", "Estado de México", "Chihuahua"…
-
-  // masthead (lo usa la plantilla data-driven fallback; opcional)
-  vol?: string; // "Vol. 07 · Junio 2026"
-  coords?: string; // "23°59′N · 109°50′W"
-  edgeLabel?: string; // "Caminante · Ocean Safari 2026"
-  brandSmall?: string; // "Ocean Safari"
-  docTitle?: string; // <title>
+  // masthead
+  vol: string; // "Vol. 07 · Junio 2026"
+  coords: string; // "23°59′N · 109°50′W"
+  edgeLabel: string; // "Caminante · Ocean Safari 2026"
+  brandSmall: string; // "Ocean Safari"
+  docTitle: string; // <title>
 
   // hero
-  title: string; // requerido — "OCEAN"
-  titleAccent?: string; // "safari." (rendered italic / dune)
-  subtitle?: string;
-  heroImageUrl?: string; // portada; también la imagen de la tarjeta
+  title: string; // "OCEAN"
+  titleAccent: string; // "safari." (rendered italic / dune)
+  subtitle: string;
+  heroImageUrl: string;
   heroImageAlt?: string;
-  heroMeta?: HeroMeta[];
+  heroMeta: HeroMeta[];
 
   // contact / commerce
   whatsapp: string; // E.164 digits for wa.me, e.g. "525512020565"
@@ -106,91 +108,93 @@ export type Experience = {
   cardHook?: string; // one-liner; defaults to subtitle
   startDate?: string | null; // ISO date for calendar ordering, optional
 
-  // ── CONTENIDO RICO — TODO OPCIONAL ──────────────────────────────────────
-  // Las páginas de experiencia ahora son estáticas (public/landing/experiencias/
-  // <slug>.html). Estos campos solo los usa la plantilla data-driven legacy como
-  // fallback; se publica con lo mínimo y se enriquece si se quiere.
+  // === Campos del form nuevo (Claude Design) — TODOS opcionales ===
+  // jsonb schemaless: el template legacy no los usa; las páginas nuevas son estáticas.
+  gallery?: string[]; // galería de fotos (sección "Lo básico")
+  expIntro?: string; // "La experiencia" — intro (diseño nuevo)
+  expImage?: string; // "La experiencia" — foto (diseño nuevo)
+  bloques?: FreeBlock[]; // "Bloques libres extra" (secciones específicas a la experiencia)
 
   // CAP 01 — contexto
-  contextTag?: string;
-  contextTitle?: string;
-  contextTitleAccent?: string;
-  contextLead?: string;
-  contextBandImageUrl?: string;
-  contextBandCaption?: string;
-  context?: ContextItem[];
+  contextTag: string; // "Capítulo 01 · El Contexto"
+  contextTitle: string;
+  contextTitleAccent: string;
+  contextLead: string;
+  contextBandImageUrl: string;
+  contextBandCaption: string;
+  context: ContextItem[];
 
-  // Cuatro caras / lentes
-  carasTitle?: string;
-  carasTitleAccent?: string;
-  carasIntro?: string;
-  lenses?: Lens[];
+  // Cuatro caras
+  carasTitle: string; // "Cada experiencia Caminante"
+  carasTitleAccent: string; // "tiene cuatro lentes."
+  carasIntro: string;
+  lenses: Lens[];
 
   // CAP 02 — experiencia
-  vivirTag?: string;
-  vivirTitle?: string;
-  vivirTitleAccent?: string;
-  vivirLead?: string;
-  vivir?: VivirItem[];
+  vivirTag: string;
+  vivirTitle: string;
+  vivirTitleAccent: string;
+  vivirLead: string;
+  vivir: VivirItem[];
 
   // CAP 03 — aliados
-  aliadosTag?: string;
-  aliadosTitle?: string;
-  aliadosTitleAccent?: string;
-  aliadosLead?: string;
-  aliados?: Ally[];
+  aliadosTag: string;
+  aliadosTitle: string;
+  aliadosTitleAccent: string;
+  aliadosLead: string;
+  aliados: Ally[];
 
   // CAP 04 — itinerario
-  itinerarioTag?: string;
-  itinerarioTitle?: string;
-  itinerarioLead?: string;
-  itinerario?: Day[];
+  itinerarioTag: string;
+  itinerarioTitle: string;
+  itinerarioLead: string;
+  itinerario: Day[];
 
   // CAP 05 — impacto
-  impactoTag?: string;
-  impactoTitle?: string;
-  impactoTitleAccent?: string;
-  impactoBody?: string[];
-  impactoLabel?: string;
-  impactoImageUrl?: string;
+  impactoTag: string;
+  impactoTitle: string;
+  impactoTitleAccent: string;
+  impactoBody: string[];
+  impactoLabel: string;
+  impactoImageUrl: string;
   impactoImageAlt?: string;
 
   // CAP 06 — paquete
-  paqueteTag?: string;
-  paqueteTitle?: string;
-  paqueteTitleAccent?: string;
-  paqueteLead?: string;
-  incluye?: string[];
-  noIncluye?: string[];
+  paqueteTag: string;
+  paqueteTitle: string;
+  paqueteTitleAccent: string;
+  paqueteLead: string;
+  incluye: string[];
+  noIncluye: string[];
 
   // CAP 07 — mochila
-  mochilaTag?: string;
-  mochilaTitle?: string;
-  mochilaTitleAccent?: string;
-  mochilaLead?: string;
-  mochila?: GearCategory[];
-  mochilaNote?: string;
+  mochilaTag: string;
+  mochilaTitle: string;
+  mochilaTitleAccent: string;
+  mochilaLead: string;
+  mochila: GearCategory[];
+  mochilaNote: string;
 
   // CAP 08 — práctico
-  practicoTag?: string;
-  practicoTitle?: string;
-  practicoTitleAccent?: string;
-  practicoLead?: string;
-  cancelacion?: CancelRow[];
-  faq?: Faq[];
+  practicoTag: string;
+  practicoTitle: string;
+  practicoTitleAccent: string;
+  practicoLead: string;
+  cancelacion: CancelRow[];
+  faq: Faq[];
 
   // CAP 09 — reserva
-  reservaTag?: string;
-  reservaTitle?: string;
-  reservaTitleAccent?: string;
-  reservaImageUrl?: string;
+  reservaTag: string;
+  reservaTitle: string;
+  reservaTitleAccent: string;
+  reservaImageUrl: string;
   reservaImageAlt?: string;
-  datesBadge?: { label: string; big: string; rest: string };
-  reservaNote?: string;
-  metaNote?: string[];
+  datesBadge: { label: string; big: string; rest: string };
+  reservaNote: string;
+  metaNote: string[];
 
   // footer
-  footerBrand?: string;
-  footerSmall?: string;
-  footerRight?: string;
+  footerBrand: string;
+  footerSmall: string;
+  footerRight: string;
 };

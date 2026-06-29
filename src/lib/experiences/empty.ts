@@ -49,6 +49,12 @@ export function emptyExperience(): Experience {
     price: { amount: "", currency: "MXN · por persona", desc: "" },
     stripeLink: null,
 
+    // Campos del form nuevo (Claude Design) — arrancan vacíos para no traer undefined
+    gallery: [],
+    expIntro: "",
+    expImage: "",
+    bloques: [],
+
     registration: {
       active: false,
       waiverVersion: "v1",
