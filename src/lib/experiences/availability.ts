@@ -25,6 +25,7 @@ export type SlotAvailabilityPublic = {
 
 export type ExperienceAvailability = {
   slug: string;
+  estado: string | null; // estado de MX (data.estado) — para que destinos filtre por estado
   capacity: number | null; // tope estándar de la experiencia (data.capacity)
   slots: SlotAvailabilityPublic[];
 };
@@ -98,9 +99,14 @@ export async function fetchPublicAvailability(): Promise<ExperienceAvailability[
 
   const out = new Map<string, ExperienceAvailability>();
   for (const e of exps) {
-    const row = e as unknown as { id: string; slug: string; data: { capacity?: number } | null };
+    const row = e as unknown as {
+      id: string;
+      slug: string;
+      data: { capacity?: number; estado?: string } | null;
+    };
     out.set(row.id, {
       slug: row.slug,
+      estado: row.data?.estado || null,
       capacity: row.data?.capacity ?? null,
       slots: [],
     });
