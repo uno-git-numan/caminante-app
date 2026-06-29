@@ -441,9 +441,10 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
       <p>Cuatro días navegando el Mar de Cortés con biólogos marinos y la comunidad pesquera de Agua Amarga. Un viaje con la ciencia de orcas, ballenas y rayas — y con la conservación del proyecto Dos Mares.</p>
       <div class="datapills">
         <div class="pill"><div class="k">Duración</div><div class="v">4 días · 3 noches</div></div>
-        <div class="pill"><div class="k">Fechas</div><div class="v">12–15 ó 18–21</div></div>
-        <div class="pill"><div class="k">Cupo</div><div class="v">Máx. 13</div></div>
+        <div class="pill"><div class="k">Fechas</div><div class="v" data-av="ensenada:fechas">12–15 ó 18–21</div></div>
+        <div class="pill"><div class="k">Cupo</div><div class="v" data-av="ensenada:cupo">Máx. 13</div></div>
       </div>
+      <p data-av="ensenada:disp" style="display:none;align-items:center;gap:.5em;margin:-12px 0 26px;font-size:13px;font-weight:600;letter-spacing:.04em;color:#fff;"><span style="width:7px;height:7px;border-radius:999px;background:var(--orange);display:inline-block;"></span><span class="av-txt"></span></p>
       <a href="/caminante/experiencias/ensenada-de-muertos" class="btn btn-glass btn-arrow">Vivir esta experiencia</a>
     </div>
   </div>
@@ -472,6 +473,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
             <span class="face"><span class="dia">◆</span>Problemas</span>
           </div>
           <p class="hook">Cuatro días en el Mar de Cortés con orcas, ballenas y la comunidad de Agua Amarga.</p>
+          <p data-av="ensenada:dispcard" style="display:none;align-items:center;gap:.5em;margin:0 0 16px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--olive);"><span style="width:7px;height:7px;border-radius:999px;background:var(--orange);display:inline-block;"></span><span class="av-txt"></span></p>
           <a href="/caminante/experiencias/ensenada-de-muertos" class="btn btn-outline btn-arrow">Vivir esta experiencia</a>
         </div>
       </article>
@@ -643,6 +645,38 @@ function toggleDrawer(open){
 }
 burger.addEventListener('click',()=>toggleDrawer(!drawer.classList.contains('open')));
 drawer.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>toggleDrawer(false)));
+</script>
+
+<!-- Disponibilidad en vivo desde la BD (/caminante/api/availability, sin cache).
+     Rellena fechas/cupo/disponibilidad; el texto hardcodeado queda como fallback. -->
+<script>
+(async function(){
+  function put(sel, text){
+    document.querySelectorAll(sel).forEach(function(node){
+      var t = node.querySelector('.av-txt');
+      if(t){ t.textContent = text; node.style.display = 'inline-flex'; }
+      else { node.textContent = text; }
+    });
+  }
+  try{
+    var res = await fetch('/caminante/api/availability', {cache:'no-store'});
+    if(!res.ok) return;
+    var data = await res.json();
+    var bySlug = {};
+    (data.experiences||[]).forEach(function(e){ bySlug[e.slug] = e; });
+    var ens = bySlug['ensenada-de-muertos'];
+    if(ens){
+      var slots = ens.slots || [];
+      var labels = slots.map(function(s){ return s.label; }).filter(Boolean).join(' · ');
+      if(labels) put('[data-av="ensenada:fechas"]', labels);
+      if(ens.capacity != null) put('[data-av="ensenada:cupo"]', 'Máx. ' + ens.capacity);
+      var avail = slots.reduce(function(a,s){ return a + (s.available || 0); }, 0);
+      var sold = (slots.length > 0 && slots.every(function(s){ return s.soldOut; })) || avail <= 0;
+      put('[data-av="ensenada:disp"]', sold ? 'Agotado' : ('Quedan ' + avail + (avail === 1 ? ' lugar' : ' lugares')));
+      put('[data-av="ensenada:dispcard"]', sold ? 'Agotado' : ('Quedan ' + avail + ' de ' + ens.capacity));
+    }
+  }catch(e){ /* silencioso: queda el fallback hardcodeado */ }
+})();
 </script>
 </body>
 </html>
