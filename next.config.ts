@@ -23,6 +23,10 @@ const nextConfig: NextConfig = {
           source: "/caminante/experiencias/ensenada-de-muertos",
           destination: "/landing/experiencias/ensenada-de-muertos.html",
         },
+        {
+          source: "/caminante/experiencias/recoleccion-de-hongos",
+          destination: "/landing/experiencias/recoleccion-de-hongos.html",
+        },
       ],
       afterFiles: [],
       fallback: [],
