@@ -52,20 +52,23 @@ export type Experience = {
   slug: string;
   status: "draft" | "published";
 
-  // masthead
-  vol: string; // "Vol. 07 · Junio 2026"
-  coords: string; // "23°59′N · 109°50′W"
-  edgeLabel: string; // "Caminante · Ocean Safari 2026"
-  brandSmall: string; // "Ocean Safari"
-  docTitle: string; // <title>
+  // ubicación por estado — liga la experiencia con su página de DESTINO por estado
+  estado?: string; // "Baja California Sur", "Estado de México", "Chihuahua"…
+
+  // masthead (lo usa la plantilla data-driven fallback; opcional)
+  vol?: string; // "Vol. 07 · Junio 2026"
+  coords?: string; // "23°59′N · 109°50′W"
+  edgeLabel?: string; // "Caminante · Ocean Safari 2026"
+  brandSmall?: string; // "Ocean Safari"
+  docTitle?: string; // <title>
 
   // hero
-  title: string; // "OCEAN"
-  titleAccent: string; // "safari." (rendered italic / dune)
-  subtitle: string;
-  heroImageUrl: string;
+  title: string; // requerido — "OCEAN"
+  titleAccent?: string; // "safari." (rendered italic / dune)
+  subtitle?: string;
+  heroImageUrl?: string; // portada; también la imagen de la tarjeta
   heroImageAlt?: string;
-  heroMeta: HeroMeta[];
+  heroMeta?: HeroMeta[];
 
   // contact / commerce
   whatsapp: string; // E.164 digits for wa.me, e.g. "525512020565"
@@ -103,86 +106,91 @@ export type Experience = {
   cardHook?: string; // one-liner; defaults to subtitle
   startDate?: string | null; // ISO date for calendar ordering, optional
 
-  // CAP 01 — contexto
-  contextTag: string; // "Capítulo 01 · El Contexto"
-  contextTitle: string;
-  contextTitleAccent: string;
-  contextLead: string;
-  contextBandImageUrl: string;
-  contextBandCaption: string;
-  context: ContextItem[];
+  // ── CONTENIDO RICO — TODO OPCIONAL ──────────────────────────────────────
+  // Las páginas de experiencia ahora son estáticas (public/landing/experiencias/
+  // <slug>.html). Estos campos solo los usa la plantilla data-driven legacy como
+  // fallback; se publica con lo mínimo y se enriquece si se quiere.
 
-  // Cuatro caras
-  carasTitle: string; // "Cada experiencia Caminante"
-  carasTitleAccent: string; // "tiene cuatro lentes."
-  carasIntro: string;
-  lenses: Lens[];
+  // CAP 01 — contexto
+  contextTag?: string;
+  contextTitle?: string;
+  contextTitleAccent?: string;
+  contextLead?: string;
+  contextBandImageUrl?: string;
+  contextBandCaption?: string;
+  context?: ContextItem[];
+
+  // Cuatro caras / lentes
+  carasTitle?: string;
+  carasTitleAccent?: string;
+  carasIntro?: string;
+  lenses?: Lens[];
 
   // CAP 02 — experiencia
-  vivirTag: string;
-  vivirTitle: string;
-  vivirTitleAccent: string;
-  vivirLead: string;
-  vivir: VivirItem[];
+  vivirTag?: string;
+  vivirTitle?: string;
+  vivirTitleAccent?: string;
+  vivirLead?: string;
+  vivir?: VivirItem[];
 
   // CAP 03 — aliados
-  aliadosTag: string;
-  aliadosTitle: string;
-  aliadosTitleAccent: string;
-  aliadosLead: string;
-  aliados: Ally[];
+  aliadosTag?: string;
+  aliadosTitle?: string;
+  aliadosTitleAccent?: string;
+  aliadosLead?: string;
+  aliados?: Ally[];
 
   // CAP 04 — itinerario
-  itinerarioTag: string;
-  itinerarioTitle: string;
-  itinerarioLead: string;
-  itinerario: Day[];
+  itinerarioTag?: string;
+  itinerarioTitle?: string;
+  itinerarioLead?: string;
+  itinerario?: Day[];
 
   // CAP 05 — impacto
-  impactoTag: string;
-  impactoTitle: string;
-  impactoTitleAccent: string;
-  impactoBody: string[];
-  impactoLabel: string;
-  impactoImageUrl: string;
+  impactoTag?: string;
+  impactoTitle?: string;
+  impactoTitleAccent?: string;
+  impactoBody?: string[];
+  impactoLabel?: string;
+  impactoImageUrl?: string;
   impactoImageAlt?: string;
 
   // CAP 06 — paquete
-  paqueteTag: string;
-  paqueteTitle: string;
-  paqueteTitleAccent: string;
-  paqueteLead: string;
-  incluye: string[];
-  noIncluye: string[];
+  paqueteTag?: string;
+  paqueteTitle?: string;
+  paqueteTitleAccent?: string;
+  paqueteLead?: string;
+  incluye?: string[];
+  noIncluye?: string[];
 
   // CAP 07 — mochila
-  mochilaTag: string;
-  mochilaTitle: string;
-  mochilaTitleAccent: string;
-  mochilaLead: string;
-  mochila: GearCategory[];
-  mochilaNote: string;
+  mochilaTag?: string;
+  mochilaTitle?: string;
+  mochilaTitleAccent?: string;
+  mochilaLead?: string;
+  mochila?: GearCategory[];
+  mochilaNote?: string;
 
   // CAP 08 — práctico
-  practicoTag: string;
-  practicoTitle: string;
-  practicoTitleAccent: string;
-  practicoLead: string;
-  cancelacion: CancelRow[];
-  faq: Faq[];
+  practicoTag?: string;
+  practicoTitle?: string;
+  practicoTitleAccent?: string;
+  practicoLead?: string;
+  cancelacion?: CancelRow[];
+  faq?: Faq[];
 
   // CAP 09 — reserva
-  reservaTag: string;
-  reservaTitle: string;
-  reservaTitleAccent: string;
-  reservaImageUrl: string;
+  reservaTag?: string;
+  reservaTitle?: string;
+  reservaTitleAccent?: string;
+  reservaImageUrl?: string;
   reservaImageAlt?: string;
-  datesBadge: { label: string; big: string; rest: string };
-  reservaNote: string;
-  metaNote: string[];
+  datesBadge?: { label: string; big: string; rest: string };
+  reservaNote?: string;
+  metaNote?: string[];
 
   // footer
-  footerBrand: string;
-  footerSmall: string;
-  footerRight: string;
+  footerBrand?: string;
+  footerSmall?: string;
+  footerRight?: string;
 };

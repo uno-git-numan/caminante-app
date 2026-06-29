@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect } from "react";
 import { templateCss } from "@/lib/experiences/template-assets";
+import { emptyExperience } from "@/lib/experiences/empty";
 import type { Experience } from "@/lib/experiences/types";
 
 // Minimal inline formatter: **bold** and *italic*, matching the static design's <strong>/<em>.
@@ -32,7 +33,11 @@ function lines(text: string): React.ReactNode[] {
   ));
 }
 
-export default function ExperienceTemplate({ experience: e }: { experience: Experience }) {
+export default function ExperienceTemplate({ experience: raw }: { experience: Experience }) {
+  // Fallback legacy (las experiencias nuevas son páginas estáticas). El contenido
+  // rico es opcional → rellenamos con defaults para que la plantilla data-driven
+  // NUNCA truene si faltan campos; las secciones sin datos quedan vacías, no rompen.
+  const e: Experience = { ...emptyExperience(), ...raw };
   const wa = `https://wa.me/${e.whatsapp}`;
   const mailto = `mailto:${e.email}`;
 

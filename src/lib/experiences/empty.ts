@@ -23,6 +23,7 @@ export function emptyExperience(): Experience {
   return {
     slug: "",
     status: "draft",
+    estado: "",
 
     vol: "",
     coords: "",
@@ -53,6 +54,24 @@ export function emptyExperience(): Experience {
       waiverVersion: "v1",
       waiverDocUrl: "",
       waiverClauses: [""],
+    },
+
+    // Encuesta de satisfacción — defaults OUTDOOR (sin encuadre de 4 caras/conservación).
+    feedback: {
+      active: false,
+      version: "v1",
+      locationLabel: "",
+      npsEnabled: true,
+      sections: [
+        { key: "experiencia", label: "La experiencia", icon: "🌄" },
+        { key: "guias", label: "Guías y equipo", icon: "🧭" },
+        { key: "seguridad", label: "Seguridad", icon: "🦺" },
+        { key: "logistica", label: "Logística", icon: "🚐" },
+        { key: "comida", label: "Comida y hospedaje", icon: "🍽️" },
+        { key: "ambiente", label: "Ambiente", icon: "🏕️" },
+        { key: "valor", label: "Valor por lo que viviste", icon: "💵" },
+      ],
+      testimonialPrompt: "",
     },
 
     contextTag: "Capítulo 01 · El Contexto",
