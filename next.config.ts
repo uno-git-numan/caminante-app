@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
           source: "/caminante/destinos/estado-de-mexico",
           destination: "/landing/destinos/estado-de-mexico.html",
         },
+        // Página de experiencia estática (intercepta antes del template dinámico [slug]).
+        {
+          source: "/caminante/experiencias/ensenada-de-muertos",
+          destination: "/landing/experiencias/ensenada-de-muertos.html",
+        },
       ],
       afterFiles: [],
       fallback: [],
