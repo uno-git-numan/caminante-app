@@ -1,11 +1,11 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-// Estados de reserva que APARTAN un lugar (decisión: solo paid + registrados).
-//   confirmed = registro firmado (web)
-//   paid      = pagó por WhatsApp/Stripe
-//   attended  = ya asistió
+// Estados del enum reservation_status que APARTAN un lugar (decisión: paid + registrados).
+//   confirmed      = registro firmado (web)
+//   paid / partially_paid / completed = pagó (WhatsApp/Stripe)
 // 'requested' (link enviado sin pagar) y 'cancelled' NO apartan lugar.
-export const HOLDING_STATUSES = ["paid", "confirmed", "attended"];
+// (Ojo: "attended" NO existe en este enum — es un status del Trip Pipeline de Notion.)
+export const HOLDING_STATUSES = ["confirmed", "paid", "partially_paid", "completed"];
 
 export type SlotAvailability = {
   capacity: number | null; // null = salida sin tope
