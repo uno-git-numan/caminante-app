@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estado de México · Caminante</title>
+<style>
+/* ============================== FONTS ============================== */
+@font-face{
+  font-family:"Geist";
+  src:url("/landing/assets/fonts/Geist-VariableFont_wght.ttf") format("truetype-variations");
+  font-weight:100 900; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:"Geist";
+  src:url("/landing/assets/fonts/Geist-Italic-VariableFont_wght.ttf") format("truetype-variations");
+  font-weight:100 900; font-style:italic; font-display:swap;
+}
+@font-face{
+  font-family:"Geist Mono";
+  src:url("/landing/assets/fonts/GeistMono-VariableFont_wght.ttf") format("truetype-variations");
+  font-weight:100 900; font-style:normal; font-display:swap;
+}
+
+/* ============================== TOKENS ============================= */
+:root{
+  --lagoon:#1c6f6a;     /* teal del mar */
+  --lagoon-deep:#0f3f40;
+  --dune:#c9b79c;
+  --cream:#fbfbf7;
+  --sand:#b6ada5;
+  --salvia:#d6d8c7;
+  --olive:#637154;      /* verde marca */
+  --olive-d:#4f5d44;
+  --forest:#20392b;     /* verde profundo */
+  --charcoal:#20211c;   /* tinta */
+  --orange:#ff5d36;
+
+  --ink-soft:rgba(32,33,28,.62);
+  --line:rgba(32,33,28,.12);
+  --line-w:rgba(255,255,255,.22);
+
+  --maxw:1240px;
+  --eb:.24em;
+  --r:18px;
+  --shadow:0 24px 60px -28px rgba(32,33,28,.5);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:"Geist",system-ui,sans-serif;
+  color:var(--charcoal);
+  background:var(--cream);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+img{display:block;max-width:100%;}
+a{color:inherit;text-decoration:none;}
+
+/* ============================== TYPE HELPERS ====================== */
+.eyebrow{
+  font-size:12px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:.6em;line-height:1;
+}
+.eyebrow .sl{color:var(--orange);font-weight:700;}
+.display{font-weight:200;letter-spacing:-.02em;line-height:1.04;}
+em.ac{font-style:italic;color:var(--orange);font-weight:300;}
+.lead{font-weight:300;line-height:1.55;}
+.dia{color:var(--orange);font-size:.7em;transform:translateY(-1px);}
+
+.container{max-width:var(--maxw);margin:0 auto;padding:0 22px;width:100%;}
+
+/* ============================== BUTTONS =========================== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.6em;
+  min-height:50px;padding:0 26px;border-radius:999px;
+  font-size:15px;font-weight:500;letter-spacing:.01em;cursor:pointer;
+  border:1px solid transparent;transition:transform .18s ease,background .2s ease,border-color .2s ease,color .2s ease;
+  white-space:nowrap;
+}
+.btn:active{transform:translateY(1px);}
+.btn-green{background:var(--olive);color:#fff;}
+.btn-green:hover{background:var(--olive-d);}
+.btn-orange{background:var(--orange);color:#fff;}
+.btn-orange:hover{background:#e8431f;}
+.btn-glass{
+  background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.42);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.btn-glass:hover{background:rgba(255,255,255,.22);}
+.btn-outline{background:transparent;color:var(--olive);border-color:var(--olive);}
+.btn-outline:hover{background:var(--olive);color:#fff;}
+.btn-arrow::after{content:"→";font-size:1.05em;}
+
+/* ============================== NAV =============================== */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 22px;transition:background .3s ease,box-shadow .3s ease,padding .3s ease;
+}
+.nav.scrolled{
+  background:rgba(251,251,247,.82);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 1px 0 var(--line);padding:11px 22px;
+}
+.nav .brand{display:flex;align-items:center;}
+.nav .logo-word{display:none;height:26px;}
+.nav .logo-mark{display:block;height:34px;}
+.nav .logo-word svg,.nav .logo-mark svg{height:100%;width:auto;display:block;}
+/* logo colors: all white over hero; brand colors when scrolled (middle = arena gray) */
+.nav .brand .g1,.nav .brand .g2,.nav .brand .g3,.nav .brand .gw{fill:#fff;transition:fill .3s ease;}
+.nav.scrolled .brand .g1{fill:var(--olive);}
+.nav.scrolled .brand .g2{fill:var(--sand);}
+.nav.scrolled .brand .g3{fill:var(--orange);}
+.nav.scrolled .brand .gw{fill:var(--charcoal);}
+@media(min-width:620px){
+  .nav .logo-word{display:block;}
+  .nav .logo-mark{display:none;}
+}
+
+.nav-links{display:none;align-items:center;gap:34px;}
+.nav-links a{font-size:15px;font-weight:500;color:#fff;opacity:.92;transition:color .3s,opacity .2s;}
+.nav-links a:hover{opacity:1;}
+.nav.scrolled .nav-links a{color:var(--charcoal);}
+.nav-cta{display:flex;align-items:center;gap:14px;}
+.nav-cta .btn{min-height:42px;padding:0 20px;font-size:14px;}
+
+.burger{
+  display:flex;flex-direction:column;gap:5px;background:none;border:0;cursor:pointer;padding:8px;
+  width:44px;height:44px;align-items:center;justify-content:center;
+}
+.burger span{display:block;width:24px;height:2px;background:#fff;transition:background .3s,transform .3s,opacity .3s;}
+.nav.scrolled .burger span{background:var(--charcoal);}
+
+/* mobile drawer */
+.drawer{
+  position:fixed;inset:0;z-index:99;background:var(--forest);
+  display:flex;flex-direction:column;justify-content:center;gap:6px;padding:32px;
+  transform:translateY(-100%);transition:transform .4s cubic-bezier(.4,0,.2,1);
+}
+.drawer.open{transform:translateY(0);}
+.drawer a{color:#fff;font-size:30px;font-weight:200;letter-spacing:-.01em;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.12);}
+.drawer a .sl{color:var(--orange);margin-right:.4em;font-size:.6em;vertical-align:middle;}
+.drawer .btn{margin-top:24px;align-self:flex-start;}
+
+@media(min-width:920px){
+  .nav-links{display:flex;}
+  .burger{display:none;}
+  .nav{padding:20px 40px;}
+  .nav.scrolled{padding:13px 40px;}
+}
+
+/* ============================== HERO ============================== */
+.hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;color:#fff;overflow:hidden;}
+.hero .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;}
+.hero .veil{position:absolute;inset:0;background:
+  linear-gradient(to top,rgba(10,24,24,.86) 0%,rgba(10,24,24,.34) 42%,rgba(10,24,24,.18) 72%,rgba(10,24,24,.42) 100%);}
+.hero .container{position:relative;z-index:2;padding-bottom:64px;padding-top:120px;}
+.hero .eyebrow{color:#fff;}
+.hero .meta-est{color:rgba(255,255,255,.72);font-size:12px;font-weight:600;letter-spacing:var(--eb);}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:auto;}
+.hero h1{font-size:clamp(40px,9vw,86px);max-width:14ch;margin:22px 0 0;}
+.hero .sub{font-size:clamp(16px,2.2vw,21px);max-width:60ch;margin-top:24px;color:rgba(255,255,255,.9);}
+.hero .actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:34px;}
+
+/* section rhythm */
+.section{padding:88px 0;}
+.section-sm{padding:64px 0;}
+@media(min-width:768px){.section{padding:128px 0;}}
+
+.shead{max-width:760px;}
+.shead h2{font-size:clamp(30px,5vw,56px);margin-top:18px;}
+.shead .cap{margin-top:18px;font-size:17px;color:var(--ink-soft);max-width:54ch;}
+.pager{font-size:12px;font-weight:600;letter-spacing:var(--eb);color:var(--ink-soft);}
+
+/* ============================== QUÉ ES ============================ */
+.ques{background:var(--cream);}
+.ques .grid{display:grid;gap:40px;align-items:center;}
+.ques .photo{position:relative;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);aspect-ratio:4/5;}
+.ques .photo img{width:100%;height:100%;object-fit:cover;}
+.ques h2{font-size:clamp(30px,5vw,54px);margin:16px 0 26px;}
+.ques p{font-size:17px;line-height:1.6;color:#36382f;margin-bottom:18px;max-width:52ch;}
+.pullquote{
+  margin-top:30px;padding:24px 28px;border-left:2px solid var(--orange);
+  background:var(--salvia);border-radius:0 var(--r) var(--r) 0;
+  font-size:clamp(18px,2.4vw,24px);font-weight:300;line-height:1.4;font-style:italic;
+}
+@media(min-width:860px){.ques .grid{grid-template-columns:1fr 1fr;gap:72px;}}
+
+/* ============================== CARAS (dark) ====================== */
+.dark{background:var(--forest);color:#fff;}
+.dark .shead .cap{color:rgba(255,255,255,.72);}
+.dark .pager{color:rgba(255,255,255,.6);}
+.caras-grid{display:grid;gap:16px;margin-top:48px;}
+.cara{
+  position:relative;border-radius:var(--r);overflow:hidden;min-height:300px;
+  display:flex;flex-direction:column;justify-content:flex-end;padding:26px;color:#fff;isolation:isolate;
+}
+.cara img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transition:transform .6s ease;}
+.cara::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,rgba(8,20,16,.9),rgba(8,20,16,.15) 70%);}
+.cara:hover img{transform:scale(1.05);}
+.cara .num{font-size:12px;font-weight:600;letter-spacing:var(--eb);color:var(--orange);margin-bottom:auto;}
+.cara h3{font-size:23px;font-weight:300;margin-bottom:8px;}
+.cara p{font-size:15px;line-height:1.45;color:rgba(255,255,255,.82);}
+@media(min-width:620px){.caras-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1040px){.caras-grid{grid-template-columns:repeat(4,1fr);}.cara{min-height:420px;}}
+
+/* ============================== DESTACADA ========================= */
+.feat{background:var(--salvia);color:var(--charcoal);overflow:hidden;}
+.feat .grid{display:grid;gap:0;align-items:stretch;}
+.feat .photo{position:relative;min-height:340px;}
+.feat .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.feat .body{padding:56px 22px;}
+.feat .meta{font-size:12px;font-weight:600;letter-spacing:var(--eb);color:rgba(255,255,255,.66);margin-left:14px;}
+.feat h3{font-size:clamp(28px,4.6vw,46px);font-weight:200;margin:18px 0 22px;}
+.feat p{font-size:17px;line-height:1.6;color:rgba(255,255,255,.86);max-width:50ch;}
+.datapills{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0 32px;}
+.pill{
+  background:rgba(255,255,255,.1);border:1px solid var(--line-w);border-radius:14px;
+  padding:14px 18px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);min-width:120px;
+}
+.pill .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.6);}
+.pill .v{font-size:18px;font-weight:500;margin-top:5px;}
+@media(min-width:860px){
+  .feat .grid{grid-template-columns:1fr 1fr;}
+  .feat .body{padding:96px 64px;display:flex;flex-direction:column;justify-content:center;}
+}
+
+/* ============================== PRÓXIMOS ========================== */
+.next{background:var(--cream);}
+.exp-grid{display:grid;gap:24px;margin-top:48px;}
+.exp{
+  background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:0 10px 30px -22px rgba(32,33,28,.4);
+  transition:transform .25s ease,box-shadow .25s ease;
+}
+.exp:hover{transform:translateY(-4px);box-shadow:0 26px 50px -30px rgba(32,33,28,.5);}
+.exp .ph{position:relative;aspect-ratio:3/2;overflow:hidden;}
+.exp .ph img{width:100%;height:100%;object-fit:cover;}
+.exp .ph .loc{position:absolute;left:14px;bottom:14px;color:#fff;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.6);}
+.exp .in{padding:24px;display:flex;flex-direction:column;flex:1;}
+.exp h3{font-size:24px;font-weight:300;letter-spacing:-.01em;}
+.faces{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0;}
+.face{font-size:11px;letter-spacing:.06em;color:var(--olive);border:1px solid var(--line);border-radius:999px;padding:5px 11px;display:inline-flex;align-items:center;gap:5px;}
+.exp .hook{font-size:15px;color:var(--ink-soft);line-height:1.5;margin-bottom:22px;flex:1;}
+.exp .btn{align-self:flex-start;}
+.exp.slot{border:1.5px dashed var(--sand);background:var(--salvia);align-items:center;justify-content:center;text-align:center;min-height:360px;padding:30px;}
+.exp.slot .ph{aspect-ratio:auto;width:100%;}
+.slotnote{color:var(--olive-d);font-size:14px;line-height:1.5;}
+.slotnote strong{display:block;font-size:18px;font-weight:500;margin-bottom:8px;color:var(--charcoal);}
+@media(min-width:680px){.exp-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1040px){.exp-grid{grid-template-columns:repeat(3,1fr);}}
+
+/* ============================== PILARES =========================== */
+.pillars{background:var(--salvia);}
+.pillars .lead{font-size:18px;color:#3a3c33;max-width:58ch;margin-top:18px;}
+.pil-grid{display:grid;gap:2px;margin-top:48px;background:var(--line);border-radius:var(--r);overflow:hidden;}
+.pil{background:var(--cream);padding:34px 28px;}
+.pil .n{font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--orange);}
+.pil h3{font-size:25px;font-weight:300;margin:14px 0 12px;}
+.pil p{font-size:15.5px;line-height:1.55;color:var(--ink-soft);}
+@media(min-width:600px){.pil-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1040px){.pil-grid{grid-template-columns:repeat(4,1fr);}}
+
+/* ============================== APRENDE =========================== */
+.learn{position:relative;color:#fff;overflow:hidden;}
+.learn .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;}
+.learn .veil{position:absolute;inset:0;background:linear-gradient(105deg,rgba(15,30,28,.92) 0%,rgba(15,30,28,.7) 48%,rgba(15,30,28,.3) 100%);}
+.learn .container{position:relative;z-index:2;}
+.learn .box{max-width:560px;}
+.learn h2{font-size:clamp(30px,5vw,54px);margin:16px 0 22px;}
+.learn p{font-size:17px;line-height:1.6;color:rgba(255,255,255,.88);}
+.tags{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 32px;}
+.tag{font-size:13px;letter-spacing:.05em;border:1px solid var(--line-w);border-radius:999px;padding:8px 16px;background:rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+
+/* ============================== CONSERVACIÓN ====================== */
+.cons{position:relative;color:#fff;overflow:hidden;text-align:center;}
+.cons .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;}
+.cons .veil{position:absolute;inset:0;background:rgba(10,26,24,.62);}
+.cons .container{position:relative;z-index:2;max-width:860px;}
+.cons h2{font-size:clamp(28px,4.6vw,52px);margin:18px 0 24px;}
+.cons p{font-size:18px;line-height:1.6;color:rgba(255,255,255,.9);margin:0 auto;max-width:56ch;}
+.allies{margin-top:30px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--dune);font-weight:600;}
+
+/* ============================== SERVIMOS ========================== */
+.serve{background:var(--cream);}
+.serve-grid{display:grid;gap:30px;margin-top:48px;}
+.srv .ph{aspect-ratio:5/4;border-radius:var(--r);overflow:hidden;margin-bottom:22px;box-shadow:0 14px 34px -26px rgba(32,33,28,.5);}
+.srv .ph img{width:100%;height:100%;object-fit:cover;}
+.srv .n{font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--orange);}
+.srv h3{font-size:23px;font-weight:400;margin:10px 0 4px;}
+.srv .role{font-size:14px;color:var(--ink-soft);font-style:italic;margin-bottom:12px;}
+.srv p{font-size:15.5px;line-height:1.55;color:#3a3c33;}
+@media(min-width:780px){.serve-grid{grid-template-columns:repeat(3,1fr);}}
+
+/* ============================== CIERRE ============================ */
+.close{position:relative;color:#fff;overflow:hidden;}
+.close .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 50%;}
+.close .veil{position:absolute;inset:0;background:linear-gradient(to top,rgba(8,22,22,.82),rgba(8,22,22,.28) 60%,rgba(8,22,22,.5));}
+.close .container{position:relative;z-index:2;display:flex;justify-content:center;}
+.glasscard{
+  background:rgba(255,255,255,.1);border:1px solid var(--line-w);border-radius:24px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  padding:44px 30px;max-width:640px;width:100%;text-align:center;
+}
+.glasscard h2{font-size:clamp(32px,5.6vw,58px);margin:16px 0 26px;}
+.contact{display:flex;flex-direction:column;gap:12px;margin-bottom:30px;}
+.crow{display:flex;flex-direction:column;gap:3px;}
+.crow .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dune);font-weight:600;}
+.crow .val{font-size:17px;font-weight:300;}
+.glasscard .actions{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;}
+@media(min-width:560px){
+  .contact{flex-direction:row;justify-content:center;gap:34px;flex-wrap:wrap;}
+  .glasscard{padding:56px 48px;}
+}
+
+/* ============================== FOOTER ============================ */
+.footer{background:var(--charcoal);color:#fff;padding:64px 0 40px;}
+.footer .word{height:30px;margin-bottom:28px;}
+.footer .word svg{height:100%;width:auto;}
+.footer .word .g1,.footer .word .g2,.footer .word .gw{fill:#fff;}
+.footer .word .g3{fill:var(--orange);}
+.footer .tagline{font-size:20px;font-weight:300;margin-bottom:8px;}
+.footer .sub{font-size:14px;color:rgba(255,255,255,.6);letter-spacing:.04em;text-transform:uppercase;margin-bottom:24px;}
+.footer .desc{font-size:15px;line-height:1.6;color:rgba(255,255,255,.7);max-width:64ch;}
+.footer .fbottom{margin-top:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,.12);font-size:13px;color:rgba(255,255,255,.5);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+
+
+/* ============================== INFO / DATOS ====================== */
+.info{background:var(--cream);}
+.info .grid{display:grid;gap:40px;align-items:start;}
+.info .lead{font-size:clamp(18px,2.4vw,23px);font-weight:300;line-height:1.55;color:#33352d;}
+.info .lead em{font-style:italic;color:var(--olive);}
+.info .pills{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.pill-l{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:0 10px 30px -26px rgba(32,33,28,.5);}
+.pill-l .v{font-size:clamp(24px,3vw,34px);font-weight:200;letter-spacing:-.01em;line-height:1;}
+.pill-l .k{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-top:10px;font-weight:600;}
+@media(min-width:860px){.info .grid{grid-template-columns:1.1fr .9fr;gap:64px;}}
+
+/* cara eyebrow variant (territory faces) */
+.cara .eb{font-size:12px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;color:#fff;margin-bottom:auto;display:inline-flex;gap:.5em;}
+.cara .eb .sl{color:var(--orange);font-weight:700;}
+
+/* ============================== VIDEO ============================= */
+/* ============================== GALERÍA ========================== */
+.gallery-sec{background:var(--forest);color:#fff;}
+.gallery-sec .shead .cap{color:rgba(255,255,255,.72);}
+.gallery-sec .pager{color:rgba(255,255,255,.6);}
+.slideshow{position:relative;margin-top:48px;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);}
+.ss-track{display:flex;transition:transform .6s cubic-bezier(.4,0,.2,1);}
+.ss-slide{position:relative;flex:0 0 100%;aspect-ratio:16/9;overflow:hidden;}
+.ss-slide img{width:100%;height:100%;object-fit:cover;display:block;}
+.ss-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(8,20,16,.66),rgba(8,20,16,0) 46%);}
+.ss-cap{position:absolute;left:24px;bottom:22px;z-index:2;color:#fff;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-shadow:0 1px 10px rgba(0,0,0,.6);}
+.ss-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:52px;height:52px;border-radius:999px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:26px;line-height:0;padding-bottom:3px;background:rgba(255,255,255,.14);border:1px solid var(--line-w);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:background .2s ease,transform .2s ease;}
+.ss-btn:hover{background:rgba(255,255,255,.28);}
+.ss-prev{left:16px;}
+.ss-next{right:16px;}
+.ss-foot{display:flex;justify-content:space-between;align-items:center;margin-top:20px;}
+.ss-count{font-family:"Geist Mono",ui-monospace,monospace;font-size:13px;letter-spacing:.12em;color:rgba(255,255,255,.66);}
+.ss-count b{color:#fff;font-weight:500;}
+.ss-dots{display:flex;gap:9px;}
+.ss-dot{width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.32);border:0;padding:0;cursor:pointer;transition:background .2s ease,transform .2s ease;}
+.ss-dot.on{background:var(--orange);transform:scale(1.25);}
+@media(min-width:760px){.ss-slide{aspect-ratio:2.2/1;}.ss-cap{left:32px;bottom:30px;font-size:14px;}.ss-btn{width:58px;height:58px;}}
+
+/* ===== Section numbers (Geist Mono) ===== */
+.secnum{font-family:"Geist Mono",ui-monospace,monospace;font-weight:500;font-size:13px;letter-spacing:.14em;line-height:1;flex:0 0 auto;align-self:flex-start;white-space:nowrap;}
+.shead-num{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}
+.shead-main{max-width:760px;}
+.shead-main h2{font-size:clamp(30px,5vw,56px);margin-top:16px;}
+
+/* ===== 01 El territorio (intro + datos + cuatro caras) ===== */
+.terr{background:var(--cream);}
+.terr-intro{display:grid;gap:40px;margin-top:30px;}
+.terr-copy .lead{font-size:clamp(18px,2.2vw,22px);font-weight:300;line-height:1.55;color:#33352d;}
+.terr-copy .lead + .lead{margin-top:16px;}
+.terr-copy .lead em{font-style:italic;color:var(--olive);}
+.terr .pills{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.caras-head{margin-top:76px;}
+.caras-head .cap-l{margin-top:14px;font-size:17px;color:var(--ink-soft);max-width:54ch;}
+.terr .caras-grid{margin-top:28px;}
+@media(min-width:860px){.terr-intro{grid-template-columns:1.05fr .95fr;gap:64px;align-items:start;}}
+
+/* ===== Section backgrounds + alternancia claro/oscuro ===== */
+/* 03 Experiencia destacada → salvia (claro) */
+.feat .eyebrow{color:var(--charcoal);}
+.feat .meta{color:rgba(32,33,28,.55);}
+.feat p{color:#33352d;}
+.feat .pill{background:#fff;border-color:var(--line);}
+.feat .pill .k{color:var(--ink-soft);}
+.feat .pill .v{color:var(--charcoal);}
+.feat .secnum{margin-top:2px;}
+/* 04 Próximas experiencias → paper (claro) */
+.next{background:var(--cream);}
+
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none!important;}}
+</style>
+</head>
+
+<body>
+
+<!-- ============================== NAV ============================== -->
+<nav class="nav" id="nav">
+  <a href="/caminante" class="brand" aria-label="Caminante — inicio">
+    <span class="logo-word" data-word></span>
+    <span class="logo-mark" data-mark></span>
+  </a>
+  <div class="nav-links">
+    <a href="/caminante">Inicio</a>
+    <a href="/caminante#proximos">Calendario</a>
+    <a href="/caminante#aprende">Aprende</a>
+    <a href="/caminante#quees">Nosotros</a>
+  </div>
+  <div class="nav-cta">
+    <a href="#reserva" class="btn btn-orange">Reservar</a>
+    <button class="burger" id="burger" aria-label="Abrir menú" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="drawer" id="drawer">
+  <a href="/caminante"><span class="sl">//</span>Inicio</a>
+  <a href="/caminante#proximos"><span class="sl">//</span>Calendario</a>
+  <a href="/caminante#aprende"><span class="sl">//</span>Aprende</a>
+  <a href="/caminante#quees"><span class="sl">//</span>Nosotros</a>
+  <a href="#reserva" class="btn btn-orange">Reservar</a>
+</div>
+
+<!-- ============================== HERO ============================= -->
+<header class="hero" id="top">
+  <img class="bg" src="/landing/assets/img/hero-edomex.jpg" alt="Bosque de niebla de oyamel en el Estado de México">
+  <div class="veil"></div>
+  <div class="container">
+    <div class="hero-top">
+      <span class="eyebrow"><span class="sl">//</span> Destino · Estado de México</span>
+      <span class="meta-est">19.2&deg;N · Eje Neovolcánico</span>
+    </div>
+    <h1 class="display">Bosque <em class="ac">de oyamel.</em></h1>
+    <p class="sub lead">Bosques de oyamel y pino a casi tres mil metros, donde nace el agua y la monarca pasa el invierno. El pulmón húmedo del centro de México.</p>
+    <div class="actions">
+      <a href="#experiencias" class="btn btn-glass btn-arrow">Ver experiencias</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== 01 · EL TERRITORIO (+ cuatro caras) ====== -->
+<section class="section terr" id="territorio">
+  <div class="container">
+    <div class="shead-num">
+      <div class="shead-main">
+        <span class="eyebrow"><span class="sl">//</span> El territorio</span>
+        <h2 class="display">El bosque de agua, <em class="ac">por dentro.</em></h2>
+      </div>
+      <span class="secnum" style="color:var(--olive);">01</span>
+    </div>
+    <div class="terr-intro">
+      <div class="terr-copy">
+        <p class="lead">Los bosques del Estado de México son bosques de oyamel y pino del Eje Neovolcánico — <em>bosques de agua</em> que abastecen al centro del país. Aquí el aire se enfría, la niebla se posa entre los árboles y la montaña guarda la humedad.</p>
+        <p class="lead">Es una de las regiones más biodiversas del país y, a la vez, una de las más presionadas. No vienes a mirar el bosque desde afuera: entras en él, lo lees con quienes lo conocen y aprendes a leer su temporada.</p>
+      </div>
+      <div class="pills">
+        <div class="pill-l"><div class="v">~3.000 m</div><div class="k">Altitud del bosque</div></div>
+        <div class="pill-l"><div class="v">Oyamel</div><div class="k">Bosque de niebla</div></div>
+        <div class="pill-l"><div class="v">Monarca</div><div class="k">Refugio de invierno</div></div>
+        <div class="pill-l"><div class="v">Xalatlaco</div><div class="k">Punto de partida</div></div>
+      </div>
+    </div>
+    <div class="caras-head">
+      <span class="eyebrow"><span class="sl">//</span> Las cuatro caras del lugar</span>
+      <p class="cap-l">Cada territorio se lee entero: ninguna cara cuenta el lugar sola.</p>
+    </div>
+    <div class="caras-grid">
+      <article class="cara">
+        <img src="/landing/assets/img/cara-naturaleza-edomex.jpg" alt="Hongo del bosque de oyamel">
+        <span class="eb"><span class="sl">//</span> Naturaleza</span>
+        <h3>El bosque vivo.</h3>
+        <p>Decenas de especies de hongos, flores y plantas de altura, la mariposa monarca que llega cada invierno, venados y aves.</p>
+      </article>
+      <article class="cara">
+        <img src="/landing/assets/img/cara-conservacion-edomex.jpg" alt="Bosque de agua del Eje Neovolcánico">
+        <span class="eb"><span class="sl">//</span> Conservación</span>
+        <h3>Bosques de agua.</h3>
+        <p>Santuarios de la monarca y reforestación: el equilibrio entre el bosque y las ciudades que dependen de él.</p>
+      </article>
+      <article class="cara">
+        <img src="/landing/assets/img/cara-comunidades-edomex.jpg" alt="Comida tradicional de la comunidad de Xalatlaco">
+        <span class="eb"><span class="sl">//</span> Comunidades</span>
+        <h3>Xalatlaco.</h3>
+        <p>Las comunidades del bosque y su conocimiento micológico y forestal heredado; los hongueros que lo leen por temporada.</p>
+      </article>
+      <article class="cara">
+        <img src="/landing/assets/img/cara-problemas-edomex.jpg" alt="Presión sobre el bosque del centro de México">
+        <span class="eb"><span class="sl">//</span> Problemas</span>
+        <h3>Lo que está en juego.</h3>
+        <p>Tala, cambio de uso de suelo y presión urbana sobre uno de los últimos pulmones del centro de México.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== GALERÍA ========================= -->
+<section class="section gallery-sec" id="aprende">
+  <div class="container">
+    <div class="shead" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;max-width:none;">
+      <div style="max-width:680px;">
+        <span class="eyebrow"><span class="sl">//</span> Lo que vas a ver</span>
+        <h2 class="display">El bosque, <em class="ac">de cerca.</em></h2>
+        <p class="cap">Mariposas monarca, hongos, flores y bosque de niebla. Esto es lo que el lugar te muestra.</p>
+      </div>
+      <span class="secnum" style="color:var(--dune);">02</span>
+    </div>
+    <div class="slideshow">
+      <div class="ss-track" id="ssTrack">
+        <figure class="ss-slide"><img src="/landing/assets/img/monarca-sky.jpg" alt="Mariposas monarca en el cielo"><figcaption class="ss-cap">Mariposa monarca</figcaption></figure>
+        <figure class="ss-slide"><img src="/landing/assets/img/hongos-1.jpg" alt="Recolección de hongos en el bosque"><figcaption class="ss-cap">Recolección de hongos</figcaption></figure>
+        <figure class="ss-slide"><img src="/landing/assets/img/bosque-niebla.jpg" alt="Bosque de oyamel y niebla"><figcaption class="ss-cap">Bosque de oyamel</figcaption></figure>
+        <figure class="ss-slide"><img src="/landing/assets/img/flores.jpg" alt="Flores de altura del bosque"><figcaption class="ss-cap">Flores de altura</figcaption></figure>
+        <figure class="ss-slide"><img src="/landing/assets/img/exp-hongos.jpg" alt="Hongo coral del bosque"><figcaption class="ss-cap">Hongo coral</figcaption></figure>
+        <figure class="ss-slide"><img src="/landing/assets/img/caminata-bosque.jpg" alt="Caminata por el bosque"><figcaption class="ss-cap">Caminata</figcaption></figure>
+        <figure class="ss-slide"><img src="/landing/assets/img/hongos-2.jpg" alt="Hongos silvestres recolectados"><figcaption class="ss-cap">Hongos silvestres</figcaption></figure>
+        <figure class="ss-slide"><img src="/landing/assets/img/monarca.jpg" alt="Santuario de la mariposa monarca"><figcaption class="ss-cap">Santuario de la monarca</figcaption></figure>
+      </div>
+      <button class="ss-btn ss-prev" id="ssPrev" aria-label="Anterior">&lsaquo;</button>
+      <button class="ss-btn ss-next" id="ssNext" aria-label="Siguiente">&rsaquo;</button>
+      <div class="ss-foot">
+        <span class="ss-count"><b id="ssNum">01</b> / 08</span>
+        <div class="ss-dots" id="ssDots"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 03 · EXPERIENCIA DESTACADA ============== -->
+<section class="feat">
+  <div class="container grid" style="max-width:none;padding:0;">
+    <div class="photo">
+      <img src="/landing/assets/img/exp-hongos.jpg" alt="Hongos del bosque de Xalatlaco">
+    </div>
+    <div class="body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;">
+        <div>
+          <span class="eyebrow"><span class="sl">//</span> Experiencia destacada</span>
+          <span class="meta">Temporada de lluvias · Estado de México</span>
+        </div>
+        <span class="secnum" style="color:var(--olive);">03</span>
+      </div>
+      <h3 class="display">Recolección de Hongos · <em class="ac">Xalatlaco.</em></h3>
+      <p>Una jornada de micología en el bosque con guías locales: aprender a identificar, recolectar con cuidado y entender el papel de los hongos en el bosque vivo.</p>
+      <div class="datapills">
+        <div class="pill"><div class="k">Duración</div><div class="v">1 día</div></div>
+        <div class="pill"><div class="k">Fechas</div><div class="v">Temporada de lluvias</div></div>
+        <div class="pill"><div class="k">Cupo</div><div class="v">Por confirmar</div></div>
+      </div>
+      <a href="#reserva" class="btn btn-outline btn-arrow">Vivir esta experiencia</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== EXPERIENCIAS ==================== -->
+<section class="section next" id="experiencias">
+  <div class="container">
+    <div class="shead" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;max-width:none;">
+      <div style="max-width:680px;">
+        <span class="eyebrow"><span class="sl">//</span> Próximas experiencias</span>
+        <h2 class="display">Vivir <em class="ac">el bosque.</em></h2>
+        <p class="cap">Jornadas guiadas por la comunidad y los hongueros de Xalatlaco.</p>
+      </div>
+      <span class="secnum" style="color:var(--olive);">04</span>
+    </div>
+    <div class="exp-grid">
+      <article class="exp">
+        <div class="ph"><img src="/landing/assets/img/hongos-1.jpg" alt="Recolección de hongos en el bosque de Xalatlaco"><span class="loc">Xalatlaco · Edo. de México</span></div>
+        <div class="in">
+          <h3>Recolección de Hongos · Xalatlaco</h3>
+          <div class="faces">
+            <span class="face"><span class="dia">◆</span>Naturaleza</span>
+            <span class="face"><span class="dia">◆</span>Conservación</span>
+            <span class="face"><span class="dia">◆</span>Comunidades</span>
+            <span class="face"><span class="dia">◆</span>Problemas</span>
+          </div>
+          <p class="hook">Una jornada de micología en el bosque de montaña con guías locales: identificar, recolectar y entender los hongos del bosque vivo.</p>
+          <div style="font-size:13px;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:18px;">Temporada de lluvias · por confirmar</div>
+          <a href="#reserva" class="btn btn-outline btn-arrow">Vivir esta experiencia</a>
+        </div>
+      </article>
+      <article class="exp slot">
+        <div class="slotnote">
+          <strong>Más experiencias en el Estado de México</strong>
+          Temporada de monarca, caminatas de bosque y más.<br><br>Próximamente.
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== CIERRE / RESERVA ================= -->
+<section class="section close" id="reserva">
+  <img class="bg" src="/landing/assets/img/cierre-edomex.jpg" alt="Mariposas monarca en el cielo del bosque">
+  <div class="veil"></div>
+  <div class="container">
+    <div class="glasscard">
+      <span class="eyebrow" style="color:#fff;justify-content:center;"><span class="sl">//</span> El bosque espera</span>
+      <h2 class="display">Nos vemos <em class="ac">en el bosque.</em></h2>
+      <div class="contact">
+        <div class="crow"><span class="lbl">Email</span><span class="val">uno@numanhub.com</span></div>
+        <div class="crow"><span class="lbl">WhatsApp</span><span class="val">+52 55 1202 0565</span></div>
+        <div class="crow"><span class="lbl">Instagram</span><span class="val">@somos.caminante</span></div>
+      </div>
+      <div class="actions">
+        <a href="#experiencias" class="btn btn-glass">Ver experiencias</a>
+        <a href="https://wa.me/525512020565" class="btn btn-orange btn-arrow">Reservar por WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================== FOOTER =========================== -->
+<footer class="footer">
+  <div class="container">
+    <div class="word" data-word aria-label="Caminante"></div>
+    <div class="tagline">Caminante · Naturaleza en movimiento</div>
+    <div class="sub">Una expansión de NUMAN al mundo natural</div>
+    <p class="desc">Caminante lleva la educación encarnada de NUMAN a paisajes reales. Una parte de cada experiencia se destina a la conservación del lugar que la hace posible.</p>
+    <div class="fbottom">
+      <span>© 2026 Caminante</span>
+      <span>uno@numanhub.com · @somos.caminante</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ---- Brand SVG (Caminante isotype + wordmark) ---- */
+const G1='<g class="g1"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+const G2='<g class="g2"><path d="M218.65,2.3c-8.09,0-14.64,6.56-14.64,14.64s6.56,14.64,14.64,14.64,14.64-6.56,14.64-14.64-6.56-14.64-14.64-14.64"/><path d="M276.91,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/><path d="M189.47,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/></g>';
+const G3='<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+const GW='<g class="gw"><path d="M532.87,98.77c-4.27,4.6-9.41,6.89-15.42,6.89-5.69,0-10.45-1.75-14.27-5.25-3.83-3.5-6.73-8.56-8.7-15.18-1.97-6.62-2.95-14.68-2.95-24.2s.98-17.77,2.95-24.45c1.97-6.67,4.87-11.76,8.7-15.26,3.83-3.5,8.58-5.25,14.27-5.25s10.42,2.11,14.52,6.32c4.1,4.21,6.97,10.36,8.61,18.46l18.05-.98c-2.3-12.58-7.08-22.37-14.36-29.37-7.27-7-16.22-10.5-26.82-10.5-9.41,0-17.37,2.49-23.87,7.47-6.51,4.98-11.46,12-14.85,21.08-3.39,9.08-5.08,19.91-5.08,32.49s1.69,23.24,5.08,32.32c3.39,9.08,8.34,16.08,14.85,21,6.51,4.92,14.46,7.38,23.87,7.38,11.26,0,20.56-3.72,27.89-11.16,7.33-7.44,11.98-17.83,13.95-31.17l-17.88-.82c-1.42,8.86-4.27,15.59-8.53,20.18"/><path d="M636.87,72.84l14.54-52.34,14.54,52.34h-29.09ZM640.25,2.62l-34.13,116.49h17.88l8.43-30.35h37.93l8.43,30.35h17.88L662.57,2.62h-22.31Z"/><polygon points="784.88 77.66 766.51 2.62 743.54 2.62 743.54 119.11 760.11 119.11 760.11 29.17 778.32 105 791.45 105 809.66 29.17 809.66 119.11 826.23 119.11 826.23 2.62 803.26 2.62 784.88 77.66"/><polygon points="873.07 18.87 900.97 18.87 900.97 102.87 873.07 102.87 873.07 119.11 945.92 119.11 945.92 102.87 918.03 102.87 918.03 18.87 945.92 18.87 945.92 2.62 873.07 2.62 873.07 18.87"/><polygon points="1051.99 94.46 1013.77 2.62 992.77 2.62 992.77 119.11 1009.67 119.11 1009.67 27.28 1047.89 119.11 1068.89 119.11 1068.89 2.62 1051.99 2.62 1051.99 94.46"/><path d="M1146.48,72.84l14.54-52.34,14.54,52.34h-29.09ZM1149.87,2.62l-34.13,116.49h17.88l8.43-30.35h37.93l8.43,30.35h17.88l-34.13-116.49h-22.31Z"/><polygon points="1312.38 94.46 1274.15 2.62 1253.15 2.62 1253.15 119.11 1270.05 119.11 1270.05 27.28 1308.28 119.11 1329.28 119.11 1329.28 2.62 1312.38 2.62 1312.38 94.46"/><polygon points="1376.12 18.87 1410.25 18.87 1410.25 119.11 1427.31 119.11 1427.31 18.87 1461.44 18.87 1461.44 2.62 1376.12 2.62 1376.12 18.87"/><polygon points="1508.28 2.62 1508.28 119.11 1581.13 119.11 1581.13 102.87 1525.51 102.87 1525.51 68.58 1577.85 68.58 1577.85 52.83 1525.51 52.83 1525.51 18.87 1579.81 18.87 1579.81 2.62 1508.28 2.62"/></g>';
+const MARK='<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">'+G1+G2+G3+'</svg>';
+const WORD='<svg viewBox="0 0 1581.13 121.74" role="img" aria-label="Caminante">'+G1+G2+G3+GW+'</svg>';
+document.querySelectorAll('[data-mark]').forEach(el=>el.innerHTML=MARK);
+document.querySelectorAll('[data-word]').forEach(el=>el.innerHTML=WORD);
+
+/* ---- Sticky nav state ---- */
+const nav=document.getElementById('nav');
+const onScroll=()=>{ nav.classList.toggle('scrolled', window.scrollY>window.innerHeight*0.7); };
+onScroll();
+window.addEventListener('scroll',onScroll,{passive:true});
+
+/* ---- Mobile drawer ---- */
+const burger=document.getElementById('burger');
+const drawer=document.getElementById('drawer');
+function toggleDrawer(open){
+  drawer.classList.toggle('open',open);
+  burger.setAttribute('aria-expanded',open?'true':'false');
+  document.body.style.overflow=open?'hidden':'';
+}
+burger.addEventListener('click',()=>toggleDrawer(!drawer.classList.contains('open')));
+drawer.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>toggleDrawer(false)));
+
+/* ---- Slideshow (sección 02) ---- */
+(function(){
+  const track=document.getElementById('ssTrack');
+  if(!track) return;
+  const slides=[...track.children];
+  const dotsWrap=document.getElementById('ssDots');
+  const numEl=document.getElementById('ssNum');
+  let i=0;
+  slides.forEach((_,k)=>{
+    const d=document.createElement('button');
+    d.className='ss-dot'+(k===0?' on':'');
+    d.setAttribute('aria-label','Ir a la foto '+(k+1));
+    d.addEventListener('click',()=>go(k));
+    dotsWrap.appendChild(d);
+  });
+  function go(n){
+    i=(n+slides.length)%slides.length;
+    track.style.transform='translateX('+(-i*100)+'%)';
+    if(numEl) numEl.textContent=String(i+1).padStart(2,'0');
+    [...dotsWrap.children].forEach((d,k)=>d.classList.toggle('on',k===i));
+  }
+  document.getElementById('ssPrev').addEventListener('click',()=>go(i-1));
+  document.getElementById('ssNext').addEventListener('click',()=>go(i+1));
+})();
+</script>
+</body>
+</html>
