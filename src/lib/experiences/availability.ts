@@ -98,7 +98,7 @@ export async function fetchPublicAvailability(): Promise<ExperienceAvailability[
 
   const out = new Map<string, ExperienceAvailability>();
   for (const e of exps) {
-    const row = e as { id: string; slug: string; data: { capacity?: number } | null };
+    const row = e as unknown as { id: string; slug: string; data: { capacity?: number } | null };
     out.set(row.id, {
       slug: row.slug,
       capacity: row.data?.capacity ?? null,

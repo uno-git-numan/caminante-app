@@ -94,7 +94,7 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
   const getExp = async (id: string) => {
     if (!expCache.has(id)) {
       const { data } = await sb.from("experiences").select("data").eq("id", id).maybeSingle();
-      expCache.set(id, (data as { data: Experience }) ?? null);
+      expCache.set(id, (data as unknown as { data: Experience }) ?? null);
     }
     return expCache.get(id) ?? null;
   };
@@ -114,7 +114,7 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
       .in("status", HOLDING_STATUSES);
 
     for (const rRaw of resv || []) {
-      const r = rRaw as {
+      const r = rRaw as unknown as {
         id: string;
         contact_id: string;
         contacts: { full_name: string | null; email: string | null } | null;
