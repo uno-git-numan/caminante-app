@@ -10,9 +10,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ContactRow = {
   id: string;
-  email: string;
+  email: string | null;
   full_name: string | null;
   phone: string | null;
+  wa_phone: string | null;
   city: string | null;
   birth_date: string | null;
   source: string | null;
@@ -161,6 +162,68 @@ export async function findOrCreateContact(
     }
   }
   return { ok: false, error: insertError.message };
+}
+
+// Dedupe phone-first para leads de WhatsApp (sin correo). Cascada: wa_phone exacto
+// → teléfono normalizado (últimos 10) contra phone/wa_phone existentes → crear nuevo
+// (email NULL, permitido desde 0015). Misma filosofía que findOrCreateContact:
+// enriquece SOLO campos vacíos, nunca pisa lo que ya hay.
+export async function findOrCreateContactByPhone(
+  sb: SupabaseClient,
+  input: { waPhone: string; fullName?: string; source?: string },
+): Promise<FindOrCreateResult> {
+  const e164 = (input.waPhone || "").trim();
+  const last10 = normalizePhoneMX(e164);
+  if (!last10) return { ok: false, error: "Teléfono inválido." };
+
+  let contact: ContactRow | null = null;
+
+  const { data: byWa } = await sb.from("contacts").select("*").eq("wa_phone", e164).maybeSingle();
+  contact = (byWa as ContactRow | null) ?? null;
+
+  if (!contact) {
+    const { data: candidates } = await sb
+      .from("contacts")
+      .select("*")
+      .or("phone.not.is.null,wa_phone.not.is.null");
+    contact =
+      ((candidates as ContactRow[] | null) || []).find(
+        (c) => normalizePhoneMX(c.wa_phone) === last10 || normalizePhoneMX(c.phone) === last10,
+      ) ?? null;
+  }
+
+  if (contact) {
+    const patch: Record<string, unknown> = {};
+    if (!contact.wa_phone) patch.wa_phone = e164;
+    if (!contact.full_name && input.fullName) patch.full_name = input.fullName.trim();
+    if (!contact.phone) patch.phone = e164;
+    if (Object.keys(patch).length > 0) {
+      const { data, error } = await sb
+        .from("contacts")
+        .update(patch)
+        .eq("id", contact.id)
+        .select("*")
+        .single();
+      if (error) return { ok: false, error: error.message };
+      contact = data as ContactRow;
+    }
+    return { ok: true, contact, created: false };
+  }
+
+  const { data: created, error } = await sb
+    .from("contacts")
+    .insert({
+      email: null,
+      full_name: input.fullName?.trim() || null,
+      phone: e164,
+      wa_phone: e164,
+      source: input.source || "whatsapp",
+      lifecycle_stage: "lead",
+    })
+    .select("*")
+    .single();
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, contact: created as ContactRow, created: true };
 }
 
 // Liga el user de Supabase Auth con su contact por correo — solo si el contact

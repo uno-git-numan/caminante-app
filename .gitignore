@@ -42,3 +42,7 @@ next-env.d.ts
 
 # local launcher (machine-specific paths)
 start-dev.command
+
+# WhatsApp broadcast — PII (lista real de clientes y logs de envío). NO commitear.
+scripts/recipients.json
+scripts/broadcast-results-*.json

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { finalizeSucceededPaymentIntent } from "@/lib/payments/finalize";
+import { finalizeReservationCheckout } from "@/lib/payments/finalize-reservation";
 import { getStripeServerClient } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
@@ -30,8 +31,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    if (event.type === "payment_intent.succeeded") {
-      await finalizeSucceededPaymentIntent(event.data.object as Stripe.PaymentIntent);
+    if (event.type === "checkout.session.completed") {
+      // Cobro por-persona vía Stripe Payment Link (esquema 0007: reservations/payments).
+      await finalizeReservationCheckout(event.data.object as Stripe.Checkout.Session);
+    } else if (event.type === "payment_intent.succeeded") {
+      // Camino marketplace DORMIDO (trips/bookings): solo corre si el intent trae trip_id.
+      // Los PaymentIntents de los Payment Links no lo traen → se ignoran aquí (su pago se
+      // procesa en checkout.session.completed) para no reventar el webhook.
+      const intent = event.data.object as Stripe.PaymentIntent;
+      if (intent.metadata?.trip_id) {
+        await finalizeSucceededPaymentIntent(intent);
+      }
     }
 
     return NextResponse.json({ received: true }, { status: 200 });
