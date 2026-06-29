@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
           source: "/caminante/destinos/baja-california-sur",
           destination: "/landing/destinos/baja-california-sur.html",
         },
+        {
+          source: "/caminante/destinos/estado-de-mexico",
+          destination: "/landing/destinos/estado-de-mexico.html",
+        },
       ],
       afterFiles: [],
       fallback: [],
