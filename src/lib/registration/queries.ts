@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchSlotAvailability } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 import type { MedicalProfileData, RegistrationPrefill, SlotOption } from "./types";
 
@@ -28,17 +29,18 @@ export async function fetchRegistrationContext(
 
   const { data: slotRows } = await sb
     .from("experience_slots")
-    .select("id, label, seats_available, status, starts_at")
+    .select("id, label, status, starts_at")
     .eq("experience_id", data.id)
     .eq("status", "open")
     .order("starts_at", { ascending: true });
 
+  // Disponibilidad EN VIVO desde reservations (paid + registrados apartan), no del
+  // contador seats_taken. null = salida sin tope → nunca "agotada".
+  const avail = await fetchSlotAvailability(data.id as string);
   const slots: SlotOption[] = (slotRows || []).map((s) => ({
     id: s.id as string,
     label: (s.label as string) || "",
-    // null = salida sin tope (capacity_total NULL). NO colapsar a 0: eso la
-    // mostraría "agotada". La columna generada seats_available es NULL en ese caso.
-    seatsAvailable: s.seats_available === null ? null : (s.seats_available as number),
+    seatsAvailable: avail.get(s.id as string)?.available ?? null,
     status: s.status as string,
   }));
 

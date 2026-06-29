@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/caminante/api/cron/send-surveys",
+      "schedule": "0 17 * * *"
+    }
+  ]
+}

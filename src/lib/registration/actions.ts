@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { findOrCreateContact, normalizePhoneMX } from "@/lib/crm/contacts";
+import { fetchSlotAvailability } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 import type { MedicalProfileData, RegistrationInput, RegistrationResult } from "./types";
 
@@ -59,17 +60,17 @@ export async function submitRegistration(
   if (input.slotId) {
     const { data: slot } = await sb
       .from("experience_slots")
-      .select("id, label, status, seats_available")
+      .select("id, label, status")
       .eq("id", input.slotId)
       .eq("experience_id", experienceId)
       .maybeSingle();
     if (!slot || slot.status !== "open") {
       return { ok: false, error: "Esa salida ya no está disponible. Elige otra fecha." };
     }
-    // seats_available NULL = salida sin tope → no se valida cupo. Solo se valida
-    // cuando capacity_total es finito.
-    const avail = slot.seats_available as number | null;
-    if (avail !== null && avail < numPeople) {
+    // Disponibilidad EN VIVO (paid + registrados apartan). available NULL = sin tope.
+    const avail = await fetchSlotAvailability(experienceId);
+    const a = avail.get(slot.id as string);
+    if (a && a.available !== null && a.available < numPeople) {
       return { ok: false, error: "Esa salida ya no tiene lugares suficientes." };
     }
     slotId = slot.id as string;
