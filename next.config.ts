@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
           source: "/caminante",
           destination: "/landing/index.html",
         },
+        // Páginas de destino estáticas (mismo patrón que el landing).
+        {
+          source: "/caminante/destinos/baja-california-sur",
+          destination: "/landing/destinos/baja-california-sur.html",
+        },
       ],
       afterFiles: [],
       fallback: [],
