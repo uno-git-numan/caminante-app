@@ -1,641 +1,732 @@
 "use client";
 
+// Admin · Crear / dar de alta experiencia — re-skin rebrand (Numan Caminante Design
+// System / Claude Design). Form rico, contenido OPCIONAL: índice sticky, tarjetas por
+// sección, repetibles, toggles, chips "auto" (heredado del perfil), galería, bloques
+// libres, previews "así lo verá el viajero", clonar-desde-plantilla, barra de acciones.
+// Wiring: estado Experience → saveExperience; fechas/cupo → saveExperienceSlots
+// (experience_slots, NO en el jsonb); subida de fotos → /api/admin/upload.
+// Guards `?? []` en arrays para soportar la opcionalidad cuando backend la reintroduzca.
+
 import { useMemo, useState } from "react";
 import { emptyExperience, slugify } from "@/lib/experiences/empty";
 import { saveExperience, generateStripeLink } from "@/lib/experiences/actions";
-import type { Experience } from "@/lib/experiences/types";
+import { saveExperienceSlots } from "@/lib/experiences/slots-admin";
+import type { Experience, Day, GearCategory, Ally, Faq, FreeBlock } from "@/lib/experiences/types";
 
-/* ---------- tiny field helpers ---------- */
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  hint,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  hint?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-wider text-olive">{label}</span>
-      <input
-        className="mt-1 w-full rounded-lg border border-sand bg-white px-3 py-2 text-sm text-lagoon outline-none focus:border-dune"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {hint ? <span className="mt-1 block text-[11px] text-olive/70">{hint}</span> : null}
-    </label>
-  );
-}
+type SlotRow = { id?: string; label: string; start: string; end: string; cupo: string };
+type InitialSlot = { id: string; label: string; startsAt: string; endsAt: string | null; capacity: number | null };
 
-function Area({
-  label,
-  value,
-  onChange,
-  rows = 3,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  rows?: number;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-wider text-olive">{label}</span>
-      <textarea
-        rows={rows}
-        className="mt-1 w-full rounded-lg border border-sand bg-white px-3 py-2 text-sm text-lagoon outline-none focus:border-dune"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </label>
-  );
-}
+const G1 =
+  '<g class="g1"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+const G2 =
+  '<g class="g2"><path d="M218.65,2.3c-8.09,0-14.64,6.56-14.64,14.64s6.56,14.64,14.64,14.64,14.64-6.56,14.64-14.64-6.56-14.64-14.64-14.64"/><path d="M276.91,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/><path d="M189.47,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/></g>';
+const G3 =
+  '<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+const MARK = `<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">${G1}${G2}${G3}</svg>`;
 
-function Section({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-sand bg-cream/40 p-5">
-      <h3 className="text-lg font-semibold text-lagoon">{title}</h3>
-      {desc ? <p className="mt-1 text-sm text-olive">{desc}</p> : null}
-      <div className="mt-4 space-y-4">{children}</div>
-    </section>
-  );
-}
+const ESTADOS = ["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas","Otro"];
 
-function SmallBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+// Clonar desde plantilla — precarga los campos básicos + salidas.
+const TPL: Record<string, { exp: Partial<Experience>; slots: SlotRow[]; cupo: string }> = {
+  ocean: {
+    exp: {
+      title: "Ocean Safari · Ensenada de Muertos", titleAccent: "safari.",
+      slug: "ocean-safari-ensenada-de-muertos", subtitle: "Donde el desierto se encuentra con el mar.",
+      estado: "Baja California Sur", cardHook: "Cuatro días en el Mar de Cortés con orcas, ballenas y la comunidad de Agua Amarga.",
+      price: { amount: "18560", currency: "MXN · por persona", desc: "por persona" },
+    },
+    cupo: "16",
+    slots: [{ label: "16–19 julio 2026", start: "2026-07-16", end: "2026-07-19", cupo: "16" }, { label: "23–26 julio 2026", start: "2026-07-23", end: "2026-07-26", cupo: "16" }],
+  },
+  hongos: {
+    exp: {
+      title: "Recolección de Hongos · Xalatlaco", titleAccent: "de hongos.",
+      slug: "recoleccion-de-hongos-xalatlaco", subtitle: "El bosque se asoma por partes. Hay que saber mirar.",
+      estado: "Estado de México", cardHook: "Un día en el bosque de montaña recolectando hongos silvestres con micólogos.",
+      price: { amount: "2550", currency: "MXN · por persona", desc: "por persona" },
+    },
+    cupo: "17",
+    slots: [{ label: "Domingo 26 julio 2026", start: "2026-07-26", end: "2026-07-26", cupo: "17" }, { label: "Domingo 23 agosto 2026", start: "2026-08-23", end: "2026-08-23", cupo: "17" }],
+  },
+};
+
+const CSS = `
+.adminexp{--dune:#c9b79c;--cream:#fbfbf7;--sand:#b6ada5;--salvia:#d6d8c7;--olive:#637154;--olive-d:#4f5d44;--forest:#20392b;--charcoal:#20211c;--orange:#ff5d36;--panel:#f1eee7;--bg:#eceae3;--ink-soft:rgba(32,33,28,.6);--line:rgba(32,33,28,.14);--r:14px;--eb:.2em;
+  font-family:"Geist",system-ui,sans-serif;color:var(--charcoal);background:var(--bg);min-height:100vh;}
+.adminexp *{box-sizing:border-box;}
+.adminexp .eyebrow{font-size:11px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;display:inline-flex;align-items:center;gap:.5em;line-height:1;color:var(--olive);}
+.adminexp .eyebrow .sl{color:var(--orange);font-weight:700;}
+.adminexp .ahead{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 24px;background:rgba(251,251,247,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+.adminexp .ahead .brand{display:flex;align-items:center;gap:14px;}
+.adminexp .ahead .logo{height:26px;}.adminexp .ahead .logo svg{height:100%;width:auto;display:block;}
+.adminexp .ahead .logo .g1{fill:var(--olive);}.adminexp .ahead .logo .g2{fill:var(--sand);}.adminexp .ahead .logo .g3{fill:var(--orange);}
+.adminexp .ahead .ctx{font-size:13px;color:var(--ink-soft);font-weight:500;border-left:1px solid var(--line);padding-left:14px;}
+.adminexp .ahead .ctx b{color:var(--charcoal);font-weight:600;}
+.adminexp .ahead .head-actions{display:flex;gap:10px;align-items:center;}
+.adminexp .savechip{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ink-soft);margin-right:6px;}
+.adminexp .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:44px;padding:0 20px;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:background .18s,transform .1s;white-space:nowrap;font-family:inherit;}
+.adminexp .btn:active{transform:translateY(1px);}
+.adminexp .btn:disabled{opacity:.6;cursor:not-allowed;}
+.adminexp .btn-orange{background:var(--orange);color:#fff;}.adminexp .btn-orange:hover{background:#e8431f;}
+.adminexp .btn-ghost{background:transparent;color:var(--olive);border-color:var(--line);}.adminexp .btn-ghost:hover{border-color:var(--olive);}
+.adminexp .btn-sm{min-height:38px;padding:0 16px;font-size:13px;}
+.adminexp .wrap{max-width:1160px;margin:0 auto;padding:28px 24px 130px;display:grid;gap:28px;grid-template-columns:1fr;}
+@media(min-width:960px){.adminexp .wrap{grid-template-columns:230px 1fr;align-items:start;gap:40px;}}
+.adminexp .index{position:sticky;top:74px;z-index:10;background:var(--bg);}
+.adminexp .ix-title{font-size:11px;letter-spacing:var(--eb);text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-bottom:10px;display:none;}
+.adminexp .ix-group{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sand);font-weight:700;margin:14px 0 4px;padding-left:10px;display:none;}
+.adminexp .ix-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;}
+.adminexp .ix-list a{flex:0 0 auto;font-size:13px;color:var(--ink-soft);padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:500;white-space:nowrap;}
+.adminexp .ix-list a:hover{color:var(--charcoal);border-color:var(--olive);}
+.adminexp .ix-list a .n{font-family:"Geist Mono",monospace;color:var(--orange);margin-right:.5em;font-size:11px;}
+@media(min-width:960px){.adminexp .ix-title,.adminexp .ix-group{display:block;}.adminexp .ix-list{flex-direction:column;gap:2px;overflow:visible;max-height:calc(100vh - 120px);overflow-y:auto;}.adminexp .ix-list a{border:0;background:transparent;padding:7px 10px;border-radius:8px;border-left:2px solid transparent;}.adminexp .ix-list a:hover{background:var(--panel);border-left-color:var(--olive);}}
+.adminexp .main{display:flex;flex-direction:column;gap:22px;min-width:0;}
+.adminexp .card{background:var(--cream);border:1px solid var(--line);border-radius:var(--r);padding:26px 24px;scroll-margin-top:84px;}
+.adminexp .sec-head{margin-bottom:18px;}
+.adminexp .sec-head h2{font-size:23px;font-weight:300;letter-spacing:-.01em;margin-top:8px;}
+.adminexp .sec-head .desc{font-size:13.5px;color:var(--ink-soft);margin-top:7px;line-height:1.55;}
+.adminexp .subhead{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--olive);margin:24px 0 12px;padding-top:18px;border-top:1px dashed var(--line);}
+.adminexp .optflag{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);background:rgba(32,33,28,.06);border-radius:999px;padding:2px 8px;margin-left:8px;}
+.adminexp .field{margin-bottom:16px;}
+.adminexp .field > label{display:block;font-size:12.5px;font-weight:600;margin-bottom:7px;color:var(--charcoal);}
+.adminexp .field .hint{font-weight:400;color:var(--ink-soft);}
+.adminexp input[type=text],.adminexp input[type=url],.adminexp input[type=number],.adminexp input[type=date],.adminexp textarea,.adminexp select{width:100%;font-family:inherit;font-size:15px;color:var(--charcoal);background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px;transition:border-color .18s,box-shadow .18s;}
+.adminexp textarea{min-height:74px;line-height:1.5;resize:vertical;}
+.adminexp input:focus,.adminexp textarea:focus,.adminexp select:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.16);}
+.adminexp input::placeholder,.adminexp textarea::placeholder{color:rgba(32,33,28,.36);}
+.adminexp .row{display:grid;gap:16px;grid-template-columns:1fr;}
+@media(min-width:560px){.adminexp .row.c2{grid-template-columns:1fr 1fr;}.adminexp .row.c3{grid-template-columns:1fr 1fr 1fr;}}
+.adminexp .with-btn{display:flex;gap:10px;align-items:center;}.adminexp .with-btn input{flex:1;}
+.adminexp .slugbox{font-family:"Geist Mono",monospace;}
+.adminexp .uploader{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.adminexp .uploader input[type=url],.adminexp .uploader input[type=text]{flex:1;min-width:200px;}
+.adminexp .filebtn{display:inline-flex;align-items:center;gap:.5em;border:1px dashed var(--sand);color:var(--olive);border-radius:10px;padding:11px 16px;font-size:13px;font-weight:500;cursor:pointer;background:#fff;}
+.adminexp .filebtn:hover{border-color:var(--olive);}.adminexp .filebtn input{display:none;}
+.adminexp .thumb{height:46px;width:64px;border-radius:8px;border:1px solid var(--line);object-fit:cover;}
+.adminexp .segmented{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;}
+.adminexp .segmented label{cursor:pointer;position:relative;}.adminexp .segmented input{position:absolute;opacity:0;}
+.adminexp .segmented span{display:block;padding:8px 18px;font-size:13.5px;font-weight:500;border-radius:999px;color:var(--ink-soft);}
+.adminexp .segmented input:checked + span{background:var(--olive);color:#fff;}
+.adminexp .toggle{display:inline-flex;align-items:center;gap:11px;cursor:pointer;}
+.adminexp .toggle input{position:absolute;opacity:0;}
+.adminexp .toggle .tk{display:inline-block;width:46px;height:26px;border-radius:999px;background:var(--sand);position:relative;transition:background .2s;flex:0 0 auto;}
+.adminexp .toggle .tk::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;transition:transform .2s;}
+.adminexp .toggle input:checked + .tk{background:var(--olive);}
+.adminexp .toggle input:checked + .tk::after{transform:translateX(20px);}
+.adminexp .toggle .tlabel{font-size:14px;font-weight:500;}
+.adminexp .rep-items{display:flex;flex-direction:column;gap:12px;}
+.adminexp .rep-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;}.adminexp .rep-row > *{margin-bottom:0;}.adminexp .rep-row .grow{flex:1;min-width:160px;}
+.adminexp .rep-card{border:1px solid var(--line);border-radius:12px;padding:18px 16px;background:#fff;position:relative;}
+.adminexp .rm{flex:0 0 auto;background:transparent;border:1px solid var(--line);color:var(--ink-soft);border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer;line-height:1;font-family:inherit;}
+.adminexp .rm:hover{border-color:var(--orange);color:var(--orange);}
+.adminexp .rep-card .rm{position:absolute;top:14px;right:14px;}
+.adminexp .add{margin-top:12px;background:transparent;border:1px solid var(--olive);color:var(--olive);border-radius:999px;padding:9px 18px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;}
+.adminexp .add:hover{background:var(--olive);color:#fff;}
+.adminexp .nested{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);}
+.adminexp .nested .nlabel{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-bottom:10px;}
+.adminexp .inline-check{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--charcoal);cursor:pointer;white-space:nowrap;padding-top:10px;}
+.adminexp .inline-check input{width:17px;height:17px;accent-color:var(--olive);}
+.adminexp .chip-auto{display:inline-flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);background:rgba(99,113,84,.12);border:1px solid rgba(99,113,84,.32);border-radius:999px;padding:2px 7px;margin-left:7px;vertical-align:middle;}
+.adminexp .field.auto input,.adminexp .field.auto select,.adminexp .field.auto textarea{background:rgba(99,113,84,.055);border-color:rgba(99,113,84,.3);}
+.adminexp .startcard{background:var(--cream);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;}
+.adminexp .startcard .field{margin-bottom:0;}
+.adminexp .sd-hint{font-size:13px;color:var(--ink-soft);line-height:1.5;margin-top:10px;}
+.adminexp .brandbanner{background:rgba(99,113,84,.07);border:1px solid rgba(99,113,84,.28);border-radius:var(--r);overflow:hidden;}
+.adminexp .brandbanner summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;}
+.adminexp .brandbanner summary::-webkit-details-marker{display:none;}
+.adminexp .brandbanner .bb-l{display:flex;align-items:center;gap:12px;}
+.adminexp .brandbanner .bb-l .t{font-size:15px;font-weight:600;}.adminexp .brandbanner .bb-l .d{font-size:12.5px;color:var(--ink-soft);}
+.adminexp .brandbanner .chev{color:var(--olive);font-size:13px;}.adminexp .brandbanner[open] .chev{transform:rotate(180deg);}
+.adminexp .inherited{padding:4px 22px 22px;border-top:1px dashed rgba(99,113,84,.3);}
+.adminexp .inherited-grid{display:grid;gap:16px 28px;grid-template-columns:1fr;margin-top:16px;}
+@media(min-width:620px){.adminexp .inherited-grid{grid-template-columns:1fr 1fr;}}
+.adminexp .inh .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;display:block;margin-bottom:3px;}
+.adminexp .inh .v{font-size:14.5px;font-weight:500;}
+.adminexp .form-intro{font-size:13.5px;line-height:1.6;color:var(--ink-soft);background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 20px;}
+.adminexp .form-intro .sl{color:var(--orange);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:11px;display:block;margin-bottom:7px;}
+.adminexp .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+.adminexp .gal-slot{aspect-ratio:1;border:1px dashed var(--sand);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--olive);font-size:12px;font-weight:500;cursor:pointer;text-align:center;padding:8px;position:relative;overflow:hidden;}
+.adminexp .gal-slot:hover{border-color:var(--olive);}.adminexp .gal-slot input{display:none;}
+.adminexp .gal-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.adminexp .gal-slot .rm{position:absolute;top:6px;right:6px;padding:5px 7px;font-size:11px;z-index:2;background:#fff;}
+.adminexp .preview{margin-top:20px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+.adminexp .preview summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;}
+.adminexp .preview summary::-webkit-details-marker{display:none;}
+.adminexp .preview summary .pv-l{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--olive);}
+.adminexp .preview .pv-tag{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);background:rgba(32,33,28,.07);border-radius:999px;padding:3px 9px;}
+.adminexp .preview .chev{color:var(--olive);font-size:12px;}.adminexp .preview[open] .chev{transform:rotate(180deg);}
+.adminexp .pv-body{padding:8px 20px 22px;border-top:1px dashed var(--line);background:#fff;}
+.adminexp .pv-ro{font-size:11px;color:var(--ink-soft);font-style:italic;margin:12px 0 4px;}
+.adminexp .cv-block{margin-top:18px;}
+.adminexp .cv-block > .cvh{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--olive);margin-bottom:10px;}
+.adminexp .cv-grid{display:grid;gap:11px;grid-template-columns:1fr 1fr;}
+@media(max-width:540px){.adminexp .cv-grid{grid-template-columns:1fr;}}
+.adminexp .cv-field .l{display:block;font-size:12px;color:var(--charcoal);font-weight:500;margin-bottom:5px;}
+.adminexp .cv-input{height:32px;border:1px dashed var(--line);border-radius:7px;background:var(--cream);}.adminexp .cv-input.area{height:54px;}
+.adminexp .cv-q{font-size:13.5px;font-weight:600;color:var(--charcoal);margin:16px 0 7px;}
+.adminexp .cv-stars{color:var(--sand);font-size:17px;letter-spacing:3px;line-height:1;}
+.adminexp .cv-nps{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+.adminexp .cv-nps span{width:24px;height:24px;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-soft);font-family:"Geist Mono",monospace;}
+.adminexp .cv-note{font-size:12px;color:var(--ink-soft);font-style:italic;margin-top:7px;}
+.adminexp .cv-check{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--charcoal);margin-top:9px;line-height:1.4;}
+.adminexp .cv-check .bx{width:15px;height:15px;border:1.5px solid var(--sand);border-radius:4px;flex:0 0 auto;margin-top:1px;}
+.adminexp .cv-list{margin-top:8px;display:flex;flex-direction:column;gap:7px;}
+.adminexp .cv-list .ci{font-size:13px;color:#3a3c33;line-height:1.45;padding-left:16px;position:relative;}
+.adminexp .cv-list .ci::before{content:"";position:absolute;left:0;top:7px;width:6px;height:6px;border-radius:999px;background:var(--orange);}
+.adminexp .cv-cat{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);}
+.adminexp .cv-cat:first-child{border-top:0;}.adminexp .cv-cat .cn{font-size:13.5px;font-weight:500;}
+.adminexp .cv-empty{font-size:12.5px;color:var(--ink-soft);font-style:italic;}
+.adminexp .actionbar{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(251,251,247,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);}
+.adminexp .actionbar .inner{max-width:1160px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
+.adminexp .actionbar .status{font-size:13px;color:var(--ink-soft);font-family:"Geist Mono",monospace;}
+.adminexp .actionbar .status.ok{color:var(--olive);}
+.adminexp .actionbar .grp{display:flex;gap:10px;}
+.adminexp .err{color:#c43d2a;font-size:13px;margin-top:8px;}
+`;
+
+/* ---------- helpers ---------- */
+function Field({ label, hint, auto, children }: { label: React.ReactNode; hint?: string; auto?: boolean; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-md border border-sand bg-white px-2.5 py-1 text-xs font-medium text-olive hover:border-dune hover:text-lagoon"
-    >
+    <div className={`field${auto ? " auto" : ""}`}>
+      <label>{label}{hint ? <span className="hint"> — {hint}</span> : null}{auto ? <span className="chip-auto">auto</span> : null}</label>
       {children}
-    </button>
-  );
-}
-
-function StringList({
-  label,
-  items,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  items: string[];
-  onChange: (v: string[]) => void;
-  placeholder?: string;
-}) {
-  return (
-    <div>
-      <span className="text-xs font-semibold uppercase tracking-wider text-olive">{label}</span>
-      <div className="mt-1 space-y-2">
-        {items.map((it, i) => (
-          <div key={i} className="flex gap-2">
-            <input
-              className="w-full rounded-lg border border-sand bg-white px-3 py-2 text-sm text-lagoon outline-none focus:border-dune"
-              value={it}
-              placeholder={placeholder}
-              onChange={(e) => onChange(items.map((x, j) => (j === i ? e.target.value : x)))}
-            />
-            <SmallBtn onClick={() => onChange(items.filter((_, j) => j !== i))}>✕</SmallBtn>
-          </div>
-        ))}
-      </div>
-      <div className="mt-2">
-        <SmallBtn onClick={() => onChange([...items, ""])}>+ Agregar</SmallBtn>
-      </div>
     </div>
   );
 }
-
-function ImageField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
+function Uploader({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     setBusy(true);
-    setErr(null);
     try {
       const fd = new FormData();
       fd.append("file", f);
       const res = await fetch("/caminante/api/admin/upload", { method: "POST", body: fd });
       const j = await res.json();
       if (j.url) onChange(j.url);
-      else setErr(j.error || "Error al subir.");
-    } catch {
-      setErr("Error al subir.");
-    }
+    } catch { /* noop */ }
     setBusy(false);
     e.target.value = "";
   }
-
   return (
-    <div>
-      <span className="text-xs font-semibold uppercase tracking-wider text-olive">{label}</span>
-      <div className="mt-1 flex items-center gap-3">
-        {value ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt="" className="h-14 w-20 rounded-md border border-sand object-cover" />
-        ) : (
-          <div className="flex h-14 w-20 items-center justify-center rounded-md border border-dashed border-sand text-[10px] text-olive/60">
-            sin foto
-          </div>
-        )}
-        <label className="cursor-pointer rounded-md border border-sand bg-white px-3 py-1.5 text-xs font-medium text-olive hover:border-dune hover:text-lagoon">
-          {busy ? "Subiendo…" : value ? "Cambiar" : "Subir foto"}
-          <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={busy} />
-        </label>
-      </div>
-      <input
-        className="mt-2 w-full rounded-lg border border-sand bg-white px-3 py-1.5 text-xs text-olive outline-none focus:border-dune"
-        value={value}
-        placeholder="o pega una URL"
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {err ? <span className="mt-1 block text-[11px] text-clay">{err}</span> : null}
+    <div className="uploader">
+      {value ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={value} alt="" className="thumb" />
+      ) : null}
+      <input type="url" value={value} placeholder="https://… o sube un archivo" onChange={(e) => onChange(e.target.value)} />
+      <label className="filebtn">{busy ? "Subiendo…" : "Subir archivo"}<input type="file" accept="image/*" onChange={onFile} disabled={busy} /></label>
     </div>
   );
 }
+function StrList({ items, onChange, placeholder }: { items: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  return (
+    <>
+      <div className="rep-items">
+        {items.map((it, i) => (
+          <div key={i} className="rep-row">
+            <input type="text" className="grow" value={it} placeholder={placeholder} onChange={(e) => onChange(items.map((x, j) => (j === i ? e.target.value : x)))} />
+            <button type="button" className="rm" onClick={() => onChange(items.filter((_, j) => j !== i))}>Quitar</button>
+          </div>
+        ))}
+      </div>
+      <button type="button" className="add" onClick={() => onChange([...items, ""])}>+ Agregar</button>
+    </>
+  );
+}
+function PrevBlock({ t, fields }: { t: string; fields: string[] }) {
+  return (
+    <div className="cv-block">
+      <div className="cvh">{t}</div>
+      <div className="cv-grid">
+        {fields.map((f) => <div key={f} className="cv-field"><span className="l">{f}</span><div className="cv-input"></div></div>)}
+      </div>
+    </div>
+  );
+}
+function GalleryAdd({ onAdd }: { onAdd: (url: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", f);
+      const res = await fetch("/caminante/api/admin/upload", { method: "POST", body: fd });
+      const j = await res.json();
+      if (j.url) onAdd(j.url);
+    } catch { /* noop */ }
+    setBusy(false);
+    e.target.value = "";
+  }
+  return (
+    <label className="gal-slot">{busy ? "Subiendo…" : "+ Agregar foto"}<input type="file" accept="image/*" onChange={onFile} /></label>
+  );
+}
 
-/* ---------- main form ---------- */
-export default function ExperienceForm({ initial }: { initial?: Experience }) {
+/* ---------- main ---------- */
+export default function ExperienceForm({ initial, initialSlots }: { initial?: Experience; initialSlots?: InitialSlot[] }) {
   const [exp, setExp] = useState<Experience>(initial ?? emptyExperience());
+  const [slots, setSlots] = useState<SlotRow[]>(
+    (initialSlots ?? []).map((s) => ({ id: s.id, label: s.label, start: (s.startsAt || "").slice(0, 10), end: (s.endsAt || "").slice(0, 10), cupo: s.capacity != null ? String(s.capacity) : "" })),
+  );
+  const [cupoEstandar, setCupoEstandar] = useState("");
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; msg: string; slug?: string } | null>(null);
+  const [status, setStatus] = useState("Borrador sin guardar");
+  const [statusOk, setStatusOk] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!initial);
   const [stripeBusy, setStripeBusy] = useState(false);
   const [stripeErr, setStripeErr] = useState<string | null>(null);
+  const [savedSlug, setSavedSlug] = useState<string | null>(null);
 
-  function set<K extends keyof Experience>(k: K, v: Experience[K]) {
-    setExp((p) => ({ ...p, [k]: v }));
+  function set<K extends keyof Experience>(k: K, v: Experience[K]) { setExp((p) => ({ ...p, [k]: v })); }
+  const reg = exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [] };
+  const fb = exp.feedback ?? { active: false, version: "v1", locationLabel: "", npsEnabled: true, sections: [], testimonialPrompt: "" };
+  const price = exp.price ?? { amount: "", currency: "MXN · por persona", desc: "" };
+  const setReg = (patch: Partial<typeof reg>) => set("registration", { ...reg, ...patch });
+  const setFb = (patch: Partial<typeof fb>) => set("feedback", { ...fb, ...patch });
+  const setPrice = (patch: Partial<typeof price>) => set("price", { ...price, ...patch });
+
+  const gallery = exp.gallery ?? [];
+  const bloques = exp.bloques ?? [];
+  const itinerario = exp.itinerario ?? [];
+  const incluye = exp.incluye ?? [];
+  const noIncluye = exp.noIncluye ?? [];
+  const mochila = exp.mochila ?? [];
+  const aliados = exp.aliados ?? [];
+  const faq = exp.faq ?? [];
+  const clausulas = reg.waiverClauses ?? [];
+  const cats = fb.sections ?? [];
+
+  const suggestedSlug = useMemo(() => slugify(`${exp.title} ${exp.titleAccent ?? ""}`), [exp.title, exp.titleAccent]);
+  const effectiveSlug = autoSlug ? suggestedSlug : (exp.slug ?? "");
+
+  function applyTemplate(key: string) {
+    if (!key || !TPL[key]) { setExp(emptyExperience()); setSlots([]); setCupoEstandar(""); setAutoSlug(true); return; }
+    const t = TPL[key];
+    setExp({ ...emptyExperience(), ...t.exp });
+    setSlots(t.slots.map((s) => ({ ...s })));
+    setCupoEstandar(t.cupo);
+    setAutoSlug(false);
   }
 
   async function onGenStripe() {
-    setStripeBusy(true);
-    setStripeErr(null);
+    setStripeBusy(true); setStripeErr(null);
     const res = await generateStripeLink({
-      title: exp.cardTitle || exp.subtitle || `${exp.title} ${exp.titleAccent}`.trim(),
-      subtitle: exp.subtitle,
-      amount: exp.price?.amount ?? "",
-      currency: exp.price?.currency ?? "",
+      title: exp.cardTitle || exp.subtitle || `${exp.title} ${exp.titleAccent ?? ""}`.trim(),
+      subtitle: exp.subtitle ?? "", amount: price.amount, currency: price.currency,
     });
     setStripeBusy(false);
-    if (res.ok) set("stripeLink", res.url);
-    else setStripeErr(res.error);
+    if (res.ok) set("stripeLink", res.url); else setStripeErr(res.error);
   }
 
-  const suggestedSlug = useMemo(
-    () => slugify(`${exp.subtitle || exp.title} ${exp.titleAccent}`),
-    [exp.subtitle, exp.title, exp.titleAccent],
-  );
-  const effectiveSlug = autoSlug ? suggestedSlug : exp.slug;
-
-  async function onSubmit(status: Experience["status"]) {
+  async function onSubmit(st: Experience["status"]) {
     setSaving(true);
-    setResult(null);
-    const slug = (autoSlug ? suggestedSlug : exp.slug).trim();
-    // Fill standard boilerplate if left empty.
+    const slug = (autoSlug ? suggestedSlug : (exp.slug ?? "")).trim();
     const filled: Experience = {
-      ...exp,
-      slug,
-      status,
-      docTitle: exp.docTitle || `Caminante · ${exp.title} ${exp.titleAccent} — ${exp.subtitle}`.trim(),
+      ...exp, slug, status: st,
+      docTitle: exp.docTitle || `Caminante · ${exp.title} ${exp.titleAccent ?? ""} — ${exp.subtitle ?? ""}`.trim(),
       edgeLabel: exp.edgeLabel || `Caminante · ${exp.brandSmall || exp.title}`.trim(),
       footerBrand: exp.footerBrand || `Caminante · ${exp.brandSmall || exp.title}`.trim(),
-      footerSmall: exp.footerSmall || [exp.vol, exp.coords].filter(Boolean).join(" · "),
     };
     const res = await saveExperience(filled);
+    const t = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+    if (!res.ok) { setSaving(false); setStatusOk(false); setStatus(`Error: ${res.error}`); return; }
+    setExp(filled); setSavedSlug(res.slug);
+    // Salidas → experience_slots (fuera del jsonb)
+    const slotInputs = slots
+      .filter((s) => s.label.trim() && s.start)
+      .map((s) => ({
+        ...(s.id ? { id: s.id } : {}),
+        label: s.label.trim(),
+        startsAt: `${s.start}T12:00:00Z`,
+        endsAt: s.end ? `${s.end}T23:00:00Z` : null,
+        capacity: s.cupo ? Number(s.cupo) : null,
+      }));
+    const slotRes = await saveExperienceSlots(res.slug, slotInputs);
     setSaving(false);
-    if (res.ok) {
-      setExp(filled);
-      setResult({
-        ok: true,
-        slug: res.slug,
-        msg: status === "published" ? "¡Publicada!" : "Borrador guardado.",
-      });
-    } else {
-      setResult({ ok: false, msg: res.error });
-    }
+    setStatusOk(slotRes.ok);
+    if (!slotRes.ok) { setStatus(`Guardada, pero las fechas fallaron: ${slotRes.error}`); return; }
+    setStatus(st === "published" ? `✓ Experiencia publicada · ${t}` : `✓ Borrador guardado · ${t}`);
   }
 
+  const setItin = (v: Day[]) => set("itinerario", v);
+  const setMochila = (v: GearCategory[]) => set("mochila", v);
+  const setAliados = (v: Ally[]) => set("aliados", v);
+  const setFaq = (v: Faq[]) => set("faq", v);
+  const setBloques = (v: FreeBlock[]) => set("bloques", v);
+
   return (
-    <div className="space-y-6 pb-24">
-      {/* PORTADA */}
-      <Section title="Portada" desc="El héroe de la página.">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Título" value={exp.title} onChange={(v) => set("title", v)} placeholder="OCEAN" />
-          <Field
-            label="Palabra acento (itálica)"
-            value={exp.titleAccent}
-            onChange={(v) => set("titleAccent", v)}
-            placeholder="safari."
-          />
-        </div>
-        <Field
-          label="Subtítulo"
-          value={exp.subtitle}
-          onChange={(v) => set("subtitle", v)}
-          placeholder="Ensenada de Muertos · Viaje con la ciencia"
-        />
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Marca (chip nav)" value={exp.brandSmall} onChange={(v) => set("brandSmall", v)} placeholder="Ocean Safari" />
-          <Field label="Volumen / fecha" value={exp.vol} onChange={(v) => set("vol", v)} placeholder="Vol. 08 · 2026" />
-          <Field label="Coordenadas" value={exp.coords} onChange={(v) => set("coords", v)} placeholder="23°59′N · 109°50′W" />
-        </div>
-        <ImageField label="Foto de portada" value={exp.heroImageUrl} onChange={(v) => set("heroImageUrl", v)} />
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-olive">Datos del héroe (4 columnas)</span>
-          <div className="mt-1 space-y-2">
-            {exp.heroMeta.map((m, i) => (
-              <div key={i} className="grid grid-cols-2 gap-2">
-                <input
-                  className="rounded-lg border border-sand bg-white px-3 py-2 text-sm outline-none focus:border-dune"
-                  value={m.k}
-                  placeholder="Etiqueta (Duración)"
-                  onChange={(e) => set("heroMeta", exp.heroMeta.map((x, j) => (j === i ? { ...x, k: e.target.value } : x)))}
-                />
-                <input
-                  className="rounded-lg border border-sand bg-white px-3 py-2 text-sm outline-none focus:border-dune"
-                  value={m.v}
-                  placeholder="Valor (4 días · 3 noches)"
-                  onChange={(e) => set("heroMeta", exp.heroMeta.map((x, j) => (j === i ? { ...x, v: e.target.value } : x)))}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
+    <div className="adminexp">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      {/* IDENTIDAD */}
-      <Section title="Identificador & estado">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Field
-              label="Slug (URL)"
-              value={effectiveSlug}
-              onChange={(v) => {
-                setAutoSlug(false);
-                set("slug", v);
-              }}
-              hint={autoSlug ? "Automático desde el subtítulo. Edítalo para fijarlo." : "Fijo."}
-            />
-            <span className="mt-1 block text-[11px] text-olive/70">/caminante/experiencias/{effectiveSlug || "…"}</span>
+      <header className="ahead">
+        <div className="brand">
+          <span className="logo" aria-label="Caminante" dangerouslySetInnerHTML={{ __html: MARK }} />
+          <span className="ctx">Admin · <b>Crear experiencia</b></span>
+        </div>
+        <div className="head-actions">
+          <span className="savechip">{statusOk ? "Guardado" : "Sin guardar"}</span>
+          <button className="btn btn-ghost btn-sm" type="button" disabled={saving} onClick={() => onSubmit("draft")}>Guardar borrador</button>
+          <button className="btn btn-orange btn-sm" type="button" disabled={saving} onClick={() => onSubmit("published")}>Publicar</button>
+        </div>
+      </header>
+
+      <div className="wrap">
+        <nav className="index">
+          <div className="ix-title">Secciones</div>
+          <div className="ix-group">Lo básico</div>
+          <div className="ix-list" style={{ marginBottom: 4 }}><a href="#s1"><span className="n">01</span>Lo básico</a></div>
+          <div className="ix-group">Contenido</div>
+          <div className="ix-list" style={{ marginBottom: 4 }}>
+            <a href="#s2"><span className="n">02</span>La experiencia</a>
+            <a href="#s3"><span className="n">03</span>Itinerario</a>
+            <a href="#s4"><span className="n">04</span>Incluye / No</a>
+            <a href="#s5"><span className="n">05</span>Qué llevar</a>
+            <a href="#s6"><span className="n">06</span>Aliados</a>
+            <a href="#s7"><span className="n">07</span>FAQ</a>
+            <a href="#s8"><span className="n">08</span>Bloques libres</a>
           </div>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wider text-olive">Estado</span>
-            <div className="mt-1 text-sm text-olive">
-              Se guarda como <strong>borrador</strong> o <strong>publicada</strong> con los botones de abajo.
+          <div className="ix-group">Operación</div>
+          <div className="ix-list">
+            <a href="#s9"><span className="n">09</span>Precio</a>
+            <a href="#s10"><span className="n">10</span>Fechas &amp; cupo</a>
+            <a href="#s11"><span className="n">11</span>Registro</a>
+            <a href="#s12"><span className="n">12</span>Encuesta</a>
+          </div>
+        </nav>
+
+        <div className="main">
+          <section className="startcard">
+            <Field label="Empezar desde">
+              <select onChange={(e) => applyTemplate(e.target.value)} defaultValue="">
+                <option value="">En blanco</option>
+                <option value="ocean">Ocean Safari · Ensenada de Muertos</option>
+                <option value="hongos">Recolección de Hongos · Xalatlaco</option>
+              </select>
+            </Field>
+            <p className="sd-hint">Clona una experiencia existente como plantilla; luego cambia lo específico. &quot;En blanco&quot; deja los campos vacíos (lo heredado se conserva).</p>
+          </section>
+
+          <details className="brandbanner">
+            <summary>
+              <span className="bb-l"><span className="chip-auto">auto</span><span><span className="t">Ajustes de marca</span><br /><span className="d">Heredado de tu perfil · contacto, moneda, deslinde, encuesta</span></span></span>
+              <span className="chev">▾</span>
+            </summary>
+            <div className="inherited"><div className="inherited-grid">
+              <div className="inh"><span className="k">WhatsApp</span><span className="v">{exp.whatsapp}</span></div>
+              <div className="inh"><span className="k">Correo</span><span className="v">{exp.email}</span></div>
+              <div className="inh"><span className="k">Instagram</span><span className="v">@{exp.instagram}</span></div>
+              <div className="inh"><span className="k">Moneda</span><span className="v">{price.currency}</span></div>
+              <div className="inh"><span className="k">URL del deslinde</span><span className="v">{reg.waiverDocUrl || "—"}</span></div>
+              <div className="inh"><span className="k">Encuesta</span><span className="v">{fb.active ? "Activa" : "Inactiva"} · {fb.version}{fb.npsEnabled ? " · con NPS" : ""}</span></div>
+            </div></div>
+          </details>
+
+          <p className="form-intro"><span className="sl">{"// Cómo funciona"}</span>Aquí das de alta lo que el sitio necesita para mostrar y vender la experiencia: cómo se ve en el inicio y el calendario, su contenido (fotos, itinerario, aliados…), el cobro, el registro de los viajeros y la encuesta. Todo el contenido es opcional: puedes publicar con lo mínimo y enriquecer después.</p>
+
+          {/* 01 · LO BÁSICO */}
+          <section className="card" id="s1">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Lo básico</span><h2>Lo básico</h2></div>
+            <div className="row c2">
+              <Field label="Título"><input type="text" value={exp.title} placeholder="Ocean Safari · Ensenada de Muertos" onChange={(e) => set("title", e.target.value)} /></Field>
+              <Field label="Palabra acento" hint="se muestra en itálica naranja"><input type="text" value={exp.titleAccent ?? ""} placeholder="safari." onChange={(e) => set("titleAccent", e.target.value)} /></Field>
             </div>
-          </label>
-        </div>
-      </Section>
-
-      {/* PRECIO & CONTACTO */}
-      <Section title="Precio & contacto">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Precio" value={exp.price?.amount ?? ""} onChange={(v) => set("price", { ...(exp.price ?? { amount: "", currency: "", desc: "" }), amount: v })} placeholder="$16,000" />
-          <Field label="Moneda / nota" value={exp.price?.currency ?? ""} onChange={(v) => set("price", { ...(exp.price ?? { amount: "", currency: "", desc: "" }), currency: v })} placeholder="MXN · por persona" />
-          <Field label="WhatsApp (dígitos)" value={exp.whatsapp} onChange={(v) => set("whatsapp", v)} placeholder="525512020565" />
-        </div>
-        <Area label="Qué cubre el precio" value={exp.price?.desc ?? ""} onChange={(v) => set("price", { ...(exp.price ?? { amount: "", currency: "", desc: "" }), desc: v })} />
-        <div className="rounded-lg border border-sand bg-white p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-olive">Link de pago (Stripe)</span>
-              <p className="text-[11px] text-olive/70">
-                Genera un link de cobro por el precio. Aparece como &ldquo;Reservar tu lugar&rdquo; en la página.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onGenStripe}
-              disabled={stripeBusy}
-              className="shrink-0 rounded-md bg-lagoon px-3 py-1.5 text-xs font-semibold text-cream hover:bg-dune disabled:opacity-50"
-            >
-              {stripeBusy ? "Generando…" : exp.stripeLink ? "Regenerar" : "Generar link"}
-            </button>
-          </div>
-          {exp.stripeLink ? (
-            <a href={exp.stripeLink} target="_blank" rel="noopener" className="mt-2 block truncate text-xs text-forest underline">
-              {exp.stripeLink}
-            </a>
-          ) : null}
-          {stripeErr ? <span className="mt-1 block text-[11px] text-clay">{stripeErr}</span> : null}
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Correo" value={exp.email} onChange={(v) => set("email", v)} />
-          <Field label="Instagram (sin @)" value={exp.instagram} onChange={(v) => set("instagram", v)} />
-        </div>
-      </Section>
-
-      {/* REGISTRO Y DESLINDE */}
-      <Section
-        title="Registro y deslinde"
-        desc="Activa el registro nativo en /caminante/registro/[slug]. El deslinde vive en el Google Doc del sistema legal; si el texto cambia, sube la versión (los que ya firmaron quedan con la suya y los nuevos firman la vigente)."
-      >
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={exp.registration?.active ?? false}
-            onChange={(e) =>
-              set("registration", {
-                ...(exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [""] }),
-                active: e.target.checked,
-              })
-            }
-          />
-          <span className="text-sm text-lagoon">Registro activo (la página /caminante/registro/{exp.slug || "[slug]"} acepta firmas)</span>
-        </label>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field
-            label="Versión del deslinde"
-            value={exp.registration?.waiverVersion ?? "v1"}
-            onChange={(v) =>
-              set("registration", {
-                ...(exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [""] }),
-                waiverVersion: v,
-              })
-            }
-            placeholder="v1"
-          />
-          <div className="sm:col-span-2">
-            <Field
-              label="URL del deslinde (Google Doc)"
-              value={exp.registration?.waiverDocUrl ?? ""}
-              onChange={(v) =>
-                set("registration", {
-                  ...(exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [""] }),
-                  waiverDocUrl: v,
-                })
-              }
-              placeholder="https://docs.google.com/document/d/…/view"
-            />
-          </div>
-        </div>
-        <StringList
-          label="Cláusulas-resumen (se listan antes del checkbox de aceptación)"
-          items={exp.registration?.waiverClauses ?? [""]}
-          onChange={(v) =>
-            set("registration", {
-              ...(exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [""] }),
-              waiverClauses: v,
-            })
-          }
-          placeholder="Participas libre y voluntariamente; conoces los riesgos de mar abierto…"
-        />
-      </Section>
-
-      {/* CONTEXTO */}
-      <Section title="Capítulo 01 · El Contexto">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Título" value={exp.contextTitle} onChange={(v) => set("contextTitle", v)} placeholder="La historia detrás del" />
-          <Field label="Acento" value={exp.contextTitleAccent} onChange={(v) => set("contextTitleAccent", v)} placeholder="Mar de Cortés." />
-        </div>
-        <Area label="Intro" value={exp.contextLead} onChange={(v) => set("contextLead", v)} />
-        <ImageField label="Foto de la banda" value={exp.contextBandImageUrl} onChange={(v) => set("contextBandImageUrl", v)} />
-        <Field label="Pie de foto banda" value={exp.contextBandCaption} onChange={(v) => set("contextBandCaption", v)} />
-        <div className="space-y-3">
-          {exp.context.map((c, i) => (
-            <div key={i} className="rounded-lg border border-sand bg-white p-3">
-              <div className="mb-2 text-xs font-semibold text-dune">Punto {c.no}</div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Field label="Título" value={c.title} onChange={(v) => set("context", exp.context.map((x, j) => (j === i ? { ...x, title: v } : x)))} />
-                <Field label="Subtítulo" value={c.sub} onChange={(v) => set("context", exp.context.map((x, j) => (j === i ? { ...x, sub: v } : x)))} />
-              </div>
-              <Area label="Cuerpo" value={c.body} onChange={(v) => set("context", exp.context.map((x, j) => (j === i ? { ...x, body: v } : x)))} />
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* CUATRO CARAS */}
-      <Section title="Las cuatro caras" desc="Las 4 son fijas (Naturaleza, Conservación, Comunidades, Problemas). Usa **negrita** y *itálica* en el cuerpo.">
-        {exp.lenses.map((l, i) => (
-          <div key={l.key} className="rounded-lg border border-sand bg-white p-3">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-dune">{l.caraNo} · {l.label}</div>
-            <Field label="Título" value={l.title} onChange={(v) => set("lenses", exp.lenses.map((x, j) => (j === i ? { ...x, title: v } : x)))} />
-            <Area label="Cuerpo" rows={4} value={l.body} onChange={(v) => set("lenses", exp.lenses.map((x, j) => (j === i ? { ...x, body: v } : x)))} />
-            <ImageField label="Foto" value={l.imageUrl} onChange={(v) => set("lenses", exp.lenses.map((x, j) => (j === i ? { ...x, imageUrl: v } : x)))} />
-            <div className="mt-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-olive">Datos (número + etiqueta)</span>
-              <div className="mt-1 space-y-2">
-                {l.facts.map((f, k) => (
-                  <div key={k} className="flex gap-2">
-                    <input className="w-24 rounded-lg border border-sand bg-white px-2 py-1.5 text-sm outline-none focus:border-dune" value={f.n} placeholder="9" onChange={(e) => set("lenses", exp.lenses.map((x, j) => (j === i ? { ...x, facts: x.facts.map((ff, kk) => (kk === k ? { ...ff, n: e.target.value } : ff)) } : x)))} />
-                    <input className="flex-1 rounded-lg border border-sand bg-white px-2 py-1.5 text-sm outline-none focus:border-dune" value={f.l} placeholder="especies de grandes ballenas" onChange={(e) => set("lenses", exp.lenses.map((x, j) => (j === i ? { ...x, facts: x.facts.map((ff, kk) => (kk === k ? { ...ff, l: e.target.value } : ff)) } : x)))} />
-                    <SmallBtn onClick={() => set("lenses", exp.lenses.map((x, j) => (j === i ? { ...x, facts: x.facts.filter((_, kk) => kk !== k) } : x)))}>✕</SmallBtn>
+            <Field label="Subtítulo"><textarea value={exp.subtitle ?? ""} placeholder="Una línea que sitúe la experiencia." onChange={(e) => set("subtitle", e.target.value)} /></Field>
+            <Field label="Ubicación" hint="conecta con su página de destino">
+              <select value={exp.estado ?? ""} onChange={(e) => set("estado", e.target.value)}>
+                <option value="" disabled>Selecciona un estado</option>
+                {ESTADOS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </Field>
+            <Field label="Hook" hint="frase para la tarjeta del home"><input type="text" value={exp.cardHook ?? ""} placeholder="Cuatro días en el Mar de Cortés." onChange={(e) => set("cardHook", e.target.value)} /></Field>
+            <Field label="Imagen principal (hero)"><Uploader value={exp.heroImageUrl ?? ""} onChange={(v) => set("heroImageUrl", v)} /></Field>
+            <Field label={<>Galería de fotos <span className="optflag">opcional</span></>}>
+              <div className="gallery">
+                {gallery.map((g, i) => (
+                  <div key={i} className="gal-slot" style={{ borderStyle: "solid" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {g ? <img src={g} alt="" /> : <span style={{ fontSize: 11 }}>foto</span>}
+                    <button type="button" className="rm" onClick={() => set("gallery", gallery.filter((_, j) => j !== i))}>✕</button>
                   </div>
                 ))}
-                <SmallBtn onClick={() => set("lenses", exp.lenses.map((x, j) => (j === i ? { ...x, facts: [...x.facts, { n: "", l: "" }] } : x)))}>+ Dato</SmallBtn>
+                <GalleryAdd onAdd={(url) => set("gallery", [...gallery, url])} />
               </div>
-            </div>
-          </div>
-        ))}
-      </Section>
+            </Field>
+            <Field label="Slug" hint="se genera del título, editable">
+              <div className="with-btn">
+                <input type="text" className="slugbox" value={effectiveSlug} placeholder="ocean-safari-ensenada-de-muertos" onChange={(e) => { setAutoSlug(false); set("slug", e.target.value); }} />
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAutoSlug(true)}>Regenerar</button>
+              </div>
+            </Field>
+            <Field label="Estado">
+              <div className="segmented">
+                <label><input type="radio" name="estado-pub" checked={exp.status !== "published"} onChange={() => set("status", "draft")} /><span>Borrador</span></label>
+                <label><input type="radio" name="estado-pub" checked={exp.status === "published"} onChange={() => set("status", "published")} /><span>Publicada</span></label>
+              </div>
+            </Field>
+          </section>
 
-      {/* QUÉ VAS A VIVIR */}
-      <Section title="Capítulo 02 · Lo que vas a vivir">
-        <Area label="Intro" value={exp.vivirLead} onChange={(v) => set("vivirLead", v)} />
-        {exp.vivir.map((v, i) => (
-          <div key={i} className="rounded-lg border border-sand bg-white p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-dune">Encuentro {v.num}</span>
-              <SmallBtn onClick={() => set("vivir", exp.vivir.filter((_, j) => j !== i))}>✕ quitar</SmallBtn>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Field label="Número" value={v.num} onChange={(val) => set("vivir", exp.vivir.map((x, j) => (j === i ? { ...x, num: val } : x)))} />
-              <Field label="Etiqueta (pill)" value={v.pill} onChange={(val) => set("vivir", exp.vivir.map((x, j) => (j === i ? { ...x, pill: val } : x)))} />
-            </div>
-            <Field label="Título" value={v.title} onChange={(val) => set("vivir", exp.vivir.map((x, j) => (j === i ? { ...x, title: val } : x)))} />
-            <Area label="Cuerpo" value={v.body} onChange={(val) => set("vivir", exp.vivir.map((x, j) => (j === i ? { ...x, body: val } : x)))} />
-            <ImageField label="Foto" value={v.imageUrl} onChange={(val) => set("vivir", exp.vivir.map((x, j) => (j === i ? { ...x, imageUrl: val } : x)))} />
-          </div>
-        ))}
-        <SmallBtn onClick={() => set("vivir", [...exp.vivir, { num: String(exp.vivir.length + 1).padStart(2, "0"), pill: "", title: "", body: "", imageUrl: "" }])}>+ Encuentro</SmallBtn>
-      </Section>
+          {/* 02 · LA EXPERIENCIA */}
+          <section className="card" id="s2">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> La experiencia</span><h2>La experiencia <span className="optflag">opcional</span></h2><p className="desc">El bloque de apertura del contenido: una intro y una foto.</p></div>
+            <Field label="Intro"><textarea value={exp.expIntro ?? ""} placeholder="Texto de apertura de la experiencia." onChange={(e) => set("expIntro", e.target.value)} /></Field>
+            <Field label="Foto"><Uploader value={exp.expImage ?? ""} onChange={(v) => set("expImage", v)} /></Field>
+          </section>
 
-      {/* ALIADOS */}
-      <Section title="Capítulo 03 · Los Aliados">
-        <Area label="Intro" value={exp.aliadosLead} onChange={(v) => set("aliadosLead", v)} />
-        {exp.aliados.map((a, i) => (
-          <div key={i} className="rounded-lg border border-sand bg-white p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-dune">Aliado {i + 1}</span>
-              <SmallBtn onClick={() => set("aliados", exp.aliados.filter((_, j) => j !== i))}>✕ quitar</SmallBtn>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Field label="Rol" value={a.role} onChange={(val) => set("aliados", exp.aliados.map((x, j) => (j === i ? { ...x, role: val } : x)))} />
-              <Field label="Nombre" value={a.name} onChange={(val) => set("aliados", exp.aliados.map((x, j) => (j === i ? { ...x, name: val } : x)))} />
-            </div>
-            <Area label="Descripción" value={a.body} onChange={(val) => set("aliados", exp.aliados.map((x, j) => (j === i ? { ...x, body: val } : x)))} />
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Field label="Etiqueta de personas" value={a.peopleLabel} onChange={(val) => set("aliados", exp.aliados.map((x, j) => (j === i ? { ...x, peopleLabel: val } : x)))} />
-              <Field label="Personas" value={a.people} onChange={(val) => set("aliados", exp.aliados.map((x, j) => (j === i ? { ...x, people: val } : x)))} />
-            </div>
-          </div>
-        ))}
-        <SmallBtn onClick={() => set("aliados", [...exp.aliados, { role: "", name: "", body: "", peopleLabel: "", people: "" }])}>+ Aliado</SmallBtn>
-      </Section>
-
-      {/* ITINERARIO */}
-      <Section title="Capítulo 04 · Itinerario">
-        <Area label="Intro" value={exp.itinerarioLead} onChange={(v) => set("itinerarioLead", v)} />
-        {exp.itinerario.map((d, i) => (
-          <div key={i} className="rounded-lg border border-sand bg-white p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-dune">{d.dno || `Día ${i + 1}`}</span>
-              <SmallBtn onClick={() => set("itinerario", exp.itinerario.filter((_, j) => j !== i))}>✕ quitar día</SmallBtn>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Field label="Día" value={d.dno} onChange={(val) => set("itinerario", exp.itinerario.map((x, j) => (j === i ? { ...x, dno: val } : x)))} />
-              <Field label="Nombre del día" value={d.dname} onChange={(val) => set("itinerario", exp.itinerario.map((x, j) => (j === i ? { ...x, dname: val } : x)))} />
-            </div>
-            <div className="mt-2 space-y-2">
-              {d.beats.map((b, k) => (
-                <div key={k} className="flex gap-2">
-                  <input className="w-32 rounded-lg border border-sand bg-white px-2 py-1.5 text-sm outline-none focus:border-dune" value={b.t} placeholder="Amanecer" onChange={(e) => set("itinerario", exp.itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.map((bb, kk) => (kk === k ? { ...bb, t: e.target.value } : bb)) } : x)))} />
-                  <input className="flex-1 rounded-lg border border-sand bg-white px-2 py-1.5 text-sm outline-none focus:border-dune" value={b.d} placeholder="Meditación y breathwork." onChange={(e) => set("itinerario", exp.itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.map((bb, kk) => (kk === k ? { ...bb, d: e.target.value } : bb)) } : x)))} />
-                  <SmallBtn onClick={() => set("itinerario", exp.itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.filter((_, kk) => kk !== k) } : x)))}>✕</SmallBtn>
+          {/* 03 · ITINERARIO */}
+          <section className="card" id="s3">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Itinerario</span><h2>Itinerario <span className="optflag">opcional</span></h2></div>
+            <div className="rep-items">
+              {itinerario.map((d, i) => (
+                <div key={i} className="rep-card">
+                  <button type="button" className="rm" onClick={() => setItin(itinerario.filter((_, j) => j !== i))}>Quitar</button>
+                  <div className="row c2">
+                    <Field label="Etiqueta del día"><input type="text" value={d.dno} placeholder="Jueves · Llegada" onChange={(e) => setItin(itinerario.map((x, j) => (j === i ? { ...x, dno: e.target.value } : x)))} /></Field>
+                    <Field label="Título"><input type="text" value={d.dname} placeholder="Encuentro" onChange={(e) => setItin(itinerario.map((x, j) => (j === i ? { ...x, dname: e.target.value } : x)))} /></Field>
+                  </div>
+                  <div className="nested">
+                    <div className="nlabel">Momentos del día</div>
+                    <div className="rep-items">
+                      {(d.beats ?? []).map((b, k) => (
+                        <div key={k} className="rep-row">
+                          <input type="text" placeholder="6:30" style={{ maxWidth: 130 }} value={b.t} onChange={(e) => setItin(itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.map((y, l) => (l === k ? { ...y, t: e.target.value } : y)) } : x)))} />
+                          <input type="text" className="grow" placeholder="Descripción" value={b.d} onChange={(e) => setItin(itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.map((y, l) => (l === k ? { ...y, d: e.target.value } : y)) } : x)))} />
+                          <button type="button" className="rm" onClick={() => setItin(itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.filter((_, l) => l !== k) } : x)))}>Quitar</button>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" className="add" onClick={() => setItin(itinerario.map((x, j) => (j === i ? { ...x, beats: [...(x.beats ?? []), { t: "", d: "" }] } : x)))}>+ Agregar momento</button>
+                  </div>
                 </div>
               ))}
-              <SmallBtn onClick={() => set("itinerario", exp.itinerario.map((x, j) => (j === i ? { ...x, beats: [...x.beats, { t: "", d: "" }] } : x)))}>+ Momento</SmallBtn>
             </div>
-          </div>
-        ))}
-        <SmallBtn onClick={() => set("itinerario", [...exp.itinerario, { dno: `Día 0${exp.itinerario.length + 1}`, dname: "", beats: [{ t: "", d: "" }] }])}>+ Día</SmallBtn>
-      </Section>
+            <button type="button" className="add" onClick={() => setItin([...itinerario, { dno: `Día 0${itinerario.length + 1}`, dname: "", beats: [{ t: "", d: "" }] }])}>+ Agregar día</button>
+          </section>
 
-      {/* IMPACTO */}
-      <Section title="Capítulo 05 · El Impacto">
-        <StringList label="Párrafos" items={exp.impactoBody} onChange={(v) => set("impactoBody", v)} />
-        <Field label="Etiqueta" value={exp.impactoLabel} onChange={(v) => set("impactoLabel", v)} placeholder="Proyecto Dos Mares · Mar de Cortés" />
-        <ImageField label="Foto de fondo" value={exp.impactoImageUrl} onChange={(v) => set("impactoImageUrl", v)} />
-      </Section>
+          {/* 04 · INCLUYE / NO */}
+          <section className="card" id="s4">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Qué incluye / qué no</span><h2>Incluye / No incluye <span className="optflag">opcional</span></h2></div>
+            <div className="subhead" style={{ borderTop: 0, paddingTop: 0 }}>Incluye</div>
+            <StrList items={incluye} onChange={(v) => set("incluye", v)} placeholder="Ej. Transporte redondo" />
+            <div className="subhead">No incluye</div>
+            <StrList items={noIncluye} onChange={(v) => set("noIncluye", v)} placeholder="Ej. Vuelos" />
+          </section>
 
-      {/* PAQUETE */}
-      <Section title="Capítulo 06 · El Paquete">
-        <StringList label="Qué incluye" items={exp.incluye} onChange={(v) => set("incluye", v)} />
-        <StringList label="Qué no incluye" items={exp.noIncluye} onChange={(v) => set("noIncluye", v)} />
-      </Section>
-
-      {/* MOCHILA */}
-      <Section title="Capítulo 07 · Tu Mochila">
-        {exp.mochila.map((cat, i) => (
-          <div key={i} className="rounded-lg border border-sand bg-white p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <Field label="Categoría" value={cat.title} onChange={(v) => set("mochila", exp.mochila.map((x, j) => (j === i ? { ...x, title: v } : x)))} />
-              <SmallBtn onClick={() => set("mochila", exp.mochila.filter((_, j) => j !== i))}>✕</SmallBtn>
-            </div>
-            <div className="mt-2 space-y-2">
-              {cat.items.map((it, k) => (
-                <div key={k} className="flex items-center gap-2">
-                  <input className="flex-1 rounded-lg border border-sand bg-white px-2 py-1.5 text-sm outline-none focus:border-dune" value={it.text} placeholder="Botella reusable" onChange={(e) => set("mochila", exp.mochila.map((x, j) => (j === i ? { ...x, items: x.items.map((ii, kk) => (kk === k ? { ...ii, text: e.target.value } : ii)) } : x)))} />
-                  <input className="w-40 rounded-lg border border-sand bg-white px-2 py-1.5 text-sm outline-none focus:border-dune" value={it.req ?? ""} placeholder="Nota (mín. 1 L)" onChange={(e) => set("mochila", exp.mochila.map((x, j) => (j === i ? { ...x, items: x.items.map((ii, kk) => (kk === k ? { ...ii, req: e.target.value } : ii)) } : x)))} />
-                  <label className="flex items-center gap-1 text-xs text-olive">
-                    <input type="checkbox" checked={!!it.must} onChange={(e) => set("mochila", exp.mochila.map((x, j) => (j === i ? { ...x, items: x.items.map((ii, kk) => (kk === k ? { ...ii, must: e.target.checked } : ii)) } : x)))} />
-                    oblig.
-                  </label>
-                  <SmallBtn onClick={() => set("mochila", exp.mochila.map((x, j) => (j === i ? { ...x, items: x.items.filter((_, kk) => kk !== k) } : x)))}>✕</SmallBtn>
+          {/* 05 · QUÉ LLEVAR */}
+          <section className="card" id="s5">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Qué llevar</span><h2>Qué llevar / Equipo <span className="optflag">opcional</span></h2></div>
+            <div className="rep-items">
+              {mochila.map((cat, i) => (
+                <div key={i} className="rep-card">
+                  <button type="button" className="rm" onClick={() => setMochila(mochila.filter((_, j) => j !== i))}>Quitar</button>
+                  <Field label="Categoría"><input type="text" value={cat.title} placeholder="Ej. Ropa" onChange={(e) => setMochila(mochila.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} /></Field>
+                  <div className="nested">
+                    <div className="nlabel">Items</div>
+                    <div className="rep-items">
+                      {(cat.items ?? []).map((it, k) => (
+                        <div key={k} className="rep-row">
+                          <input type="text" className="grow" placeholder="Ej. Botas de hike" value={it.text} onChange={(e) => setMochila(mochila.map((x, j) => (j === i ? { ...x, items: x.items.map((y, l) => (l === k ? { ...y, text: e.target.value } : y)) } : x)))} />
+                          <label className="inline-check"><input type="checkbox" checked={!!it.must} onChange={(e) => setMochila(mochila.map((x, j) => (j === i ? { ...x, items: x.items.map((y, l) => (l === k ? { ...y, must: e.target.checked } : y)) } : x)))} />Obligatorio</label>
+                          <button type="button" className="rm" onClick={() => setMochila(mochila.map((x, j) => (j === i ? { ...x, items: x.items.filter((_, l) => l !== k) } : x)))}>Quitar</button>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" className="add" onClick={() => setMochila(mochila.map((x, j) => (j === i ? { ...x, items: [...(x.items ?? []), { text: "", must: false }] } : x)))}>+ Agregar item</button>
+                  </div>
                 </div>
               ))}
-              <SmallBtn onClick={() => set("mochila", exp.mochila.map((x, j) => (j === i ? { ...x, items: [...x.items, { text: "", req: "", must: false }] } : x)))}>+ Ítem</SmallBtn>
             </div>
-          </div>
-        ))}
-        <SmallBtn onClick={() => set("mochila", [...exp.mochila, { title: "", items: [{ text: "", req: "", must: false }] }])}>+ Categoría</SmallBtn>
-        <Area label="Nota importante" value={exp.mochilaNote} onChange={(v) => set("mochilaNote", v)} />
-      </Section>
+            <button type="button" className="add" onClick={() => setMochila([...mochila, { title: "", items: [{ text: "", must: false }] }])}>+ Agregar categoría</button>
+          </section>
 
-      {/* PRÁCTICO / FAQ */}
-      <Section title="Capítulo 08 · FAQ & cancelación">
-        <div className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-olive">Políticas de cancelación</span>
-          {exp.cancelacion.map((c, i) => (
-            <div key={i} className="flex gap-2">
-              <input className="flex-1 rounded-lg border border-sand bg-white px-2 py-1.5 text-sm outline-none focus:border-dune" value={c.label} onChange={(e) => set("cancelacion", exp.cancelacion.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
-              <input className="w-32 rounded-lg border border-sand bg-white px-2 py-1.5 text-sm outline-none focus:border-dune" value={c.val} onChange={(e) => set("cancelacion", exp.cancelacion.map((x, j) => (j === i ? { ...x, val: e.target.value } : x)))} />
+          {/* 06 · ALIADOS */}
+          <section className="card" id="s6">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Aliados</span><h2>Aliados / Quién te guía <span className="optflag">opcional</span></h2></div>
+            <div className="rep-items">
+              {aliados.map((a, i) => (
+                <div key={i} className="rep-card">
+                  <button type="button" className="rm" onClick={() => setAliados(aliados.filter((_, j) => j !== i))}>Quitar</button>
+                  <div className="row c2">
+                    <Field label="Nombre"><input type="text" value={a.name} placeholder="Nanae Watabe" onChange={(e) => setAliados(aliados.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} /></Field>
+                    <Field label="Rol"><input type="text" value={a.role} placeholder="Micóloga · guía" onChange={(e) => setAliados(aliados.map((x, j) => (j === i ? { ...x, role: e.target.value } : x)))} /></Field>
+                  </div>
+                  <Field label="Texto"><textarea value={a.body} placeholder="Quién es / qué aporta" onChange={(e) => setAliados(aliados.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))} /></Field>
+                  <Field label="Foto"><Uploader value={a.imageUrl ?? ""} onChange={(v) => setAliados(aliados.map((x, j) => (j === i ? { ...x, imageUrl: v } : x)))} /></Field>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-olive">Preguntas frecuentes</span>
-          {exp.faq.map((f, i) => (
-            <div key={i} className="rounded-lg border border-sand bg-white p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold text-dune">Pregunta {i + 1}</span>
-                <SmallBtn onClick={() => set("faq", exp.faq.filter((_, j) => j !== i))}>✕</SmallBtn>
+            <button type="button" className="add" onClick={() => setAliados([...aliados, { name: "", role: "", body: "", peopleLabel: "", people: "", imageUrl: "" }])}>+ Agregar aliado</button>
+          </section>
+
+          {/* 07 · FAQ */}
+          <section className="card" id="s7">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Preguntas frecuentes</span><h2>Preguntas frecuentes <span className="optflag">opcional</span></h2></div>
+            <div className="rep-items">
+              {faq.map((f, i) => (
+                <div key={i} className="rep-card">
+                  <button type="button" className="rm" onClick={() => setFaq(faq.filter((_, j) => j !== i))}>Quitar</button>
+                  <Field label="Pregunta"><input type="text" value={f.q} placeholder="¿…?" onChange={(e) => setFaq(faq.map((x, j) => (j === i ? { ...x, q: e.target.value } : x)))} /></Field>
+                  <Field label="Respuesta"><textarea value={f.a} placeholder="Respuesta" onChange={(e) => setFaq(faq.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)))} /></Field>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setFaq([...faq, { q: "", a: "" }])}>+ Agregar pregunta</button>
+          </section>
+
+          {/* 08 · BLOQUES LIBRES */}
+          <section className="card" id="s8">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Bloques libres</span><h2>Bloques libres extra <span className="optflag">opcional</span></h2><p className="desc">Secciones específicas de esta experiencia (p. ej. meditaciones, la comunidad, &quot;qué vas a encontrar&quot;).</p></div>
+            <div className="rep-items">
+              {bloques.map((b, i) => (
+                <div key={i} className="rep-card">
+                  <button type="button" className="rm" onClick={() => setBloques(bloques.filter((_, j) => j !== i))}>Quitar</button>
+                  <Field label="Título"><input type="text" value={b.title} placeholder="Título del bloque" onChange={(e) => setBloques(bloques.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} /></Field>
+                  <Field label="Texto"><textarea value={b.body} placeholder="Contenido del bloque" onChange={(e) => setBloques(bloques.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))} /></Field>
+                  <Field label="Foto"><Uploader value={b.imageUrl} onChange={(v) => setBloques(bloques.map((x, j) => (j === i ? { ...x, imageUrl: v } : x)))} /></Field>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setBloques([...bloques, { title: "", body: "", imageUrl: "" }])}>+ Agregar bloque</button>
+          </section>
+
+          {/* 09 · PRECIO */}
+          <section className="card" id="s9">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio</h2><p className="desc">El precio por persona y el botón para generar el link de pago.</p></div>
+            <div className="row c3">
+              <Field label="Monto"><input type="number" value={price.amount} placeholder="18560" onChange={(e) => setPrice({ amount: e.target.value })} /></Field>
+              <Field label="Moneda" auto><input type="text" value={price.currency} onChange={(e) => setPrice({ currency: e.target.value })} /></Field>
+              <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm" disabled={stripeBusy} onClick={onGenStripe}>{stripeBusy ? "Generando…" : "Generar link de pago"}</button>
+            {stripeErr ? <p className="err">{stripeErr}</p> : null}
+            {exp.stripeLink ? <Field label="Link de pago"><input type="text" readOnly value={exp.stripeLink} /></Field> : null}
+          </section>
+
+          {/* 10 · FECHAS & CUPO */}
+          <section className="card" id="s10">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Fechas &amp; cupo</span><h2>Fechas &amp; cupo</h2><p className="desc">Las fechas de salida y cuántos lugares hay en cada una. El sitio muestra &quot;Quedan N lugares&quot; y baja el número conforme la gente reserva; cuando se llena, aparece &quot;Agotado&quot;. Deja el cupo vacío para una salida sin tope.</p></div>
+            <div style={{ maxWidth: 220 }}><Field label="Cupo estándar" hint="se usa al agregar salidas"><input type="number" value={cupoEstandar} placeholder="16" onChange={(e) => setCupoEstandar(e.target.value)} /></Field></div>
+            <div className="subhead">Salidas</div>
+            <div className="rep-items">
+              {slots.map((s, i) => (
+                <div key={i} className="rep-card">
+                  <button type="button" className="rm" onClick={() => setSlots(slots.filter((_, j) => j !== i))}>Quitar</button>
+                  <Field label="Etiqueta"><input type="text" value={s.label} placeholder="Jun 12-15" onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></Field>
+                  <div className="row c3">
+                    <Field label="Inicio"><input type="date" value={s.start} onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))} /></Field>
+                    <Field label="Fin"><input type="date" value={s.end} onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))} /></Field>
+                    <Field label="Cupo"><input type="number" value={s.cupo} placeholder="sin tope" onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, cupo: e.target.value } : x)))} /></Field>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setSlots([...slots, { label: "", start: "", end: "", cupo: cupoEstandar }])}>+ Agregar salida</button>
+          </section>
+
+          {/* 11 · REGISTRO & DESLINDE */}
+          <section className="card" id="s11">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Registro &amp; deslinde</span><h2>Registro &amp; deslinde</h2><p className="desc">Es el formulario que cada viajero llena antes del viaje: sus datos, su contacto de emergencia, su información médica y la aceptación del deslinde (la carta de responsabilidad) con su firma. Aquí lo prendes para esta experiencia, subes el documento del deslinde y escribes un resumen de sus puntos. La &quot;versión&quot; déjala en v1; solo súbela si cambias el texto del deslinde.</p></div>
+            <div className="field"><label className="toggle"><input type="checkbox" checked={reg.active} onChange={(e) => setReg({ active: e.target.checked })} /><span className="tk"></span><span className="tlabel">Registro activo</span></label></div>
+            <div className="row c2">
+              <Field label="Versión" auto><input type="text" value={reg.waiverVersion} placeholder="v1" onChange={(e) => setReg({ waiverVersion: e.target.value })} /></Field>
+              <Field label="URL del documento" auto><input type="url" value={reg.waiverDocUrl} placeholder="https://…" onChange={(e) => setReg({ waiverDocUrl: e.target.value })} /></Field>
+            </div>
+            <div className="subhead">Cláusulas-resumen <span className="chip-auto">auto</span></div>
+            <div className="rep-items">
+              {clausulas.map((c, i) => (
+                <div key={i} className="rep-row">
+                  <textarea className="grow" placeholder="Resumen de la cláusula" value={c} onChange={(e) => setReg({ waiverClauses: clausulas.map((x, j) => (j === i ? e.target.value : x)) })} />
+                  <button type="button" className="rm" onClick={() => setReg({ waiverClauses: clausulas.filter((_, j) => j !== i) })}>Quitar</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setReg({ waiverClauses: [...clausulas, ""] })}>+ Agregar cláusula</button>
+
+            <details className="preview">
+              <summary><span className="pv-l"><span className="pv-tag">Vista previa</span> Así lo verá el viajero</span><span className="chev">▾</span></summary>
+              <div className="pv-body">
+                <p className="pv-ro">Vista de solo lectura — el formulario que cada viajero llena antes del viaje.</p>
+                <PrevBlock t="1 · Datos personales" fields={["Nombre completo", "Fecha de nacimiento", "Ciudad", "Correo", "WhatsApp", "Elegir fecha de salida"]} />
+                <PrevBlock t="2 · Perfil médico" fields={["Tipo de sangre", "Nivel de nado / condición física", "Padecimientos actuales", "Medicamentos de uso periódico", "Alergias", "Restricciones alimentarias"]} />
+                <PrevBlock t="3 · Contacto de emergencia" fields={["Nombre", "Parentesco", "Teléfono"]} />
+                <PrevBlock t="4 · Acompañantes menores (opcional)" fields={["Nombre", "Edad", "Parentesco"]} />
+                <PrevBlock t="5 · Para tu seguro" fields={["Sexo", "Nacionalidad", "CURP", "Pasaporte / INE", "Ocupación", "Beneficiario — Nombre", "Beneficiario — Parentesco", "Beneficiario — Teléfono"]} />
+                <div className="cv-block">
+                  <div className="cvh">6 · El deslinde</div>
+                  <div className="cv-list">
+                    {clausulas.filter((c) => c.trim()).length ? clausulas.filter((c) => c.trim()).map((c, i) => <div key={i} className="ci">{c}</div>) : <div className="cv-empty">Aún sin cláusulas — agrégalas arriba.</div>}
+                  </div>
+                  {["He leído y acepto el deslinde", "Acepto el aviso de privacidad", "Autorizo uso de imagen (opcional)", "Quiero recibir noticias (opcional)"].map((c) => <div key={c} className="cv-check"><span className="bx"></span>{c}</div>)}
+                </div>
+                <PrevBlock t="7 · Tu firma" fields={["Escribe tu nombre completo como firma"]} />
               </div>
-              <Field label="Pregunta" value={f.q} onChange={(v) => set("faq", exp.faq.map((x, j) => (j === i ? { ...x, q: v } : x)))} />
-              <Area label="Respuesta" value={f.a} onChange={(v) => set("faq", exp.faq.map((x, j) => (j === i ? { ...x, a: v } : x)))} />
+            </details>
+          </section>
+
+          {/* 12 · ENCUESTA */}
+          <section className="card" id="s12">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Encuesta de satisfacción</span><h2>Encuesta de satisfacción</h2><p className="desc">La encuesta que se manda a los viajeros después del viaje, por correo y sola, más o menos un día después de que termina cada salida. Aquí solo eliges si se manda, qué partes del viaje quieres que califiquen, si incluyes la pregunta de &quot;¿qué tan probable es que nos recomiendes?&quot; y el texto que invita a dejar un testimonio.</p></div>
+            <div className="field"><label className="toggle"><input type="checkbox" checked={fb.active} onChange={(e) => setFb({ active: e.target.checked })} /><span className="tk"></span><span className="tlabel">Encuesta activa</span></label></div>
+            <div className="row c2">
+              <Field label="Versión" auto><input type="text" value={fb.version} placeholder="v1" onChange={(e) => setFb({ version: e.target.value })} /></Field>
+              <Field label="Etiqueta de locación"><input type="text" value={fb.locationLabel} placeholder="Ensenada de Muertos" onChange={(e) => setFb({ locationLabel: e.target.value })} /></Field>
             </div>
-          ))}
-          <SmallBtn onClick={() => set("faq", [...exp.faq, { q: "", a: "" }])}>+ Pregunta</SmallBtn>
-        </div>
-      </Section>
+            <div className="field"><label className="toggle"><input type="checkbox" checked={fb.npsEnabled} onChange={(e) => setFb({ npsEnabled: e.target.checked })} /><span className="tk"></span><span className="tlabel">Incluir NPS (0–10)</span></label></div>
+            <div className="subhead">Categorías a calificar <span className="chip-auto">auto</span></div>
+            <div className="rep-items">
+              {cats.map((c, i) => (
+                <div key={i} className="rep-row">
+                  <input type="text" placeholder="Ícono" style={{ maxWidth: 110 }} value={c.icon ?? ""} onChange={(e) => setFb({ sections: cats.map((x, j) => (j === i ? { ...x, icon: e.target.value } : x)) })} />
+                  <input type="text" className="grow" placeholder="Etiqueta — ej. Guías y equipo" value={c.label} onChange={(e) => setFb({ sections: cats.map((x, j) => (j === i ? { ...x, label: e.target.value, key: x.key || slugify(e.target.value) } : x)) })} />
+                  <button type="button" className="rm" onClick={() => setFb({ sections: cats.filter((_, j) => j !== i) })}>Quitar</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setFb({ sections: [...cats, { key: "", label: "", icon: "◆" }] })}>+ Agregar categoría</button>
+            <div style={{ marginTop: 18 }}><Field label="Prompt del testimonio" auto><textarea value={fb.testimonialPrompt ?? ""} placeholder="¿Nos regalas unas palabras?" onChange={(e) => setFb({ testimonialPrompt: e.target.value })} /></Field></div>
 
-      {/* RESERVA */}
-      <Section title="Capítulo 09 · Reserva">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Badge etiqueta" value={exp.datesBadge.label} onChange={(v) => set("datesBadge", { ...exp.datesBadge, label: v })} placeholder="Junio 2026" />
-          <Field label="Badge grande" value={exp.datesBadge.big} onChange={(v) => set("datesBadge", { ...exp.datesBadge, big: v })} placeholder="12–15" />
-          <Field label="Badge resto" value={exp.datesBadge.rest} onChange={(v) => set("datesBadge", { ...exp.datesBadge, rest: v })} placeholder="ó 18–21" />
+            <details className="preview">
+              <summary><span className="pv-l"><span className="pv-tag">Vista previa</span> Así la verá el viajero</span><span className="chev">▾</span></summary>
+              <div className="pv-body">
+                <p className="pv-ro">Vista de solo lectura — lo que se le manda al viajero después del viaje.</p>
+                <div className="cv-block">
+                  <div className="cvh">Paso 1</div>
+                  <div className="cv-q">¿Cómo te fuiste?</div><div className="cv-stars">★ ★ ★ ★ ★</div>
+                  {fb.npsEnabled ? <><div className="cv-q">¿Qué tan probable es que nos recomiendes a alguien que quieres?</div><div className="cv-nps">{Array.from({ length: 11 }, (_, i) => <span key={i}>{i}</span>)}</div></> : null}
+                </div>
+                <div className="cv-block">
+                  <div className="cvh">Paso 2</div>
+                  <div className="cv-q">{fb.testimonialPrompt || "¿Nos regalas unas palabras?"}</div><div className="cv-input area"></div>
+                  <div className="cv-check"><span className="bx"></span>Permito compartir mi testimonio con mis iniciales</div>
+                  <div className="cv-check"><span className="bx"></span>Permito compartir mis fotos</div>
+                  <div className="cv-note">Si la calificación fue baja, en su lugar se pregunta: &quot;¿Qué nos faltó?&quot;</div>
+                </div>
+                <div className="cv-block">
+                  <div className="cvh">Paso 3 · Califica cada parte</div>
+                  {cats.filter((c) => c.label.trim()).length ? cats.filter((c) => c.label.trim()).map((c, i) => <div key={i} className="cv-cat"><span className="cn">{c.label}</span><span className="cv-stars">★ ★ ★ ★ ★</span></div>) : <div className="cv-empty">Aún sin partes a calificar.</div>}
+                  <div className="cv-q">¿Qué fue lo que más te marcó?</div><div className="cv-input area"></div>
+                  <div className="cv-q">¿Hubo algo que esperabas y no pasó?</div><div className="cv-input area"></div>
+                  <div className="cv-check" style={{ marginTop: 14 }}><span className="bx"></span>¿Te avisamos de la próxima expedición?</div>
+                </div>
+              </div>
+            </details>
+          </section>
         </div>
-        <ImageField label="Foto de fondo" value={exp.reservaImageUrl} onChange={(v) => set("reservaImageUrl", v)} />
-        <Area label="Nota de reserva" value={exp.reservaNote} onChange={(v) => set("reservaNote", v)} />
-        <Area label="Pie de página (footer)" value={exp.footerRight} onChange={(v) => set("footerRight", v)} />
-      </Section>
-
-      {/* ACTIONS */}
-      <div className="sticky bottom-0 -mx-2 flex items-center gap-3 border-t border-sand bg-cream/95 px-2 py-3 backdrop-blur">
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => onSubmit("draft")}
-          className="rounded-lg border border-sand bg-white px-5 py-2.5 text-sm font-semibold text-lagoon hover:border-dune disabled:opacity-50"
-        >
-          {saving ? "Guardando…" : "Guardar borrador"}
-        </button>
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => onSubmit("published")}
-          className="rounded-lg bg-dune px-5 py-2.5 text-sm font-semibold text-white hover:bg-dune-light disabled:opacity-50"
-        >
-          {saving ? "Publicando…" : "Publicar"}
-        </button>
-        {result ? (
-          <span className={`text-sm ${result.ok ? "text-forest" : "text-clay"}`}>
-            {result.ok ? (
-              <>
-                {result.msg}{" "}
-                <a className="underline" href={`/caminante/experiencias/${result.slug}`} target="_blank" rel="noopener">
-                  ver página →
-                </a>
-              </>
-            ) : (
-              result.msg
-            )}
-          </span>
-        ) : null}
       </div>
+
+      <div className="actionbar"><div className="inner">
+        <span className={`status${statusOk ? " ok" : ""}`}>
+          {status}{savedSlug ? <> · <a href={`/caminante/experiencias/${savedSlug}`} target="_blank" rel="noopener" style={{ textDecoration: "underline" }}>ver</a></> : null}
+        </span>
+        <div className="grp">
+          <button className="btn btn-ghost" type="button" disabled={saving} onClick={() => onSubmit("draft")}>{saving ? "Guardando…" : "Guardar borrador"}</button>
+          <button className="btn btn-orange" type="button" disabled={saving} onClick={() => onSubmit("published")}>{saving ? "Publicando…" : "Publicar experiencia"}</button>
+        </div>
+      </div></div>
     </div>
   );
 }

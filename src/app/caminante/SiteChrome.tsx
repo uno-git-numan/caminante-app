@@ -18,6 +18,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/experiencias/") ||
     pathname.startsWith("/caminante/feedback/") ||
     pathname.startsWith("/caminante/registro/") ||
+    pathname.startsWith("/caminante/admin/experiencias") ||
     pathname === "/caminante/calendario"
   );
 }
