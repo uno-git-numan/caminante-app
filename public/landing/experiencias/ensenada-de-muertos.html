@@ -657,7 +657,7 @@ drawer.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>toggleDra
       var cupoEl = card.querySelector('.cupo');
       if(cupoEl){
         if(slot.soldOut || slot.available<=0){ cupoEl.textContent = 'Agotado'; }
-        else { var l = card.querySelector('.lugares'); if(l) l.textContent = slot.available; }
+        else { cupoEl.textContent = slot.available===1 ? 'Queda 1 lugar' : ('Quedan '+slot.available+' lugares'); }
       }
     });
   }catch(e){ /* fallback: queda el texto estático */ }
