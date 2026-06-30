@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureContactLink } from "@/lib/crm/contacts";
@@ -26,6 +27,11 @@ export default async function PerfilPage() {
   const user = await getCurrentUser();
   if (!user) {
     redirect("/caminante/login?next=%2Fcaminante%2Fperfil");
+  }
+
+  // Perfiles separados: el admin NO es viajero. Su "perfil" es el panel admin.
+  if (await isCurrentUserAdmin()) {
+    redirect("/caminante/admin");
   }
 
   // Refuerzo lazy de la liga user↔contact (cubre sesiones previas al deploy)

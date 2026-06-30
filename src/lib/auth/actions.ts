@@ -2,7 +2,9 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { roleForClient } from "@/lib/auth/authorization";
 
 async function getOrigin() {
   // Prefer the real request host so auth works on ANY domain
@@ -22,6 +24,24 @@ async function getOrigin() {
   }
 
   return "http://localhost:3000";
+}
+
+function parseNext(formData: FormData): string {
+  const raw = typeof formData.get("next") === "string" ? String(formData.get("next")) : "/caminante";
+  // Solo rutas internas (el confirm/callback valida origen de todos modos)
+  return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/caminante";
+}
+
+// Destino tras autenticar: si `next` es un destino EXPLÍCITO, se respeta (la página
+// destino guarda por rol si aplica — p.ej. /registro rebota a un admin). Si `next` es
+// el genérico "/caminante", ramificamos por rol: admin → panel admin, caminante → perfil.
+export async function postAuthDestination(
+  supabase: SupabaseClient,
+  next: string,
+): Promise<string> {
+  if (next && next !== "/caminante") return next;
+  const role = await roleForClient(supabase);
+  return role === "admin" ? "/caminante/admin" : "/caminante/perfil";
 }
 
 function parseEmail(formData: FormData) {
@@ -65,6 +85,62 @@ export async function sendMagicLink(formData: FormData) {
   }
 
   redirect(`/caminante/login?sent=1&email=${encodeURIComponent(email)}`);
+}
+
+export async function signInWithPassword(formData: FormData) {
+  const email = parseEmail(formData);
+  const password = typeof formData.get("password") === "string" ? String(formData.get("password")) : "";
+  const next = parseNext(formData);
+
+  if (!email || !password) {
+    redirect(`/caminante/login?error=invalid_credentials&next=${encodeURIComponent(next)}`);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    redirect(`/caminante/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
+  }
+
+  // El cliente ya trae sesión en este mismo request → resolvemos rol con él.
+  redirect(await postAuthDestination(supabase, next));
+}
+
+export async function signUpWithPassword(formData: FormData) {
+  const email = parseEmail(formData);
+  const password = typeof formData.get("password") === "string" ? String(formData.get("password")) : "";
+  const next = parseNext(formData);
+
+  if (!email) {
+    redirect(`/caminante/signup?error=invalid_email&next=${encodeURIComponent(next)}`);
+  }
+  if (password.length < 8) {
+    redirect(`/caminante/signup?error=weak_password&next=${encodeURIComponent(next)}`);
+  }
+
+  const origin = await getOrigin();
+  const supabase = await createSupabaseServerClient();
+
+  // emailRedirectTo = destino final (igual que el magic link): el template de
+  // "Confirm signup" arma el link del confirm con {{ .TokenHash }} y pasa esto como next.
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: `${origin}${next}` },
+  });
+
+  if (error) {
+    redirect(`/caminante/signup?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
+  }
+
+  // Si la confirmación por correo está DESHABILITADA, signUp ya deja sesión → al destino.
+  if (data.session) {
+    redirect(await postAuthDestination(supabase, next));
+  }
+
+  // Confirmación habilitada → hay que verificar el correo antes de entrar.
+  redirect(`/caminante/signup?sent=1&email=${encodeURIComponent(email)}`);
 }
 
 export async function signOut() {

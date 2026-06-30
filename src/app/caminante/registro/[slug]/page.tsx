@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { fetchRegistrationContext, fetchPrefillForUser } from "@/lib/registration/queries";
 import RegistrationForm from "./RegistrationForm";
 
@@ -11,6 +12,14 @@ export default async function RegistroPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  // Perfiles separados: el flujo de compra/reserva es para viajeros (caminantes).
+  // Un admin no "compra" → lo mandamos a su panel. (Para probar el registro, usa una
+  // cuenta de viajero distinta.) Reversible: quita este guard si quieres que el admin
+  // pueda reservar también.
+  if (await isCurrentUserAdmin()) {
+    redirect("/caminante/admin?notice=admin_no_registro");
+  }
   const ctx = await fetchRegistrationContext(slug);
   if (!ctx) notFound();
 
