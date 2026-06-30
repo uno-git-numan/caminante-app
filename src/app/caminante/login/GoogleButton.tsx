@@ -1,38 +1,15 @@
-"use client";
+import { signInWithGoogle } from "@/lib/auth/actions";
 
-import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-
-// "Iniciar con Google" — OAuth client-side (PKCE). El verifier se guarda en cookie y
-// el intercambio ocurre en /caminante/auth/callback. Requiere el provider Google
-// habilitado en Supabase (ver doc de setup). Reusable por login y signup.
+// "Continuar con Google" — inicia el OAuth en una server action (signInWithGoogle), que
+// guarda el code_verifier PKCE como cookie del lado servidor; el callback lo lee al hacer
+// exchangeCodeForSession. (Iniciarlo en el browser rompía con "PKCE verifier not found".)
 export default function GoogleButton({ next = "/caminante" }: { next?: string }) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  async function go() {
-    setBusy(true);
-    setErr(null);
-    const supabase = createSupabaseBrowserClient();
-    const redirectTo = `${window.location.origin}/caminante/auth/callback?next=${encodeURIComponent(next)}`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
-    if (error) {
-      setErr(error.message);
-      setBusy(false);
-    }
-    // En éxito el navegador ya está redirigiendo a Google.
-  }
-
   return (
-    <div className="space-y-2">
+    <form action={signInWithGoogle}>
+      <input type="hidden" name="next" value={next} />
       <button
-        type="button"
-        onClick={go}
-        disabled={busy}
-        className="flex w-full items-center justify-center gap-3 rounded-xl border border-sand bg-white px-4 py-3 text-sm font-semibold text-lagoon transition hover:border-dune disabled:opacity-60"
+        type="submit"
+        className="flex w-full items-center justify-center gap-3 rounded-xl border border-sand bg-white px-4 py-3 text-sm font-semibold text-lagoon transition hover:border-dune"
       >
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
           <path
@@ -52,9 +29,8 @@ export default function GoogleButton({ next = "/caminante" }: { next?: string })
             d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
           />
         </svg>
-        {busy ? "Conectando…" : "Continuar con Google"}
+        Continuar con Google
       </button>
-      {err ? <p className="text-xs text-clay">{err}</p> : null}
-    </div>
+    </form>
   );
 }

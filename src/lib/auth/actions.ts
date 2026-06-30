@@ -143,6 +143,29 @@ export async function signUpWithPassword(formData: FormData) {
   redirect(`/caminante/signup?sent=1&email=${encodeURIComponent(email)}`);
 }
 
+export async function signInWithGoogle(formData: FormData) {
+  const next = parseNext(formData);
+  const origin = await getOrigin();
+  const supabase = await createSupabaseServerClient();
+
+  // Iniciamos el OAuth EN EL SERVIDOR: así el code_verifier (PKCE) se guarda como
+  // cookie vía el adaptador SSR, y el callback (también server) lo encuentra al hacer
+  // exchangeCodeForSession. Iniciarlo en el browser lo guardaba donde el server no lo veía
+  // ("PKCE code verifier not found in storage").
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${origin}/caminante/auth/callback?next=${encodeURIComponent(next)}` },
+  });
+
+  if (error || !data?.url) {
+    redirect(
+      `/caminante/login?error=${encodeURIComponent(error?.message ?? "oauth_error")}&next=${encodeURIComponent(next)}`,
+    );
+  }
+
+  redirect(data.url);
+}
+
 export async function signOut() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
