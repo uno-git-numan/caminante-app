@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { finalizeSucceededPaymentIntent } from "@/lib/payments/finalize";
 import { finalizeReservationCheckout } from "@/lib/payments/finalize-reservation";
+import { finalizeSelfServeCheckout } from "@/lib/payments/finalize-selfserve";
 import { getStripeServerClient } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
@@ -32,8 +33,14 @@ export async function POST(request: Request) {
 
   try {
     if (event.type === "checkout.session.completed") {
-      // Cobro por-persona vía Stripe Payment Link (esquema 0007: reservations/payments).
-      await finalizeReservationCheckout(event.data.object as Stripe.Checkout.Session);
+      const session = event.data.object as Stripe.Checkout.Session;
+      // (1) Cobro por WhatsApp: reserva YA creada por admin (metadata.reservation_id).
+      const res = await finalizeReservationCheckout(session);
+      // (2) Pago directo en web (self-serve): NO hay reserva previa (metadata.self_serve).
+      //     Crea contacto + reserva PAGADA + pago, atribuida al operador.
+      if (!res.handled) {
+        await finalizeSelfServeCheckout(session);
+      }
     } else if (event.type === "payment_intent.succeeded") {
       // Camino marketplace DORMIDO (trips/bookings): solo corre si el intent trae trip_id.
       // Los PaymentIntents de los Payment Links no lo traen → se ignoran aquí (su pago se
