@@ -37,7 +37,29 @@ export default function ExperienceTemplate({ experience: raw }: { experience: Ex
   // Fallback legacy (las experiencias nuevas son páginas estáticas). El contenido
   // rico es opcional → rellenamos con defaults para que la plantilla data-driven
   // NUNCA truene si faltan campos; las secciones sin datos quedan vacías, no rompen.
-  const e: Experience = { ...emptyExperience(), ...raw };
+  // emptyExperience() rellena TODOS los arrays/objetos de contenido, así que tras el
+  // merge están presentes aunque en el tipo sean opcionales → los aseguramos para que
+  // el template (que hace .map directo) tipe sin guards por línea.
+  const e = { ...emptyExperience(), ...raw } as Experience &
+    Required<
+      Pick<
+        Experience,
+        | "heroMeta"
+        | "context"
+        | "lenses"
+        | "vivir"
+        | "aliados"
+        | "itinerario"
+        | "impactoBody"
+        | "incluye"
+        | "noIncluye"
+        | "mochila"
+        | "cancelacion"
+        | "faq"
+        | "metaNote"
+        | "datesBadge"
+      >
+    >;
   const wa = `https://wa.me/${e.whatsapp}`;
   const mailto = `mailto:${e.email}`;
 

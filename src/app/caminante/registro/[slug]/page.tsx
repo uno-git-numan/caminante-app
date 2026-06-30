@@ -17,7 +17,7 @@ export default async function RegistroPage({
   const { experience, slots } = ctx;
   const title = `${experience.title} ${experience.titleAccent}`.trim();
   const datesBadge = experience.datesBadge?.big
-    ? `${experience.datesBadge.big} ${experience.datesBadge.rest || ""}`.trim()
+    ? `${experience.datesBadge.big} ${experience.datesBadge?.rest || ""}`.trim()
     : experience.cardPloc || "";
 
   // Estado (d): hay salidas en BD pero ninguna con lugares. Una salida sin tope

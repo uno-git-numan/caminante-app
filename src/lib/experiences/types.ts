@@ -70,7 +70,7 @@ export type Experience = {
   subtitle: string;
   heroImageUrl: string;
   heroImageAlt?: string;
-  heroMeta: HeroMeta[];
+  heroMeta?: HeroMeta[];
 
   // contact / commerce
   whatsapp: string; // E.164 digits for wa.me, e.g. "525512020565"
@@ -122,39 +122,39 @@ export type Experience = {
   contextLead: string;
   contextBandImageUrl: string;
   contextBandCaption: string;
-  context: ContextItem[];
+  context?: ContextItem[];
 
   // Cuatro caras
   carasTitle: string; // "Cada experiencia Caminante"
   carasTitleAccent: string; // "tiene cuatro lentes."
   carasIntro: string;
-  lenses: Lens[];
+  lenses?: Lens[];
 
   // CAP 02 — experiencia
   vivirTag: string;
   vivirTitle: string;
   vivirTitleAccent: string;
   vivirLead: string;
-  vivir: VivirItem[];
+  vivir?: VivirItem[];
 
   // CAP 03 — aliados
   aliadosTag: string;
   aliadosTitle: string;
   aliadosTitleAccent: string;
   aliadosLead: string;
-  aliados: Ally[];
+  aliados?: Ally[];
 
   // CAP 04 — itinerario
   itinerarioTag: string;
   itinerarioTitle: string;
   itinerarioLead: string;
-  itinerario: Day[];
+  itinerario?: Day[];
 
   // CAP 05 — impacto
   impactoTag: string;
   impactoTitle: string;
   impactoTitleAccent: string;
-  impactoBody: string[];
+  impactoBody?: string[];
   impactoLabel: string;
   impactoImageUrl: string;
   impactoImageAlt?: string;
@@ -164,15 +164,15 @@ export type Experience = {
   paqueteTitle: string;
   paqueteTitleAccent: string;
   paqueteLead: string;
-  incluye: string[];
-  noIncluye: string[];
+  incluye?: string[];
+  noIncluye?: string[];
 
   // CAP 07 — mochila
   mochilaTag: string;
   mochilaTitle: string;
   mochilaTitleAccent: string;
   mochilaLead: string;
-  mochila: GearCategory[];
+  mochila?: GearCategory[];
   mochilaNote: string;
 
   // CAP 08 — práctico
@@ -180,8 +180,8 @@ export type Experience = {
   practicoTitle: string;
   practicoTitleAccent: string;
   practicoLead: string;
-  cancelacion: CancelRow[];
-  faq: Faq[];
+  cancelacion?: CancelRow[];
+  faq?: Faq[];
 
   // CAP 09 — reserva
   reservaTag: string;
@@ -189,9 +189,9 @@ export type Experience = {
   reservaTitleAccent: string;
   reservaImageUrl: string;
   reservaImageAlt?: string;
-  datesBadge: { label: string; big: string; rest: string };
+  datesBadge?: { label: string; big: string; rest: string };
   reservaNote: string;
-  metaNote: string[];
+  metaNote?: string[];
 
   // footer
   footerBrand: string;
