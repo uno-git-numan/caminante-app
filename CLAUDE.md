@@ -13,7 +13,8 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
 - **En vivo:** `https://caminante.numanhub.com` (subdominio, SSL) → también `caminante-app.vercel.app`.
 - **Constructor "Crear experiencia"** funcional: formulario (Template + 4 caras + fotos + Stripe link) → Supabase → genera página + tarjeta del landing + entrada del calendario.
 - **Experiencias data-driven**: una plantilla dinámica renderiza desde Supabase. Landing y calendario leen de la base.
-- Solo **Ensenada de Muertos** está publicada. Faltan dar de alta: Acatenango, Monarca, Iztaccíhuatl, Pico de Orizaba, Combo Volcanes.
+- Publicadas y EN VIVO (30 jun): **Ensenada de Muertos** (Ocean Safari, BCS — 1 salida Jul 16-19, cupo 16) y **Recolección de Hongos · Xalatlaco** (Edo. Méx., 1 día — salidas Dom 26 jul y Dom 23 ago, cupo 17 c/u). Ambas: página estática bespoke (rewrite) con fechas/cupo EN VIVO desde `/api/availability`, descubribles desde Home (grid #proximos) y desde Destinos (botón "Vivir esta experiencia" → `/caminante/experiencias/<slug>`). `hike-mariposas-monarca` existe en BD (sin página estática). Faltan dar de alta: Acatenango, Iztaccíhuatl, Pico de Orizaba, Combo Volcanes.
+- ⚠️ **El copy de las páginas de experiencia NO debe llevar fechas/conteos/temporada** (regla de Luis): las fechas reales viven SOLO en las date-cards (`data-salida` → `.fecha`/`.cupo`, llenadas desde la BD). El resto del copy es atemporal, sobre la experiencia.
 
 ## Cómo correr (gotchas importantes)
 - El proyecto vive en `~/dev/caminante-app` (se movió de ~/Documents porque iCloud hacía el dev server lentísimo — NO regresarlo a Documents/iCloud).
