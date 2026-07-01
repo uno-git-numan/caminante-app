@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { Experience } from "@/lib/experiences/types";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,20 @@ export default async function ReservaExitoPage({
   const { slug } = await searchParams;
   const safeSlug = slug && /^[a-z0-9-]+$/.test(slug) ? slug : null;
 
+  // Solo ofrecemos "firmar deslinde" si la experiencia tiene el registro activo
+  // (si no, /registro/[slug] daría 404). Las demás cierran por contacto.
+  let deslindeActivo = false;
+  if (safeSlug) {
+    try {
+      const sb = createSupabaseAdminClient();
+      const { data } = await sb.from("experiences").select("data").eq("slug", safeSlug).maybeSingle();
+      const exp = data?.data as Experience | undefined;
+      deslindeActivo = !!exp?.registration?.active;
+    } catch {
+      // si falla la lectura, no ofrecemos el deslinde (evita el 404)
+    }
+  }
+
   return (
     <section className="mx-auto w-full max-w-xl px-6 py-16 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest/15">
@@ -19,12 +35,13 @@ export default async function ReservaExitoPage({
       </div>
       <h1 className="mt-6 text-3xl font-semibold tracking-tight text-lagoon">¡Tu lugar está apartado!</h1>
       <p className="mt-3 text-sm text-olive">
-        Recibimos tu pago. Te enviamos el comprobante a tu correo. Falta un paso para dejar todo
-        listo: firmar tu deslinde y compartir tu perfil de seguridad antes del viaje.
+        {deslindeActivo
+          ? "Recibimos tu pago y te enviamos el comprobante a tu correo. Falta un paso para dejar todo listo: firmar tu deslinde y compartir tu perfil de seguridad antes del viaje."
+          : "Recibimos tu pago y te enviamos el comprobante a tu correo. Te contactamos con los últimos detalles antes de la experiencia."}
       </p>
 
       <div className="mt-8 flex flex-col items-center gap-3">
-        {safeSlug ? (
+        {deslindeActivo && safeSlug ? (
           <Link
             href={`/caminante/registro/${safeSlug}`}
             className="w-full rounded-xl bg-lagoon px-4 py-3 text-sm font-semibold text-cream transition hover:bg-dune sm:w-auto sm:px-8"
