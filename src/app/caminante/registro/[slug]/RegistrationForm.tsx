@@ -331,20 +331,9 @@ export default function RegistrationForm({
               {title} · {success.slotLabel} · Deslinde {success.waiverVersion} firmado el {signedDate}
             </div>
             <p>
-              {success.stripeLink
-                ? "Tu lugar queda confirmado al completar el anticipo de la expedición."
-                : "Recibimos tu expediente. Te contactamos por WhatsApp para confirmar tu anticipo y los detalles de la expedición."}
+              Tu deslinde quedó firmado y tu expediente guardado. ¡Nos vemos en el camino!
             </p>
             <div className="actions">
-              {success.stripeLink ? (
-                <a href={success.stripeLink} target="_blank" rel="noopener noreferrer" className="btn btn-orange btn-arrow">
-                  Aparta tu lugar
-                </a>
-              ) : (
-                <a href="https://wa.me/525512020565" className="btn btn-glass btn-arrow">
-                  Continuar por WhatsApp
-                </a>
-              )}
               <a
                 href={hasSession ? "/caminante/perfil" : "/caminante/login?next=%2Fcaminante%2Fbienvenida"}
                 className="btn btn-glass"

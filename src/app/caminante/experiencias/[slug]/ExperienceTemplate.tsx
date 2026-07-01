@@ -493,17 +493,6 @@ export default function ExperienceTemplate({ experience: raw }: { experience: Ex
               <div className="big">{e.price.amount}</div>
               <div className="cur">{e.price.currency}</div>
               <p className="desc">{e.price.desc}</p>
-              {e.stripeLink ? (
-                <a
-                  href={e.stripeLink}
-                  target="_blank"
-                  rel="noopener"
-                  className="btn btn-primary"
-                  style={{ marginTop: 20, width: "100%", justifyContent: "center" }}
-                >
-                  Reservar tu lugar →
-                </a>
-              ) : null}
               <div className="cancel">
                 <div className="ct">Políticas de cancelación</div>
                 {e.cancelacion.map((c, i) => (

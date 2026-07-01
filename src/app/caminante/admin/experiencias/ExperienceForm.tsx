@@ -10,7 +10,7 @@
 
 import { useMemo, useState } from "react";
 import { emptyExperience, slugify } from "@/lib/experiences/empty";
-import { saveExperience, generateStripeLink } from "@/lib/experiences/actions";
+import { saveExperience } from "@/lib/experiences/actions";
 import { saveExperienceSlots } from "@/lib/experiences/slots-admin";
 import type { Experience, Day, GearCategory, Ally, Faq, FreeBlock } from "@/lib/experiences/types";
 
@@ -278,8 +278,6 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   const [status, setStatus] = useState("Borrador sin guardar");
   const [statusOk, setStatusOk] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!initial);
-  const [stripeBusy, setStripeBusy] = useState(false);
-  const [stripeErr, setStripeErr] = useState<string | null>(null);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
 
   function set<K extends keyof Experience>(k: K, v: Experience[K]) { setExp((p) => ({ ...p, [k]: v })); }
@@ -313,15 +311,6 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
     setAutoSlug(false);
   }
 
-  async function onGenStripe() {
-    setStripeBusy(true); setStripeErr(null);
-    const res = await generateStripeLink({
-      title: exp.cardTitle || exp.subtitle || `${exp.title} ${exp.titleAccent ?? ""}`.trim(),
-      subtitle: exp.subtitle ?? "", amount: price.amount, currency: price.currency,
-    });
-    setStripeBusy(false);
-    if (res.ok) set("stripeLink", res.url); else setStripeErr(res.error);
-  }
 
   async function onSubmit(st: Experience["status"]) {
     setSaving(true);
@@ -595,15 +584,12 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
 
           {/* 09 · PRECIO */}
           <section className="card" id="s9">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio</h2><p className="desc">El precio por persona y el botón para generar el link de pago.</p></div>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio</h2><p className="desc">El precio por persona. El cobro se hace con el checkout de la página (Reservar y pagar).</p></div>
             <div className="row c3">
               <Field label="Monto"><input type="number" value={price.amount} placeholder="18560" onChange={(e) => setPrice({ amount: e.target.value })} /></Field>
               <Field label="Moneda" auto><input type="text" value={price.currency} onChange={(e) => setPrice({ currency: e.target.value })} /></Field>
               <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
             </div>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={stripeBusy} onClick={onGenStripe}>{stripeBusy ? "Generando…" : "Generar link de pago"}</button>
-            {stripeErr ? <p className="err">{stripeErr}</p> : null}
-            {exp.stripeLink ? <Field label="Link de pago"><input type="text" readOnly value={exp.stripeLink} /></Field> : null}
           </section>
 
           {/* 10 · FECHAS & CUPO */}
