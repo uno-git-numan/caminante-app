@@ -53,6 +53,15 @@ export default async function PerfilPage() {
     ? await sb.from("medical_profiles").select("*").eq("contact_id", contact.id).maybeSingle()
     : { data: null };
 
+  // Participantes guardados (hijos/acompañantes) — lectura vía RLS select_own.
+  const { data: dependents } = contact
+    ? await sb
+        .from("dependents")
+        .select("id, full_name, relationship, birth_date")
+        .eq("guardian_contact_id", contact.id)
+        .order("full_name", { ascending: true })
+    : { data: null };
+
   const { data: signatures } = contact
     ? await sb
         .from("registrations")
@@ -88,6 +97,27 @@ export default async function PerfilPage() {
           medical={(medical as Record<string, string | null> | null) || null}
         />
       </div>
+
+      {((dependents as { id: string; full_name: string; relationship: string | null; birth_date: string | null }[] | null) || []).length > 0 ? (
+        <section className="mt-10 rounded-2xl border border-sand bg-white p-5">
+          <h2 className="text-lg font-semibold text-lagoon">Mis participantes guardados</h2>
+          <p className="mt-1 text-xs text-olive">
+            Los perfiles de tus acompañantes (por ejemplo tus hijos). La próxima vez que reserves,
+            los agregas con un toque sin volver a capturarlos.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {(dependents as { id: string; full_name: string; relationship: string | null }[]).map((d) => (
+              <span
+                key={d.id}
+                className="rounded-full border border-sand bg-cream/40 px-4 py-2 text-sm text-lagoon"
+              >
+                {d.full_name}
+                {d.relationship ? <span className="text-olive"> · {d.relationship}</span> : null}
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-10 rounded-2xl border border-sand bg-white p-5">
         <h2 className="text-lg font-semibold text-lagoon">Mis registros firmados</h2>

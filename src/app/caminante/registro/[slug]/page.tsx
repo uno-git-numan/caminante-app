@@ -8,10 +8,17 @@ export const dynamic = "force-dynamic";
 
 export default async function RegistroPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ reserva?: string }>;
 }) {
   const { slug } = await params;
+  const { reserva } = await searchParams;
+  // Reserva YA pagada (self-serve) sobre la que se firma este deslinde. Validamos
+  // formato UUID; la existencia/propiedad la revalida el server action.
+  const reservationId =
+    reserva && /^[0-9a-fA-F-]{36}$/.test(reserva) ? reserva : undefined;
 
   // Perfiles separados: el flujo de compra/reserva es para viajeros (caminantes).
   // Un admin no "compra" → lo mandamos a su panel. (Para probar el registro, usa una
@@ -73,6 +80,7 @@ export default async function RegistroPage({
       hasSession={!!user}
       sessionEmail={user?.email || ""}
       prefill={prefill}
+      reservationId={reservationId}
     />
   );
 }

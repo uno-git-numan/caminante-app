@@ -10,11 +10,57 @@
 import { useMemo, useState } from "react";
 import { submitRegistration } from "@/lib/registration/actions";
 import type {
+  DependentOption,
   MedicalProfileData,
   MinorEntry,
   RegistrationPrefill,
   SlotOption,
 } from "@/lib/registration/types";
+
+// Fila del formulario de participantes (strings controlados; se mapea a
+// ParticipantInput al enviar). Espeja los campos de un dependiente guardado.
+type ParticipantRow = {
+  dependentId?: string;
+  fullName: string;
+  birthDate: string;
+  relationship: string;
+  bloodType: string;
+  fitnessNotes: string;
+  conditions: string;
+  allergies: string;
+  dietaryRestrictions: string;
+  emergencyName: string;
+  emergencyPhone: string;
+};
+
+const emptyParticipant: ParticipantRow = {
+  fullName: "",
+  birthDate: "",
+  relationship: "",
+  bloodType: "",
+  fitnessNotes: "",
+  conditions: "",
+  allergies: "",
+  dietaryRestrictions: "",
+  emergencyName: "",
+  emergencyPhone: "",
+};
+
+function participantFromDependent(d: DependentOption): ParticipantRow {
+  return {
+    dependentId: d.id,
+    fullName: d.fullName,
+    birthDate: d.birthDate,
+    relationship: d.relationship,
+    bloodType: d.bloodType,
+    fitnessNotes: d.fitnessNotes,
+    conditions: d.conditions,
+    allergies: d.allergies,
+    dietaryRestrictions: d.dietaryRestrictions,
+    emergencyName: d.emergencyName,
+    emergencyPhone: d.emergencyPhone,
+  };
+}
 
 // ── Marca: isotipo + wordmark (mismo SVG del landing/destinos) ──────────
 const G1 =
@@ -104,6 +150,17 @@ const CSS = `
 .reg-page .menor .rm:hover{color:var(--orange);}
 .reg-page .addbtn{display:inline-flex;align-items:center;gap:.5em;background:transparent;border:1px solid var(--olive);color:var(--olive);border-radius:999px;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s ease,color .2s ease;}
 .reg-page .addbtn:hover{background:var(--olive);color:#fff;}
+.reg-page .depchips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;}
+.reg-page .depchips-label{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-right:2px;}
+.reg-page .depchip{background:rgba(99,113,84,.08);border:1px solid var(--line);color:var(--olive-d);border-radius:999px;padding:8px 14px;font-family:inherit;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .2s ease,border-color .2s ease,opacity .2s ease;}
+.reg-page .depchip:hover{background:rgba(99,113,84,.16);border-color:var(--olive);}
+.reg-page .depchip:disabled{opacity:.42;cursor:not-allowed;}
+.reg-page .depmore{margin-top:6px;}
+.reg-page .depmore summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--olive);list-style:none;padding:6px 0;user-select:none;}
+.reg-page .depmore summary::-webkit-details-marker{display:none;}
+.reg-page .depmore summary::before{content:"+ ";font-weight:700;}
+.reg-page .depmore[open] summary::before{content:"− ";}
+.reg-page .depmore[open] summary{margin-bottom:8px;}
 .reg-page .legal{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:20px;max-height:248px;overflow:auto;font-size:14px;line-height:1.6;color:#3a3c33;}
 .reg-page .legal li{margin-bottom:10px;list-style:none;display:flex;gap:10px;}
 .reg-page .legal li::before{content:"";margin-top:9px;width:6px;height:6px;flex:0 0 auto;border-radius:999px;background:var(--dune);}
@@ -192,6 +249,7 @@ export default function RegistrationForm({
   hasSession,
   sessionEmail,
   prefill,
+  reservationId,
 }: {
   slug: string;
   title: string;
@@ -202,6 +260,7 @@ export default function RegistrationForm({
   hasSession: boolean;
   sessionEmail: string;
   prefill: RegistrationPrefill | null;
+  reservationId?: string;
 }) {
   const [fullName, setFullName] = useState(prefill?.fullName || "");
   const [birthDate, setBirthDate] = useState(prefill?.birthDate || "");
@@ -210,7 +269,8 @@ export default function RegistrationForm({
   const [city, setCity] = useState(prefill?.city || "");
   const [slotId, setSlotId] = useState("");
   const [m, setM] = useState<MedicalProfileData>(prefill?.medical || emptyMedical);
-  const [minors, setMinors] = useState<MinorEntry[]>([]);
+  const savedDependents = prefill?.dependents || [];
+  const [participants, setParticipants] = useState<ParticipantRow[]>([]);
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [imageConsent, setImageConsent] = useState(false);
@@ -245,6 +305,14 @@ export default function RegistrationForm({
     }
     setSubmitting(true);
     const selected = slots.find((s) => s.id === slotId);
+    const cleanParticipants = participants.filter((p) => p.fullName.trim());
+    // El titular firma por todo el grupo: los participantes quedan también en el
+    // rastro legal `minors` (nombre/parentesco) además de guardarse como perfiles.
+    const derivedMinors: MinorEntry[] = cleanParticipants.map((p) => ({
+      name: p.fullName.trim(),
+      age: "",
+      relationship: p.relationship.trim(),
+    }));
     const res = await submitRegistration({
       slug,
       fullName,
@@ -255,7 +323,9 @@ export default function RegistrationForm({
       slotId: slotId || null,
       slotLabel: selected?.label || datesBadge,
       medical: m,
-      minors,
+      minors: derivedMinors,
+      participants: cleanParticipants,
+      reservationId,
       waiverAccepted,
       privacyConsent,
       imageConsent,
@@ -495,31 +565,95 @@ export default function RegistrationForm({
             </div>
           </section>
 
-          {/* 4 · ACOMPAÑANTES MENORES */}
+          {/* 4 · PARTICIPANTES (opcional) */}
           <section className="fsec">
-            <SecHead num="04" eyebrow="Sección cuatro" title={<>Acompañantes menores <span style={{ color: "var(--ink-soft)", fontWeight: 300 }}>(opcional)</span></>} />
-            <p className="fnote">Si viajas con menores de edad a tu cargo, agrégalos aquí.</p>
-            {minors.map((minor, i) => (
-              <div className="menor" key={i}>
-                <button type="button" className="rm" aria-label="Quitar" onClick={() => setMinors(minors.filter((_, j) => j !== i))}>Quitar</button>
-                <div className="field">
-                  <label>Nombre</label>
-                  <input type="text" placeholder="Nombre completo del menor" value={minor.name} onChange={(e) => setMinors(minors.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
-                </div>
-                <div className="frow two">
-                  <div className="field">
-                    <label>Edad</label>
-                    <input type="number" min={0} max={17} placeholder="Edad" value={minor.age} onChange={(e) => setMinors(minors.map((x, j) => (j === i ? { ...x, age: e.target.value } : x)))} />
-                  </div>
-                  <div className="field">
-                    <label>Parentesco</label>
-                    <input type="text" placeholder="Ej. Hijo, sobrina" value={minor.relationship} onChange={(e) => setMinors(minors.map((x, j) => (j === i ? { ...x, relationship: e.target.value } : x)))} />
-                  </div>
-                </div>
+            <SecHead num="04" eyebrow="Sección cuatro" title={<>Participantes <span style={{ color: "var(--ink-soft)", fontWeight: 300 }}>(opcional)</span></>} />
+            <p className="fnote">
+              ¿Reservaste para más personas (por ejemplo tus hijos)? Agrega su perfil aquí. Es
+              opcional —puedes hacerlo ahora o después— y queda guardado para tus próximas
+              reservas. Tú firmas el deslinde por todo el grupo.
+            </p>
+
+            {savedDependents.length > 0 ? (
+              <div className="depchips">
+                <span className="depchips-label">Guardados</span>
+                {savedDependents.map((d) => {
+                  const added = participants.some((p) => p.dependentId === d.id);
+                  return (
+                    <button
+                      type="button"
+                      key={d.id}
+                      className="depchip"
+                      disabled={added}
+                      onClick={() => setParticipants([...participants, participantFromDependent(d)])}
+                    >
+                      + {d.fullName}
+                    </button>
+                  );
+                })}
               </div>
-            ))}
-            <button type="button" className="addbtn" onClick={() => setMinors([...minors, { name: "", age: "", relationship: "" }])}>
-              + Agregar menor
+            ) : null}
+
+            {participants.map((p, i) => {
+              const setP = (key: keyof ParticipantRow) => (v: string) =>
+                setParticipants(participants.map((x, j) => (j === i ? { ...x, [key]: v } : x)));
+              return (
+                <div className="menor" key={i}>
+                  <button type="button" className="rm" aria-label="Quitar" onClick={() => setParticipants(participants.filter((_, j) => j !== i))}>Quitar</button>
+                  <div className="field">
+                    <label>Nombre</label>
+                    <input type="text" placeholder="Nombre completo" value={p.fullName} onChange={(e) => setP("fullName")(e.target.value)} />
+                  </div>
+                  <div className="frow two">
+                    <div className="field">
+                      <label>Fecha de nacimiento</label>
+                      <input type="date" value={p.birthDate} onChange={(e) => setP("birthDate")(e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Parentesco</label>
+                      <input type="text" placeholder="Hijo, hija, sobrina…" value={p.relationship} onChange={(e) => setP("relationship")(e.target.value)} />
+                    </div>
+                  </div>
+                  <details className="depmore">
+                    <summary>Datos de seguridad (opcional)</summary>
+                    <div className="frow two">
+                      <div className="field">
+                        <label>Tipo de sangre</label>
+                        <input type="text" placeholder="O+, A−…" value={p.bloodType} onChange={(e) => setP("bloodType")(e.target.value)} />
+                      </div>
+                      <div className="field">
+                        <label>Nivel físico / nado</label>
+                        <input type="text" placeholder="Nado intermedio…" value={p.fitnessNotes} onChange={(e) => setP("fitnessNotes")(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="field">
+                      <label>Padecimientos</label>
+                      <textarea placeholder="Condiciones relevantes. Si no aplica, “Ninguno”." value={p.conditions} onChange={(e) => setP("conditions")(e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Alergias</label>
+                      <textarea placeholder="Alimentos, medicamentos… Si no aplica, “Ninguna”." value={p.allergies} onChange={(e) => setP("allergies")(e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Restricciones alimentarias</label>
+                      <textarea placeholder="Vegetariana, sin gluten… Si no aplica, “Ninguna”." value={p.dietaryRestrictions} onChange={(e) => setP("dietaryRestrictions")(e.target.value)} />
+                    </div>
+                    <div className="frow two">
+                      <div className="field">
+                        <label>Contacto de emergencia</label>
+                        <input type="text" placeholder="Nombre" value={p.emergencyName} onChange={(e) => setP("emergencyName")(e.target.value)} />
+                      </div>
+                      <div className="field">
+                        <label>Teléfono de emergencia</label>
+                        <input type="tel" placeholder="+52 55 0000 0000" value={p.emergencyPhone} onChange={(e) => setP("emergencyPhone")(e.target.value)} />
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              );
+            })}
+            <button type="button" className="addbtn" onClick={() => setParticipants([...participants, { ...emptyParticipant }])}>
+              + Agregar participante
             </button>
           </section>
 

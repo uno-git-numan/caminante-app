@@ -2,7 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
-import type { MedicalProfileData, RegistrationPrefill, SlotOption } from "./types";
+import type { DependentOption, MedicalProfileData, RegistrationPrefill, SlotOption } from "./types";
 
 export type RegistrationContext = {
   experienceId: string;
@@ -71,6 +71,39 @@ function mapMedical(row: Record<string, unknown> | null): MedicalProfileData | n
   };
 }
 
+function mapDependent(row: Record<string, unknown>): DependentOption {
+  const s = (k: string) => (row[k] as string | null) || "";
+  return {
+    id: row.id as string,
+    fullName: s("full_name"),
+    birthDate: s("birth_date"),
+    relationship: s("relationship"),
+    bloodType: s("blood_type"),
+    conditions: s("conditions"),
+    medications: s("medications"),
+    allergies: s("allergies"),
+    dietaryRestrictions: s("dietary_restrictions"),
+    fitnessNotes: s("fitness_notes"),
+    emergencyName: s("emergency_name"),
+    emergencyRelationship: s("emergency_relationship"),
+    emergencyPhone: s("emergency_phone"),
+  };
+}
+
+// Participantes guardados por un titular (para reusar en el formulario). Admin
+// client: corre en el server component con el user ya verificado.
+export async function fetchDependentsForContact(
+  contactId: string,
+): Promise<DependentOption[]> {
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb
+    .from("dependents")
+    .select("*")
+    .eq("guardian_contact_id", contactId)
+    .order("full_name", { ascending: true });
+  return (data || []).map((d) => mapDependent(d as Record<string, unknown>));
+}
+
 // Prefill para usuarios con sesión ("confirma y firma"). Admin client porque
 // corre en el server component con el user ya verificado por getCurrentUser().
 export async function fetchPrefillForUser(
@@ -90,6 +123,8 @@ export async function fetchPrefillForUser(
     .eq("contact_id", contact.id)
     .maybeSingle();
 
+  const dependents = await fetchDependentsForContact(contact.id as string);
+
   return {
     fullName: (contact.full_name as string | null) || "",
     birthDate: (contact.birth_date as string | null) || "",
@@ -98,5 +133,6 @@ export async function fetchPrefillForUser(
     city: (contact.city as string | null) || "",
     medical: mapMedical(medical as Record<string, unknown> | null),
     medicalUpdatedAt: (medical?.updated_at as string | null) || null,
+    dependents,
   };
 }

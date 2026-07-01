@@ -6,7 +6,12 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { findOrCreateContact, normalizePhoneMX } from "@/lib/crm/contacts";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
-import type { MedicalProfileData, RegistrationInput, RegistrationResult } from "./types";
+import type {
+  MedicalProfileData,
+  ParticipantInput,
+  RegistrationInput,
+  RegistrationResult,
+} from "./types";
 
 // Sin transacciones multi-tabla en supabase-js: el orden (contact → medical →
 // reservation → registration → sync_log) deja estados intermedios benignos y
@@ -54,10 +59,40 @@ export async function submitRegistration(
   const sb = createSupabaseAdminClient();
   const numPeople = 1 + minors.length;
 
-  // 3 · Salida elegida
+  // 3 · Reserva + salida. Dos caminos:
+  //   (a) reservationId de una reserva YA pagada (self-serve web): atamos el
+  //       deslinde a ESA reserva. El pago ya fijó cupo/num_people → no re-chequear
+  //       disponibilidad ni tocar el status.
+  //   (b) sin reservationId: validamos la salida + disponibilidad en vivo, y más
+  //       abajo reusamos/creamos la reserva.
+  let reservationId: string | null = null;
+  let createdReservation = false;
   let slotId: string | null = null;
   let slotLabel = (input.slotLabel || "").trim();
-  if (input.slotId) {
+
+  if (input.reservationId) {
+    const { data: paid } = await sb
+      .from("reservations")
+      .select("id, slot_id, status")
+      .eq("id", input.reservationId)
+      .eq("experience_id", experienceId)
+      .neq("status", "cancelled")
+      .maybeSingle();
+    if (paid) {
+      reservationId = paid.id as string;
+      slotId = (paid.slot_id as string | null) ?? null;
+      if (slotId) {
+        const { data: slot } = await sb
+          .from("experience_slots")
+          .select("label")
+          .eq("id", slotId)
+          .maybeSingle();
+        slotLabel = (slot?.label as string) || slotLabel;
+      }
+    }
+  }
+
+  if (!reservationId && input.slotId) {
     const { data: slot } = await sb
       .from("experience_slots")
       .select("id, label, status")
@@ -122,10 +157,9 @@ export async function submitRegistration(
     .upsert(medicalRow, { onConflict: "contact_id" });
   if (medError) return { ok: false, error: medError.message };
 
-  // 6 · Reserva: reusar la existente (avanzando, nunca retrocediendo) o crear
-  let reservationId: string | null = null;
-  let createdReservation = false;
-  {
+  // 6 · Reserva: si NO venía de un pago, reusar la existente (avanzando, nunca
+  //     retrocediendo) o crear una nueva 'confirmed'.
+  if (!reservationId) {
     let query = sb
       .from("reservations")
       .select("id, status, slot_id")
@@ -180,6 +214,81 @@ export async function submitRegistration(
     }
   }
 
+  // 6.5 · Participantes (OPCIONAL): perfil reutilizable por acompañante bajo el
+  //       titular. Dedupe por (guardián, nombre) para no duplicar en re-submits.
+  //       Su médico es sensible → vive aquí y en el snapshot, jamás en Notion.
+  const participantsInput: ParticipantInput[] = (input.participants || []).filter(
+    (p) => (p.fullName || "").trim(),
+  );
+  const frozenParticipants: Array<Record<string, unknown>> = [];
+  for (const p of participantsInput) {
+    const depRow = {
+      guardian_contact_id: contact.id,
+      full_name: (p.fullName || "").trim(),
+      birth_date: p.birthDate?.trim() || null,
+      relationship: p.relationship?.trim() || null,
+      blood_type: p.bloodType?.trim() || null,
+      conditions: p.conditions?.trim() || null,
+      medications: p.medications?.trim() || null,
+      allergies: p.allergies?.trim() || null,
+      dietary_restrictions: p.dietaryRestrictions?.trim() || null,
+      fitness_notes: p.fitnessNotes?.trim() || null,
+      emergency_name: p.emergencyName?.trim() || null,
+      emergency_relationship: p.emergencyRelationship?.trim() || null,
+      emergency_phone: p.emergencyPhone?.trim() || null,
+    };
+
+    // Reusar el dependiente indicado (solo si es del titular) o casar por nombre.
+    let dependentId = (p.dependentId || "").trim() || null;
+    if (dependentId) {
+      const { data: owned } = await sb
+        .from("dependents")
+        .select("id")
+        .eq("id", dependentId)
+        .eq("guardian_contact_id", contact.id)
+        .maybeSingle();
+      if (!owned) dependentId = null;
+    }
+    if (!dependentId) {
+      const { data: match } = await sb
+        .from("dependents")
+        .select("id")
+        .eq("guardian_contact_id", contact.id)
+        .ilike("full_name", depRow.full_name)
+        .maybeSingle();
+      if (match) dependentId = match.id as string;
+    }
+
+    if (dependentId) {
+      await sb.from("dependents").update(depRow).eq("id", dependentId);
+    } else {
+      const { data: ins } = await sb
+        .from("dependents")
+        .insert(depRow)
+        .select("id")
+        .single();
+      dependentId = (ins?.id as string) ?? null;
+    }
+
+    frozenParticipants.push({
+      dependent_id: dependentId,
+      full_name: depRow.full_name,
+      birth_date: depRow.birth_date,
+      relationship: depRow.relationship,
+      medical_snapshot: {
+        blood_type: depRow.blood_type,
+        conditions: depRow.conditions,
+        medications: depRow.medications,
+        allergies: depRow.allergies,
+        dietary_restrictions: depRow.dietary_restrictions,
+        fitness_notes: depRow.fitness_notes,
+        emergency_name: depRow.emergency_name,
+        emergency_relationship: depRow.emergency_relationship,
+        emergency_phone: depRow.emergency_phone,
+      },
+    });
+  }
+
   // 7 · Snapshot legal congelado (append-only). Si ya firmó esta versión, el
   //     unique lo detiene → tratamos como éxito idempotente (doble click).
   const signedAt = new Date().toISOString();
@@ -204,6 +313,7 @@ export async function submitRegistration(
     image_consent: !!input.imageConsent,
     newsletter_opt_in: !!input.newsletterOptIn,
     minors,
+    participants: frozenParticipants,
     medical_snapshot: medicalRow,
     identity_snapshot: identitySnapshot,
   });

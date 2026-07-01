@@ -7,6 +7,42 @@ export type MinorEntry = {
   relationship: string;
 };
 
+// Un participante/acompañante que el titular agrega a su reserva (OPCIONAL).
+// Se guarda como un `dependent` reutilizable bajo el contacto del titular y se
+// congela en registrations.participants al firmar. Los campos médicos son opcionales.
+export type ParticipantInput = {
+  dependentId?: string; // si se reusa un dependiente ya guardado
+  fullName: string;
+  birthDate?: string;
+  relationship?: string;
+  bloodType?: string;
+  conditions?: string;
+  medications?: string;
+  allergies?: string;
+  dietaryRestrictions?: string;
+  fitnessNotes?: string;
+  emergencyName?: string;
+  emergencyRelationship?: string;
+  emergencyPhone?: string;
+};
+
+// Un dependiente ya guardado, para prellenar/reusar en el formulario.
+export type DependentOption = {
+  id: string;
+  fullName: string;
+  birthDate: string;
+  relationship: string;
+  bloodType: string;
+  conditions: string;
+  medications: string;
+  allergies: string;
+  dietaryRestrictions: string;
+  fitnessNotes: string;
+  emergencyName: string;
+  emergencyRelationship: string;
+  emergencyPhone: string;
+};
+
 // El perfil "vivo" que la plataforma recuerda (tabla medical_profiles).
 // Incluye el bloque de aseguradora (todo opcional hasta que haya póliza).
 export type MedicalProfileData = {
@@ -45,6 +81,10 @@ export type RegistrationInput = {
   medical: MedicalProfileData;
   // menores (el adulto firma por ellos; los menores NO se dan de alta como contacts)
   minors: MinorEntry[];
+  // participantes/acompañantes con perfil reutilizable (OPCIONAL)
+  participants?: ParticipantInput[];
+  // si el deslinde se firma sobre una reserva YA pagada (self-serve), su id
+  reservationId?: string;
   // legal
   waiverAccepted: boolean;
   privacyConsent: boolean;
@@ -80,4 +120,5 @@ export type RegistrationPrefill = {
   city: string;
   medical: MedicalProfileData | null;
   medicalUpdatedAt: string | null; // para "última actualización: hace X"
+  dependents: DependentOption[]; // participantes guardados para reusar
 };

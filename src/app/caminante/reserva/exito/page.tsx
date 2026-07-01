@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getStripeServerClient } from "@/lib/payments/stripe";
 import type { Experience } from "@/lib/experiences/types";
 
 export const dynamic = "force-dynamic";
@@ -7,9 +8,9 @@ export const dynamic = "force-dynamic";
 export default async function ReservaExitoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ slug?: string }>;
+  searchParams: Promise<{ slug?: string; session_id?: string }>;
 }) {
-  const { slug } = await searchParams;
+  const { slug, session_id: sessionId } = await searchParams;
   const safeSlug = slug && /^[a-z0-9-]+$/.test(slug) ? slug : null;
 
   // Solo ofrecemos "firmar deslinde" si la experiencia tiene el registro activo
@@ -25,6 +26,39 @@ export default async function ReservaExitoPage({
       // si falla la lectura, no ofrecemos el deslinde (evita el 404)
     }
   }
+
+  // Resolver la reserva pagada desde la sesión de Stripe (payment_intent →
+  // payments.provider_ref) para atar el deslinde a ESA reserva. Best-effort: si el
+  // webhook aún no procesa o falla, caemos al link simple (el deslinde igual funciona
+  // reusando la reserva por correo). Nunca rompe la pantalla de éxito.
+  let reservaId: string | null = null;
+  if (deslindeActivo && sessionId && /^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
+    try {
+      const stripe = getStripeServerClient();
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const pi =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : (session.payment_intent?.id ?? null);
+      if (pi) {
+        const sb = createSupabaseAdminClient();
+        const { data: pay } = await sb
+          .from("payments")
+          .select("reservation_id")
+          .eq("provider_ref", pi)
+          .maybeSingle();
+        reservaId = (pay?.reservation_id as string | null) ?? null;
+      }
+    } catch {
+      // sin reserva resuelta → link simple
+    }
+  }
+  const deslindeHref =
+    safeSlug && reservaId
+      ? `/caminante/registro/${safeSlug}?reserva=${reservaId}`
+      : safeSlug
+        ? `/caminante/registro/${safeSlug}`
+        : "/caminante";
 
   return (
     <section className="mx-auto w-full max-w-xl px-6 py-16 text-center">
@@ -43,7 +77,7 @@ export default async function ReservaExitoPage({
       <div className="mt-8 flex flex-col items-center gap-3">
         {deslindeActivo && safeSlug ? (
           <Link
-            href={`/caminante/registro/${safeSlug}`}
+            href={deslindeHref}
             className="w-full rounded-xl bg-lagoon px-4 py-3 text-sm font-semibold text-cream transition hover:bg-dune sm:w-auto sm:px-8"
           >
             Firmar mi deslinde
