@@ -42,12 +42,17 @@ export default async function ReservaExitoPage({
           : (session.payment_intent?.id ?? null);
       if (pi) {
         const sb = createSupabaseAdminClient();
-        const { data: pay } = await sb
-          .from("payments")
-          .select("reservation_id")
-          .eq("provider_ref", pi)
-          .maybeSingle();
-        reservaId = (pay?.reservation_id as string | null) ?? null;
+        // El webhook puede tardar un instante en crear el pago; reintentamos un par
+        // de veces para resolver la reserva y fijar la fecha del deslinde.
+        for (let i = 0; i < 3 && !reservaId; i++) {
+          if (i > 0) await new Promise((r) => setTimeout(r, 1200));
+          const { data: pay } = await sb
+            .from("payments")
+            .select("reservation_id")
+            .eq("provider_ref", pi)
+            .maybeSingle();
+          reservaId = (pay?.reservation_id as string | null) ?? null;
+        }
       }
     } catch {
       // sin reserva resuelta → link simple

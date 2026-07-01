@@ -150,6 +150,9 @@ const CSS = `
 .reg-page .menor .rm:hover{color:var(--orange);}
 .reg-page .addbtn{display:inline-flex;align-items:center;gap:.5em;background:transparent;border:1px solid var(--olive);color:var(--olive);border-radius:999px;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s ease,color .2s ease;}
 .reg-page .addbtn:hover{background:var(--olive);color:#fff;}
+.reg-page .lockedslot{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(99,113,84,.06);}
+.reg-page .lockedslot-label{font-weight:600;font-size:15.5px;color:var(--charcoal);}
+.reg-page .lockedslot-note{font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--olive);white-space:nowrap;}
 .reg-page .depchips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;}
 .reg-page .depchips-label{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-right:2px;}
 .reg-page .depchip{background:rgba(99,113,84,.08);border:1px solid var(--line);color:var(--olive-d);border-radius:999px;padding:8px 14px;font-family:inherit;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .2s ease,border-color .2s ease,opacity .2s ease;}
@@ -250,6 +253,7 @@ export default function RegistrationForm({
   sessionEmail,
   prefill,
   reservationId,
+  lockedSlot,
 }: {
   slug: string;
   title: string;
@@ -261,13 +265,15 @@ export default function RegistrationForm({
   sessionEmail: string;
   prefill: RegistrationPrefill | null;
   reservationId?: string;
+  lockedSlot?: { slotId: string; slotLabel: string } | null;
 }) {
   const [fullName, setFullName] = useState(prefill?.fullName || "");
   const [birthDate, setBirthDate] = useState(prefill?.birthDate || "");
   const [email, setEmail] = useState(prefill?.email || sessionEmail || "");
   const [phone, setPhone] = useState(prefill?.phone || "");
   const [city, setCity] = useState(prefill?.city || "");
-  const [slotId, setSlotId] = useState("");
+  // Si la fecha ya se eligió al reservar, queda FIJA (no se vuelve a preguntar).
+  const [slotId, setSlotId] = useState(lockedSlot?.slotId || "");
   const [m, setM] = useState<MedicalProfileData>(prefill?.medical || emptyMedical);
   const savedDependents = prefill?.dependents || [];
   const [participants, setParticipants] = useState<ParticipantRow[]>([]);
@@ -298,7 +304,7 @@ export default function RegistrationForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (slots.length > 0 && !slotId) {
+    if (!lockedSlot && slots.length > 0 && !slotId) {
       setError("Elige tu salida para continuar.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -321,7 +327,7 @@ export default function RegistrationForm({
       phone,
       city,
       slotId: slotId || null,
-      slotLabel: selected?.label || datesBadge,
+      slotLabel: lockedSlot?.slotLabel || selected?.label || datesBadge,
       medical: m,
       minors: derivedMinors,
       participants: cleanParticipants,
@@ -487,7 +493,15 @@ export default function RegistrationForm({
                 <input id="whatsapp" type="tel" placeholder="+52 55 0000 0000" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </div>
             </div>
-            {slots.length > 0 ? (
+            {lockedSlot ? (
+              <div className="field">
+                <label>Tu salida</label>
+                <div className="lockedslot">
+                  <span className="lockedslot-label">{lockedSlot.slotLabel}</span>
+                  <span className="lockedslot-note">Elegida al reservar</span>
+                </div>
+              </div>
+            ) : slots.length > 0 ? (
               <div className="field">
                 <label>Elige tus fechas</label>
                 <div className="optgrid">

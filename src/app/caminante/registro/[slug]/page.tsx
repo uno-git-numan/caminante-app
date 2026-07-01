@@ -1,7 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { fetchRegistrationContext, fetchPrefillForUser } from "@/lib/registration/queries";
+import {
+  fetchRegistrationContext,
+  fetchPrefillForUser,
+  fetchReservationLock,
+} from "@/lib/registration/queries";
 import RegistrationForm from "./RegistrationForm";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +40,17 @@ export default async function RegistroPage({
     ? `${experience.datesBadge.big} ${experience.datesBadge?.rest || ""}`.trim()
     : experience.cardPloc || "";
 
+  // Si el deslinde viene de una reserva ya hecha, la fecha YA se eligió al reservar:
+  // la fijamos y no la volvemos a preguntar.
+  const lockedSlot = reservationId
+    ? await fetchReservationLock(reservationId, ctx.experienceId)
+    : null;
+
   // Estado (d): hay salidas en BD pero ninguna con lugares. Una salida sin tope
-  // (seatsAvailable === null) JAMÁS está llena.
+  // (seatsAvailable === null) JAMÁS está llena. Si ya reservó una salida (lockedSlot),
+  // no lo bloqueamos aunque el cupo público esté lleno — su lugar ya está apartado.
   const allFull =
+    !lockedSlot &&
     slots.length > 0 &&
     slots.every((s) => s.seatsAvailable !== null && s.seatsAvailable <= 0);
   if (allFull) {
@@ -81,6 +93,7 @@ export default async function RegistroPage({
       sessionEmail={user?.email || ""}
       prefill={prefill}
       reservationId={reservationId}
+      lockedSlot={lockedSlot}
     />
   );
 }

@@ -47,6 +47,32 @@ export async function fetchRegistrationContext(
   return { experienceId: data.id as string, experience, slots };
 }
 
+// Salida FIJA cuando el deslinde se firma sobre una reserva ya hecha: la fecha ya
+// se eligió al reservar, no debe volver a preguntarse. Devuelve la salida de esa
+// reserva (validando que pertenezca a la experiencia y no esté cancelada) para
+// mostrarla bloqueada. null → no se bloquea (flujo normal con selector).
+export async function fetchReservationLock(
+  reservationId: string,
+  experienceId: string,
+): Promise<{ slotId: string; slotLabel: string } | null> {
+  const sb = createSupabaseAdminClient();
+  const { data: r } = await sb
+    .from("reservations")
+    .select("id, slot_id, status, experience_id")
+    .eq("id", reservationId)
+    .maybeSingle();
+  if (!r || r.experience_id !== experienceId) return null;
+  const holding = ["requested", "confirmed", "partially_paid", "paid", "completed"];
+  if (!holding.includes(r.status as string)) return null;
+  if (!r.slot_id) return null;
+  const { data: s } = await sb
+    .from("experience_slots")
+    .select("label")
+    .eq("id", r.slot_id as string)
+    .maybeSingle();
+  return { slotId: r.slot_id as string, slotLabel: (s?.label as string) || "" };
+}
+
 function mapMedical(row: Record<string, unknown> | null): MedicalProfileData | null {
   if (!row) return null;
   const s = (k: string) => (row[k] as string | null) || "";
