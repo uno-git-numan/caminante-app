@@ -1,3 +1,4 @@
+import Link from "next/link";
 import AdminShell from "./ui/AdminShell";
 import {
   fetchAdminOverview,
@@ -52,7 +53,12 @@ function SalidaRow({ s, pasada = false }: { s: UpcomingSlot; pasada?: boolean })
       <tr className="xhead" data-x={xid}>
         <td className="num">{formatDiaMes(s.startsAt)}</td>
         <td>
-          {s.experienceNombre}
+          <Link
+            href={`/caminante/admin/eventos/${s.experienceSlug}`}
+            style={{ fontWeight: 500, textDecoration: "underline" }}
+          >
+            {s.experienceNombre}
+          </Link>
           {s.experienceStatus !== "published" ? (
             <>
               {" "}

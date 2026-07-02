@@ -389,3 +389,186 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
     pasadas,
   };
 }
+
+// ── Eventos (gestión) ────────────────────────────────────────────────────
+
+export type EventoResumen = {
+  id: string;
+  slug: string;
+  nombre: string;
+  status: string; // published | draft
+  operadorNombre: string | null;
+  salidasAbiertas: number;
+  proximaLabel: string | null;
+  ingresos: number; // histórico de la experiencia
+  personas: number; // Σ num_people HOLDING (todas sus salidas)
+};
+
+export type SlotAdmin = {
+  id: string;
+  label: string;
+  startsAt: string | null; // ISO
+  startsAtInput: string; // "YYYY-MM-DDTHH:mm" en CDMX para <input datetime-local>
+  capacity: number | null;
+  priceMxn: number | null;
+  status: string;
+  taken: number;
+  pasada: boolean;
+};
+
+export type OperadorRow = {
+  id: string;
+  name: string;
+  email: string;
+  commissionPct: number | null;
+};
+
+export type EventoDetalle = {
+  id: string;
+  slug: string;
+  nombre: string;
+  status: string;
+  precioBase: string | null; // texto del price.amount
+  operatorId: string | null;
+  registroActivo: boolean;
+  slots: SlotAdmin[];
+  operadores: OperadorRow[];
+};
+
+// "YYYY-MM-DDTHH:mm" en CDMX (para prellenar datetime-local)
+function cdmxInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const fecha = d.toLocaleDateString("en-CA", { timeZone: TZ });
+  const hora = d.toLocaleTimeString("en-GB", {
+    timeZone: TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${fecha}T${hora}`;
+}
+
+export async function fetchEventos(): Promise<EventoResumen[]> {
+  const sb = createSupabaseAdminClient();
+  const [exps, slots, resvs, pays, ops] = (await Promise.all([
+    sb.from("experiences").select("id, slug, status, data, operator_id"),
+    sb.from("experience_slots").select("id, experience_id, label, starts_at, status"),
+    sb.from("reservations").select("id, experience_id, num_people, status"),
+    sb.from("payments").select("reservation_id, amount_mxn, status"),
+    sb.from("operators").select("id, name"),
+  ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
+    (ExpRow & { operator_id: string | null })[],
+    SlotRow[],
+    (ResvRow & { experience_id: string })[],
+    PayRow[],
+    { id: string; name: string }[],
+  ];
+
+  const opName = new Map(ops.map((o) => [o.id, o.name]));
+  const resvExp = new Map(resvs.map((r) => [r.id, r.experience_id]));
+  const hoy = cdmxDay(new Date());
+
+  return exps
+    .map((e) => {
+      const misSlots = slots.filter((s) => s.experience_id === e.id);
+      const abiertas = misSlots.filter(
+        (s) => s.status === "open" && s.starts_at && cdmxDay(s.starts_at) >= hoy,
+      );
+      const proxima = abiertas.sort((a, b) => (a.starts_at || "").localeCompare(b.starts_at || ""))[0];
+      const ingresos = pays
+        .filter((p) => p.status === "paid" && resvExp.get(p.reservation_id) === e.id)
+        .reduce((s, p) => s + Number(p.amount_mxn || 0), 0);
+      const personas = resvs
+        .filter((r) => r.experience_id === e.id && HOLDING_STATUSES.includes(r.status))
+        .reduce((s, r) => s + (r.num_people || 0), 0);
+      return {
+        id: e.id,
+        slug: e.slug,
+        nombre: experienceTitle(e.data, e.slug),
+        status: e.status,
+        operadorNombre: e.operator_id ? opName.get(e.operator_id) || null : null,
+        salidasAbiertas: abiertas.length,
+        proximaLabel: proxima?.label || (proxima ? formatFechaCorta(proxima.starts_at) : null),
+        ingresos,
+        personas,
+      };
+    })
+    .sort((a, b) => (a.status === b.status ? b.ingresos - a.ingresos : a.status === "published" ? -1 : 1));
+}
+
+export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | null> {
+  const sb = createSupabaseAdminClient();
+  const { data: exp } = await sb
+    .from("experiences")
+    .select("id, slug, status, data, operator_id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!exp) return null;
+  const data = (exp.data as Partial<Experience> | null) ?? null;
+
+  const [{ data: slotRows }, { data: ops }] = await Promise.all([
+    sb
+      .from("experience_slots")
+      .select("id, label, starts_at, capacity_total, price_mxn, status")
+      .eq("experience_id", exp.id)
+      .order("starts_at", { ascending: true }),
+    sb.from("operators").select("id, name, email, commission_pct").order("name"),
+  ]);
+
+  const avail = await fetchSlotOccupancy(exp.id as string);
+  const hoy = cdmxDay(new Date());
+
+  return {
+    id: exp.id as string,
+    slug: exp.slug as string,
+    nombre: experienceTitle(data, exp.slug as string),
+    status: exp.status as string,
+    precioBase: data?.price?.amount || null,
+    operatorId: (exp.operator_id as string | null) ?? null,
+    registroActivo: !!data?.registration?.active,
+    slots: ((slotRows || []) as {
+      id: string;
+      label: string | null;
+      starts_at: string | null;
+      capacity_total: number | null;
+      price_mxn: number | null;
+      status: string;
+    }[]).map((s) => ({
+      id: s.id,
+      label: s.label || "",
+      startsAt: s.starts_at,
+      startsAtInput: cdmxInput(s.starts_at),
+      capacity: s.capacity_total,
+      priceMxn: s.price_mxn != null ? Number(s.price_mxn) : null,
+      status: s.status,
+      taken: avail.get(s.id) || 0,
+      pasada: !!s.starts_at && cdmxDay(s.starts_at) < hoy,
+    })),
+    operadores: ((ops || []) as {
+      id: string;
+      name: string;
+      email: string;
+      commission_pct: number | null;
+    }[]).map((o) => ({
+      id: o.id,
+      name: o.name,
+      email: o.email,
+      commissionPct: o.commission_pct != null ? Number(o.commission_pct) : null,
+    })),
+  };
+}
+
+// Ocupación (Σ num_people HOLDING) por slot de una experiencia.
+async function fetchSlotOccupancy(experienceId: string): Promise<Map<string, number>> {
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb
+    .from("reservations")
+    .select("slot_id, num_people, status")
+    .eq("experience_id", experienceId)
+    .in("status", HOLDING_STATUSES);
+  const m = new Map<string, number>();
+  for (const r of (data || []) as { slot_id: string | null; num_people: number }[]) {
+    if (r.slot_id) m.set(r.slot_id, (m.get(r.slot_id) || 0) + (r.num_people || 0));
+  }
+  return m;
+}

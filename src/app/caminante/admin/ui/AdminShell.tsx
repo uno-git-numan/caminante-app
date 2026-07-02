@@ -39,7 +39,7 @@ export type AdminSection =
 // Al lanzar cada fase, se cambia soon→href. No enlaza el marketplace dormido.
 const items: { key: AdminSection; label: string; href?: string; soon?: boolean }[] = [
   { key: "panorama", label: "Panorama", href: "/caminante/admin" },
-  { key: "eventos", label: "Eventos", soon: true },
+  { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
   { key: "reservas", label: "Reservas", soon: true },
   { key: "personas", label: "Personas", soon: true },
   { key: "dinero", label: "Dinero", soon: true },

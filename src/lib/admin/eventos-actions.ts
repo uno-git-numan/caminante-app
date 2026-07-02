@@ -12,6 +12,7 @@
 // Cada write revalida las rutas del admin afectadas.
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
@@ -255,4 +256,99 @@ export async function setExperienceStatus(input: {
   revalidateAdmin(input.slug);
   revalidatePath(`/caminante/experiencias/${input.slug}`);
   return OK;
+}
+
+// ── Wrappers de <form action> (FormData → acción → redirect con feedback) ──
+// El feedback viaja como ?ok= / ?error= en la URL del evento (la página lo pinta).
+
+function str(fd: FormData, k: string): string {
+  const v = fd.get(k);
+  return typeof v === "string" ? v.trim() : "";
+}
+// "" → null (sin tope / precio base); número inválido → NaN (lo cacha la guarda)
+function numOrNull(fd: FormData, k: string): number | null {
+  const s = str(fd, k);
+  return s === "" ? null : Number(s.replace(/[^0-9.]/g, ""));
+}
+// datetime-local no trae zona: se fija CDMX explícito (UTC-6 fijo, sin DST desde 2022)
+function isoCdmx(fd: FormData, k: string): string {
+  const s = str(fd, k);
+  return s ? `${s}:00-06:00`.replace(/:00:00-06:00$/, ":00-06:00") : "";
+}
+function volver(slug: string, r: AdminActionResult, okMsg: string): never {
+  const q = r.ok ? `ok=${encodeURIComponent(okMsg)}` : `error=${encodeURIComponent(r.error)}`;
+  redirect(`/caminante/admin/eventos/${slug}?${q}`);
+}
+
+export async function createSlotAction(fd: FormData): Promise<void> {
+  const slug = str(fd, "slug");
+  const r = await createSlot({
+    experienceId: str(fd, "experienceId"),
+    slug,
+    label: str(fd, "label"),
+    startsAt: isoCdmx(fd, "startsAt"),
+    endsAt: isoCdmx(fd, "endsAt") || null,
+    capacityTotal: numOrNull(fd, "capacityTotal"),
+    priceMxn: numOrNull(fd, "priceMxn"),
+  });
+  volver(slug, r, "Salida creada.");
+}
+
+export async function updateSlotAction(fd: FormData): Promise<void> {
+  const slug = str(fd, "slug");
+  const r = await updateSlot({
+    slotId: str(fd, "slotId"),
+    slug,
+    label: str(fd, "label"),
+    startsAt: isoCdmx(fd, "startsAt"),
+    capacityTotal: numOrNull(fd, "capacityTotal"),
+    priceMxn: numOrNull(fd, "priceMxn"),
+  });
+  volver(slug, r, "Salida actualizada.");
+}
+
+export async function setSlotStatusAction(fd: FormData): Promise<void> {
+  const slug = str(fd, "slug");
+  const status = str(fd, "status") as "open" | "closed" | "cancelled";
+  const r = await updateSlot({ slotId: str(fd, "slotId"), slug, status });
+  volver(slug, r, status === "open" ? "Salida reabierta." : "Salida cerrada.");
+}
+
+export async function assignOperatorAction(fd: FormData): Promise<void> {
+  const slug = str(fd, "slug");
+  const operatorId = str(fd, "operatorId") || null;
+  let r: AdminActionResult = await assignOperator({
+    experienceId: str(fd, "experienceId"),
+    slug,
+    operatorId,
+  });
+  // comisión del operador (opcional, viaja junto)
+  const pct = numOrNull(fd, "commissionPct");
+  if (r.ok && operatorId) {
+    r = await updateOperatorCommission({ operatorId, commissionPct: pct });
+  }
+  volver(slug, r, "Operador guardado.");
+}
+
+export async function createOperatorAction(fd: FormData): Promise<void> {
+  const slug = str(fd, "slug");
+  const r = await createOperator({
+    name: str(fd, "name"),
+    email: str(fd, "email"),
+    commissionPct: numOrNull(fd, "commissionPct"),
+  });
+  if (r.ok && r.operatorId && str(fd, "experienceId")) {
+    await assignOperator({ experienceId: str(fd, "experienceId"), slug, operatorId: r.operatorId });
+  }
+  volver(slug, r, "Operador creado y asignado.");
+}
+
+export async function setExperienceStatusAction(fd: FormData): Promise<void> {
+  const slug = str(fd, "slug");
+  const r = await setExperienceStatus({
+    experienceId: str(fd, "experienceId"),
+    slug,
+    status: str(fd, "status") as "draft" | "published",
+  });
+  volver(slug, r, str(fd, "status") === "published" ? "Experiencia publicada." : "Pasada a borrador.");
 }
