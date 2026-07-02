@@ -42,7 +42,7 @@ function Stars({ value }: { value: number | null }) {
   );
 }
 
-function SalidaRow({ s }: { s: UpcomingSlot }) {
+function SalidaRow({ s, pasada = false }: { s: UpcomingSlot; pasada?: boolean }) {
   const xid = `sx-${s.slotId.slice(0, 8)}`;
   const llena = s.available !== null && s.available <= 0;
   const d = s.detail;
@@ -62,7 +62,7 @@ function SalidaRow({ s }: { s: UpcomingSlot }) {
         </td>
         <td className="mut">
           {s.label}
-          {s.slotStatus !== "open" ? (
+          {!pasada && s.slotStatus !== "open" ? (
             <>
               {" "}
               <span className="chip c-canc">Cerrada</span>
@@ -70,7 +70,13 @@ function SalidaRow({ s }: { s: UpcomingSlot }) {
           ) : null}
         </td>
         <td>
-          {s.capacity === null ? (
+          {pasada ? (
+            <span>
+              {s.taken}
+              {s.capacity !== null ? `/${s.capacity}` : ""}{" "}
+              <span className="mut">asistieron</span>
+            </span>
+          ) : s.capacity === null ? (
             <span className="mut">{s.taken} · sin tope</span>
           ) : llena ? (
             <>
@@ -181,7 +187,7 @@ export default async function AdminHomePage({
 }) {
   const { notice } = await searchParams;
   const noticeText = notice ? notices[notice] : null;
-  const { kpis, proximas } = await fetchAdminOverview();
+  const { kpis, proximas, pasadas } = await fetchAdminOverview();
   const sat = kpis.satisfaccion;
 
   const maxExp = Math.max(1, ...kpis.ingresosPorExperiencia.map((e) => e.monto));
@@ -464,6 +470,36 @@ export default async function AdminHomePage({
             </table>
           </div>
         </div>
+
+        {/* Salidas pasadas */}
+        {pasadas.length ? (
+          <div className="card" style={{ marginTop: 24, overflow: "hidden" }}>
+            <div className="pad" style={{ paddingBottom: 6 }}>
+              <span className="subtitle" style={{ margin: 0 }}>
+                Salidas pasadas · toca una fila para el detalle
+              </span>
+            </div>
+            <div className="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th className="num">Fecha</th>
+                    <th>Experiencia</th>
+                    <th>Salida</th>
+                    <th>Asistencia</th>
+                    <th className="right">Ingresos</th>
+                    <th>Deslindes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pasadas.map((s) => (
+                    <SalidaRow key={s.slotId} s={s} pasada />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
       </section>
     </AdminShell>
   );

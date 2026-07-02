@@ -115,7 +115,11 @@ export type OverviewKpis = {
   };
 };
 
-export type AdminOverview = { kpis: OverviewKpis; proximas: UpcomingSlot[] };
+export type AdminOverview = {
+  kpis: OverviewKpis;
+  proximas: UpcomingSlot[];
+  pasadas: UpcomingSlot[]; // salidas ya ocurridas (más reciente primero)
+};
 
 // ── Filas crudas (privadas) ──────────────────────────────────────────────
 
@@ -303,13 +307,10 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
     }
   }
 
-  // Próximas salidas: desde hoy (CDMX), ordenadas por fecha. Incluye drafts —
-  // el admin ve todo; el status de la experiencia sale como badge.
+  // Salidas: próximas (desde hoy CDMX, ascendente) y pasadas (descendente).
+  // Incluye drafts — el admin ve todo; el status de la experiencia sale como badge.
   const hoy = cdmxDay(new Date());
-  const proximas: UpcomingSlot[] = slots
-    .filter((s) => s.starts_at && cdmxDay(s.starts_at) >= hoy && s.status !== "cancelled")
-    .sort((a, b) => (a.starts_at || "").localeCompare(b.starts_at || ""))
-    .map((s) => {
+  const mapSlot = (s: SlotRow): UpcomingSlot => {
       const exp = expById.get(s.experience_id);
       const holding = holdingPorSlot.get(s.id) || [];
       const taken = holding.reduce((n, r) => n + (r.num_people || 0), 0);
@@ -352,7 +353,17 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
         titulares: holding.length,
         detail: { personas, pagos: pagosPorSlot.get(s.id) || [], deudores, cobrado, faltante },
       };
-    });
+  };
+
+  const vivos = slots.filter((s) => s.starts_at && s.status !== "cancelled");
+  const proximas = vivos
+    .filter((s) => cdmxDay(s.starts_at!) >= hoy)
+    .sort((a, b) => (a.starts_at || "").localeCompare(b.starts_at || ""))
+    .map(mapSlot);
+  const pasadas = vivos
+    .filter((s) => cdmxDay(s.starts_at!) < hoy)
+    .sort((a, b) => (b.starts_at || "").localeCompare(a.starts_at || ""))
+    .map(mapSlot);
 
   return {
     kpis: {
@@ -375,5 +386,6 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
       },
     },
     proximas,
+    pasadas,
   };
 }
