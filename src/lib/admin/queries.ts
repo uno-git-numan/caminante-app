@@ -872,14 +872,21 @@ function edadDe(birth: string | null | undefined, ref: string | null): number | 
 }
 
 type Snap = Record<string, string | null | undefined>;
+// Valores tipo "No"/"Nada"/"Ninguna"/"N/A" son ruido para el guía → se omiten.
+function señal(v: string | null | undefined): string {
+  const s = (v ?? "").toString().trim();
+  return /^(no|nada|ningun[ao]s?|n\/?a|-|—|\.)\.?$/i.test(s) ? "" : s;
+}
 function resumenMedico(s: Snap | null | undefined): string {
   if (!s) return "—";
   const partes: string[] = [];
-  if (s.allergies?.toString().trim()) partes.push(`Alergias: ${s.allergies}`);
-  if (s.conditions?.toString().trim()) partes.push(`${s.conditions}`);
-  if (s.dietary_restrictions?.toString().trim()) partes.push(`Dieta: ${s.dietary_restrictions}`);
-  const txt = partes.join(" · ");
-  return txt && !/^(ninguna?|no|n\/a)[.\s]*$/i.test(txt) ? txt : "Ninguna";
+  const alergias = señal(s.allergies);
+  const condiciones = señal(s.conditions);
+  const dieta = señal(s.dietary_restrictions);
+  if (alergias) partes.push(`Alergias: ${alergias}`);
+  if (condiciones) partes.push(condiciones);
+  if (dieta) partes.push(`Dieta: ${dieta}`);
+  return partes.length ? partes.join(" · ") : "Ninguna";
 }
 function emergenciaDe(s: Snap | null | undefined): string {
   if (!s) return "—";
