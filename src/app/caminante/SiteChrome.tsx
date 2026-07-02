@@ -19,6 +19,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/feedback/") ||
     pathname.startsWith("/caminante/registro/") ||
     pathname.startsWith("/caminante/admin/experiencias") ||
+    pathname.startsWith("/caminante/admin/eventos") || // dashboard (AdminShell)
     pathname === "/caminante/admin" || // dashboard: trae su propio shell (AdminShell)
     pathname === "/caminante/calendario"
   );

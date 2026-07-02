@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import AdminShell from "../../ui/AdminShell";
 import { fetchEventoDetalle, formatMXN, formatFechaCorta } from "@/lib/admin/queries";
 import {
-  createSlotAction,
-  updateSlotAction,
   setSlotStatusAction,
   assignOperatorAction,
   createOperatorAction,
@@ -13,6 +11,9 @@ import {
 
 export const dynamic = "force-dynamic";
 
+// El dashboard OPERA el evento (ocupación, cerrar/reabrir, operador, publicar).
+// El contenido y las FECHAS se crean/editan en el formulario de experiencia
+// (+ Experiencia / Editar) — así ninguna experiencia nace vacía.
 export default async function EventoDetallePage({
   params,
   searchParams,
@@ -70,15 +71,19 @@ export default async function EventoDetallePage({
                 <span className="chip c-draft">Borrador</span>
               )}
               <span className="badge">
-                {operadorActual
-                  ? `Operador · ${operadorActual.name}`
-                  : "Sin operador"}
+                {operadorActual ? `Operador · ${operadorActual.name}` : "Sin operador"}
               </span>
               {ev.precioBase ? <span className="badge">Base · ${ev.precioBase}</span> : null}
               {ev.registroActivo ? <span className="badge">Deslinde activo</span> : null}
             </div>
           </div>
           <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
+            <Link
+              href={`/caminante/admin/experiencias/${ev.slug}`}
+              className="btn btn-orange btn-sm"
+            >
+              Editar contenido y fechas
+            </Link>
             <a
               href={`/caminante/experiencias/${ev.slug}`}
               target="_blank"
@@ -96,7 +101,7 @@ export default async function EventoDetallePage({
                 value={ev.status === "published" ? "draft" : "published"}
               />
               <button
-                className={ev.status === "published" ? "btn btn-ghost btn-sm" : "btn btn-orange btn-sm"}
+                className={ev.status === "published" ? "btn btn-ghost btn-sm" : "btn btn-ghost btn-sm"}
                 type="submit"
               >
                 {ev.status === "published" ? "Pasar a borrador" : "Publicar"}
@@ -105,11 +110,11 @@ export default async function EventoDetallePage({
           </div>
         </div>
 
-        {/* Salidas */}
+        {/* Salidas (operación) */}
         <div className="card" style={{ overflow: "hidden" }}>
           <div className="pad" style={{ paddingBottom: 6 }}>
             <span className="subtitle" style={{ margin: 0 }}>
-              Salidas
+              Salidas · las fechas se agregan y editan en el formulario de la experiencia
             </span>
           </div>
           <div className="tbl-wrap">
@@ -122,7 +127,7 @@ export default async function EventoDetallePage({
                   <th className="num right">Precio</th>
                   <th>Ocupación</th>
                   <th>Estado</th>
-                  <th className="right">Acciones</th>
+                  <th className="right">Operación</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,41 +167,6 @@ export default async function EventoDetallePage({
                       )}
                     </td>
                     <td className="right">
-                      <details style={{ display: "inline-block", textAlign: "left" }}>
-                        <summary className="btn btn-ghost btn-sm" style={{ listStyle: "none" }}>
-                          Editar
-                        </summary>
-                        <form
-                          action={updateSlotAction}
-                          className="mini-form glass pad"
-                          style={{ position: "relative", zIndex: 5, marginTop: 8 }}
-                        >
-                          <input type="hidden" name="slotId" value={s.id} />
-                          <input type="hidden" name="slug" value={ev.slug} />
-                          <input name="label" defaultValue={s.label} placeholder="Etiqueta" style={{ minWidth: 120 }} />
-                          <input name="startsAt" type="datetime-local" defaultValue={s.startsAtInput} />
-                          <input
-                            name="capacityTotal"
-                            type="number"
-                            min={0}
-                            defaultValue={s.capacity ?? ""}
-                            placeholder="Cupo (vacío = sin tope)"
-                            style={{ maxWidth: 90 }}
-                          />
-                          <input
-                            name="priceMxn"
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            defaultValue={s.priceMxn ?? ""}
-                            placeholder="$ (vacío = base)"
-                            style={{ maxWidth: 110 }}
-                          />
-                          <button className="btn btn-orange btn-sm" type="submit">
-                            Guardar
-                          </button>
-                        </form>
-                      </details>{" "}
                       {!s.pasada ? (
                         <form action={setSlotStatusAction} style={{ display: "inline-block" }}>
                           <input type="hidden" name="slotId" value={s.id} />
@@ -210,10 +180,14 @@ export default async function EventoDetallePage({
                             className={s.status === "open" ? "btn btn-danger btn-sm" : "btn btn-ghost btn-sm"}
                             type="submit"
                           >
-                            {s.status === "open" ? "Cerrar" : "Reabrir"}
+                            {s.status === "open" ? "Cerrar ventas" : "Reabrir"}
                           </button>
                         </form>
-                      ) : null}
+                      ) : (
+                        <span className="mut" style={{ fontSize: 12 }}>
+                          —
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -221,7 +195,14 @@ export default async function EventoDetallePage({
                   <tr>
                     <td colSpan={7}>
                       <div className="empty" style={{ border: 0 }}>
-                        Sin salidas aún — crea la primera abajo.
+                        Sin salidas aún.{" "}
+                        <Link
+                          href={`/caminante/admin/experiencias/${ev.slug}`}
+                          style={{ textDecoration: "underline" }}
+                        >
+                          Agrégalas en el formulario de la experiencia
+                        </Link>
+                        , junto con su contenido.
                       </div>
                     </td>
                   </tr>
@@ -231,26 +212,8 @@ export default async function EventoDetallePage({
           </div>
         </div>
 
-        {/* Nueva salida + Operador */}
+        {/* Operador y comisión */}
         <div className="grid2" style={{ marginTop: 20 }}>
-          <div className="glass pad">
-            <span className="subtitle">Nueva salida</span>
-            <form action={createSlotAction} className="mini-form" style={{ marginTop: 0 }}>
-              <input type="hidden" name="experienceId" value={ev.id} />
-              <input type="hidden" name="slug" value={ev.slug} />
-              <input name="label" placeholder="Etiqueta — ej. Dom 14 sep" required style={{ flex: 1, minWidth: 150 }} />
-              <input name="startsAt" type="datetime-local" required />
-              <input name="capacityTotal" type="number" min={0} placeholder="Cupo" style={{ maxWidth: 90 }} />
-              <input name="priceMxn" type="number" min={0} step="0.01" placeholder="$ / persona" style={{ maxWidth: 110 }} />
-              <button className="btn btn-orange btn-sm" type="submit">
-                Agregar salida
-              </button>
-            </form>
-            <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
-              Cupo vacío = sin tope. Precio vacío = usa el precio base de la experiencia.
-            </p>
-          </div>
-
           <div className="glass pad">
             <span className="subtitle">Operador y comisión</span>
             <form action={assignOperatorAction} className="mini-form" style={{ marginTop: 0 }}>
@@ -295,6 +258,16 @@ export default async function EventoDetallePage({
             </details>
             <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
               La comisión se congela en cada venta al momento de cobrar (no cambia ventas pasadas).
+            </p>
+          </div>
+
+          <div className="glass pad">
+            <span className="subtitle">Cómo funciona</span>
+            <p className="mut" style={{ fontSize: 13, lineHeight: 1.6 }}>
+              El contenido de la página y las fechas/cupo viven en el formulario de la experiencia
+              (&quot;Editar contenido y fechas&quot;). Aquí operas lo del día a día: monitorear
+              ocupación, cerrar o reabrir ventas de una salida, asignar operador y publicar. Cerrar
+              ventas no borra nada: la salida y sus reservas se conservan.
             </p>
           </div>
         </div>

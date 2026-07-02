@@ -34,55 +34,9 @@ function revalidateAdmin(slug?: string) {
 }
 
 // ── Salidas (experience_slots) ───────────────────────────────────────────
-
-export async function createSlot(input: {
-  experienceId: string;
-  slug: string;
-  label: string;
-  startsAt: string; // ISO
-  endsAt?: string | null;
-  capacityTotal: number | null; // null = sin tope
-  priceMxn: number | null; // null = precio base de la experiencia
-}): Promise<AdminActionResult> {
-  const guard = await requireAdmin();
-  if (guard) return guard;
-
-  const label = (input.label || "").trim();
-  if (!label) return fail("Ponle una etiqueta a la salida (ej. “Dom 26 jul”).");
-  if (!input.startsAt || Number.isNaN(Date.parse(input.startsAt))) {
-    return fail("La fecha de la salida no es válida.");
-  }
-  if (
-    input.capacityTotal !== null &&
-    (!Number.isInteger(input.capacityTotal) || input.capacityTotal < 0)
-  ) {
-    return fail("El cupo debe ser un entero positivo (o vacío para sin tope).");
-  }
-  if (input.priceMxn !== null && input.priceMxn <= 0) {
-    return fail("El precio debe ser mayor a cero (o vacío para usar el precio base).");
-  }
-
-  const sb = createSupabaseAdminClient();
-  const { data: exp } = await sb
-    .from("experiences")
-    .select("id")
-    .eq("id", input.experienceId)
-    .maybeSingle();
-  if (!exp) return fail("La experiencia no existe.");
-
-  const { error } = await sb.from("experience_slots").insert({
-    experience_id: input.experienceId,
-    label,
-    starts_at: input.startsAt,
-    ends_at: input.endsAt || null,
-    capacity_total: input.capacityTotal,
-    price_mxn: input.priceMxn,
-    status: "open",
-  });
-  if (error) return fail(error.message);
-  revalidateAdmin(input.slug);
-  return OK;
-}
+// NOTA: crear/editar fechas vive en el FORMULARIO de experiencia
+// (saveExperienceSlots en src/lib/experiences/slots-admin.ts) — el dashboard
+// solo OPERA: cerrar/reabrir ventas vía updateSlot/setSlotStatusAction.
 
 export async function updateSlot(input: {
   slotId: string;
@@ -270,41 +224,9 @@ function numOrNull(fd: FormData, k: string): number | null {
   const s = str(fd, k);
   return s === "" ? null : Number(s.replace(/[^0-9.]/g, ""));
 }
-// datetime-local no trae zona: se fija CDMX explícito (UTC-6 fijo, sin DST desde 2022)
-function isoCdmx(fd: FormData, k: string): string {
-  const s = str(fd, k);
-  return s ? `${s}:00-06:00`.replace(/:00:00-06:00$/, ":00-06:00") : "";
-}
 function volver(slug: string, r: AdminActionResult, okMsg: string): never {
   const q = r.ok ? `ok=${encodeURIComponent(okMsg)}` : `error=${encodeURIComponent(r.error)}`;
   redirect(`/caminante/admin/eventos/${slug}?${q}`);
-}
-
-export async function createSlotAction(fd: FormData): Promise<void> {
-  const slug = str(fd, "slug");
-  const r = await createSlot({
-    experienceId: str(fd, "experienceId"),
-    slug,
-    label: str(fd, "label"),
-    startsAt: isoCdmx(fd, "startsAt"),
-    endsAt: isoCdmx(fd, "endsAt") || null,
-    capacityTotal: numOrNull(fd, "capacityTotal"),
-    priceMxn: numOrNull(fd, "priceMxn"),
-  });
-  volver(slug, r, "Salida creada.");
-}
-
-export async function updateSlotAction(fd: FormData): Promise<void> {
-  const slug = str(fd, "slug");
-  const r = await updateSlot({
-    slotId: str(fd, "slotId"),
-    slug,
-    label: str(fd, "label"),
-    startsAt: isoCdmx(fd, "startsAt"),
-    capacityTotal: numOrNull(fd, "capacityTotal"),
-    priceMxn: numOrNull(fd, "priceMxn"),
-  });
-  volver(slug, r, "Salida actualizada.");
 }
 
 export async function setSlotStatusAction(fd: FormData): Promise<void> {
