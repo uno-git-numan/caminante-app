@@ -73,7 +73,7 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
 
 ## Dashboard de admin — REGLA DE PRODUCTO: el formulario CREA, el dashboard OPERA
 - **Regla de Luis (1 jul):** contenido + fechas/cupo se crean y editan SOLO en el **formulario de experiencia** — "+ Experiencia" (`/admin/experiencias/nueva`) o el modo **edición** (`/admin/experiencias/[slug]`, precarga contenido y salidas vía `fetchSlotsForAdmin`). El dashboard de eventos **solo opera**: ocupación, cerrar/reabrir ventas, operador/comisión, publicar. **NO agregar mini-forms de creación sueltos al panel** — nada debe nacer vacío. Camino único de fechas: `saveExperienceSlots` (slots-admin.ts; las salidas quitadas del form se CIERRAN, no se borran).
-- F1 Panorama ✅ (+ "Salidas pasadas") · F2 Eventos ✅ · F3 Reservas+Personas+Roster ✅ (pago manual transfer/cash, cancelar solo-status, roster print/CSV con médico filtrado de ruido) · F4 dinero/payout · F5 encuesta — pendientes. "Cobrar por link" por reserva sigue diferido (0014 sin aplicar).
+- F1 Panorama ✅ (+ "Salidas pasadas") · F2 Eventos ✅ · F3 Reservas+Personas+Roster ✅ (pago manual transfer/cash, cancelar solo-status, roster print/CSV) · F5 Encuesta ✅ (/admin/encuesta: ★/NPS/secciones + chips quién respondió/pendiente con link por token para WhatsApp + testimonios aprobar-con-consentimiento) — **F4 Dinero/payout = única pendiente**. "Cobrar por link" por reserva sigue diferido (0014 sin aplicar).
 - Backfill 1 jul (instrucción de Luis): reservas de Ensenada junio → `paid` con pagos `transfer` $16,000/persona ($384,000). Pagos fuera del sistema se capturan así (UI de "pago manual" llega en F3).
 
 ## Dashboard de admin (`/caminante/admin`) — F1 Panorama **EN PRODUCCIÓN (1 jul)**
