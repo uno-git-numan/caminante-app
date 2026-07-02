@@ -74,7 +74,7 @@ export async function finalizeSelfServeCheckout(
   let reservationId: string;
   let q = sb
     .from("reservations")
-    .select("id, status")
+    .select("id, status, num_people, total_amount_mxn")
     .eq("contact_id", contact.id)
     .eq("experience_id", experienceId)
     .neq("status", "cancelled");
@@ -83,13 +83,31 @@ export async function finalizeSelfServeCheckout(
 
   if (existingResv) {
     reservationId = existingResv.id as string;
+    // ¿La reserva ya tiene pagos? Entonces esta compra es ADICIONAL (misma
+    // persona comprando más boletos en otro checkout): se SUMA, no se pisa.
+    // Sin pagos previos (p.ej. reserva 'confirmed' del registro), el checkout
+    // define el conteo — comportamiento original. (Bug real: Abraham, 2 jul —
+    // dos compras de 1 boleto quedaban como num_people=1.)
+    const { data: prevPays } = await sb
+      .from("payments")
+      .select("amount_mxn, status")
+      .eq("reservation_id", reservationId);
+    const yaPagado = ((prevPays || []) as { amount_mxn: number; status: string }[])
+      .filter((p) => p.status === "paid")
+      .reduce((n, p) => n + Number(p.amount_mxn || 0), 0);
+    const esCompraAdicional = yaPagado > 0;
+
     // No retroceder: si ya estaba 'completed', se queda; si no, pasa a 'paid'.
     const nextStatus = (existingResv.status as string) === "completed" ? "completed" : "paid";
     await sb
       .from("reservations")
       .update({
-        num_people: numPeople,
-        total_amount_mxn: amountPaid,
+        num_people: esCompraAdicional
+          ? ((existingResv.num_people as number) || 0) + numPeople
+          : numPeople,
+        total_amount_mxn: esCompraAdicional
+          ? Number(existingResv.total_amount_mxn || 0) + amountPaid
+          : amountPaid,
         status: nextStatus,
         channel: "web",
         operator_id: operatorId,
