@@ -671,54 +671,9 @@ export default function RegistrationForm({
             </button>
           </section>
 
-          {/* 5 · PARA TU SEGURO */}
+          {/* 5 · EL DESLINDE + CONSENTIMIENTOS */}
           <section className="fsec">
-            <SecHead num="05" eyebrow="Sección cinco" title="Para tu seguro" />
-            <p className="fnote">Estos datos sirven para asegurarte durante la expedición. El beneficiario es la persona a quien protege el seguro en caso necesario.</p>
-            <div className="frow two">
-              <div className="field">
-                <label htmlFor="seg-sexo">Sexo</label>
-                <input id="seg-sexo" type="text" placeholder="Como aparece en tu identificación" value={m.gender} onChange={(e) => setMed("gender")(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="seg-nacionalidad">Nacionalidad</label>
-                <input id="seg-nacionalidad" type="text" placeholder="Mexicana" value={m.nationality} onChange={(e) => setMed("nationality")(e.target.value)} />
-              </div>
-            </div>
-            <div className="field">
-              <label htmlFor="seg-curp">CURP</label>
-              <input id="seg-curp" type="text" maxLength={18} placeholder="18 caracteres" style={{ textTransform: "uppercase" }} value={m.curp} onChange={(e) => setMed("curp")(e.target.value)} />
-            </div>
-            <div className="frow two">
-              <div className="field">
-                <label htmlFor="seg-doc">Pasaporte / INE</label>
-                <input id="seg-doc" type="text" placeholder="Número de documento" value={m.governmentId} onChange={(e) => setMed("governmentId")(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="seg-ocupacion">Ocupación</label>
-                <input id="seg-ocupacion" type="text" placeholder="A qué te dedicas" value={m.occupation} onChange={(e) => setMed("occupation")(e.target.value)} />
-              </div>
-            </div>
-            <div className="subhead">Beneficiario</div>
-            <div className="field">
-              <label htmlFor="ben-nombre">Nombre</label>
-              <input id="ben-nombre" type="text" placeholder="Nombre completo" value={m.beneficiaryName} onChange={(e) => setMed("beneficiaryName")(e.target.value)} />
-            </div>
-            <div className="frow two">
-              <div className="field">
-                <label htmlFor="ben-parentesco">Parentesco</label>
-                <input id="ben-parentesco" type="text" placeholder="Pareja, madre…" value={m.beneficiaryRelationship} onChange={(e) => setMed("beneficiaryRelationship")(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="ben-telefono">Teléfono</label>
-                <input id="ben-telefono" type="tel" placeholder="+52 55 0000 0000" value={m.beneficiaryPhone} onChange={(e) => setMed("beneficiaryPhone")(e.target.value)} />
-              </div>
-            </div>
-          </section>
-
-          {/* 6 · EL DESLINDE + CONSENTIMIENTOS */}
-          <section className="fsec">
-            <SecHead num="06" eyebrow="Sección seis" title="El deslinde" />
+            <SecHead num="05" eyebrow="Sección cinco" title="El deslinde" />
             <p className="fnote">La naturaleza es real y la expedición tiene riesgos reales. Lee con calma el resumen de cláusulas; esto es lo que aceptas al firmar.</p>
             <ul className="legal">
               {waiverClauses.map((clause, i) => (
@@ -758,9 +713,9 @@ export default function RegistrationForm({
             </label>
           </section>
 
-          {/* 7 · TU FIRMA */}
+          {/* 6 · TU FIRMA */}
           <section className="fsec">
-            <SecHead num="07" eyebrow="Sección siete" title="Tu firma" />
+            <SecHead num="06" eyebrow="Sección seis" title="Tu firma" />
             <div className="field sign">
               <label htmlFor="firma">Escribe tu nombre completo como firma</label>
               <input id="firma" type="text" placeholder="Tu nombre completo" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} />
