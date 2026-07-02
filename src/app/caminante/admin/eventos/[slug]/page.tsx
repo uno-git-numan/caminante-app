@@ -167,6 +167,9 @@ export default async function EventoDetallePage({
                       )}
                     </td>
                     <td className="right">
+                      <Link href={`/caminante/admin/roster/${s.id}`} className="btn btn-glass btn-sm">
+                        Roster
+                      </Link>{" "}
                       {!s.pasada ? (
                         <form action={setSlotStatusAction} style={{ display: "inline-block" }}>
                           <input type="hidden" name="slotId" value={s.id} />
@@ -183,11 +186,7 @@ export default async function EventoDetallePage({
                             {s.status === "open" ? "Cerrar ventas" : "Reabrir"}
                           </button>
                         </form>
-                      ) : (
-                        <span className="mut" style={{ fontSize: 12 }}>
-                          —
-                        </span>
-                      )}
+                      ) : null}
                     </td>
                   </tr>
                 ))}

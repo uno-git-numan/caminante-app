@@ -18,6 +18,8 @@ const MARK = `<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante"
 // ignora clicks en controles interactivos para no pelearse con forms/links.
 const TOGGLE_JS = `
 document.addEventListener('click',function(e){
+  var pr=e.target.closest('[data-print]');
+  if(pr){window.print();return;}
   if(e.target.closest('button, a, input, select, textarea')) return;
   var h=e.target.closest('[data-x]');
   if(!h) return;
@@ -40,8 +42,8 @@ export type AdminSection =
 const items: { key: AdminSection; label: string; href?: string; soon?: boolean }[] = [
   { key: "panorama", label: "Panorama", href: "/caminante/admin" },
   { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
-  { key: "reservas", label: "Reservas", soon: true },
-  { key: "personas", label: "Personas", soon: true },
+  { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
+  { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
   { key: "dinero", label: "Dinero", soon: true },
   { key: "encuesta", label: "Encuesta", soon: true },
 ];

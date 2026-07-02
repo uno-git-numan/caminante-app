@@ -572,3 +572,414 @@ async function fetchSlotOccupancy(experienceId: string): Promise<Map<string, num
   }
   return m;
 }
+
+// ── Reservas (F3) ────────────────────────────────────────────────────────
+
+export type ParticipanteLinea = { nombre: string; relacion: string };
+
+export type ReservaAdmin = {
+  id: string;
+  contactoNombre: string;
+  contactoEmail: string;
+  contactoPhone: string;
+  contactoCity: string;
+  experienciaNombre: string;
+  experienciaSlug: string;
+  salidaLabel: string;
+  numPeople: number;
+  total: number;
+  pagado: number;
+  debe: number;
+  estado: string;
+  canal: string;
+  creada: string; // ISO
+  deslindeFirmado: boolean;
+  deslindeFecha: string | null;
+  participantes: ParticipanteLinea[];
+  pagos: PagoLinea[];
+};
+
+export type ReservasFiltro = { slug?: string; estado?: string; q?: string };
+
+export async function fetchReservas(f: ReservasFiltro = {}): Promise<{
+  reservas: ReservaAdmin[];
+  experiencias: { slug: string; nombre: string }[];
+}> {
+  const sb = createSupabaseAdminClient();
+  const [resvs, contacts, exps, slots, pays, regs] = (await Promise.all([
+    sb
+      .from("reservations")
+      .select(
+        "id, experience_id, slot_id, contact_id, num_people, total_amount_mxn, status, channel, created_at",
+      )
+      .order("created_at", { ascending: false }),
+    sb.from("contacts").select("id, full_name, email, phone, city"),
+    sb.from("experiences").select("id, slug, data"),
+    sb.from("experience_slots").select("id, label, starts_at"),
+    sb.from("payments").select("reservation_id, contact_id, amount_mxn, status, method, paid_at"),
+    sb.from("registrations").select("reservation_id, signed_at, participants, minors"),
+  ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
+    {
+      id: string;
+      experience_id: string;
+      slot_id: string | null;
+      contact_id: string;
+      num_people: number;
+      total_amount_mxn: number;
+      status: string;
+      channel: string;
+      created_at: string;
+    }[],
+    { id: string; full_name: string | null; email: string | null; phone: string | null; city: string | null }[],
+    ExpRow[],
+    { id: string; label: string | null; starts_at: string | null }[],
+    (PayRow & { method: string | null })[],
+    {
+      reservation_id: string;
+      signed_at: string;
+      participants: { full_name?: string; relationship?: string }[] | null;
+      minors: { name?: string; relationship?: string }[] | null;
+    }[],
+  ];
+
+  const cById = new Map(contacts.map((c) => [c.id, c]));
+  const eById = new Map(exps.map((e) => [e.id, e]));
+  const sById = new Map(slots.map((s) => [s.id, s]));
+  const regByResv = new Map(regs.map((g) => [g.reservation_id, g]));
+  const paysByResv = new Map<string, (PayRow & { method: string | null })[]>();
+  for (const p of pays) {
+    const arr = paysByResv.get(p.reservation_id) || [];
+    arr.push(p);
+    paysByResv.set(p.reservation_id, arr);
+  }
+
+  const experiencias = exps
+    .map((e) => ({ slug: e.slug, nombre: experienceTitle(e.data, e.slug) }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  const q = (f.q || "").trim().toLowerCase();
+
+  const reservas = resvs
+    .map((r): ReservaAdmin => {
+      const c = cById.get(r.contact_id);
+      const e = eById.get(r.experience_id);
+      const s = r.slot_id ? sById.get(r.slot_id) : undefined;
+      const reg = regByResv.get(r.id);
+      const misPagos = (paysByResv.get(r.id) || []).sort((a, b) =>
+        (b.paid_at || "").localeCompare(a.paid_at || ""),
+      );
+      const pagado = misPagos
+        .filter((p) => p.status === "paid")
+        .reduce((n, p) => n + Number(p.amount_mxn || 0), 0);
+      const total = Number(r.total_amount_mxn || 0);
+      const parts: ParticipanteLinea[] = (
+        reg?.participants?.length
+          ? reg.participants.map((p) => ({ nombre: p.full_name || "—", relacion: p.relationship || "" }))
+          : (reg?.minors || []).map((m) => ({ nombre: m.name || "—", relacion: m.relationship || "" }))
+      ).filter((p) => p.nombre !== "—");
+      return {
+        id: r.id,
+        contactoNombre: c?.full_name || "—",
+        contactoEmail: c?.email || "",
+        contactoPhone: c?.phone || "",
+        contactoCity: c?.city || "",
+        experienciaNombre: e ? experienceTitle(e.data, e.slug) : "?",
+        experienciaSlug: e?.slug || "?",
+        salidaLabel: s?.label || (s ? formatFechaCorta(s.starts_at) : "—"),
+        numPeople: r.num_people || 1,
+        total,
+        pagado,
+        debe: Math.max(0, total - pagado),
+        estado: r.status,
+        canal: r.channel,
+        creada: r.created_at,
+        deslindeFirmado: !!reg,
+        deslindeFecha: reg ? formatDiaMes(reg.signed_at) : null,
+        participantes: parts,
+        pagos: misPagos.map((p) => ({
+          nombre:
+            p.status === "refunded"
+              ? "Reembolso"
+              : p.method === "transfer"
+                ? "Transferencia"
+                : p.method === "cash"
+                  ? "Efectivo"
+                  : "Stripe",
+          monto: Number(p.amount_mxn || 0),
+          metodo: p.status === "refunded" ? "reembolsado" : p.method || "—",
+          fecha: formatDiaMes(p.paid_at),
+        })),
+      };
+    })
+    .filter((r) => {
+      if (f.slug && r.experienciaSlug !== f.slug) return false;
+      if (f.estado && r.estado !== f.estado) return false;
+      if (q && !(`${r.contactoNombre} ${r.contactoEmail}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+
+  return { reservas, experiencias };
+}
+
+// ── Personas / CRM (F3) ──────────────────────────────────────────────────
+
+export type PersonaAdmin = {
+  id: string;
+  nombre: string;
+  email: string;
+  phone: string;
+  city: string;
+  etapa: string;
+  tags: string[];
+  notionUrl: string | null;
+  numReservas: number;
+  totalPagado: number;
+  deslindes: number;
+  reservas: { experiencia: string; salida: string; estado: string; monto: number; personas: number }[];
+  dependientes: { nombre: string; relacion: string }[];
+};
+
+export async function fetchPersonas(q = ""): Promise<PersonaAdmin[]> {
+  const sb = createSupabaseAdminClient();
+  const [contacts, resvs, exps, slots, pays, regs, deps] = (await Promise.all([
+    sb
+      .from("contacts")
+      .select("id, full_name, email, phone, city, lifecycle_stage, tags, notion_page_url")
+      .order("created_at", { ascending: false }),
+    sb
+      .from("reservations")
+      .select("id, contact_id, experience_id, slot_id, num_people, total_amount_mxn, status"),
+    sb.from("experiences").select("id, slug, data"),
+    sb.from("experience_slots").select("id, label, starts_at"),
+    sb.from("payments").select("reservation_id, amount_mxn, status"),
+    sb.from("registrations").select("contact_id"),
+    sb.from("dependents").select("guardian_contact_id, full_name, relationship"),
+  ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
+    {
+      id: string;
+      full_name: string | null;
+      email: string | null;
+      phone: string | null;
+      city: string | null;
+      lifecycle_stage: string;
+      tags: unknown;
+      notion_page_url: string | null;
+    }[],
+    {
+      id: string;
+      contact_id: string;
+      experience_id: string;
+      slot_id: string | null;
+      num_people: number;
+      total_amount_mxn: number;
+      status: string;
+    }[],
+    ExpRow[],
+    { id: string; label: string | null; starts_at: string | null }[],
+    PayRow[],
+    { contact_id: string }[],
+    { guardian_contact_id: string; full_name: string; relationship: string | null }[],
+  ];
+
+  const eById = new Map(exps.map((e) => [e.id, e]));
+  const sById = new Map(slots.map((s) => [s.id, s]));
+  const resvByContact = new Map<string, typeof resvs>();
+  for (const r of resvs) {
+    const arr = resvByContact.get(r.contact_id) || [];
+    arr.push(r);
+    resvByContact.set(r.contact_id, arr);
+  }
+  const paidByResv = new Map<string, number>();
+  for (const p of pays) {
+    if (p.status === "paid") {
+      paidByResv.set(p.reservation_id, (paidByResv.get(p.reservation_id) || 0) + Number(p.amount_mxn || 0));
+    }
+  }
+  const regCount = new Map<string, number>();
+  for (const g of regs) regCount.set(g.contact_id, (regCount.get(g.contact_id) || 0) + 1);
+  const depsByGuardian = new Map<string, { nombre: string; relacion: string }[]>();
+  for (const d of deps) {
+    const arr = depsByGuardian.get(d.guardian_contact_id) || [];
+    arr.push({ nombre: d.full_name, relacion: d.relationship || "" });
+    depsByGuardian.set(d.guardian_contact_id, arr);
+  }
+
+  const qq = q.trim().toLowerCase();
+  return contacts
+    .map((c): PersonaAdmin => {
+      const mias = resvByContact.get(c.id) || [];
+      const totalPagado = mias.reduce((n, r) => n + (paidByResv.get(r.id) || 0), 0);
+      return {
+        id: c.id,
+        nombre: c.full_name || "—",
+        email: c.email || "",
+        phone: c.phone || "",
+        city: c.city || "",
+        etapa: c.lifecycle_stage,
+        tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
+        notionUrl: c.notion_page_url,
+        numReservas: mias.length,
+        totalPagado,
+        deslindes: regCount.get(c.id) || 0,
+        reservas: mias.map((r) => {
+          const e = eById.get(r.experience_id);
+          const s = r.slot_id ? sById.get(r.slot_id) : undefined;
+          return {
+            experiencia: e ? experienceTitle(e.data, e.slug) : "?",
+            salida: s?.label || "—",
+            estado: r.status,
+            monto: paidByResv.get(r.id) || 0,
+            personas: r.num_people || 1,
+          };
+        }),
+        dependientes: depsByGuardian.get(c.id) || [],
+      };
+    })
+    .filter((p) => !qq || `${p.nombre} ${p.email} ${p.phone}`.toLowerCase().includes(qq))
+    .sort((a, b) => b.totalPagado - a.totalPagado || b.numReservas - a.numReservas);
+}
+
+// ── Roster por salida (F3) — datos sensibles, SOLO admin ────────────────
+
+export type RosterRow = {
+  nombre: string;
+  edad: number | null;
+  emergencia: string;
+  condiciones: string; // alergias / padecimientos / dieta resumidos
+  deslinde: boolean;
+  fechaFirma: string | null;
+  titular: string | null; // null = es el titular; nombre del titular si es acompañante
+};
+
+export type Roster = {
+  slotId: string;
+  experienciaNombre: string;
+  experienciaSlug: string;
+  salidaLabel: string;
+  startsAt: string | null;
+  rows: RosterRow[];
+};
+
+function edadDe(birth: string | null | undefined, ref: string | null): number | null {
+  if (!birth) return null;
+  const b = new Date(birth);
+  const r = ref ? new Date(ref) : new Date();
+  if (Number.isNaN(b.getTime())) return null;
+  let a = r.getFullYear() - b.getFullYear();
+  const m = r.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && r.getDate() < b.getDate())) a--;
+  return a >= 0 && a < 120 ? a : null;
+}
+
+type Snap = Record<string, string | null | undefined>;
+function resumenMedico(s: Snap | null | undefined): string {
+  if (!s) return "—";
+  const partes: string[] = [];
+  if (s.allergies?.toString().trim()) partes.push(`Alergias: ${s.allergies}`);
+  if (s.conditions?.toString().trim()) partes.push(`${s.conditions}`);
+  if (s.dietary_restrictions?.toString().trim()) partes.push(`Dieta: ${s.dietary_restrictions}`);
+  const txt = partes.join(" · ");
+  return txt && !/^(ninguna?|no|n\/a)[.\s]*$/i.test(txt) ? txt : "Ninguna";
+}
+function emergenciaDe(s: Snap | null | undefined): string {
+  if (!s) return "—";
+  const n = s.emergency_name?.toString().trim();
+  const t = s.emergency_phone?.toString().trim();
+  if (!n && !t) return "—";
+  return [n, t].filter(Boolean).join(" · ");
+}
+
+export async function fetchRoster(slotId: string): Promise<Roster | null> {
+  const sb = createSupabaseAdminClient();
+  const { data: slot } = await sb
+    .from("experience_slots")
+    .select("id, label, starts_at, experience_id")
+    .eq("id", slotId)
+    .maybeSingle();
+  if (!slot) return null;
+  const { data: exp } = await sb
+    .from("experiences")
+    .select("slug, data")
+    .eq("id", slot.experience_id)
+    .maybeSingle();
+
+  const [{ data: resvs }, { data: regs }] = await Promise.all([
+    sb
+      .from("reservations")
+      .select("id, contact_id, num_people, status")
+      .eq("slot_id", slotId)
+      .in("status", HOLDING_STATUSES),
+    sb
+      .from("registrations")
+      .select("reservation_id, contact_id, signed_at, medical_snapshot, identity_snapshot, participants")
+      .order("signed_at", { ascending: true }),
+  ]);
+
+  const regByResv = new Map(
+    ((regs || []) as {
+      reservation_id: string;
+      contact_id: string;
+      signed_at: string;
+      medical_snapshot: Snap | null;
+      identity_snapshot: (Snap & { birth_date?: string; full_name?: string }) | null;
+      participants:
+        | { full_name?: string; birth_date?: string | null; relationship?: string; medical_snapshot?: Snap }[]
+        | null;
+    }[]).map((g) => [g.reservation_id, g]),
+  );
+
+  const contactIds = ((resvs || []) as { contact_id: string }[]).map((r) => r.contact_id);
+  const [{ data: contacts }, { data: medicals }] = await Promise.all([
+    contactIds.length
+      ? sb.from("contacts").select("id, full_name, birth_date").in("id", contactIds)
+      : Promise.resolve({ data: [] as unknown[] } as { data: unknown[] }),
+    contactIds.length
+      ? sb.from("medical_profiles").select("contact_id, allergies, conditions, dietary_restrictions, emergency_name, emergency_phone").in("contact_id", contactIds)
+      : Promise.resolve({ data: [] as unknown[] } as { data: unknown[] }),
+  ]);
+  const cById = new Map(
+    ((contacts || []) as { id: string; full_name: string | null; birth_date: string | null }[]).map((c) => [c.id, c]),
+  );
+  const medByContact = new Map(
+    ((medicals || []) as ({ contact_id: string } & Snap)[]).map((m) => [m.contact_id, m]),
+  );
+
+  const rows: RosterRow[] = [];
+  for (const r of (resvs || []) as { id: string; contact_id: string; num_people: number }[]) {
+    const c = cById.get(r.contact_id);
+    const reg = regByResv.get(r.id);
+    const snap: Snap | null = reg?.medical_snapshot || medByContact.get(r.contact_id) || null;
+    const birth = (reg?.identity_snapshot?.birth_date as string | undefined) || c?.birth_date || null;
+    const titularNombre = c?.full_name || (reg?.identity_snapshot?.full_name as string) || "—";
+    rows.push({
+      nombre: titularNombre,
+      edad: edadDe(birth, slot.starts_at as string | null),
+      emergencia: emergenciaDe(snap),
+      condiciones: resumenMedico(snap),
+      deslinde: !!reg,
+      fechaFirma: reg ? formatDiaMes(reg.signed_at) : null,
+      titular: null,
+    });
+    for (const p of reg?.participants || []) {
+      rows.push({
+        nombre: p.full_name || "—",
+        edad: edadDe(p.birth_date || null, slot.starts_at as string | null),
+        emergencia: emergenciaDe(p.medical_snapshot),
+        condiciones: resumenMedico(p.medical_snapshot),
+        deslinde: true, // el titular firmó por el grupo
+        fechaFirma: reg ? formatDiaMes(reg.signed_at) : null,
+        titular: titularNombre,
+      });
+    }
+  }
+  rows.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  return {
+    slotId,
+    experienciaNombre: experienceTitle((exp?.data as Partial<Experience>) ?? null, exp?.slug || "?"),
+    experienciaSlug: exp?.slug || "?",
+    salidaLabel: (slot.label as string) || formatFechaCorta(slot.starts_at as string | null),
+    startsAt: slot.starts_at as string | null,
+    rows,
+  };
+}
