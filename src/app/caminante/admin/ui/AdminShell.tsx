@@ -45,7 +45,7 @@ const items: { key: AdminSection; label: string; href?: string; soon?: boolean }
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
   { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
   { key: "dinero", label: "Dinero", soon: true },
-  { key: "encuesta", label: "Encuesta", soon: true },
+  { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
 ];
 
 export default function AdminShell({

@@ -990,3 +990,203 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
     rows,
   };
 }
+
+// ── Encuesta de satisfacción (F5) ────────────────────────────────────────
+
+export type EncuestaPersona = {
+  nombre: string;
+  estado: "respondida" | "invitada";
+  fecha: string | null; // respondida: submitted_at · invitada: invited_at
+  salidaLabel: string;
+  token: string; // para armar el link /caminante/feedback/[token]
+  stars: number | null;
+};
+
+export type EncuestaExperiencia = {
+  slug: string;
+  nombre: string;
+  ubicacion: string | null;
+  invitadas: number;
+  respondidas: number;
+  avgStars: number | null;
+  avgNps: number | null;
+  distEstrellas: { etiqueta: string; n: number }[];
+  secciones: { label: string; avg: number; n: number }[];
+  abiertas: { texto: string; stars: number | null; iniciales: string; fecha: string }[];
+  personas: EncuestaPersona[];
+};
+
+export type TestimonioPendiente = {
+  id: string;
+  texto: string;
+  stars: number | null;
+  iniciales: string;
+  experiencia: string;
+  consent: boolean;
+};
+
+export type EncuestaAdmin = {
+  experiencias: EncuestaExperiencia[];
+  testimoniosPendientes: TestimonioPendiente[];
+};
+
+type FbFullRow = {
+  id: string;
+  experience_id: string;
+  reservation_id: string;
+  contact_id: string;
+  location_label: string | null;
+  token: string;
+  status: string;
+  overall_stars: number | null;
+  nps: number | null;
+  section_ratings: Record<string, { stars?: number; comment?: string }> | null;
+  loved_text: string | null;
+  improve_text: string | null;
+  expected_gap_text: string | null;
+  testimonial_text: string | null;
+  testimonial_stars: number | null;
+  testimonial_consent: boolean;
+  publish_status: string;
+  invited_at: string | null;
+  submitted_at: string | null;
+};
+
+export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
+  const sb = createSupabaseAdminClient();
+  const [fbs, exps, contacts, resvs, slots] = (await Promise.all([
+    sb
+      .from("experience_feedback")
+      .select(
+        "id, experience_id, reservation_id, contact_id, location_label, token, status, overall_stars, nps, section_ratings, loved_text, improve_text, expected_gap_text, testimonial_text, testimonial_stars, testimonial_consent, publish_status, invited_at, submitted_at",
+      ),
+    sb.from("experiences").select("id, slug, data"),
+    sb.from("contacts").select("id, full_name, email"),
+    sb.from("reservations").select("id, slot_id"),
+    sb.from("experience_slots").select("id, label"),
+  ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
+    FbFullRow[],
+    ExpRow[],
+    { id: string; full_name: string | null; email: string }[],
+    { id: string; slot_id: string | null }[],
+    { id: string; label: string | null }[],
+  ];
+
+  const eById = new Map(exps.map((e) => [e.id, e]));
+  const cById = new Map(contacts.map((c) => [c.id, c]));
+  const slotByResv = new Map(resvs.map((r) => [r.id, r.slot_id]));
+  const labelBySlot = new Map(slots.map((s) => [s.id, s.label || ""]));
+
+  const porExp = new Map<string, FbFullRow[]>();
+  for (const f of fbs) {
+    const arr = porExp.get(f.experience_id) || [];
+    arr.push(f);
+    porExp.set(f.experience_id, arr);
+  }
+
+  const avg = (xs: number[]) =>
+    xs.length ? Math.round((xs.reduce((a, b) => a + Number(b), 0) / xs.length) * 10) / 10 : null;
+
+  const experiencias: EncuestaExperiencia[] = [];
+  for (const [expId, rows] of porExp) {
+    const exp = eById.get(expId);
+    const data = exp?.data as
+      | (Partial<Experience> & {
+          feedback?: { locationLabel?: string; sections?: { key: string; label: string }[] };
+        })
+      | null;
+    const submitted = rows.filter((f) => f.status === "submitted");
+    const stars = submitted.map((f) => f.overall_stars).filter((v): v is number => v != null);
+    const npss = submitted.map((f) => f.nps).filter((v): v is number => v != null);
+
+    const bucket = (lo: number, hi: number) => stars.filter((s) => s >= lo && s < hi).length;
+    const distEstrellas = [
+      { etiqueta: "5 estrellas", n: bucket(4.75, 5.01) },
+      { etiqueta: "4 estrellas", n: bucket(3.75, 4.75) },
+      { etiqueta: "3 estrellas", n: bucket(2.75, 3.75) },
+      { etiqueta: "2 o menos", n: bucket(0, 2.75) },
+    ];
+
+    // Promedio por sección (labels desde la config de la experiencia)
+    const labelDe = new Map((data?.feedback?.sections || []).map((s) => [s.key, s.label]));
+    const acc = new Map<string, number[]>();
+    for (const f of submitted) {
+      for (const [key, v] of Object.entries(f.section_ratings || {})) {
+        if (v?.stars != null) {
+          const arr = acc.get(key) || [];
+          arr.push(Number(v.stars));
+          acc.set(key, arr);
+        }
+      }
+    }
+    const secciones = [...acc.entries()]
+      .map(([key, xs]) => ({ label: labelDe.get(key) || key, avg: avg(xs) || 0, n: xs.length }))
+      .sort((a, b) => b.avg - a.avg);
+
+    // Respuestas abiertas (lo que más marcó / por mejorar / esperaba y no pasó)
+    const abiertas = submitted
+      .sort((a, b) => (b.submitted_at || "").localeCompare(a.submitted_at || ""))
+      .flatMap((f) => {
+        const quien = cById.get(f.contact_id);
+        const ini = iniciales(quien?.full_name || quien?.email || "?");
+        const out: { texto: string; stars: number | null; iniciales: string; fecha: string }[] = [];
+        const push = (t: string | null, pref = "") => {
+          const s = (t || "").trim();
+          if (s) out.push({ texto: `“${pref}${s}”`, stars: f.overall_stars, iniciales: ini, fecha: formatDiaMes(f.submitted_at) });
+        };
+        push(f.loved_text);
+        push(f.improve_text, "Por mejorar: ");
+        push(f.expected_gap_text, "Esperaba: ");
+        return out;
+      })
+      .slice(0, 8);
+
+    // Quién respondió / quién no
+    const personas: EncuestaPersona[] = rows
+      .map((f): EncuestaPersona => {
+        const quien = cById.get(f.contact_id);
+        const slotId = slotByResv.get(f.reservation_id);
+        return {
+          nombre: quien?.full_name || quien?.email || "—",
+          estado: f.status === "submitted" ? "respondida" : "invitada",
+          fecha: formatDiaMes(f.status === "submitted" ? f.submitted_at : f.invited_at),
+          salidaLabel: (slotId && labelBySlot.get(slotId)) || "",
+          token: f.token,
+          stars: f.overall_stars,
+        };
+      })
+      .sort((a, b) => Number(b.estado === "respondida") - Number(a.estado === "respondida"));
+
+    experiencias.push({
+      slug: exp?.slug || "?",
+      nombre: exp ? experienceTitle(exp.data, exp.slug) : "?",
+      ubicacion: rows[0]?.location_label || data?.feedback?.locationLabel || null,
+      invitadas: rows.length,
+      respondidas: submitted.length,
+      avgStars: avg(stars),
+      avgNps: avg(npss),
+      distEstrellas,
+      secciones,
+      abiertas,
+      personas,
+    });
+  }
+  experiencias.sort((a, b) => b.respondidas - a.respondidas);
+
+  const testimoniosPendientes: TestimonioPendiente[] = fbs
+    .filter((f) => (f.testimonial_text || "").trim() && f.publish_status === "pending")
+    .map((f) => {
+      const quien = cById.get(f.contact_id);
+      const exp = eById.get(f.experience_id);
+      return {
+        id: f.id,
+        texto: (f.testimonial_text || "").trim(),
+        stars: f.testimonial_stars,
+        iniciales: iniciales(quien?.full_name || quien?.email || "?"),
+        experiencia: exp ? experienceTitle(exp.data, exp.slug) : "?",
+        consent: !!f.testimonial_consent,
+      };
+    });
+
+  return { experiencias, testimoniosPendientes };
+}
