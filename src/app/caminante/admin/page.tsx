@@ -1,6 +1,11 @@
-import Link from "next/link";
-import AdminNav from "./AdminNav";
-import { fetchAdminOverview, formatMXN, formatFechaCorta } from "@/lib/admin/queries";
+import AdminShell from "./ui/AdminShell";
+import {
+  fetchAdminOverview,
+  formatMXN,
+  formatDiaMes,
+  iniciales,
+  type UpcomingSlot,
+} from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -10,21 +15,162 @@ const notices: Record<string, string> = {
 };
 
 const estadoLabels: Record<string, string> = {
-  requested: "Solicitadas",
-  confirmed: "Confirmadas",
-  partially_paid: "Anticipo",
-  paid: "Pagadas",
-  completed: "Completadas",
-  cancelled: "Canceladas",
+  requested: "solicitadas",
+  confirmed: "confirmadas",
+  partially_paid: "con anticipo",
+  paid: "pagadas",
+  completed: "completadas",
+  cancelled: "canceladas",
+};
+const estadoDots: Record<string, string> = {
+  paid: "var(--olive)",
+  confirmed: "var(--lagoon)",
+  partially_paid: "var(--dune)",
+  requested: "var(--dune)",
+  completed: "var(--sand)",
+  cancelled: "var(--sand)",
 };
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stars({ value }: { value: number | null }) {
+  if (value == null) return null;
+  const full = Math.round(value);
   return (
-    <div className="rounded-2xl border border-sand bg-white p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-olive">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight text-lagoon">{value}</p>
-      {sub ? <p className="mt-0.5 text-xs text-olive">{sub}</p> : null}
-    </div>
+    <span className="stars-lg">
+      {"★".repeat(full)}
+      {full < 5 ? <span className="off">{"★".repeat(5 - full)}</span> : null}
+    </span>
+  );
+}
+
+function SalidaRow({ s }: { s: UpcomingSlot }) {
+  const xid = `sx-${s.slotId.slice(0, 8)}`;
+  const llena = s.available !== null && s.available <= 0;
+  const d = s.detail;
+  const firmasOk = s.titulares > 0 && s.deslindes >= s.titulares;
+  return (
+    <>
+      <tr className="xhead" data-x={xid}>
+        <td className="num">{formatDiaMes(s.startsAt)}</td>
+        <td>
+          {s.experienceNombre}
+          {s.experienceStatus !== "published" ? (
+            <>
+              {" "}
+              <span className="chip c-draft">Borrador</span>
+            </>
+          ) : null}
+        </td>
+        <td className="mut">
+          {s.label}
+          {s.slotStatus !== "open" ? (
+            <>
+              {" "}
+              <span className="chip c-canc">Cerrada</span>
+            </>
+          ) : null}
+        </td>
+        <td>
+          {s.capacity === null ? (
+            <span className="mut">{s.taken} · sin tope</span>
+          ) : llena ? (
+            <>
+              {s.taken}/{s.capacity} · <span className="chip c-full">Llena</span>
+            </>
+          ) : (
+            <>
+              {s.taken}/{s.capacity} · <span className="mut">quedan {s.available}</span>
+            </>
+          )}
+        </td>
+        <td className="num right">{s.ingresos ? formatMXN(s.ingresos) : "—"}</td>
+        <td className="num">
+          {s.deslindes}/{s.titulares} <span className="chev2">▾</span>
+        </td>
+      </tr>
+      <tr className="xdetail">
+        <td colSpan={6}>
+          <div className="xbody" id={xid}>
+            <div className="xpad" style={{ padding: "18px 4px 18px" }}>
+              <div className="detail">
+                <div>
+                  <div className="xh4">Registro y deslinde</div>
+                  <div className={`prog${firmasOk ? "" : " warn"}`}>
+                    <div className="tk2">
+                      <i
+                        style={{
+                          width: `${s.titulares ? Math.round((s.deslindes / s.titulares) * 100) : 0}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="fr">
+                      {s.deslindes}/{s.titulares} firmaron
+                    </span>
+                  </div>
+                  {d.personas.length ? (
+                    <>
+                      <div className="xh4">Personas</div>
+                      <div className="pchips">
+                        {d.personas.map((p, i) => (
+                          <span key={i} className={`pchip ${p.firmado ? "ok" : "pend"}`}>
+                            <span className="av">{iniciales(p.nombre)}</span>
+                            {p.nombre.split(" ").slice(0, 2).join(" ")}{" "}
+                            <span className="stt">{p.firmado ? "✓" : "Pendiente"}</span>
+                            {p.fecha ? <span className="dt">{p.fecha}</span> : null}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
+                      Aún no hay reservas en esta salida.
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="xh4">Pagos · quién puso qué</div>
+                  {d.pagos.length || d.deudores.length ? (
+                    <div className="wlist">
+                      {d.pagos.map((p, i) => (
+                        <div key={i} className="wl">
+                          <span>{p.nombre}</span>
+                          <span className="m">{formatMXN(p.monto)}</span>
+                          <span className="me">{p.metodo}</span>
+                          <span className="d">{p.fecha}</span>
+                        </div>
+                      ))}
+                      {d.deudores.map((p, i) => (
+                        <div key={`d${i}`} className="wl debt">
+                          <span>{p.nombre}</span>
+                          <span className="m">debe {formatMXN(p.debe)}</span>
+                          <span className="me">pendiente</span>
+                          <span className="d">—</span>
+                        </div>
+                      ))}
+                      <div className="wl total">
+                        <span>Cobrado</span>
+                        <span className="m">{formatMXN(d.cobrado)}</span>
+                        <span className="me">faltan</span>
+                        <span
+                          className="d"
+                          style={d.faltante ? { color: "var(--orange)", fontWeight: 600 } : undefined}
+                        >
+                          {formatMXN(d.faltante)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mut" style={{ fontSize: 12.5 }}>
+                      Sin pagos registrados aún. Los cobros hechos fuera del sistema se podrán
+                      capturar como pago manual (sección Reservas, pronto).
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </>
   );
 }
 
@@ -36,135 +182,289 @@ export default async function AdminHomePage({
   const { notice } = await searchParams;
   const noticeText = notice ? notices[notice] : null;
   const { kpis, proximas } = await fetchAdminOverview();
-
-  const estados = Object.entries(kpis.reservasPorEstado)
-    .filter(([, n]) => n > 0)
-    .map(([k, n]) => `${n} ${(estadoLabels[k] || k).toLowerCase()}`)
-    .join(" · ");
   const sat = kpis.satisfaccion;
 
-  return (
-    <section className="mx-auto w-full max-w-5xl px-6 py-10">
-      <p className="text-[10px] uppercase tracking-[0.25em] text-olive">Modo admin</p>
-      <h1 className="mt-1 text-3xl font-semibold tracking-tight text-lagoon">Panorama</h1>
-      <p className="mt-2 text-sm text-olive">
-        Tus eventos, tu gente y tu dinero — en vivo desde la base.
-      </p>
+  const maxExp = Math.max(1, ...kpis.ingresosPorExperiencia.map((e) => e.monto));
+  const maxMes = Math.max(1, ...kpis.sparkMeses);
+  const tasa = sat.invitadas ? Math.round((sat.respondidas / sat.invitadas) * 100) : 0;
+  const pendientesFirma = proximas.reduce((n, s) => n + Math.max(0, s.titulares - s.deslindes), 0);
+  const maxDist = Math.max(1, ...sat.distEstrellas.map((d) => d.n));
 
+  return (
+    <AdminShell active="panorama">
       {noticeText ? (
-        <div className="mt-6 rounded-xl border border-dune/40 bg-dune/10 p-4 text-sm text-lagoon">
+        <div
+          className="glass pad"
+          style={{ marginBottom: 20, fontSize: 13.5, color: "var(--ink-soft)" }}
+        >
           {noticeText}
         </div>
       ) : null}
 
-      <div className="mt-6">
-        <AdminNav active="panorama" />
-      </div>
-
-      {/* KPIs */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi
-          label={`Ingresos · ${kpis.mesLabel}`}
-          value={formatMXN(kpis.ingresosMes)}
-          sub={`Histórico: ${formatMXN(kpis.ingresosTotal)}`}
-        />
-        <Kpi
-          label="Personas apuntadas"
-          value={String(kpis.personasApuntadas)}
-          sub={estados || "Sin reservas aún"}
-        />
-        <Kpi
-          label="Deslindes firmados"
-          value={String(kpis.deslindesFirmados)}
-        />
-        <Kpi
-          label="Satisfacción"
-          value={sat.avgStars != null ? `${sat.avgStars} ★` : "—"}
-          sub={
-            sat.respondidas
-              ? `NPS ${sat.avgNps ?? "—"} · ${sat.respondidas}/${sat.invitadas} respuestas`
-              : "Sin respuestas aún"
-          }
-        />
-      </div>
-
-      {/* Próximas salidas */}
-      <div className="mt-10">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-olive">
-          Próximas salidas
-        </h2>
-        <div className="mt-3 overflow-x-auto rounded-2xl border border-sand bg-white">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-sand text-[11px] uppercase tracking-wider text-olive">
-                <th className="px-4 py-3 font-semibold">Fecha</th>
-                <th className="px-4 py-3 font-semibold">Experiencia</th>
-                <th className="px-4 py-3 font-semibold">Salida</th>
-                <th className="px-4 py-3 font-semibold">Ocupación</th>
-                <th className="px-4 py-3 font-semibold">Ingresos</th>
-                <th className="px-4 py-3 font-semibold">Deslindes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {proximas.map((s) => (
-                <tr key={s.slotId} className="border-b border-sand/60 last:border-0">
-                  <td className="whitespace-nowrap px-4 py-3 text-lagoon">
-                    {formatFechaCorta(s.startsAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-lagoon">{s.experienceNombre}</span>
-                    {s.experienceStatus !== "published" ? (
-                      <span className="ml-2 rounded-full border border-sand px-2 py-0.5 text-[10px] uppercase tracking-wider text-olive">
-                        borrador
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 text-olive">
-                    {s.label}
-                    {s.slotStatus !== "open" ? (
-                      <span className="ml-2 rounded-full bg-sand/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-olive">
-                        {s.slotStatus === "closed" ? "cerrada" : s.slotStatus}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    {s.capacity === null ? (
-                      <span className="text-olive">{s.taken} · sin tope</span>
-                    ) : (
-                      <span className={s.available === 0 ? "font-semibold text-orange-700" : "text-lagoon"}>
-                        {s.taken}/{s.capacity}
-                        <span className="ml-1 text-xs text-olive">
-                          {s.available === 0 ? "· llena" : `· quedan ${s.available}`}
-                        </span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-lagoon">
-                    {s.ingresos ? formatMXN(s.ingresos) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-lagoon">{s.deslindes}</td>
-                </tr>
-              ))}
-              {proximas.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-olive">
-                    No hay salidas programadas. Crea una desde{" "}
-                    <Link href="/caminante/admin/experiencias/nueva" className="underline">
-                      la experiencia
-                    </Link>
-                    .
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+      <section className="sec" id="panorama">
+        <div className="sec-head">
+          <div>
+            <span className="eyebrow">
+              <span className="sl">{"//"}</span> Panorama
+            </span>
+            <h1 className="display">
+              Tu operación, <em className="ac">en vivo.</em>
+            </h1>
+          </div>
+          <span className="mut" style={{ fontSize: 13 }}>
+            {kpis.mesLabel} · toca cualquier dato para desarrollarlo
+          </span>
         </div>
-        <p className="mt-2 text-xs text-olive">
-          Ocupación = personas de reservas confirmadas/pagadas. Ingresos = pagos registrados de esa
-          salida (los cobros hechos fuera del sistema aún no aparecen; se podrán capturar como pago
-          manual en la sección Reservas).
-        </p>
-      </div>
-    </section>
+
+        <div className="kpis">
+          {/* KPI 1 · Ingresos */}
+          <div className="kpi glass xhead" data-x="kx1">
+            <div className="k-lbl">
+              Ingresos del mes <span className="chev2">▾</span>
+            </div>
+            <div className="k-val">{formatMXN(kpis.ingresosMes)}</div>
+            <div className="k-sub">
+              Histórico: <b>{formatMXN(kpis.ingresosTotal)}</b>
+            </div>
+            <div className="spark">
+              {kpis.sparkMeses.map((m, i) => (
+                <i
+                  key={i}
+                  className={i === kpis.sparkMeses.length - 1 ? "hi" : ""}
+                  style={{ height: `${Math.max(8, Math.round((m / maxMes) * 100))}%` }}
+                />
+              ))}
+            </div>
+            <div className="xbody" id="kx1">
+              <div className="xpad">
+                <div className="xh4">Por experiencia</div>
+                {kpis.ingresosPorExperiencia.length ? (
+                  kpis.ingresosPorExperiencia.map((e, i) => (
+                    <div key={i} className="progrow">
+                      <span>{e.nombre}</span>
+                      <div className="prog">
+                        <div className="tk2">
+                          <i style={{ width: `${Math.round((e.monto / maxExp) * 100)}%` }} />
+                        </div>
+                        <span className="fr">{formatMXN(e.monto)}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="mut" style={{ fontSize: 12.5 }}>
+                    Sin pagos registrados aún.
+                  </div>
+                )}
+                {kpis.ultimosPagos.length ? (
+                  <>
+                    <div className="xh4">Últimos pagos</div>
+                    <div className="wlist">
+                      {kpis.ultimosPagos.map((p, i) => (
+                        <div key={i} className="wl">
+                          <span>{p.nombre}</span>
+                          <span className="m">{formatMXN(p.monto)}</span>
+                          <span className="me">{p.metodo}</span>
+                          <span className="d">{p.fecha}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {/* KPI 2 · Personas */}
+          <div className="kpi glass xhead" data-x="kx2">
+            <div className="k-lbl">
+              Personas apuntadas <span className="chev2">▾</span>
+            </div>
+            <div className="k-val">{kpis.personasApuntadas}</div>
+            <div className="dots">
+              {Object.entries(kpis.reservasPorEstado)
+                .filter(([k, n]) => n > 0 && k !== "cancelled")
+                .map(([k, n]) => (
+                  <span key={k} className="dot-l">
+                    <span className="dot" style={{ background: estadoDots[k] || "var(--sand)" }} />
+                    {n} {estadoLabels[k] || k}
+                  </span>
+                ))}
+            </div>
+            <div className="xbody" id="kx2">
+              <div className="xpad">
+                <div className="xh4">Por salida</div>
+                {proximas.length ? (
+                  proximas.map((s) => (
+                    <div key={s.slotId} className="progrow">
+                      <span>
+                        {s.experienceNombre.split(" ")[0]} · {s.label}
+                      </span>
+                      <div className="prog">
+                        <div className="tk2">
+                          <i
+                            style={{
+                              width:
+                                s.capacity === null
+                                  ? "100%"
+                                  : `${Math.min(100, Math.round((s.taken / Math.max(1, s.capacity)) * 100))}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="fr">
+                          {s.capacity === null ? `${s.taken} · sin tope` : `${s.taken}/${s.capacity}`}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="mut" style={{ fontSize: 12.5 }}>
+                    No hay salidas próximas.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* KPI 3 · Deslindes */}
+          <div className="kpi glass xhead" data-x="kx3">
+            <div className="k-lbl">
+              Deslindes firmados <span className="chev2">▾</span>
+            </div>
+            <div className="k-val">{kpis.deslindesFirmados}</div>
+            <div className="k-sub">
+              {pendientesFirma ? (
+                <>
+                  <b>{pendientesFirma}</b> pendientes en próximas salidas
+                </>
+              ) : (
+                "Nada pendiente en próximas salidas"
+              )}
+            </div>
+            <div className="xbody" id="kx3">
+              <div className="xpad">
+                <div className="xh4">Firmas por salida</div>
+                {proximas.filter((s) => s.titulares > 0).length ? (
+                  proximas
+                    .filter((s) => s.titulares > 0)
+                    .map((s) => (
+                      <div key={s.slotId} className="progrow">
+                        <span>
+                          {s.experienceNombre.split(" ")[0]} · {s.label}
+                        </span>
+                        <div className={`prog${s.deslindes >= s.titulares ? "" : " warn"}`}>
+                          <div className="tk2">
+                            <i
+                              style={{
+                                width: `${Math.round((s.deslindes / s.titulares) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="fr">
+                            {s.deslindes}/{s.titulares}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="mut" style={{ fontSize: 12.5 }}>
+                    Sin reservas en salidas próximas.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* KPI 4 · Satisfacción */}
+          <div className="kpi glass xhead" data-x="kx4">
+            <div className="k-lbl">
+              Satisfacción <span className="chev2">▾</span>
+            </div>
+            <div className="k-val" style={{ fontSize: 26 }}>
+              {sat.avgStars != null ? sat.avgStars.toLocaleString("es-MX") : "—"}{" "}
+              <Stars value={sat.avgStars} />
+            </div>
+            <div className="k-sub">
+              {sat.respondidas ? (
+                <>
+                  <b>NPS {sat.avgNps ?? "—"}</b> · tasa de respuesta <b>{tasa}%</b>
+                </>
+              ) : (
+                "Sin respuestas aún"
+              )}
+            </div>
+            <div className="xbody" id="kx4">
+              <div className="xpad">
+                <div className="xh4">Distribución · {sat.respondidas} respuestas</div>
+                {sat.distEstrellas.map((d, i) => (
+                  <div key={i} className="progrow">
+                    <span>{d.etiqueta}</span>
+                    <div className="prog">
+                      <div className="tk2">
+                        <i style={{ width: `${Math.round((d.n / maxDist) * 100)}%` }} />
+                      </div>
+                      <span className="fr">{d.n}</span>
+                    </div>
+                  </div>
+                ))}
+                {sat.ultimas.length ? (
+                  <>
+                    <div className="xh4">Últimas respuestas</div>
+                    <div className="wlist">
+                      {sat.ultimas.map((u, i) => (
+                        <div key={i} className="wl">
+                          <span>{u.texto}</span>
+                          <span className="m" style={{ color: "var(--orange)" }}>
+                            ★ {u.stars ?? "—"}
+                          </span>
+                          <span className="me"></span>
+                          <span className="d">{u.fecha}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Próximas salidas */}
+        <div className="card" style={{ marginTop: 24, overflow: "hidden" }}>
+          <div className="pad" style={{ paddingBottom: 6 }}>
+            <span className="subtitle" style={{ margin: 0 }}>
+              Próximas salidas · toca una fila para el detalle
+            </span>
+          </div>
+          <div className="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th className="num">Fecha</th>
+                  <th>Experiencia</th>
+                  <th>Salida</th>
+                  <th>Ocupación</th>
+                  <th className="right">Ingresos</th>
+                  <th>Deslindes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {proximas.map((s) => (
+                  <SalidaRow key={s.slotId} s={s} />
+                ))}
+                {proximas.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="empty" style={{ border: 0 }}>
+                        No hay salidas programadas.
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </AdminShell>
   );
 }
