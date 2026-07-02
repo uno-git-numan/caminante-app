@@ -44,7 +44,7 @@ const items: { key: AdminSection; label: string; href?: string; soon?: boolean }
   { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
   { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
-  { key: "dinero", label: "Dinero", soon: true },
+  { key: "dinero", label: "Dinero", href: "/caminante/admin/dinero" },
   { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
 ];
 

@@ -1190,3 +1190,214 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
 
   return { experiencias, testimoniosPendientes };
 }
+
+// ── Dinero (F4) ──────────────────────────────────────────────────────────
+
+export type LedgerLinea = {
+  fecha: string;
+  persona: string;
+  metodo: string;
+  monto: number;
+  estado: string; // paid | refunded | pending | failed
+};
+
+export type PayoutOperador = {
+  operador: string;
+  email: string;
+  bruto: number;
+  comision: number; // solo sobre ventas con % congelado
+  brutoSinPct: number; // ventas cuyo % quedó "por definir"
+  neto: number; // bruto - comision (parcial si hay sinPct)
+  lineas: { concepto: string; monto: number; nota: string }[];
+};
+
+export type DineroAdmin = {
+  mesLabel: string;
+  ingresosMes: number;
+  ingresosTotal: number;
+  sparkMeses: number[];
+  pendiente: number;
+  pendienteN: number; // reservas por liquidar
+  reembolsosMes: number;
+  reembolsosN: number;
+  porExperiencia: {
+    nombre: string;
+    monto: number;
+    detalle: { salida: string; personas: number; monto: number }[];
+  }[];
+  payouts: PayoutOperador[];
+  ledger: LedgerLinea[];
+};
+
+export async function fetchDinero(): Promise<DineroAdmin> {
+  const sb = createSupabaseAdminClient();
+  const [pays, resvs, exps, slots, contacts, ops] = (await Promise.all([
+    sb.from("payments").select("reservation_id, contact_id, amount_mxn, status, method, paid_at, created_at"),
+    sb
+      .from("reservations")
+      .select("id, experience_id, slot_id, num_people, total_amount_mxn, status, operator_id, commission_pct"),
+    sb.from("experiences").select("id, slug, data"),
+    sb.from("experience_slots").select("id, label"),
+    sb.from("contacts").select("id, full_name, email"),
+    sb.from("operators").select("id, name, email, commission_pct"),
+  ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
+    (PayRow & { created_at: string })[],
+    (ResvRow & { operator_id: string | null; commission_pct: number | null })[],
+    ExpRow[],
+    { id: string; label: string | null }[],
+    { id: string; full_name: string | null; email: string }[],
+    { id: string; name: string; email: string; commission_pct: number | null }[],
+  ];
+
+  const rById = new Map(resvs.map((r) => [r.id, r]));
+  const eById = new Map(exps.map((e) => [e.id, e]));
+  const sById = new Map(slots.map((s) => [s.id, s.label || ""]));
+  const cById = new Map(contacts.map((c) => [c.id, c.full_name || c.email]));
+
+  const paid = pays.filter((p) => p.status === "paid");
+  const hoyMes = cdmxDay(new Date()).slice(0, 7);
+  const ingresosTotal = paid.reduce((s, p) => s + Number(p.amount_mxn || 0), 0);
+  const ingresosMes = paid
+    .filter((p) => p.paid_at && cdmxDay(p.paid_at).slice(0, 7) === hoyMes)
+    .reduce((s, p) => s + Number(p.amount_mxn || 0), 0);
+  const mesLabel = new Date().toLocaleDateString("es-MX", { timeZone: TZ, month: "long", year: "numeric" });
+
+  // Spark: últimos 7 meses
+  const meses: string[] = [];
+  {
+    const d = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const m = new Date(d.getFullYear(), d.getMonth() - i, 15);
+      meses.push(cdmxDay(m).slice(0, 7));
+    }
+  }
+  const sparkMeses = meses.map((m) =>
+    paid
+      .filter((p) => p.paid_at && cdmxDay(p.paid_at).slice(0, 7) === m)
+      .reduce((s, p) => s + Number(p.amount_mxn || 0), 0),
+  );
+
+  // Pendiente de cobro: reservas activas con total > pagado
+  const pagadoPorResv = new Map<string, number>();
+  for (const p of paid) {
+    pagadoPorResv.set(p.reservation_id, (pagadoPorResv.get(p.reservation_id) || 0) + Number(p.amount_mxn || 0));
+  }
+  let pendiente = 0;
+  let pendienteN = 0;
+  for (const r of resvs) {
+    if (["cancelled", "completed"].includes(r.status)) continue;
+    const debe = Math.max(0, Number(r.total_amount_mxn || 0) - (pagadoPorResv.get(r.id) || 0));
+    if (debe > 0) {
+      pendiente += debe;
+      pendienteN++;
+    }
+  }
+
+  // Reembolsos del mes
+  const refunded = pays.filter((p) => p.status === "refunded");
+  const refMes = refunded.filter(
+    (p) => (p.paid_at || p.created_at) && cdmxDay(p.paid_at || p.created_at).slice(0, 7) === hoyMes,
+  );
+  const reembolsosMes = refMes.reduce((s, p) => s + Number(p.amount_mxn || 0), 0);
+
+  // Ingresos por experiencia → detalle por salida
+  const porExpMap = new Map<string, Map<string, { personas: Set<string>; monto: number }>>();
+  for (const p of paid) {
+    const r = rById.get(p.reservation_id);
+    if (!r) continue;
+    const porSalida = porExpMap.get(r.experience_id) || new Map();
+    const key = r.slot_id || "singular";
+    const acc = porSalida.get(key) || { personas: new Set<string>(), monto: 0 };
+    acc.personas.add(r.id);
+    acc.monto += Number(p.amount_mxn || 0);
+    porSalida.set(key, acc);
+    porExpMap.set(r.experience_id, porSalida);
+  }
+  const numPorResvSlot = new Map<string, number>();
+  for (const r of resvs) {
+    const key = `${r.experience_id}|${r.slot_id || "singular"}`;
+    if (pagadoPorResv.get(r.id)) {
+      numPorResvSlot.set(key, (numPorResvSlot.get(key) || 0) + (r.num_people || 0));
+    }
+  }
+  const porExperiencia = [...porExpMap.entries()]
+    .map(([expId, porSalida]) => {
+      const exp = eById.get(expId);
+      const detalle = [...porSalida.entries()].map(([slotKey, acc]) => ({
+        salida: slotKey === "singular" ? "Sin salida asignada" : sById.get(slotKey) || "—",
+        personas: numPorResvSlot.get(`${expId}|${slotKey}`) || acc.personas.size,
+        monto: acc.monto,
+      }));
+      return {
+        nombre: exp ? experienceTitle(exp.data, exp.slug) : "?",
+        monto: detalle.reduce((s, d) => s + d.monto, 0),
+        detalle: detalle.sort((a, b) => b.monto - a.monto),
+      };
+    })
+    .sort((a, b) => b.monto - a.monto);
+
+  // Payout por operador (comisión CONGELADA por reserva; null = por definir)
+  const porOperador = new Map<
+    string,
+    { bruto: number; comision: number; brutoSinPct: number; lineas: Map<string, { monto: number; personas: number }> }
+  >();
+  for (const p of paid) {
+    const r = rById.get(p.reservation_id);
+    if (!r || !r.operator_id) continue;
+    const acc =
+      porOperador.get(r.operator_id) ||
+      { bruto: 0, comision: 0, brutoSinPct: 0, lineas: new Map() };
+    const monto = Number(p.amount_mxn || 0);
+    acc.bruto += monto;
+    if (r.commission_pct != null) acc.comision += (monto * Number(r.commission_pct)) / 100;
+    else acc.brutoSinPct += monto;
+    const exp = eById.get(r.experience_id);
+    const concepto = `${exp ? experienceTitle(exp.data, exp.slug) : "?"} · ${r.slot_id ? sById.get(r.slot_id) || "" : "sin salida"}`;
+    const lin = acc.lineas.get(concepto) || { monto: 0, personas: 0 };
+    lin.monto += monto;
+    acc.lineas.set(concepto, lin);
+    porOperador.set(r.operator_id, acc);
+  }
+  const opById = new Map(ops.map((o) => [o.id, o]));
+  const payouts: PayoutOperador[] = [...porOperador.entries()]
+    .map(([opId, acc]) => {
+      const op = opById.get(opId);
+      return {
+        operador: op?.name || "Operador",
+        email: op?.email || "",
+        bruto: acc.bruto,
+        comision: Math.round(acc.comision * 100) / 100,
+        brutoSinPct: acc.brutoSinPct,
+        neto: Math.round((acc.bruto - acc.comision) * 100) / 100,
+        lineas: [...acc.lineas.entries()]
+          .map(([concepto, l]) => ({ concepto, monto: l.monto, nota: "" }))
+          .sort((a, b) => b.monto - a.monto),
+      };
+    })
+    .sort((a, b) => b.bruto - a.bruto);
+
+  // Ledger (todos los pagos, más reciente primero)
+  const ledger: LedgerLinea[] = pays
+    .sort((a, b) => (b.paid_at || b.created_at || "").localeCompare(a.paid_at || a.created_at || ""))
+    .map((p) => ({
+      fecha: formatDiaMes(p.paid_at || p.created_at),
+      persona: (p.contact_id && cById.get(p.contact_id)) || "—",
+      metodo: metodoLabel(p.method),
+      monto: Number(p.amount_mxn || 0),
+      estado: p.status,
+    }));
+
+  return {
+    mesLabel,
+    ingresosMes,
+    ingresosTotal,
+    sparkMeses,
+    pendiente,
+    pendienteN,
+    reembolsosMes,
+    reembolsosN: refMes.length,
+    porExperiencia,
+    payouts,
+    ledger,
+  };
+}

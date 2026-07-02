@@ -24,6 +24,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/admin/personas") ||
     pathname.startsWith("/caminante/admin/roster") ||
     pathname.startsWith("/caminante/admin/encuesta") ||
+    pathname.startsWith("/caminante/admin/dinero") ||
     pathname === "/caminante/admin" || // dashboard: trae su propio shell (AdminShell)
     pathname === "/caminante/calendario"
   );
