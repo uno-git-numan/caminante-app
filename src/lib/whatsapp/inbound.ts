@@ -25,6 +25,17 @@ type WaValue = {
   statuses?: unknown[];
 };
 
+// El wa_id de México llega como 521XXXXXXXXXX (el "1" legacy de móvil). Para ENVIAR,
+// la API/lista de prueba esperan 52XXXXXXXXXX — Meta mismo mapea input 52… → wa_id 521…
+// (error #131030 si respondes al 521…). Se normaliza quitando ese "1".
+function replyNumber(waId: string): string {
+  const digits = waId.replace(/\D/g, "");
+  if (digits.startsWith("521") && digits.length === 13) {
+    return `+52${digits.slice(3)}`;
+  }
+  return digits.startsWith("+") ? waId : `+${digits}`;
+}
+
 function messageText(m: WaMessage): string {
   if (m.text?.body) return m.text.body;
   if (m.button?.text) return m.button.text;
@@ -114,7 +125,7 @@ export async function processInboundValue(value: WaValue): Promise<void> {
           `Hola${nombre ? " " + nombre : ""} 🌊 Gracias por escribir a Caminante. ` +
           `Aquí puedes ver la expedición, fechas y lo que incluye: ${SITE}/caminante\n\n` +
           `Te leo personalmente y te ayudo a apartar tu lugar. ¿Te late?`;
-        const sent = await sendText(e164, ack);
+        const sent = await sendText(replyNumber(m.from), ack);
         if (sent.ok) {
           await sb.from("messages").insert({
             conversation_id: convo.id,
