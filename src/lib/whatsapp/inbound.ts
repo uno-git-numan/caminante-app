@@ -44,7 +44,9 @@ function messageText(m: WaMessage): string {
   return `[${m.type}]`;
 }
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://caminante.numanhub.com";
+// Links enviados por WhatsApp: SIEMPRE el dominio público canónico (no
+// NEXT_PUBLIC_SITE_URL, que en dev/preview apunta a localhost o al preview).
+const SITE = "https://caminante.numanhub.com";
 
 export async function processInboundValue(value: WaValue): Promise<void> {
   const messages = value.messages || [];
