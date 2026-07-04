@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { findOrCreateContact, normalizePhoneMX } from "@/lib/crm/contacts";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
+import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
 import type { Experience } from "@/lib/experiences/types";
 import type {
   MedicalProfileData,
@@ -343,6 +344,23 @@ export async function submitRegistration(
         signed_at: signedAt,
         created_reservation: createdReservation,
       },
+    });
+  }
+
+  // 9 · Aviso al admin SOLO si esta firma creó una reserva NUEVA que aparta
+  //     cupo sin pago (el flujo pagado ya avisó desde el webhook). Best-effort.
+  if (createdReservation) {
+    await notifyNuevaReserva({
+      cliente: fullName,
+      experiencia:
+        experience.cardTitle ||
+        [experience.title, experience.titleAccent].filter(Boolean).join(" ").trim() ||
+        input.slug,
+      salida: slotLabel,
+      personas: numPeople,
+      montoMxn: 0,
+      metodo: "Registro con deslinde (sin pago aún)",
+      canal: "web",
     });
   }
 

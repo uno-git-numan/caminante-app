@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { findOrCreateContact } from "@/lib/crm/contacts";
+import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
 
 export type FinalizeSelfServeResult = {
   handled: boolean; // false = no es una sesión self-serve (sin metadata.self_serve)
@@ -167,6 +168,32 @@ export async function finalizeSelfServeCheckout(
       provider_ref: providerRef,
       paid_at: new Date().toISOString(),
     },
+  });
+
+  // Aviso al admin (correo + WhatsApp si está configurado) — best-effort,
+  // notifyNuevaReserva se traga sus errores y jamás tira el webhook.
+  const { data: expRow } = await sb
+    .from("experiences")
+    .select("data")
+    .eq("id", experienceId)
+    .maybeSingle();
+  const expData = (expRow?.data ?? null) as {
+    title?: string;
+    titleAccent?: string;
+    cardTitle?: string;
+  } | null;
+  const nombreExperiencia =
+    expData?.cardTitle ||
+    [expData?.title, expData?.titleAccent].filter(Boolean).join(" ").trim() ||
+    experienceSlug;
+  await notifyNuevaReserva({
+    cliente: fullName || email,
+    experiencia: nombreExperiencia,
+    salida: session.metadata?.slot_label || "sin fecha",
+    personas: numPeople,
+    montoMxn: amountPaid,
+    metodo: "Stripe (pago web)",
+    canal: "web",
   });
 
   return { handled: true, paymentRecorded: !payErr, reservationId };
