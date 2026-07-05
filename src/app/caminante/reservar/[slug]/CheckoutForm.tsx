@@ -11,24 +11,66 @@ export type ReservarSlot = {
   soldOut: boolean;
 };
 
+export type PriceTier = { label: string; amount: string };
+
 const mxn = (n: number) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n);
 
-export default function CheckoutForm({ slug, slots }: { slug: string; slots: ReservarSlot[] }) {
+// Parseo del monto del nivel (mismo criterio que parseMxnAmount del server).
+const parseTier = (a: string): number => {
+  const n = Number(String(a).replace(/[^\d.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+};
+
+export default function CheckoutForm({
+  slug,
+  slots,
+  tiers = [],
+}: {
+  slug: string;
+  slots: ReservarSlot[];
+  tiers?: PriceTier[];
+}) {
   const firstOpen = slots.find((s) => !s.soldOut) ?? slots[0];
   const [slotId, setSlotId] = useState(firstOpen?.id ?? "");
   const [people, setPeople] = useState(1);
+  const [tierIndex, setTierIndex] = useState(tiers.length ? 0 : -1);
 
   const slot = slots.find((s) => s.id === slotId) ?? firstOpen;
   const maxPeople = slot?.available != null ? Math.max(1, Math.min(slot.available, 12)) : 12;
   const ppl = Math.min(people, maxPeople);
-  const total = (slot?.perPerson ?? 0) * ppl;
+  // Con niveles, el precio por persona lo fija el nivel elegido; sin niveles, el del slot.
+  const perPerson = tiers.length && tierIndex >= 0 ? parseTier(tiers[tierIndex].amount) : (slot?.perPerson ?? 0);
+  const total = perPerson * ppl;
 
   return (
     <form action={createCheckout} className="space-y-6">
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="slotId" value={slotId} />
       <input type="hidden" name="numPeople" value={ppl} />
+      {tiers.length ? <input type="hidden" name="tierIndex" value={tierIndex} /> : null}
+
+      {tiers.length ? (
+        <fieldset className="space-y-3">
+          <legend className="text-xs font-semibold uppercase tracking-wider text-olive">Tipo</legend>
+          {tiers.map((t, i) => {
+            const selected = i === tierIndex;
+            return (
+              <button
+                type="button"
+                key={i}
+                onClick={() => setTierIndex(i)}
+                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                  selected ? "border-dune bg-dune/5" : "border-sand bg-white hover:border-dune"
+                }`}
+              >
+                <span className="text-sm font-semibold text-lagoon">{t.label}</span>
+                <span className="text-xs font-medium text-olive">{mxn(parseTier(t.amount))} por persona</span>
+              </button>
+            );
+          })}
+        </fieldset>
+      ) : null}
 
       <fieldset className="space-y-3">
         <legend className="text-xs font-semibold uppercase tracking-wider text-olive">Elige tu salida</legend>
@@ -46,7 +88,9 @@ export default function CheckoutForm({ slug, slots }: { slug: string; slots: Res
             >
               <span>
                 <span className="block text-sm font-semibold text-lagoon">{s.label}</span>
-                <span className="block text-xs text-olive">{mxn(s.perPerson)} por persona</span>
+                {tiers.length ? null : (
+                  <span className="block text-xs text-olive">{mxn(s.perPerson)} por persona</span>
+                )}
               </span>
               <span className="text-xs font-medium text-olive">
                 {s.soldOut

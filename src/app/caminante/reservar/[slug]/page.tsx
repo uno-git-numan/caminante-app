@@ -12,6 +12,7 @@ const errorMsgs: Record<string, string> = {
   datos: "Faltan datos para reservar. Inténtalo de nuevo.",
   salida: "Esa salida ya no está disponible.",
   precio: "Esta experiencia no tiene precio configurado todavía.",
+  nivel: "Elige un tipo (habitación) antes de pagar.",
   cancelado: "Cancelaste el pago. Cuando quieras, aquí seguimos.",
   stripe: "No pudimos abrir el pago. Inténtalo de nuevo en un momento.",
 };
@@ -94,7 +95,7 @@ export default async function ReservarPage({
             Por ahora no hay salidas abiertas. Escríbenos y te avisamos de la próxima.
           </div>
         ) : (
-          <CheckoutForm slug={slug} slots={slots} />
+          <CheckoutForm slug={slug} slots={slots} tiers={experience?.priceTiers ?? []} />
         )}
       </div>
     </section>

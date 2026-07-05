@@ -32,6 +32,10 @@ export async function createCheckout(formData: FormData) {
   const slug = String(formData.get("slug") ?? "").trim();
   const slotId = String(formData.get("slotId") ?? "").trim();
   const numPeople = Math.max(1, Math.min(20, parseInt(String(formData.get("numPeople") ?? "1"), 10) || 1));
+  // Índice del nivel de precio elegido (habitación compartida/sencilla…). El
+  // MONTO se resuelve server-side por este índice contra la experiencia guardada
+  // — NUNCA se confía en un monto que mande el cliente.
+  const tierIndexRaw = String(formData.get("tierIndex") ?? "").trim();
   const back = (e: string) => `/caminante/reservar/${slug}?error=${encodeURIComponent(e)}`;
 
   if (!slug || !slotId) redirect(back("datos"));
@@ -57,7 +61,21 @@ export async function createCheckout(formData: FormData) {
     redirect(back("salida"));
   }
 
-  let perPerson: number | null = slot.price_mxn != null ? Number(slot.price_mxn) : null;
+  // Precio por persona. Prioridad:
+  //   1. Nivel elegido (priceTiers[tierIndex]) — su monto se lee del dato guardado.
+  //   2. price_mxn del slot.
+  //   3. price.amount base de la experiencia.
+  const tiers = experience.priceTiers ?? [];
+  let tierLabel = "";
+  let perPerson: number | null = null;
+  if (tiers.length > 0) {
+    const idx = /^\d+$/.test(tierIndexRaw) ? parseInt(tierIndexRaw, 10) : -1;
+    const tier = idx >= 0 ? tiers[idx] : undefined;
+    if (!tier) redirect(back("nivel")); // hay niveles pero no eligió uno válido
+    perPerson = parseMxnAmount(tier.amount);
+    tierLabel = tier.label;
+  }
+  if (perPerson == null) perPerson = slot.price_mxn != null ? Number(slot.price_mxn) : null;
   if (perPerson == null) perPerson = parseMxnAmount(experience.price?.amount);
   if (perPerson == null || perPerson <= 0) redirect(back("precio"));
 
@@ -88,6 +106,7 @@ export async function createCheckout(formData: FormData) {
     num_people: String(numPeople),
     operator_id: operatorId ?? "",
     commission_pct: commissionPct != null ? String(commissionPct) : "",
+    tier_label: tierLabel,
   };
 
   let url: string | null = null;
@@ -102,7 +121,7 @@ export async function createCheckout(formData: FormData) {
             currency: "mxn",
             unit_amount: toStripeAmount(perPerson),
             product_data: {
-              name: title,
+              name: tierLabel ? `${title} — ${tierLabel}` : title,
               ...(slot.label ? { description: `Salida: ${slot.label}` } : {}),
             },
           },

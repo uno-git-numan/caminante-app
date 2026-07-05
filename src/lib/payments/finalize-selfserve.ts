@@ -59,6 +59,9 @@ export async function finalizeSelfServeCheckout(
   const commissionPct = session.metadata?.commission_pct
     ? Number(session.metadata.commission_pct)
     : null;
+  // Nivel de precio elegido (habitación compartida/sencilla…) — se guarda en
+  // notes para que el roster/dashboard sepa el tipo. Sin migración.
+  const tierLabel = (session.metadata?.tier_label ?? "").trim();
   if (!experienceId) return { handled: true, paymentRecorded: false };
 
   // Contacto: dedupe en cascada (correo manda aquí). source = web pago.
@@ -113,6 +116,7 @@ export async function finalizeSelfServeCheckout(
         channel: "web",
         operator_id: operatorId,
         commission_pct: commissionPct,
+        ...(tierLabel ? { notes: `Nivel: ${tierLabel}` } : {}),
       })
       .eq("id", reservationId);
   } else {
@@ -128,6 +132,7 @@ export async function finalizeSelfServeCheckout(
         channel: "web",
         operator_id: operatorId,
         commission_pct: commissionPct,
+        ...(tierLabel ? { notes: `Nivel: ${tierLabel}` } : {}),
       })
       .select("id")
       .single();
