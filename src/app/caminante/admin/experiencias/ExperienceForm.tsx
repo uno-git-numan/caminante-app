@@ -10,6 +10,9 @@
 
 import { useMemo, useState } from "react";
 import { emptyExperience, slugify } from "@/lib/experiences/empty";
+import PrellenarIA from "./PrellenarIA";
+import { aplicarPrellenado, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
+import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
 import { saveExperienceSlots } from "@/lib/experiences/slots-admin";
 import type { Experience, Day, GearCategory, Ally, Faq, FreeBlock } from "@/lib/experiences/types";
@@ -312,6 +315,16 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   }
 
 
+  function onPrellenado(data: Record<string, unknown>, slotsIA: SlotIA[]) {
+    setExp((prev) => aplicarPrellenado(prev, data));
+    setSlots((prev) => {
+      const conContenido = prev.filter((s) => s.label.trim() || s.start);
+      return [...conContenido, ...slotsDesdeIA(slotsIA, conContenido)];
+    });
+    setStatusOk(false);
+    setStatus("Pre-llenado con IA — revisa antes de guardar");
+  }
+
   async function onSubmit(st: Experience["status"]) {
     setSaving(true);
     const slug = (autoSlug ? suggestedSlug : (exp.slug ?? "")).trim();
@@ -389,6 +402,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
         </nav>
 
         <div className="main">
+          {!initial ? <PrellenarIA onResult={onPrellenado} /> : null}
           <section className="startcard">
             <Field label="Empezar desde">
               <select onChange={(e) => applyTemplate(e.target.value)} defaultValue="">
