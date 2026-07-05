@@ -44,7 +44,7 @@ export default function PrellenarIA({ onResult }: Props) {
       onResult(json.data || {}, json.slots || [], json.notas || "");
       setNotasIA(json.notas || "");
     } catch {
-      setError("No hubo respuesta (¿conexión?). Intenta de nuevo.");
+      setError("Se cortó la conexión o tardó demasiado. Intenta de nuevo — la segunda suele ser más rápida.");
     } finally {
       setBusy(false);
     }

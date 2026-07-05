@@ -7,8 +7,9 @@ import { prellenarExperiencia, type ArchivoEntrada } from "@/lib/ai/prellenar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// La lectura del PDF + redacción tarda; Vercel corta en maxDuration.
-export const maxDuration = 60;
+// La redacción completa del form toma ~1.5–3 min (≈4-5k tokens de salida).
+// Con 60s Vercel cortaba la función a la mitad ("No hubo respuesta").
+export const maxDuration = 300;
 
 // Vercel rechaza bodies de ~4.5 MB — límite propio con mensaje claro.
 const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
