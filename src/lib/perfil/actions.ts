@@ -34,6 +34,23 @@ export async function guardarDatosAction(fd: FormData): Promise<void> {
 }
 
 export async function guardarMedicoAction(fd: FormData): Promise<void> {
+  // El upsert de updateMedicalProfile escribe TODAS las columnas. El form de
+  // Mi espacio solo edita las de seguridad en campo — los campos de seguro
+  // (CURP, género, beneficiario…) capturados en el deslinde se PRESERVAN
+  // leyendo el perfil actual y fusionando encima. Si no, se borrarían.
+  const user = await getCurrentUser();
+  if (!user) redirect("/caminante/login?next=%2Fcaminante%2Fperfil");
+
+  const sb = createSupabaseAdminClient();
+  const { data: contact } = await sb
+    .from("contacts")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const { data: cur } = contact
+    ? await sb.from("medical_profiles").select("*").eq("contact_id", contact.id).maybeSingle()
+    : { data: null };
+
   const r = await updateMedicalProfile({
     bloodType: s(fd, "bloodType"),
     allergies: s(fd, "allergies"),
@@ -43,6 +60,15 @@ export async function guardarMedicoAction(fd: FormData): Promise<void> {
     emergencyName: s(fd, "emergencyName"),
     emergencyRelationship: s(fd, "emergencyRelationship"),
     emergencyPhone: s(fd, "emergencyPhone"),
+    fitnessNotes: (cur?.fitness_notes as string) || "",
+    gender: (cur?.gender as string) || "",
+    curp: (cur?.curp as string) || "",
+    nationality: (cur?.nationality as string) || "",
+    governmentId: (cur?.government_id as string) || "",
+    occupation: (cur?.occupation as string) || "",
+    beneficiaryName: (cur?.beneficiary_name as string) || "",
+    beneficiaryRelationship: (cur?.beneficiary_relationship as string) || "",
+    beneficiaryPhone: (cur?.beneficiary_phone as string) || "",
   });
   volver(r.ok, r.ok ? undefined : r.error);
 }
