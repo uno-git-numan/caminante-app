@@ -23,9 +23,11 @@ export default function PrellenarIA({ onResult }: Props) {
 
   const totalMB = files.reduce((n, f) => n + f.size, 0) / (1024 * 1024);
   const pasado = totalMB > MAX_MB;
+  // Vale con documentos O con texto pegado en indicaciones (o ambos).
+  const hayEntrada = files.length > 0 || notas.trim().length > 0;
 
   async function enviar() {
-    if (!files.length || busy || pasado) return;
+    if (!hayEntrada || busy || pasado) return;
     setBusy(true);
     setError(null);
     setNotasIA(null);
@@ -56,9 +58,9 @@ export default function PrellenarIA({ onResult }: Props) {
         <span style={{ opacity: 0.6, fontSize: 13 }}>opcional</span>
       </div>
       <p className="sd-hint" style={{ marginTop: 6 }}>
-        Sube el itinerario del operador (PDF), brochures, imágenes o notas. La IA pre-llena el
-        formulario en voz Caminante — tú revisas, subes las fotos y guardas. No inventa precios
-        ni horarios: lo que no esté en los documentos queda vacío. Word → exportar a PDF. Máx {MAX_MB} MB.
+        Sube el itinerario del operador (PDF, imágenes) <b>o pega el texto</b> abajo. La IA pre-llena
+        el formulario en voz Caminante — tú revisas, subes las fotos y guardas. No inventa precios ni
+        horarios: lo que no esté en el material queda vacío. Word → exportar a PDF. Máx {MAX_MB} MB.
       </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
@@ -107,7 +109,7 @@ export default function PrellenarIA({ onResult }: Props) {
       <textarea
         value={notas}
         onChange={(e) => setNotas(e.target.value)}
-        placeholder="Indicaciones para la IA (opcional). Ej: 'la salida es el domingo 24 de agosto, cupo 17, $2,550 por persona'"
+        placeholder="Pega aquí el itinerario o notas del operador, o da indicaciones. Ej: 'la salida es el domingo 24 de agosto, cupo 17, $2,550 por persona'"
         style={{ width: "100%", marginTop: 10 }}
       />
 
@@ -115,7 +117,7 @@ export default function PrellenarIA({ onResult }: Props) {
         <button
           type="button"
           className="btn btn-orange btn-sm"
-          disabled={!files.length || busy || pasado}
+          disabled={!hayEntrada || busy || pasado}
           onClick={enviar}
         >
           {busy ? "Leyendo documentos…" : "Pre-llenar con IA"}

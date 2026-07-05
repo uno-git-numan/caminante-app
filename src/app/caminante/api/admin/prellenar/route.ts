@@ -43,11 +43,21 @@ export async function POST(request: Request) {
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
   const notas = String(form.get("notas") ?? "");
 
-  if (!files.length) {
+  // Vale con documentos O con texto pegado en indicaciones.
+  if (!files.length && !notas.trim()) {
     return NextResponse.json(
-      { ok: false, error: "Sube al menos un documento (PDF, imagen o texto)." },
+      { ok: false, error: "Sube un documento (PDF/imagen) o pega el texto del itinerario." },
       { status: 400 },
     );
+  }
+  // Solo-texto: el texto pegado ES el contenido → mándalo como documento.
+  if (!files.length) {
+    const res = await prellenarExperiencia(
+      [{ name: "notas.txt", mediaType: "text/plain", text: notas.trim() }],
+      "",
+    );
+    if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 502 });
+    return NextResponse.json({ ok: true, ...res.result });
   }
 
   let total = 0;
