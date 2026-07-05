@@ -567,6 +567,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
                 {ESTADOS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </Field>
+            <Field label="Título de tarjeta" hint="el nombre corto en el home y en el panel"><input type="text" value={exp.cardTitle ?? ""} placeholder="Recolección de Hongos" onChange={(e) => set("cardTitle", e.target.value)} /></Field>
             <Field label="Hook" hint="frase para la tarjeta del home"><input type="text" value={exp.cardHook ?? ""} placeholder="Cuatro días en el Mar de Cortés." onChange={(e) => set("cardHook", e.target.value)} /></Field>
             <Field label="Imagen principal (hero)"><Uploader value={exp.heroImageUrl ?? ""} onChange={(v) => set("heroImageUrl", v)} /></Field>
             <Field label={<>Galería de fotos <span className="optflag">opcional</span></>}>

@@ -125,7 +125,7 @@ const ESQUEMA = obj({
     // deslinde + encuesta
     waiverClauses: arr(s("Resumen de cláusulas del deslinde, una línea cada una")),
     feedbackLocationLabel: s("'Lugar, Estado' para la encuesta"),
-    feedbackSections: arr(obj({ key: s("kebab-case"), label: s(), prompt: s() })),
+    feedbackSections: arr(obj({ key: s("kebab-case"), label: s(), icon: s("UN emoji que represente la sección, p.ej. '🍄', '🥾', '🍳'"), prompt: s() })),
   }),
   slots: arr(obj({
     label: s("Como se muestra al cliente, p.ej. 'Domingo 24 ago' o 'Ago 14–17'"),
@@ -138,7 +138,7 @@ const ESQUEMA = obj({
 
 const SISTEMA = `Eres el editor de contenido de Caminante, la marca de experiencias en naturaleza de NUMAN (México). Tu tarea: leer los documentos del operador (itinerarios, brochures, notas) y pre-llenar el formulario de una experiencia.
 
-Voz de la marca: "científico-poeta" — precisa en los datos, evocadora en el lenguaje. Trato de "tú". Español mexicano. Sin emojis en el contenido. Cada experiencia se cuenta a través de cuatro caras: Naturaleza, Conservación, Comunidades y Problemas (los retos ambientales/sociales del lugar).
+Voz de la marca: "científico-poeta" — precisa en los datos, evocadora en el lenguaje. Trato de "tú". Español mexicano. Sin emojis en el contenido (única excepción: el campo icon de feedbackSections, que ES un emoji). Cada experiencia se cuenta a través de cuatro caras: Naturaleza, Conservación, Comunidades y Problemas (los retos ambientales/sociales del lugar).
 
 Reglas duras:
 - USA SOLO la información de los documentos para datos duros (precios, horarios, fechas, cupos, qué incluye). No inventes datos logísticos.

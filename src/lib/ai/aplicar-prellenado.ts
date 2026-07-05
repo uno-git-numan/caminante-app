@@ -112,7 +112,7 @@ export function aplicarPrellenado(
     priceTiers?: { label: string; amount: string }[];
     waiverClauses?: string[];
     feedbackLocationLabel?: string;
-    feedbackSections?: { key: string; label: string; prompt?: string }[];
+    feedbackSections?: { key: string; label: string; icon?: string; prompt?: string }[];
   };
   const next: Experience = { ...prev };
 
