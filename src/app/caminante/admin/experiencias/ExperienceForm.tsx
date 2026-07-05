@@ -198,19 +198,75 @@ function Field({ label, hint, auto, children }: { label: React.ReactNode; hint?:
     </div>
   );
 }
+// ── Subida de imágenes con compresión en el navegador ──────────────────────
+// Vercel corta cualquier body >~4.5 MB ANTES de llegar a /api/admin/upload,
+// así que las fotos de cámara (4–12 MB) morían en silencio. Aquí se
+// redimensionan a máx 2560px (sobra para web) y se recomprimen a JPEG antes
+// de subir: una foto de 10 MB queda en ~1 MB. Además el sitio carga más rápido.
+async function comprimirImagen(file: File, maxLado = 2560, calidad = 0.82): Promise<Blob | null> {
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" } as ImageBitmapOptions);
+    const esc = Math.min(1, maxLado / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * esc));
+    const h = Math.max(1, Math.round(bmp.height * esc));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close();
+    return await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", calidad));
+  } catch {
+    return null; // formato no decodificable (p.ej. HEIC en Chrome)
+  }
+}
+
+async function subirImagen(file: File): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  let cuerpo: Blob = file;
+  let nombre = file.name;
+  // Comprimir todo lo que pese >1.2 MB (o no sea jpeg/png/webp ya ligero).
+  if (file.size > 1_200_000) {
+    const comp = await comprimirImagen(file);
+    if (comp && comp.size < file.size) {
+      cuerpo = comp;
+      nombre = nombre.replace(/\.[^.]+$/, "") + ".jpg";
+    }
+  }
+  if (cuerpo.size > 4_000_000) {
+    return {
+      ok: false,
+      error:
+        cuerpo === file
+          ? "No pude comprimir este formato (¿HEIC?). Conviértela a JPG o PNG e inténtalo de nuevo."
+          : "La imagen pesa demasiado incluso comprimida. Prueba con una versión más chica.",
+    };
+  }
+  try {
+    const fd = new FormData();
+    fd.append("file", cuerpo, nombre);
+    const res = await fetch("/caminante/api/admin/upload", { method: "POST", body: fd });
+    const j = await res.json().catch(() => null);
+    if (!res.ok || !j?.url) {
+      return { ok: false, error: j?.error || `La subida falló (HTTP ${res.status}). Intenta de nuevo.` };
+    }
+    return { ok: true, url: j.url as string };
+  } catch {
+    return { ok: false, error: "Se cortó la conexión al subir. Intenta de nuevo." };
+  }
+}
+
 function Uploader({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     setBusy(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", f);
-      const res = await fetch("/caminante/api/admin/upload", { method: "POST", body: fd });
-      const j = await res.json();
-      if (j.url) onChange(j.url);
-    } catch { /* noop */ }
+    setErr(null);
+    const r = await subirImagen(f);
+    if (r.ok) onChange(r.url);
+    else setErr(r.error);
     setBusy(false);
     e.target.value = "";
   }
@@ -222,6 +278,7 @@ function Uploader({ value, onChange }: { value: string; onChange: (v: string) =>
       ) : null}
       <input type="url" value={value} placeholder="https://… o sube un archivo" onChange={(e) => onChange(e.target.value)} />
       <label className="filebtn">{busy ? "Subiendo…" : "Subir archivo"}<input type="file" accept="image/*" onChange={onFile} disabled={busy} /></label>
+      {err ? <div style={{ color: "#b33517", fontSize: 12, marginTop: 4 }}>{err}</div> : null}
     </div>
   );
 }
@@ -252,22 +309,23 @@ function PrevBlock({ t, fields }: { t: string; fields: string[] }) {
 }
 function GalleryAdd({ onAdd }: { onAdd: (url: string) => void }) {
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     setBusy(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", f);
-      const res = await fetch("/caminante/api/admin/upload", { method: "POST", body: fd });
-      const j = await res.json();
-      if (j.url) onAdd(j.url);
-    } catch { /* noop */ }
+    setErr(null);
+    const r = await subirImagen(f);
+    if (r.ok) onAdd(r.url);
+    else setErr(r.error);
     setBusy(false);
     e.target.value = "";
   }
   return (
-    <label className="gal-slot">{busy ? "Subiendo…" : "+ Agregar foto"}<input type="file" accept="image/*" onChange={onFile} /></label>
+    <label className="gal-slot" title={err ?? undefined} style={err ? { borderColor: "#b33517", color: "#b33517" } : undefined}>
+      {busy ? "Subiendo…" : err ? "Falló — reintentar" : "+ Agregar foto"}
+      <input type="file" accept="image/*" onChange={onFile} />
+    </label>
   );
 }
 
