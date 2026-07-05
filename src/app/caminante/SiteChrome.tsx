@@ -26,15 +26,16 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/admin/encuesta") ||
     pathname.startsWith("/caminante/admin/dinero") ||
     pathname === "/caminante/admin" || // dashboard: trae su propio shell (AdminShell)
+    pathname === "/caminante/perfil" || // Mi espacio: topbar propio (.mesp)
     pathname === "/caminante/calendario"
   );
 }
 
 export default function SiteChrome({
-  user,
+  role,
   children,
 }: {
-  user: boolean;
+  role: "admin" | "caminante" | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -76,13 +77,13 @@ export default function SiteChrome({
               Reserva tu lugar
             </a>
 
-            {user ? (
+            {role ? (
               <>
                 <Link
-                  href="/caminante/perfil"
+                  href={role === "admin" ? "/caminante/admin" : "/caminante/perfil"}
                   className="ml-1 rounded-full px-3 py-2 text-xs font-medium text-olive hover:text-lagoon"
                 >
-                  Mi perfil
+                  {role === "admin" ? "Panel" : "Mi espacio"}
                 </Link>
                 <form action={signOut}>
                   <button
@@ -93,7 +94,14 @@ export default function SiteChrome({
                   </button>
                 </form>
               </>
-            ) : null}
+            ) : (
+              <Link
+                href="/caminante/entrar"
+                className="ml-1 rounded-full border border-lagoon/25 bg-white/40 px-4 py-2 text-xs font-medium text-lagoon backdrop-blur-sm transition-colors hover:bg-lagoon/5"
+              >
+                Entrar
+              </Link>
+            )}
           </nav>
 
           <button

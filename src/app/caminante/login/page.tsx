@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { sendMagicLink, signInWithPassword } from "@/lib/auth/actions";
+import { getCurrentRole } from "@/lib/auth/authorization";
 import GoogleButton from "./GoogleButton";
 
 interface LoginPageProps {
@@ -27,6 +29,11 @@ function friendlyError(raw: string): string {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { sent, email, error, next } = await searchParams;
   const nextPath = next?.startsWith("/") ? next : "/caminante";
+
+  // Con sesión activa el login no tiene nada que ofrecer: directo a tu página.
+  const role = await getCurrentRole();
+  if (role === "admin") redirect("/caminante/admin");
+  if (role === "caminante") redirect("/caminante/perfil");
 
   return (
     <section className="mx-auto max-w-md px-6 py-12">

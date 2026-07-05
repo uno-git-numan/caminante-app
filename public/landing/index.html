@@ -121,6 +121,15 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .nav.scrolled .nav-links a{color:var(--charcoal);}
 .nav-cta{display:flex;align-items:center;gap:14px;}
 .nav-cta .btn{min-height:42px;padding:0 20px;font-size:14px;}
+/* "Entrar": glass sobre el hero; el nav scrolleado se aclara → versión oscura */
+.nav-cta .btn-entrar{
+  background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.42);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.nav-cta .btn-entrar:hover{background:rgba(255,255,255,.22);}
+.nav.scrolled .btn-entrar{background:rgba(32,33,28,.05);color:var(--charcoal);border-color:rgba(32,33,28,.28);}
+.nav.scrolled .btn-entrar:hover{background:rgba(32,33,28,.11);}
+@media(max-width:619px){.nav-cta .btn-entrar{display:none;}}
 
 .burger{
   display:flex;flex-direction:column;gap:5px;background:none;border:0;cursor:pointer;padding:8px;
@@ -340,6 +349,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
     <a href="#quees">Nosotros</a>
   </div>
   <div class="nav-cta">
+    <a href="/caminante/entrar" class="btn btn-entrar">Entrar</a>
     <a href="#reserva" class="btn btn-orange">Reservar</a>
     <button class="burger" id="burger" aria-label="Abrir menú" aria-expanded="false">
       <span></span><span></span><span></span>
@@ -352,6 +362,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
   <a href="#proximos"><span class="sl">//</span>Calendario</a>
   <a href="#aprende"><span class="sl">//</span>Aprende</a>
   <a href="#quees"><span class="sl">//</span>Nosotros</a>
+  <a href="/caminante/entrar"><span class="sl">//</span>Entrar</a>
   <a href="#reserva" class="btn btn-orange">Reservar</a>
 </div>
 
@@ -645,6 +656,21 @@ function toggleDrawer(open){
 }
 burger.addEventListener('click',()=>toggleDrawer(!drawer.classList.contains('open')));
 drawer.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>toggleDrawer(false)));
+
+/* ---- Sesión: "Entrar" se vuelve "Mi espacio" (o "Panel") si ya entraste ---- */
+(async function(){
+  try{
+    const r=await fetch('/caminante/api/session',{cache:'no-store'});
+    const {role}=await r.json();
+    if(!role) return;
+    const label=role==='admin'?'Panel':'Mi espacio';
+    document.querySelectorAll('a[href="/caminante/entrar"]').forEach(a=>{
+      const sl=a.querySelector('.sl');
+      a.textContent=label;
+      if(sl){a.prepend(sl);} /* el drawer conserva su "//" */
+    });
+  }catch(e){/* sin red o sin sesión: se queda "Entrar" */}
+})();
 </script>
 
 <!-- Disponibilidad en vivo desde la BD (/caminante/api/availability, sin cache).

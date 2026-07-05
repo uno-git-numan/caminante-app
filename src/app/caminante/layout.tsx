@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentRole } from "@/lib/auth/authorization";
 import SiteChrome from "./SiteChrome";
 
 export default async function CaminanteLayout({
@@ -6,7 +6,7 @@ export default async function CaminanteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  const role = await getCurrentRole();
 
-  return <SiteChrome user={Boolean(user)}>{children}</SiteChrome>;
+  return <SiteChrome role={role}>{children}</SiteChrome>;
 }

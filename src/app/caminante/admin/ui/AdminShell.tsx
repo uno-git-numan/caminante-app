@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { signOut } from "@/lib/auth/actions";
 import { ADMIN_CSS } from "./admin-css";
 
 // Shell del dashboard de admin (diseño Claude Design jul 2026). Server
@@ -76,6 +77,11 @@ export default function AdminShell({
             <Link href="/caminante/admin/experiencias/nueva" className="btn btn-orange btn-sm">
               + Experiencia
             </Link>
+            <form action={signOut}>
+              <button type="submit" className="btn btn-glass btn-sm" title="Cerrar sesión">
+                Salir
+              </button>
+            </form>
           </div>
         </div>
         <nav className="nav">
