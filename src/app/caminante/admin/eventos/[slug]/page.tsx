@@ -85,13 +85,23 @@ export default async function EventoDetallePage({
               Editar contenido y fechas
             </Link>
             <a
-              href={`/caminante/experiencias/${ev.slug}`}
+              href={`/caminante/admin/preview/${ev.slug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-glass btn-sm"
             >
-              Ver página
+              Vista previa
             </a>
+            {ev.status === "published" ? (
+              <a
+                href={`/caminante/experiencias/${ev.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-glass btn-sm"
+              >
+                Ver página en vivo
+              </a>
+            ) : null}
             <form action={setExperienceStatusAction}>
               <input type="hidden" name="experienceId" value={ev.id} />
               <input type="hidden" name="slug" value={ev.slug} />

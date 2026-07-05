@@ -858,7 +858,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
 
       <div className="actionbar"><div className="inner">
         <span className={`status${statusOk ? " ok" : ""}`}>
-          {status}{savedSlug ? <> · <a href={`/caminante/experiencias/${savedSlug}`} target="_blank" rel="noopener" style={{ textDecoration: "underline" }}>ver</a></> : null}
+          {status}{savedSlug ? <> · <a href={`/caminante/admin/preview/${savedSlug}`} target="_blank" rel="noopener" style={{ textDecoration: "underline" }}>vista previa</a></> : null}
         </span>
         <div className="grp">
           <button className="btn btn-ghost" type="button" disabled={saving} onClick={() => onSubmit("draft")}>{saving ? "Guardando…" : "Guardar borrador"}</button>
