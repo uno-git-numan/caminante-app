@@ -9,8 +9,6 @@
 // Llamada por HTTP directo (sin @anthropic-ai/sdk): es UNA petición POST y así
 // no agregamos dependencia; si el uso crece, migrar al SDK oficial.
 
-import { ESTADOS } from "@/lib/experiences/estados";
-
 const MODEL = "claude-opus-4-8";
 const API = "https://api.anthropic.com/v1/messages";
 
@@ -53,12 +51,12 @@ const ESQUEMA = obj({
     titleAccent: s("Remate en itálica, minúsculas con punto, p.ej. 'safari.'"),
     subtitle: s(),
     brandSmall: s("Nombre corto de la experiencia, p.ej. 'Ocean Safari'"),
-    docTitle: s("Título de la pestaña: 'Caminante · X — Y'"),
-    edgeLabel: s(),
     vol: s("'Vol. NN · Mes Año' — usa el mes de la primera salida"),
     coords: s("Coordenadas del lugar, p.ej. '23°59′N · 109°50′W'"),
-    // estado: enum cerrado → la API debe elegir uno EXACTO (no "Edo. de México")
-    estado: { type: "string", enum: [...ESTADOS], description: "Estado de México donde ocurre" },
+    // estado: SIN enum (los 33 valores inflaban la gramática compilada y la API
+    // la rechaza por tamaño). La descripción empuja al nombre oficial y
+    // normalizarEstado (aplicar-prellenado) corrige variantes o deja vacío.
+    estado: s("Nombre completo oficial del estado, p.ej. 'Estado de México', 'Baja California Sur'"),
     // card / calendario
     cardTitle: s(),
     cardPloc: s("'Estado · Mes Año'"),
@@ -194,8 +192,15 @@ export async function prellenarExperiencia(
       model: MODEL,
       max_tokens: 16000,
       thinking: { type: "adaptive" },
-      output_config: { effort: "medium", format: { type: "json_schema", schema: ESQUEMA } },
-      system: SISTEMA,
+      // NOTA: sin output_config.format — el esquema completo del form excede el
+      // límite de la gramática compilada de salidas estructuradas ("compiled
+      // grammar is too large", visto 5 jul). El esquema viaja en el system y el
+      // parseo de abajo es tolerante; aplicar-prellenado ignora lo que falte.
+      output_config: { effort: "medium" },
+      system:
+        SISTEMA +
+        "\n\nRESPONDE ÚNICAMENTE con un objeto JSON válido — sin markdown, sin ```, sin texto antes ni después — que cumpla EXACTAMENTE este JSON Schema (todas las claves presentes; lo que no sepas va como cadena o lista vacía):\n" +
+        JSON.stringify(ESQUEMA),
       messages: [{ role: "user", content: bloques }],
     }),
   });
@@ -211,12 +216,26 @@ export async function prellenarExperiencia(
 
   const texto = (json?.content || []).find(
     (b: { type: string; text?: string }) => b.type === "text",
-  )?.text;
+  )?.text as string | undefined;
   if (!texto) return { ok: false, error: "La IA no devolvió contenido. Intenta de nuevo." };
 
+  // Parseo tolerante: del primer "{" al último "}" (por si el modelo agrega
+  // texto o cercas de markdown a pesar de la instrucción).
+  const ini = texto.indexOf("{");
+  const fin = texto.lastIndexOf("}");
+  if (ini === -1 || fin <= ini) {
+    return { ok: false, error: "La respuesta de la IA no se pudo leer. Intenta de nuevo." };
+  }
   try {
-    const parsed = JSON.parse(texto) as PrellenadoIA;
-    return { ok: true, result: parsed };
+    const parsed = JSON.parse(texto.slice(ini, fin + 1)) as PrellenadoIA;
+    return {
+      ok: true,
+      result: {
+        data: parsed.data ?? {},
+        slots: Array.isArray(parsed.slots) ? parsed.slots : [],
+        notas: typeof parsed.notas === "string" ? parsed.notas : "",
+      },
+    };
   } catch {
     return { ok: false, error: "La respuesta de la IA no se pudo leer. Intenta de nuevo." };
   }
