@@ -489,10 +489,20 @@ export default function ExperienceTemplate({ experience: raw }: { experience: Ex
         <div className="prac-grid">
           {e.price ? (
             <aside className="cost-panel reveal">
-              <div className="label">Inversión por persona</div>
+              <div className="label">{e.priceTiers && e.priceTiers.length ? "Inversión desde" : "Inversión por persona"}</div>
               <div className="big">{e.price.amount}</div>
               <div className="cur">{e.price.currency}</div>
               <p className="desc">{e.price.desc}</p>
+              {e.priceTiers && e.priceTiers.length ? (
+                <div style={{ marginTop: 14, borderTop: "1px solid rgba(255,255,255,.18)", paddingTop: 12 }}>
+                  {e.priceTiers.map((t, i) => (
+                    <div className="row" key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", fontSize: 14 }}>
+                      <span>{t.label}</span>
+                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>${t.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <div className="cancel">
                 <div className="ct">Políticas de cancelación</div>
                 {e.cancelacion.map((c, i) => (

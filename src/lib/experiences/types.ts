@@ -77,6 +77,11 @@ export type Experience = {
   email: string;
   instagram: string; // handle without @
   price?: { amount: string; currency: string; desc: string };
+  // Niveles de precio opcionales (ej. Habitación compartida / sencilla). `price`
+  // es el precio base/"desde"; `priceTiers` lista los montos por persona de cada
+  // nivel. Se muestran en la página; el cobro del nivel elegido se resuelve en el
+  // checkout (server-side, por índice — nunca desde el cliente).
+  priceTiers?: { label: string; amount: string }[];
   stripeLink?: string | null; // generated later
 
   // registro nativo (deslinde + firma en /caminante/registro/[slug])

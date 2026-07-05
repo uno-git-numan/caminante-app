@@ -14,6 +14,7 @@ import PrellenarIA from "./PrellenarIA";
 import { aplicarPrellenado, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
+import { ESTADOS } from "@/lib/experiences/estados";
 import { saveExperienceSlots } from "@/lib/experiences/slots-admin";
 import type { Experience, Day, GearCategory, Ally, Faq, FreeBlock } from "@/lib/experiences/types";
 
@@ -28,7 +29,7 @@ const G3 =
   '<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
 const MARK = `<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">${G1}${G2}${G3}</svg>`;
 
-const ESTADOS = ["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas","Otro"];
+// ESTADOS ahora vive en @/lib/experiences/estados (compartido con la IA).
 
 // Clonar desde plantilla — precarga los campos básicos + salidas.
 const TPL: Record<string, { exp: Partial<Experience>; slots: SlotRow[]; cupo: string }> = {
@@ -282,6 +283,12 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   const [statusOk, setStatusOk] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!initial);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
+  // Guarda anti-sobrescritura: cuando el slug ya existe, guardamos aquí la
+  // experiencia lista y el status para reintentar con confirmación explícita.
+  const [pendienteSobrescribir, setPendienteSobrescribir] = useState<{
+    exp: Experience;
+    st: Experience["status"];
+  } | null>(null);
 
   function set<K extends keyof Experience>(k: K, v: Experience[K]) { setExp((p) => ({ ...p, [k]: v })); }
   const reg = exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [] };
@@ -290,6 +297,8 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   const setReg = (patch: Partial<typeof reg>) => set("registration", { ...reg, ...patch });
   const setFb = (patch: Partial<typeof fb>) => set("feedback", { ...fb, ...patch });
   const setPrice = (patch: Partial<typeof price>) => set("price", { ...price, ...patch });
+  const priceTiers = exp.priceTiers ?? [];
+  const setTiers = (v: { label: string; amount: string }[]) => set("priceTiers", v);
 
   const gallery = exp.gallery ?? [];
   const bloques = exp.bloques ?? [];
@@ -325,19 +334,30 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
     setStatus("Pre-llenado con IA — revisa antes de guardar");
   }
 
-  async function onSubmit(st: Experience["status"]) {
+  // Guardado real (ya con la experiencia armada). allowOverwrite viene del
+  // botón de confirmación cuando el slug ya existía.
+  async function guardar(filled: Experience, st: Experience["status"], allowOverwrite: boolean) {
     setSaving(true);
-    const slug = (autoSlug ? suggestedSlug : (exp.slug ?? "")).trim();
-    const filled: Experience = {
-      ...exp, slug, status: st,
-      docTitle: exp.docTitle || `Caminante · ${exp.title} ${exp.titleAccent ?? ""} — ${exp.subtitle ?? ""}`.trim(),
-      edgeLabel: exp.edgeLabel || `Caminante · ${exp.brandSmall || exp.title}`.trim(),
-      footerBrand: exp.footerBrand || `Caminante · ${exp.brandSmall || exp.title}`.trim(),
-    };
-    const res = await saveExperience(filled);
+    const res = await saveExperience(filled, {
+      expectedSlug: initial?.slug ?? null,
+      allowOverwrite,
+    });
     const t = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-    if (!res.ok) { setSaving(false); setStatusOk(false); setStatus(`Error: ${res.error}`); return; }
-    setExp(filled); setSavedSlug(res.slug);
+    if (!res.ok) {
+      setSaving(false);
+      setStatusOk(false);
+      if (res.code === "slug_exists") {
+        // Pedir confirmación en vez de fallar: guardamos lo listo para reintentar.
+        setPendienteSobrescribir({ exp: filled, st });
+        setStatus(res.error);
+      } else {
+        setStatus(`Error: ${res.error}`);
+      }
+      return;
+    }
+    setPendienteSobrescribir(null);
+    setExp(filled);
+    setSavedSlug(res.slug);
     // Salidas → experience_slots (fuera del jsonb)
     const slotInputs = slots
       .filter((s) => s.label.trim() && s.start)
@@ -353,6 +373,17 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
     setStatusOk(slotRes.ok);
     if (!slotRes.ok) { setStatus(`Guardada, pero las fechas fallaron: ${slotRes.error}`); return; }
     setStatus(st === "published" ? `✓ Experiencia publicada · ${t}` : `✓ Borrador guardado · ${t}`);
+  }
+
+  async function onSubmit(st: Experience["status"]) {
+    const slug = (autoSlug ? suggestedSlug : (exp.slug ?? "")).trim();
+    const filled: Experience = {
+      ...exp, slug, status: st,
+      docTitle: exp.docTitle || `Caminante · ${exp.title} ${exp.titleAccent ?? ""} — ${exp.subtitle ?? ""}`.trim(),
+      edgeLabel: exp.edgeLabel || `Caminante · ${exp.brandSmall || exp.title}`.trim(),
+      footerBrand: exp.footerBrand || `Caminante · ${exp.brandSmall || exp.title}`.trim(),
+    };
+    await guardar(filled, st, false);
   }
 
   const setItin = (v: Day[]) => set("itinerario", v);
@@ -376,6 +407,39 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
           <button className="btn btn-orange btn-sm" type="button" disabled={saving} onClick={() => onSubmit("published")}>Publicar</button>
         </div>
       </header>
+
+      {pendienteSobrescribir ? (
+        <div
+          style={{
+            margin: "12px 20px 0", padding: "12px 16px", borderRadius: 12,
+            border: "1px solid rgba(255,93,54,.4)", background: "rgba(255,93,54,.08)",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            gap: 14, flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontSize: 13.5, color: "#b33517" }}>⚠️ {status}</span>
+          <span style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={saving}
+              onClick={() => { setPendienteSobrescribir(null); setStatus("Sin guardar"); }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-orange btn-sm"
+              disabled={saving}
+              onClick={() =>
+                guardar(pendienteSobrescribir.exp, pendienteSobrescribir.st, true)
+              }
+            >
+              Sí, sobrescribir
+            </button>
+          </span>
+        </div>
+      ) : null}
 
       <div className="wrap">
         <nav className="index">
@@ -598,11 +662,26 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
 
           {/* 09 · PRECIO */}
           <section className="card" id="s9">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio</h2><p className="desc">El precio por persona. El cobro se hace con el checkout de la página (Reservar y pagar).</p></div>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio</h2><p className="desc">El precio base por persona. El cobro se hace con el checkout de la página (Reservar y pagar). Si hay varios tipos (ej. habitación compartida / sencilla), agrégalos como niveles abajo.</p></div>
             <div className="row c3">
-              <Field label="Monto"><input type="number" value={price.amount} placeholder="18560" onChange={(e) => setPrice({ amount: e.target.value })} /></Field>
+              <Field label={priceTiers.length ? "Monto base (desde)" : "Monto"}><input type="number" value={price.amount} placeholder="11500" onChange={(e) => setPrice({ amount: e.target.value })} /></Field>
               <Field label="Moneda" auto><input type="text" value={price.currency} onChange={(e) => setPrice({ currency: e.target.value })} /></Field>
               <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <div className="sec-head" style={{ marginBottom: 8 }}>
+                <span className="eyebrow"><span className="sl">{"//"}</span> Niveles</span>
+                <p className="desc">Opcional. Cada nivel es un precio por persona (ej. Habitación compartida $11,500 / sencilla $15,000). Se muestran en la página; el cliente elige y paga el nivel en el checkout.</p>
+              </div>
+              {priceTiers.map((t, i) => (
+                <div className="row" key={i} style={{ alignItems: "flex-end", marginBottom: 8 }}>
+                  <Field label="Nivel"><input type="text" value={t.label} placeholder="Habitación compartida" onChange={(e) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></Field>
+                  <Field label="Monto por persona"><input type="number" value={t.amount} placeholder="11500" onChange={(e) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} /></Field>
+                  <button type="button" className="rm" onClick={() => setTiers(priceTiers.filter((_, j) => j !== i))}>Quitar</button>
+                </div>
+              ))}
+              <button type="button" className="add" onClick={() => setTiers([...priceTiers, { label: "", amount: "" }])}>+ Agregar nivel</button>
             </div>
           </section>
 

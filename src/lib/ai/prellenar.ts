@@ -9,6 +9,8 @@
 // Llamada por HTTP directo (sin @anthropic-ai/sdk): es UNA petición POST y así
 // no agregamos dependencia; si el uso crece, migrar al SDK oficial.
 
+import { ESTADOS } from "@/lib/experiences/estados";
+
 const MODEL = "claude-opus-4-8";
 const API = "https://api.anthropic.com/v1/messages";
 
@@ -55,42 +57,50 @@ const ESQUEMA = obj({
     edgeLabel: s(),
     vol: s("'Vol. NN · Mes Año' — usa el mes de la primera salida"),
     coords: s("Coordenadas del lugar, p.ej. '23°59′N · 109°50′W'"),
-    estado: s("Estado de México EXACTO, p.ej. 'Baja California Sur'"),
+    // estado: enum cerrado → la API debe elegir uno EXACTO (no "Edo. de México")
+    estado: { type: "string", enum: [...ESTADOS], description: "Estado de México donde ocurre" },
     // card / calendario
     cardTitle: s(),
     cardPloc: s("'Estado · Mes Año'"),
     cardHook: s("Gancho de una línea para la tarjeta del landing"),
-    // comercio
-    price: obj({ amount: s("Solo el número, p.ej. '2,550'"), currency: s("p.ej. 'MXN · por persona'"), desc: s("Qué cubre el precio, una línea") }),
-    // contexto (CAP 01)
+    // comercio. price = precio base/'desde'. Si hay varios niveles (tipo de
+    // habitación, categoría), lístalos en priceTiers y usa el MÁS BAJO como amount.
+    price: obj({
+      amount: s("Solo el número del precio base/más bajo, p.ej. '11,500'"),
+      currency: { type: "string", enum: ["MXN · por persona", "USD · por persona"], description: "Moneda" },
+      desc: s("Qué cubre el precio, una línea"),
+    }),
+    priceTiers: arr(obj({
+      label: s("Nombre del nivel, p.ej. 'Habitación compartida'"),
+      amount: s("Solo el número, p.ej. '15,000'"),
+    })),
+    // contexto (CAP 01). 'no' NO se pide: se estampa por índice en el código.
     contextTitle: s(),
     contextTitleAccent: s(),
     contextLead: s(),
-    context: arr(obj({ no: s("'01'"), title: s(), sub: s(), body: s() })),
-    // cuatro caras
+    context: arr(obj({ title: s(), sub: s(), body: s() })),
+    // cuatro caras. caraNo NO se pide: se estampa por índice.
     carasIntro: s(),
     lenses: arr(obj({
       key: { type: "string", enum: ["naturaleza", "conservacion", "comunidades", "problemas"] },
-      caraNo: s("'Cara 01'…'Cara 04'"),
       label: s(),
       title: s(),
       body: s(),
       facts: arr(obj({ n: s("dato/número"), l: s("etiqueta") })),
     })),
-    // la experiencia (CAP 02)
+    // la experiencia (CAP 02). num NO se pide: se estampa por índice.
     vivirTitle: s(),
     vivirTitleAccent: s(),
     vivirLead: s(),
     expIntro: s(),
-    vivir: arr(obj({ num: s("'01'"), pill: s("etiqueta corta"), title: s(), body: s() })),
+    vivir: arr(obj({ pill: s("etiqueta corta"), title: s(), body: s() })),
     // aliados (CAP 03)
     aliadosLead: s(),
     aliados: arr(obj({ role: s(), name: s(), body: s(), peopleLabel: s(), people: s() })),
-    // itinerario (CAP 04)
+    // itinerario (CAP 04). dno NO se pide: se estampa por índice ('Día 01').
     itinerarioLead: s(),
     itinerario: arr(obj({
-      dno: s("'Día 01'"),
-      dname: s("nombre del día"),
+      dname: s("nombre del día, p.ej. 'Bosque + Hacienda'"),
       beats: arr(obj({ t: s("hora, p.ej. '07:30'"), d: s("descripción") })),
     })),
     // impacto (CAP 05)
@@ -138,7 +148,8 @@ Reglas duras:
 - El copy NO debe llevar fechas ni conteos dentro de los textos (regla del sitio: las fechas viven solo en las salidas/slots). Excepciones: vol, cardPloc y datesBadge, que sí llevan mes/fechas.
 - Si un dato no aparece en los documentos, devuelve cadena vacía o lista vacía y explícalo en "notas".
 - Las 4 lenses siempre en el orden: naturaleza, conservacion, comunidades, problemas.
-- Fechas de salidas: usa el año correcto (si el documento no lo dice, asume la próxima ocurrencia futura).`;
+- PRECIOS: si el material trae varios precios (tipo de habitación, categoría, etc.), pon cada uno en priceTiers (label + monto) y usa el MÁS BAJO como price.amount. Si hay un solo precio, deja priceTiers vacío.
+- FECHAS de salidas: llénalas SOLO si el documento da una fecha concreta (día y mes). Si solo dice una temporada o "por confirmar", deja slots VACÍO y dilo en notas — NO inventes una fecha.`;
 
 type BloqueContenido =
   | { type: "document"; source: { type: "base64"; media_type: string; data: string } }
