@@ -288,8 +288,10 @@ function PrevBlock({ t, fields }: { t: string; fields: string[] }) {
   );
 }
 // Casilla "+ Agregar fotos" con selección MÚLTIPLE: sube en serie (comprimiendo
-// cada una) y va agregando conforme terminan; los errores se acumulan visibles.
-function MultiAdd({ onAdd }: { onAdd: (url: string) => void }) {
+// cada una) y al terminar agrega TODAS de una vez (una sola actualización de
+// estado — si se agregaran una por una, el closure con la lista del render se
+// pisaría y solo sobreviviría la última). Los errores se acumulan visibles.
+function MultiAdd({ onAddMany }: { onAddMany: (urls: string[]) => void }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
@@ -297,13 +299,15 @@ function MultiAdd({ onAdd }: { onAdd: (url: string) => void }) {
     e.target.value = "";
     if (!files.length) return;
     setErr(null);
+    const urls: string[] = [];
     const errores: string[] = [];
     for (let i = 0; i < files.length; i++) {
       setBusy(files.length > 1 ? `Subiendo ${i + 1}/${files.length}…` : "Subiendo…");
       const r = await subirImagen(files[i]);
-      if (r.ok) onAdd(r.url);
+      if (r.ok) urls.push(r.url);
       else errores.push(`${files[i].name}: ${r.error}`);
     }
+    if (urls.length) onAddMany(urls);
     setBusy(null);
     if (errores.length) setErr(errores.join(" · "));
   }
@@ -326,7 +330,7 @@ function PhotoList({ images, onChange }: { images: V2Image[]; onChange: (v: V2Im
           <button type="button" className="rm" onClick={() => onChange(conUrl.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <MultiAdd onAdd={(url) => onChange([...conUrl, { url, alt: "" }])} />
+      <MultiAdd onAddMany={(urls) => onChange([...conUrl, ...urls.map((url) => ({ url, alt: "" }))])} />
     </div>
   );
 }
@@ -602,7 +606,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
                     <button type="button" className="rm" onClick={() => set("gallery", gallery.filter((_, j) => j !== i))}>✕</button>
                   </div>
                 ))}
-                <MultiAdd onAdd={(url) => setExp((p) => ({ ...p, gallery: [...(p.gallery ?? []), url] }))} />
+                <MultiAdd onAddMany={(urls) => setExp((p) => ({ ...p, gallery: [...(p.gallery ?? []), ...urls] }))} />
               </div>
             </Field>
             <Field label="Slug" hint="se genera del título de la portada, editable">
