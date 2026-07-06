@@ -7,7 +7,9 @@ import Link from "next/link";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Experience } from "@/lib/experiences/types";
+import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import ExperienceTemplate from "../../../experiencias/[slug]/ExperienceTemplate";
+import ExperienceTemplateV2 from "../../../experiencias/[slug]/ExperienceTemplateV2";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +24,18 @@ export default async function PreviewPage({
   const sb = createSupabaseAdminClient();
   const { data: row } = await sb
     .from("experiences")
-    .select("data, status")
+    .select("id, data, status")
     .eq("slug", slug)
     .maybeSingle();
   if (!row?.data) notFound();
 
   const e = row.data as Experience;
   const esBorrador = row.status !== "published";
+  // Diseño v2: mismas fechas en vivo que la página pública (funciona con borradores).
+  const slots =
+    e.design === "v2"
+      ? await fetchOpenSlotsForTemplate((row as { id: string }).id)
+      : [];
 
   return (
     <div>
@@ -54,7 +61,11 @@ export default async function PreviewPage({
           Seguir editando
         </Link>
       </div>
-      <ExperienceTemplate experience={e} />
+      {e.design === "v2" ? (
+        <ExperienceTemplateV2 experience={e} slots={slots} />
+      ) : (
+        <ExperienceTemplate experience={e} />
+      )}
     </div>
   );
 }

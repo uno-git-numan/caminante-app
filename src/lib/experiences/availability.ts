@@ -66,6 +66,57 @@ export async function fetchSlotAvailability(
   return map;
 }
 
+// Salidas ABIERTAS de UNA experiencia (por id) con label + disponibilidad,
+// ordenadas por fecha. Sirve a la plantilla v2 tanto en la página pública
+// (experiencia ya publicada) como en la vista previa de un borrador — por eso
+// NO filtra por status de la experiencia (el llamador ya decidió el acceso).
+export async function fetchOpenSlotsForTemplate(
+  experienceId: string,
+): Promise<SlotAvailabilityPublic[]> {
+  const sb = createSupabaseAdminClient();
+  const [{ data: slots }, { data: resv }] = await Promise.all([
+    sb
+      .from("experience_slots")
+      .select("id, label, starts_at, ends_at, capacity_total, status")
+      .eq("experience_id", experienceId)
+      .eq("status", "open")
+      .order("starts_at", { ascending: true }),
+    sb
+      .from("reservations")
+      .select("slot_id, num_people, status")
+      .eq("experience_id", experienceId)
+      .in("status", HOLDING_STATUSES),
+  ]);
+
+  const taken = new Map<string, number>();
+  for (const r of resv || []) {
+    const sid = (r as { slot_id: string | null }).slot_id;
+    if (sid) taken.set(sid, (taken.get(sid) || 0) + (((r as { num_people: number }).num_people) || 0));
+  }
+
+  return (slots || []).map((s) => {
+    const row = s as {
+      id: string;
+      label: string | null;
+      starts_at: string | null;
+      ends_at: string | null;
+      capacity_total: number | null;
+    };
+    const cap = row.capacity_total;
+    const t = taken.get(row.id) || 0;
+    const available = cap === null ? null : Math.max(0, cap - t);
+    return {
+      id: row.id,
+      label: row.label || "",
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      capacity: cap,
+      available,
+      soldOut: available !== null && available <= 0,
+    };
+  });
+}
+
 // Disponibilidad pública de TODAS las experiencias publicadas (para tarjetas del
 // home / calendario). Devuelve por slug sus salidas abiertas con cupo y disponibles.
 export async function fetchPublicAvailability(): Promise<ExperienceAvailability[]> {

@@ -24,6 +24,29 @@ export async function fetchExperienceBySlug(slug: string): Promise<Experience | 
   return seedBySlug(slug);
 }
 
+// Igual que fetchExperienceBySlug pero devuelve también el id de la fila (para
+// consultar sus salidas). Solo experiencias publicadas; sin fallback al seed
+// (el seed no tiene id de BD). Lo usa la página pública del diseño v2.
+export async function fetchPublishedExperienceRow(
+  slug: string,
+): Promise<{ id: string; experience: Experience } | null> {
+  try {
+    const sb = await createSupabaseServerClient();
+    const { data, error } = await sb
+      .from("experiences")
+      .select("id, data, status")
+      .eq("slug", slug)
+      .eq("status", "published")
+      .maybeSingle();
+    if (!error && data?.data) {
+      return { id: (data as { id: string }).id, experience: data.data as Experience };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export async function fetchPublishedExperiences(): Promise<Experience[]> {
   try {
     const sb = await createSupabaseServerClient();

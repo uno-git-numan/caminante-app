@@ -18,15 +18,11 @@ const nextConfig: NextConfig = {
           source: "/caminante/destinos/estado-de-mexico",
           destination: "/landing/destinos/estado-de-mexico.html",
         },
-        // Página de experiencia estática (intercepta antes del template dinámico [slug]).
-        {
-          source: "/caminante/experiencias/ensenada-de-muertos",
-          destination: "/landing/experiencias/ensenada-de-muertos.html",
-        },
-        {
-          source: "/caminante/experiencias/recoleccion-de-hongos",
-          destination: "/landing/experiencias/recoleccion-de-hongos.html",
-        },
+        // NOTA (jul 2026): ensenada-de-muertos y recoleccion-de-hongos YA NO se
+        // reescriben al HTML estático. Ahora las sirve el template dinámico v2
+        // (data.design === "v2" → ExperienceTemplateV2), pixel-idéntico al diseño
+        // bespoke pero leyendo de la BD (fechas/cupo en vivo). El HTML estático
+        // queda en public/landing/experiencias/*.html como respaldo/referencia.
       ],
       afterFiles: [],
       fallback: [],
