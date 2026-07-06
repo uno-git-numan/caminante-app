@@ -20,6 +20,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/registro/") ||
     pathname.startsWith("/caminante/admin/experiencias") ||
     pathname.startsWith("/caminante/admin/preview") || // vista previa de borradores
+    pathname.startsWith("/caminante/admin/print") || // versión imprimible (→ PDF)
 
     pathname.startsWith("/caminante/admin/eventos") || // dashboard (AdminShell)
     pathname.startsWith("/caminante/admin/reservas") ||

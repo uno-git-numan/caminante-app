@@ -92,6 +92,24 @@ export default async function EventoDetallePage({
             >
               Vista previa
             </a>
+            <a
+              href={`/caminante/admin/print/${ev.slug}?o=v`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-glass btn-sm"
+              title="Abre la versión imprimible en vertical; elige “Guardar como PDF” para compartir"
+            >
+              PDF vertical
+            </a>
+            <a
+              href={`/caminante/admin/print/${ev.slug}?o=h`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-glass btn-sm"
+              title="Abre la versión imprimible en horizontal; elige “Guardar como PDF” para compartir"
+            >
+              PDF horizontal
+            </a>
             {ev.status === "published" ? (
               <a
                 href={`/caminante/experiencias/${ev.slug}`}
