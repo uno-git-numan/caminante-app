@@ -70,7 +70,9 @@ export type V2Draft = {
     title: string;
     titleAccent: string;
     bg: V2Image;
-    days: { num: string; lab: string; ttl: string; items: string[] }[];
+    // Cada momento = hora (opcional) + descripción; se combinan a "**hora** desc"
+    // para el bloque (la plantilla renderiza la hora en negrita).
+    days: { num: string; lab: string; ttl: string; items: { t: string; d: string }[] }[];
   };
   tariff: {
     on: boolean;
@@ -130,6 +132,20 @@ export type V2Draft = {
 const img = (): V2Image => ({ url: "", alt: "" });
 const has = (s: string | undefined) => !!(s && s.trim());
 const cleanImgs = (arr: V2Image[]) => arr.filter((i) => has(i.url));
+
+// Momento del itinerario ↔ string del bloque. hora → **negrita**.
+export function parseBeat(s: string): { t: string; d: string } {
+  const m = s.match(/^\s*\*\*(.+?)\*\*\s*(.*)$/);
+  if (m) return { t: m[1].trim(), d: m[2].trim() };
+  return { t: "", d: s.trim() };
+}
+export function joinBeat(b: { t: string; d: string }): string {
+  const t = b.t.trim();
+  const d = b.d.trim();
+  if (t && d) return `**${t}** ${d}`;
+  if (t) return `**${t}**`;
+  return d;
+}
 
 // Contactos por defecto del cierre, a partir de los datos de marca de la experiencia.
 function defaultContacts(exp?: Partial<Experience>): { lbl: string; val: string }[] {
@@ -243,12 +259,12 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
 
   // itinerario
   const days = d.itinerary.days
-    .filter((x) => has(x.lab) || x.items.some((i) => has(i)))
+    .filter((x) => has(x.lab) || x.items.some((i) => has(i.d) || has(i.t)))
     .map((x) => ({
       ...(has(x.num) ? { num: x.num } : {}),
       lab: x.lab,
       ...(has(x.ttl) ? { ttl: x.ttl } : {}),
-      items: x.items.filter((i) => has(i)),
+      items: x.items.filter((i) => has(i.d) || has(i.t)).map(joinBeat),
     }));
   if (d.itinerary.on && days.length) {
     blocks.push({
@@ -374,7 +390,7 @@ export function draftFromBlocks(page: PageV2 | undefined, exp?: Partial<Experien
         d.statement = { on: true, eyebrowPre: b.eyebrowPre || "", eyebrow: b.eyebrow, title: b.title, titleAccent: b.titleAccent || "", body: b.body || "", quote: b.quote || "", bg: b.bg };
         break;
       case "itinerary":
-        d.itinerary = { on: true, eyebrow: b.eyebrow, title: b.title, titleAccent: b.titleAccent || "", bg: b.bg, days: b.days.map((x) => ({ num: x.num || "", lab: x.lab, ttl: x.ttl || "", items: x.items })) };
+        d.itinerary = { on: true, eyebrow: b.eyebrow, title: b.title, titleAccent: b.titleAccent || "", bg: b.bg, days: b.days.map((x) => ({ num: x.num || "", lab: x.lab, ttl: x.ttl || "", items: (x.items.length ? x.items : [""]).map(parseBeat) })) };
         break;
       case "tariff":
         d.tariff = { on: true, eyebrow: b.eyebrow, title: b.title, titleAccent: b.titleAccent || "", lead: b.lead || "", tier: b.tier, price: b.price, priceCur: b.priceCur || "", availK: b.availK || "", availV: b.availV || "" };

@@ -304,7 +304,29 @@ function ItineraryBlock({ b, secnum }: { b: V2Itinerary; secnum: string }) {
   );
 }
 
-function TariffBlock({ b, secnum }: { b: V2Tariff; secnum: string }) {
+function money(a: string): string {
+  const digits = a.replace(/[^\d]/g, "");
+  if (!digits) return a;
+  return "$" + Number(digits).toLocaleString("es-MX");
+}
+
+function TariffBlock({
+  b,
+  secnum,
+  tiers,
+}: {
+  b: V2Tariff;
+  secnum: string;
+  tiers?: { label: string; amount: string }[];
+}) {
+  const levels = (tiers ?? []).filter((t) => t.label?.trim() && t.amount?.trim());
+  const lowest =
+    levels.length > 0
+      ? levels
+          .map((t) => Number(t.amount.replace(/[^\d]/g, "")))
+          .filter((n) => n > 0)
+          .sort((x, y) => x - y)[0]
+      : null;
   return (
     <section className="section invest">
       <div className="container grid">
@@ -324,9 +346,30 @@ function TariffBlock({ b, secnum }: { b: V2Tariff; secnum: string }) {
         </div>
         <div className="tariff">
           <div className="tier">{b.tier}</div>
-          <div className="price">
-            {b.price} {b.priceCur ? <span className="cur">{b.priceCur}</span> : null}
-          </div>
+          {levels.length > 0 ? (
+            <>
+              <div className="price">
+                Desde {lowest ? money(String(lowest)) : b.price}{" "}
+                {b.priceCur ? <span className="cur">{b.priceCur}</span> : null}
+              </div>
+              <div style={{ marginTop: 18 }}>
+                {levels.map((t, i) => (
+                  <div
+                    key={i}
+                    className="avail"
+                    style={{ marginTop: i === 0 ? 0 : 0, paddingTop: 14 }}
+                  >
+                    <span className="k">{t.label}</span>
+                    <span className="v">{money(t.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="price">
+              {b.price} {b.priceCur ? <span className="cur">{b.priceCur}</span> : null}
+            </div>
+          )}
           {b.availK || b.availV ? (
             <div className="avail">
               <span className="k">{b.availK}</span>
@@ -610,7 +653,7 @@ export default function ExperienceTemplateV2({
           case "itinerary":
             return <ItineraryBlock key={i} b={b} secnum={secnum} />;
           case "tariff":
-            return <TariffBlock key={i} b={b} secnum={secnum} />;
+            return <TariffBlock key={i} b={b} secnum={secnum} tiers={experience.priceTiers} />;
           case "checklist":
             return <ChecklistBlock key={i} b={b} secnum={secnum} />;
           case "faq":

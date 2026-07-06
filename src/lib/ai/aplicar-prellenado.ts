@@ -11,7 +11,7 @@
 
 import type { Experience } from "@/lib/experiences/types";
 import type { V2Draft, V2GuideDraft } from "@/lib/experiences/page-v2";
-import { emptyGuide } from "@/lib/experiences/page-v2";
+import { emptyGuide, parseBeat } from "@/lib/experiences/page-v2";
 import type { SlotIA } from "./prellenar";
 import { ESTADOS } from "@/lib/experiences/estados";
 
@@ -224,7 +224,10 @@ export function aplicarPrellenadoV2(
       titleAccent: lleno(it.titleAccent) ? it.titleAccent! : draft.itinerary.titleAccent,
       days: (it.days ?? [])
         .filter((x) => lleno(x.lab) || lleno(x.items))
-        .map((x) => ({ num: str(x.num), lab: str(x.lab), ttl: str(x.ttl), items: strs(x.items) })),
+        .map((x) => {
+          const items = strs(x.items).map(parseBeat);
+          return { num: str(x.num), lab: str(x.lab), ttl: str(x.ttl), items: items.length ? items : [{ t: "", d: "" }] };
+        }),
       // bg se conserva
     };
   }

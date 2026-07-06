@@ -746,13 +746,22 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
                     <Field label="Título corto" hint="opcional"><input type="text" value={d.ttl} placeholder="Encuentro" onChange={(e) => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, ttl: e.target.value } : x)))} /></Field>
                   </div>
                   <div className="nested">
-                    <div className="nlabel">Momentos — usa **negritas** para horas, ej. **6:30** Meditación</div>
-                    <StrList items={d.items} onChange={(items) => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, items } : x)))} placeholder="**6:30** Meditación Numan al amanecer" />
+                    <div className="nlabel">Momentos del día</div>
+                    <div className="rep-items">
+                      {d.items.map((b, k) => (
+                        <div key={k} className="rep-row">
+                          <input type="text" placeholder="6:30" style={{ maxWidth: 130 }} value={b.t} onChange={(e) => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, items: x.items.map((y, l) => (l === k ? { ...y, t: e.target.value } : y)) } : x)))} />
+                          <input type="text" className="grow" placeholder="Descripción del momento" value={b.d} onChange={(e) => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, items: x.items.map((y, l) => (l === k ? { ...y, d: e.target.value } : y)) } : x)))} />
+                          <button type="button" className="rm" onClick={() => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, items: x.items.filter((_, l) => l !== k) } : x)))}>Quitar</button>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" className="add" onClick={() => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, items: [...x.items, { t: "", d: "" }] } : x)))}>+ Agregar momento</button>
                   </div>
                 </div>
               ))}
             </div>
-            <button type="button" className="add" onClick={() => setItinDays([...itinDays, { num: "", lab: "", ttl: "", items: [""] }])}>+ Agregar día / momento</button>
+            <button type="button" className="add" onClick={() => setItinDays([...itinDays, { num: "", lab: "", ttl: "", items: [{ t: "", d: "" }] }])}>+ Agregar día / momento</button>
           </section>
 
           {/* 07 · INVERSIÓN */}
@@ -772,6 +781,21 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               <Field label="Dato — etiqueta"><input type="text" value={v2.tariff.availK} placeholder="Cupo" onChange={(e) => upd("tariff", { availK: e.target.value })} /></Field>
               <Field label="Dato — valor"><input type="text" value={v2.tariff.availV} placeholder="17 personas" onChange={(e) => upd("tariff", { availV: e.target.value })} /></Field>
             </div>
+
+            <div className="subhead">Tipos de precio <span className="optflag">opcional</span></div>
+            <p className="desc" style={{ marginTop: -4, marginBottom: 12 }}>
+              Para experiencias con varios precios (ej. <b>Habitación compartida</b> / <b>Habitación individual</b>). Cada tipo se muestra en la tarjeta de la página (&quot;Desde $…&quot; + la lista) y el cliente elige y <b>paga</b> ese tipo en el checkout. Si agregas tipos, el precio de arriba se ignora en la página. Déjalo vacío si solo hay un precio.
+            </p>
+            {priceTiers.map((t, i) => (
+              <div className="row c2" key={i} style={{ alignItems: "flex-end", marginBottom: 8 }}>
+                <Field label="Tipo"><input type="text" value={t.label} placeholder="Habitación compartida" onChange={(e) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></Field>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                  <Field label="Monto por persona"><input type="number" value={t.amount} placeholder="11500" onChange={(e) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} /></Field>
+                  <button type="button" className="rm" style={{ marginBottom: 16 }} onClick={() => setTiers(priceTiers.filter((_, j) => j !== i))}>Quitar</button>
+                </div>
+              </div>
+            ))}
+            <button type="button" className="add" onClick={() => setTiers([...priceTiers, { label: "", amount: "" }])}>+ Agregar tipo de precio</button>
           </section>
 
           {/* 08 · INCLUYE / NO */}
@@ -852,26 +876,11 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
 
           {/* 13 · PRECIO */}
           <section className="card" id="s13">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio</h2><p className="desc">El precio base por persona QUE SE COBRA en el checkout (Reservar y pagar). Si hay varios tipos (ej. habitación compartida / sencilla), agrégalos como niveles abajo.</p></div>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio base</h2><p className="desc">El precio por persona QUE SE COBRA en el checkout cuando hay un solo precio. Si tienes varios tipos (ej. habitación compartida / individual), agrégalos en la sección <b>Inversión</b> (arriba) — esos se muestran y se cobran; aquí queda el precio base/de respaldo.</p></div>
             <div className="row c3">
-              <Field label={priceTiers.length ? "Monto base (desde)" : "Monto"}><input type="number" value={price.amount} placeholder="11500" onChange={(e) => setPrice({ amount: e.target.value })} /></Field>
+              <Field label={priceTiers.length ? "Monto base (respaldo)" : "Monto"}><input type="number" value={price.amount} placeholder="11500" onChange={(e) => setPrice({ amount: e.target.value })} /></Field>
               <Field label="Moneda" auto><input type="text" value={price.currency} onChange={(e) => setPrice({ currency: e.target.value })} /></Field>
               <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
-            </div>
-
-            <div style={{ marginTop: 14 }}>
-              <div className="sec-head" style={{ marginBottom: 8 }}>
-                <span className="eyebrow"><span className="sl">{"//"}</span> Niveles</span>
-                <p className="desc">Opcional. Cada nivel es un precio por persona (ej. Habitación compartida $11,500 / sencilla $15,000). Se muestran en la página; el cliente elige y paga el nivel en el checkout.</p>
-              </div>
-              {priceTiers.map((t, i) => (
-                <div className="row" key={i} style={{ alignItems: "flex-end", marginBottom: 8 }}>
-                  <Field label="Nivel"><input type="text" value={t.label} placeholder="Habitación compartida" onChange={(e) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></Field>
-                  <Field label="Monto por persona"><input type="number" value={t.amount} placeholder="11500" onChange={(e) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} /></Field>
-                  <button type="button" className="rm" onClick={() => setTiers(priceTiers.filter((_, j) => j !== i))}>Quitar</button>
-                </div>
-              ))}
-              <button type="button" className="add" onClick={() => setTiers([...priceTiers, { label: "", amount: "" }])}>+ Agregar nivel</button>
             </div>
           </section>
 
