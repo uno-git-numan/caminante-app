@@ -121,7 +121,7 @@ const CSS = `
 .adminexp .toggle .tlabel{font-size:14px;font-weight:500;}
 .adminexp .rep-items{display:flex;flex-direction:column;gap:12px;}
 .adminexp .rep-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;}.adminexp .rep-row > *{margin-bottom:0;}.adminexp .rep-row .grow{flex:1;min-width:160px;}
-.adminexp .rep-card{border:1px solid var(--line);border-radius:12px;padding:18px 16px;background:#fff;position:relative;}
+.adminexp .rep-card{border:1px solid var(--line);border-radius:12px;padding:46px 16px 18px;background:#fff;position:relative;}
 .adminexp .rm{flex:0 0 auto;background:transparent;border:1px solid var(--line);color:var(--ink-soft);border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer;line-height:1;font-family:inherit;}
 .adminexp .rm:hover{border-color:var(--orange);color:var(--orange);}
 .adminexp .rep-card .rm{position:absolute;top:14px;right:14px;}
@@ -461,6 +461,14 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
         </div>
         <div className="head-actions">
           <span className="savechip">{statusOk ? "Guardado" : "Sin guardar"}</span>
+          {(() => {
+            const slugPreview = savedSlug ?? initial?.slug ?? null;
+            return slugPreview ? (
+              <a className="btn btn-ghost btn-sm" href={`/caminante/admin/preview/${slugPreview}`} target="_blank" rel="noopener noreferrer">Vista previa</a>
+            ) : (
+              <button className="btn btn-ghost btn-sm" type="button" disabled title="Guarda el borrador primero para verlo" style={{ opacity: 0.5 }}>Vista previa</button>
+            );
+          })()}
           <button className="btn btn-ghost btn-sm" type="button" disabled={saving} onClick={() => onSubmit("draft")}>Guardar borrador</button>
           <button className="btn btn-orange btn-sm" type="button" disabled={saving} onClick={() => onSubmit("published")}>Publicar</button>
         </div>
