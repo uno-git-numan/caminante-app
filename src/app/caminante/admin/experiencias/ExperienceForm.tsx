@@ -1,22 +1,31 @@
 "use client";
 
-// Admin · Crear / dar de alta experiencia — re-skin rebrand (Numan Caminante Design
-// System / Claude Design). Form rico, contenido OPCIONAL: índice sticky, tarjetas por
-// sección, repetibles, toggles, chips "auto" (heredado del perfil), galería, bloques
-// libres, previews "así lo verá el viajero", clonar-desde-plantilla, barra de acciones.
-// Wiring: estado Experience → saveExperience; fechas/cupo → saveExperienceSlots
-// (experience_slots, NO en el jsonb); subida de fotos → /api/admin/upload.
-// Guards `?? []` en arrays para soportar la opcionalidad cuando backend la reintroduzca.
+// Admin · Crear / editar experiencia — autoría del DISEÑO v2 (el bespoke de
+// ensenada/hongos, data-driven). El form edita un V2Draft de "secciones fijas
+// opcionales" (portada, experiencia, bloque destacado, guías-repetidor,
+// itinerario, inversión, incluye, faq, mochila, fechas, cierre) que al guardar
+// se convierte en `page.blocks` (buildBlocks) + design:"v2". Las secciones de
+// operación (precio, fechas/cupo, registro, encuesta) siguen sobre Experience.
+// Wiring: saveExperience (guarda jsonb) + saveExperienceSlots (experience_slots).
+// Fotos: subida con compresión en el navegador, multi-selección soportada.
 
 import { useMemo, useState } from "react";
 import { emptyExperience, slugify } from "@/lib/experiences/empty";
 import PrellenarIA from "./PrellenarIA";
-import { aplicarPrellenado, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
+import { aplicarPrellenadoV2, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
 import { ESTADOS } from "@/lib/experiences/estados";
 import { saveExperienceSlots } from "@/lib/experiences/slots-admin";
-import type { Experience, Day, GearCategory, Ally, Faq, FreeBlock } from "@/lib/experiences/types";
+import type { Experience, V2Image } from "@/lib/experiences/types";
+import {
+  emptyV2Draft,
+  emptyGuide,
+  buildBlocks,
+  draftFromBlocks,
+  type V2Draft,
+  type V2GuideDraft,
+} from "@/lib/experiences/page-v2";
 
 type SlotRow = { id?: string; label: string; start: string; end: string; cupo: string };
 type InitialSlot = { id: string; label: string; startsAt: string; endsAt: string | null; capacity: number | null };
@@ -28,32 +37,6 @@ const G2 =
 const G3 =
   '<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
 const MARK = `<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">${G1}${G2}${G3}</svg>`;
-
-// ESTADOS ahora vive en @/lib/experiences/estados (compartido con la IA).
-
-// Clonar desde plantilla — precarga los campos básicos + salidas.
-const TPL: Record<string, { exp: Partial<Experience>; slots: SlotRow[]; cupo: string }> = {
-  ocean: {
-    exp: {
-      title: "Ocean Safari · Ensenada de Muertos", titleAccent: "safari.",
-      slug: "ocean-safari-ensenada-de-muertos", subtitle: "Donde el desierto se encuentra con el mar.",
-      estado: "Baja California Sur", cardHook: "Cuatro días en el Mar de Cortés con orcas, ballenas y la comunidad de Agua Amarga.",
-      price: { amount: "18560", currency: "MXN · por persona", desc: "por persona" },
-    },
-    cupo: "16",
-    slots: [{ label: "16–19 julio 2026", start: "2026-07-16", end: "2026-07-19", cupo: "16" }, { label: "23–26 julio 2026", start: "2026-07-23", end: "2026-07-26", cupo: "16" }],
-  },
-  hongos: {
-    exp: {
-      title: "Recolección de Hongos · Xalatlaco", titleAccent: "de hongos.",
-      slug: "recoleccion-de-hongos-xalatlaco", subtitle: "El bosque se asoma por partes. Hay que saber mirar.",
-      estado: "Estado de México", cardHook: "Un día en el bosque de montaña recolectando hongos silvestres con micólogos.",
-      price: { amount: "2550", currency: "MXN · por persona", desc: "por persona" },
-    },
-    cupo: "17",
-    slots: [{ label: "Domingo 26 julio 2026", start: "2026-07-26", end: "2026-07-26", cupo: "17" }, { label: "Domingo 23 agosto 2026", start: "2026-08-23", end: "2026-08-23", cupo: "17" }],
-  },
-};
 
 const CSS = `
 .adminexp{--dune:#c9b79c;--cream:#fbfbf7;--sand:#b6ada5;--salvia:#d6d8c7;--olive:#637154;--olive-d:#4f5d44;--forest:#20392b;--charcoal:#20211c;--orange:#ff5d36;--panel:#f1eee7;--bg:#eceae3;--ink-soft:rgba(32,33,28,.6);--line:rgba(32,33,28,.14);--r:14px;--eb:.2em;
@@ -112,6 +95,7 @@ const CSS = `
 .adminexp .segmented label{cursor:pointer;position:relative;}.adminexp .segmented input{position:absolute;opacity:0;}
 .adminexp .segmented span{display:block;padding:8px 18px;font-size:13.5px;font-weight:500;border-radius:999px;color:var(--ink-soft);}
 .adminexp .segmented input:checked + span{background:var(--olive);color:#fff;}
+.adminexp .segmented.sm span{padding:6px 12px;font-size:12.5px;}
 .adminexp .toggle{display:inline-flex;align-items:center;gap:11px;cursor:pointer;}
 .adminexp .toggle input{position:absolute;opacity:0;}
 .adminexp .toggle .tk{display:inline-block;width:46px;height:26px;border-radius:999px;background:var(--sand);position:relative;transition:background .2s;flex:0 0 auto;}
@@ -133,9 +117,6 @@ const CSS = `
 .adminexp .inline-check input{width:17px;height:17px;accent-color:var(--olive);}
 .adminexp .chip-auto{display:inline-flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);background:rgba(99,113,84,.12);border:1px solid rgba(99,113,84,.32);border-radius:999px;padding:2px 7px;margin-left:7px;vertical-align:middle;}
 .adminexp .field.auto input,.adminexp .field.auto select,.adminexp .field.auto textarea{background:rgba(99,113,84,.055);border-color:rgba(99,113,84,.3);}
-.adminexp .startcard{background:var(--cream);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;}
-.adminexp .startcard .field{margin-bottom:0;}
-.adminexp .sd-hint{font-size:13px;color:var(--ink-soft);line-height:1.5;margin-top:10px;}
 .adminexp .brandbanner{background:rgba(99,113,84,.07);border:1px solid rgba(99,113,84,.28);border-radius:var(--r);overflow:hidden;}
 .adminexp .brandbanner summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;}
 .adminexp .brandbanner summary::-webkit-details-marker{display:none;}
@@ -185,7 +166,6 @@ const CSS = `
 .adminexp .actionbar .inner{max-width:1160px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
 .adminexp .actionbar .status{font-size:13px;color:var(--ink-soft);font-family:"Geist Mono",monospace;}
 .adminexp .actionbar .status.ok{color:var(--olive);}
-.adminexp .actionbar .grp{display:flex;gap:10px;}
 .adminexp .err{color:#c43d2a;font-size:13px;margin-top:8px;}
 `;
 
@@ -307,31 +287,70 @@ function PrevBlock({ t, fields }: { t: string; fields: string[] }) {
     </div>
   );
 }
-function GalleryAdd({ onAdd }: { onAdd: (url: string) => void }) {
-  const [busy, setBusy] = useState(false);
+// Casilla "+ Agregar fotos" con selección MÚLTIPLE: sube en serie (comprimiendo
+// cada una) y va agregando conforme terminan; los errores se acumulan visibles.
+function MultiAdd({ onAdd }: { onAdd: (url: string) => void }) {
+  const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setBusy(true);
-    setErr(null);
-    const r = await subirImagen(f);
-    if (r.ok) onAdd(r.url);
-    else setErr(r.error);
-    setBusy(false);
+  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
+    if (!files.length) return;
+    setErr(null);
+    const errores: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      setBusy(files.length > 1 ? `Subiendo ${i + 1}/${files.length}…` : "Subiendo…");
+      const r = await subirImagen(files[i]);
+      if (r.ok) onAdd(r.url);
+      else errores.push(`${files[i].name}: ${r.error}`);
+    }
+    setBusy(null);
+    if (errores.length) setErr(errores.join(" · "));
   }
   return (
     <label className="gal-slot" title={err ?? undefined} style={err ? { borderColor: "#b33517", color: "#b33517" } : undefined}>
-      {busy ? "Subiendo…" : err ? "Falló — reintentar" : "+ Agregar foto"}
-      <input type="file" accept="image/*" onChange={onFile} />
+      {busy ?? (err ? "Falló — reintentar" : "+ Agregar fotos")}
+      <input type="file" accept="image/*" multiple onChange={onFiles} disabled={!!busy} />
     </label>
+  );
+}
+// Lista de fotos (V2Image[]) con multi-subida y quitar.
+function PhotoList({ images, onChange }: { images: V2Image[]; onChange: (v: V2Image[]) => void }) {
+  const conUrl = images.filter((im) => im.url);
+  return (
+    <div className="gallery">
+      {conUrl.map((im, i) => (
+        <div key={i} className="gal-slot" style={{ borderStyle: "solid" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={im.url} alt={im.alt || ""} />
+          <button type="button" className="rm" onClick={() => onChange(conUrl.filter((_, j) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <MultiAdd onAdd={(url) => onChange([...conUrl, { url, alt: "" }])} />
+    </div>
+  );
+}
+function Seg<T extends string>({ name, value, options, onChange, sm }: { name: string; value: T; options: { v: T; l: string }[]; onChange: (v: T) => void; sm?: boolean }) {
+  return (
+    <div className={`segmented${sm ? " sm" : ""}`}>
+      {options.map((o) => (
+        <label key={o.v}><input type="radio" name={name} checked={value === o.v} onChange={() => onChange(o.v)} /><span>{o.l}</span></label>
+      ))}
+    </div>
+  );
+}
+function SecToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="field"><label className="toggle"><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /><span className="tk"></span><span className="tlabel">{checked ? "Sección visible en la página" : "Sección oculta"}</span></label></div>
   );
 }
 
 /* ---------- main ---------- */
 export default function ExperienceForm({ initial, initialSlots }: { initial?: Experience; initialSlots?: InitialSlot[] }) {
   const [exp, setExp] = useState<Experience>(initial ?? emptyExperience());
+  const [v2, setV2] = useState<V2Draft>(() =>
+    initial ? draftFromBlocks(initial.page, initial) : emptyV2Draft(emptyExperience()),
+  );
   const [slots, setSlots] = useState<SlotRow[]>(
     (initialSlots ?? []).map((s) => ({ id: s.id, label: s.label, start: (s.startsAt || "").slice(0, 10), end: (s.endsAt || "").slice(0, 10), cupo: s.capacity != null ? String(s.capacity) : "" })),
   );
@@ -349,6 +368,14 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   } | null>(null);
 
   function set<K extends keyof Experience>(k: K, v: Experience[K]) { setExp((p) => ({ ...p, [k]: v })); }
+  // Parcha una sección del borrador v2 (portada, itinerario, …).
+  function upd<K extends keyof V2Draft>(k: K, patch: Partial<V2Draft[K]>) {
+    setV2((p) => ({ ...p, [k]: { ...(p[k] as object), ...patch } }) as V2Draft);
+  }
+  const setGuides = (v: V2GuideDraft[]) => setV2((p) => ({ ...p, guides: v }));
+  const patchGuide = (i: number, patch: Partial<V2GuideDraft>) =>
+    setGuides(v2.guides.map((g, j) => (j === i ? { ...g, ...patch } : g)));
+
   const reg = exp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [] };
   const fb = exp.feedback ?? { active: false, version: "v1", locationLabel: "", npsEnabled: true, sections: [], testimonialPrompt: "" };
   const price = exp.price ?? { amount: "", currency: "MXN · por persona", desc: "" };
@@ -359,31 +386,17 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   const setTiers = (v: { label: string; amount: string }[]) => set("priceTiers", v);
 
   const gallery = exp.gallery ?? [];
-  const bloques = exp.bloques ?? [];
-  const itinerario = exp.itinerario ?? [];
-  const incluye = exp.incluye ?? [];
-  const noIncluye = exp.noIncluye ?? [];
-  const mochila = exp.mochila ?? [];
-  const aliados = exp.aliados ?? [];
-  const faq = exp.faq ?? [];
   const clausulas = reg.waiverClauses ?? [];
   const cats = fb.sections ?? [];
 
-  const suggestedSlug = useMemo(() => slugify(`${exp.title} ${exp.titleAccent ?? ""}`), [exp.title, exp.titleAccent]);
+  const heroCompleto = `${v2.hero.title} ${v2.hero.titleAccent}`.trim();
+  const suggestedSlug = useMemo(() => slugify(heroCompleto), [heroCompleto]);
   const effectiveSlug = autoSlug ? suggestedSlug : (exp.slug ?? "");
 
-  function applyTemplate(key: string) {
-    if (!key || !TPL[key]) { setExp(emptyExperience()); setSlots([]); setCupoEstandar(""); setAutoSlug(true); return; }
-    const t = TPL[key];
-    setExp({ ...emptyExperience(), ...t.exp });
-    setSlots(t.slots.map((s) => ({ ...s })));
-    setCupoEstandar(t.cupo);
-    setAutoSlug(false);
-  }
-
-
   function onPrellenado(data: Record<string, unknown>, slotsIA: SlotIA[]) {
-    setExp((prev) => aplicarPrellenado(prev, data));
+    const r = aplicarPrellenadoV2(exp, v2, data);
+    setExp(r.exp);
+    setV2(r.draft);
     setSlots((prev) => {
       const conContenido = prev.filter((s) => s.label.trim() || s.start);
       return [...conContenido, ...slotsDesdeIA(slotsIA, conContenido)];
@@ -435,20 +448,32 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
 
   async function onSubmit(st: Experience["status"]) {
     const slug = (autoSlug ? suggestedSlug : (exp.slug ?? "")).trim();
+    const heroTitle = v2.hero.title.trim();
+    const nombre = exp.cardTitle?.trim() || heroCompleto;
     const filled: Experience = {
       ...exp, slug, status: st,
-      docTitle: exp.docTitle || `Caminante · ${exp.title} ${exp.titleAccent ?? ""} — ${exp.subtitle ?? ""}`.trim(),
-      edgeLabel: exp.edgeLabel || `Caminante · ${exp.brandSmall || exp.title}`.trim(),
-      footerBrand: exp.footerBrand || `Caminante · ${exp.brandSmall || exp.title}`.trim(),
+      // El título del hero también nombra la experiencia (tarjetas, admin, notifs).
+      title: heroTitle || exp.title,
+      titleAccent: v2.hero.titleAccent || exp.titleAccent,
+      subtitle: v2.hero.sub || exp.subtitle,
+      // La foto del hero alimenta las tarjetas del home y "Mi espacio".
+      heroImageUrl: v2.hero.bg.url || exp.heroImageUrl,
+      heroImageAlt: v2.hero.bg.alt || exp.heroImageAlt,
+      docTitle: exp.docTitle || `${nombre} — Caminante`,
+      edgeLabel: exp.edgeLabel || `Caminante · ${nombre}`,
+      footerBrand: exp.footerBrand || `Caminante · ${nombre}`,
     };
+    // Diseño v2: la portada es el mínimo. Sin portada NO se marca v2 (así una
+    // experiencia legacy editada por accidente no se rompe en público).
+    if (heroTitle || v2.hero.bg.url.trim()) {
+      filled.design = "v2";
+      filled.page = { docTitle: `${nombre} — Caminante`, blocks: buildBlocks(v2) };
+    }
     await guardar(filled, st, false);
   }
 
-  const setItin = (v: Day[]) => set("itinerario", v);
-  const setMochila = (v: GearCategory[]) => set("mochila", v);
-  const setAliados = (v: Ally[]) => set("aliados", v);
-  const setFaq = (v: Faq[]) => set("faq", v);
-  const setBloques = (v: FreeBlock[]) => set("bloques", v);
+  const itinDays = v2.itinerary.days;
+  const setItinDays = (days: V2Draft["itinerary"]["days"]) => upd("itinerary", { days });
 
   return (
     <div className="adminexp">
@@ -457,7 +482,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
       <header className="ahead">
         <div className="brand">
           <span className="logo" aria-label="Caminante" dangerouslySetInnerHTML={{ __html: MARK }} />
-          <span className="ctx">Admin · <b>Crear experiencia</b></span>
+          <span className="ctx">Admin · <b>{initial ? "Editar experiencia" : "Crear experiencia"}</b></span>
         </div>
         <div className="head-actions">
           <span className="savechip">{statusOk ? "Guardado" : "Sin guardar"}</span>
@@ -512,37 +537,31 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
           <div className="ix-title">Secciones</div>
           <div className="ix-group">Lo básico</div>
           <div className="ix-list" style={{ marginBottom: 4 }}><a href="#s1"><span className="n">01</span>Lo básico</a></div>
-          <div className="ix-group">Contenido</div>
+          <div className="ix-group">Página (diseño v2)</div>
           <div className="ix-list" style={{ marginBottom: 4 }}>
-            <a href="#s2"><span className="n">02</span>La experiencia</a>
-            <a href="#s3"><span className="n">03</span>Itinerario</a>
-            <a href="#s4"><span className="n">04</span>Incluye / No</a>
-            <a href="#s5"><span className="n">05</span>Qué llevar</a>
-            <a href="#s6"><span className="n">06</span>Aliados</a>
-            <a href="#s7"><span className="n">07</span>FAQ</a>
-            <a href="#s8"><span className="n">08</span>Bloques libres</a>
+            <a href="#s2"><span className="n">02</span>Portada</a>
+            <a href="#s3"><span className="n">03</span>La experiencia</a>
+            <a href="#s4"><span className="n">04</span>Bloque destacado</a>
+            <a href="#s5"><span className="n">05</span>Guías y aliados</a>
+            <a href="#s6"><span className="n">06</span>Itinerario</a>
+            <a href="#s7"><span className="n">07</span>Inversión</a>
+            <a href="#s8"><span className="n">08</span>Incluye / No</a>
+            <a href="#s9"><span className="n">09</span>FAQ</a>
+            <a href="#s10"><span className="n">10</span>Mochila</a>
+            <a href="#s11"><span className="n">11</span>Fechas (texto)</a>
+            <a href="#s12"><span className="n">12</span>Cierre</a>
           </div>
           <div className="ix-group">Operación</div>
           <div className="ix-list">
-            <a href="#s9"><span className="n">09</span>Precio</a>
-            <a href="#s10"><span className="n">10</span>Fechas &amp; cupo</a>
-            <a href="#s11"><span className="n">11</span>Registro</a>
-            <a href="#s12"><span className="n">12</span>Encuesta</a>
+            <a href="#s13"><span className="n">13</span>Precio</a>
+            <a href="#s14"><span className="n">14</span>Fechas &amp; cupo</a>
+            <a href="#s15"><span className="n">15</span>Registro</a>
+            <a href="#s16"><span className="n">16</span>Encuesta</a>
           </div>
         </nav>
 
         <div className="main">
           {!initial ? <PrellenarIA onResult={onPrellenado} /> : null}
-          <section className="startcard">
-            <Field label="Empezar desde">
-              <select onChange={(e) => applyTemplate(e.target.value)} defaultValue="">
-                <option value="">En blanco</option>
-                <option value="ocean">Ocean Safari · Ensenada de Muertos</option>
-                <option value="hongos">Recolección de Hongos · Xalatlaco</option>
-              </select>
-            </Field>
-            <p className="sd-hint">Clona una experiencia existente como plantilla; luego cambia lo específico. &quot;En blanco&quot; deja los campos vacíos (lo heredado se conserva).</p>
-          </section>
 
           <details className="brandbanner">
             <summary>
@@ -559,26 +578,22 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
             </div></div>
           </details>
 
-          <p className="form-intro"><span className="sl">{"// Cómo funciona"}</span>Aquí das de alta lo que el sitio necesita para mostrar y vender la experiencia: cómo se ve en el inicio y el calendario, su contenido (fotos, itinerario, aliados…), el cobro, el registro de los viajeros y la encuesta. Todo el contenido es opcional: puedes publicar con lo mínimo y enriquecer después.</p>
+          <p className="form-intro"><span className="sl">{"// Cómo funciona"}</span>Aquí armas la página de la experiencia en el diseño de la marca (el mismo de Ensenada y Hongos): portada, la experiencia en 3 puntos, guías, itinerario, inversión, mochila… Cada sección es opcional — si la dejas vacía, no aparece. Abajo está la operación: precio que se cobra, fechas y cupo, registro y encuesta. Guarda el borrador y usa &quot;Vista previa&quot; para verla tal cual la verá el viajero.</p>
 
           {/* 01 · LO BÁSICO */}
           <section className="card" id="s1">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Lo básico</span><h2>Lo básico</h2></div>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Lo básico</span><h2>Lo básico</h2><p className="desc">Cómo se presenta la experiencia en el inicio, el calendario y el panel. El título grande de la página se escribe en &quot;Portada&quot;.</p></div>
             <div className="row c2">
-              <Field label="Título"><input type="text" value={exp.title} placeholder="Ocean Safari · Ensenada de Muertos" onChange={(e) => set("title", e.target.value)} /></Field>
-              <Field label="Palabra acento" hint="se muestra en itálica naranja"><input type="text" value={exp.titleAccent ?? ""} placeholder="safari." onChange={(e) => set("titleAccent", e.target.value)} /></Field>
+              <Field label="Título de tarjeta" hint="el nombre corto en el home y en el panel"><input type="text" value={exp.cardTitle ?? ""} placeholder="Recolección de Hongos" onChange={(e) => set("cardTitle", e.target.value)} /></Field>
+              <Field label="Ubicación" hint="conecta con su página de destino">
+                <select value={exp.estado ?? ""} onChange={(e) => set("estado", e.target.value)}>
+                  <option value="" disabled>Selecciona un estado</option>
+                  {ESTADOS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </Field>
             </div>
-            <Field label="Subtítulo"><textarea value={exp.subtitle ?? ""} placeholder="Una línea que sitúe la experiencia." onChange={(e) => set("subtitle", e.target.value)} /></Field>
-            <Field label="Ubicación" hint="conecta con su página de destino">
-              <select value={exp.estado ?? ""} onChange={(e) => set("estado", e.target.value)}>
-                <option value="" disabled>Selecciona un estado</option>
-                {ESTADOS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
-            <Field label="Título de tarjeta" hint="el nombre corto en el home y en el panel"><input type="text" value={exp.cardTitle ?? ""} placeholder="Recolección de Hongos" onChange={(e) => set("cardTitle", e.target.value)} /></Field>
             <Field label="Hook" hint="frase para la tarjeta del home"><input type="text" value={exp.cardHook ?? ""} placeholder="Cuatro días en el Mar de Cortés." onChange={(e) => set("cardHook", e.target.value)} /></Field>
-            <Field label="Imagen principal (hero)"><Uploader value={exp.heroImageUrl ?? ""} onChange={(v) => set("heroImageUrl", v)} /></Field>
-            <Field label={<>Galería de fotos <span className="optflag">opcional</span></>}>
+            <Field label={<>Galería de fotos <span className="optflag">opcional</span></>} hint="banco de fotos de la experiencia; puedes subir varias a la vez">
               <div className="gallery">
                 {gallery.map((g, i) => (
                   <div key={i} className="gal-slot" style={{ borderStyle: "solid" }}>
@@ -587,12 +602,12 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
                     <button type="button" className="rm" onClick={() => set("gallery", gallery.filter((_, j) => j !== i))}>✕</button>
                   </div>
                 ))}
-                <GalleryAdd onAdd={(url) => set("gallery", [...gallery, url])} />
+                <MultiAdd onAdd={(url) => setExp((p) => ({ ...p, gallery: [...(p.gallery ?? []), url] }))} />
               </div>
             </Field>
-            <Field label="Slug" hint="se genera del título, editable">
+            <Field label="Slug" hint="se genera del título de la portada, editable">
               <div className="with-btn">
-                <input type="text" className="slugbox" value={effectiveSlug} placeholder="ocean-safari-ensenada-de-muertos" onChange={(e) => { setAutoSlug(false); set("slug", e.target.value); }} />
+                <input type="text" className="slugbox" value={effectiveSlug} placeholder="recoleccion-de-hongos" onChange={(e) => { setAutoSlug(false); set("slug", e.target.value); }} />
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAutoSlug(true)}>Regenerar</button>
               </div>
             </Field>
@@ -604,132 +619,240 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
             </Field>
           </section>
 
-          {/* 02 · LA EXPERIENCIA */}
+          {/* 02 · PORTADA */}
           <section className="card" id="s2">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> La experiencia</span><h2>La experiencia <span className="optflag">opcional</span></h2><p className="desc">El bloque de apertura del contenido: una intro y una foto.</p></div>
-            <Field label="Intro"><textarea value={exp.expIntro ?? ""} placeholder="Texto de apertura de la experiencia." onChange={(e) => set("expIntro", e.target.value)} /></Field>
-            <Field label="Foto"><Uploader value={exp.expImage ?? ""} onChange={(v) => set("expImage", v)} /></Field>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Portada</span><h2>Portada</h2><p className="desc">El hero de la página: foto a sangre, título grande con remate en itálica naranja y subtítulo. Es lo mínimo para que la página exista.</p></div>
+            <div className="row c2">
+              <Field label="Eyebrow" hint="tipo · lugar"><input type="text" value={v2.hero.eyebrow} placeholder="Recolección de hongos · Edo. de México" onChange={(e) => upd("hero", { eyebrow: e.target.value })} /></Field>
+              <Field label="Referencia geográfica"><input type="text" value={v2.hero.metaEst} placeholder="Bosque de Xalatlaco" onChange={(e) => upd("hero", { metaEst: e.target.value })} /></Field>
+            </div>
+            <div className="row c2">
+              <Field label="Título"><input type="text" value={v2.hero.title} placeholder="El bosque" onChange={(e) => upd("hero", { title: e.target.value })} /></Field>
+              <Field label="Remate" hint="itálica naranja, con punto final"><input type="text" value={v2.hero.titleAccent} placeholder="de Xalatlaco." onChange={(e) => upd("hero", { titleAccent: e.target.value })} /></Field>
+            </div>
+            <Field label="Subtítulo"><textarea value={v2.hero.sub} placeholder="El bosque se asoma por partes. Hay que saber mirar…" onChange={(e) => upd("hero", { sub: e.target.value })} /></Field>
+            <Field label="Foto de portada" hint="también es la foto de la tarjeta en el home"><Uploader value={v2.hero.bg.url} onChange={(url) => upd("hero", { bg: { ...v2.hero.bg, url } })} /></Field>
           </section>
 
-          {/* 03 · ITINERARIO */}
+          {/* 03 · LA EXPERIENCIA */}
           <section className="card" id="s3">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Itinerario</span><h2>Itinerario <span className="optflag">opcional</span></h2></div>
-            <div className="rep-items">
-              {itinerario.map((d, i) => (
-                <div key={i} className="rep-card">
-                  <button type="button" className="rm" onClick={() => setItin(itinerario.filter((_, j) => j !== i))}>Quitar</button>
-                  <div className="row c2">
-                    <Field label="Etiqueta del día"><input type="text" value={d.dno} placeholder="Jueves · Llegada" onChange={(e) => setItin(itinerario.map((x, j) => (j === i ? { ...x, dno: e.target.value } : x)))} /></Field>
-                    <Field label="Título"><input type="text" value={d.dname} placeholder="Encuentro" onChange={(e) => setItin(itinerario.map((x, j) => (j === i ? { ...x, dname: e.target.value } : x)))} /></Field>
-                  </div>
-                  <div className="nested">
-                    <div className="nlabel">Momentos del día</div>
-                    <div className="rep-items">
-                      {(d.beats ?? []).map((b, k) => (
-                        <div key={k} className="rep-row">
-                          <input type="text" placeholder="6:30" style={{ maxWidth: 130 }} value={b.t} onChange={(e) => setItin(itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.map((y, l) => (l === k ? { ...y, t: e.target.value } : y)) } : x)))} />
-                          <input type="text" className="grow" placeholder="Descripción" value={b.d} onChange={(e) => setItin(itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.map((y, l) => (l === k ? { ...y, d: e.target.value } : y)) } : x)))} />
-                          <button type="button" className="rm" onClick={() => setItin(itinerario.map((x, j) => (j === i ? { ...x, beats: x.beats.filter((_, l) => l !== k) } : x)))}>Quitar</button>
-                        </div>
-                      ))}
-                    </div>
-                    <button type="button" className="add" onClick={() => setItin(itinerario.map((x, j) => (j === i ? { ...x, beats: [...(x.beats ?? []), { t: "", d: "" }] } : x)))}>+ Agregar momento</button>
-                  </div>
-                </div>
-              ))}
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> La experiencia</span><h2>La experiencia</h2><p className="desc">El resumen en 3 puntos + el mosaico de fotos (3 fotos: la primera se hace grande; o 4 en cuadrícula).</p></div>
+            <div className="row c2">
+              <Field label="Título"><input type="text" value={v2.experiencia.title} placeholder="Un día" onChange={(e) => upd("experiencia", { title: e.target.value })} /></Field>
+              <Field label="Remate"><input type="text" value={v2.experiencia.titleAccent} placeholder="en el bosque." onChange={(e) => upd("experiencia", { titleAccent: e.target.value })} /></Field>
             </div>
-            <button type="button" className="add" onClick={() => setItin([...itinerario, { dno: `Día 0${itinerario.length + 1}`, dname: "", beats: [{ t: "", d: "" }] }])}>+ Agregar día</button>
+            <Field label="Puntos" hint="idealmente 3, una línea cada uno">
+              <StrList items={v2.experiencia.points} onChange={(points) => upd("experiencia", { points })} placeholder="Una jornada de recolección en el bosque de montaña" />
+            </Field>
+            <Field label="Mosaico de fotos" hint="puedes subir varias a la vez">
+              <PhotoList images={v2.experiencia.mosaic} onChange={(mosaic) => upd("experiencia", { mosaic })} />
+            </Field>
           </section>
 
-          {/* 04 · INCLUYE / NO */}
+          {/* 04 · BLOQUE DESTACADO */}
           <section className="card" id="s4">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Qué incluye / qué no</span><h2>Incluye / No incluye <span className="optflag">opcional</span></h2></div>
-            <div className="subhead" style={{ borderTop: 0, paddingTop: 0 }}>Incluye</div>
-            <StrList items={incluye} onChange={(v) => set("incluye", v)} placeholder="Ej. Transporte redondo" />
-            <div className="subhead">No incluye</div>
-            <StrList items={noIncluye} onChange={(v) => set("noIncluye", v)} placeholder="Ej. Vuelos" />
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Bloque destacado</span><h2>Bloque destacado <span className="optflag">opcional</span></h2><p className="desc">La declaración sobre foto oscura a sangre (el método Caminante, las meditaciones…). Frase grande + cita.</p></div>
+            <SecToggle checked={v2.statement.on} onChange={(on) => upd("statement", { on })} />
+            {v2.statement.on ? (
+              <>
+                <div className="row c2">
+                  <Field label="Eyebrow — antes del //"><input type="text" value={v2.statement.eyebrowPre} placeholder="Naturaleza" onChange={(e) => upd("statement", { eyebrowPre: e.target.value })} /></Field>
+                  <Field label="Eyebrow — después del //"><input type="text" value={v2.statement.eyebrow} placeholder="el método Caminante" onChange={(e) => upd("statement", { eyebrow: e.target.value })} /></Field>
+                </div>
+                <div className="row c2">
+                  <Field label="Título"><input type="text" value={v2.statement.title} placeholder="Pon las manos" onChange={(e) => upd("statement", { title: e.target.value })} /></Field>
+                  <Field label="Remate"><input type="text" value={v2.statement.titleAccent} placeholder="en la tierra." onChange={(e) => upd("statement", { titleAccent: e.target.value })} /></Field>
+                </div>
+                <Field label="Texto"><textarea value={v2.statement.body} placeholder="Recolectar es bajar el ritmo y afinar la mirada…" onChange={(e) => upd("statement", { body: e.target.value })} /></Field>
+                <Field label="Cita" hint="opcional, va en naranja itálica"><input type="text" value={v2.statement.quote} placeholder="“Donde pones tu atención, ahí va tu energía”" onChange={(e) => upd("statement", { quote: e.target.value })} /></Field>
+                <Field label="Foto de fondo"><Uploader value={v2.statement.bg.url} onChange={(url) => upd("statement", { bg: { ...v2.statement.bg, url } })} /></Field>
+              </>
+            ) : null}
           </section>
 
-          {/* 05 · QUÉ LLEVAR */}
+          {/* 05 · GUÍAS Y ALIADOS */}
           <section className="card" id="s5">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Qué llevar</span><h2>Qué llevar / Equipo <span className="optflag">opcional</span></h2></div>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Guías y aliados</span><h2>Guías y aliados <span className="optflag">opcional</span></h2><p className="desc">Una sección por guía, comunidad o grupo (ej. &quot;Quién te guía · Nanae&quot;, &quot;La comunidad&quot;, &quot;Qué vas a encontrar&quot;). Cada una puede ser un perfil con párrafos o una lista con puntos naranjas, con foto o mosaico.</p></div>
             <div className="rep-items">
-              {mochila.map((cat, i) => (
+              {v2.guides.map((g, i) => (
                 <div key={i} className="rep-card">
-                  <button type="button" className="rm" onClick={() => setMochila(mochila.filter((_, j) => j !== i))}>Quitar</button>
-                  <Field label="Categoría"><input type="text" value={cat.title} placeholder="Ej. Ropa" onChange={(e) => setMochila(mochila.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} /></Field>
-                  <div className="nested">
-                    <div className="nlabel">Items</div>
-                    <div className="rep-items">
-                      {(cat.items ?? []).map((it, k) => (
-                        <div key={k} className="rep-row">
-                          <input type="text" className="grow" placeholder="Ej. Botas de hike" value={it.text} onChange={(e) => setMochila(mochila.map((x, j) => (j === i ? { ...x, items: x.items.map((y, l) => (l === k ? { ...y, text: e.target.value } : y)) } : x)))} />
-                          <label className="inline-check"><input type="checkbox" checked={!!it.must} onChange={(e) => setMochila(mochila.map((x, j) => (j === i ? { ...x, items: x.items.map((y, l) => (l === k ? { ...y, must: e.target.checked } : y)) } : x)))} />Obligatorio</label>
-                          <button type="button" className="rm" onClick={() => setMochila(mochila.map((x, j) => (j === i ? { ...x, items: x.items.filter((_, l) => l !== k) } : x)))}>Quitar</button>
-                        </div>
-                      ))}
-                    </div>
-                    <button type="button" className="add" onClick={() => setMochila(mochila.map((x, j) => (j === i ? { ...x, items: [...(x.items ?? []), { text: "", must: false }] } : x)))}>+ Agregar item</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button type="button" className="add" onClick={() => setMochila([...mochila, { title: "", items: [{ text: "", must: false }] }])}>+ Agregar categoría</button>
-          </section>
-
-          {/* 06 · ALIADOS */}
-          <section className="card" id="s6">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Aliados</span><h2>Aliados / Quién te guía <span className="optflag">opcional</span></h2></div>
-            <div className="rep-items">
-              {aliados.map((a, i) => (
-                <div key={i} className="rep-card">
-                  <button type="button" className="rm" onClick={() => setAliados(aliados.filter((_, j) => j !== i))}>Quitar</button>
+                  <button type="button" className="rm" onClick={() => setGuides(v2.guides.filter((_, j) => j !== i))}>Quitar</button>
                   <div className="row c2">
-                    <Field label="Nombre"><input type="text" value={a.name} placeholder="Nanae Watabe" onChange={(e) => setAliados(aliados.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} /></Field>
-                    <Field label="Rol"><input type="text" value={a.role} placeholder="Micóloga · guía" onChange={(e) => setAliados(aliados.map((x, j) => (j === i ? { ...x, role: e.target.value } : x)))} /></Field>
+                    <Field label="Eyebrow"><input type="text" value={g.eyebrow} placeholder="Quién te guía" onChange={(e) => patchGuide(i, { eyebrow: e.target.value })} /></Field>
+                    <Field label="Sub-eyebrow naranja" hint="credencial, solo perfiles"><input type="text" value={g.subEyebrow} placeholder="Micóloga · autora de…" onChange={(e) => patchGuide(i, { subEyebrow: e.target.value })} /></Field>
                   </div>
-                  <Field label="Texto"><textarea value={a.body} placeholder="Quién es / qué aporta" onChange={(e) => setAliados(aliados.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))} /></Field>
-                  <Field label="Foto"><Uploader value={a.imageUrl ?? ""} onChange={(v) => setAliados(aliados.map((x, j) => (j === i ? { ...x, imageUrl: v } : x)))} /></Field>
+                  <div className="row c2">
+                    <Field label="Título"><input type="text" value={g.title} placeholder="Nanae" onChange={(e) => patchGuide(i, { title: e.target.value })} /></Field>
+                    <Field label="Remate"><input type="text" value={g.titleAccent} placeholder="Watabe." onChange={(e) => patchGuide(i, { titleAccent: e.target.value })} /></Field>
+                  </div>
+                  <Field label="Contenido">
+                    <Seg name={`gmode${i}`} sm value={g.mode} options={[{ v: "items", l: "Lista con puntos" }, { v: "paragraphs", l: "Párrafos (perfil)" }]} onChange={(mode) => patchGuide(i, { mode })} />
+                  </Field>
+                  {g.mode === "items" ? (
+                    <div className="nested">
+                      <div className="nlabel">Elementos de la lista</div>
+                      <div className="rep-items">
+                        {g.items.map((it, k) => (
+                          <div key={k} className="rep-row">
+                            <input type="text" placeholder="Nombre" style={{ maxWidth: 220 }} value={it.name} onChange={(e) => patchGuide(i, { items: g.items.map((y, l) => (l === k ? { ...y, name: e.target.value } : y)) })} />
+                            <input type="text" className="grow" placeholder="Rol (opcional)" value={it.role} onChange={(e) => patchGuide(i, { items: g.items.map((y, l) => (l === k ? { ...y, role: e.target.value } : y)) })} />
+                            <button type="button" className="rm" onClick={() => patchGuide(i, { items: g.items.filter((_, l) => l !== k) })}>Quitar</button>
+                          </div>
+                        ))}
+                      </div>
+                      <button type="button" className="add" onClick={() => patchGuide(i, { items: [...g.items, { name: "", role: "" }] })}>+ Agregar elemento</button>
+                    </div>
+                  ) : (
+                    <Field label="Párrafos" hint="*cursiva* con asteriscos">
+                      <StrList items={g.paragraphs} onChange={(paragraphs) => patchGuide(i, { paragraphs })} placeholder="De raíces japonesa y mexicana…" />
+                    </Field>
+                  )}
+                  <Field label="Nota final" hint="opcional"><input type="text" value={g.lead} placeholder="Andrés es caballerango y conoce esta montaña como nadie…" onChange={(e) => patchGuide(i, { lead: e.target.value })} /></Field>
+                  <div className="row c3">
+                    <Field label="Media">
+                      <Seg name={`gframe${i}`} sm value={g.frame} options={[{ v: "allies", l: "Una foto" }, { v: "xp", l: "Mosaico" }]} onChange={(frame) => patchGuide(i, { frame })} />
+                    </Field>
+                    <Field label="Lado de la foto">
+                      <Seg name={`gside${i}`} sm value={g.side} options={[{ v: "left", l: "Izquierda" }, { v: "right", l: "Derecha" }]} onChange={(side) => patchGuide(i, { side })} />
+                    </Field>
+                    <Field label="Fondo">
+                      <Seg name={`gbg${i}`} sm value={g.bg} options={[{ v: "panel", l: "Panel" }, { v: "cream", l: "Crema" }]} onChange={(bg) => patchGuide(i, { bg })} />
+                    </Field>
+                  </div>
+                  <Field label={g.frame === "xp" ? "Fotos del mosaico (3 o 4)" : "Foto"}>
+                    <PhotoList images={g.images} onChange={(images) => patchGuide(i, { images })} />
+                  </Field>
                 </div>
               ))}
             </div>
-            <button type="button" className="add" onClick={() => setAliados([...aliados, { name: "", role: "", body: "", peopleLabel: "", people: "", imageUrl: "" }])}>+ Agregar aliado</button>
+            <button type="button" className="add" onClick={() => setGuides([...v2.guides, emptyGuide()])}>+ Agregar sección de guía/aliados</button>
           </section>
 
-          {/* 07 · FAQ */}
+          {/* 06 · ITINERARIO */}
+          <section className="card" id="s6">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Itinerario</span><h2>Itinerario <span className="optflag">opcional</span></h2><p className="desc">Tarjetas de vidrio sobre foto oscura. Viaje de varios días: número (01, 02…) + etiqueta (&quot;Jueves · Llegada&quot;). Experiencia de un día: sin número, etiqueta = momento (&quot;Amanecer&quot;) + título corto.</p></div>
+            <div className="row c2">
+              <Field label="Título"><input type="text" value={v2.itinerary.title} placeholder="Un domingo" onChange={(e) => upd("itinerary", { title: e.target.value })} /></Field>
+              <Field label="Remate"><input type="text" value={v2.itinerary.titleAccent} placeholder="completo." onChange={(e) => upd("itinerary", { titleAccent: e.target.value })} /></Field>
+            </div>
+            <Field label="Foto de fondo"><Uploader value={v2.itinerary.bg.url} onChange={(url) => upd("itinerary", { bg: { ...v2.itinerary.bg, url } })} /></Field>
+            <div className="rep-items">
+              {itinDays.map((d, i) => (
+                <div key={i} className="rep-card">
+                  <button type="button" className="rm" onClick={() => setItinDays(itinDays.filter((_, j) => j !== i))}>Quitar</button>
+                  <div className="row c3">
+                    <Field label="Número" hint="'01'… o vacío"><input type="text" value={d.num} placeholder="01" onChange={(e) => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, num: e.target.value } : x)))} /></Field>
+                    <Field label="Etiqueta naranja"><input type="text" value={d.lab} placeholder="Jueves · Llegada / Amanecer" onChange={(e) => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, lab: e.target.value } : x)))} /></Field>
+                    <Field label="Título corto" hint="opcional"><input type="text" value={d.ttl} placeholder="Encuentro" onChange={(e) => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, ttl: e.target.value } : x)))} /></Field>
+                  </div>
+                  <div className="nested">
+                    <div className="nlabel">Momentos — usa **negritas** para horas, ej. **6:30** Meditación</div>
+                    <StrList items={d.items} onChange={(items) => setItinDays(itinDays.map((x, j) => (j === i ? { ...x, items } : x)))} placeholder="**6:30** Meditación Numan al amanecer" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setItinDays([...itinDays, { num: "", lab: "", ttl: "", items: [""] }])}>+ Agregar día / momento</button>
+          </section>
+
+          {/* 07 · INVERSIÓN */}
           <section className="card" id="s7">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Preguntas frecuentes</span><h2>Preguntas frecuentes <span className="optflag">opcional</span></h2></div>
-            <div className="rep-items">
-              {faq.map((f, i) => (
-                <div key={i} className="rep-card">
-                  <button type="button" className="rm" onClick={() => setFaq(faq.filter((_, j) => j !== i))}>Quitar</button>
-                  <Field label="Pregunta"><input type="text" value={f.q} placeholder="¿…?" onChange={(e) => setFaq(faq.map((x, j) => (j === i ? { ...x, q: e.target.value } : x)))} /></Field>
-                  <Field label="Respuesta"><textarea value={f.a} placeholder="Respuesta" onChange={(e) => setFaq(faq.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)))} /></Field>
-                </div>
-              ))}
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Inversión</span><h2>Inversión <span className="optflag">opcional</span></h2><p className="desc">La tarjeta verde de tarifa. Este es el precio que se MUESTRA; el que se cobra vive en &quot;Precio&quot; (operación), abajo.</p></div>
+            <div className="row c2">
+              <Field label="Título"><input type="text" value={v2.tariff.title} placeholder="Un día," onChange={(e) => upd("tariff", { title: e.target.value })} /></Field>
+              <Field label="Remate"><input type="text" value={v2.tariff.titleAccent} placeholder="todo incluido." onChange={(e) => upd("tariff", { titleAccent: e.target.value })} /></Field>
             </div>
-            <button type="button" className="add" onClick={() => setFaq([...faq, { q: "", a: "" }])}>+ Agregar pregunta</button>
+            <Field label="Texto"><textarea value={v2.tariff.lead} placeholder="Tu lugar se aparta con el pago por adelantado…" onChange={(e) => upd("tariff", { lead: e.target.value })} /></Field>
+            <div className="row c2">
+              <Field label="Plan / etiqueta"><input type="text" value={v2.tariff.tier} placeholder="Caminata de hongos + comida" onChange={(e) => upd("tariff", { tier: e.target.value })} /></Field>
+              <Field label="Precio (como se muestra)"><input type="text" value={v2.tariff.price} placeholder="$2,550" onChange={(e) => upd("tariff", { price: e.target.value })} /></Field>
+            </div>
+            <div className="row c3">
+              <Field label="Moneda / nota"><input type="text" value={v2.tariff.priceCur} placeholder="MXN · todo incluido" onChange={(e) => upd("tariff", { priceCur: e.target.value })} /></Field>
+              <Field label="Dato — etiqueta"><input type="text" value={v2.tariff.availK} placeholder="Cupo" onChange={(e) => upd("tariff", { availK: e.target.value })} /></Field>
+              <Field label="Dato — valor"><input type="text" value={v2.tariff.availV} placeholder="17 personas" onChange={(e) => upd("tariff", { availV: e.target.value })} /></Field>
+            </div>
           </section>
 
-          {/* 08 · BLOQUES LIBRES */}
+          {/* 08 · INCLUYE / NO */}
           <section className="card" id="s8">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Bloques libres</span><h2>Bloques libres extra <span className="optflag">opcional</span></h2><p className="desc">Secciones específicas de esta experiencia (p. ej. meditaciones, la comunidad, &quot;qué vas a encontrar&quot;).</p></div>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Qué incluye / qué no</span><h2>Incluye / No incluye <span className="optflag">opcional</span></h2><p className="desc">Dos columnas. La segunda puede ser &quot;No incluye&quot; (−) o &quot;Buenas prácticas&quot; (·).</p></div>
+            <div className="subhead" style={{ borderTop: 0, paddingTop: 0 }}>Incluye</div>
+            <StrList items={v2.checklist.yesItems} onChange={(yesItems) => upd("checklist", { yesItems })} placeholder="Ej. Transporte redondo" />
+            <div className="subhead">Segunda columna</div>
+            <div className="row c2">
+              <Field label="Título"><input type="text" value={v2.checklist.noTitle} placeholder="No incluye / Buenas prácticas" onChange={(e) => upd("checklist", { noTitle: e.target.value })} /></Field>
+              <Field label="Marcador">
+                <Seg name="nomark" sm value={v2.checklist.noMark === "·" ? "·" : "−"} options={[{ v: "−", l: "− (no incluye)" }, { v: "·", l: "· (prácticas)" }]} onChange={(noMark) => upd("checklist", { noMark })} />
+              </Field>
+            </div>
+            <StrList items={v2.checklist.noItems} onChange={(noItems) => upd("checklist", { noItems })} placeholder="Ej. Vuelos" />
+          </section>
+
+          {/* 09 · FAQ */}
+          <section className="card" id="s9">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Preguntas frecuentes</span><h2>Preguntas frecuentes <span className="optflag">opcional</span></h2><p className="desc">Tarjeta de vidrio sobre foto. Si no agregas preguntas, la sección no aparece.</p></div>
+            <SecToggle checked={v2.faq.on} onChange={(on) => upd("faq", { on })} />
+            {v2.faq.on ? (
+              <>
+                <Field label="Foto de fondo"><Uploader value={v2.faq.bg.url} onChange={(url) => upd("faq", { bg: { ...v2.faq.bg, url } })} /></Field>
+                <div className="rep-items">
+                  {v2.faq.qa.map((f, i) => (
+                    <div key={i} className="rep-card">
+                      <button type="button" className="rm" onClick={() => upd("faq", { qa: v2.faq.qa.filter((_, j) => j !== i) })}>Quitar</button>
+                      <Field label="Pregunta"><input type="text" value={f.q} placeholder="¿…?" onChange={(e) => upd("faq", { qa: v2.faq.qa.map((x, j) => (j === i ? { ...x, q: e.target.value } : x)) })} /></Field>
+                      <Field label="Respuesta"><textarea value={f.a} placeholder="Respuesta" onChange={(e) => upd("faq", { qa: v2.faq.qa.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)) })} /></Field>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" className="add" onClick={() => upd("faq", { qa: [...v2.faq.qa, { q: "", a: "" }] })}>+ Agregar pregunta</button>
+              </>
+            ) : null}
+          </section>
+
+          {/* 10 · MOCHILA */}
+          <section className="card" id="s10">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> La mochila</span><h2>Qué llevar <span className="optflag">opcional</span></h2><p className="desc">Checklist con casillas + una foto vertical.</p></div>
+            <Field label="Bajada" hint="una línea"><input type="text" value={v2.packing.cap} placeholder="Lo esencial para un día de montaña, lluvia y lodo." onChange={(e) => upd("packing", { cap: e.target.value })} /></Field>
+            <Field label="Items"><StrList items={v2.packing.items} onChange={(items) => upd("packing", { items })} placeholder="Botas de caminar o hike" /></Field>
+            <Field label="Foto"><Uploader value={v2.packing.photo.url} onChange={(url) => upd("packing", { photo: { ...v2.packing.photo, url } })} /></Field>
+          </section>
+
+          {/* 11 · FECHAS (texto) */}
+          <section className="card" id="s11">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Próximas fechas</span><h2>Fechas — texto de la sección</h2><p className="desc">Solo el copy que rodea las tarjetas de fechas. Las tarjetas (fecha + &quot;Quedan N lugares&quot;) se llenan SOLAS desde las salidas de la sección &quot;Fechas &amp; cupo&quot;.</p></div>
+            <div className="row c2">
+              <Field label="Título"><input type="text" value={v2.dates.title} placeholder="Elige tu" onChange={(e) => upd("dates", { title: e.target.value })} /></Field>
+              <Field label="Remate"><input type="text" value={v2.dates.titleAccent} placeholder="domingo." onChange={(e) => upd("dates", { titleAccent: e.target.value })} /></Field>
+            </div>
+            <Field label="Bajada"><input type="text" value={v2.dates.cap} placeholder="Mismo bosque, misma jornada — elige tu salida." onChange={(e) => upd("dates", { cap: e.target.value })} /></Field>
+            <Field label="Línea de precio" hint="**negritas** con asteriscos"><input type="text" value={v2.dates.priceLine} placeholder="**$2,550 MXN** · todo incluido · cupo 17 personas" onChange={(e) => upd("dates", { priceLine: e.target.value })} /></Field>
+          </section>
+
+          {/* 12 · CIERRE */}
+          <section className="card" id="s12">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Cierre</span><h2>Cierre</h2><p className="desc">La tarjeta de vidrio final con el contacto y los botones de reserva.</p></div>
+            <div className="row c2">
+              <Field label="Título"><input type="text" value={v2.closing.title} placeholder="Nos vemos" onChange={(e) => upd("closing", { title: e.target.value })} /></Field>
+              <Field label="Remate"><input type="text" value={v2.closing.titleAccent} placeholder="en el bosque." onChange={(e) => upd("closing", { titleAccent: e.target.value })} /></Field>
+            </div>
+            <Field label="Foto de fondo"><Uploader value={v2.closing.bg.url} onChange={(url) => upd("closing", { bg: { ...v2.closing.bg, url } })} /></Field>
+            <div className="subhead" style={{ borderTop: 0, paddingTop: 0 }}>Contacto <span className="chip-auto">auto</span></div>
             <div className="rep-items">
-              {bloques.map((b, i) => (
-                <div key={i} className="rep-card">
-                  <button type="button" className="rm" onClick={() => setBloques(bloques.filter((_, j) => j !== i))}>Quitar</button>
-                  <Field label="Título"><input type="text" value={b.title} placeholder="Título del bloque" onChange={(e) => setBloques(bloques.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} /></Field>
-                  <Field label="Texto"><textarea value={b.body} placeholder="Contenido del bloque" onChange={(e) => setBloques(bloques.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))} /></Field>
-                  <Field label="Foto"><Uploader value={b.imageUrl} onChange={(v) => setBloques(bloques.map((x, j) => (j === i ? { ...x, imageUrl: v } : x)))} /></Field>
+              {v2.closing.contacts.map((c, i) => (
+                <div key={i} className="rep-row">
+                  <input type="text" placeholder="Etiqueta" style={{ maxWidth: 160 }} value={c.lbl} onChange={(e) => upd("closing", { contacts: v2.closing.contacts.map((x, j) => (j === i ? { ...x, lbl: e.target.value } : x)) })} />
+                  <input type="text" className="grow" placeholder="Valor" value={c.val} onChange={(e) => upd("closing", { contacts: v2.closing.contacts.map((x, j) => (j === i ? { ...x, val: e.target.value } : x)) })} />
+                  <button type="button" className="rm" onClick={() => upd("closing", { contacts: v2.closing.contacts.filter((_, j) => j !== i) })}>Quitar</button>
                 </div>
               ))}
             </div>
-            <button type="button" className="add" onClick={() => setBloques([...bloques, { title: "", body: "", imageUrl: "" }])}>+ Agregar bloque</button>
+            <button type="button" className="add" onClick={() => upd("closing", { contacts: [...v2.closing.contacts, { lbl: "", val: "" }] })}>+ Agregar contacto</button>
           </section>
 
-          {/* 09 · PRECIO */}
-          <section className="card" id="s9">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio</h2><p className="desc">El precio base por persona. El cobro se hace con el checkout de la página (Reservar y pagar). Si hay varios tipos (ej. habitación compartida / sencilla), agrégalos como niveles abajo.</p></div>
+          {/* 13 · PRECIO */}
+          <section className="card" id="s13">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Precio</span><h2>Precio</h2><p className="desc">El precio base por persona QUE SE COBRA en el checkout (Reservar y pagar). Si hay varios tipos (ej. habitación compartida / sencilla), agrégalos como niveles abajo.</p></div>
             <div className="row c3">
               <Field label={priceTiers.length ? "Monto base (desde)" : "Monto"}><input type="number" value={price.amount} placeholder="11500" onChange={(e) => setPrice({ amount: e.target.value })} /></Field>
               <Field label="Moneda" auto><input type="text" value={price.currency} onChange={(e) => setPrice({ currency: e.target.value })} /></Field>
@@ -752,8 +875,8 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
             </div>
           </section>
 
-          {/* 10 · FECHAS & CUPO */}
-          <section className="card" id="s10">
+          {/* 14 · FECHAS & CUPO */}
+          <section className="card" id="s14">
             <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Fechas &amp; cupo</span><h2>Fechas &amp; cupo</h2><p className="desc">Las fechas de salida y cuántos lugares hay en cada una. El sitio muestra &quot;Quedan N lugares&quot; y baja el número conforme la gente reserva; cuando se llena, aparece &quot;Agotado&quot;. Deja el cupo vacío para una salida sin tope.</p></div>
             <div style={{ maxWidth: 220 }}><Field label="Cupo estándar" hint="se usa al agregar salidas"><input type="number" value={cupoEstandar} placeholder="16" onChange={(e) => setCupoEstandar(e.target.value)} /></Field></div>
             <div className="subhead">Salidas</div>
@@ -773,8 +896,8 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
             <button type="button" className="add" onClick={() => setSlots([...slots, { label: "", start: "", end: "", cupo: cupoEstandar }])}>+ Agregar salida</button>
           </section>
 
-          {/* 11 · REGISTRO & DESLINDE */}
-          <section className="card" id="s11">
+          {/* 15 · REGISTRO & DESLINDE */}
+          <section className="card" id="s15">
             <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Registro &amp; deslinde</span><h2>Registro &amp; deslinde</h2><p className="desc">Es el formulario que cada viajero llena antes del viaje: sus datos, su contacto de emergencia, su información médica y la aceptación del deslinde (la carta de responsabilidad) con su firma. Aquí lo prendes para esta experiencia, subes el documento del deslinde y escribes un resumen de sus puntos. La &quot;versión&quot; déjala en v1; solo súbela si cambias el texto del deslinde.</p></div>
             <div className="field"><label className="toggle"><input type="checkbox" checked={reg.active} onChange={(e) => setReg({ active: e.target.checked })} /><span className="tk"></span><span className="tlabel">Registro activo</span></label></div>
             <div className="row c2">
@@ -813,8 +936,8 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
             </details>
           </section>
 
-          {/* 12 · ENCUESTA */}
-          <section className="card" id="s12">
+          {/* 16 · ENCUESTA */}
+          <section className="card" id="s16">
             <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Encuesta de satisfacción</span><h2>Encuesta de satisfacción</h2><p className="desc">La encuesta que se manda a los viajeros después del viaje, por correo y sola, más o menos un día después de que termina cada salida. Aquí solo eliges si se manda, qué partes del viaje quieres que califiquen, si incluyes la pregunta de &quot;¿qué tan probable es que nos recomiendes?&quot; y el texto que invita a dejar un testimonio.</p></div>
             <div className="field"><label className="toggle"><input type="checkbox" checked={fb.active} onChange={(e) => setFb({ active: e.target.checked })} /><span className="tk"></span><span className="tlabel">Encuesta activa</span></label></div>
             <div className="row c2">

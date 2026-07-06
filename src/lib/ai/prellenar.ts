@@ -46,19 +46,12 @@ const obj = (properties: Record<string, unknown>) => ({
 
 const ESQUEMA = obj({
   data: obj({
-    // hero / identidad
-    title: s("Título principal corto, en MAYÚSCULAS estilizadas, p.ej. 'OCEAN'"),
-    titleAccent: s("Remate en itálica, minúsculas con punto, p.ej. 'safari.'"),
-    subtitle: s(),
-    brandSmall: s("Nombre corto de la experiencia, p.ej. 'Ocean Safari'"),
-    vol: s("'Vol. NN · Mes Año' — usa el mes de la primera salida"),
-    coords: s("Coordenadas del lugar, p.ej. '23°59′N · 109°50′W'"),
+    // ── metadatos de la experiencia ──
     // estado: SIN enum (los 33 valores inflaban la gramática compilada y la API
     // la rechaza por tamaño). La descripción empuja al nombre oficial y
     // normalizarEstado (aplicar-prellenado) corrige variantes o deja vacío.
     estado: s("Nombre completo oficial del estado, p.ej. 'Estado de México', 'Baja California Sur'"),
-    // card / calendario
-    cardTitle: s(),
+    cardTitle: s("Nombre corto de la experiencia para la tarjeta del home, p.ej. 'Recolección de Hongos'"),
     cardPloc: s("'Estado · Mes Año'"),
     cardHook: s("Gancho de una línea para la tarjeta del landing"),
     // comercio. price = precio base/'desde'. Si hay varios niveles (tipo de
@@ -72,57 +65,86 @@ const ESQUEMA = obj({
       label: s("Nombre del nivel, p.ej. 'Habitación compartida'"),
       amount: s("Solo el número, p.ej. '15,000'"),
     })),
-    // contexto (CAP 01). 'no' NO se pide: se estampa por índice en el código.
-    contextTitle: s(),
-    contextTitleAccent: s(),
-    contextLead: s(),
-    context: arr(obj({ title: s(), sub: s(), body: s() })),
-    // cuatro caras. caraNo NO se pide: se estampa por índice.
-    carasIntro: s(),
-    lenses: arr(obj({
-      key: { type: "string", enum: ["naturaleza", "conservacion", "comunidades", "problemas"] },
-      label: s(),
+    // ── PORTADA (hero a sangre con foto) ──
+    hero: obj({
+      eyebrow: s("'Tipo de experiencia · Lugar', p.ej. 'Recolección de hongos · Edo. de México'"),
+      metaEst: s("Referencia geográfica corta, p.ej. 'Bosque de Xalatlaco', 'Mar de Cortés'"),
+      title: s("Título del hero SIN el remate, p.ej. 'El bosque', 'Ensenada'"),
+      titleAccent: s("Remate en itálica naranja, con punto final, p.ej. 'de Xalatlaco.', 'de Muertos.'"),
+      sub: s("Subtítulo de 1-2 líneas que sitúe la experiencia, evocador"),
+    }),
+    // ── LA EXPERIENCIA (resumen en 3 puntos) ──
+    experiencia: obj({
+      title: s("p.ej. 'Un día', 'Dos días'"),
+      titleAccent: s("p.ej. 'en el bosque.', 'en el mar.'"),
+      points: arr(s("EXACTAMENTE 3 puntos que resuman la experiencia, una línea cada uno")),
+    }),
+    // ── BLOQUE DESTACADO (declaración sobre foto oscura, método Caminante) ──
+    statement: obj({
+      eyebrowPre: s("Texto antes del separador, p.ej. 'Naturaleza', 'Meditaciones Numan'"),
+      eyebrow: s("Texto después del separador, p.ej. 'el método Caminante'"),
+      title: s("Frase-declaración, p.ej. 'Pon las manos'"),
+      titleAccent: s("Remate itálico, p.ej. 'en la tierra.'"),
+      body: s("2-3 líneas sobre la dimensión interior/método de la experiencia"),
+      quote: s("Cita corta entre comillas tipográficas, si aplica"),
+    }),
+    // ── GUÍAS Y ALIADOS (una sección por guía/comunidad/grupo) ──
+    guides: arr(obj({
+      eyebrow: s("p.ej. 'Quién te guía', 'La comunidad', 'Aliados'"),
       title: s(),
-      body: s(),
-      facts: arr(obj({ n: s("dato/número"), l: s("etiqueta") })),
+      titleAccent: s(),
+      subEyebrow: s("Credencial corta en naranja, p.ej. 'Micóloga · autora de …' — solo para perfiles de persona"),
+      items: arr(obj({ name: s("Nombre"), role: s("Rol/qué aporta, corto") })),
+      paragraphs: arr(s("Párrafos de perfil (solo si es UNA persona con bio; si es lista de aliados usa items)")),
+      lead: s("Nota final opcional de la sección"),
     })),
-    // la experiencia (CAP 02). num NO se pide: se estampa por índice.
-    vivirTitle: s(),
-    vivirTitleAccent: s(),
-    vivirLead: s(),
-    expIntro: s(),
-    vivir: arr(obj({ pill: s("etiqueta corta"), title: s(), body: s() })),
-    // aliados (CAP 03)
-    aliadosLead: s(),
-    aliados: arr(obj({ role: s(), name: s(), body: s(), peopleLabel: s(), people: s() })),
-    // itinerario (CAP 04). dno NO se pide: se estampa por índice ('Día 01').
-    itinerarioLead: s(),
-    itinerario: arr(obj({
-      dname: s("nombre del día, p.ej. 'Bosque + Hacienda'"),
-      beats: arr(obj({ t: s("hora, p.ej. '07:30'"), d: s("descripción") })),
-    })),
-    // impacto (CAP 05)
-    impactoBody: arr(s()),
-    impactoLabel: s(),
-    // paquete (CAP 06)
-    paqueteLead: s(),
-    incluye: arr(s()),
-    noIncluye: arr(s()),
-    // mochila (CAP 07)
-    mochilaLead: s(),
-    mochila: arr(obj({
-      title: s("categoría, p.ej. 'Ropa'"),
-      items: arr(obj({ text: s(), req: s("'Indispensable' | 'Recomendado' | ''"), must: { type: "boolean" } })),
-    })),
-    mochilaNote: s(),
-    // práctico (CAP 08)
-    practicoLead: s(),
-    cancelacion: arr(obj({ label: s("p.ej. '30+ días antes'"), val: s("p.ej. 'Reembolso 100%'") })),
+    // ── ITINERARIO (tarjetas glass sobre foto oscura) ──
+    itinerario: obj({
+      title: s("p.ej. 'Un domingo', 'Cuatro'"),
+      titleAccent: s("p.ej. 'completo.', 'días.'"),
+      days: arr(obj({
+        num: s("'01', '02'… solo si el viaje es de varios días; si es de UN día, cadena vacía"),
+        lab: s("Etiqueta naranja: día ('Jueves · Llegada') o momento ('Amanecer')"),
+        ttl: s("Título corto del bloque, p.ej. 'Encuentro' — solo experiencias de un día"),
+        items: arr(s("Momentos; para horas usa **negrita**, p.ej. '**6:30** Meditación'")),
+      })),
+    }),
+    // ── INVERSIÓN (tarjeta de tarifa) ──
+    tariff: obj({
+      title: s("p.ej. 'Un día,', 'Todo incluido.'"),
+      titleAccent: s("p.ej. 'todo incluido.', 'Una sola tarifa.'"),
+      lead: s("2 líneas sobre qué cubre la tarifa"),
+      tier: s("Etiqueta del plan, p.ej. 'Camping · Tienda frente al mar'"),
+      price: s("Precio CON signo y comas, p.ej. '$18,560'"),
+      priceCur: s("p.ej. 'MXN · todo incluido'"),
+      availK: s("Etiqueta del dato de la tarjeta, p.ej. 'Cupo', 'IVA incluido'"),
+      availV: s("Valor, p.ej. '17 personas', '16 lugares'"),
+    }),
+    // ── INCLUYE / NO INCLUYE (o buenas prácticas) ──
+    checklist: obj({
+      eyebrow: s("p.ej. 'Qué incluye', 'Antes de venir'"),
+      title: s("p.ej. 'Lo que'"),
+      titleAccent: s("p.ej. 'va contigo.'"),
+      yesItems: arr(s("Qué incluye, una línea cada uno")),
+      noTitle: s("'No incluye' o 'Buenas prácticas' según el material"),
+      noItems: arr(s()),
+      noMark: s("'−' para no-incluye, '·' para buenas prácticas"),
+    }),
+    // ── FAQ (opcional) ──
     faq: arr(obj({ q: s(), a: s() })),
-    // reserva (CAP 09)
-    reservaNote: s(),
-    datesBadge: obj({ label: s("'Próximas salidas'"), big: s("p.ej. 'AGO 24'"), rest: s("resto de fechas") }),
-    // deslinde + encuesta
+    // ── MOCHILA (qué llevar) ──
+    packing: obj({
+      cap: s("Una línea, p.ej. 'Lo esencial para un día de montaña, lluvia y lodo.'"),
+      items: arr(s("Cosas que traer, cortas, una por línea")),
+    }),
+    // ── PRÓXIMAS FECHAS (solo el copy; las tarjetas salen de la BD) ──
+    dates: obj({
+      title: s("p.ej. 'Elige tu'"),
+      titleAccent: s("p.ej. 'domingo.', 'salida.'"),
+      cap: s("p.ej. 'Mismo bosque, misma jornada — elige tu salida.'"),
+      priceLine: s("p.ej. '**$2,550 MXN** · todo incluido · cupo 17 personas'"),
+    }),
+    // ── deslinde + encuesta ──
     waiverClauses: arr(s("Resumen de cláusulas del deslinde, una línea cada una")),
     feedbackLocationLabel: s("'Lugar, Estado' para la encuesta"),
     feedbackSections: arr(obj({ key: s("kebab-case"), label: s(), icon: s("UN emoji que represente la sección, p.ej. '🍄', '🥾', '🍳'"), prompt: s() })),
@@ -136,16 +158,19 @@ const ESQUEMA = obj({
   notas: s("Qué NO pudiste llenar por falta de información y qué asumiste. Breve, en español."),
 });
 
-const SISTEMA = `Eres el editor de contenido de Caminante, la marca de experiencias en naturaleza de NUMAN (México). Tu tarea: leer los documentos del operador (itinerarios, brochures, notas) y pre-llenar el formulario de una experiencia.
+const SISTEMA = `Eres el editor de contenido de Caminante, la marca de experiencias en naturaleza de NUMAN (México). Tu tarea: leer los documentos del operador (itinerarios, brochures, notas) y pre-llenar la página de una experiencia en el diseño editorial de la marca.
 
-Voz de la marca: "científico-poeta" — precisa en los datos, evocadora en el lenguaje. Trato de "tú". Español mexicano. Sin emojis en el contenido (única excepción: el campo icon de feedbackSections, que ES un emoji). Cada experiencia se cuenta a través de cuatro caras: Naturaleza, Conservación, Comunidades y Problemas (los retos ambientales/sociales del lugar).
+Voz de la marca: "científico-poeta" — precisa en los datos, evocadora en el lenguaje. Trato de "tú". Español mexicano. Sin emojis en el contenido (única excepción: el campo icon de feedbackSections, que ES un emoji).
+
+La página tiene estas secciones, en este orden: PORTADA (hero con foto a sangre) → LA EXPERIENCIA (3 puntos + mosaico) → BLOQUE DESTACADO (declaración del método sobre foto oscura, opcional) → GUÍAS Y ALIADOS (una sección por guía/comunidad/grupo) → ITINERARIO (tarjetas por día o por momento del día) → INVERSIÓN (tarjeta de tarifa) → INCLUYE/NO INCLUYE → FAQ (opcional) → MOCHILA → PRÓXIMAS FECHAS → CIERRE. Estudia el patrón de títulos: siempre "título corto" + "remate en itálica con punto final" (p.ej. "Un día" + "en el bosque.").
 
 Reglas duras:
 - USA SOLO la información de los documentos para datos duros (precios, horarios, fechas, cupos, qué incluye). No inventes datos logísticos.
-- Para el copy editorial (leads, contexto, caras) sí puedes redactar en voz de marca a partir de lo que los documentos cuentan del lugar.
-- El copy NO debe llevar fechas ni conteos dentro de los textos (regla del sitio: las fechas viven solo en las salidas/slots). Excepciones: vol, cardPloc y datesBadge, que sí llevan mes/fechas.
+- Para el copy editorial (títulos, subtítulos, leads, el bloque destacado) sí puedes redactar en voz de marca a partir de lo que los documentos cuentan del lugar.
+- El copy NO debe llevar fechas ni conteos de salidas dentro de los textos (regla del sitio: las fechas viven solo en las salidas/slots). Excepciones: cardPloc y dates.priceLine/tariff (que llevan precio/cupo).
 - Si un dato no aparece en los documentos, devuelve cadena vacía o lista vacía y explícalo en "notas".
-- Las 4 lenses siempre en el orden: naturaleza, conservacion, comunidades, problemas.
+- GUÍAS: si el material presenta a UNA persona con biografía, usa paragraphs (2 párrafos de perfil) + subEyebrow con su credencial; si es una lista de aliados/comunidad, usa items (name + role). Puedes devolver varias guides (p.ej. la guía principal, la comunidad, "qué vas a encontrar").
+- ITINERARIO: viaje de varios días → num "01","02"… y lab "Jueves · Llegada"; experiencia de UN día → num vacío, lab = momento ("Amanecer","Mañana","Mediodía","Tarde") y ttl corto.
 - PRECIOS: si el material trae varios precios (tipo de habitación, categoría, etc.), pon cada uno en priceTiers (label + monto) y usa el MÁS BAJO como price.amount. Si hay un solo precio, deja priceTiers vacío.
 - FECHAS de salidas: llénalas SOLO si el documento da una fecha concreta (día y mes). Si solo dice una temporada o "por confirmar", deja slots VACÍO y dilo en notas — NO inventes una fecha.`;
 
