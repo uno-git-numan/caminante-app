@@ -3,13 +3,13 @@
 // Reusa los tokens de marca del diseño bespoke. Se imprime con @page del tamaño
 // exacto + page-break por slide → sin cortes ni componentes perdidos.
 
+import { DECK_FONTS } from "./deck-fonts";
+
 export function deckCss(orient: "h" | "v"): string {
   const W = orient === "h" ? 1280 : 720;
   const H = orient === "h" ? 720 : 1280;
   return `
-@font-face{font-family:"Geist";src:url("/landing/assets/fonts/Geist-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
-@font-face{font-family:"Geist";src:url("/landing/assets/fonts/Geist-Italic-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:italic;font-display:swap;}
-@font-face{font-family:"Geist Mono";src:url("/landing/assets/fonts/GeistMono-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+${DECK_FONTS}
 
 :root{--lagoon:#1c6f6a;--dune:#c9b79c;--cream:#fbfbf7;--sand:#b6ada5;--salvia:#d6d8c7;--olive:#637154;--olive-d:#4f5d44;--forest:#20392b;--charcoal:#20211c;--orange:#ff5d36;--panel:#f1eee7;--ink-soft:rgba(32,33,28,.6);--line:rgba(32,33,28,.13);--line-w:rgba(255,255,255,.22);}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -48,12 +48,12 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .s-meta{font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82);}
 
 /* ======================= COVER / CLOSING ======================= */
-.cover .cover-btm{margin-top:auto;padding:56px;}
-.cover .eyebrow-w{color:#fff;letter-spacing:.42em;font-size:13px;font-weight:600;text-transform:uppercase;display:block;margin-bottom:20px;}
-.cover .wordmark{width:${orient === "h" ? "860px" : "540px"};max-width:${orient === "h" ? "72%" : "86%"};margin-bottom:${orient === "h" ? 50 : 38}px;}
+.cover .cover-btm{margin-top:auto;padding:${orient === "h" ? "56px 56px 64px" : "48px 40px 60px"};display:flex;flex-direction:column;align-items:center;text-align:center;}
+.cover .eyebrow-w{color:#fff;letter-spacing:.42em;font-size:13px;font-weight:600;text-transform:uppercase;display:block;margin-bottom:18px;padding-left:.42em;}
+.cover .wordmark{width:${orient === "h" ? "880px" : "560px"};max-width:${orient === "h" ? "78%" : "90%"};margin:0 auto ${orient === "h" ? 34 : 26}px;}
 .cover .wordmark svg{width:100%;height:auto;display:block;}
 .cover .wordmark .g1{fill:var(--olive);}.cover .wordmark .g2{fill:var(--sand);}.cover .wordmark .g3{fill:var(--orange);}.cover .wordmark .gw{fill:#fff;}
-.cover .tag{color:rgba(255,255,255,.92);font-size:${orient === "h" ? 21 : 17}px;font-weight:300;line-height:1.45;max-width:${orient === "h" ? "62%" : "94%"};}
+.cover .tag{color:rgba(255,255,255,.92);font-size:${orient === "h" ? 21 : 17}px;font-weight:300;line-height:1.45;max-width:${orient === "h" ? "70%" : "94%"};margin:0 auto;}
 .pill{background:var(--orange);color:#fff;border-radius:999px;padding:8px 18px;font-size:12px;font-weight:600;letter-spacing:.04em;}
 
 .closing .close-btm{margin-top:auto;padding:56px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap;}
