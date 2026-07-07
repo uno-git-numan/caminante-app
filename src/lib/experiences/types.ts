@@ -218,6 +218,9 @@ export type PageBlock =
 export type PageV2 = {
   docTitle?: string; // <title> del documento
   blocks: PageBlock[];
+  // Logos de colaboradores/aliados (marcas): se muestran como tira en el hero
+  // y como banda cerca de la sección de guías. El PDF los hereda de la página.
+  collaborators?: { name: string; logoUrl: string }[];
 };
 
 export type Experience = {

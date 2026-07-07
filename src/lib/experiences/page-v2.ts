@@ -64,6 +64,7 @@ export type V2Draft = {
     bg: V2Image;
   };
   guides: V2GuideDraft[]; // repetidor (Nanae, comunidad, variedades, aliados…)
+  collaborators: { name: string; logoUrl: string }[]; // logos de marcas aliadas
   itinerary: {
     on: boolean;
     eyebrow: string;
@@ -166,6 +167,7 @@ export function emptyV2Draft(exp?: Partial<Experience>): V2Draft {
     experiencia: { on: true, eyebrow: "La experiencia", title: "", titleAccent: "", points: ["", "", ""], mosaic: [] },
     statement: { on: false, eyebrowPre: "", eyebrow: "", title: "", titleAccent: "", body: "", quote: "", bg: img() },
     guides: [],
+    collaborators: [],
     itinerary: { on: true, eyebrow: "Itinerario", title: "", titleAccent: "", bg: img(), days: [] },
     tariff: { on: true, eyebrow: "Inversión", title: "", titleAccent: "", lead: "", tier: "", price: "", priceCur: "MXN · todo incluido", availK: "Cupo", availV: "" },
     checklist: { on: true, eyebrow: "Qué incluye", title: "Lo que", titleAccent: "va contigo.", yesTitle: "Incluye", yesItems: [], noTitle: "No incluye", noItems: [], noMark: "−" },
@@ -413,5 +415,8 @@ export function draftFromBlocks(page: PageV2 | undefined, exp?: Partial<Experien
     }
   }
   d.guides = guides;
+  if (page.collaborators?.length) {
+    d.collaborators = page.collaborators.map((c) => ({ name: c.name || "", logoUrl: c.logoUrl || "" }));
+  }
   return d;
 }

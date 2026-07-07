@@ -4,6 +4,7 @@
 // Server component: la interactividad (logo SVG, nav al hacer scroll, drawer)
 // la da el script compartido inyectado al final (template-v2-script.ts).
 // Las fechas se pintan desde `slots` (disponibilidad en vivo), no del contenido.
+import { Fragment } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type {
   Experience,
@@ -125,7 +126,14 @@ function Allies({ items }: { items: { name: string; role?: string }[] }) {
 }
 
 // --- bloques ---
-function HeroBlock({ b }: { b: V2Hero }) {
+function HeroBlock({
+  b,
+  collaborators,
+}: {
+  b: V2Hero;
+  collaborators?: { name: string; logoUrl: string }[];
+}) {
+  const logos = (collaborators ?? []).filter((c) => c.logoUrl?.trim());
   const actions =
     b.actions ??
     [
@@ -159,8 +167,45 @@ function HeroBlock({ b }: { b: V2Hero }) {
             <Btn key={i} a={a} />
           ))}
         </div>
+        {logos.length ? (
+          <div className="collab-strip">
+            <span className="lbl">En colaboración con</span>
+            <div className="collab-strip-logos">
+              {logos.map((c, i) => (
+                <span className="collab-chip" key={i}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={c.logoUrl} alt={c.name || ""} />
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </header>
+  );
+}
+
+// Banda de logos de colaboradores (fondo claro), para la zona de guías/aliados.
+function CollaboratorsBand({ logos }: { logos: { name: string; logoUrl: string }[] }) {
+  return (
+    <section className="section collab-band">
+      <div className="container">
+        <div className="collab-band-lbl">
+          <span className="eyebrow">
+            <span className="sl">{"//"}</span> Colaboradores y aliados
+          </span>
+        </div>
+        <div className="collab-band-logos">
+          {logos.map((c, i) => (
+            <div className="collab-band-logo" key={i}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.logoUrl} alt={c.name || ""} />
+              {c.name ? <span>{c.name}</span> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -474,6 +519,20 @@ function PackingBlock({ b, secnum }: { b: V2Packing; secnum: string }) {
   );
 }
 
+// La "línea de precio" resalta el monto SOLA: si trae **negritas** (data vieja)
+// las respeta; si no, pone en negrita el primer segmento (antes del " · ").
+function priceLineNodes(s: string): ReactNode {
+  if (s.includes("**")) return renderInline(s);
+  const idx = s.indexOf(" · ");
+  if (idx === -1) return <b>{s}</b>;
+  return (
+    <>
+      <b>{s.slice(0, idx)}</b>
+      {s.slice(idx)}
+    </>
+  );
+}
+
 function cupoText(s: SlotAvailabilityPublic): ReactNode {
   if (s.soldOut) return "Agotado";
   if (s.available === null) return "Lugares disponibles";
@@ -517,7 +576,7 @@ function DatesBlock({
           ))}
         </div>
 
-        {b.priceLine ? <p className="price-line">{renderInline(b.priceLine)}</p> : null}
+        {b.priceLine ? <p className="price-line">{priceLineNodes(b.priceLine)}</p> : null}
         <div className="actions">
           <a href={`/caminante/reservar/${slug}`} className="btn btn-orange btn-arrow">
             Reservar y pagar
@@ -582,6 +641,23 @@ function ClosingBlock({ b, slug }: { b: V2Closing; slug: string }) {
 // Tipos de bloque que muestran número de sección (secnum "01"..).
 const NUMBERED = new Set(["split", "itinerary", "tariff", "checklist", "packing", "dates"]);
 
+// CSS suplementario (aditivo, no toca los tokens bespoke): tira de logos en el
+// hero (chips claros sobre la foto) + banda de logos en fondo claro.
+const COLLAB_CSS = `
+.collab-strip{margin-top:36px;display:flex;flex-direction:column;gap:12px;}
+.collab-strip .lbl{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.72);}
+.collab-strip-logos{display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
+.collab-chip{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.92);border-radius:10px;padding:9px 14px;height:46px;}
+.collab-chip img{height:100%;width:auto;max-width:150px;object-fit:contain;display:block;}
+.collab-band{background:var(--panel);}
+.collab-band-lbl{display:flex;justify-content:center;margin-bottom:26px;}
+.collab-band-logos{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:30px 46px;}
+.collab-band-logo{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.collab-band-logo img{height:56px;width:auto;max-width:200px;object-fit:contain;display:block;}
+.collab-band-logo span{font-size:12px;color:var(--ink-soft);font-weight:500;letter-spacing:.02em;}
+@media print{.collab-chip{background:rgba(255,255,255,.92) !important;}}
+`;
+
 export default function ExperienceTemplateV2({
   experience,
   slots,
@@ -591,6 +667,13 @@ export default function ExperienceTemplateV2({
 }) {
   const slug = experience.slug;
   const blocks = experience.page?.blocks ?? [];
+  const collabs = (experience.page?.collaborators ?? []).filter((c) => c.logoUrl?.trim());
+  // La banda de logos va después del último bloque "split" (guías/aliados); si no
+  // hay ninguno, después del hero (índice 0).
+  let collabAfterIdx = 0;
+  blocks.forEach((b, i) => {
+    if (b.type === "split") collabAfterIdx = i;
+  });
   let n = 0;
   const secnumFor = (t: PageBlock["type"]) =>
     NUMBERED.has(t) ? String(++n).padStart(2, "0") : "";
@@ -598,6 +681,7 @@ export default function ExperienceTemplateV2({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: TEMPLATE_V2_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: COLLAB_CSS }} />
 
       {/* NAV */}
       <nav className="nav" id="nav">
@@ -643,30 +727,48 @@ export default function ExperienceTemplateV2({
 
       {blocks.map((b, i) => {
         const secnum = secnumFor(b.type);
+        let el: ReactNode = null;
         switch (b.type) {
           case "hero":
-            return <HeroBlock key={i} b={b} />;
+            el = <HeroBlock b={b} collaborators={collabs} />;
+            break;
           case "split":
-            return <SplitBlock key={i} b={b} secnum={secnum} />;
+            el = <SplitBlock b={b} secnum={secnum} />;
+            break;
           case "statement":
-            return <StatementBlock key={i} b={b} />;
+            el = <StatementBlock b={b} />;
+            break;
           case "itinerary":
-            return <ItineraryBlock key={i} b={b} secnum={secnum} />;
+            el = <ItineraryBlock b={b} secnum={secnum} />;
+            break;
           case "tariff":
-            return <TariffBlock key={i} b={b} secnum={secnum} tiers={experience.priceTiers} />;
+            el = <TariffBlock b={b} secnum={secnum} tiers={experience.priceTiers} />;
+            break;
           case "checklist":
-            return <ChecklistBlock key={i} b={b} secnum={secnum} />;
+            el = <ChecklistBlock b={b} secnum={secnum} />;
+            break;
           case "faq":
-            return <FaqBlock key={i} b={b} />;
+            el = <FaqBlock b={b} />;
+            break;
           case "packing":
-            return <PackingBlock key={i} b={b} secnum={secnum} />;
+            el = <PackingBlock b={b} secnum={secnum} />;
+            break;
           case "dates":
-            return <DatesBlock key={i} b={b} secnum={secnum} slug={slug} slots={slots} />;
+            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} />;
+            break;
           case "closing":
-            return <ClosingBlock key={i} b={b} slug={slug} />;
+            el = <ClosingBlock b={b} slug={slug} />;
+            break;
           default:
-            return null;
+            el = null;
         }
+        // La banda de logos se inserta justo después del último bloque de guías.
+        return (
+          <Fragment key={i}>
+            {el}
+            {i === collabAfterIdx && collabs.length ? <CollaboratorsBand logos={collabs} /> : null}
+          </Fragment>
+        );
       })}
 
       {/* FOOTER */}

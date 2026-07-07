@@ -170,6 +170,20 @@ const CSS = `
 `;
 
 /* ---------- helpers ---------- */
+// Genera la etiqueta visible de una salida a partir de sus fechas (sin new Date,
+// para no correr riesgo de timezone con "YYYY-MM-DD"). Un día → "26 jul 2026";
+// rango mismo mes → "12–15 jun 2026"; rango entre meses → "28 ago – 2 sep 2026".
+const MESES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+function fechaLabel(start: string, end: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) return "";
+  const [ys, ms, ds] = start.split("-").map(Number);
+  const ini = `${ds} ${MESES_CORTO[ms - 1]}`;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(end) || end === start) return `${ini} ${ys}`;
+  const [ye, me, de] = end.split("-").map(Number);
+  if (ms === me && ys === ye) return `${ds}–${de} ${MESES_CORTO[ms - 1]} ${ys}`;
+  return `${ds} ${MESES_CORTO[ms - 1]} – ${de} ${MESES_CORTO[me - 1]} ${ye}`;
+}
+
 function Field({ label, hint, auto, children }: { label: React.ReactNode; hint?: string; auto?: boolean; children: React.ReactNode }) {
   return (
     <div className={`field${auto ? " auto" : ""}`}>
@@ -451,6 +465,17 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   }
 
   async function onSubmit(st: Experience["status"]) {
+    // No dejar PUBLICAR sin fecha de salida y sin precio (borrador sí se permite).
+    if (st === "published") {
+      const hayFecha = slots.some((s) => s.start.trim());
+      const hayPrecio = !!price.amount.trim() || priceTiers.some((t) => t.amount.trim());
+      if (!hayFecha || !hayPrecio) {
+        const faltan = [!hayFecha ? "una fecha de salida (sección Fechas & cupo)" : null, !hayPrecio ? "el precio (sección Precio o Inversión)" : null].filter(Boolean);
+        setStatusOk(false);
+        setStatus(`No puedes publicar sin ${faltan.join(" y ")}. Guárdala como borrador o complétala.`);
+        return;
+      }
+    }
     const slug = (autoSlug ? suggestedSlug : (exp.slug ?? "")).trim();
     const heroTitle = v2.hero.title.trim();
     const nombre = exp.cardTitle?.trim() || heroCompleto;
@@ -471,7 +496,14 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
     // experiencia legacy editada por accidente no se rompe en público).
     if (heroTitle || v2.hero.bg.url.trim()) {
       filled.design = "v2";
-      filled.page = { docTitle: `${nombre} — Caminante`, blocks: buildBlocks(v2) };
+      const colabs = v2.collaborators
+        .filter((c) => c.logoUrl.trim())
+        .map((c) => ({ name: c.name.trim(), logoUrl: c.logoUrl.trim() }));
+      filled.page = {
+        docTitle: `${nombre} — Caminante`,
+        blocks: buildBlocks(v2),
+        ...(colabs.length ? { collaborators: colabs } : {}),
+      };
     }
     await guardar(filled, st, false);
   }
@@ -707,7 +739,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
                       <button type="button" className="add" onClick={() => patchGuide(i, { items: [...g.items, { name: "", role: "" }] })}>+ Agregar elemento</button>
                     </div>
                   ) : (
-                    <Field label="Párrafos" hint="*cursiva* con asteriscos">
+                    <Field label="Párrafos" hint="uno o dos; texto normal">
                       <StrList items={g.paragraphs} onChange={(paragraphs) => patchGuide(i, { paragraphs })} placeholder="De raíces japonesa y mexicana…" />
                     </Field>
                   )}
@@ -730,6 +762,21 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               ))}
             </div>
             <button type="button" className="add" onClick={() => setGuides([...v2.guides, emptyGuide()])}>+ Agregar sección de guía/aliados</button>
+
+            <div className="subhead">Logos de colaboradores <span className="optflag">opcional</span></div>
+            <p className="desc" style={{ marginTop: -4, marginBottom: 12 }}>
+              Sube los logos de las marcas aliadas (universidades, A.C., cooperativas, patrocinadores). Aparecen como tira en la portada y como banda cerca de esta sección — y salen en el PDF. Sube el logo en PNG con fondo transparente si puedes.
+            </p>
+            <div className="rep-items">
+              {v2.collaborators.map((c, i) => (
+                <div key={i} className="rep-row" style={{ alignItems: "center" }}>
+                  <input type="text" placeholder="Nombre (ej. UABCS)" style={{ maxWidth: 220 }} value={c.name} onChange={(e) => setV2((p) => ({ ...p, collaborators: p.collaborators.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) }))} />
+                  <div className="grow"><Uploader value={c.logoUrl} onChange={(url) => setV2((p) => ({ ...p, collaborators: p.collaborators.map((x, j) => (j === i ? { ...x, logoUrl: url } : x)) }))} /></div>
+                  <button type="button" className="rm" onClick={() => setV2((p) => ({ ...p, collaborators: p.collaborators.filter((_, j) => j !== i) }))}>Quitar</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setV2((p) => ({ ...p, collaborators: [...p.collaborators, { name: "", logoUrl: "" }] }))}>+ Agregar logo</button>
           </section>
 
           {/* 06 · ITINERARIO */}
@@ -854,7 +901,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               <Field label="Remate"><input type="text" value={v2.dates.titleAccent} placeholder="domingo." onChange={(e) => upd("dates", { titleAccent: e.target.value })} /></Field>
             </div>
             <Field label="Bajada"><input type="text" value={v2.dates.cap} placeholder="Mismo bosque, misma jornada — elige tu salida." onChange={(e) => upd("dates", { cap: e.target.value })} /></Field>
-            <Field label="Línea de precio" hint="**negritas** con asteriscos"><input type="text" value={v2.dates.priceLine} placeholder="**$2,550 MXN** · todo incluido · cupo 17 personas" onChange={(e) => upd("dates", { priceLine: e.target.value })} /></Field>
+            <Field label="Línea de precio" hint="el monto (antes del primer ·) se resalta solo"><input type="text" value={v2.dates.priceLine} placeholder="$2,550 MXN · todo incluido · cupo 17 personas" onChange={(e) => upd("dates", { priceLine: e.target.value })} /></Field>
           </section>
 
           {/* 12 · CIERRE */}
@@ -897,12 +944,23 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               {slots.map((s, i) => (
                 <div key={i} className="rep-card">
                   <button type="button" className="rm" onClick={() => setSlots(slots.filter((_, j) => j !== i))}>Quitar</button>
-                  <Field label="Etiqueta"><input type="text" value={s.label} placeholder="Jun 12-15" onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></Field>
                   <div className="row c3">
-                    <Field label="Inicio"><input type="date" value={s.start} onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)))} /></Field>
-                    <Field label="Fin"><input type="date" value={s.end} onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)))} /></Field>
-                    <Field label="Cupo"><input type="number" value={s.cupo} placeholder="sin tope" onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, cupo: e.target.value } : x)))} /></Field>
+                    <Field label="Fecha de salida"><input type="date" value={s.start} onChange={(e) => setSlots(slots.map((x, j) => {
+                      if (j !== i) return x;
+                      const start = e.target.value;
+                      // La etiqueta se regenera sola de la fecha, salvo que el admin la haya editado a mano.
+                      const label = (!x.label.trim() || x.label === fechaLabel(x.start, x.end)) ? fechaLabel(start, x.end) : x.label;
+                      return { ...x, start, label };
+                    }))} /></Field>
+                    <Field label="Termina" hint="opcional · varios días"><input type="date" value={s.end} onChange={(e) => setSlots(slots.map((x, j) => {
+                      if (j !== i) return x;
+                      const end = e.target.value;
+                      const label = (!x.label.trim() || x.label === fechaLabel(x.start, x.end)) ? fechaLabel(x.start, end) : x.label;
+                      return { ...x, end, label };
+                    }))} /></Field>
+                    <Field label="Cupo" hint="vacío = sin tope"><input type="number" value={s.cupo} placeholder="sin tope" onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, cupo: e.target.value } : x)))} /></Field>
                   </div>
+                  <Field label="Cómo se muestra" hint="se genera de la fecha; puedes editarla"><input type="text" value={s.label} placeholder="26 jul 2026" onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></Field>
                 </div>
               ))}
             </div>
