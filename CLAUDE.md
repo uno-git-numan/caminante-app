@@ -34,6 +34,13 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
 - `start-dev.command` (doble clic en Finder) levanta dev + el listener de Stripe. Está en .gitignore (rutas de máquina + lee la llave de .env.local).
 - `.env.local` tiene las llaves (gitignored). Local y prod usan **la misma base de Supabase**.
 
+## PDF descargable = DECK tipo flyer (un slide por sección) — EN PRODUCCIÓN (7 jul)
+- **Qué:** el botón "Descargar PDF" (vertical/horizontal) de una experiencia v2 abre `/caminante/admin/print/[slug]?o=h|v` (solo-admin) → un **deck a tamaño fijo** (16:9 = 1280×720 / 9:16 = 720×1280), **un slide = una página exacta** vía `@page {size} + .slide {page-break-after:always}`. Reemplaza al print-de-la-página-web (que cortaba páginas y perdía componentes). Se compara 1:1 contra los flyers de referencia de Ensenada.
+- **Archivos:** `src/app/caminante/admin/print/[slug]/page.tsx` (gate admin + AUTOPRINT que espera imágenes+fuentes) · `experiencias/[slug]/ExperienceDeck.tsx` (renderiza los `page.blocks` como slides: Cover/Split/Statement/Itin/Tariff/Checklist/Packing/Faq/Closing) · `src/lib/experiences/deck-css.ts` (`deckCss("h"|"v")`) · `src/lib/experiences/deck-fonts.ts` · `src/lib/experiences/brand-svg.ts` (isotipo/wordmark server-usable).
+- ⚠️ **Fuentes Geist en el PDF = EMBEBIDAS en base64** (`deck-fonts.ts`, ~673KB: Geist + Italic + Mono como `data:font/ttf;base64` en `@font-face`, `font-display:block`). Chrome print-to-PDF **descarta web fonts por URL** (dispara antes de que carguen → fuente del sistema); `document.fonts.ready` NO basta. Embebidas = presentes al instante → el PDF SIEMPRE sale en Geist. **Verificado a nivel PDF** (headless `Google Chrome --print-to-pdf` + PyMuPDF `get_fonts`: las líneas Geist salen como glifos embebidos, no Times). Si Geist cambia, re-generar el base64 de `public/landing/assets/fonts/*.ttf`.
+- ⚠️ **Glass (backdrop-filter) NO se rasteriza en print** → los paneles se afinaron a translúcidos + borde de 1px (no frost real). Frost pixel-exacto exigiría rasterizar server-side (Puppeteer/Chromium, quizá Vercel Pro) — diferido.
+- **Verificación del deck:** ruta pública temporal `caminante/deckcheck/[slug]` (sin gate) para screenshot/headless-print del deploy único (el alias de rama da 302 por deployment-protection; el deploy `caminante-<hash>.vercel.app` sí abre con la sesión de Luis). **Borrar la ruta antes de promover.**
+
 ## Arquitectura
 - `src/lib/experiences/` — `types.ts` (contrato Experience), `queries.ts` (lee de Supabase), `data.ts` (fallback en código), `card.ts` (tarjeta), `actions.ts` (saveExperience, generateStripeLink), `template-assets.ts` (CSS inyectado).
 - `src/app/caminante/experiencias/[slug]/` — página dinámica + `ExperienceTemplate.tsx` (lee con `fetchExperienceBySlug`).
