@@ -50,7 +50,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 /* ======================= COVER / CLOSING ======================= */
 .cover .cover-btm{margin-top:auto;padding:56px;}
 .cover .eyebrow-w{color:#fff;letter-spacing:.42em;font-size:13px;font-weight:600;text-transform:uppercase;display:block;margin-bottom:20px;}
-.cover .wordmark{width:${orient === "h" ? "900px" : "560px"};max-width:${orient === "h" ? "76%" : "88%"};margin-bottom:${orient === "h" ? 40 : 30}px;}
+.cover .wordmark{width:${orient === "h" ? "860px" : "540px"};max-width:${orient === "h" ? "72%" : "86%"};margin-bottom:${orient === "h" ? 50 : 38}px;}
 .cover .wordmark svg{width:100%;height:auto;display:block;}
 .cover .wordmark .g1{fill:var(--olive);}.cover .wordmark .g2{fill:var(--sand);}.cover .wordmark .g3{fill:var(--orange);}.cover .wordmark .gw{fill:#fff;}
 .cover .tag{color:rgba(255,255,255,.92);font-size:${orient === "h" ? 21 : 17}px;font-weight:300;line-height:1.45;max-width:${orient === "h" ? "62%" : "94%"};}
