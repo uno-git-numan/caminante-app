@@ -407,7 +407,9 @@ export function draftFromBlocks(page: PageV2 | undefined, exp?: Partial<Experien
         d.packing = { on: true, eyebrow: b.eyebrow, title: b.title, titleAccent: b.titleAccent || "", cap: b.cap || "", items: b.items, photo: b.photo };
         break;
       case "dates":
-        d.dates = { eyebrow: b.eyebrow, title: b.title, titleAccent: b.titleAccent || "", cap: b.cap || "", priceLine: b.priceLine || "" };
+        // priceLine: los datos viejos traían **negritas**; el template ahora
+        // resalta el monto solo, así que al cargar se limpian los asteriscos.
+        d.dates = { eyebrow: b.eyebrow, title: b.title, titleAccent: b.titleAccent || "", cap: b.cap || "", priceLine: (b.priceLine || "").replace(/\*\*/g, "") };
         break;
       case "closing":
         d.closing = { on: true, eyebrow: b.eyebrow, title: b.title, titleAccent: b.titleAccent || "", bg: b.bg, contacts: b.contacts };

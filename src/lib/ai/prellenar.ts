@@ -142,7 +142,7 @@ const ESQUEMA = obj({
       title: s("p.ej. 'Elige tu'"),
       titleAccent: s("p.ej. 'domingo.', 'salida.'"),
       cap: s("p.ej. 'Mismo bosque, misma jornada — elige tu salida.'"),
-      priceLine: s("p.ej. '**$2,550 MXN** · todo incluido · cupo 17 personas'"),
+      priceLine: s("Texto plano SIN asteriscos, p.ej. '$2,550 MXN · todo incluido · cupo 17 personas'"),
     }),
     // ── deslinde + encuesta ──
     waiverClauses: arr(s("Resumen de cláusulas del deslinde, una línea cada una")),

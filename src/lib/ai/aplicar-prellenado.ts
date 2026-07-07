@@ -284,7 +284,7 @@ export function aplicarPrellenadoV2(
     if (lleno(f.title)) draft.dates.title = f.title!;
     if (lleno(f.titleAccent)) draft.dates.titleAccent = f.titleAccent!;
     if (lleno(f.cap)) draft.dates.cap = f.cap!;
-    if (lleno(f.priceLine)) draft.dates.priceLine = f.priceLine!;
+    if (lleno(f.priceLine)) draft.dates.priceLine = f.priceLine!.replace(/\*\*/g, "");
   }
 
   return { exp, draft };
