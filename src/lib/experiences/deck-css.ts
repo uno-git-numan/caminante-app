@@ -50,8 +50,8 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 /* ======================= COVER / CLOSING ======================= */
 .cover .cover-btm{margin-top:auto;padding:56px;}
 .cover .eyebrow-w{color:#fff;letter-spacing:.42em;font-size:13px;font-weight:600;text-transform:uppercase;display:block;margin-bottom:20px;}
-.cover .wordmark{height:${orient === "h" ? 78 : 52}px;margin-bottom:22px;}
-.cover .wordmark svg{height:100%;width:auto;}
+.cover .wordmark{width:${orient === "h" ? "1050px" : "620px"};max-width:${orient === "h" ? "86%" : "92%"};margin-bottom:22px;}
+.cover .wordmark svg{width:100%;height:auto;display:block;}
 .cover .wordmark .g1{fill:var(--olive);}.cover .wordmark .g2{fill:var(--sand);}.cover .wordmark .g3{fill:var(--orange);}.cover .wordmark .gw{fill:#fff;}
 .cover .tag{color:rgba(255,255,255,.92);font-size:${orient === "h" ? 22 : 18}px;font-weight:300;}
 .pill{background:var(--orange);color:#fff;border-radius:999px;padding:8px 18px;font-size:12px;font-weight:600;letter-spacing:.04em;}
