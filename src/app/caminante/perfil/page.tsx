@@ -59,7 +59,7 @@ export default async function MiEspacioPage({
 
       <div className="topbar">
         <div className="in">
-          <span className="logo" dangerouslySetInnerHTML={{ __html: CAMINANTE_MARK }} />
+          <a href="/caminante" aria-label="Caminante — inicio" className="logo" dangerouslySetInnerHTML={{ __html: CAMINANTE_MARK }} />
           <div className="rt">
             <a className="sitelink" href="/caminante">
               Ver el sitio
