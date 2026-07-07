@@ -13,12 +13,18 @@ import ExperienceDeck from "../../../experiencias/[slug]/ExperienceDeck";
 
 export const dynamic = "force-dynamic";
 
+// Espera IMÁGENES + FUENTES antes de imprimir. Sin esperar document.fonts.ready
+// el diálogo dispara con la fuente de respaldo del sistema (no Geist).
 const AUTOPRINT = `
 window.addEventListener('load', function () {
   var imgs = Array.prototype.slice.call(document.images);
-  Promise.all(imgs.map(function (img) {
+  var imgsReady = Promise.all(imgs.map(function (img) {
     return img.complete ? true : new Promise(function (res) { img.onload = img.onerror = res; });
-  })).then(function () { setTimeout(function () { window.print(); }, 600); });
+  }));
+  var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+  Promise.all([imgsReady, fontsReady]).then(function () {
+    setTimeout(function () { window.print(); }, 700);
+  });
 });
 `;
 
