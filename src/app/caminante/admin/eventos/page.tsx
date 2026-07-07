@@ -5,12 +5,22 @@ import { fetchEventos, formatMXN } from "@/lib/admin/queries";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Eventos · Admin — Caminante" };
 
-export default async function EventosPage() {
+export default async function EventosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string }>;
+}) {
   const eventos = await fetchEventos();
+  const { ok } = await searchParams;
 
   return (
     <AdminShell active="eventos">
       <section className="sec">
+        {ok ? (
+          <div className="glass pad" style={{ marginBottom: 18, fontSize: 13.5, color: "var(--olive-d)" }}>
+            {ok}
+          </div>
+        ) : null}
         <div className="sec-head">
           <div>
             <span className="eyebrow">

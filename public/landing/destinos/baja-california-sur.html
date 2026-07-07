@@ -571,7 +571,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
       </div>
       <span class="secnum" style="color:var(--olive);">04</span>
     </div>
-    <div class="exp-grid">
+    <div class="exp-grid" data-exp-grid="Baja California Sur">
       <article class="exp">
         <div class="ph"><img src="/landing/assets/img/camp-aerial.jpg" alt="Campamento en la playa de Ensenada de Muertos, vista aérea"><span class="loc">Ensenada de Muertos</span></div>
         <div class="in">
@@ -686,5 +686,7 @@ drawer.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>toggleDra
   document.getElementById('ssNext').addEventListener('click',()=>go(i+1));
 })();
 </script>
+<!-- Grid de experiencias en vivo desde la BD -->
+<script src="/landing/assets/exp-grid.js" defer></script>
 </body>
 </html>

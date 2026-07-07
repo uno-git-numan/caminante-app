@@ -212,6 +212,50 @@ export async function setExperienceStatus(input: {
   return OK;
 }
 
+// ── Eliminar experiencia ─────────────────────────────────────────────────
+// GUARDA DURA: solo se puede eliminar si NO tiene reservas (de ningún estado).
+// Con reservas la historia comercial/legal se conserva → el camino es "Pasar a
+// borrador" (la despublica sin borrar nada). Si está limpia, se borran sus
+// salidas y la fila. El deslinde/registros ni se tocan (una experiencia con
+// registros siempre tiene reservas → cae en la guarda).
+export async function deleteExperience(input: {
+  experienceId: string;
+}): Promise<AdminActionResult> {
+  const guard = await requireAdmin();
+  if (guard) return guard;
+
+  const sb = createSupabaseAdminClient();
+  const { data: row } = await sb
+    .from("experiences")
+    .select("id, slug")
+    .eq("id", input.experienceId)
+    .maybeSingle();
+  if (!row) return fail("La experiencia no existe.");
+
+  const { count, error: cntErr } = await sb
+    .from("reservations")
+    .select("id", { count: "exact", head: true })
+    .eq("experience_id", input.experienceId);
+  if (cntErr) return fail(cntErr.message);
+  if ((count ?? 0) > 0) {
+    return fail(
+      `No se puede eliminar: tiene ${count} reserva${count === 1 ? "" : "s"} (la historia se conserva). Usa "Pasar a borrador" para quitarla del sitio.`,
+    );
+  }
+
+  const { error: slotErr } = await sb
+    .from("experience_slots")
+    .delete()
+    .eq("experience_id", input.experienceId);
+  if (slotErr) return fail(slotErr.message);
+  const { error } = await sb.from("experiences").delete().eq("id", input.experienceId);
+  if (error) return fail(error.message);
+
+  revalidateAdmin(row.slug as string);
+  revalidatePath(`/caminante/experiencias/${row.slug}`);
+  return OK;
+}
+
 // ── Wrappers de <form action> (FormData → acción → redirect con feedback) ──
 // El feedback viaja como ?ok= / ?error= en la URL del evento (la página lo pinta).
 
@@ -273,4 +317,18 @@ export async function setExperienceStatusAction(fd: FormData): Promise<void> {
     status: str(fd, "status") as "draft" | "published",
   });
   volver(slug, r, str(fd, "status") === "published" ? "Experiencia publicada." : "Pasada a borrador.");
+}
+
+export async function deleteExperienceAction(fd: FormData): Promise<void> {
+  const slug = str(fd, "slug");
+  // confirmación explícita: el checkbox del form debe venir marcado
+  if (str(fd, "confirmar") !== "si") {
+    volver(slug, fail("Marca la casilla de confirmación para eliminar."), "");
+  }
+  const r = await deleteExperience({ experienceId: str(fd, "experienceId") });
+  if (r.ok) {
+    // la página del evento ya no existe → a la lista con el aviso
+    redirect(`/caminante/admin/eventos?ok=${encodeURIComponent("Experiencia eliminada.")}`);
+  }
+  volver(slug, r, "");
 }

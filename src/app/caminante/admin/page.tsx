@@ -286,12 +286,15 @@ export default async function AdminHomePage({
             </div>
           </div>
 
-          {/* KPI 2 · Personas */}
+          {/* KPI 2 · Personas por operar (pagadas de salidas futuras) */}
           <div className="kpi glass xhead" data-x="kx2">
             <div className="k-lbl">
-              Personas apuntadas <span className="chev2">▾</span>
+              Personas por operar <span className="chev2">▾</span>
             </div>
-            <div className="k-val">{kpis.personasApuntadas}</div>
+            <div className="k-val">{kpis.personasPorOperar}</div>
+            <div className="mut" style={{ fontSize: 12, marginTop: 2 }}>
+              pagadas · salidas próximas — histórico: {kpis.personasApuntadas} apuntadas
+            </div>
             <div className="dots">
               {Object.entries(kpis.reservasPorEstado)
                 .filter(([k, n]) => n > 0 && k !== "cancelled")

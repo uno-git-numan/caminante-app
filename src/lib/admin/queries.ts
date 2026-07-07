@@ -103,7 +103,8 @@ export type OverviewKpis = {
   ultimosPagos: PagoLinea[];
   sparkMeses: number[]; // ingresos de los últimos 7 meses (viejo → actual)
   reservasPorEstado: Record<string, number>;
-  personasApuntadas: number;
+  personasApuntadas: number; // HISTÓRICO: Σ num_people de reservas que apartan (todas las fechas)
+  personasPorOperar: number; // Σ num_people PAGADAS de salidas FUTURAS (la gente que hay que operar)
   deslindesFirmados: number;
   satisfaccion: {
     avgStars: number | null;
@@ -248,12 +249,24 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
   }
   const sparkMeses = meses.map((m) => porMes.get(m) || 0);
 
-  // Reservas por estado + personas en holding
+  // Reservas por estado + personas en holding (histórico) + por operar (pagadas, futuras)
   const reservasPorEstado: Record<string, number> = {};
   let personasApuntadas = 0;
+  let personasPorOperar = 0;
+  const nowIso = new Date().toISOString();
+  const slotStart = new Map(slots.map((s) => [s.id, s.starts_at || ""]));
+  const PAGADAS = ["paid", "partially_paid"];
   for (const r of resvs) {
     reservasPorEstado[r.status] = (reservasPorEstado[r.status] || 0) + 1;
     if (HOLDING_STATUSES.includes(r.status)) personasApuntadas += r.num_people || 0;
+    // por operar = pagó y su salida aún no pasa (sin slot no se puede fechar → fuera)
+    if (
+      PAGADAS.includes(r.status) &&
+      r.slot_id &&
+      (slotStart.get(r.slot_id) || "") >= nowIso
+    ) {
+      personasPorOperar += r.num_people || 0;
+    }
   }
 
   // Satisfacción
@@ -375,6 +388,7 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
       sparkMeses,
       reservasPorEstado,
       personasApuntadas,
+      personasPorOperar,
       deslindesFirmados: regs.length,
       satisfaccion: {
         avgStars: avg(stars),

@@ -8,6 +8,7 @@ export type ExperienceCard = {
   image: string;
   imageAlt: string;
   startDate: string | null;
+  estado: string; // estado de MX — las páginas de destino filtran por esto
 };
 
 // Derives the landing/calendar card from an experience, with sensible fallbacks.
@@ -26,5 +27,6 @@ export function toCard(e: Experience): ExperienceCard {
     image: e.heroImageUrl ?? "",
     imageAlt: e.heroImageAlt || "",
     startDate: e.startDate ?? null,
+    estado: e.estado ?? "",
   };
 }

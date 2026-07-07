@@ -7,6 +7,7 @@ import {
   assignOperatorAction,
   createOperatorAction,
   setExperienceStatusAction,
+  deleteExperienceAction,
 } from "@/lib/admin/eventos-actions";
 
 export const dynamic = "force-dynamic";
@@ -298,6 +299,42 @@ export default async function EventoDetallePage({
             </p>
           </div>
         </div>
+
+        {/* Zona de peligro: eliminar (solo experiencias SIN reservas) */}
+        <details style={{ marginTop: 26 }}>
+          <summary
+            className="mut"
+            style={{ fontSize: 12.5, cursor: "pointer", color: "#c23c1c" }}
+          >
+            Eliminar esta experiencia…
+          </summary>
+          <div
+            className="pad"
+            style={{
+              marginTop: 10,
+              border: "1px solid rgba(255,93,54,.35)",
+              background: "rgba(255,93,54,.06)",
+              borderRadius: "var(--r)",
+            }}
+          >
+            <p className="mut" style={{ fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
+              Borra la experiencia y sus salidas <b>para siempre</b> (borrador o publicada). Solo se
+              permite si <b>no tiene ninguna reserva</b> — si ya tiene, usa &quot;Pasar a
+              borrador&quot; para quitarla del sitio conservando la historia.
+            </p>
+            <form action={deleteExperienceAction} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <input type="hidden" name="experienceId" value={ev.id} />
+              <input type="hidden" name="slug" value={ev.slug} />
+              <label style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+                <input type="checkbox" name="confirmar" value="si" />
+                Entiendo que no se puede deshacer
+              </label>
+              <button className="btn btn-danger btn-sm" type="submit">
+                Eliminar experiencia
+              </button>
+            </form>
+          </div>
+        </details>
       </section>
     </AdminShell>
   );

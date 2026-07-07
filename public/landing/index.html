@@ -378,8 +378,8 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
     <h1 class="display">Somos tecnología viva, <em class="ac">un ser caminante.</em></h1>
     <p class="sub lead">Educación encarnada en el paisaje. Si NUMAN enseña a leer el cuerpo, Caminante enseña a leer el cuerpo dentro de un paisaje — en volcanes, mares, bosques y santuarios reales.</p>
     <div class="actions">
-      <a href="#proximos" class="btn btn-green btn-arrow">Ver próximos paisajes</a>
-      <a href="#aprende" class="btn btn-glass">Aprende</a>
+      <a href="#destinos" class="btn btn-green btn-arrow">Ver dónde caminamos</a>
+      <a href="#proximos" class="btn btn-glass btn-arrow">Ver próximas experiencias</a>
     </div>
   </div>
 </header>
@@ -401,7 +401,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 </section>
 
 <!-- ============================== DESTINOS ======================== -->
-<section class="section dark">
+<section class="section dark" id="destinos">
   <div class="container">
     <div class="shead" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;max-width:none;">
       <div style="max-width:680px;">
@@ -467,12 +467,14 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
     <div class="shead" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;max-width:none;">
       <div style="max-width:680px;">
         <span class="eyebrow"><span class="sl">//</span> Capítulo · Los paisajes</span>
-        <h2 class="display">Próximos <em class="ac">paisajes.</em></h2>
+        <h2 class="display">Próximas <em class="ac">experiencias.</em></h2>
         <p class="cap">Cada experiencia tiene cuatro caras. Así se lee cada lugar.</p>
       </div>
       <span class="pager">02 / 06</span>
     </div>
-    <div class="exp-grid">
+    <!-- Grid EN VIVO: exp-grid.js lo puebla desde la BD (las tarjetas de abajo
+         son el fallback si el API no responde). -->
+    <div class="exp-grid" data-exp-grid="">
       <article class="exp">
         <div class="ph"><img src="/landing/assets/img/manta-boat.jpg" alt="Panga sobre aguas turquesa"><span class="loc">Baja California Sur</span></div>
         <div class="in">
@@ -704,5 +706,7 @@ drawer.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>toggleDra
   }catch(e){ /* silencioso: queda el fallback hardcodeado */ }
 })();
 </script>
+<!-- Grid de experiencias en vivo desde la BD -->
+<script src="/landing/assets/exp-grid.js" defer></script>
 </body>
 </html>
