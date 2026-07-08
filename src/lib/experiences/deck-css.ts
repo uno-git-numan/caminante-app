@@ -164,7 +164,10 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .tariff-s .tf-lead{color:rgba(255,255,255,.82);font-size:14px;margin-top:20px;max-width:52ch;line-height:1.5;}
 
 /* ======================= FAQ ======================= */
-.faq-s .faq-card{position:absolute;top:50%;left:56px;transform:translateY(-50%);z-index:3;width:${orient === "h" ? 58 : 82}%;background:rgba(12,18,18,.42);border:1px solid rgba(255,255,255,.28);border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);padding:34px 34px;}
+/* Centrado con FLEX, no con transform: translateY(-50%) se fragmenta mal al
+   imprimir (Chrome pinta el desborde SIN el transform → texto fuera de la card). */
+.faq-s{display:flex;align-items:center;}
+.faq-s .faq-card{position:relative;z-index:3;margin-left:${orient === "h" ? 56 : 40}px;width:${orient === "h" ? 58 : 82}%;background:rgba(12,18,18,.42);border:1px solid rgba(255,255,255,.28);border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);padding:34px 34px;}
 .faq-s .s-eyebrow{color:#fff;margin-bottom:18px;}
 .qa{padding:14px 0;border-top:1px solid var(--line-w);}
 .qa:first-of-type{border-top:0;padding-top:0;}
