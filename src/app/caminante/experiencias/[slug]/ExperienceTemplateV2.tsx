@@ -580,14 +580,34 @@ function DatesBlock({
         </div>
 
         {b.priceLine ? <p className="price-line">{priceLineNodes(b.priceLine)}</p> : null}
-        <div className="actions">
-          <a href={`/caminante/reservar/${slug}${q}`} className="btn btn-orange btn-arrow">
-            Reservar y pagar
-          </a>
-          <a href={`/caminante/registro/${slug}`} className="btn btn-outline-d">
-            Registrarme
-          </a>
-        </div>
+        {slots.length === 0 ? (
+          // Sin fechas abiertas: solicitar una fecha ES el camino principal.
+          <>
+            <p className="cap" style={{ marginTop: 8 }}>
+              Por ahora no hay salidas abiertas — solicita una fecha para tu grupo.
+            </p>
+            <div className="actions">
+              <a href={`/caminante/solicitar/${slug}`} className="btn btn-orange btn-arrow">
+                Solicitar nueva fecha
+              </a>
+              <a href={`/caminante/registro/${slug}`} className="btn btn-outline-d">
+                Registrarme
+              </a>
+            </div>
+          </>
+        ) : (
+          <div className="actions">
+            <a href={`/caminante/reservar/${slug}${q}`} className="btn btn-orange btn-arrow">
+              Reservar y pagar
+            </a>
+            <a href={`/caminante/solicitar/${slug}`} className="btn btn-outline-d">
+              Solicitar nueva fecha
+            </a>
+            <a href={`/caminante/registro/${slug}`} className="btn btn-outline-d">
+              Registrarme
+            </a>
+          </div>
+        )}
       </div>
     </section>
   );

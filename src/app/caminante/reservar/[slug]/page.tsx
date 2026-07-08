@@ -99,7 +99,10 @@ export default async function ReservarPage({
       <div className="mt-8">
         {slots.length === 0 ? (
           <div className="rounded-2xl border border-sand bg-white p-6 text-sm text-olive">
-            Por ahora no hay salidas abiertas. Escríbenos y te avisamos de la próxima.
+            Por ahora no hay salidas abiertas.{" "}
+            <a href={`/caminante/solicitar/${slug}`} className="font-semibold text-lagoon underline">
+              Solicita una fecha para tu grupo →
+            </a>
           </div>
         ) : (
           <CheckoutForm slug={slug} slots={slots} tiers={experience?.priceTiers ?? []} grupoToken={grupoToken} />

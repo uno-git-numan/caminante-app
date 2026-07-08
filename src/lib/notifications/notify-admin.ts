@@ -106,3 +106,83 @@ export async function notifyNuevaReserva(info: NuevaReservaInfo): Promise<void> 
     }
   }
 }
+
+// ── Solicitud de fecha nueva (slot_requests) ─────────────────────────────────
+// Misma cascada best-effort que las reservas: WhatsApp texto libre → template
+// (reusa `nueva_reserva` con variables genéricas — sin esperar otra aprobación
+// de Meta) → correo Resend SIEMPRE.
+
+const PANEL_SOLICITUDES = "https://caminante.numanhub.com/caminante/admin/solicitudes";
+
+export type SolicitudFechaInfo = {
+  cliente: string;
+  whatsapp: string;
+  experiencia: string;
+  fecha: string; // "12 dic 2026" o "flexible: <nota>"
+  personas: number;
+  tipo: "privado" | "abierto";
+  nota?: string;
+};
+
+async function correoSolicitud(info: SolicitudFechaInfo): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const subject = `Solicitud de fecha · ${info.experiencia} — ${info.cliente} (${info.personas}p, grupo ${info.tipo})`;
+  const fila = (k: string, v: string) =>
+    `<tr><td style="padding:6px 12px;color:#637154;font-size:13px;">${k}</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#20211c;">${v}</td></tr>`;
+  const html = `<body style="margin:0;background:#fbfbf7;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid rgba(32,33,28,.13);border-radius:16px;overflow:hidden;">
+<div style="background:#20392b;color:#fff;padding:16px 20px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Caminante · Solicitud de fecha</div>
+<table style="width:100%;border-collapse:collapse;">
+${fila("Cliente", info.cliente)}
+${fila("WhatsApp", info.whatsapp || "—")}
+${fila("Experiencia", info.experiencia)}
+${fila("Fecha deseada", info.fecha)}
+${fila("Personas", String(info.personas))}
+${fila("Tipo de grupo", info.tipo)}
+${info.nota ? fila("Nota", info.nota) : ""}
+</table>
+<div style="padding:14px 20px 20px;"><a href="${PANEL_SOLICITUDES}" style="display:inline-block;background:#ff5d36;color:#fff;text-decoration:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:600;">Ver solicitudes</a></div>
+</div></body>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      "User-Agent": "caminante-notify/1.0",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ from: FROM, to: [ADMIN_EMAIL], subject, html }),
+  });
+}
+
+async function whatsappSolicitud(info: SolicitudFechaInfo): Promise<void> {
+  if (!whatsappConfigured()) return;
+  const to = process.env.WHATSAPP_ADMIN_TO || ADMIN_WHATSAPP_DEFAULT;
+  const texto =
+    `🗓️ *Solicitud de fecha* — ${info.experiencia}\n` +
+    `${info.cliente} (${info.whatsapp || "sin WA"})\n` +
+    `${info.fecha} · ${info.personas} persona(s) · grupo ${info.tipo}\n` +
+    (info.nota ? `“${info.nota}”\n` : "") +
+    `\n${PANEL_SOLICITUDES}`;
+  const libre = await sendText(to, texto);
+  if (libre.ok) return;
+  const template = process.env.WHATSAPP_ADMIN_TEMPLATE || "nueva_reserva";
+  await sendTemplate(to, template, "es_MX", [
+    {
+      type: "body",
+      parameters: [
+        info.cliente,
+        `${info.experiencia} · ${info.fecha}`,
+        `${info.personas} persona(s) · grupo ${info.tipo} · SOLICITUD de fecha`,
+      ].map((text) => ({ type: "text", text: text || "—" })),
+    },
+  ]);
+}
+
+export async function notifySolicitudFecha(info: SolicitudFechaInfo): Promise<void> {
+  const resultados = await Promise.allSettled([correoSolicitud(info), whatsappSolicitud(info)]);
+  for (const r of resultados) {
+    if (r.status === "rejected") console.error("notifySolicitudFecha:", r.reason);
+  }
+}
