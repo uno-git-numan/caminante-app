@@ -25,6 +25,7 @@ import type {
 import type { SlotAvailabilityPublic } from "@/lib/experiences/availability";
 import { TEMPLATE_V2_CSS } from "@/lib/experiences/template-v2-css";
 import { TEMPLATE_V2_SCRIPT } from "@/lib/experiences/template-v2-script";
+import { PixelEvent } from "@/lib/meta/pixel";
 
 // --- markup inline sencillo: **negrita** y *itálica* ---
 function renderInline(text: string): ReactNode {
@@ -719,8 +720,22 @@ export default function ExperienceTemplateV2({
   const secnumFor = (t: PageBlock["type"]) =>
     NUMBERED.has(t) ? String(++n).padStart(2, "0") : "";
 
+  // Precio para el evento ViewContent (Meta Pixel): nivel base → precio base.
+  // Es solo señal de valor; si no hay precio limpio, se omite (ViewContent no lo exige).
+  const vcPriceRaw = experience.priceTiers?.[0]?.amount ?? experience.price?.amount ?? "";
+  const vcPriceNum = Number(String(vcPriceRaw).replace(/[^\d.]/g, ""));
+  const vcValue = Number.isFinite(vcPriceNum) && vcPriceNum > 0 ? vcPriceNum : undefined;
+
   return (
     <>
+      <PixelEvent
+        event="ViewContent"
+        params={{
+          content_ids: [slug],
+          content_type: "product",
+          ...(vcValue ? { value: vcValue, currency: "MXN" } : {}),
+        }}
+      />
       <style dangerouslySetInnerHTML={{ __html: TEMPLATE_V2_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: COLLAB_CSS }} />
 

@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { submitSlotRequest } from "@/lib/experiences/solicitudes";
+import { trackPixel } from "@/lib/meta/pixel";
 
 export default function SolicitarForm({
   slug,
@@ -22,7 +23,13 @@ export default function SolicitarForm({
   const [sending, setSending] = useState(false);
 
   return (
-    <form action={submitSlotRequest} onSubmit={() => setSending(true)}>
+    <form
+      action={submitSlotRequest}
+      onSubmit={() => {
+        setSending(true);
+        trackPixel("Lead", { content_ids: [slug], content_type: "product" });
+      }}
+    >
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="personas" value={pax} />
       {/* honeypot anti-bots: un humano nunca lo ve ni lo llena */}

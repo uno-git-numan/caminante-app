@@ -12,6 +12,7 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fromStripeAmount } from "@/lib/payments/stripe";
+import { capiPurchase } from "@/lib/meta/capi";
 
 export type FinalizeReservationResult = {
   handled: boolean; // false = el evento no es de una reserva (sin metadata.reservation_id)
@@ -122,6 +123,37 @@ export async function finalizeReservationCheckout(
       paid_at: new Date().toISOString(),
     },
   });
+
+  // Meta Conversions API — Purchase server-side. Este es el canal WhatsApp: el
+  // pago se hace en la página hosted de Stripe, SIN navegador propio, así que
+  // CAPI es la ÚNICA forma de medir esta venta. SOLO en el primer registro
+  // (paymentRecorded) para no doblar. Una lectura extra a contacts para el match
+  // (email/tel). Best-effort, jamás tira el webhook. Sin datos médicos (LFPDPPP).
+  if (paymentRecorded) {
+    const { data: contact } = await sb
+      .from("contacts")
+      .select("email, phone, wa_phone, full_name")
+      .eq("id", contactId)
+      .maybeSingle();
+    const experienceSlug = session.metadata?.experience_slug || "";
+    const numPeople = Math.max(1, parseInt(session.metadata?.num_people ?? "1", 10) || 1);
+    await capiPurchase({
+      eventId: providerRef,
+      value: amountPaid,
+      currency: "MXN",
+      contentIds: experienceSlug ? [experienceSlug] : undefined,
+      numItems: numPeople,
+      eventSourceUrl: experienceSlug
+        ? `https://caminante.numanhub.com/caminante/experiencias/${experienceSlug}`
+        : undefined,
+      userData: {
+        email: contact?.email ?? null,
+        phone: contact?.phone ?? contact?.wa_phone ?? null,
+        fullName: contact?.full_name ?? null,
+        externalId: contactId,
+      },
+    }).catch(() => {});
+  }
 
   return { handled: true, paymentRecorded, reservationId, status: finalStatus };
 }

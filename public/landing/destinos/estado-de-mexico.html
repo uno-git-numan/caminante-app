@@ -3,6 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Meta Pixel (dataset "Caminante Web") — PageView. Esta página es HTML estático
+     servido por rewrite y NO pasa por el layout de React, por eso trae su propio
+     snippet. Si cambia el id, actualízalo aquí Y en src/app/layout.tsx. -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1510394930300051');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" alt=""
+src="https://www.facebook.com/tr?id=1510394930300051&ev=PageView&noscript=1"/></noscript>
+<!-- End Meta Pixel -->
 <title>Estado de México · Caminante</title>
 <style>
 /* ============================== FONTS ============================== */

@@ -10,7 +10,7 @@
 //
 // El canal WhatsApp (redes sociales) sigue por /admin/cobro (Payment Link). Son distintos.
 
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
@@ -113,6 +113,15 @@ export async function createCheckout(formData: FormData) {
     experience.docTitle ||
     "Experiencia Caminante";
 
+  // Cookies del navegador de Meta para el match de Conversions API (CAPI):
+  // _fbp (browser id) y _fbc (click id, derivado de fbclid por el pixel). Se
+  // guardan en la metadata de Stripe → vuelven en el webhook → finalize-selfserve
+  // los pasa al Purchase server-side. Cierra identidad navegador→servidor y
+  // atribución de anuncios. Solo van si existen.
+  const jar = await cookies();
+  const fbp = jar.get("_fbp")?.value ?? "";
+  const fbc = jar.get("_fbc")?.value ?? "";
+
   const metadata: Record<string, string> = {
     self_serve: "1",
     experience_slug: slug,
@@ -124,6 +133,8 @@ export async function createCheckout(formData: FormData) {
     commission_pct: commissionPct != null ? String(commissionPct) : "",
     tier_label: tierLabel,
     slot_visibility: (slot.visibility as string | null) ?? "public",
+    ...(fbp ? { fbp } : {}),
+    ...(fbc ? { fbc } : {}),
   };
 
   let url: string | null = null;

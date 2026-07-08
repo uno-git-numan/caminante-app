@@ -72,11 +72,30 @@ export default function PrivacidadPage() {
         <section>
           <h2 className="mb-1 font-semibold">Con quién se comparten</h2>
           <p>
-            No vendemos ni compartimos tus datos con terceros para fines de mercadeo.
-            Usamos proveedores que procesan datos por cuenta nuestra: Stripe (pagos),
-            Supabase (base de datos), Vercel (hosting), Meta/WhatsApp (mensajería) y
-            Resend (correo). Los datos médicos nunca salen de nuestra plataforma
-            operativa.
+            No vendemos tus datos. Usamos proveedores que procesan datos por cuenta
+            nuestra: Stripe (pagos), Supabase (base de datos), Vercel (hosting),
+            Meta/WhatsApp (mensajería) y Resend (correo). Con fines de medición y
+            publicidad de nuestras propias experiencias, compartimos con Meta
+            identificadores <strong>cifrados (hash)</strong> —nunca datos en claro— como
+            se explica en «Cookies y medición». Los datos médicos nunca salen de nuestra
+            plataforma operativa ni se comparten con fines publicitarios.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-1 font-semibold">Cookies y medición (Meta Pixel / Conversions API)</h2>
+          <p>
+            Nuestro sitio usa el <strong>Meta Pixel</strong> y la{" "}
+            <strong>Conversions API</strong> de Meta para medir el tráfico y la
+            efectividad de nuestra publicidad (por ejemplo, cuántas personas ven una
+            experiencia o completan una reserva) y para mostrar anuncios de Caminante a
+            audiencias relevantes. Para ello Meta puede colocar cookies (como{" "}
+            <code>_fbp</code> y <code>_fbc</code>) en tu navegador, y nosotros enviamos a
+            Meta ciertos eventos (visita, inicio de reserva, compra) junto con
+            identificadores <strong>cifrados</strong> (correo o teléfono convertidos en
+            hash irreversible). No enviamos datos de salud. Puedes limitar este rastreo
+            con la configuración de anuncios de tu cuenta de Meta, con las preferencias
+            de cookies de tu navegador o con extensiones de bloqueo.
           </p>
         </section>
 

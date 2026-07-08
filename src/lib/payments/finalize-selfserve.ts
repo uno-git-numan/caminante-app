@@ -13,6 +13,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { findOrCreateContact } from "@/lib/crm/contacts";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
+import { capiPurchase } from "@/lib/meta/capi";
 
 export type FinalizeSelfServeResult = {
   handled: boolean; // false = no es una sesión self-serve (sin metadata.self_serve)
@@ -200,6 +201,31 @@ export async function finalizeSelfServeCheckout(
     metodo: "Stripe (pago web)",
     canal: "web",
   });
+
+  // Meta Conversions API — Purchase server-side (la señal de dinero). SOLO en el
+  // primer registro (!payErr) para no doblar en reintentos del webhook; event_id =
+  // PaymentIntent id da dedup con el pixel del navegador. Best-effort: nunca tira
+  // el webhook. Sin datos médicos (LFPDPPP). fbp/fbc vienen de la metadata (checkout).
+  if (!payErr) {
+    await capiPurchase({
+      eventId: providerRef,
+      value: amountPaid,
+      currency: "MXN",
+      contentIds: experienceSlug ? [experienceSlug] : undefined,
+      numItems: numPeople,
+      eventSourceUrl: experienceSlug
+        ? `https://caminante.numanhub.com/caminante/experiencias/${experienceSlug}`
+        : undefined,
+      userData: {
+        email,
+        phone,
+        fullName,
+        externalId: contact.id,
+        fbp: session.metadata?.fbp ?? null,
+        fbc: session.metadata?.fbc ?? null,
+      },
+    }).catch(() => {});
+  }
 
   return { handled: true, paymentRecorded: !payErr, reservationId };
 }

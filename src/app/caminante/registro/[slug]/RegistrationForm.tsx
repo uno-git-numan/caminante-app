@@ -9,6 +9,7 @@
 
 import { useMemo, useState } from "react";
 import { submitRegistration } from "@/lib/registration/actions";
+import { trackPixel } from "@/lib/meta/pixel";
 import type {
   DependentOption,
   MedicalProfileData,
@@ -340,6 +341,12 @@ export default function RegistrationForm({
     });
     setSubmitting(false);
     if (res.ok) {
+      trackPixel("CompleteRegistration", {
+        content_ids: [slug],
+        content_type: "product",
+        num_items: 1 + cleanParticipants.length,
+        status: "signed",
+      });
       setSuccess({
         waiverVersion: res.waiverVersion,
         signedAt: res.signedAt,

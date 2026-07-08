@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   },
 };
 
+// Id del pixel (dataset "Caminante Web"). Configurable por env, con fallback al
+// literal — así nada se rompe si falta la env. El mismo id vive en los HTML
+// estáticos (public/landing/*.html) y en lib/meta/capi.ts.
+const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || "1510394930300051";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,10 +30,12 @@ export default function RootLayout({
         {/* Vercel Web Analytics — tráfico, referrers, páginas. Requiere Analytics
             habilitado en el proyecto de Vercel (sirve /_vercel/insights/script.js). */}
         <Script src="/_vercel/insights/script.js" strategy="afterInteractive" />
-        {/* Meta Pixel (dataset "Caminante Web", id 1510394930300051) — PageView base.
-            Alimenta retargeting/Custom Audiences y, con Conversions API, la
-            optimización de anuncios a compradores reales. Eventos finos
-            (ViewContent/InitiateCheckout/Purchase) se agregan después. */}
+        {/* Meta Pixel (dataset "Caminante Web") — PageView base en todas las rutas
+            React. Los eventos finos de embudo (ViewContent/InitiateCheckout/Lead/
+            CompleteRegistration) se disparan desde sus componentes cliente vía
+            lib/meta/pixel; el Purchase es server-side vía Conversions API
+            (lib/meta/capi). Las páginas estáticas (landing/destinos) traen su
+            propio snippet base porque no pasan por este layout. */}
         <Script id="meta-pixel" strategy="afterInteractive">
           {`!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -38,7 +45,7 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1510394930300051');
+fbq('init', '${META_PIXEL_ID}');
 fbq('track', 'PageView');`}
         </Script>
         <noscript>
@@ -47,7 +54,7 @@ fbq('track', 'PageView');`}
             width="1"
             style={{ display: "none" }}
             alt=""
-            src="https://www.facebook.com/tr?id=1510394930300051&ev=PageView&noscript=1"
+            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
           />
         </noscript>
       </body>

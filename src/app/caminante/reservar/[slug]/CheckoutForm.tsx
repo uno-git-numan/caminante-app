@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createCheckout } from "@/lib/payments/checkout";
+import { trackPixel } from "@/lib/meta/pixel";
 
 export type ReservarSlot = {
   id: string;
@@ -48,7 +49,19 @@ export default function CheckoutForm({
   const total = perPerson * ppl;
 
   return (
-    <form action={createCheckout} className="space-y-6">
+    <form
+      action={createCheckout}
+      onSubmit={() =>
+        trackPixel("InitiateCheckout", {
+          content_ids: [slug],
+          content_type: "product",
+          value: total,
+          currency: "MXN",
+          num_items: ppl,
+        })
+      }
+      className="space-y-6"
+    >
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="slotId" value={slotId} />
       <input type="hidden" name="numPeople" value={ppl} />
