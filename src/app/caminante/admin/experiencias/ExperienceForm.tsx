@@ -582,8 +582,20 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               <button className="btn btn-ghost btn-sm" type="button" disabled title="Guarda el borrador primero para verlo" style={{ opacity: 0.5 }}>Vista previa</button>
             );
           })()}
-          <button className="btn btn-ghost btn-sm" type="button" disabled={saving} onClick={() => onSubmit("draft")}>Guardar borrador</button>
-          <button className="btn btn-orange btn-sm" type="button" disabled={saving} onClick={() => onSubmit("published")}>Publicar</button>
+          {/* Botones conscientes del estado: en una página PUBLICADA, guardar
+              cambios NO la despublica (antes "Guardar borrador" la bajaba de
+              la web sin avisar). Despublicar es una acción explícita. */}
+          {exp.status === "published" ? (
+            <>
+              <button className="btn btn-ghost btn-sm" type="button" disabled={saving} onClick={() => onSubmit("draft")}>Despublicar</button>
+              <button className="btn btn-orange btn-sm" type="button" disabled={saving} onClick={() => onSubmit("published")}>Guardar cambios</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-ghost btn-sm" type="button" disabled={saving} onClick={() => onSubmit("draft")}>Guardar borrador</button>
+              <button className="btn btn-orange btn-sm" type="button" disabled={saving} onClick={() => onSubmit("published")}>Publicar</button>
+            </>
+          )}
         </div>
       </header>
 
@@ -699,10 +711,12 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAutoSlug(true)}>Regenerar</button>
               </div>
             </Field>
-            <Field label="Estado">
-              <div className="segmented">
-                <label><input type="radio" name="estado-pub" checked={exp.status !== "published"} onChange={() => set("status", "draft")} /><span>Borrador</span></label>
-                <label><input type="radio" name="estado-pub" checked={exp.status === "published"} onChange={() => set("status", "published")} /><span>Publicada</span></label>
+            <Field label="Estado" hint={exp.status === "published" ? "los cambios salen EN VIVO al dar Guardar cambios" : "no visible en la web hasta Publicar"}>
+              {/* Solo informativo: el estado lo deciden los BOTONES de guardar
+                  (el radio anterior confundía — el botón lo pisaba al guardar). */}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 999, border: "1px solid var(--line)", fontSize: 13.5, fontWeight: 600, color: exp.status === "published" ? "var(--olive)" : "var(--ink-soft)" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: exp.status === "published" ? "var(--olive)" : "var(--sand)" }} />
+                {exp.status === "published" ? "Publicada" : "Borrador"}
               </div>
             </Field>
           </section>
@@ -1115,8 +1129,17 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
           {status}{savedSlug ? <> · <a href={`/caminante/admin/preview/${savedSlug}`} target="_blank" rel="noopener" style={{ textDecoration: "underline" }}>vista previa</a></> : null}
         </span>
         <div className="grp">
-          <button className="btn btn-ghost" type="button" disabled={saving} onClick={() => onSubmit("draft")}>{saving ? "Guardando…" : "Guardar borrador"}</button>
-          <button className="btn btn-orange" type="button" disabled={saving} onClick={() => onSubmit("published")}>{saving ? "Publicando…" : "Publicar experiencia"}</button>
+          {exp.status === "published" ? (
+            <>
+              <button className="btn btn-ghost" type="button" disabled={saving} onClick={() => onSubmit("draft")}>{saving ? "Guardando…" : "Despublicar (pasar a borrador)"}</button>
+              <button className="btn btn-orange" type="button" disabled={saving} onClick={() => onSubmit("published")}>{saving ? "Guardando…" : "Guardar cambios (en vivo)"}</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-ghost" type="button" disabled={saving} onClick={() => onSubmit("draft")}>{saving ? "Guardando…" : "Guardar borrador"}</button>
+              <button className="btn btn-orange" type="button" disabled={saving} onClick={() => onSubmit("published")}>{saving ? "Publicando…" : "Publicar experiencia"}</button>
+            </>
+          )}
         </div>
       </div></div>
     </div>
