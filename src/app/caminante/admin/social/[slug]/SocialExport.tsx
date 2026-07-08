@@ -10,10 +10,19 @@ import { useState } from "react";
 const SCALE = 1.5; // 720×900 → 1080×1350
 
 async function toDataUrl(url: string): Promise<string> {
-  const blob = await fetch(url, { mode: "cors", cache: "force-cache" }).then((r) => r.blob());
-  return await new Promise((res) => {
+  // mode:cors + no-store = SIEMPRE una petición CORS fresca. Con `force-cache` el
+  // navegador reusaba la entrada OPACA que dejó el <img> de la página (que se cargó
+  // sin crossorigin) → el fetch en modo cors fallaba y esa imagen salía en blanco.
+  // Era una carrera: fallaban justo las slides cuya foto ya estaba cacheada al
+  // exportar (el bucket sí manda access-control-allow-origin: *).
+  const blob = await fetch(url, { mode: "cors", cache: "no-store" }).then((r) => {
+    if (!r.ok) throw new Error("img " + r.status);
+    return r.blob();
+  });
+  return await new Promise((res, rej) => {
     const fr = new FileReader();
     fr.onload = () => res(fr.result as string);
+    fr.onerror = () => rej(new Error("read"));
     fr.readAsDataURL(blob);
   });
 }
@@ -31,11 +40,10 @@ async function slidePng(slide: HTMLElement): Promise<string> {
     imgs.map(async (img) => {
       const src = img.getAttribute("src");
       if (!src || src.startsWith("data:")) return;
-      try {
-        img.setAttribute("src", await toDataUrl(src));
-      } catch {
-        /* si una imagen falla, sigue con las demás */
-      }
+      // Si NO se puede inlinar, la imagen saldría en blanco en el PNG (el SVG no
+      // carga recursos remotos al rasterizar). Mejor fallar visible que exportar
+      // una tarjeta sin foto en silencio.
+      img.setAttribute("src", await toDataUrl(src));
     }),
   );
   const css = Array.from(document.querySelectorAll("style"))
