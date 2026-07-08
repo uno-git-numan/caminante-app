@@ -232,33 +232,6 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
     });
   }
 
-  // guías (repetidor)
-  for (const g of d.guides) {
-    const items = g.items.filter((it) => has(it.name)).map((it) => ({ name: it.name, ...(has(it.role) ? { role: it.role } : {}) }));
-    const paragraphs = g.paragraphs.filter((p) => has(p));
-    if (!has(g.title) && !items.length && !paragraphs.length) continue;
-    const images = cleanImgs(g.images).map((im, i) => (g.frame === "xp" && i === 0 && cleanImgs(g.images).length === 3 ? { ...im, big: true } : im));
-    const split: V2Split = {
-      type: "split",
-      frame: g.frame,
-      bg: g.bg,
-      eyebrow: g.eyebrow,
-      title: g.title,
-      ...(has(g.titleAccent) ? { titleAccent: g.titleAccent } : {}),
-      ...(has(g.subEyebrow) ? { subEyebrow: g.subEyebrow } : {}),
-      ...(g.mode === "items" && items.length ? { items } : {}),
-      ...(g.mode === "paragraphs" && paragraphs.length ? { paragraphs } : {}),
-      ...(has(g.lead) ? { lead: g.lead } : {}),
-      media: {
-        kind: g.frame === "xp" ? "mosaic" : "photo",
-        side: g.side,
-        images,
-        ...(g.frame === "xp" && images.length === 4 ? { rows: "200px 200px" } : {}),
-      },
-    };
-    blocks.push(split);
-  }
-
   // itinerario
   const days = d.itinerary.days
     .filter((x) => has(x.lab) || x.items.some((i) => has(i.d) || has(i.t)))
@@ -312,13 +285,34 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
     });
   }
 
-  // faq (opcional)
-  const qa = d.faq.qa.filter((x) => has(x.q) || has(x.a));
-  if (d.faq.on && qa.length) {
-    blocks.push({ type: "faq", eyebrow: d.faq.eyebrow || "Preguntas frecuentes", bg: d.faq.bg, qa });
+  // guías / comunidad / aliados (repetidor) — después de "Qué incluye"
+  for (const g of d.guides) {
+    const items = g.items.filter((it) => has(it.name)).map((it) => ({ name: it.name, ...(has(it.role) ? { role: it.role } : {}) }));
+    const paragraphs = g.paragraphs.filter((p) => has(p));
+    if (!has(g.title) && !items.length && !paragraphs.length) continue;
+    const images = cleanImgs(g.images).map((im, i) => (g.frame === "xp" && i === 0 && cleanImgs(g.images).length === 3 ? { ...im, big: true } : im));
+    const split: V2Split = {
+      type: "split",
+      frame: g.frame,
+      bg: g.bg,
+      eyebrow: g.eyebrow,
+      title: g.title,
+      ...(has(g.titleAccent) ? { titleAccent: g.titleAccent } : {}),
+      ...(has(g.subEyebrow) ? { subEyebrow: g.subEyebrow } : {}),
+      ...(g.mode === "items" && items.length ? { items } : {}),
+      ...(g.mode === "paragraphs" && paragraphs.length ? { paragraphs } : {}),
+      ...(has(g.lead) ? { lead: g.lead } : {}),
+      media: {
+        kind: g.frame === "xp" ? "mosaic" : "photo",
+        side: g.side,
+        images,
+        ...(g.frame === "xp" && images.length === 4 ? { rows: "200px 200px" } : {}),
+      },
+    };
+    blocks.push(split);
   }
 
-  // packing
+  // packing (antes que faq)
   const packItems = d.packing.items.filter((i) => has(i));
   if (d.packing.on && packItems.length) {
     blocks.push({
@@ -330,6 +324,12 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
       items: packItems,
       photo: d.packing.photo,
     });
+  }
+
+  // faq (opcional)
+  const qa = d.faq.qa.filter((x) => has(x.q) || has(x.a));
+  if (d.faq.on && qa.length) {
+    blocks.push({ type: "faq", eyebrow: d.faq.eyebrow || "Preguntas frecuentes", bg: d.faq.bg, qa });
   }
 
   // dates (siempre; las tarjetas salen de las salidas en vivo)

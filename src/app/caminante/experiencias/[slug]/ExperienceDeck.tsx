@@ -6,7 +6,6 @@ import type {
   Experience,
   V2Hero,
   V2Split,
-  V2Statement,
   V2Itinerary,
   V2Tariff,
   V2Checklist,
@@ -32,9 +31,6 @@ function md(text: string): ReactNode {
   return out.length ? out : text;
 }
 const pos = (im: V2Image) => (im.pos ? { objectPosition: im.pos } : undefined);
-const Mark = ({ dark }: { dark?: boolean }) => (
-  <span className={`s-mark${dark ? " on-dark" : ""}`} dangerouslySetInnerHTML={{ __html: BRAND_MARK }} />
-);
 function Title({ t, accent, cls }: { t: string; accent?: string; cls?: string }) {
   return (
     <h2 className={`s-title${cls ? " " + cls : ""}`}>
@@ -76,17 +72,33 @@ function photoMedia(url?: string, alt?: string) {
   );
 }
 
+// ── marca discreta al pie de TODOS los slides ──
+type Collab = { name: string; logoUrl: string };
+function BrandFoot({ collabs, dark, inPanel }: { collabs: Collab[]; dark?: boolean; inPanel?: boolean }) {
+  return (
+    <div className={`brandfoot${dark ? " on-dark" : ""}${inPanel ? " in-panel" : ""}`}>
+      <span className="bf-mark" dangerouslySetInnerHTML={{ __html: BRAND_MARK }} />
+      {collabs
+        .filter((c) => c.logoUrl)
+        .map((c, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={i} src={c.logoUrl} alt={c.name || ""} />
+        ))}
+    </div>
+  );
+}
+
 // ── slides ──
 function TopBar({ pager, dark }: { pager?: string; dark?: boolean }) {
   return (
     <div className="panel-top">
-      <Mark dark={dark} />
+      <span />
       {pager ? <span className={`s-pager${dark ? " on-dark" : ""}`}>{pager}</span> : null}
     </div>
   );
 }
 
-function CoverSlide({ h, datesMeta }: { h: V2Hero; datesMeta: string }) {
+function CoverSlide({ h, datesMeta, collabs }: { h: V2Hero; datesMeta: string; collabs: Collab[] }) {
   const tag = (h.sub || "").split(/(?<=\.)\s+/)[0];
   return (
     <div className="slide bleed cover">
@@ -94,21 +106,25 @@ function CoverSlide({ h, datesMeta }: { h: V2Hero; datesMeta: string }) {
       <img className="bg" src={h.bg.url} alt={h.bg.alt || ""} style={pos(h.bg)} />
       <div className="veil veil-btm" />
       <div className="s-top">
-        <Mark dark />
+        <span />
         {datesMeta ? <span className="s-meta">{datesMeta}</span> : null}
       </div>
       <div className="inner">
         <div className="cover-btm">
           <span className="eyebrow-w">{h.eyebrow}</span>
-          <span className="wordmark" dangerouslySetInnerHTML={{ __html: BRAND_WORD }} />
+          <h1 className="cover-title">
+            {h.title}
+            {h.titleAccent ? <> <em className="ac">{h.titleAccent}</em></> : null}
+          </h1>
           {tag ? <div className="tag">{tag}</div> : null}
         </div>
       </div>
+      <BrandFoot collabs={collabs} dark />
     </div>
   );
 }
 
-function SplitSlide({ b, pager }: { b: V2Split; pager: string }) {
+function SplitSlide({ b, pager, collabs }: { b: V2Split; pager: string; collabs: Collab[] }) {
   const panel = (
     <div className="s-panel">
       <TopBar pager={pager} />
@@ -132,6 +148,7 @@ function SplitSlide({ b, pager }: { b: V2Split; pager: string }) {
         ) : null}
         {b.lead ? <p className="s-lead">{md(b.lead)}</p> : null}
       </div>
+      <BrandFoot collabs={collabs} inPanel />
     </div>
   );
   const media = <Media media={b.media} />;
@@ -144,49 +161,33 @@ function SplitSlide({ b, pager }: { b: V2Split; pager: string }) {
   );
 }
 
-function StatementSlide({ b }: { b: V2Statement }) {
-  return (
-    <div className="slide bleed statement">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="bg" src={b.bg.url} alt={b.bg.alt || ""} style={pos(b.bg)} />
-      <div className="veil veil-soft" />
-      <div className="inner">
-        <div className="st-btm">
-          <span className="s-eyebrow on-dark">{b.eyebrowPre ? <>{b.eyebrowPre} </> : null}<span className="sl">{"//"}</span> {b.eyebrow}</span>
-          <Title t={b.title} accent={b.titleAccent} />
-          {b.body ? <p>{b.body}</p> : null}
-          {b.quote ? <div className="quote">{b.quote}</div> : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ItinSlide({ b, pager }: { b: V2Itinerary; pager: string }) {
+function ItinSlide({ b, pager, collabs }: { b: V2Itinerary; pager: string; collabs: Collab[] }) {
+  const days = b.days.slice(0, 4);
   return (
     <div className="slide bleed itin">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="bg" src={b.bg.url} alt={b.bg.alt || ""} style={pos(b.bg)} />
       <div className="veil veil-even" />
-      <div className="s-top"><Mark dark /><span className="s-pager on-dark">{pager}</span></div>
+      <div className="s-top"><span /><span className="s-pager on-dark">{pager}</span></div>
       <div className="it-head">
         <span className="s-eyebrow on-dark"><span className="sl">{"//"}</span> {b.eyebrow}</span>
         <Title t={b.title} accent={b.titleAccent} />
       </div>
-      <div className="days">
-        {b.days.slice(0, 4).map((d, i) => (
-          <div className="day" key={i}>
+      <div className={`days d${days.length}`}>
+        {days.map((d, i) => (
+          <div className="day glassify" key={i}>
             <div className="dnum">{d.num || String(i + 1).padStart(2, "0")}</div>
             <div className="dlab">{d.lab}</div>
             <ul>{d.items.map((li, j) => <li key={j}>{md(li)}</li>)}</ul>
           </div>
         ))}
       </div>
+      <BrandFoot collabs={collabs} dark />
     </div>
   );
 }
 
-function TariffSlide({ b, pager, bg, tiers }: { b: V2Tariff; pager: string; bg?: string; tiers: { label: string; amount: string }[] }) {
+function TariffSlide({ b, pager, bg, tiers, collabs }: { b: V2Tariff; pager: string; bg?: string; tiers: { label: string; amount: string }[]; collabs: Collab[] }) {
   const money = (a: string) => {
     const d = a.replace(/[^\d]/g, "");
     return d ? "$" + Number(d).toLocaleString("es-MX") : a;
@@ -197,11 +198,11 @@ function TariffSlide({ b, pager, bg, tiers }: { b: V2Tariff; pager: string; bg?:
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {bg ? <img className="bg" src={bg} alt="" /> : <div className="bg" style={{ background: "var(--forest)" }} />}
       <div className="veil veil-soft" />
-      <div className="s-top"><Mark dark /><span className="s-pager on-dark">{pager}</span></div>
+      <div className="s-top"><span /><span className="s-pager on-dark">{pager}</span></div>
       <div className="tf-in">
         <span className="s-eyebrow on-dark"><span className="sl">{"//"}</span> {b.eyebrow}</span>
         <Title t={b.title} accent={b.titleAccent} />
-        <div className="tf-card">
+        <div className="tf-card glassify">
           <div className="tier">{b.tier}</div>
           {tiers.length ? (
             <>
@@ -222,11 +223,12 @@ function TariffSlide({ b, pager, bg, tiers }: { b: V2Tariff; pager: string; bg?:
         </div>
         {b.lead ? <p className="tf-lead">{b.lead}</p> : null}
       </div>
+      <BrandFoot collabs={collabs} dark />
     </div>
   );
 }
 
-function ChecklistSlide({ b, pager, photo }: { b: V2Checklist; pager: string; photo?: string }) {
+function ChecklistSlide({ b, pager, photo, collabs }: { b: V2Checklist; pager: string; photo?: string; collabs: Collab[] }) {
   const panel = (
     <div className="s-panel">
       <TopBar pager={pager} />
@@ -243,13 +245,14 @@ function ChecklistSlide({ b, pager, photo }: { b: V2Checklist; pager: string; ph
           </div>
         </div>
       </div>
+      <BrandFoot collabs={collabs} inPanel />
     </div>
   );
   const media = photoMedia(photo);
   return <div className="slide"><div className="s-split">{panel}{media}</div></div>;
 }
 
-function PackingSlide({ b, pager }: { b: V2Packing; pager: string }) {
+function PackingSlide({ b, pager, collabs }: { b: V2Packing; pager: string; collabs: Collab[] }) {
   const panel = (
     <div className="s-panel">
       <TopBar pager={pager} />
@@ -259,34 +262,36 @@ function PackingSlide({ b, pager }: { b: V2Packing; pager: string }) {
         {b.cap ? <div className="s-cap">{b.cap}</div> : null}
         <div className="s-pack">{b.items.map((it, i) => <div className="s-pk" key={i}><span className="box" />{it}</div>)}</div>
       </div>
+      <BrandFoot collabs={collabs} inPanel />
     </div>
   );
   return <div className="slide"><div className="s-split">{panel}{photoMedia(b.photo.url, b.photo.alt)}</div></div>;
 }
 
-function FaqSlide({ b, pager }: { b: V2Faq; pager: string }) {
+function FaqSlide({ b, pager, collabs }: { b: V2Faq; pager: string; collabs: Collab[] }) {
   return (
     <div className="slide bleed faq-s">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="bg" src={b.bg.url} alt={b.bg.alt || ""} style={pos(b.bg)} />
       <div className="veil veil-even" />
-      <div className="s-top"><Mark dark /><span className="s-pager on-dark">{pager}</span></div>
-      <div className="faq-card">
+      <div className="s-top"><span /><span className="s-pager on-dark">{pager}</span></div>
+      <div className="faq-card glassify">
         <span className="s-eyebrow"><span className="sl">{"//"}</span> {b.eyebrow}</span>
         {b.qa.map((x, i) => <div className="qa" key={i}><div className="q">{x.q}</div><div className="a">{x.a}</div></div>)}
       </div>
+      <BrandFoot collabs={collabs} dark />
     </div>
   );
 }
 
-function ClosingSlide({ b, cupo }: { b: V2Closing; cupo: string }) {
+function ClosingSlide({ b, cupo, collabs }: { b: V2Closing; cupo: string; collabs: Collab[] }) {
   return (
     <div className="slide bleed closing">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="bg" src={b.bg.url} alt={b.bg.alt || ""} style={pos(b.bg)} />
       <div className="veil veil-btm" />
       <div className="s-top">
-        <span className="s-mark on-dark" style={{ height: 30 }} dangerouslySetInnerHTML={{ __html: BRAND_WORD }} />
+        <span className="s-mark on-dark" style={{ height: 24 }} dangerouslySetInnerHTML={{ __html: BRAND_WORD }} />
         {cupo ? <span className="pill">{cupo}</span> : null}
       </div>
       <div className="inner">
@@ -300,6 +305,7 @@ function ClosingSlide({ b, cupo }: { b: V2Closing; cupo: string }) {
           </div>
         </div>
       </div>
+      <BrandFoot collabs={collabs} dark />
     </div>
   );
 }
@@ -315,6 +321,7 @@ export default function ExperienceDeck({
 }) {
   const blocks = experience.page?.blocks ?? [];
   const gallery = experience.gallery ?? [];
+  const collabs: Collab[] = experience.page?.collaborators ?? [];
   const hero = blocks.find((b) => b.type === "hero") as V2Hero | undefined;
   const heroBgUrl = hero?.bg.url;
 
@@ -326,38 +333,35 @@ export default function ExperienceDeck({
   const tariff = blocks.find((b) => b.type === "tariff") as V2Tariff | undefined;
   const cupo = tariff?.availV ? `Cupo limitado · ${tariff.availV}` : "";
 
-  // numeración (todos menos portada y cierre)
-  const numberable = blocks.filter((b) => b.type !== "hero" && b.type !== "closing" && b.type !== "dates");
-  const total = numberable.length;
+  // Selección EXPLÍCITA de slides (orden fijo del flyer, independiente del
+  // orden del array): portada · experiencia · itinerario · precio · qué
+  // incluye · comunidad · qué llevar · faq · cierre. Lo demás (statement,
+  // guías/variedades/aliados, fechas) NO va al flyer.
+  const splits = blocks.filter((b): b is V2Split => b.type === "split");
+  const expSplit = splits.find((b) => b.anchor === "experiencia" || (b.frame === "xp" && b.points));
+  const comunidad = splits.find((b) => b !== expSplit && /comunidad/i.test(`${b.eyebrow} ${b.title}`));
+  const itin = blocks.find((b): b is V2Itinerary => b.type === "itinerary");
+  const checklist = blocks.find((b): b is V2Checklist => b.type === "checklist");
+  const packing = blocks.find((b): b is V2Packing => b.type === "packing");
+  const faq = blocks.find((b): b is V2Faq => b.type === "faq");
+  const closing = blocks.find((b): b is V2Closing => b.type === "closing");
+
+  // numeración: todos los slides intermedios (sin portada ni cierre)
+  const middle = [expSplit, itin, tariff, checklist, comunidad, packing, faq].filter(Boolean).length;
   let n = 0;
-  const pagerFor = () => `${String(++n).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+  const pagerFor = () => `${String(++n).padStart(2, "0")} / ${String(middle).padStart(2, "0")}`;
 
   return (
     <div className={`deck ${orient}`}>
-      {blocks.map((b, i) => {
-        switch (b.type) {
-          case "hero":
-            return <CoverSlide key={i} h={b} datesMeta={datesMeta} />;
-          case "split":
-            return <SplitSlide key={i} b={b} pager={pagerFor()} />;
-          case "statement":
-            return <StatementSlide key={i} b={b} />;
-          case "itinerary":
-            return <ItinSlide key={i} b={b} pager={pagerFor()} />;
-          case "tariff":
-            return <TariffSlide key={i} b={b} pager={pagerFor()} bg={gallery[0] || heroBgUrl} tiers={experience.priceTiers ?? []} />;
-          case "checklist":
-            return <ChecklistSlide key={i} b={b} pager={pagerFor()} photo={gallery[1] || gallery[0]} />;
-          case "packing":
-            return <PackingSlide key={i} b={b} pager={pagerFor()} />;
-          case "faq":
-            return <FaqSlide key={i} b={b} pager={pagerFor()} />;
-          case "closing":
-            return <ClosingSlide key={i} b={b} cupo={cupo} />;
-          default:
-            return null; // dates → no slide
-        }
-      })}
+      {hero ? <CoverSlide h={hero} datesMeta={datesMeta} collabs={collabs} /> : null}
+      {expSplit ? <SplitSlide b={expSplit} pager={pagerFor()} collabs={collabs} /> : null}
+      {itin ? <ItinSlide b={itin} pager={pagerFor()} collabs={collabs} /> : null}
+      {tariff ? <TariffSlide b={tariff} pager={pagerFor()} bg={gallery[0] || heroBgUrl} tiers={experience.priceTiers ?? []} collabs={collabs} /> : null}
+      {checklist ? <ChecklistSlide b={checklist} pager={pagerFor()} photo={gallery[1] || gallery[0]} collabs={collabs} /> : null}
+      {comunidad ? <SplitSlide b={comunidad} pager={pagerFor()} collabs={collabs} /> : null}
+      {packing ? <PackingSlide b={packing} pager={pagerFor()} collabs={collabs} /> : null}
+      {faq ? <FaqSlide b={faq} pager={pagerFor()} collabs={collabs} /> : null}
+      {closing ? <ClosingSlide b={closing} cupo={cupo} collabs={collabs} /> : null}
     </div>
   );
 }

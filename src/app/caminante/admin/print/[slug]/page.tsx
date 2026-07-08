@@ -8,13 +8,16 @@ import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Experience } from "@/lib/experiences/types";
 import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
-import { deckCss } from "@/lib/experiences/deck-css";
+import { deckCss, DECK_GLASS_SCRIPT } from "@/lib/experiences/deck-css";
 import ExperienceDeck from "../../../experiencias/[slug]/ExperienceDeck";
 
 export const dynamic = "force-dynamic";
 
 // Espera IMÁGENES + FUENTES antes de imprimir. Sin esperar document.fonts.ready
 // el diálogo dispara con la fuente de respaldo del sistema (no Geist).
+// OJO: el script de glass (DECK_GLASS_SCRIPT) va ANTES en el DOM → su listener
+// de load corre primero e inyecta los clones blurreados; aquí se recogen
+// document.images DESPUÉS (incluye los clones) y se espera a que carguen.
 const AUTOPRINT = `
 window.addEventListener('load', function () {
   var imgs = Array.prototype.slice.call(document.images);
@@ -68,6 +71,7 @@ export default async function PrintPage({
     <>
       <style dangerouslySetInnerHTML={{ __html: deckCss(orient) }} />
       <ExperienceDeck experience={e} slots={slots} orient={orient} />
+      <script dangerouslySetInnerHTML={{ __html: DECK_GLASS_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: AUTOPRINT }} />
     </>
   );

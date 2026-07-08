@@ -48,13 +48,22 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .s-meta{font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82);}
 
 /* ======================= COVER / CLOSING ======================= */
-.cover .cover-btm{margin-top:auto;padding:${orient === "h" ? "56px 56px 64px" : "48px 40px 60px"};display:flex;flex-direction:column;align-items:center;text-align:center;}
-.cover .eyebrow-w{color:#fff;letter-spacing:.42em;font-size:13px;font-weight:600;text-transform:uppercase;display:block;margin-bottom:18px;padding-left:.42em;}
-.cover .wordmark{width:${orient === "h" ? "880px" : "560px"};max-width:${orient === "h" ? "78%" : "90%"};margin:0 auto ${orient === "h" ? 34 : 26}px;}
-.cover .wordmark svg{width:100%;height:auto;display:block;}
-.cover .wordmark .g1{fill:var(--olive);}.cover .wordmark .g2{fill:var(--sand);}.cover .wordmark .g3{fill:var(--orange);}.cover .wordmark .gw{fill:#fff;}
+.cover .cover-btm{margin-top:auto;padding:${orient === "h" ? "56px 56px 74px" : "48px 40px 78px"};display:flex;flex-direction:column;align-items:center;text-align:center;}
+.cover .eyebrow-w{color:#fff;letter-spacing:.42em;font-size:13px;font-weight:600;text-transform:uppercase;display:block;margin-bottom:20px;padding-left:.42em;}
+.cover .cover-title{color:#fff;font-weight:200;letter-spacing:-.025em;line-height:1.02;font-size:${orient === "h" ? 104 : 66}px;margin:0 auto ${orient === "h" ? 24 : 18}px;max-width:${orient === "h" ? "94%" : "96%"};}
+.cover .cover-title em.ac{font-style:italic;color:var(--orange);font-weight:200;}
 .cover .tag{color:rgba(255,255,255,.92);font-size:${orient === "h" ? 21 : 17}px;font-weight:300;line-height:1.45;max-width:${orient === "h" ? "70%" : "94%"};margin:0 auto;}
 .pill{background:var(--orange);color:#fff;border-radius:999px;padding:8px 18px;font-size:12px;font-weight:600;letter-spacing:.04em;}
+
+/* ---- marca discreta al pie de TODOS los slides ---- */
+.brandfoot{position:absolute;left:0;right:0;bottom:${orient === "h" ? 16 : 14}px;z-index:6;display:flex;align-items:center;justify-content:center;gap:18px;opacity:.85;}
+.brandfoot .bf-mark{height:15px;display:block;}
+.brandfoot .bf-mark svg{height:100%;width:auto;display:block;}
+.brandfoot .bf-mark .g1{fill:var(--olive);}.brandfoot .bf-mark .g2{fill:var(--sand);}.brandfoot .bf-mark .g3{fill:var(--orange);}.brandfoot .bf-mark .gw{fill:var(--charcoal);}
+.brandfoot.on-dark .bf-mark .g1{fill:#cfd6c4;}.brandfoot.on-dark .bf-mark .g2{fill:#cfc8c0;}.brandfoot.on-dark .bf-mark .gw{fill:#fff;}
+.brandfoot img{height:14px;width:auto;display:block;filter:brightness(.35) grayscale(.25);opacity:.75;}
+.brandfoot.on-dark img{filter:none;opacity:.9;}
+.brandfoot.in-panel{position:static;justify-content:flex-start;margin-top:auto;padding-top:18px;gap:15px;opacity:.7;}
 
 .closing .close-btm{margin-top:auto;padding:56px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap;}
 .closing .c-l h2{color:#fff;font-size:${orient === "h" ? 58 : 46}px;margin-top:16px;}
@@ -110,28 +119,39 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .s-pk .box{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--sand);flex:0 0 auto;}
 .s-cap{font-size:14px;color:var(--ink-soft);margin-bottom:16px;}
 
-/* ======================= STATEMENT (foto oscura + frase) ======================= */
-.statement .st-btm{margin-top:auto;padding:56px;max-width:${orient === "h" ? 62 : 100}%;}
-.statement h2{color:#fff;font-size:${orient === "h" ? 52 : 44}px;margin-top:14px;}
-.statement p{color:rgba(255,255,255,.9);font-size:${orient === "h" ? 18 : 16}px;line-height:1.5;margin-top:20px;max-width:52ch;font-weight:300;}
-.statement .quote{margin-top:20px;font-style:italic;color:var(--orange);font-size:${orient === "h" ? 18 : 16}px;font-weight:300;}
+/* ======================= GLASS REAL (clon del fondo con blur; ver DECK_GLASS_SCRIPT) =======================
+   backdrop-filter NO se rasteriza al imprimir a PDF; en su lugar el script clona
+   el bg del slide DENTRO de cada .glassify con CSS filter:blur (que sí imprime),
+   alineado pixel-perfect. El background rgba de la card queda como fallback
+   sin-JS y se convierte en el tinte del clon. */
+.glassify{position:relative;overflow:hidden;}
+.glassify>*{position:relative;z-index:1;}
+.glassify>.gclone{position:absolute;inset:0;z-index:0;border-radius:inherit;overflow:hidden;}
+.glassify>.gclone img{position:absolute;max-width:none;object-fit:cover;display:block;}
+.glassify>.gclone .gtint{position:absolute;inset:0;}
 
-/* ======================= ITINERARIO ======================= */
-.itin .it-head{position:absolute;top:104px;left:56px;z-index:3;}
-.itin .it-head h2{color:#fff;font-size:${orient === "h" ? 44 : 38}px;margin-top:12px;}
-.itin .days{position:absolute;left:56px;right:56px;bottom:52px;z-index:3;display:grid;gap:14px;grid-template-columns:repeat(${orient === "h" ? 4 : 2},1fr);}
-.day{background:rgba(16,22,19,.30);border:1px solid rgba(255,255,255,.28);border-radius:14px;padding:20px 18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
-.day .dnum{font-weight:200;font-size:30px;color:#fff;line-height:1;}
-.day .dlab{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin:8px 0 10px;font-weight:600;}
+/* ======================= ITINERARIO (cajas ARRIBA a la derecha, letra grande) ======================= */
+.itin .veil-even{background:linear-gradient(to bottom,rgba(10,16,18,.72),rgba(10,16,18,.36) 58%,rgba(10,16,18,.46));}
+.itin .it-head{position:absolute;top:${orient === "h" ? 96 : 84}px;left:${orient === "h" ? 56 : 40}px;z-index:3;}
+.itin .it-head h2{color:#fff;font-size:${orient === "h" ? 48 : 42}px;margin-top:12px;}
+.itin .days{position:absolute;z-index:3;display:grid;align-content:start;gap:16px;${
+    orient === "h"
+      ? "top:96px;right:56px;grid-template-columns:repeat(2,378px);justify-content:end;"
+      : "top:220px;left:40px;right:40px;grid-template-columns:1fr 1fr;"
+  }}
+.itin .days.d1{grid-template-columns:${orient === "h" ? "470px" : "1fr"};}
+.day{background:rgba(16,22,19,.30);border:1px solid rgba(255,255,255,.28);border-radius:16px;padding:${orient === "h" ? "24px 24px 20px" : "22px 20px 18px"};box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
+.day .dnum{font-weight:200;font-size:${orient === "h" ? 36 : 32}px;color:#fff;line-height:1;}
+.day .dlab{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin:10px 0 12px;font-weight:600;}
 .day ul{list-style:none;}
-.day li{font-size:12px;line-height:1.35;color:rgba(251,251,247,.86);padding:4px 0;border-top:1px solid rgba(255,255,255,.14);}
+.day li{font-size:${orient === "h" ? 14.5 : 14}px;line-height:1.42;color:rgba(251,251,247,.88);padding:6px 0;border-top:1px solid rgba(255,255,255,.14);}
 .day li:first-child{border-top:0;}
 .day li b{color:#fff;font-weight:600;}
 
 /* ======================= INVERSIÓN (tarifa) ======================= */
 .tariff-s .tf-in{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;justify-content:center;padding:${orient === "h" ? "0 56px" : "0 48px"};}
 .tariff-s h2{color:#fff;font-size:${orient === "h" ? 46 : 40}px;margin:12px 0 26px;max-width:14ch;}
-.tf-card{background:rgba(14,20,20,.34);border:1px solid rgba(255,255,255,.30);border-radius:18px;padding:28px 30px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);max-width:560px;}
+.tf-card{background:rgba(14,20,20,.34);border:1px solid rgba(255,255,255,.30);border-radius:18px;padding:28px 30px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);max-width:560px;}
 .tf-card .tier{color:var(--orange);font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;}
 .tf-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-top:14px;flex-wrap:wrap;}
 .tf-price{color:#fff;font-weight:200;font-size:${orient === "h" ? 48 : 40}px;letter-spacing:-.02em;line-height:1;}
@@ -144,7 +164,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .tariff-s .tf-lead{color:rgba(255,255,255,.82);font-size:14px;margin-top:20px;max-width:52ch;line-height:1.5;}
 
 /* ======================= FAQ ======================= */
-.faq-s .faq-card{position:absolute;top:50%;left:56px;transform:translateY(-50%);z-index:3;width:${orient === "h" ? 58 : 82}%;background:rgba(12,18,18,.42);border:1px solid rgba(255,255,255,.28);border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:34px 34px;}
+.faq-s .faq-card{position:absolute;top:50%;left:56px;transform:translateY(-50%);z-index:3;width:${orient === "h" ? 58 : 82}%;background:rgba(12,18,18,.42);border:1px solid rgba(255,255,255,.28);border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);padding:34px 34px;}
 .faq-s .s-eyebrow{color:#fff;margin-bottom:18px;}
 .qa{padding:14px 0;border-top:1px solid var(--line-w);}
 .qa:first-of-type{border-top:0;padding-top:0;}
@@ -152,3 +172,44 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .qa .a{color:rgba(255,255,255,.82);font-size:13px;line-height:1.45;font-weight:300;}
 `;
 }
+
+// Glass REAL para pantalla e impresión: por cada .glassify clona el bg de su
+// slide adentro (offset negativo = alineado con el fondo) con filter:blur —
+// CSS filter SÍ sobrevive al print-to-PDF (backdrop-filter no). El tinte toma
+// el background actual de la card y la card queda transparente.
+export const DECK_GLASS_SCRIPT = `
+(function () {
+  function apply() {
+    document.querySelectorAll('.slide').forEach(function (slide) {
+      var bg = slide.querySelector('img.bg');
+      if (!bg) return;
+      var s = slide.getBoundingClientRect();
+      slide.querySelectorAll('.glassify').forEach(function (card) {
+        if (card.querySelector('.gclone')) return;
+        var r = card.getBoundingClientRect();
+        var tint = getComputedStyle(card).backgroundColor;
+        var wrap = document.createElement('div');
+        wrap.className = 'gclone';
+        var img = document.createElement('img');
+        img.src = bg.currentSrc || bg.src;
+        img.alt = '';
+        img.style.left = (s.left - r.left) + 'px';
+        img.style.top = (s.top - r.top) + 'px';
+        img.style.width = s.width + 'px';
+        img.style.height = s.height + 'px';
+        img.style.objectPosition = getComputedStyle(bg).objectPosition;
+        img.style.filter = 'blur(18px) brightness(.74) saturate(1.06)';
+        var t = document.createElement('div');
+        t.className = 'gtint';
+        t.style.background = tint;
+        wrap.appendChild(img);
+        wrap.appendChild(t);
+        card.prepend(wrap);
+        card.style.background = 'transparent';
+      });
+    });
+  }
+  if (document.readyState === 'complete') apply();
+  else window.addEventListener('load', apply);
+})();
+`;
