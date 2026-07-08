@@ -19,6 +19,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/feedback/") ||
     pathname.startsWith("/caminante/registro/") ||
     pathname.startsWith("/caminante/solicitar/") || // solicitar fecha: topbar propio
+    pathname.startsWith("/caminante/invitar/") || // invitación imprimible (→ PDF)
     pathname.startsWith("/caminante/admin/experiencias") ||
     pathname.startsWith("/caminante/admin/preview") || // vista previa de borradores
     pathname.startsWith("/caminante/admin/print") || // versión imprimible (→ PDF)

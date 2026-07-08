@@ -143,6 +143,7 @@ export default async function MiEspacioPage({
                         </div>
                         <div className="row2">
                           <a className="mesp-glassbtn" href={wa(waTxt)} target="_blank" rel="noopener noreferrer">Compartir por WhatsApp</a>
+                          <a className="mesp-glassbtn" href={`/caminante/invitar/${p.slug}?o=v`} target="_blank" rel="noopener noreferrer">Descargar invitación (PDF)</a>
                         </div>
                       </div>
                     </div>
