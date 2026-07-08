@@ -669,30 +669,44 @@ const NUMBERED = new Set(["split", "itinerary", "tariff", "checklist", "packing"
 const COLLAB_CSS = `
 .collab-strip{margin-top:36px;display:flex;flex-direction:column;gap:12px;}
 .collab-strip .lbl{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.72);}
-.collab-strip-logos{display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
-.collab-chip{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.92);border-radius:10px;padding:9px 14px;height:46px;}
-.collab-chip img{height:100%;width:auto;max-width:150px;object-fit:contain;display:block;}
+.collab-strip-logos{display:flex;flex-wrap:wrap;align-items:center;gap:22px;}
+/* Sobre la foto del hero el logo va como SILUETA BLANCA (sin caja), como la marca
+   al pie del deck — la caja blanca se veía como calcomanía. */
+.collab-chip{display:inline-flex;align-items:center;justify-content:center;height:34px;}
+.collab-chip img{height:100%;width:auto;max-width:170px;object-fit:contain;display:block;filter:brightness(0) invert(1);opacity:.9;}
 .collab-band{background:var(--panel);}
 .collab-band-lbl{display:flex;justify-content:center;margin-bottom:26px;}
 .collab-band-logos{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:30px 46px;}
 .collab-band-logo{display:flex;flex-direction:column;align-items:center;gap:8px;}
 .collab-band-logo img{height:56px;width:auto;max-width:200px;object-fit:contain;display:block;}
 .collab-band-logo span{font-size:12px;color:var(--ink-soft);font-weight:500;letter-spacing:.02em;}
-@media print{.collab-chip{background:rgba(255,255,255,.92) !important;}}
 `;
 
 export default function ExperienceTemplateV2({
   experience,
   slots,
   grupoToken,
+  sessionRole,
 }: {
   experience: Experience;
   slots: SlotAvailabilityPublic[];
   // Token de grupo privado (ya sanitizado): los CTAs de reserva lo conservan
   // para que el flujo completo (página → checkout) siga viendo la salida privada.
   grupoToken?: string | null;
+  // Rol de la sesión (server-side): entrada a "Mi espacio"/"Panel" en el nav.
+  sessionRole?: "admin" | "caminante" | null;
 }) {
   const slug = experience.slug;
+  // Entrada por rol en el nav de la experiencia (misma lógica que SiteChrome):
+  // sin sesión → "Entrar" (rutea a login); caminante → "Mi espacio"; admin → "Panel".
+  const cuentaHref =
+    sessionRole === "admin"
+      ? "/caminante/admin"
+      : sessionRole === "caminante"
+        ? "/caminante/perfil"
+        : "/caminante/entrar";
+  const cuentaLabel =
+    sessionRole === "admin" ? "Panel" : sessionRole === "caminante" ? "Mi espacio" : "Entrar";
   const blocks = experience.page?.blocks ?? [];
   const collabs = (experience.page?.collaborators ?? []).filter((c) => c.logoUrl?.trim());
   // La banda de logos va después del último bloque "split" (guías/aliados); si no
@@ -721,6 +735,7 @@ export default function ExperienceTemplateV2({
           <a href="/caminante#proximos">Calendario</a>
           <a href="/caminante#aprende">Aprende</a>
           <a href="/caminante#quees">Nosotros</a>
+          <a href={cuentaHref}>{cuentaLabel}</a>
         </div>
         <div className="nav-cta">
           <a href="#fechas" className="btn btn-orange">
@@ -746,6 +761,9 @@ export default function ExperienceTemplateV2({
         </a>
         <a href="/caminante#quees">
           <span className="sl">{"//"}</span>Nosotros
+        </a>
+        <a href={cuentaHref}>
+          <span className="sl">{"//"}</span>{cuentaLabel}
         </a>
         <a href="#fechas" className="btn btn-orange">
           Reservar

@@ -5,6 +5,7 @@ import {
   fetchPublishedExperienceRow,
 } from "@/lib/experiences/queries";
 import { cleanGrupoToken, fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
+import { getCurrentRole } from "@/lib/auth/authorization";
 import ExperienceTemplate from "./ExperienceTemplate";
 import ExperienceTemplateV2 from "./ExperienceTemplateV2";
 
@@ -32,8 +33,18 @@ export default async function ExperiencePage({ params, searchParams }: Params) {
   // para leer sus salidas y pintar las fechas en vivo.
   const row = await fetchPublishedExperienceRow(slug);
   if (row?.experience.design === "v2") {
-    const slots = await fetchOpenSlotsForTemplate(row.id, { grupoToken });
-    return <ExperienceTemplateV2 experience={row.experience} slots={slots} grupoToken={grupoToken} />;
+    const [slots, sessionRole] = await Promise.all([
+      fetchOpenSlotsForTemplate(row.id, { grupoToken }),
+      getCurrentRole(),
+    ]);
+    return (
+      <ExperienceTemplateV2
+        experience={row.experience}
+        slots={slots}
+        grupoToken={grupoToken}
+        sessionRole={sessionRole}
+      />
+    );
   }
 
   // Template legacy (4 caras/contexto/impacto).
