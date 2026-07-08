@@ -8,12 +8,15 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureContactLink } from "@/lib/crm/contacts";
 import type { User } from "@supabase/supabase-js";
 
+const SITE = "https://caminante.numanhub.com";
+
 const HOLDING = ["requested", "confirmed", "partially_paid", "paid", "completed"];
 
 export type PagoChip = "pagada" | "parcial" | "pendiente";
 
 export type ProximaSalida = {
   reservaId: string;
+  slug: string;
   titulo: string;
   lugar: string; // eyebrow "// Xalatlaco · Edo. Méx."
   foto: string | null;
@@ -22,9 +25,17 @@ export type ProximaSalida = {
   pago: PagoChip;
   // null = la experiencia no usa deslinde; "firmado"; o URL para firmar
   deslinde: "firmado" | { firmarUrl: string } | null;
+  pagarUrl: string; // /caminante/reservar/<slug>(?grupo=token) — completar pago
+  // Invitar a la gente: link para que se sumen a ESTA salida.
+  invite: {
+    esPrivada: boolean; // salida de grupo (link cerrado) vs abierta
+    link: string; // URL absoluta a compartir
+    cupoLinea: string; // "El cupo es de 8; ya van 2." o "" si sin tope
+  };
 };
 
 export type SalidaVivida = {
+  slug: string;
   titulo: string;
   meta: string; // "Ensenada de Muertos · 15 jun 2026"
   foto: string | null;
@@ -224,7 +235,10 @@ export async function fetchMiEspacio(user: User): Promise<MiEspacio> {
 
   const [slotsRes, expsRes, fbRes] = await Promise.all([
     slotIds.length
-      ? sb.from("experience_slots").select("id, label, starts_at, ends_at").in("id", slotIds)
+      ? sb
+          .from("experience_slots")
+          .select("id, label, starts_at, ends_at, visibility, access_token, capacity_total")
+          .in("id", slotIds)
       : Promise.resolve({ data: [] as unknown[] }),
     expIds.length
       ? sb.from("experiences").select("id, slug, data").in("id", expIds)
@@ -239,10 +253,30 @@ export async function fetchMiEspacio(user: User): Promise<MiEspacio> {
   ]);
 
   const slots = new Map(
-    ((slotsRes.data || []) as { id: string; label: string | null; starts_at: string | null; ends_at: string | null }[]).map(
-      (s) => [s.id, s],
-    ),
+    ((slotsRes.data || []) as {
+      id: string;
+      label: string | null;
+      starts_at: string | null;
+      ends_at: string | null;
+      visibility: string | null;
+      access_token: string | null;
+      capacity_total: number | null;
+    }[]).map((s) => [s.id, s]),
   );
+
+  // Ocupación por salida (Σ num_people HOLDING de TODAS las reservas, no solo las
+  // de este usuario) → "ya van X" del bloque de invitar.
+  const takenBySlot = new Map<string, number>();
+  if (slotIds.length) {
+    const { data: allResv } = await sb
+      .from("reservations")
+      .select("slot_id, num_people, status")
+      .in("slot_id", slotIds)
+      .in("status", HOLDING);
+    for (const r of (allResv || []) as { slot_id: string | null; num_people: number; status: string }[]) {
+      if (r.slot_id) takenBySlot.set(r.slot_id, (takenBySlot.get(r.slot_id) || 0) + (r.num_people || 0));
+    }
+  }
   const exps = new Map(
     ((expsRes.data || []) as { id: string; slug: string; data: ExpData | null }[]).map((e) => [
       e.id,
@@ -269,6 +303,7 @@ export async function fetchMiEspacio(user: User): Promise<MiEspacio> {
     if (pasada) {
       const fb = r.slot_id ? fbBySlot.get(r.slot_id) : undefined;
       base.vividas.push({
+        slug: exp?.slug || "",
         titulo: titulo(d, exp?.slug || ""),
         meta: [lugarDe(d), slot?.starts_at ? fmtFecha(slot.starts_at) : slot?.label]
           .filter(Boolean)
@@ -300,9 +335,21 @@ export async function fetchMiEspacio(user: User): Promise<MiEspacio> {
           ? "parcial"
           : "pendiente";
 
+    // Invitar: link para que amigos se sumen a ESTA salida. Si la salida es
+    // de grupo privado, el link lleva su token (los revela solo con el link);
+    // si es abierta, la página pública de la experiencia.
+    const slug = exp?.slug || "";
+    const esPrivada = slot?.visibility === "private" && !!slot?.access_token;
+    const grupoQ = esPrivada ? `?grupo=${slot!.access_token}` : "";
+    const inviteLink = `${SITE}/caminante/experiencias/${slug}${grupoQ}`;
+    const cap = slot?.capacity_total ?? null;
+    const yaVan = r.slot_id ? takenBySlot.get(r.slot_id) || 0 : 0;
+    const cupoLinea = cap != null ? `El cupo es de ${cap}; ya van ${yaVan}.` : "";
+
     base.proximas.push({
       reservaId: r.id,
-      titulo: titulo(d, exp?.slug || ""),
+      slug,
+      titulo: titulo(d, slug),
       lugar: lugarDe(d),
       foto: d?.heroImageUrl || null,
       fecha: slot?.label || "Por confirmar",
@@ -311,8 +358,10 @@ export async function fetchMiEspacio(user: User): Promise<MiEspacio> {
       deslinde: reg
         ? "firmado"
         : d?.registration?.active
-          ? { firmarUrl: `/caminante/registro/${exp?.slug}?reserva=${r.id}` }
+          ? { firmarUrl: `/caminante/registro/${slug}?reserva=${r.id}` }
           : null,
+      pagarUrl: `${SITE}/caminante/reservar/${slug}${grupoQ}`,
+      invite: { esPrivada, link: inviteLink, cupoLinea },
     });
   }
 
