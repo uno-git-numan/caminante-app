@@ -1,5 +1,14 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+// Token de grupo privado (?grupo=<token> en la URL). SIEMPRE sanitizar con
+// esto antes de usarlo en un filtro PostgREST (evita inyección en .or()) o de
+// compararlo contra la BD. Formato: base64url de crypto.randomBytes(16).
+export function cleanGrupoToken(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const t = raw.trim();
+  return /^[A-Za-z0-9_-]{10,64}$/.test(t) ? t : null;
+}
+
 // Estados del enum reservation_status que APARTAN un lugar (decisión: paid + registrados).
 //   confirmed      = registro firmado (web)
 //   paid / partially_paid / completed = pagó (WhatsApp/Stripe)
@@ -70,17 +79,28 @@ export async function fetchSlotAvailability(
 // ordenadas por fecha. Sirve a la plantilla v2 tanto en la página pública
 // (experiencia ya publicada) como en la vista previa de un borrador — por eso
 // NO filtra por status de la experiencia (el llamador ya decidió el acceso).
+// Visibilidad: por default SOLO salidas públicas. Con `grupoToken` (ya
+// sanitizado con cleanGrupoToken) se revela ADEMÁS la salida privada de ese
+// token. `includePrivate` = vistas de admin (preview/print) que ven todo.
 export async function fetchOpenSlotsForTemplate(
   experienceId: string,
+  opts?: { grupoToken?: string | null; includePrivate?: boolean },
 ): Promise<SlotAvailabilityPublic[]> {
   const sb = createSupabaseAdminClient();
+  const token = cleanGrupoToken(opts?.grupoToken);
+  let slotsQuery = sb
+    .from("experience_slots")
+    .select("id, label, starts_at, ends_at, capacity_total, status")
+    .eq("experience_id", experienceId)
+    .eq("status", "open")
+    .order("starts_at", { ascending: true });
+  if (!opts?.includePrivate) {
+    slotsQuery = token
+      ? slotsQuery.or(`visibility.eq.public,access_token.eq.${token}`)
+      : slotsQuery.eq("visibility", "public");
+  }
   const [{ data: slots }, { data: resv }] = await Promise.all([
-    sb
-      .from("experience_slots")
-      .select("id, label, starts_at, ends_at, capacity_total, status")
-      .eq("experience_id", experienceId)
-      .eq("status", "open")
-      .order("starts_at", { ascending: true }),
+    slotsQuery,
     sb
       .from("reservations")
       .select("slot_id, num_people, status")
@@ -134,6 +154,7 @@ export async function fetchPublicAvailability(): Promise<ExperienceAvailability[
       .select("id, experience_id, label, starts_at, ends_at, capacity_total, status")
       .in("experience_id", ids)
       .eq("status", "open")
+      .eq("visibility", "public") // las salidas privadas NUNCA salen al público
       .order("starts_at", { ascending: true }),
     sb
       .from("reservations")

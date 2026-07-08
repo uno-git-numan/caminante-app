@@ -545,12 +545,15 @@ function DatesBlock({
   secnum,
   slug,
   slots,
+  grupoToken,
 }: {
   b: V2Dates;
   secnum: string;
   slug: string;
   slots: SlotAvailabilityPublic[];
+  grupoToken?: string | null;
 }) {
+  const q = grupoToken ? `?grupo=${grupoToken}` : "";
   return (
     <section className="section fechas" id="fechas">
       <div className="container">
@@ -578,7 +581,7 @@ function DatesBlock({
 
         {b.priceLine ? <p className="price-line">{priceLineNodes(b.priceLine)}</p> : null}
         <div className="actions">
-          <a href={`/caminante/reservar/${slug}`} className="btn btn-orange btn-arrow">
+          <a href={`/caminante/reservar/${slug}${q}`} className="btn btn-orange btn-arrow">
             Reservar y pagar
           </a>
           <a href={`/caminante/registro/${slug}`} className="btn btn-outline-d">
@@ -661,9 +664,13 @@ const COLLAB_CSS = `
 export default function ExperienceTemplateV2({
   experience,
   slots,
+  grupoToken,
 }: {
   experience: Experience;
   slots: SlotAvailabilityPublic[];
+  // Token de grupo privado (ya sanitizado): los CTAs de reserva lo conservan
+  // para que el flujo completo (página → checkout) siga viendo la salida privada.
+  grupoToken?: string | null;
 }) {
   const slug = experience.slug;
   const blocks = experience.page?.blocks ?? [];
@@ -754,7 +761,7 @@ export default function ExperienceTemplateV2({
             el = <PackingBlock b={b} secnum={secnum} />;
             break;
           case "dates":
-            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} />;
+            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} grupoToken={grupoToken} />;
             break;
           case "closing":
             el = <ClosingBlock b={b} slug={slug} />;

@@ -77,7 +77,7 @@ export default async function PrintPage({
       </div>
     );
   }
-  const slots = await fetchOpenSlotsForTemplate((row as { id: string }).id);
+  const slots = await fetchOpenSlotsForTemplate((row as { id: string }).id, { includePrivate: true });
 
   return (
     <>

@@ -1004,7 +1004,18 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
           {/* 14 · FECHAS & CUPO */}
           <section className="card" id="s14">
             <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Fechas &amp; cupo</span><h2>Fechas &amp; cupo</h2><p className="desc">Las fechas de salida y cuántos lugares hay en cada una. El sitio muestra &quot;Quedan N lugares&quot; y baja el número conforme la gente reserva; cuando se llena, aparece &quot;Agotado&quot;. Deja el cupo vacío para una salida sin tope.</p></div>
-            <div style={{ maxWidth: 220 }}><Field label="Cupo estándar" hint="se usa al agregar salidas"><input type="number" value={cupoEstandar} placeholder="16" onChange={(e) => setCupoEstandar(e.target.value)} /></Field></div>
+            <div className="row c2" style={{ maxWidth: 480 }}>
+              <Field label="Cupo estándar" hint="se usa al agregar salidas"><input type="number" value={cupoEstandar} placeholder="16" onChange={(e) => setCupoEstandar(e.target.value)} /></Field>
+              <Field label="Mínimo para salir" hint="valida &quot;solicitar nueva fecha&quot; · vacío = desde 1">
+                <input
+                  type="number"
+                  min={1}
+                  value={exp.minPeople ?? ""}
+                  placeholder="ej. 6"
+                  onChange={(e) => set("minPeople", e.target.value ? Math.max(1, parseInt(e.target.value, 10) || 1) : undefined)}
+                />
+              </Field>
+            </div>
             <div className="subhead">Salidas</div>
             <div className="rep-items">
               {slots.map((s, i) => (

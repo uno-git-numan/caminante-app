@@ -24,6 +24,7 @@ export type AdminSlot = {
   capacity: number | null;
   priceMxn: number | null;
   status: string;
+  visibility: string; // 'public' | 'private' (privada = grupo con link cerrado)
   seatsTaken: number;
 };
 
@@ -45,7 +46,7 @@ export async function fetchSlotsForAdmin(slug: string): Promise<AdminSlot[]> {
   if (!expId) return [];
   const { data } = await sb
     .from("experience_slots")
-    .select("id, label, starts_at, ends_at, capacity_total, price_mxn, status, seats_taken")
+    .select("id, label, starts_at, ends_at, capacity_total, price_mxn, status, visibility, seats_taken")
     .eq("experience_id", expId)
     .order("starts_at", { ascending: true });
   return (data ?? []).map((s) => {
@@ -58,6 +59,7 @@ export async function fetchSlotsForAdmin(slug: string): Promise<AdminSlot[]> {
       capacity: (r.capacity_total as number) ?? null,
       priceMxn: (r.price_mxn as number) ?? null,
       status: (r.status as string) ?? "open",
+      visibility: (r.visibility as string) ?? "public",
       seatsTaken: (r.seats_taken as number) ?? 0,
     };
   });
@@ -104,6 +106,7 @@ export async function saveExperienceSlots(
         .select("id")
         .eq("experience_id", expId)
         .eq("status", "open")
+        .eq("visibility", "public")
         .eq("starts_at", s.startsAt)
         .eq("label", fields.label);
       id = (dup ?? []).map((d) => d.id as string).find((x) => !keepIds.includes(x)) ?? null;
@@ -124,10 +127,15 @@ export async function saveExperienceSlots(
     }
   }
 
-  // Cerrar (no borrar) las salidas ABIERTAS que el form ya no incluye.
-  // Solo toca las abiertas: las cerradas/canceladas/privadas conservan su
-  // estado (el form ya no las conoce — se operan en el dashboard).
-  let q = sb.from("experience_slots").update({ status: "closed" }).eq("experience_id", expId).eq("status", "open");
+  // Cerrar (no borrar) las salidas ABIERTAS PÚBLICAS que el form ya no incluye.
+  // Las cerradas/canceladas conservan su estado y las PRIVADAS (grupos con
+  // link) no se tocan: el form no las conoce — se operan en Solicitudes/Eventos.
+  let q = sb
+    .from("experience_slots")
+    .update({ status: "closed" })
+    .eq("experience_id", expId)
+    .eq("status", "open")
+    .eq("visibility", "public");
   if (keepIds.length > 0) q = q.not("id", "in", `(${keepIds.join(",")})`);
   const { error: closeErr } = await q;
   if (closeErr) return { ok: false, error: closeErr.message };

@@ -26,10 +26,14 @@ export default function CheckoutForm({
   slug,
   slots,
   tiers = [],
+  grupoToken,
 }: {
   slug: string;
   slots: ReservarSlot[];
   tiers?: PriceTier[];
+  // Token de grupo privado: viaja como hidden y el server lo valida contra la
+  // BD (una salida privada NUNCA se paga sin su token).
+  grupoToken?: string | null;
 }) {
   const firstOpen = slots.find((s) => !s.soldOut) ?? slots[0];
   const [slotId, setSlotId] = useState(firstOpen?.id ?? "");
@@ -49,6 +53,7 @@ export default function CheckoutForm({
       <input type="hidden" name="slotId" value={slotId} />
       <input type="hidden" name="numPeople" value={ppl} />
       {tiers.length ? <input type="hidden" name="tierIndex" value={tierIndex} /> : null}
+      {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
 
       {tiers.length ? (
         <fieldset className="space-y-3">

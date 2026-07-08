@@ -27,11 +27,14 @@ export async function fetchRegistrationContext(
   const experience = data.data as Experience;
   if (!experience.registration?.active) return null;
 
+  // Solo salidas públicas en el selector: quien viene de un grupo privado ya
+  // pagó y llega con ?reserva= → fetchReservationLock fija SU salida exacta.
   const { data: slotRows } = await sb
     .from("experience_slots")
     .select("id, label, status, starts_at")
     .eq("experience_id", data.id)
     .eq("status", "open")
+    .eq("visibility", "public")
     .order("starts_at", { ascending: true });
 
   // Disponibilidad EN VIVO desde reservations (paid + registrados apartan), no del

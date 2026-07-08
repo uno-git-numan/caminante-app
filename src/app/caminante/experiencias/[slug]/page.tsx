@@ -4,13 +4,16 @@ import {
   fetchExperienceBySlug,
   fetchPublishedExperienceRow,
 } from "@/lib/experiences/queries";
-import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
+import { cleanGrupoToken, fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import ExperienceTemplate from "./ExperienceTemplate";
 import ExperienceTemplateV2 from "./ExperienceTemplateV2";
 
 export const dynamic = "force-dynamic";
 
-type Params = { params: Promise<{ slug: string }> };
+type Params = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ grupo?: string }>;
+};
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
@@ -19,15 +22,18 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return { title: title || "Experiencia · Caminante" };
 }
 
-export default async function ExperiencePage({ params }: Params) {
+export default async function ExperiencePage({ params, searchParams }: Params) {
   const { slug } = await params;
+  // Link de grupo privado (?grupo=<token>): revela ADEMÁS la salida privada
+  // de ese token. Sin el link, esa fecha no existe para la web.
+  const grupoToken = cleanGrupoToken((await searchParams).grupo);
 
   // Diseño v2 (bespoke ensenada/hongos, data-driven): necesita el id de la fila
   // para leer sus salidas y pintar las fechas en vivo.
   const row = await fetchPublishedExperienceRow(slug);
   if (row?.experience.design === "v2") {
-    const slots = await fetchOpenSlotsForTemplate(row.id);
-    return <ExperienceTemplateV2 experience={row.experience} slots={slots} />;
+    const slots = await fetchOpenSlotsForTemplate(row.id, { grupoToken });
+    return <ExperienceTemplateV2 experience={row.experience} slots={slots} grupoToken={grupoToken} />;
   }
 
   // Template legacy (4 caras/contexto/impacto).

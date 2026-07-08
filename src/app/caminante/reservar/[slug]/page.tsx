@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { fetchSlotAvailability } from "@/lib/experiences/availability";
+import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import type { Experience } from "@/lib/experiences/types";
 import CheckoutForm, { type ReservarSlot } from "./CheckoutForm";
@@ -22,10 +22,11 @@ export default async function ReservarPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; grupo?: string }>;
 }) {
   const { slug } = await params;
-  const { error } = await searchParams;
+  const { error, grupo } = await searchParams;
+  const grupoToken = cleanGrupoToken(grupo);
 
   // El admin no compra (perfiles separados). Va a su panel.
   if (await isCurrentUserAdmin()) {
@@ -47,12 +48,18 @@ export default async function ReservarPage({
     experience?.docTitle ||
     "Experiencia Caminante";
 
-  const { data: slotRows } = await sb
+  // Visibilidad: sin token → solo salidas públicas. Con link de grupo válido
+  // → SOLO la salida privada de ese token (el link es para ESA fecha).
+  let slotsQuery = sb
     .from("experience_slots")
-    .select("id, label, price_mxn, starts_at, capacity_total")
+    .select("id, label, price_mxn, starts_at, capacity_total, visibility, access_token")
     .eq("experience_id", experienceId)
     .eq("status", "open")
     .order("starts_at", { ascending: true });
+  slotsQuery = grupoToken
+    ? slotsQuery.eq("access_token", grupoToken)
+    : slotsQuery.eq("visibility", "public");
+  const { data: slotRows } = await slotsQuery;
 
   const avail = await fetchSlotAvailability(experienceId);
   const basePrice = parseMxnAmount(experience?.price?.amount);
@@ -95,7 +102,7 @@ export default async function ReservarPage({
             Por ahora no hay salidas abiertas. Escríbenos y te avisamos de la próxima.
           </div>
         ) : (
-          <CheckoutForm slug={slug} slots={slots} tiers={experience?.priceTiers ?? []} />
+          <CheckoutForm slug={slug} slots={slots} tiers={experience?.priceTiers ?? []} grupoToken={grupoToken} />
         )}
       </div>
     </section>

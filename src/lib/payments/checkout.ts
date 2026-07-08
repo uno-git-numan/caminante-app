@@ -15,6 +15,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
+import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 
 async function getOrigin() {
@@ -36,7 +37,11 @@ export async function createCheckout(formData: FormData) {
   // MONTO se resuelve server-side por este índice contra la experiencia guardada
   // — NUNCA se confía en un monto que mande el cliente.
   const tierIndexRaw = String(formData.get("tierIndex") ?? "").trim();
-  const back = (e: string) => `/caminante/reservar/${slug}?error=${encodeURIComponent(e)}`;
+  // Token de grupo privado (si la salida es privada, es OBLIGATORIO y se
+  // valida contra la BD — nunca se confía en el cliente).
+  const grupoToken = cleanGrupoToken(formData.get("grupo"));
+  const backQ = grupoToken ? `&grupo=${grupoToken}` : "";
+  const back = (e: string) => `/caminante/reservar/${slug}?error=${encodeURIComponent(e)}${backQ}`;
 
   if (!slug || !slotId) redirect(back("datos"));
 
@@ -54,11 +59,22 @@ export async function createCheckout(formData: FormData) {
 
   const { data: slot } = await sb
     .from("experience_slots")
-    .select("id, label, price_mxn, status, experience_id")
+    .select("id, label, price_mxn, status, experience_id, visibility, access_token")
     .eq("id", slotId)
     .maybeSingle();
   if (!slot || slot.experience_id !== experienceId || slot.status !== "open") {
     redirect(back("salida"));
+  }
+  // Salida PRIVADA: exige el token exacto de su link de grupo.
+  if (slot.visibility === "private" && (!grupoToken || grupoToken !== slot.access_token)) {
+    redirect(back("salida"));
+  }
+
+  // Cupo server-side: el form limita en cliente, pero el monto de personas
+  // llega por FormData — verificar contra la ocupación REAL antes de cobrar.
+  const avail = (await fetchSlotAvailability(experienceId)).get(slotId);
+  if (avail && avail.available !== null && numPeople > avail.available) {
+    redirect(back(avail.available <= 0 ? "salida" : `Solo quedan ${avail.available} lugares en esa salida.`));
   }
 
   // Precio por persona. Prioridad:
@@ -107,6 +123,7 @@ export async function createCheckout(formData: FormData) {
     operator_id: operatorId ?? "",
     commission_pct: commissionPct != null ? String(commissionPct) : "",
     tier_label: tierLabel,
+    slot_visibility: (slot.visibility as string | null) ?? "public",
   };
 
   let url: string | null = null;
@@ -131,7 +148,7 @@ export async function createCheckout(formData: FormData) {
       payment_intent_data: { metadata },
       phone_number_collection: { enabled: true },
       success_url: `${origin}/caminante/reserva/exito?slug=${encodeURIComponent(slug)}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/caminante/reservar/${slug}?error=cancelado`,
+      cancel_url: `${origin}/caminante/reservar/${slug}?error=cancelado${backQ}`,
     });
     url = session.url;
   } catch (e) {

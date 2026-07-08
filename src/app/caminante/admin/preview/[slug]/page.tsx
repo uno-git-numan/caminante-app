@@ -34,7 +34,7 @@ export default async function PreviewPage({
   // Diseño v2: mismas fechas en vivo que la página pública (funciona con borradores).
   const slots =
     e.design === "v2"
-      ? await fetchOpenSlotsForTemplate((row as { id: string }).id)
+      ? await fetchOpenSlotsForTemplate((row as { id: string }).id, { includePrivate: true })
       : [];
 
   return (

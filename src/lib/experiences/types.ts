@@ -262,6 +262,9 @@ export type Experience = {
   // nivel. Se muestran en la página; el cobro del nivel elegido se resuelve en el
   // checkout (server-side, por índice — nunca desde el cliente).
   priceTiers?: { label: string; amount: string }[];
+  // Mínimo de personas para que la experiencia salga (informa y valida el form
+  // de "Solicitar nueva fecha"; vacío = se puede solicitar desde 1 persona).
+  minPeople?: number;
   stripeLink?: string | null; // generated later
 
   // registro nativo (deslinde + firma en /caminante/registro/[slug])
