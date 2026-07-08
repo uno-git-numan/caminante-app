@@ -61,8 +61,11 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .brandfoot .bf-mark svg{height:100%;width:auto;display:block;}
 .brandfoot .bf-mark .g1{fill:var(--olive);}.brandfoot .bf-mark .g2{fill:var(--sand);}.brandfoot .bf-mark .g3{fill:var(--orange);}.brandfoot .bf-mark .gw{fill:var(--charcoal);}
 .brandfoot.on-dark .bf-mark .g1{fill:#cfd6c4;}.brandfoot.on-dark .bf-mark .g2{fill:#cfc8c0;}.brandfoot.on-dark .bf-mark .gw{fill:#fff;}
-.brandfoot img{height:14px;width:auto;display:block;filter:brightness(.35) grayscale(.25);opacity:.75;}
-.brandfoot.on-dark img{filter:none;opacity:.9;}
+/* Los logos de colaborador se normalizan a SILUETA monocroma (requieren PNG
+   con fondo transparente): negra sobre slides crema, blanca sobre slides de
+   foto — así cualquier color de logo (negro incluido) siempre se ve. */
+.brandfoot img{height:14px;width:auto;display:block;filter:brightness(0);opacity:.6;}
+.brandfoot.on-dark img{filter:brightness(0) invert(1);opacity:.85;}
 .brandfoot.in-panel{position:static;justify-content:flex-start;margin-top:auto;padding-top:18px;gap:15px;opacity:.7;}
 
 .closing .close-btm{margin-top:auto;padding:56px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap;}
