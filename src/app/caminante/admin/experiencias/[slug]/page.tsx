@@ -29,7 +29,10 @@ export default async function EditarExperienciaPage({
     .maybeSingle();
   if (!row?.data) notFound();
 
-  const slots = await fetchSlotsForAdmin(slug);
+  // SOLO salidas ABIERTAS: el form edita las fechas vigentes. Las cerradas/
+  // canceladas se operan en el dashboard (Reabrir) — si entraran aquí como
+  // filas, cada guardado las re-abriría (bug de las fechas que "resucitaban").
+  const slots = (await fetchSlotsForAdmin(slug)).filter((s) => s.status === "open");
 
   return (
     <ExperienceForm

@@ -71,8 +71,9 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .brandfoot.on-dark img{filter:brightness(0) invert(1);opacity:.9;}
 .brandfoot.in-panel{position:static;justify-content:flex-start;margin-top:auto;padding-top:18px;gap:15px;}
 
-.closing .close-btm{margin-top:auto;padding:56px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap;}
+.closing .close-btm{margin-top:auto;padding:56px 56px ${orient === "h" ? 56 : 60}px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap;}
 .closing .c-l h2{color:#fff;font-size:${orient === "h" ? 58 : 46}px;margin-top:16px;}
+.closing .btn-reserva{display:inline-flex;align-items:center;margin-top:22px;background:var(--orange);color:#fff;text-decoration:none;border-radius:999px;padding:${orient === "h" ? "14px 26px" : "12px 22px"};font-size:${orient === "h" ? 16 : 15}px;font-weight:600;letter-spacing:.02em;}
 .closing .c-l .s-eyebrow{color:#fff;}
 .closing .contact{display:grid;gap:12px;}
 .closing .crow{display:flex;gap:14px;align-items:baseline;}

@@ -94,11 +94,25 @@ export async function saveExperienceSlots(
       price_mxn: s.priceMxn ?? null,
       status: "open",
     };
-    if (s.id) {
+    // Fila sin id: antes de insertar, buscar una salida ABIERTA idéntica
+    // (misma fecha y label) que aún no esté en keepIds — guardar dos veces sin
+    // recargar ya NO duplica la fecha (bug de los "4 de agosto repetidos").
+    let id = s.id ?? null;
+    if (!id) {
+      const { data: dup } = await sb
+        .from("experience_slots")
+        .select("id")
+        .eq("experience_id", expId)
+        .eq("status", "open")
+        .eq("starts_at", s.startsAt)
+        .eq("label", fields.label);
+      id = (dup ?? []).map((d) => d.id as string).find((x) => !keepIds.includes(x)) ?? null;
+    }
+    if (id) {
       // editar: NO tocar seats_taken (lo maneja el flujo de reservas)
-      const { error } = await sb.from("experience_slots").update(fields).eq("id", s.id).eq("experience_id", expId);
+      const { error } = await sb.from("experience_slots").update(fields).eq("id", id).eq("experience_id", expId);
       if (error) return { ok: false, error: error.message };
-      keepIds.push(s.id);
+      keepIds.push(id);
     } else {
       const { data, error } = await sb
         .from("experience_slots")
@@ -110,8 +124,10 @@ export async function saveExperienceSlots(
     }
   }
 
-  // Cerrar (no borrar) las salidas que el form ya no incluye.
-  let q = sb.from("experience_slots").update({ status: "closed" }).eq("experience_id", expId);
+  // Cerrar (no borrar) las salidas ABIERTAS que el form ya no incluye.
+  // Solo toca las abiertas: las cerradas/canceladas/privadas conservan su
+  // estado (el form ya no las conoce — se operan en el dashboard).
+  let q = sb.from("experience_slots").update({ status: "closed" }).eq("experience_id", expId).eq("status", "open");
   if (keepIds.length > 0) q = q.not("id", "in", `(${keepIds.join(",")})`);
   const { error: closeErr } = await q;
   if (closeErr) return { ok: false, error: closeErr.message };

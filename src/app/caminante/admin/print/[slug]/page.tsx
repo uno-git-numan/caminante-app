@@ -13,6 +13,18 @@ import ExperienceDeck from "../../../experiencias/[slug]/ExperienceDeck";
 
 export const dynamic = "force-dynamic";
 
+// El <title> del documento es el NOMBRE DE ARCHIVO que Chrome propone al
+// "Guardar como PDF" → el flyer se descarga como "<Título de la experiencia>.pdf".
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const sb = createSupabaseAdminClient();
+  const { data: row } = await sb.from("experiences").select("data").eq("slug", slug).maybeSingle();
+  const e = row?.data as Experience | undefined;
+  const title =
+    [e?.title, e?.titleAccent].filter(Boolean).join(" ").trim() || e?.docTitle || "Experiencia Caminante";
+  return { title };
+}
+
 // Espera IMÁGENES + FUENTES antes de imprimir. Sin esperar document.fonts.ready
 // el diálogo dispara con la fuente de respaldo del sistema (no Geist).
 // OJO: el script de glass (DECK_GLASS_SCRIPT) va ANTES en el DOM → su listener

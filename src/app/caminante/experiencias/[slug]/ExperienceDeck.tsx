@@ -288,7 +288,7 @@ function FaqSlide({ b, pager, collabs }: { b: V2Faq; pager: string; collabs: Col
   );
 }
 
-function ClosingSlide({ b, cupo, collabs }: { b: V2Closing; cupo: string; collabs: Collab[] }) {
+function ClosingSlide({ b, cupo, reservaUrl, collabs }: { b: V2Closing; cupo: string; reservaUrl: string; collabs: Collab[] }) {
   return (
     <div className="slide bleed closing">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -303,6 +303,8 @@ function ClosingSlide({ b, cupo, collabs }: { b: V2Closing; cupo: string; collab
           <div className="c-l">
             <span className="s-eyebrow"><span className="sl">{"//"}</span> {b.eyebrow}</span>
             <Title t={b.title} accent={b.titleAccent} />
+            {/* Link REAL: el PDF conserva hyperlinks → clickeable en el archivo */}
+            <a className="btn-reserva" href={reservaUrl}>¿Interesado? Reserva aquí →</a>
           </div>
           <div className="contact">
             {b.contacts.map((c, i) => <div className="crow" key={i}><span className="k">{c.lbl}</span><span className="v">{c.val}</span></div>)}
@@ -365,7 +367,14 @@ export default function ExperienceDeck({
       {comunidad ? <SplitSlide b={comunidad} pager={pagerFor()} collabs={collabs} /> : null}
       {packing ? <PackingSlide b={packing} pager={pagerFor()} collabs={collabs} /> : null}
       {faq ? <FaqSlide b={faq} pager={pagerFor()} collabs={collabs} /> : null}
-      {closing ? <ClosingSlide b={closing} cupo={cupo} collabs={collabs} /> : null}
+      {closing ? (
+        <ClosingSlide
+          b={closing}
+          cupo={cupo}
+          reservaUrl={`https://caminante.numanhub.com/caminante/reservar/${experience.slug}`}
+          collabs={collabs}
+        />
+      ) : null}
     </div>
   );
 }
