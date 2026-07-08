@@ -216,11 +216,63 @@ async function comprimirImagen(file: File, maxLado = 2560, calidad = 0.82): Prom
   }
 }
 
-async function subirImagen(file: File): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+// Los LOGOS (colaboradores) se recortan solos al contenido: se detecta el
+// bounding box del canal alfa y se elimina el aire transparente alrededor
+// (un wordmark en un lienzo 3300×2550 se veía diminuto al renderizar a altura
+// fija junto al sello de numan). Salida SIEMPRE PNG (conserva transparencia;
+// el compresor JPEG la aplastaría a fondo negro/blanco).
+async function recortarLogo(file: File): Promise<Blob | null> {
+  try {
+    const bmp = await createImageBitmap(file);
+    const w0 = bmp.width, h0 = bmp.height;
+    const c = document.createElement("canvas");
+    c.width = w0; c.height = h0;
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bmp, 0, 0);
+    bmp.close();
+    const a = ctx.getImageData(0, 0, w0, h0).data;
+    let minX = w0, minY = h0, maxX = -1, maxY = -1;
+    for (let y = 0; y < h0; y++) {
+      for (let x = 0; x < w0; x++) {
+        if (a[(y * w0 + x) * 4 + 3] > 16) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) return null; // imagen sin píxeles visibles (o JPEG opaco: bbox = todo)
+    const m = Math.max(4, Math.round((maxY - minY) / 20)); // margen ~5% del glifo
+    const x0 = Math.max(0, minX - m), y0 = Math.max(0, minY - m);
+    const cw = Math.min(w0, maxX + m + 1) - x0, ch = Math.min(h0, maxY + m + 1) - y0;
+    // Los logos no necesitan más de ~1200px de ancho / 400px de alto.
+    const esc = Math.min(1, 1200 / cw, 400 / ch);
+    const out = document.createElement("canvas");
+    out.width = Math.max(1, Math.round(cw * esc));
+    out.height = Math.max(1, Math.round(ch * esc));
+    const octx = out.getContext("2d");
+    if (!octx) return null;
+    octx.drawImage(c, x0, y0, cw, ch, 0, 0, out.width, out.height);
+    return await new Promise<Blob | null>((res) => out.toBlob(res, "image/png"));
+  } catch {
+    return null;
+  }
+}
+
+async function subirImagen(file: File, opts?: { logo?: boolean }): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   let cuerpo: Blob = file;
   let nombre = file.name;
-  // Comprimir todo lo que pese >1.2 MB (o no sea jpeg/png/webp ya ligero).
-  if (file.size > 1_200_000) {
+  if (opts?.logo) {
+    // Logo: recortar el aire transparente y quedarnos en PNG (nunca JPEG).
+    const rec = await recortarLogo(file);
+    if (rec) {
+      cuerpo = rec;
+      nombre = nombre.replace(/\.[^.]+$/, "") + ".png";
+    }
+  } else if (file.size > 1_200_000) {
+    // Foto: comprimir todo lo que pese >1.2 MB.
     const comp = await comprimirImagen(file);
     if (comp && comp.size < file.size) {
       cuerpo = comp;
@@ -250,7 +302,7 @@ async function subirImagen(file: File): Promise<{ ok: true; url: string } | { ok
   }
 }
 
-function Uploader({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function Uploader({ value, onChange, logo }: { value: string; onChange: (v: string) => void; logo?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -258,7 +310,7 @@ function Uploader({ value, onChange }: { value: string; onChange: (v: string) =>
     if (!f) return;
     setBusy(true);
     setErr(null);
-    const r = await subirImagen(f);
+    const r = await subirImagen(f, logo ? { logo: true } : undefined);
     if (r.ok) onChange(r.url);
     else setErr(r.error);
     setBusy(false);
@@ -771,7 +823,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               {v2.collaborators.map((c, i) => (
                 <div key={i} className="rep-row" style={{ alignItems: "center" }}>
                   <input type="text" placeholder="Nombre (ej. UABCS)" style={{ maxWidth: 220 }} value={c.name} onChange={(e) => setV2((p) => ({ ...p, collaborators: p.collaborators.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) }))} />
-                  <div className="grow"><Uploader value={c.logoUrl} onChange={(url) => setV2((p) => ({ ...p, collaborators: p.collaborators.map((x, j) => (j === i ? { ...x, logoUrl: url } : x)) }))} /></div>
+                  <div className="grow"><Uploader logo value={c.logoUrl} onChange={(url) => setV2((p) => ({ ...p, collaborators: p.collaborators.map((x, j) => (j === i ? { ...x, logoUrl: url } : x)) }))} /></div>
                   <button type="button" className="rm" onClick={() => setV2((p) => ({ ...p, collaborators: p.collaborators.filter((_, j) => j !== i) }))}>Quitar</button>
                 </div>
               ))}

@@ -23,10 +23,13 @@ html,body{background:#e9e7e0;}
 .slide:last-child{page-break-after:auto;break-after:auto;}
 @media print{.deck{gap:0;padding:0;}.slide{box-shadow:none;}}
 
-/* ---- marca / pager / tipografía base ---- */
-.s-mark{height:26px;}.s-mark svg{height:100%;width:auto;}
-.s-mark .g1{fill:var(--olive);}.s-mark .g2{fill:var(--sand);}.s-mark .g3{fill:var(--orange);}.s-mark .gw{fill:var(--charcoal);}
-.s-mark.on-dark .g1{fill:#cfd6c4;}.s-mark.on-dark .g2{fill:#cfc8c0;}.s-mark.on-dark .g3{fill:var(--orange);}.s-mark.on-dark .gw{fill:#fff;}
+/* ---- marca / pager / tipografía base ----
+   El sello SIEMPRE va en sus colores verdaderos (olive/sand/orange);
+   solo las letras CAMINANTE cambian: carbón en claro, blanco en foto. */
+.s-word{height:${orient === "h" ? 20 : 17}px;display:block;}
+.s-word svg{height:100%;width:auto;display:block;}
+.s-word .g1{fill:var(--olive);}.s-word .g2{fill:var(--sand);}.s-word .g3{fill:var(--orange);}.s-word .gw{fill:var(--charcoal);}
+.s-word.on-dark .gw{fill:#fff;}
 .s-pager{font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.18em;color:var(--ink-soft);}
 .s-pager.on-dark{color:rgba(255,255,255,.72);}
 .s-eyebrow{font-size:12px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--olive);display:inline-flex;align-items:center;gap:.6em;}
@@ -55,18 +58,18 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .cover .tag{color:rgba(255,255,255,.92);font-size:${orient === "h" ? 21 : 17}px;font-weight:300;line-height:1.45;max-width:${orient === "h" ? "70%" : "94%"};margin:0 auto;}
 .pill{background:var(--orange);color:#fff;border-radius:999px;padding:8px 18px;font-size:12px;font-weight:600;letter-spacing:.04em;}
 
-/* ---- marca discreta al pie de TODOS los slides ---- */
-.brandfoot{position:absolute;left:0;right:0;bottom:${orient === "h" ? 16 : 14}px;z-index:6;display:flex;align-items:center;justify-content:center;gap:18px;opacity:.85;}
-.brandfoot .bf-mark{height:15px;display:block;}
+/* ---- marca discreta al pie de TODOS los slides (sello + colaboradores) ---- */
+.brandfoot{position:absolute;left:0;right:0;bottom:${orient === "h" ? 16 : 14}px;z-index:6;display:flex;align-items:center;justify-content:center;gap:18px;}
+.brandfoot .bf-mark{height:16px;display:block;}
 .brandfoot .bf-mark svg{height:100%;width:auto;display:block;}
 .brandfoot .bf-mark .g1{fill:var(--olive);}.brandfoot .bf-mark .g2{fill:var(--sand);}.brandfoot .bf-mark .g3{fill:var(--orange);}.brandfoot .bf-mark .gw{fill:var(--charcoal);}
-.brandfoot.on-dark .bf-mark .g1{fill:#cfd6c4;}.brandfoot.on-dark .bf-mark .g2{fill:#cfc8c0;}.brandfoot.on-dark .bf-mark .gw{fill:#fff;}
-/* Los logos de colaborador se normalizan a SILUETA monocroma (requieren PNG
-   con fondo transparente): negra sobre slides crema, blanca sobre slides de
-   foto — así cualquier color de logo (negro incluido) siempre se ve. */
-.brandfoot img{height:14px;width:auto;display:block;filter:brightness(0);opacity:.6;}
-.brandfoot.on-dark img{filter:brightness(0) invert(1);opacity:.85;}
-.brandfoot.in-panel{position:static;justify-content:flex-start;margin-top:auto;padding-top:18px;gap:15px;opacity:.7;}
+.brandfoot.on-dark .bf-mark .gw{fill:#fff;}
+/* Logos de colaborador: color natural sobre fondos claros; sobre foto se
+   fuerzan a silueta blanca (un logo negro sería invisible). PNG transparente
+   ya recortado por el form (recortarLogo). */
+.brandfoot img{height:16px;width:auto;display:block;opacity:.85;}
+.brandfoot.on-dark img{filter:brightness(0) invert(1);opacity:.9;}
+.brandfoot.in-panel{position:static;justify-content:flex-start;margin-top:auto;padding-top:18px;gap:15px;}
 
 .closing .close-btm{margin-top:auto;padding:56px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap;}
 .closing .c-l h2{color:#fff;font-size:${orient === "h" ? 58 : 46}px;margin-top:16px;}

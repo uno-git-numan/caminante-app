@@ -31,6 +31,10 @@ function md(text: string): ReactNode {
   return out.length ? out : text;
 }
 const pos = (im: V2Image) => (im.pos ? { objectPosition: im.pos } : undefined);
+// Wordmark (sello + CAMINANTE) — va arriba en TODOS los slides.
+const Word = ({ dark }: { dark?: boolean }) => (
+  <span className={`s-word${dark ? " on-dark" : ""}`} dangerouslySetInnerHTML={{ __html: BRAND_WORD }} />
+);
 function Title({ t, accent, cls }: { t: string; accent?: string; cls?: string }) {
   return (
     <h2 className={`s-title${cls ? " " + cls : ""}`}>
@@ -92,7 +96,7 @@ function BrandFoot({ collabs, dark, inPanel }: { collabs: Collab[]; dark?: boole
 function TopBar({ pager, dark }: { pager?: string; dark?: boolean }) {
   return (
     <div className="panel-top">
-      <span />
+      <Word dark={dark} />
       {pager ? <span className={`s-pager${dark ? " on-dark" : ""}`}>{pager}</span> : null}
     </div>
   );
@@ -106,7 +110,7 @@ function CoverSlide({ h, datesMeta, collabs }: { h: V2Hero; datesMeta: string; c
       <img className="bg" src={h.bg.url} alt={h.bg.alt || ""} style={pos(h.bg)} />
       <div className="veil veil-btm" />
       <div className="s-top">
-        <span />
+        <Word dark />
         {datesMeta ? <span className="s-meta">{datesMeta}</span> : null}
       </div>
       <div className="inner">
@@ -168,7 +172,7 @@ function ItinSlide({ b, pager, collabs }: { b: V2Itinerary; pager: string; colla
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="bg" src={b.bg.url} alt={b.bg.alt || ""} style={pos(b.bg)} />
       <div className="veil veil-even" />
-      <div className="s-top"><span /><span className="s-pager on-dark">{pager}</span></div>
+      <div className="s-top"><Word dark /><span className="s-pager on-dark">{pager}</span></div>
       <div className="it-head">
         <span className="s-eyebrow on-dark"><span className="sl">{"//"}</span> {b.eyebrow}</span>
         <Title t={b.title} accent={b.titleAccent} />
@@ -198,7 +202,7 @@ function TariffSlide({ b, pager, bg, tiers, collabs }: { b: V2Tariff; pager: str
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {bg ? <img className="bg" src={bg} alt="" /> : <div className="bg" style={{ background: "var(--forest)" }} />}
       <div className="veil veil-soft" />
-      <div className="s-top"><span /><span className="s-pager on-dark">{pager}</span></div>
+      <div className="s-top"><Word dark /><span className="s-pager on-dark">{pager}</span></div>
       <div className="tf-in">
         <span className="s-eyebrow on-dark"><span className="sl">{"//"}</span> {b.eyebrow}</span>
         <Title t={b.title} accent={b.titleAccent} />
@@ -274,7 +278,7 @@ function FaqSlide({ b, pager, collabs }: { b: V2Faq; pager: string; collabs: Col
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="bg" src={b.bg.url} alt={b.bg.alt || ""} style={pos(b.bg)} />
       <div className="veil veil-even" />
-      <div className="s-top"><span /><span className="s-pager on-dark">{pager}</span></div>
+      <div className="s-top"><Word dark /><span className="s-pager on-dark">{pager}</span></div>
       <div className="faq-card glassify">
         <span className="s-eyebrow"><span className="sl">{"//"}</span> {b.eyebrow}</span>
         {b.qa.map((x, i) => <div className="qa" key={i}><div className="q">{x.q}</div><div className="a">{x.a}</div></div>)}
@@ -291,7 +295,7 @@ function ClosingSlide({ b, cupo, collabs }: { b: V2Closing; cupo: string; collab
       <img className="bg" src={b.bg.url} alt={b.bg.alt || ""} style={pos(b.bg)} />
       <div className="veil veil-btm" />
       <div className="s-top">
-        <span className="s-mark on-dark" style={{ height: 24 }} dangerouslySetInnerHTML={{ __html: BRAND_WORD }} />
+        <Word dark />
         {cupo ? <span className="pill">{cupo}</span> : null}
       </div>
       <div className="inner">
