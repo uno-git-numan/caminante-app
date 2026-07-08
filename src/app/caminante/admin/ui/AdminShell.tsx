@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_CSS } from "./admin-css";
 
 // Shell del dashboard de admin (diseño Claude Design jul 2026). Server
@@ -34,6 +35,7 @@ document.addEventListener('click',function(e){
 export type AdminSection =
   | "panorama"
   | "eventos"
+  | "solicitudes"
   | "reservas"
   | "personas"
   | "dinero"
@@ -43,19 +45,36 @@ export type AdminSection =
 const items: { key: AdminSection; label: string; href?: string; soon?: boolean }[] = [
   { key: "panorama", label: "Panorama", href: "/caminante/admin" },
   { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
+  { key: "solicitudes", label: "Solicitudes", href: "/caminante/admin/solicitudes" },
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
   { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
   { key: "dinero", label: "Dinero", href: "/caminante/admin/dinero" },
   { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
 ];
 
-export default function AdminShell({
+// Solicitudes de fecha sin resolver → badge en el nav. Best-effort: si la
+// consulta falla, el nav sale sin badge (jamás rompe una página del admin).
+async function pendientesSolicitudes(): Promise<number> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const { count } = await sb
+      .from("slot_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "new");
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export default async function AdminShell({
   active,
   children,
 }: {
   active: AdminSection;
   children: React.ReactNode;
 }) {
+  const pendientes = await pendientesSolicitudes();
   return (
     <div className="adm">
       <style dangerouslySetInnerHTML={{ __html: ADMIN_CSS }} />
@@ -89,6 +108,21 @@ export default function AdminShell({
             it.href ? (
               <Link key={it.key} href={it.href} className={active === it.key ? "on" : ""}>
                 {it.label}
+                {it.key === "solicitudes" && pendientes > 0 ? (
+                  <span
+                    style={{
+                      marginLeft: 7,
+                      background: "#ff5d36",
+                      color: "#fff",
+                      borderRadius: 999,
+                      padding: "1px 7px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {pendientes}
+                  </span>
+                ) : null}
               </Link>
             ) : (
               <span key={it.key} className="soon" title="Pronto">

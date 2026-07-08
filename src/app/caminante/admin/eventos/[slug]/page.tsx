@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminShell from "../../ui/AdminShell";
+import CopyLinkBtn from "./CopyLinkBtn";
 import { fetchEventoDetalle, formatMXN, formatFechaCorta } from "@/lib/admin/queries";
 import {
   setSlotStatusAction,
@@ -193,9 +194,17 @@ export default async function EventoDetallePage({
                         <span className="chip c-conf">Abierta</span>
                       ) : (
                         <span className="chip c-canc">Cerrada</span>
-                      )}
+                      )}{" "}
+                      {s.visibility === "private" ? <span className="chip c-sol">Privada</span> : null}
                     </td>
                     <td className="right">
+                      {s.visibility === "private" && s.accessToken ? (
+                        <>
+                          <CopyLinkBtn
+                            link={`https://caminante.numanhub.com/caminante/experiencias/${ev.slug}?grupo=${s.accessToken}`}
+                          />{" "}
+                        </>
+                      ) : null}
                       <Link href={`/caminante/admin/roster/${s.id}`} className="btn btn-glass btn-sm">
                         Roster
                       </Link>{" "}

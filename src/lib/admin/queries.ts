@@ -426,6 +426,8 @@ export type SlotAdmin = {
   capacity: number | null;
   priceMxn: number | null;
   status: string;
+  visibility: string; // 'public' | 'private' (grupo con link cerrado)
+  accessToken: string | null; // token del link privado (para re-copiarlo)
   taken: number;
   pasada: boolean;
 };
@@ -523,7 +525,7 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
   const [{ data: slotRows }, { data: ops }] = await Promise.all([
     sb
       .from("experience_slots")
-      .select("id, label, starts_at, capacity_total, price_mxn, status")
+      .select("id, label, starts_at, capacity_total, price_mxn, status, visibility, access_token")
       .eq("experience_id", exp.id)
       .order("starts_at", { ascending: true }),
     sb.from("operators").select("id, name, email, commission_pct").order("name"),
@@ -547,6 +549,8 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
       capacity_total: number | null;
       price_mxn: number | null;
       status: string;
+      visibility: string | null;
+      access_token: string | null;
     }[]).map((s) => ({
       id: s.id,
       label: s.label || "",
@@ -555,6 +559,8 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
       capacity: s.capacity_total,
       priceMxn: s.price_mxn != null ? Number(s.price_mxn) : null,
       status: s.status,
+      visibility: s.visibility || "public",
+      accessToken: s.access_token,
       taken: avail.get(s.id) || 0,
       pasada: !!s.starts_at && cdmxDay(s.starts_at) < hoy,
     })),
