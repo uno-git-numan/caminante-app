@@ -320,10 +320,12 @@ export default function ExperienceDeck({
   experience,
   slots,
   orient,
+  social,
 }: {
   experience: Experience;
   slots: SlotAvailabilityPublic[];
   orient: "h" | "v";
+  social?: boolean; // variante 4:5 para redes sociales
 }) {
   const blocks = experience.page?.blocks ?? [];
   const gallery = experience.gallery ?? [];
@@ -358,7 +360,7 @@ export default function ExperienceDeck({
   const pagerFor = () => `${String(++n).padStart(2, "0")} / ${String(middle).padStart(2, "0")}`;
 
   return (
-    <div className={`deck ${orient}`}>
+    <div className={`deck ${orient}${social ? " social" : ""}`}>
       {hero ? <CoverSlide h={hero} datesMeta={datesMeta} collabs={collabs} /> : null}
       {expSplit ? <SplitSlide b={expSplit} pager={pagerFor()} collabs={collabs} /> : null}
       {itin ? <ItinSlide b={itin} pager={pagerFor()} collabs={collabs} /> : null}

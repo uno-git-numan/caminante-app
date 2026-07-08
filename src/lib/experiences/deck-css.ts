@@ -5,11 +5,17 @@
 
 import { DECK_FONTS } from "./deck-fonts";
 
-export function deckCss(orient: "h" | "v"): string {
+// social = variante 4:5 (posts de Instagram). Reusa el layout VERTICAL pero el
+// slide mide 720×900 (4:5) → export a 1080×1350. Como son posts del FEED (no
+// Stories), IG los muestra completos: no hay zonas seguras, solo cambia el alto
+// (menos aire que 9:16) → se re-ubica/comprime lo vertical con `.deck.social`.
+export function deckCss(orient: "h" | "v", opts?: { social?: boolean }): string {
+  const social = !!opts?.social;
   const W = orient === "h" ? 1280 : 720;
-  const H = orient === "h" ? 720 : 1280;
+  const H = orient === "h" ? 720 : social ? 900 : 1280;
   return `
 ${DECK_FONTS}
+${social ? SOCIAL_CSS : ""}
 
 :root{--lagoon:#1c6f6a;--dune:#c9b79c;--cream:#fbfbf7;--sand:#b6ada5;--salvia:#d6d8c7;--olive:#637154;--olive-d:#4f5d44;--forest:#20392b;--charcoal:#20211c;--orange:#ff5d36;--panel:#f1eee7;--ink-soft:rgba(32,33,28,.6);--line:rgba(32,33,28,.13);--line-w:rgba(255,255,255,.22);}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -182,6 +188,49 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .qa .a{color:rgba(255,255,255,.82);font-size:13px;line-height:1.45;font-weight:300;}
 `;
 }
+
+// Overrides para el FLYER DE REDES (4:5, 720×900). Reusa el layout vertical
+// pero comprime lo que necesita menos aire (el vertical está tuneado para 1280;
+// aquí hay 900). Solo re-ubica/achica; ningún cambio de contenido.
+const SOCIAL_CSS = `
+.deck.social .slide{box-shadow:0 20px 50px -30px rgba(0,0,0,.5);}
+/* portada */
+.deck.social .cover .cover-btm{padding:36px 34px 40px;}
+.deck.social .cover .cover-title{font-size:56px;margin-bottom:16px;}
+.deck.social .cover .eyebrow-w{margin-bottom:14px;}
+.deck.social .cover .tag{font-size:16px;}
+.deck.social .s-top{top:30px;left:40px;right:40px;}
+/* split (experiencia / incluye / mochila / comunidad): panel + media apilados */
+.deck.social .s-panel{padding:28px 36px;}
+.deck.social .deck.v .s-media,.deck.social.v .s-media{flex:0 0 38%;}
+.deck.social .s-split h2{font-size:32px;margin-bottom:18px;}
+.deck.social .s-points .pt{font-size:15px;padding:11px 0;}
+.deck.social .s-ally{padding:9px 0;}
+.deck.social .s-cols{gap:8px 22px;}
+.deck.social .inc{font-size:13px;padding:5px 0;}
+.deck.social .s-pack{gap:0 18px;}
+.deck.social .s-pk{padding:7px 0;font-size:13px;}
+/* itinerario */
+.deck.social .itin .it-head{top:60px;left:40px;}
+.deck.social .itin .it-head h2{font-size:36px;}
+.deck.social .itin .days{top:180px;left:40px;right:40px;gap:12px;bottom:auto;}
+.deck.social .day{padding:16px 16px 14px;border-radius:14px;}
+.deck.social .day .dnum{font-size:26px;}
+.deck.social .day .dlab{margin:7px 0 9px;}
+.deck.social .day li{font-size:12.5px;padding:5px 0;}
+/* precio */
+.deck.social .tariff-s h2{font-size:34px;margin:10px 0 20px;}
+.deck.social .tf-card{padding:22px 24px;}
+.deck.social .tf-price{font-size:38px;}
+/* faq */
+.deck.social .faq-s .faq-card{width:86%;padding:26px 26px;}
+.deck.social .qa{padding:11px 0;}
+.deck.social .qa .q{font-size:14.5px;}
+.deck.social .qa .a{font-size:12.5px;}
+/* cierre */
+.deck.social .closing .close-btm{padding:36px 34px 40px;}
+.deck.social .closing .c-l h2{font-size:40px;}
+`;
 
 // Glass REAL para pantalla e impresión: por cada .glassify clona el bg de su
 // slide adentro (offset negativo = alineado con el fondo) con filter:blur —

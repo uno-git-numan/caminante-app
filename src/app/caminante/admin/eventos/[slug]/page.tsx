@@ -112,6 +112,15 @@ export default async function EventoDetallePage({
             >
               PDF horizontal
             </a>
+            <a
+              href={`/caminante/admin/social/${ev.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-glass btn-sm"
+              title="Genera el flyer para redes (posts 4:5 de Instagram) y descarga cada tarjeta como PNG"
+            >
+              Flyer redes
+            </a>
             {ev.status === "published" ? (
               <a
                 href={`/caminante/experiencias/${ev.slug}`}
