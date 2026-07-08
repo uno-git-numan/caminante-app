@@ -40,6 +40,7 @@ export type AdminSection =
   | "reservas"
   | "personas"
   | "dinero"
+  | "facturacion"
   | "encuesta";
 
 // Al lanzar cada fase, se cambia soon→href. No enlaza el marketplace dormido.
@@ -51,6 +52,7 @@ const items: { key: AdminSection; label: string; href?: string; soon?: boolean }
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
   { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
   { key: "dinero", label: "Dinero", href: "/caminante/admin/dinero" },
+  { key: "facturacion", label: "Facturación", href: "/caminante/admin/facturacion" },
   { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
 ];
 
