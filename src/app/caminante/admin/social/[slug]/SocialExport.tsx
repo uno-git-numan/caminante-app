@@ -19,6 +19,7 @@ async function toDataUrl(url: string): Promise<string> {
 }
 
 async function slidePng(slide: HTMLElement): Promise<string> {
+  await document.fonts.ready; // no rasterizar antes de que Geist esté lista
   const w = slide.offsetWidth || 720;
   const h = slide.offsetHeight || 900;
   const clone = slide.cloneNode(true) as HTMLElement;
@@ -44,7 +45,10 @@ async function slidePng(slide: HTMLElement): Promise<string> {
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w * SCALE}" height="${h * SCALE}">` +
     `<foreignObject width="100%" height="100%">` +
-    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;transform:scale(${SCALE});transform-origin:top left;">` +
+    // Clonamos SOLO el .slide → se pierde el ancestro .deck que define
+    // font-family:Geist (el título la HEREDA, no la declara → caía a serif).
+    // La re-declaramos aquí para restaurar la herencia dentro del SVG.
+    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;transform:scale(${SCALE});transform-origin:top left;font-family:'Geist',system-ui,sans-serif;">` +
     `<style>${css}</style>${xhtml}</div></foreignObject></svg>`;
   const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
   const image = new Image();
