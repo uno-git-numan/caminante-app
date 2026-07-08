@@ -31,6 +31,13 @@ async function slidePng(slide: HTMLElement): Promise<string> {
   await document.fonts.ready; // no rasterizar antes de que Geist esté lista
   const w = slide.offsetWidth || 720;
   const h = slide.offsetHeight || 900;
+  // Clase del deck vivo ("deck v" / "deck v social"). El wrapper del SVG DEBE
+  // llevarla: los slides de split ponen la foto en columna vía `.deck.v .s-split
+  // {flex-direction:column}` y `.deck.v .s-media{flex:0 0 42%}`. Al clonar SOLO el
+  // .slide se perdía ese ancestro → el split caía a fila, la foto se iba fuera del
+  // slide (overflow) y salía en blanco. (Mismo motivo por el que se re-declaraba
+  // font-family: sin `.deck` no aplican sus reglas.) Verificado en el navegador real.
+  const deckClass = slide.closest(".deck")?.className || "deck v";
   const clone = slide.cloneNode(true) as HTMLElement;
   // el botón flotante "Descargar" vive dentro del slide → fuera del PNG
   clone.querySelectorAll(".soc-dl").forEach((b) => b.remove());
@@ -53,10 +60,11 @@ async function slidePng(slide: HTMLElement): Promise<string> {
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w * SCALE}" height="${h * SCALE}">` +
     `<foreignObject width="100%" height="100%">` +
-    // Clonamos SOLO el .slide → se pierde el ancestro .deck que define
-    // font-family:Geist (el título la HEREDA, no la declara → caía a serif).
-    // La re-declaramos aquí para restaurar la herencia dentro del SVG.
-    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;transform:scale(${SCALE});transform-origin:top left;font-family:'Geist',system-ui,sans-serif;">` +
+    // El wrapper LLEVA la clase del deck (para que apliquen `.deck.v …` / `.deck.social …`,
+    // incl. el layout en columna del split), pero neutralizamos el box del propio
+    // .deck (padding/gap/flex) para que el slide quede pegado a 0,0 y llene el frame.
+    // La clase también restaura font-family:Geist (el título la hereda del deck).
+    `<div xmlns="http://www.w3.org/1999/xhtml" class="${deckClass}" style="width:${w}px;height:${h}px;transform:scale(${SCALE});transform-origin:top left;padding:0;gap:0;margin:0;display:block;font-family:'Geist',system-ui,sans-serif;">` +
     `<style>${css}</style>${xhtml}</div></foreignObject></svg>`;
   const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
   const image = new Image();
