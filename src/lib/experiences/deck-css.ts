@@ -79,7 +79,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .s-panel{background:var(--cream);position:relative;display:flex;flex-direction:column;padding:${orient === "h" ? "44px 56px" : "40px 48px"};}
 .deck.h .s-panel{width:44%;flex:0 0 44%;}
 .deck.v .s-panel{flex:1;}
-.s-panel .panel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto;}
+.s-panel .panel-top{display:flex;align-items:center;justify-content:space-between;${orient === "h" ? "margin-bottom:auto;" : ""}}
 .s-panel .panel-body{margin-top:${orient === "h" ? 0 : 26}px;${orient === "h" ? "margin-bottom:auto;" : ""}}
 .s-media{position:relative;flex:1;overflow:hidden;background:var(--panel);}
 .deck.v .s-media{flex:0 0 42%;}
