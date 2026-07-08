@@ -157,8 +157,9 @@ export async function approveSlotRequest(input: AprobarInput): Promise<AprobarRe
     .eq("status", "new");
   if (upErr) return { ok: false, error: `La salida se creó pero no pude marcar la solicitud: ${upErr.message}` };
 
-  revalidatePath("/caminante/admin/solicitudes");
-  revalidatePath(`/caminante/admin/eventos/${slug}`);
+  // OJO: aquí NO se hace revalidatePath — refrescaría la página al instante y
+  // la tarjeta (con el link y el mensaje listos para copiar) desaparecería
+  // antes de que el admin los copie. La lista se actualiza al navegar.
 
   const link =
     input.visibility === "private"
