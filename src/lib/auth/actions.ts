@@ -5,15 +5,11 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { roleForClient } from "@/lib/auth/authorization";
+import { OP_INTENT_COOKIE } from "@/lib/auth/op-intent";
 
-// Cookie que marca "esta persona pidió cuenta de OPERADOR". Sobrevive el
-// round-trip de cualquier método de login (Google/contraseña/enlace); al
-// aterrizar en /bienvenida se registra la SOLICITUD (nunca otorga admin). El
-// acceso real lo concede Luis aprobando en el panel (whitelist is_active=true).
-export const OP_INTENT_COOKIE = "cam_op_intent";
-
-// Paso 1 del alta: elegir el camino "operador". Marca la intención y manda al
-// formulario de registro. NO crea admin — solo la intención.
+// Paso 1 del alta: elegir el camino "operador". Marca la intención (cookie que
+// sobrevive cualquier método de login) y manda al formulario de registro. NO
+// crea admin — solo la intención; el acceso real lo concede Luis aprobando.
 export async function elegirOperador() {
   const jar = await cookies();
   jar.set(OP_INTENT_COOKIE, "1", { maxAge: 3600, httpOnly: true, sameSite: "lax", path: "/" });

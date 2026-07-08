@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { OP_INTENT_COOKIE } from "@/lib/auth/actions";
+import { OP_INTENT_COOKIE } from "@/lib/auth/op-intent";
 import { notifyAccesoOperador } from "@/lib/notifications/notify-admin";
 
 export const dynamic = "force-dynamic";
