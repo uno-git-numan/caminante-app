@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripeServerClient } from "@/lib/payments/stripe";
+import { facturacionActiva } from "@/lib/facturacion/facturapi";
+import { firmarPago } from "@/lib/facturacion/token";
 import type { Experience } from "@/lib/experiences/types";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +33,12 @@ export default async function ReservaExitoPage({
   // payments.provider_ref) para atar el deslinde a ESA reserva. Best-effort: si el
   // webhook aún no procesa o falla, caemos al link simple (el deslinde igual funciona
   // reusando la reserva por correo). Nunca rompe la pantalla de éxito.
+  // Resolver el pago desde la sesión de Stripe: reservation_id (para el deslinde)
+  // y payment.id (para el link de autofactura). Best-effort — nunca rompe la
+  // pantalla de éxito.
   let reservaId: string | null = null;
-  if (deslindeActivo && sessionId && /^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
+  let paymentId: string | null = null;
+  if (sessionId && /^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
     try {
       const stripe = getStripeServerClient();
       const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -43,21 +49,28 @@ export default async function ReservaExitoPage({
       if (pi) {
         const sb = createSupabaseAdminClient();
         // El webhook puede tardar un instante en crear el pago; reintentamos un par
-        // de veces para resolver la reserva y fijar la fecha del deslinde.
-        for (let i = 0; i < 3 && !reservaId; i++) {
+        // de veces para resolver la reserva/pago.
+        for (let i = 0; i < 3 && !paymentId; i++) {
           if (i > 0) await new Promise((r) => setTimeout(r, 1200));
           const { data: pay } = await sb
             .from("payments")
-            .select("reservation_id")
+            .select("id, reservation_id")
             .eq("provider_ref", pi)
             .maybeSingle();
-          reservaId = (pay?.reservation_id as string | null) ?? null;
+          reservaId = (pay?.reservation_id as string | null) ?? reservaId;
+          paymentId = (pay?.id as string | null) ?? null;
         }
       }
     } catch {
-      // sin reserva resuelta → link simple
+      // sin pago resuelto → links simples
     }
   }
+  const facturaHref =
+    facturacionActiva() && paymentId
+      ? `/caminante/facturacion?p=${paymentId}&t=${firmarPago(paymentId)}`
+      : facturacionActiva()
+        ? "/caminante/facturacion"
+        : null;
   const deslindeHref =
     safeSlug && reservaId
       ? `/caminante/registro/${safeSlug}?reserva=${reservaId}`
@@ -86,6 +99,14 @@ export default async function ReservaExitoPage({
             className="w-full rounded-xl bg-lagoon px-4 py-3 text-sm font-semibold text-cream transition hover:bg-dune sm:w-auto sm:px-8"
           >
             Firmar mi deslinde
+          </Link>
+        ) : null}
+        {facturaHref ? (
+          <Link
+            href={facturaHref}
+            className="w-full rounded-xl border border-sand px-4 py-3 text-sm font-semibold text-lagoon transition hover:border-dune sm:w-auto sm:px-8"
+          >
+            ¿Necesitas factura? Solicítala aquí
           </Link>
         ) : null}
         <Link href="/caminante" className="text-sm font-semibold text-forest underline">
