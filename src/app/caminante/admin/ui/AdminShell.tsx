@@ -36,6 +36,7 @@ export type AdminSection =
   | "panorama"
   | "eventos"
   | "solicitudes"
+  | "accesos"
   | "reservas"
   | "personas"
   | "dinero"
@@ -46,6 +47,7 @@ const items: { key: AdminSection; label: string; href?: string; soon?: boolean }
   { key: "panorama", label: "Panorama", href: "/caminante/admin" },
   { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
   { key: "solicitudes", label: "Solicitudes", href: "/caminante/admin/solicitudes" },
+  { key: "accesos", label: "Accesos", href: "/caminante/admin/accesos" },
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
   { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
   { key: "dinero", label: "Dinero", href: "/caminante/admin/dinero" },
@@ -67,6 +69,20 @@ async function pendientesSolicitudes(): Promise<number> {
   }
 }
 
+// Solicitudes de acceso de operador (whitelist is_active=false) → badge.
+async function pendientesAccesos(): Promise<number> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const { count } = await sb
+      .from("admin_whitelist")
+      .select("email", { count: "exact", head: true })
+      .eq("is_active", false);
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export default async function AdminShell({
   active,
   children,
@@ -74,7 +90,9 @@ export default async function AdminShell({
   active: AdminSection;
   children: React.ReactNode;
 }) {
-  const pendientes = await pendientesSolicitudes();
+  const [pendientes, accesos] = await Promise.all([pendientesSolicitudes(), pendientesAccesos()]);
+  const badgeDe = (key: AdminSection): number =>
+    key === "solicitudes" ? pendientes : key === "accesos" ? accesos : 0;
   return (
     <div className="adm">
       <style dangerouslySetInnerHTML={{ __html: ADMIN_CSS }} />
@@ -108,7 +126,7 @@ export default async function AdminShell({
             it.href ? (
               <Link key={it.key} href={it.href} className={active === it.key ? "on" : ""}>
                 {it.label}
-                {it.key === "solicitudes" && pendientes > 0 ? (
+                {badgeDe(it.key) > 0 ? (
                   <span
                     style={{
                       marginLeft: 7,
@@ -120,7 +138,7 @@ export default async function AdminShell({
                       fontWeight: 700,
                     }}
                   >
-                    {pendientes}
+                    {badgeDe(it.key)}
                   </span>
                 ) : null}
               </Link>

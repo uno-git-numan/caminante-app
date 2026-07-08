@@ -186,3 +186,44 @@ export async function notifySolicitudFecha(info: SolicitudFechaInfo): Promise<vo
     if (r.status === "rejected") console.error("notifySolicitudFecha:", r.reason);
   }
 }
+
+// ── Solicitud de acceso de OPERADOR (whitelist is_active=false) ──────────────
+const PANEL_ACCESOS = "https://caminante.numanhub.com/caminante/admin/accesos";
+
+export type AccesoOperadorInfo = { email: string; nombre: string };
+
+async function correoAcceso(info: AccesoOperadorInfo): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const html = `<body style="margin:0;background:#fbfbf7;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid rgba(32,33,28,.13);border-radius:16px;overflow:hidden;">
+<div style="background:#20392b;color:#fff;padding:16px 20px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Caminante · Solicitud de operador</div>
+<table style="width:100%;border-collapse:collapse;">
+<tr><td style="padding:6px 12px;color:#637154;font-size:13px;">Nombre</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#20211c;">${info.nombre || "—"}</td></tr>
+<tr><td style="padding:6px 12px;color:#637154;font-size:13px;">Correo</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#20211c;">${info.email}</td></tr>
+</table>
+<div style="padding:14px 20px 20px;"><a href="${PANEL_ACCESOS}" style="display:inline-block;background:#ff5d36;color:#fff;text-decoration:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:600;">Revisar acceso</a></div>
+</div></body>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "User-Agent": "caminante-notify/1.0", Accept: "application/json" },
+    body: JSON.stringify({ from: FROM, to: [ADMIN_EMAIL], subject: `Solicitud de OPERADOR · ${info.nombre || info.email}`, html }),
+  });
+}
+
+async function whatsappAcceso(info: AccesoOperadorInfo): Promise<void> {
+  if (!whatsappConfigured()) return;
+  const to = process.env.WHATSAPP_ADMIN_TO || ADMIN_WHATSAPP_DEFAULT;
+  const texto = `🏔️ *Solicitud de operador* — Caminante\n${info.nombre || "(sin nombre)"} · ${info.email}\nRevisa y aprueba:\n${PANEL_ACCESOS}`;
+  const libre = await sendText(to, texto);
+  if (libre.ok) return;
+  const template = process.env.WHATSAPP_ADMIN_TEMPLATE || "nueva_reserva";
+  await sendTemplate(to, template, "es_MX", [
+    { type: "body", parameters: [info.nombre || info.email, "Solicitud de operador", "Revisa en el panel · Accesos"].map((text) => ({ type: "text", text: text || "—" })) },
+  ]);
+}
+
+export async function notifyAccesoOperador(info: AccesoOperadorInfo): Promise<void> {
+  const r = await Promise.allSettled([correoAcceso(info), whatsappAcceso(info)]);
+  for (const x of r) if (x.status === "rejected") console.error("notifyAccesoOperador:", x.reason);
+}

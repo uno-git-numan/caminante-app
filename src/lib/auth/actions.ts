@@ -1,10 +1,24 @@
 "use server";
 
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { roleForClient } from "@/lib/auth/authorization";
+
+// Cookie que marca "esta persona pidió cuenta de OPERADOR". Sobrevive el
+// round-trip de cualquier método de login (Google/contraseña/enlace); al
+// aterrizar en /bienvenida se registra la SOLICITUD (nunca otorga admin). El
+// acceso real lo concede Luis aprobando en el panel (whitelist is_active=true).
+export const OP_INTENT_COOKIE = "cam_op_intent";
+
+// Paso 1 del alta: elegir el camino "operador". Marca la intención y manda al
+// formulario de registro. NO crea admin — solo la intención.
+export async function elegirOperador() {
+  const jar = await cookies();
+  jar.set(OP_INTENT_COOKIE, "1", { maxAge: 3600, httpOnly: true, sameSite: "lax", path: "/" });
+  redirect("/caminante/signup?tipo=operador");
+}
 
 async function getOrigin() {
   // Prefer the real request host so auth works on ANY domain
