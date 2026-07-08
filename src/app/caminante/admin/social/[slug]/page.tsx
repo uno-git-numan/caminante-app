@@ -1,6 +1,7 @@
-// Flyer para REDES SOCIALES (formato 4:5 = 1080×1350, posts de Instagram) de
-// una experiencia. Reusa el MISMO deck que el PDF pero en variante `social`
-// (vertical comprimido a 4:5) y en vez de imprimir, exporta cada slide a PNG.
+// Flyer para REDES SOCIALES de una experiencia. Reusa el MISMO deck que el PDF y,
+// en vez de imprimir, exporta cada slide a PNG. Dos formatos por `?f`:
+//   post  (default) → 4:5 = 1080×1350 (posts del feed de Instagram) · deck social.
+//   story           → 9:16 = 1080×1920 (Stories/Reels) · deck vertical completo.
 // Solo-admin.
 import { notFound, redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
@@ -14,9 +15,17 @@ import SocialExport from "./SocialExport";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Flyer para redes · Admin" };
 
-export default async function SocialPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function SocialPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ f?: string }>;
+}) {
   if (!(await isCurrentUserAdmin())) redirect("/caminante/entrar");
   const { slug } = await params;
+  const formato = (await searchParams).f === "story" ? "story" : "post";
+  const social = formato === "post"; // post = 4:5 (social); story = 9:16 (vertical completo)
 
   const sb = createSupabaseAdminClient();
   const { data: row } = await sb.from("experiences").select("id, data").eq("slug", slug).maybeSingle();
@@ -38,10 +47,10 @@ export default async function SocialPage({ params }: { params: Promise<{ slug: s
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: deckCss("v", { social: true }) }} />
-      <ExperienceDeck experience={e} slots={slots} orient="v" social />
+      <style dangerouslySetInnerHTML={{ __html: deckCss("v", { social }) }} />
+      <ExperienceDeck experience={e} slots={slots} orient="v" social={social} />
       <script dangerouslySetInnerHTML={{ __html: DECK_GLASS_SCRIPT }} />
-      <SocialExport titulo={titulo} />
+      <SocialExport titulo={titulo} formato={formato} />
       <div style={{ height: 70 }} />
     </>
   );

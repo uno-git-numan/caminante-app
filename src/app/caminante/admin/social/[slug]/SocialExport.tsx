@@ -81,16 +81,28 @@ function download(dataUrl: string, name: string) {
   a.click();
 }
 
-export default function SocialExport({ titulo }: { titulo: string }) {
+export default function SocialExport({
+  titulo,
+  formato = "post",
+}: {
+  titulo: string;
+  formato?: "post" | "story";
+}) {
   const [busy, setBusy] = useState<number | "all" | null>(null);
   const base = titulo.replace(/[^\w\sáéíóúñ-]/gi, "").trim().replace(/\s+/g, "-").toLowerCase() || "flyer";
+  const nombre = (i: number) => `${base}-${formato}-${String(i + 1).padStart(2, "0")}.png`;
+  const dims = formato === "story" ? "1080×1920 (9:16)" : "1080×1350 (4:5)";
+  const nota =
+    formato === "story"
+      ? "Cada tarjeta = una Story / Reel de pantalla completa."
+      : "Cada tarjeta = un post del feed de Instagram.";
 
   async function one(i: number) {
     const slides = Array.from(document.querySelectorAll<HTMLElement>(".slide"));
     if (!slides[i]) return;
     setBusy(i);
     try {
-      download(await slidePng(slides[i]), `${base}-${String(i + 1).padStart(2, "0")}.png`);
+      download(await slidePng(slides[i]), nombre(i));
     } catch (e) {
       alert("No pude generar esa imagen: " + (e as Error).message);
     } finally {
@@ -103,7 +115,7 @@ export default function SocialExport({ titulo }: { titulo: string }) {
     setBusy("all");
     try {
       for (let i = 0; i < slides.length; i++) {
-        download(await slidePng(slides[i]), `${base}-${String(i + 1).padStart(2, "0")}.png`);
+        download(await slidePng(slides[i]), nombre(i));
         await new Promise((r) => setTimeout(r, 350)); // no atropellar las descargas
       }
     } catch (e) {
@@ -122,8 +134,27 @@ export default function SocialExport({ titulo }: { titulo: string }) {
         backdropFilter: "blur(8px)", fontFamily: "system-ui", fontSize: 14, flexWrap: "wrap",
       }}
     >
+      {/* Selector de formato (la OPCIÓN vive aquí, no como botón del dashboard) */}
+      <span style={{ display: "inline-flex", gap: 4, background: "rgba(255,255,255,.12)", borderRadius: 999, padding: 3 }}>
+        {(["post", "story"] as const).map((f) => {
+          const on = formato === f;
+          return (
+            <a
+              key={f}
+              href={`?f=${f}`}
+              style={{
+                borderRadius: 999, padding: "6px 14px", fontSize: 13, fontWeight: 600,
+                textDecoration: "none", color: on ? "#20211c" : "#fff",
+                background: on ? "#fff" : "transparent",
+              }}
+            >
+              {f === "post" ? "Post 4:5" : "Story 9:16"}
+            </a>
+          );
+        })}
+      </span>
       <span style={{ opacity: 0.8 }}>
-        Flyer para redes · 1080×1350 (4:5). Cada tarjeta = un post de Instagram.
+        {dims}. {nota}
       </span>
       <button
         type="button"
