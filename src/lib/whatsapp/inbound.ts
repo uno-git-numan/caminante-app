@@ -18,6 +18,18 @@ type WaMessage = {
   text?: { body?: string };
   button?: { text?: string; payload?: string };
   interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } };
+  // CTWA (Click-to-WhatsApp): Meta adjunta este objeto al PRIMER mensaje cuando el
+  // usuario llegó desde un anuncio. `ctwa_clid` = click id, `source_id` = ad id.
+  // Es el gancho de atribución anuncio → lead → pago.
+  referral?: {
+    source_url?: string;
+    source_id?: string; // ad id
+    source_type?: string; // "ad" | "post"
+    headline?: string;
+    body?: string;
+    media_type?: string;
+    ctwa_clid?: string;
+  };
 };
 type WaValue = {
   contacts?: Array<{ wa_id: string; profile?: { name?: string } }>;
@@ -94,16 +106,37 @@ export async function processInboundValue(value: WaValue): Promise<void> {
         continue;
       }
 
-      // 4 · Señal de interés + lead
+      // 4 · Señal de interés + lead (con atribución CTWA si el mensaje trae `referral`)
+      const ref = m.referral;
+      const ctwaClid = ref?.ctwa_clid?.trim() || null;
+      const adId = ref?.source_id?.trim() || null;
+      const hasCtwa = Boolean(ctwaClid || adId);
+
       await sb.from("engagement_events").insert({
         contact_id: contact.id,
         kind: "replied",
         weight: 5,
         meta: { body: body.slice(0, 280) },
       });
+      // Clic de anuncio → señal fuerte + guarda los ids crudos para el reporte de CAC/ROAS.
+      if (hasCtwa) {
+        await sb.from("engagement_events").insert({
+          contact_id: contact.id,
+          kind: "ad_click",
+          weight: 8,
+          meta: {
+            ctwa_clid: ctwaClid,
+            ad_id: adId,
+            source_type: ref?.source_type ?? null,
+            headline: ref?.headline ?? null,
+            source_url: ref?.source_url ?? null,
+          },
+        });
+      }
+
       const { data: existingLead } = await sb
         .from("leads")
-        .select("id")
+        .select("id, ctwa_clid")
         .eq("contact_id", contact.id)
         .neq("status", "won")
         .neq("status", "lost")
@@ -111,12 +144,22 @@ export async function processInboundValue(value: WaValue): Promise<void> {
       if (!existingLead) {
         await sb.from("leads").insert({
           contact_id: contact.id,
-          source: "whatsapp",
+          source: hasCtwa ? "ctwa" : "whatsapp",
+          ctwa_clid: ctwaClid,
+          ad_id: adId,
           status: "engaged",
           last_engaged_at: nowIso,
         });
       } else {
-        await sb.from("leads").update({ status: "engaged", last_engaged_at: nowIso }).eq("id", existingLead.id);
+        const patch: Record<string, unknown> = { status: "engaged", last_engaged_at: nowIso };
+        // Atribución first-touch: solo estampa CTWA si el lead aún no la tenía
+        // (no pisar el primer anuncio que lo trajo).
+        if (hasCtwa && !existingLead.ctwa_clid) {
+          patch.source = "ctwa";
+          patch.ctwa_clid = ctwaClid;
+          patch.ad_id = adId;
+        }
+        await sb.from("leads").update(patch).eq("id", existingLead.id);
       }
 
       // 5 · Auto-acknowledge en voz de marca (dentro de la ventana de 24h → texto libre).
