@@ -16,6 +16,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
+import { deslindeListo } from "@/lib/experiences/flujo-venta";
 import type { Experience } from "@/lib/experiences/types";
 
 async function getOrigin() {
@@ -56,6 +57,11 @@ export async function createCheckout(formData: FormData) {
   const experience = (expRow.data as Experience | undefined) ?? undefined;
   const experienceId = expRow.id as string;
   if (!experience) redirect(back("experiencia"));
+
+  // REGLA: NO SE COBRA sin registro y deslinde completo. Defensa en profundidad:
+  // aunque algo se cuele publicado sin deslinde (como pasó con Hacienda San
+  // Andrés, caso Enyd 9 jul), el dinero no entra sin el flujo legal completo.
+  if (!deslindeListo(experience).ok) redirect(back("deslinde"));
 
   const { data: slot } = await sb
     .from("experience_slots")

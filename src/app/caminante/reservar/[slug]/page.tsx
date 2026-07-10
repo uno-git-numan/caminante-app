@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
+import { deslindeListo } from "@/lib/experiences/flujo-venta";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import type { Experience } from "@/lib/experiences/types";
 import CheckoutForm, { type ReservarSlot } from "./CheckoutForm";
@@ -15,6 +16,7 @@ const errorMsgs: Record<string, string> = {
   nivel: "Elige un tipo (habitación) antes de pagar.",
   cancelado: "Cancelaste el pago. Cuando quieras, aquí seguimos.",
   stripe: "No pudimos abrir el pago. Inténtalo de nuevo en un momento.",
+  deslinde: "Estamos terminando de preparar esta experiencia. Escríbenos y te avisamos en cuanto abra.",
 };
 
 export default async function ReservarPage({
@@ -97,7 +99,16 @@ export default async function ReservarPage({
       ) : null}
 
       <div className="mt-8">
-        {slots.length === 0 ? (
+        {!deslindeListo(experience).ok ? (
+          // REGLA: sin deslinde completo NO se vende. Mejor un aviso claro aquí
+          // que fallar después del submit (createCheckout rebota igual).
+          <div className="rounded-2xl border border-sand bg-white p-6 text-sm text-olive">
+            Estamos terminando de preparar esta experiencia — todavía no abre la reserva en línea.{" "}
+            <a href="mailto:uno@numanhub.com" className="font-semibold text-lagoon underline">
+              Escríbenos y te avisamos en cuanto esté lista →
+            </a>
+          </div>
+        ) : slots.length === 0 ? (
           <div className="rounded-2xl border border-sand bg-white p-6 text-sm text-olive">
             Por ahora no hay salidas abiertas.{" "}
             <a href={`/caminante/solicitar/${slug}`} className="font-semibold text-lagoon underline">

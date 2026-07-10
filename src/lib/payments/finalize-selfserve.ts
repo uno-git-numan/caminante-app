@@ -14,6 +14,7 @@ import { fromStripeAmount } from "@/lib/payments/stripe";
 import { findOrCreateContact } from "@/lib/crm/contacts";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
 import { capiPurchase } from "@/lib/meta/capi";
+import { notifyConfirmacionCompra } from "@/lib/notifications/notify-customer";
 
 export type FinalizeSelfServeResult = {
   handled: boolean; // false = no es una sesión self-serve (sin metadata.self_serve)
@@ -187,20 +188,38 @@ export async function finalizeSelfServeCheckout(
     title?: string;
     titleAccent?: string;
     cardTitle?: string;
+    registration?: { active?: boolean };
   } | null;
   const nombreExperiencia =
     expData?.cardTitle ||
     [expData?.title, expData?.titleAccent].filter(Boolean).join(" ").trim() ||
     experienceSlug;
-  await notifyNuevaReserva({
-    cliente: fullName || email,
-    experiencia: nombreExperiencia,
-    salida: session.metadata?.slot_label || "sin fecha",
-    personas: numPeople,
-    montoMxn: amountPaid,
-    metodo: "Stripe (pago web)",
-    canal: "web",
-  });
+  // Confirmación AL CLIENTE (su comprobante) + aviso al admin — ambos best-effort
+  // en paralelo, jamás tiran el webhook. El CTA del deslinde solo si está activo.
+  const deslindeUrl = expData?.registration?.active
+    ? `https://caminante.numanhub.com/caminante/registro/${experienceSlug}?reserva=${reservationId}`
+    : null;
+  await Promise.allSettled([
+    notifyConfirmacionCompra({
+      email,
+      nombre: fullName,
+      experiencia: nombreExperiencia,
+      salida: session.metadata?.slot_label || "",
+      personas: numPeople,
+      montoMxn: amountPaid,
+      tierLabel: tierLabel || undefined,
+      deslindeUrl,
+    }),
+    notifyNuevaReserva({
+      cliente: fullName || email,
+      experiencia: nombreExperiencia,
+      salida: session.metadata?.slot_label || "sin fecha",
+      personas: numPeople,
+      montoMxn: amountPaid,
+      metodo: "Stripe (pago web)",
+      canal: "web",
+    }),
+  ]);
 
   // Meta Conversions API — Purchase server-side (la señal de dinero). SOLO en el
   // primer registro (!payErr) para no doblar en reintentos del webhook; event_id =

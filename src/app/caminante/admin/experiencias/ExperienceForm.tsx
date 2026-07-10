@@ -15,6 +15,7 @@ import PrellenarIA from "./PrellenarIA";
 import { aplicarPrellenadoV2, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
+import { deslindeListo } from "@/lib/experiences/flujo-venta";
 import { ESTADOS } from "@/lib/experiences/estados";
 import { saveExperienceSlots } from "@/lib/experiences/slots-admin";
 import type { Experience, V2Image } from "@/lib/experiences/types";
@@ -525,6 +526,17 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
         const faltan = [!hayFecha ? "una fecha de salida (sección Fechas & cupo)" : null, !hayPrecio ? "el precio (sección Precio o Inversión)" : null].filter(Boolean);
         setStatusOk(false);
         setStatus(`No puedes publicar sin ${faltan.join(" y ")}. Guárdala como borrador o complétala.`);
+        return;
+      }
+      // REGLA: toda experiencia a la venta lleva registro y deslinde COMPLETO.
+      // (Caso Enyd, 9 jul: se vendió una experiencia sin deslinde activo.)
+      const flujo = deslindeListo({ registration: reg });
+      if (!flujo.ok) {
+        setStatusOk(false);
+        setStatus(
+          `No puedes publicar sin el registro y deslinde completo: ${flujo.faltantes.join(" ")} ` +
+            `Actívalo en la sección “Registro y deslinde” — toda experiencia a la venta lo lleva.`,
+        );
         return;
       }
     }

@@ -88,8 +88,8 @@ export default async function ReservaExitoPage({
       <h1 className="mt-6 text-3xl font-semibold tracking-tight text-lagoon">¡Tu lugar está apartado!</h1>
       <p className="mt-3 text-sm text-olive">
         {deslindeActivo
-          ? "Recibimos tu pago y te enviamos el comprobante a tu correo. Falta un paso para dejar todo listo: firmar tu deslinde y compartir tu perfil de seguridad antes del viaje."
-          : "Recibimos tu pago y te enviamos el comprobante a tu correo. Te contactamos con los últimos detalles antes de la experiencia."}
+          ? "Recibimos tu pago y te enviamos la confirmación con los detalles a tu correo. Falta un paso para dejar todo listo: firmar tu deslinde y compartir tu perfil de seguridad antes del viaje."
+          : "Recibimos tu pago y te enviamos la confirmación con los detalles a tu correo. Te contactamos con los últimos detalles antes de la experiencia."}
       </p>
 
       <div className="mt-8 flex flex-col items-center gap-3">

@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
+import { deslindeListo } from "@/lib/experiences/flujo-venta";
 
 export type AdminActionResult = { ok: true } | { ok: false; error: string };
 
@@ -201,6 +202,17 @@ export async function setExperienceStatus(input: {
     .eq("id", input.experienceId)
     .maybeSingle();
   if (!row) return fail("La experiencia no existe.");
+  // REGLA: nada se publica sin registro y deslinde completo (este camino antes
+  // no validaba nada y era el bypass del gate del form — caso Enyd, 9 jul).
+  if (input.status === "published") {
+    const flujo = deslindeListo(row.data as import("@/lib/experiences/types").Experience);
+    if (!flujo.ok) {
+      return fail(
+        `No se puede publicar sin el deslinde completo: ${flujo.faltantes.join(" ")} ` +
+          `Configúralo en el formulario de la experiencia (sección “Registro y deslinde”).`,
+      );
+    }
+  }
   const data = { ...(row.data as Record<string, unknown>), status: input.status };
   const { error } = await sb
     .from("experiences")
