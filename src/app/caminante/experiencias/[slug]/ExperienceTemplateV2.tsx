@@ -23,6 +23,7 @@ import type {
   V2Image,
 } from "@/lib/experiences/types";
 import type { SlotAvailabilityPublic } from "@/lib/experiences/availability";
+import type { OperatorChip } from "@/lib/operators/public";
 import { TEMPLATE_V2_CSS } from "@/lib/experiences/template-v2-css";
 import { TEMPLATE_V2_SCRIPT } from "@/lib/experiences/template-v2-script";
 import { PixelEvent } from "@/lib/meta/pixel";
@@ -127,12 +128,33 @@ function Allies({ items }: { items: { name: string; role?: string }[] }) {
 }
 
 // --- bloques ---
+// Chip "Operada por" (glass, clickeable → perfil público del operador). La ★
+// solo aparece cuando ya hay encuestas respondidas.
+function OperadorChip({ op }: { op: OperatorChip }) {
+  return (
+    <a className="op-chip" href={`/caminante/operador/${op.slug}`}>
+      {op.photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="op-avatar" src={op.photoUrl} alt="" />
+      ) : (
+        <span className="op-avatar op-avatar-mark" aria-hidden="true" />
+      )}
+      <span className="op-lbl">Operada por</span>
+      <span className="op-nm">{op.name}</span>
+      {op.stars != null ? <span className="op-star">★ {op.stars}</span> : null}
+      <span className="op-arrow">→</span>
+    </a>
+  );
+}
+
 function HeroBlock({
   b,
   collaborators,
+  operatorChip,
 }: {
   b: V2Hero;
   collaborators?: { name: string; logoUrl: string }[];
+  operatorChip?: OperatorChip | null;
 }) {
   const logos = (collaborators ?? []).filter((c) => c.logoUrl?.trim());
   const actions =
@@ -168,6 +190,7 @@ function HeroBlock({
             <Btn key={i} a={a} />
           ))}
         </div>
+        {operatorChip ? <OperadorChip op={operatorChip} /> : null}
         {logos.length ? (
           <div className="collab-strip">
             <span className="lbl">En colaboración con</span>
@@ -681,6 +704,16 @@ const COLLAB_CSS = `
 .collab-band-logo{display:flex;flex-direction:column;align-items:center;gap:8px;}
 .collab-band-logo img{height:56px;width:auto;max-width:200px;object-fit:contain;display:block;}
 .collab-band-logo span{font-size:12px;color:var(--ink-soft);font-weight:500;letter-spacing:.02em;}
+/* Chip "Operada por" — glass sobre el hero (regla de marca), clickeable → perfil. */
+.op-chip{display:inline-flex;align-items:center;gap:9px;margin-top:26px;padding:9px 16px 9px 10px;border-radius:999px;background:rgba(255,255,255,.14);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:13.5px;text-decoration:none;transition:background .25s,border-color .25s;}
+.op-chip:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.45);}
+.op-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;display:block;background:#fff;}
+.op-avatar-mark{background:rgba(255,255,255,.92) url('/landing/assets/logos/caminante-mark.svg') center/60% no-repeat;}
+.op-chip .op-lbl{opacity:.75;font-size:12px;}
+.op-chip .op-nm{font-weight:600;}
+.op-chip .op-star{color:#ffd27a;font-weight:600;font-size:12.5px;}
+.op-chip .op-arrow{opacity:.7;font-size:13px;transition:transform .25s;}
+.op-chip:hover .op-arrow{transform:translateX(3px);}
 `;
 
 export default function ExperienceTemplateV2({
@@ -688,6 +721,7 @@ export default function ExperienceTemplateV2({
   slots,
   grupoToken,
   sessionRole,
+  operatorChip,
 }: {
   experience: Experience;
   slots: SlotAvailabilityPublic[];
@@ -696,6 +730,8 @@ export default function ExperienceTemplateV2({
   grupoToken?: string | null;
   // Rol de la sesión (server-side): entrada a "Mi espacio"/"Panel" en el nav.
   sessionRole?: "admin" | "caminante" | null;
+  // Chip "Operada por" del hero (null = operador sin perfil público o sin 0020).
+  operatorChip?: OperatorChip | null;
 }) {
   const slug = experience.slug;
   // Entrada por rol en el nav de la experiencia (misma lógica que SiteChrome):
@@ -790,7 +826,7 @@ export default function ExperienceTemplateV2({
         let el: ReactNode = null;
         switch (b.type) {
           case "hero":
-            el = <HeroBlock b={b} collaborators={collabs} />;
+            el = <HeroBlock b={b} collaborators={collabs} operatorChip={operatorChip} />;
             break;
           case "split":
             el = <SplitBlock b={b} secnum={secnum} />;
