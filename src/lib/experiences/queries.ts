@@ -47,6 +47,25 @@ export async function fetchPublishedExperienceRow(
   return null;
 }
 
+// Igual que fetchPublishedExperiences pero conserva el id de fila — necesario
+// para unir métricas por experiencia (p.ej. la satisfacción de la encuesta).
+// Sin BD/seed no aplica (el seed no tiene ids), devuelve [].
+export async function fetchPublishedExperienceRows(): Promise<{ id: string; data: Experience }[]> {
+  try {
+    const sb = await createSupabaseServerClient();
+    const { data, error } = await sb
+      .from("experiences")
+      .select("id, data")
+      .eq("status", "published");
+    if (!error && data) {
+      return (data as { id: string; data: Experience }[]).map((r) => ({ id: r.id, data: r.data }));
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
 export async function fetchPublishedExperiences(): Promise<Experience[]> {
   try {
     const sb = await createSupabaseServerClient();

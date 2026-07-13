@@ -1,5 +1,7 @@
 import type { Experience } from "./types";
 
+export type ExperienceRating = { stars: number; count: number };
+
 export type ExperienceCard = {
   slug: string;
   title: string;
@@ -9,6 +11,10 @@ export type ExperienceCard = {
   imageAlt: string;
   startDate: string | null;
   estado: string; // estado de MX — las páginas de destino filtran por esto
+  // Satisfacción real (promedio de overall_stars de encuestas respondidas). null =
+  // aún sin encuestas → la UI muestra "Experiencia nueva". Lo adjunta la API/
+  // servidor (toCard no tiene BD).
+  rating?: ExperienceRating | null;
 };
 
 // Derives the landing/calendar card from an experience, with sensible fallbacks.

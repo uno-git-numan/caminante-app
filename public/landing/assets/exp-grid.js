@@ -29,6 +29,26 @@
 
     var inn = el("div", "in");
     inn.appendChild(el("h3", null, c.title));
+
+    // Satisfacción real (★ promedio) o "Experiencia nueva" si aún no hay encuestas.
+    var rate = el("div");
+    rate.style.cssText = "display:flex;align-items:center;gap:7px;margin:8px 0 2px;line-height:1;";
+    if (c.rating && c.rating.stars) {
+      var st = el("span", null, "★ " + Number(c.rating.stars).toFixed(1));
+      st.style.cssText = "color:#ff5d36;font-weight:600;font-size:14px;";
+      rate.appendChild(st);
+      var n = c.rating.count;
+      var cnt = el("span", null, n === 1 ? "1 opinión" : n + " opiniones");
+      cnt.style.cssText = "color:#637154;font-size:12.5px;";
+      rate.appendChild(cnt);
+    } else {
+      var nu = el("span", null, "Experiencia nueva");
+      nu.style.cssText =
+        "font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#637154;background:rgba(99,113,84,.12);border-radius:999px;padding:4px 10px;";
+      rate.appendChild(nu);
+    }
+    inn.appendChild(rate);
+
     var faces = el("div", "faces");
     ["Naturaleza", "Conservación", "Comunidades", "Problemas"].forEach(function (f) {
       var face = el("span", "face");

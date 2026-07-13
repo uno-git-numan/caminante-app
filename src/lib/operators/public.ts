@@ -7,6 +7,7 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { toCard, type ExperienceCard } from "@/lib/experiences/card";
+import { fetchExperienceRatings } from "@/lib/experiences/ratings";
 import type { Experience } from "@/lib/experiences/types";
 
 export type OperatorChip = {
@@ -151,14 +152,15 @@ export async function fetchOperatorProfile(slug: string): Promise<OperatorProfil
       ? Math.round((fb.filter((r) => r.rebook_interest === true).length / conRespuesta) * 100)
       : null;
 
-    // Experiencias publicadas del operador (tarjetas existentes).
+    // Experiencias publicadas del operador (tarjetas) + su satisfacción real.
     const { data: exps } = await sb
       .from("experiences")
-      .select("data")
+      .select("id, data")
       .eq("operator_id", operatorId)
       .eq("status", "published");
-    const experiencias = ((exps ?? []) as { data: Experience }[])
-      .map((r) => toCard(r.data))
+    const ratings = await fetchExperienceRatings();
+    const experiencias = ((exps ?? []) as { id: string; data: Experience }[])
+      .map((r) => ({ ...toCard(r.data), rating: ratings.get(r.id) ?? null }))
       .filter((c) => c.title);
 
     // Testimonios: SOLO aprobados en el panel de Encuesta (consentimiento + firma
