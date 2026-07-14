@@ -226,20 +226,30 @@ export default async function EncuestaPage({
         ) : (
           conRespuestas.map((e: EncuestaExperiencia) => {
             const tasa = e.invitadas ? Math.round((e.respondidas / e.invitadas) * 100) : 0;
+            const rid = `res-${e.slug.slice(0, 16)}`;
             return (
-              <div className="card pad" key={e.experienceId} style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600 }}>
-                    {e.nombre}
-                    {e.ubicacion ? <span className="mut" style={{ fontSize: 12.5, fontWeight: 400 }}> · {e.ubicacion}</span> : null}
+              <div className="card" key={e.experienceId} style={{ overflow: "hidden", marginBottom: 10 }}>
+                <div className="pad xhead" data-x={rid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", cursor: "pointer" }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600 }}>
+                      {e.nombre} <span className="chev2">▾</span>
+                    </div>
+                    <div className="mut" style={{ fontSize: 12.5 }}>
+                      {e.ubicacion ? `${e.ubicacion} · ` : ""}
+                      {e.respondidas} {e.respondidas === 1 ? "respuesta" : "respuestas"}
+                    </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12.5 }}>
                     <span><Stars v={e.avgStars} /> <b>{e.avgStars ?? "—"}</b></span>
                     <span className="mut">NPS <b style={{ color: "var(--charcoal)" }}>{e.avgNps ?? "—"}</b></span>
-                    <span className="mut">tasa <b style={{ color: "var(--charcoal)" }}>{tasa}%</b> ({e.respondidas}/{e.invitadas})</span>
+                    <span className="mut">tasa <b style={{ color: "var(--charcoal)" }}>{tasa}%</b></span>
                   </div>
                 </div>
-                <RespuestasExp respuestas={e.respuestas} />
+                <div className="xbody" id={rid}>
+                  <div className="xpad">
+                    <RespuestasExp respuestas={e.respuestas} />
+                  </div>
+                </div>
               </div>
             );
           })
