@@ -2,10 +2,9 @@ import { randomUUID } from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
+import { sendViaResend } from "@/lib/email/resend";
 
 const SITE = "https://caminante.numanhub.com";
-const FROM = "Caminante <caminante@numanhub.com>";
-const REPLY_TO = "uno@numanhub.com";
 
 // Marca
 const CREMA = "#fbfbf7";
@@ -49,21 +48,9 @@ function emailHtml(name: string, token: string): string {
 </td></tr></table></body></html>`;
 }
 
-async function sendResend(to: string, subject: string, html: string): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return false;
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      "User-Agent": "caminante-encuesta/1.0", // Resend tras Cloudflare: sin UA → 403/1010
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, html }),
-  });
-  return r.status === 200 || r.status === 201;
-}
+// Reintenta ante rate limit/5xx (ver @/lib/email/resend).
+const sendResend = (to: string, subject: string, html: string) =>
+  sendViaResend(to, subject, html, { ua: "caminante-encuesta/1.0" });
 
 export type DispatchResult = {
   dueSlots: number;

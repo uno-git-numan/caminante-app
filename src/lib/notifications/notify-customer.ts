@@ -4,8 +4,7 @@
 // correo brandeado a cliente que ya existía (la encuesta, feedback/send.ts).
 // Best-effort: jamás tira el webhook — quien lo llama hace catch/allSettled.
 
-const FROM = "Caminante <caminante@numanhub.com>";
-const REPLY_TO = "uno@numanhub.com";
+import { sendViaResend } from "@/lib/email/resend";
 
 // Marca (misma paleta del correo de encuesta)
 const CREMA = "#fbfbf7";
@@ -22,21 +21,9 @@ const firstName = (full: string | null): string => {
 const money = (n: number) =>
   "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 });
 
-async function sendResend(to: string, subject: string, html: string): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return false;
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      "User-Agent": "caminante-confirmacion/1.0", // Resend tras Cloudflare: sin UA → 403/1010
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, html }),
-  });
-  return r.status === 200 || r.status === 201;
-}
+// Reintenta ante rate limit/5xx (ver @/lib/email/resend).
+const sendResend = (to: string, subject: string, html: string) =>
+  sendViaResend(to, subject, html, { ua: "caminante-confirmacion/1.0" });
 
 export type ConfirmacionCompraInfo = {
   email: string;

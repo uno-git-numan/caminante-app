@@ -13,6 +13,9 @@ import { fetchDeslindesPendientes } from "@/lib/registration/pending";
 import ConfirmSubmit from "../ui/ConfirmSubmit";
 
 export const dynamic = "force-dynamic";
+// Envío en lote (reintentos + espaciado anti rate-limit) puede tardar; súbelo del
+// default de 10s. Hobby lo topa en 60s, suficiente para las tandas actuales.
+export const maxDuration = 60;
 export const metadata = { title: "Encuesta · Admin — Caminante" };
 
 function Stars({ v }: { v: number | null }) {
