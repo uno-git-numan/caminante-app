@@ -2,7 +2,13 @@ import AdminShell from "../ui/AdminShell";
 import { fetchEncuestaAdmin, iniciales } from "@/lib/admin/queries";
 import type { EncuestaExperiencia } from "@/lib/admin/queries";
 import { setTestimonioAction } from "@/lib/admin/encuesta-actions";
-import { reenviarEncuesta, reenviarEncuestaPendientes } from "@/lib/feedback/resend-actions";
+import {
+  reenviarEncuesta,
+  reenviarEncuestaPendientes,
+  reenviarDeslinde,
+  reenviarDeslindesTodos,
+} from "@/lib/feedback/resend-actions";
+import { fetchDeslindesPendientes } from "@/lib/registration/pending";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Encuesta · Admin — Caminante" };
@@ -167,7 +173,10 @@ export default async function EncuestaPage({
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   const { ok, error } = await searchParams;
-  const { experiencias, testimoniosPendientes } = await fetchEncuestaAdmin();
+  const [{ experiencias, testimoniosPendientes }, deslindesPend] = await Promise.all([
+    fetchEncuestaAdmin(),
+    fetchDeslindesPendientes(),
+  ]);
 
   return (
     <AdminShell active="encuesta">
@@ -206,6 +215,43 @@ export default async function EncuestaPage({
             </div>
           </div>
         </div>
+
+        {/* Deslindes pendientes de firma (pagó, falta firmar) */}
+        {deslindesPend.length ? (
+          <div className="card pad" style={{ marginBottom: 20, borderColor: "rgba(255,93,54,.35)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>
+                ⚠ Deslindes pendientes de firma ({deslindesPend.length})
+              </div>
+              <form action={reenviarDeslindesTodos}>
+                <button type="submit" className="btn btn-orange btn-sm">
+                  ✉ Recordar a todos
+                </button>
+              </form>
+            </div>
+            <div className="pchips" style={{ marginTop: 12 }}>
+              {deslindesPend.map((d) => (
+                <span key={d.reservationId} className="pchip pend" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span className="av">{iniciales(d.nombre)}</span>
+                  {d.nombre}
+                  <span className="dt">{d.experiencia}{d.salidaLabel ? ` · ${d.salidaLabel}` : ""}</span>
+                  {d.email ? (
+                    <form action={reenviarDeslinde} style={{ display: "inline" }}>
+                      <input type="hidden" name="reservationId" value={d.reservationId} />
+                      <button type="submit" className="btn btn-glass btn-sm" title={`Recordar deslinde a ${d.email}`} style={{ padding: "3px 9px", fontSize: 11.5 }}>
+                        ✉ Recordar
+                      </button>
+                    </form>
+                  ) : (
+                    <a href={`/caminante/registro/${d.slug}?reserva=${d.reservationId}`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm" style={{ padding: "3px 9px", fontSize: 11.5 }}>
+                      Abrir link
+                    </a>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid2">
           {experiencias.map((e) => (

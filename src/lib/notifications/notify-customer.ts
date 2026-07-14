@@ -103,3 +103,35 @@ export async function notifyConfirmacionCompra(info: ConfirmacionCompraInfo): Pr
     return false;
   }
 }
+
+// Recordatorio de DESLINDE pendiente (pagó, falta firmar). Reusa sendResend.
+export async function notifyDeslindePendiente(info: {
+  email: string;
+  nombre: string | null;
+  experiencia: string;
+  deslindeUrl: string;
+}): Promise<boolean> {
+  try {
+    if (!info.email || !info.email.includes("@")) return false;
+    const name = firstName(info.nombre);
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"></head>
+<body style="margin:0;padding:0;background:${CREMA};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREMA};"><tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background:#ffffff;border:1px solid ${ARENA};border-radius:18px;overflow:hidden;">
+<tr><td style="padding:32px 36px 8px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="font-size:12px;letter-spacing:3px;color:${OLIVO};text-transform:uppercase;">Caminante &middot; Naturaleza en movimiento</div></td></tr>
+<tr><td style="padding:16px 36px 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<h1 style="margin:0 0 14px;font-size:26px;line-height:1.25;color:${LAGOON};font-weight:600;">Falta un paso, ${name}.</h1>
+<p style="margin:0 0 8px;font-size:16px;line-height:1.6;color:${LAGOON};">Antes de <strong>${info.experiencia}</strong> necesitamos tu <strong>deslinde firmado</strong> y tu perfil de seguridad. Son dos minutos y quedas listo para el viaje.</p></td></tr>
+<tr><td align="center" style="padding:18px 36px 30px;">
+<a href="${info.deslindeUrl}" target="_blank" style="display:inline-block;background:${LAGOON};color:#fff;text-decoration:none;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;padding:14px 32px;border-radius:999px;">Firmar mi deslinde</a></td></tr>
+<tr><td style="padding:0 36px 30px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="border-top:1px solid ${ARENA};padding-top:18px;font-size:13px;line-height:1.6;color:${OLIVO};">¿Dudas? Responde este correo y te ayudamos.</div></td></tr>
+</table>
+<div style="max-width:540px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:${OLIVO};padding:18px 8px;">Caminante by NUMAN &middot; uno@numanhub.com</div>
+</td></tr></table></body></html>`;
+    return await sendResend(info.email, `Falta tu deslinde para ${info.experiencia} 🌿`, html);
+  } catch {
+    return false;
+  }
+}
