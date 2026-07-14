@@ -9,6 +9,8 @@
 // Llamada por HTTP directo (sin @anthropic-ai/sdk): es UNA petición POST y así
 // no agregamos dependencia; si el uso crece, migrar al SDK oficial.
 
+import { DESLINDE_MAESTRO } from "@/lib/legal/deslinde-maestro";
+
 const MODEL = "claude-opus-4-8";
 const API = "https://api.anthropic.com/v1/messages";
 
@@ -145,7 +147,9 @@ const ESQUEMA = obj({
       priceLine: s("Texto plano SIN asteriscos, p.ej. '$2,550 MXN · todo incluido · cupo 17 personas'"),
     }),
     // ── deslinde + encuesta ──
-    waiverClauses: arr(s("Resumen de cláusulas del deslinde, una línea cada una")),
+    // El resumen del deslinde se genera del DOCUMENTO MAESTRO (ver system): fiel
+    // a lo que dice el PDF legal, con los riesgos adaptados a esta experiencia.
+    waiverClauses: arr(s("Resumen del deslinde en 6–9 viñetas cortas y claras, FIEL al documento maestro del deslinde (ver instrucciones del system): riesgos específicos de ESTA experiencia + las cláusulas estándar (declaraciones bajo protesta, seguro propio, liberación/deslinde de responsabilidad limitada al monto pagado, uso de imagen, datos personales LFPDPPP, aceptación electrónica)")),
     feedbackLocationLabel: s("'Lugar, Estado' para la encuesta"),
     feedbackSections: arr(obj({ key: s("kebab-case"), label: s(), icon: s("UN emoji que represente la sección, p.ej. '🍄', '🥾', '🍳'"), prompt: s() })),
   }),
@@ -172,7 +176,17 @@ Reglas duras:
 - GUÍAS: si el material presenta a UNA persona con biografía, usa paragraphs (2 párrafos de perfil) + subEyebrow con su credencial; si es una lista de aliados/comunidad, usa items (name + role). Puedes devolver varias guides (p.ej. la guía principal, la comunidad, "qué vas a encontrar").
 - ITINERARIO: viaje de varios días → num "01","02"… y lab "Jueves · Llegada"; experiencia de UN día → num vacío, lab = momento ("Amanecer","Mañana","Mediodía","Tarde") y ttl corto.
 - PRECIOS: si el material trae varios precios (tipo de habitación, categoría, etc.), pon cada uno en priceTiers (label + monto) y usa el MÁS BAJO como price.amount. Si hay un solo precio, deja priceTiers vacío.
-- FECHAS de salidas: llénalas SOLO si el documento da una fecha concreta (día y mes). Si solo dice una temporada o "por confirmar", deja slots VACÍO y dilo en notas — NO inventes una fecha.`;
+- FECHAS de salidas: llénalas SOLO si el documento da una fecha concreta (día y mes). Si solo dice una temporada o "por confirmar", deja slots VACÍO y dilo en notas — NO inventes una fecha.
+
+DESLINDE — genera "waiverClauses" como un RESUMEN legible y honesto del deslinde legal de Caminante, en 6 a 9 viñetas cortas (una idea por línea, voz clara, trato de "tú"). Reglas:
+- Debe reflejar FIELMENTE lo que dice el DOCUMENTO MAESTRO de abajo. NO inventes cláusulas que no estén ahí, y NO suavices las de liberación de responsabilidad.
+- Las viñetas de RIESGOS (sección B del maestro) adáptalas a ESTA experiencia según sus actividades reales (agua/mar, montaña/altura, fauna, clima, ubicación remota, lo que aplique); si la experiencia no tiene actividad acuática, no menciones ahogamiento, etc.
+- Las cláusulas ESTÁNDAR (secciones C–J: declaraciones bajo protesta, seguro propio a cargo del participante, liberación de responsabilidad limitada al monto pagado salvo dolo/negligencia grave, uso de imagen, datos personales conforme a la LFPDPPP, y que la aceptación electrónica tiene plenos efectos) son iguales para toda experiencia — resúmelas SIEMPRE.
+- Este resumen es lo que el participante ve antes de firmar; el PDF completo se enlaza aparte. No pongas el nombre fiscal ni RFC en las viñetas.
+
+=== DOCUMENTO MAESTRO DEL DESLINDE (referencia; A y B son de ejemplo de otra experiencia, C–J son el marco legal estándar) ===
+${DESLINDE_MAESTRO}
+=== FIN DEL DOCUMENTO MAESTRO ===`;
 
 type BloqueContenido =
   | { type: "document"; source: { type: "base64"; media_type: string; data: string } }
