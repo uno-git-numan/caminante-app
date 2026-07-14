@@ -218,21 +218,10 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
     });
   }
 
-  // statement (opcional)
-  if (d.statement.on && (has(d.statement.title) || has(d.statement.body))) {
-    blocks.push({
-      type: "statement",
-      ...(has(d.statement.eyebrowPre) ? { eyebrowPre: d.statement.eyebrowPre } : {}),
-      eyebrow: d.statement.eyebrow,
-      title: d.statement.title,
-      ...(has(d.statement.titleAccent) ? { titleAccent: d.statement.titleAccent } : {}),
-      ...(has(d.statement.body) ? { body: d.statement.body } : {}),
-      ...(has(d.statement.quote) ? { quote: d.statement.quote } : {}),
-      bg: d.statement.bg,
-    });
-  }
-
-  // itinerario
+  // itinerario (va antes de inversión: primero el plan). Además, ponerlo aquí
+  // evita que quede pegado al statement — dos secciones con foto de fondo seguidas
+  // se veían pesadas. Orden de fondos: hero(📷) → experiencia(▫️) → itinerario(📷)
+  // → inversión(▫️) → statement(📷) → qué incluye(▫️) → … → cierre(📷).
   const days = d.itinerary.days
     .filter((x) => has(x.lab) || x.items.some((i) => has(i.d) || has(i.t)))
     .map((x) => ({
@@ -252,7 +241,7 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
     });
   }
 
-  // tariff
+  // tariff (inversión)
   if (d.tariff.on && (has(d.tariff.price) || has(d.tariff.tier))) {
     blocks.push({
       type: "tariff",
@@ -265,6 +254,21 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
       ...(has(d.tariff.priceCur) ? { priceCur: d.tariff.priceCur } : {}),
       ...(has(d.tariff.availK) ? { availK: d.tariff.availK } : {}),
       ...(has(d.tariff.availV) ? { availV: d.tariff.availV } : {}),
+    });
+  }
+
+  // statement (opcional) — DESPUÉS de inversión: hace de respiro con foto que
+  // separa "Inversión" de "Qué incluye" (evita dos secciones lisas seguidas).
+  if (d.statement.on && (has(d.statement.title) || has(d.statement.body))) {
+    blocks.push({
+      type: "statement",
+      ...(has(d.statement.eyebrowPre) ? { eyebrowPre: d.statement.eyebrowPre } : {}),
+      eyebrow: d.statement.eyebrow,
+      title: d.statement.title,
+      ...(has(d.statement.titleAccent) ? { titleAccent: d.statement.titleAccent } : {}),
+      ...(has(d.statement.body) ? { body: d.statement.body } : {}),
+      ...(has(d.statement.quote) ? { quote: d.statement.quote } : {}),
+      bg: d.statement.bg,
     });
   }
 
