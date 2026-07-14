@@ -1036,7 +1036,20 @@ export type EncuestaExperiencia = {
   distEstrellas: { etiqueta: string; n: number }[];
   secciones: { label: string; avg: number; n: number }[];
   abiertas: { texto: string; stars: number | null; iniciales: string; fecha: string }[];
+  respuestas: EncuestaRespuesta[]; // una por feedback respondido (para filtrar por rating/fecha)
   personas: EncuestaPersona[];
+};
+
+// Una respuesta de satisfacción, para listar/filtrar por estrellas y fecha.
+export type EncuestaRespuesta = {
+  iniciales: string;
+  nombre: string;
+  stars: number | null; // overall
+  nps: number | null;
+  bucket: 5 | 4 | 3; // 5★ / 4★ / ≤3★ (para el filtro)
+  fecha: string; // display (día mes)
+  fechaIso: string; // orden
+  textos: string[]; // respuestas abiertas ya con prefijo ("Por mejorar: …")
 };
 
 export type TestimonioPendiente = {
@@ -1164,6 +1177,33 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
       })
       .slice(0, 8);
 
+    // Respuestas (una por feedback respondido) para listar/filtrar por rating y fecha
+    const bucketDe = (s: number | null): 5 | 4 | 3 => (s == null ? 3 : s >= 4.75 ? 5 : s >= 3.75 ? 4 : 3);
+    const respuestas: EncuestaRespuesta[] = submitted
+      .map((f): EncuestaRespuesta => {
+        const quien = cById.get(f.contact_id);
+        const nombre = quien?.full_name || quien?.email || "—";
+        const textos: string[] = [];
+        const add = (t: string | null, pref = "") => {
+          const s = (t || "").trim();
+          if (s) textos.push(`${pref}${s}`);
+        };
+        add(f.loved_text);
+        add(f.improve_text, "Por mejorar: ");
+        add(f.expected_gap_text, "Esperaba: ");
+        return {
+          iniciales: iniciales(nombre),
+          nombre,
+          stars: f.overall_stars,
+          nps: f.nps,
+          bucket: bucketDe(f.overall_stars),
+          fecha: formatDiaMes(f.submitted_at),
+          fechaIso: f.submitted_at || "",
+          textos,
+        };
+      })
+      .sort((a, b) => b.fechaIso.localeCompare(a.fechaIso)); // reciente primero
+
     // Quién respondió / quién no
     const personas: EncuestaPersona[] = rows
       .map((f): EncuestaPersona => {
@@ -1194,6 +1234,7 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
       distEstrellas,
       secciones,
       abiertas,
+      respuestas,
       personas,
     });
   }

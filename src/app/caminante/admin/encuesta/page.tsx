@@ -10,7 +10,9 @@ import {
   reenviarDeslindesTodos,
 } from "@/lib/feedback/resend-actions";
 import { fetchDeslindesPendientes } from "@/lib/registration/pending";
+import type { DeslindePendiente } from "@/lib/registration/pending";
 import ConfirmSubmit from "../ui/ConfirmSubmit";
+import RespuestasExp from "./RespuestasExp";
 
 export const dynamic = "force-dynamic";
 // Envío en lote (reintentos + espaciado anti rate-limit) puede tardar; súbelo del
@@ -29,144 +31,38 @@ function Stars({ v }: { v: number | null }) {
   );
 }
 
-function ExperienciaCard({ e }: { e: EncuestaExperiencia }) {
-  const xid = `en-${e.slug.slice(0, 12)}`;
-  const tasa = e.invitadas ? Math.round((e.respondidas / e.invitadas) * 100) : 0;
-  const pendientes = e.personas.filter((p) => p.estado === "invitada");
+// ── Menú (acordeón) por experiencia: cabecera con conteo + cuerpo colapsable ──
+function ExpMenu({
+  id,
+  nombre,
+  ubicacion,
+  faltan,
+  right,
+  children,
+}: {
+  id: string;
+  nombre: string;
+  ubicacion?: string | null;
+  faltan: number;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="card pad xhead" data-x={xid}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+    <div className="card" style={{ overflow: "hidden", marginBottom: 10 }}>
+      <div className="pad xhead" data-x={id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, cursor: "pointer" }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 600 }}>
-            {e.nombre} <span className="chev2">▾</span>
+            {nombre} <span className="chev2">▾</span>
           </div>
-          {e.ubicacion ? (
-            <div className="mut" style={{ fontSize: 12.5 }}>
-              {e.ubicacion}
-            </div>
-          ) : null}
+          <div className="mut" style={{ fontSize: 12.5 }}>
+            {ubicacion ? `${ubicacion} · ` : ""}
+            <b style={{ color: faltan ? "var(--orange)" : "var(--olive)" }}>{faltan}</b> por completar
+          </div>
         </div>
-        <div className="badge">
-          {e.respondidas ? `${e.respondidas} respuestas` : "Sin respuestas aún"}
-        </div>
+        {right}
       </div>
-
-      {e.respondidas ? (
-        <>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 12, margin: "14px 0 4px" }}>
-            <span className="display" style={{ fontSize: 44 }}>
-              {e.avgStars ?? "—"}
-            </span>
-            <Stars v={e.avgStars} />
-          </div>
-          <div className="mut" style={{ fontSize: 12.5, marginBottom: 16 }}>
-            NPS <b style={{ color: "var(--charcoal)" }}>{e.avgNps ?? "—"}</b> · tasa de respuesta{" "}
-            <b style={{ color: "var(--charcoal)" }}>{tasa}%</b> ({e.respondidas}/{e.invitadas})
-          </div>
-          {e.secciones.map((s) => (
-            <div className="barrow" key={s.label}>
-              <span>{s.label}</span>
-              <div className="bar">
-                <i style={{ width: `${Math.min(100, (s.avg / 5) * 100)}%` }} />
-              </div>
-              <span className="bv">{s.avg}</span>
-            </div>
-          ))}
-        </>
-      ) : (
-        <div className="empty" style={{ marginTop: 18 }}>
-          {e.invitadas
-            ? `${e.invitadas} invitaciones enviadas — aún nadie responde.`
-            : "La encuesta se enviará sola ~24 h después de cada salida."}
-        </div>
-      )}
-
-      <div className="xbody" id={xid}>
-        <div className="xpad">
-          {e.respondidas ? (
-            <>
-              <div className="xh4">Distribución de estrellas</div>
-              {e.distEstrellas.map((d) => (
-                <div className="progrow" key={d.etiqueta}>
-                  <span>{d.etiqueta}</span>
-                  <div className="prog">
-                    <div className="tk2">
-                      <i style={{ width: e.respondidas ? `${(d.n / e.respondidas) * 100}%` : "0%" }} />
-                    </div>
-                    <span className="fr">{d.n}</span>
-                  </div>
-                </div>
-              ))}
-            </>
-          ) : null}
-
-          <div className="xh4">Quién respondió · quién no</div>
-          <div className="pchips">
-            {e.personas.map((p, i) =>
-              p.estado === "respondida" ? (
-                <span className="pchip ok" key={i}>
-                  <span className="av">{iniciales(p.nombre)}</span>
-                  {p.nombre} <span className="stt">✓{p.stars != null ? ` ${p.stars}★` : ""}</span>
-                  <span className="dt">{p.fecha}</span>
-                </span>
-              ) : (
-                <span className="pchip pend" key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <a
-                    href={`/caminante/feedback/${p.token}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Abrir su encuesta — copia el link"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "inherit" }}
-                  >
-                    <span className="av">{iniciales(p.nombre)}</span>
-                    {p.nombre} <span className="stt">Pendiente</span>
-                    {p.salidaLabel ? <span className="dt">{p.salidaLabel}</span> : null}
-                  </a>
-                  {p.email ? (
-                    <form action={reenviarEncuesta} style={{ display: "inline" }}>
-                      <input type="hidden" name="feedbackId" value={p.id} />
-                      <button type="submit" className="btn btn-glass btn-sm" title={`Reenviar la encuesta a ${p.email}`} style={{ padding: "3px 9px", fontSize: 11.5 }}>
-                        ✉ Reenviar
-                      </button>
-                    </form>
-                  ) : null}
-                </span>
-              ),
-            )}
-            {!e.personas.length ? <span className="mut">Sin invitaciones aún.</span> : null}
-          </div>
-          {pendientes.length ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
-              <form action={reenviarEncuestaPendientes}>
-                <input type="hidden" name="experienceId" value={e.experienceId} />
-                <button type="submit" className="btn btn-orange btn-sm">
-                  ✉ Reenviar encuesta a los {pendientes.length} pendientes
-                </button>
-              </form>
-              <span className="mut" style={{ fontSize: 12 }}>
-                o toca a un pendiente para copiar su link y mandarlo por WhatsApp.
-              </span>
-            </div>
-          ) : null}
-
-          {e.abiertas.length ? (
-            <>
-              <div className="xh4">Respuestas abiertas</div>
-              <div className="wlist">
-                {e.abiertas.map((a, i) => (
-                  <div className="wl" key={i}>
-                    <span>{a.texto}</span>
-                    <span className="m" style={{ color: "var(--orange)" }}>
-                      {a.stars != null ? `★ ${a.stars}` : ""}
-                    </span>
-                    <span className="me">{a.iniciales}</span>
-                    <span className="d">{a.fecha}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : null}
-        </div>
+      <div className="xbody" id={id}>
+        <div className="xpad">{children}</div>
       </div>
     </div>
   );
@@ -182,165 +78,208 @@ export default async function EncuestaPage({
     fetchEncuestaAdmin(),
     fetchDeslindesPendientes(),
   ]);
-  // Total de encuestas enviadas sin responder (todas las experiencias).
-  const encuestasPend = experiencias.reduce(
-    (n, e) => n + e.personas.filter((p) => p.estado === "invitada").length,
-    0,
-  );
+
+  // Deslindes pendientes agrupados por experiencia
+  const deslindePorExp = new Map<string, { nombre: string; items: DeslindePendiente[] }>();
+  for (const d of deslindesPend) {
+    const g = deslindePorExp.get(d.slug) || { nombre: d.experiencia, items: [] };
+    g.items.push(d);
+    deslindePorExp.set(d.slug, g);
+  }
+
+  // Satisfacción: experiencias con pendientes de responder / con respuestas
+  const conPendientes = experiencias
+    .map((e) => ({ e, pend: e.personas.filter((p) => p.estado === "invitada") }))
+    .filter((x) => x.pend.length);
+  const encuestasPend = conPendientes.reduce((n, x) => n + x.pend.length, 0);
+  const conRespuestas = experiencias.filter((e) => e.respondidas > 0);
 
   return (
     <AdminShell active="encuesta">
       <section className="sec">
         {ok ? (
-          <div className="glass pad" style={{ marginBottom: 18, fontSize: 13.5, color: "var(--olive-d)" }}>
-            {ok}
-          </div>
+          <div className="glass pad" style={{ marginBottom: 18, fontSize: 13.5, color: "var(--olive-d)" }}>{ok}</div>
         ) : null}
         {error ? (
-          <div
-            className="pad"
-            style={{
-              marginBottom: 18,
-              fontSize: 13.5,
-              color: "#c23c1c",
-              background: "rgba(255,93,54,.08)",
-              border: "1px solid rgba(255,93,54,.3)",
-              borderRadius: "var(--r)",
-            }}
-          >
+          <div className="pad" style={{ marginBottom: 18, fontSize: 13.5, color: "#c23c1c", background: "rgba(255,93,54,.08)", border: "1px solid rgba(255,93,54,.3)", borderRadius: "var(--r)" }}>
             {error}
           </div>
         ) : null}
 
         <div className="sec-head">
           <div>
-            <span className="eyebrow">
-              <span className="sl">{"//"}</span> Encuesta
-            </span>
-            <h1 className="display">
-              Cómo se <em className="ac">fueron.</em>
-            </h1>
-            <div className="desc">
-              Toca una experiencia para ver quién respondió, quién falta y qué dijeron.
-            </div>
+            <span className="eyebrow"><span className="sl">{"//"}</span> Encuesta</span>
+            <h1 className="display">Cómo se <em className="ac">fueron.</em></h1>
+            <div className="desc">Organizado por tipo y por experiencia: quién falta de firmar, quién falta de responder, y qué dijeron.</div>
           </div>
         </div>
 
-        {/* Recordatorio global de encuestas sin responder */}
-        {encuestasPend > 0 ? (
-          <div className="card pad" style={{ marginBottom: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>
-                ✉ Encuestas sin responder ({encuestasPend})
+        {/* ══════════ ① DESLINDE ══════════ */}
+        <div className="sec-head" style={{ marginTop: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", width: "100%" }}>
+            <div>
+              <span className="eyebrow"><span className="sl">{"//"}</span> Deslinde</span>
+              <div className="subtitle" style={{ margin: "4px 0 0" }}>
+                Quién pagó y falta firmar. {deslindesPend.length ? <b>{deslindesPend.length} pendientes.</b> : "Todo firmado ✓"}
               </div>
-              <form action={reenviarEncuestaTodos}>
-                <ConfirmSubmit
-                  className="btn btn-orange btn-sm"
-                  message={`Vas a mandar la encuesta a ${encuestasPend} ${encuestasPend === 1 ? "persona pendiente" : "personas pendientes"}. ¿Seguro?`}
-                >
-                  ✉ Recordar encuesta a todos
-                </ConfirmSubmit>
-              </form>
             </div>
-            <p className="mut" style={{ fontSize: 12.5, marginTop: 8, marginBottom: 0 }}>
-              Reenvía la encuesta a todos los pendientes de todas las experiencias. También puedes recordar
-              por experiencia o persona más abajo.
-            </p>
-          </div>
-        ) : null}
-
-        {/* Deslindes pendientes de firma (pagó, falta firmar) */}
-        {deslindesPend.length ? (
-          <div className="card pad" style={{ marginBottom: 20, borderColor: "rgba(255,93,54,.35)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>
-                ⚠ Deslindes pendientes de firma ({deslindesPend.length})
-              </div>
+            {deslindesPend.length ? (
               <form action={reenviarDeslindesTodos}>
-                <ConfirmSubmit
-                  className="btn btn-orange btn-sm"
-                  message={`Vas a mandar el recordatorio de deslinde a ${deslindesPend.length} ${deslindesPend.length === 1 ? "persona" : "personas"}. ¿Seguro?`}
-                >
+                <ConfirmSubmit className="btn btn-orange btn-sm" message={`Vas a mandar el recordatorio de deslinde a ${deslindesPend.length} ${deslindesPend.length === 1 ? "persona" : "personas"}. ¿Seguro?`}>
                   ✉ Recordar a todos
                 </ConfirmSubmit>
               </form>
-            </div>
-            <div className="pchips" style={{ marginTop: 12 }}>
-              {deslindesPend.map((d) => (
-                <span key={d.reservationId} className="pchip pend" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <span className="av">{iniciales(d.nombre)}</span>
-                  {d.nombre}
-                  <span className="dt">{d.experiencia}{d.salidaLabel ? ` · ${d.salidaLabel}` : ""}</span>
-                  {d.email ? (
-                    <form action={reenviarDeslinde} style={{ display: "inline" }}>
-                      <input type="hidden" name="reservationId" value={d.reservationId} />
-                      <button type="submit" className="btn btn-glass btn-sm" title={`Recordar deslinde a ${d.email}`} style={{ padding: "3px 9px", fontSize: 11.5 }}>
-                        ✉ Recordar
-                      </button>
-                    </form>
-                  ) : (
-                    <a href={`/caminante/registro/${d.slug}?reserva=${d.reservationId}`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm" style={{ padding: "3px 9px", fontSize: 11.5 }}>
-                      Abrir link
-                    </a>
-                  )}
-                </span>
-              ))}
-            </div>
+            ) : null}
           </div>
-        ) : null}
+        </div>
+        {deslindesPend.length === 0 ? (
+          <div className="empty">Sin deslindes pendientes.</div>
+        ) : (
+          [...deslindePorExp.entries()].map(([slug, g]) => (
+            <ExpMenu key={slug} id={`des-${slug.slice(0, 16)}`} nombre={g.nombre} faltan={g.items.length}>
+              <div className="pchips">
+                {g.items.map((d) => (
+                  <span key={d.reservationId} className="pchip pend" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span className="av">{iniciales(d.nombre)}</span>
+                    {d.nombre}
+                    {d.salidaLabel ? <span className="dt">{d.salidaLabel}</span> : null}
+                    {d.email ? (
+                      <form action={reenviarDeslinde} style={{ display: "inline" }}>
+                        <input type="hidden" name="reservationId" value={d.reservationId} />
+                        <button type="submit" className="btn btn-glass btn-sm" title={`Recordar deslinde a ${d.email}`} style={{ padding: "3px 9px", fontSize: 11.5 }}>✉ Recordar</button>
+                      </form>
+                    ) : (
+                      <a href={`/caminante/registro/${d.slug}?reserva=${d.reservationId}`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm" style={{ padding: "3px 9px", fontSize: 11.5 }}>Abrir link</a>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </ExpMenu>
+          ))
+        )}
 
-        <div className="grid2">
-          {experiencias.map((e) => (
-            <ExperienciaCard key={e.slug} e={e} />
-          ))}
-          {experiencias.length === 0 ? (
-            <div className="empty">Aún no se han enviado encuestas.</div>
-          ) : null}
+        {/* ══════════ ② SATISFACCIÓN ══════════ */}
+        <div className="sec-head" style={{ marginTop: 36 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", width: "100%" }}>
+            <div>
+              <span className="eyebrow"><span className="sl">{"//"}</span> Satisfacción</span>
+              <div className="subtitle" style={{ margin: "4px 0 0" }}>
+                Quién falta de responder y qué dijeron los que ya respondieron.
+              </div>
+            </div>
+            {encuestasPend ? (
+              <form action={reenviarEncuestaTodos}>
+                <ConfirmSubmit className="btn btn-orange btn-sm" message={`Vas a mandar la encuesta a ${encuestasPend} ${encuestasPend === 1 ? "persona pendiente" : "personas pendientes"}. ¿Seguro?`}>
+                  ✉ Recordar encuesta a todos
+                </ConfirmSubmit>
+              </form>
+            ) : null}
+          </div>
         </div>
 
-        <div style={{ marginTop: 24 }}>
-          <span className="subtitle">Testimonios por aprobar</span>
-          {testimoniosPendientes.length ? (
-            <div className="testi">
-              {testimoniosPendientes.map((t) => (
-                <div className="tcard glass" key={t.id}>
-                  <div className="tt">“{t.texto}”</div>
-                  <div className="tm">
-                    <span className="who">
-                      {t.iniciales} · {t.experiencia}
-                      {!t.consent ? (
-                        <span style={{ color: "var(--orange)" }}> · sin consentimiento</span>
-                      ) : null}
-                    </span>
-                    <span className="st">
-                      {t.stars != null ? "★".repeat(Math.min(5, Math.round(t.stars))) : ""}
-                    </span>
+        {/* Quién falta de responder (menú por experiencia) */}
+        <div className="xh4" style={{ marginTop: 4 }}>Quién falta de responder</div>
+        {conPendientes.length === 0 ? (
+          <div className="empty">Nadie pendiente. Todas las encuestas enviadas ya se respondieron.</div>
+        ) : (
+          conPendientes.map(({ e, pend }) => (
+            <ExpMenu
+              key={e.experienceId}
+              id={`pen-${e.slug.slice(0, 16)}`}
+              nombre={e.nombre}
+              ubicacion={e.ubicacion}
+              faltan={pend.length}
+              right={
+                <form action={reenviarEncuestaPendientes}>
+                  <input type="hidden" name="experienceId" value={e.experienceId} />
+                  <ConfirmSubmit className="btn btn-glass btn-sm" message={`Reenviar la encuesta a los ${pend.length} pendientes de ${e.nombre}. ¿Seguro?`}>
+                    ✉ Reenviar a todos
+                  </ConfirmSubmit>
+                </form>
+              }
+            >
+              <div className="pchips">
+                {pend.map((p, i) => (
+                  <span key={i} className="pchip pend" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <a href={`/caminante/feedback/${p.token}`} target="_blank" rel="noopener noreferrer" title="Abrir su encuesta — copia el link" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "inherit" }}>
+                      <span className="av">{iniciales(p.nombre)}</span>
+                      {p.nombre}
+                      {p.salidaLabel ? <span className="dt">{p.salidaLabel}</span> : null}
+                    </a>
+                    {p.email ? (
+                      <form action={reenviarEncuesta} style={{ display: "inline" }}>
+                        <input type="hidden" name="feedbackId" value={p.id} />
+                        <button type="submit" className="btn btn-glass btn-sm" title={`Reenviar la encuesta a ${p.email}`} style={{ padding: "3px 9px", fontSize: 11.5 }}>✉ Reenviar</button>
+                      </form>
+                    ) : null}
+                  </span>
+                ))}
+              </div>
+            </ExpMenu>
+          ))
+        )}
+
+        {/* Respuestas por experiencia (filtro por estrellas) */}
+        <div className="xh4" style={{ marginTop: 26 }}>Respuestas</div>
+        {conRespuestas.length === 0 ? (
+          <div className="empty">Aún nadie responde. Las respuestas aparecerán aquí.</div>
+        ) : (
+          conRespuestas.map((e: EncuestaExperiencia) => {
+            const tasa = e.invitadas ? Math.round((e.respondidas / e.invitadas) * 100) : 0;
+            return (
+              <div className="card pad" key={e.experienceId} style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>
+                    {e.nombre}
+                    {e.ubicacion ? <span className="mut" style={{ fontSize: 12.5, fontWeight: 400 }}> · {e.ubicacion}</span> : null}
                   </div>
-                  <div className="act-row" style={{ marginTop: 12 }}>
-                    <form action={setTestimonioAction} style={{ display: "inline-block" }}>
-                      <input type="hidden" name="id" value={t.id} />
-                      <input type="hidden" name="decision" value="approved" />
-                      <button className="btn btn-orange btn-sm" type="submit" disabled={!t.consent}>
-                        Aprobar
-                      </button>
-                    </form>
-                    <form action={setTestimonioAction} style={{ display: "inline-block" }}>
-                      <input type="hidden" name="id" value={t.id} />
-                      <input type="hidden" name="decision" value="rejected" />
-                      <button className="btn btn-ghost btn-sm" type="submit">
-                        Rechazar
-                      </button>
-                    </form>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12.5 }}>
+                    <span><Stars v={e.avgStars} /> <b>{e.avgStars ?? "—"}</b></span>
+                    <span className="mut">NPS <b style={{ color: "var(--charcoal)" }}>{e.avgNps ?? "—"}</b></span>
+                    <span className="mut">tasa <b style={{ color: "var(--charcoal)" }}>{tasa}%</b> ({e.respondidas}/{e.invitadas})</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty" style={{ marginTop: 12 }}>
-              Nada por moderar. Los testimonios nuevos aparecen aquí.
-            </div>
-          )}
+                <RespuestasExp respuestas={e.respuestas} />
+              </div>
+            );
+          })
+        )}
+
+        {/* ══════════ ③ TESTIMONIOS ══════════ */}
+        <div className="sec-head" style={{ marginTop: 36 }}>
+          <span className="eyebrow"><span className="sl">{"//"}</span> Testimonios</span>
+          <div className="subtitle" style={{ margin: "4px 0 0" }}>Por aprobar antes de publicarlos.</div>
         </div>
+        {testimoniosPendientes.length ? (
+          <div className="testi">
+            {testimoniosPendientes.map((t) => (
+              <div className="tcard glass" key={t.id}>
+                <div className="tt">“{t.texto}”</div>
+                <div className="tm">
+                  <span className="who">
+                    {t.iniciales} · {t.experiencia}
+                    {!t.consent ? <span style={{ color: "var(--orange)" }}> · sin consentimiento</span> : null}
+                  </span>
+                  <span className="st">{t.stars != null ? "★".repeat(Math.min(5, Math.round(t.stars))) : ""}</span>
+                </div>
+                <div className="act-row" style={{ marginTop: 12 }}>
+                  <form action={setTestimonioAction} style={{ display: "inline-block" }}>
+                    <input type="hidden" name="id" value={t.id} />
+                    <input type="hidden" name="decision" value="approved" />
+                    <button className="btn btn-orange btn-sm" type="submit" disabled={!t.consent}>Aprobar</button>
+                  </form>
+                  <form action={setTestimonioAction} style={{ display: "inline-block" }}>
+                    <input type="hidden" name="id" value={t.id} />
+                    <input type="hidden" name="decision" value="rejected" />
+                    <button className="btn btn-ghost btn-sm" type="submit">Rechazar</button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty">Nada por moderar. Los testimonios nuevos aparecen aquí.</div>
+        )}
       </section>
     </AdminShell>
   );
