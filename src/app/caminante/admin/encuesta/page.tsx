@@ -5,6 +5,7 @@ import { setTestimonioAction } from "@/lib/admin/encuesta-actions";
 import {
   reenviarEncuesta,
   reenviarEncuestaPendientes,
+  reenviarEncuestaTodos,
   reenviarDeslinde,
   reenviarDeslindesTodos,
 } from "@/lib/feedback/resend-actions";
@@ -177,6 +178,11 @@ export default async function EncuestaPage({
     fetchEncuestaAdmin(),
     fetchDeslindesPendientes(),
   ]);
+  // Total de encuestas enviadas sin responder (todas las experiencias).
+  const encuestasPend = experiencias.reduce(
+    (n, e) => n + e.personas.filter((p) => p.estado === "invitada").length,
+    0,
+  );
 
   return (
     <AdminShell active="encuesta">
@@ -215,6 +221,26 @@ export default async function EncuestaPage({
             </div>
           </div>
         </div>
+
+        {/* Recordatorio global de encuestas sin responder */}
+        {encuestasPend > 0 ? (
+          <div className="card pad" style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>
+                ✉ Encuestas sin responder ({encuestasPend})
+              </div>
+              <form action={reenviarEncuestaTodos}>
+                <button type="submit" className="btn btn-orange btn-sm">
+                  ✉ Recordar encuesta a todos
+                </button>
+              </form>
+            </div>
+            <p className="mut" style={{ fontSize: 12.5, marginTop: 8, marginBottom: 0 }}>
+              Reenvía la encuesta a todos los pendientes de todas las experiencias. También puedes recordar
+              por experiencia o persona más abajo.
+            </p>
+          </div>
+        ) : null}
 
         {/* Deslindes pendientes de firma (pagó, falta firmar) */}
         {deslindesPend.length ? (

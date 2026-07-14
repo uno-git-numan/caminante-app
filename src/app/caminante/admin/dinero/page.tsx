@@ -242,9 +242,22 @@ export default async function DineroPage() {
             </table>
           </div>
         </div>
+        {/* Facturación CFDI: se opera desde aquí (movida del nav a Dinero). */}
+        <div className="card pad" style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div>
+            <span className="subtitle" style={{ margin: 0 }}>Facturación CFDI</span>
+            <p className="mut" style={{ fontSize: 12.5, margin: "4px 0 0" }}>
+              Lo emitido y lo que sigue por-emitir, con descarga de XML/PDF. Los clientes facturan solos
+              en la autofactura pública.
+            </p>
+          </div>
+          <a href="/caminante/admin/facturacion" className="btn btn-glass btn-sm">
+            Abrir facturación →
+          </a>
+        </div>
+
         <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
-          Los ingresos excluyen reembolsos. La comisión usa el % congelado en cada venta. La
-          facturación CFDI vive en La Caja (sesión de finanzas).
+          Los ingresos excluyen reembolsos. La comisión usa el % congelado en cada venta.
         </p>
       </section>
     </AdminShell>

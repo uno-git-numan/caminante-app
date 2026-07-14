@@ -77,7 +77,12 @@ export default async function FacturacionAdminPage() {
   const totalPorEmitir = porEmitir.reduce((n, p) => n + Number(p.amount_mxn || 0), 0);
 
   return (
-    <AdminShell active="facturacion">
+    <AdminShell active="dinero">
+      <div style={{ marginBottom: 14 }}>
+        <a href="/caminante/admin/dinero" className="mut" style={{ fontSize: 13, textDecoration: "none" }}>
+          ← Dinero
+        </a>
+      </div>
       <div className="sec-head">
         <span className="eyebrow"><span className="sl">{"//"}</span> Facturación</span>
         <h1 className="display">CFDI de ingresos</h1>

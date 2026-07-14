@@ -21,7 +21,7 @@ export async function approveOperador(email: string): Promise<{ ok: boolean; err
   const sb = createSupabaseAdminClient();
   const { error } = await sb.from("admin_whitelist").update({ is_active: true }).eq("email", e);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/caminante/admin/accesos");
+  revalidatePath("/caminante/admin/solicitudes");
   return { ok: true };
 }
 
@@ -34,6 +34,6 @@ export async function rejectOperador(email: string): Promise<{ ok: boolean; erro
   // activo por accidente desde esta acción.
   const { error } = await sb.from("admin_whitelist").delete().eq("email", e).eq("is_active", false);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/caminante/admin/accesos");
+  revalidatePath("/caminante/admin/solicitudes");
   return { ok: true };
 }

@@ -16,6 +16,10 @@ const G3 =
   '<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
 const MARK = `<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">${G1}${G2}${G3}</svg>`;
 
+// Ícono de perfil para el acceso al perfil del operador (a la derecha del nav).
+const PERSON_ICON =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
+
 // Expandibles: ningún número es un callejón sin salida. Delegación global —
 // ignora clicks en controles interactivos para no pelearse con forms/links.
 const TOGGLE_JS = `
@@ -36,25 +40,23 @@ export type AdminSection =
   | "panorama"
   | "eventos"
   | "solicitudes"
-  | "accesos"
   | "reservas"
   | "personas"
   | "dinero"
-  | "facturacion"
   | "operador"
   | "encuesta";
 
 // Al lanzar cada fase, se cambia soon→href. No enlaza el marketplace dormido.
+// Nav principal. "Accesos" se fundió en Solicitudes (solicitud operador +
+// solicitud cliente) y "Facturación" se movió dentro de Dinero. "Operador" se
+// renderiza aparte, a la derecha del nav con ícono de perfil.
 const items: { key: AdminSection; label: string; href?: string; soon?: boolean }[] = [
   { key: "panorama", label: "Panorama", href: "/caminante/admin" },
   { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
   { key: "solicitudes", label: "Solicitudes", href: "/caminante/admin/solicitudes" },
-  { key: "accesos", label: "Accesos", href: "/caminante/admin/accesos" },
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
   { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
   { key: "dinero", label: "Dinero", href: "/caminante/admin/dinero" },
-  { key: "facturacion", label: "Facturación", href: "/caminante/admin/facturacion" },
-  { key: "operador", label: "Operador", href: "/caminante/admin/operadores" },
   { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
 ];
 
@@ -95,8 +97,8 @@ export default async function AdminShell({
   children: React.ReactNode;
 }) {
   const [pendientes, accesos] = await Promise.all([pendientesSolicitudes(), pendientesAccesos()]);
-  const badgeDe = (key: AdminSection): number =>
-    key === "solicitudes" ? pendientes : key === "accesos" ? accesos : 0;
+  // Solicitudes ahora agrupa operador (accesos) + cliente (fechas) → un solo badge.
+  const badgeDe = (key: AdminSection): number => (key === "solicitudes" ? pendientes + accesos : 0);
   return (
     <div className="adm">
       <style dangerouslySetInnerHTML={{ __html: ADMIN_CSS }} />
@@ -152,6 +154,19 @@ export default async function AdminShell({
               </span>
             ),
           )}
+          {/* Perfil del operador: a la derecha del nav, con ícono de perfil. */}
+          <Link
+            href="/caminante/admin/operadores"
+            className={active === "operador" ? "on" : ""}
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}
+            title="Perfil del operador"
+          >
+            <span
+              style={{ display: "inline-flex", alignItems: "center" }}
+              dangerouslySetInnerHTML={{ __html: PERSON_ICON }}
+            />
+            Operador
+          </Link>
         </nav>
       </header>
       <div className="page">{children}</div>

@@ -69,3 +69,17 @@ export async function reenviarEncuestaPendientes(formData: FormData): Promise<vo
   }
   revalidatePath("/caminante/admin/encuesta");
 }
+
+// Reenvía la encuesta a TODOS los pendientes de TODAS las experiencias.
+export async function reenviarEncuestaTodos(): Promise<void> {
+  if (!(await isCurrentUserAdmin())) return;
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb
+    .from("experience_feedback")
+    .select("id")
+    .neq("status", "submitted");
+  for (const r of (data ?? []) as { id: string }[]) {
+    await resendSurveyEmail(r.id);
+  }
+  revalidatePath("/caminante/admin/encuesta");
+}

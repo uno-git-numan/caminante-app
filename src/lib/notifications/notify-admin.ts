@@ -188,7 +188,7 @@ export async function notifySolicitudFecha(info: SolicitudFechaInfo): Promise<vo
 }
 
 // ── Solicitud de acceso de OPERADOR (whitelist is_active=false) ──────────────
-const PANEL_ACCESOS = "https://caminante.numanhub.com/caminante/admin/accesos";
+const PANEL_ACCESOS = "https://caminante.numanhub.com/caminante/admin/solicitudes";
 
 export type AccesoOperadorInfo = { email: string; nombre: string };
 
