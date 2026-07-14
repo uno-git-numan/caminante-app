@@ -16,6 +16,7 @@ const navItems = [
 function isImmersive(pathname: string): boolean {
   return (
     pathname.startsWith("/caminante/experiencias/") ||
+    pathname.startsWith("/caminante/destinos/") || // páginas de destino (nav propia .dst)
     pathname.startsWith("/caminante/feedback/") ||
     pathname.startsWith("/caminante/registro/") ||
     pathname.startsWith("/caminante/solicitar/") || // solicitar fecha: topbar propio
