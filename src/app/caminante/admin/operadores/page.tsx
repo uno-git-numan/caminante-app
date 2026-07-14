@@ -3,7 +3,7 @@
 // Publicar–Borrador / Vista previa. La página pública se alimenta 1:1 de esto.
 import AdminShell from "../ui/AdminShell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { TeamMember } from "@/lib/operators/public";
+import { cleanAdjust, type TeamMember } from "@/lib/operators/public";
 import OperadorForm from "./OperadorForm";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,9 @@ type Row = {
   slug: string | null;
   bio: string | null;
   photo_url: string | null;
+  photo_adjust: unknown;
   hero_photo_url: string | null;
+  hero_adjust: unknown;
   instagram: string | null;
   team: TeamMember[] | null;
   is_public: boolean;
@@ -25,7 +27,7 @@ export default async function OperadoresAdminPage() {
   const sb = createSupabaseAdminClient();
   const { data } = await sb
     .from("operators")
-    .select("id, name, slug, bio, photo_url, hero_photo_url, instagram, team, is_public")
+    .select("id, name, slug, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public")
     .eq("active", true)
     .order("created_at");
   const rows = (data ?? []) as Row[];
@@ -54,7 +56,9 @@ export default async function OperadoresAdminPage() {
               slug: r.slug ?? "",
               bio: r.bio ?? "",
               photoUrl: r.photo_url ?? "",
+              photoAdjust: cleanAdjust(r.photo_adjust),
               heroPhotoUrl: r.hero_photo_url ?? "",
+              heroAdjust: cleanAdjust(r.hero_adjust),
               instagram: r.instagram ?? "",
               team: Array.isArray(r.team) ? r.team : [],
               isPublic: r.is_public,

@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchOperatorProfile } from "@/lib/operators/public";
+import { adjustStyle } from "@/lib/operators/photo-style";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { OPF_CSS } from "./opf-css";
 
@@ -85,7 +86,7 @@ export default async function OperadorPage({
         {op.heroPhotoUrl ? (
           <div className="ph">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={op.heroPhotoUrl} alt="" />
+            <img src={op.heroPhotoUrl} alt="" style={adjustStyle(op.heroAdjust)} />
           </div>
         ) : null}
         <div className="opf-wrap">
@@ -93,7 +94,7 @@ export default async function OperadorPage({
             <span className="opf-av">
               {op.photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={op.photoUrl} alt={op.name} />
+                <img src={op.photoUrl} alt={op.name} style={adjustStyle(op.photoAdjust)} />
               ) : (
                 <span dangerouslySetInnerHTML={{ __html: AV_MARK }} />
               )}
@@ -193,7 +194,7 @@ export default async function OperadorPage({
                   {t.photoUrl ? (
                     <span className="im">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={t.photoUrl} alt={t.name} />
+                      <img src={t.photoUrl} alt={t.name} style={adjustStyle(t.adjust)} />
                     </span>
                   ) : null}
                   <span className="nm">{t.name}</span>

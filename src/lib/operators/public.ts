@@ -17,11 +17,15 @@ export type OperatorChip = {
   stars: number | null; // promedio de overall_stars (encuestas respondidas); null = sin datos
 };
 
+// Ajuste de encuadre no destructivo: zoom (1..3) + punto focal x/y (0..100 %).
+export type PhotoAdjust = { zoom: number; x: number; y: number };
+
 export type TeamMember = {
   name: string;
   role: string; // vocación/profesión
   quote: string;
   photoUrl: string;
+  adjust: PhotoAdjust | null;
 };
 
 export type OperatorProfile = {
@@ -29,7 +33,9 @@ export type OperatorProfile = {
   name: string;
   bio: string | null;
   photoUrl: string | null;
+  photoAdjust: PhotoAdjust | null;
   heroPhotoUrl: string | null; // foto de naturaleza de fondo del hero
+  heroAdjust: PhotoAdjust | null;
   instagram: string | null;
   team: TeamMember[];
   isPublic: boolean;
@@ -44,6 +50,21 @@ export type OperatorProfile = {
   experiencias: ExperienceCard[]; // publicadas del operador
   testimonios: { text: string; stars: number | null; initials: string; location: string }[];
 };
+
+// Sanea un ajuste de encuadre venido de la BD (o null).
+export function cleanAdjust(raw: unknown): PhotoAdjust | null {
+  if (!raw || typeof raw !== "object") return null;
+  const a = raw as Record<string, unknown>;
+  const num = (v: unknown, min: number, max: number, def: number) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+  };
+  const zoom = num(a.zoom, 1, 4, 1);
+  const x = num(a.x, -150, 150, 0);
+  const y = num(a.y, -150, 150, 0);
+  if (zoom === 1 && x === 0 && y === 0) return null; // sin ajuste
+  return { zoom, x, y };
+}
 
 // Iniciales para firmar testimonios (regla: solo con iniciales, jamás nombre completo).
 function initialsOf(fullName: string | null | undefined): string {
@@ -143,7 +164,7 @@ export async function fetchOperatorProfile(
     const sb = createSupabaseAdminClient();
     const { data: op, error } = await sb
       .from("operators")
-      .select("id, slug, name, bio, photo_url, hero_photo_url, instagram, team, is_public, created_at")
+      .select("id, slug, name, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public, created_at")
       .eq("slug", slug)
       .maybeSingle();
     if (error || !op) return null;
@@ -229,13 +250,16 @@ export async function fetchOperatorProfile(
         role: String(t.role ?? "").trim(),
         quote: String(t.quote ?? "").trim(),
         photoUrl: String(t.photoUrl ?? "").trim(),
+        adjust: cleanAdjust((t as { adjust?: unknown }).adjust),
       }));
     return {
       slug: op.slug as string,
       name: op.name as string,
       bio: (op.bio as string | null) ?? null,
       photoUrl: (op.photo_url as string | null) ?? null,
+      photoAdjust: cleanAdjust(op.photo_adjust),
       heroPhotoUrl: (op.hero_photo_url as string | null) ?? null,
+      heroAdjust: cleanAdjust(op.hero_adjust),
       instagram: (op.instagram as string | null) ?? null,
       team,
       isPublic: !!op.is_public,

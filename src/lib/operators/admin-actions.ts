@@ -5,7 +5,7 @@
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { TeamMember } from "@/lib/operators/public";
+import { cleanAdjust, type TeamMember } from "@/lib/operators/public";
 
 export type OperadorSaveResult = { ok: boolean; error?: string };
 
@@ -26,18 +26,27 @@ export async function saveOperatorProfile(formData: FormData): Promise<OperadorS
   const instagram = String(formData.get("instagram") ?? "").trim().replace(/^@/, "") || null;
   const photoUrl = String(formData.get("photoUrl") ?? "").trim() || null;
   const heroPhotoUrl = String(formData.get("heroPhotoUrl") ?? "").trim() || null;
+  const parseAdjust = (k: string) => {
+    try { return cleanAdjust(JSON.parse(String(formData.get(k) ?? "null"))); } catch { return null; }
+  };
+  const photoAdjust = photoUrl ? parseAdjust("photoAdjust") : null;
+  const heroAdjust = heroPhotoUrl ? parseAdjust("heroAdjust") : null;
 
   // Equipo: llega como JSON (el form lo arma); se sanea server-side.
   let team: TeamMember[] = [];
   try {
     const raw = JSON.parse(String(formData.get("team") ?? "[]")) as Partial<TeamMember>[];
     team = (Array.isArray(raw) ? raw : [])
-      .map((t) => ({
-        name: String(t?.name ?? "").trim().slice(0, 80),
-        role: String(t?.role ?? "").trim().slice(0, 120),
-        quote: String(t?.quote ?? "").trim().slice(0, 200),
-        photoUrl: String(t?.photoUrl ?? "").trim().slice(0, 500),
-      }))
+      .map((t) => {
+        const pu = String(t?.photoUrl ?? "").trim().slice(0, 500);
+        return {
+          name: String(t?.name ?? "").trim().slice(0, 80),
+          role: String(t?.role ?? "").trim().slice(0, 120),
+          quote: String(t?.quote ?? "").trim().slice(0, 200),
+          photoUrl: pu,
+          adjust: pu ? cleanAdjust((t as { adjust?: unknown }).adjust) : null,
+        };
+      })
       .filter((t) => t.name);
   } catch {
     return { ok: false, error: "El equipo no se pudo leer. Intenta de nuevo." };
@@ -46,7 +55,7 @@ export async function saveOperatorProfile(formData: FormData): Promise<OperadorS
   const sb = createSupabaseAdminClient();
   const { data, error } = await sb
     .from("operators")
-    .update({ name, bio, instagram, photo_url: photoUrl, hero_photo_url: heroPhotoUrl, team })
+    .update({ name, bio, instagram, photo_url: photoUrl, photo_adjust: photoAdjust, hero_photo_url: heroPhotoUrl, hero_adjust: heroAdjust, team })
     .eq("id", id)
     .select("slug")
     .single();
