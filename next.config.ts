@@ -9,15 +9,12 @@ const nextConfig: NextConfig = {
           source: "/caminante",
           destination: "/landing/index.html",
         },
-        // Páginas de destino estáticas (mismo patrón que el landing).
-        {
-          source: "/caminante/destinos/baja-california-sur",
-          destination: "/landing/destinos/baja-california-sur.html",
-        },
-        {
-          source: "/caminante/destinos/estado-de-mexico",
-          destination: "/landing/destinos/estado-de-mexico.html",
-        },
+        // NOTA (jul 2026): las páginas de destino (baja-california-sur,
+        // estado-de-mexico, …) YA NO se reescriben al HTML estático. Ahora las
+        // sirve la ruta dinámica /caminante/destinos/[estado] (data-driven desde
+        // la tabla destinos), reproduciendo el diseño pixel-idéntico. Los HTML en
+        // public/landing/destinos/*.html quedan como respaldo/fuente del diseño.
+        //
         // NOTA (jul 2026): ensenada-de-muertos y recoleccion-de-hongos YA NO se
         // reescriben al HTML estático. Ahora las sirve el template dinámico v2
         // (data.design === "v2" → ExperienceTemplateV2), pixel-idéntico al diseño
