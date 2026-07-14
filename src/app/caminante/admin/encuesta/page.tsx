@@ -10,6 +10,7 @@ import {
   reenviarDeslindesTodos,
 } from "@/lib/feedback/resend-actions";
 import { fetchDeslindesPendientes } from "@/lib/registration/pending";
+import ConfirmSubmit from "../ui/ConfirmSubmit";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Encuesta · Admin — Caminante" };
@@ -230,9 +231,12 @@ export default async function EncuestaPage({
                 ✉ Encuestas sin responder ({encuestasPend})
               </div>
               <form action={reenviarEncuestaTodos}>
-                <button type="submit" className="btn btn-orange btn-sm">
+                <ConfirmSubmit
+                  className="btn btn-orange btn-sm"
+                  message={`Vas a mandar la encuesta a ${encuestasPend} ${encuestasPend === 1 ? "persona pendiente" : "personas pendientes"}. ¿Seguro?`}
+                >
                   ✉ Recordar encuesta a todos
-                </button>
+                </ConfirmSubmit>
               </form>
             </div>
             <p className="mut" style={{ fontSize: 12.5, marginTop: 8, marginBottom: 0 }}>
@@ -250,9 +254,12 @@ export default async function EncuestaPage({
                 ⚠ Deslindes pendientes de firma ({deslindesPend.length})
               </div>
               <form action={reenviarDeslindesTodos}>
-                <button type="submit" className="btn btn-orange btn-sm">
+                <ConfirmSubmit
+                  className="btn btn-orange btn-sm"
+                  message={`Vas a mandar el recordatorio de deslinde a ${deslindesPend.length} ${deslindesPend.length === 1 ? "persona" : "personas"}. ¿Seguro?`}
+                >
                   ✉ Recordar a todos
-                </button>
+                </ConfirmSubmit>
               </form>
             </div>
             <div className="pchips" style={{ marginTop: 12 }}>
