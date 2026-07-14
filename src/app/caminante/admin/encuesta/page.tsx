@@ -2,6 +2,7 @@ import AdminShell from "../ui/AdminShell";
 import { fetchEncuestaAdmin, iniciales } from "@/lib/admin/queries";
 import type { EncuestaExperiencia } from "@/lib/admin/queries";
 import { setTestimonioAction } from "@/lib/admin/encuesta-actions";
+import { reenviarEncuesta, reenviarEncuestaPendientes } from "@/lib/feedback/resend-actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Encuesta · Admin — Caminante" };
@@ -98,26 +99,43 @@ function ExperienciaCard({ e }: { e: EncuestaExperiencia }) {
                   <span className="dt">{p.fecha}</span>
                 </span>
               ) : (
-                <a
-                  className="pchip pend"
-                  key={i}
-                  href={`/caminante/feedback/${p.token}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Abrir su encuesta — copia el link y mándaselo por WhatsApp"
-                >
-                  <span className="av">{iniciales(p.nombre)}</span>
-                  {p.nombre} <span className="stt">Pendiente</span>
-                  {p.salidaLabel ? <span className="dt">{p.salidaLabel}</span> : null}
-                </a>
+                <span className="pchip pend" key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <a
+                    href={`/caminante/feedback/${p.token}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Abrir su encuesta — copia el link"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "inherit" }}
+                  >
+                    <span className="av">{iniciales(p.nombre)}</span>
+                    {p.nombre} <span className="stt">Pendiente</span>
+                    {p.salidaLabel ? <span className="dt">{p.salidaLabel}</span> : null}
+                  </a>
+                  {p.email ? (
+                    <form action={reenviarEncuesta} style={{ display: "inline" }}>
+                      <input type="hidden" name="feedbackId" value={p.id} />
+                      <button type="submit" className="btn btn-glass btn-sm" title={`Reenviar la encuesta a ${p.email}`} style={{ padding: "3px 9px", fontSize: 11.5 }}>
+                        ✉ Reenviar
+                      </button>
+                    </form>
+                  ) : null}
+                </span>
               ),
             )}
             {!e.personas.length ? <span className="mut">Sin invitaciones aún.</span> : null}
           </div>
           {pendientes.length ? (
-            <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
-              Toca a un pendiente para abrir su encuesta — copia el link y mándaselo por WhatsApp.
-            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
+              <form action={reenviarEncuestaPendientes}>
+                <input type="hidden" name="experienceId" value={e.experienceId} />
+                <button type="submit" className="btn btn-orange btn-sm">
+                  ✉ Reenviar encuesta a los {pendientes.length} pendientes
+                </button>
+              </form>
+              <span className="mut" style={{ fontSize: 12 }}>
+                o toca a un pendiente para copiar su link y mandarlo por WhatsApp.
+              </span>
+            </div>
           ) : null}
 
           {e.abiertas.length ? (

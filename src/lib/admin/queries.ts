@@ -1014,15 +1014,18 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
 // ── Encuesta de satisfacción (F5) ────────────────────────────────────────
 
 export type EncuestaPersona = {
+  id: string; // feedback row id — para reenviar su correo
   nombre: string;
   estado: "respondida" | "invitada";
   fecha: string | null; // respondida: submitted_at · invitada: invited_at
   salidaLabel: string;
   token: string; // para armar el link /caminante/feedback/[token]
+  email: string | null; // a dónde se reenvía la encuesta
   stars: number | null;
 };
 
 export type EncuestaExperiencia = {
+  experienceId: string;
   slug: string;
   nombre: string;
   ubicacion: string | null;
@@ -1167,17 +1170,20 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
         const quien = cById.get(f.contact_id);
         const slotId = slotByResv.get(f.reservation_id);
         return {
+          id: f.id,
           nombre: quien?.full_name || quien?.email || "—",
           estado: f.status === "submitted" ? "respondida" : "invitada",
           fecha: formatDiaMes(f.status === "submitted" ? f.submitted_at : f.invited_at),
           salidaLabel: (slotId && labelBySlot.get(slotId)) || "",
           token: f.token,
+          email: quien?.email ?? null,
           stars: f.overall_stars,
         };
       })
       .sort((a, b) => Number(b.estado === "respondida") - Number(a.estado === "respondida"));
 
     experiencias.push({
+      experienceId: expId,
       slug: exp?.slug || "?",
       nombre: exp ? experienceTitle(exp.data, exp.slug) : "?",
       ubicacion: rows[0]?.location_label || data?.feedback?.locationLabel || null,

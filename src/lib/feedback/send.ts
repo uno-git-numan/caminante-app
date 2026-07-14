@@ -162,3 +162,32 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
   }
   return res;
 }
+
+// Reenvía el correo de encuesta de UNA invitación pendiente (no submitted).
+// Reusa el token existente (no crea otra fila). Best-effort → bool.
+export async function resendSurveyEmail(feedbackId: string): Promise<boolean> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const { data: f } = await sb
+      .from("experience_feedback")
+      .select("token, status, contact_id, location_label")
+      .eq("id", feedbackId)
+      .maybeSingle();
+    if (!f || f.status === "submitted" || !f.token) return false;
+    const { data: c } = await sb
+      .from("contacts")
+      .select("full_name, email")
+      .eq("id", f.contact_id as string)
+      .maybeSingle();
+    const email = c?.email as string | undefined;
+    if (!email) return false;
+    const loc = ((f.location_label as string | null) || "tu experiencia").split(",")[0];
+    return await sendResend(
+      email,
+      `¿Cómo te fuiste de ${loc}?`,
+      emailHtml(firstName((c?.full_name as string | null) ?? null), f.token as string),
+    );
+  } catch {
+    return false;
+  }
+}
