@@ -21,9 +21,11 @@ const firstName = (full: string | null): string => {
 const money = (n: number) =>
   "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0 });
 
-// Reintenta ante rate limit/5xx (ver @/lib/email/resend).
-const sendResend = (to: string, subject: string, html: string) =>
-  sendViaResend(to, subject, html, { ua: "caminante-confirmacion/1.0" });
+// Reintenta ante rate limit/5xx (ver @/lib/email/resend). text = versión en
+// texto plano (multipart → mejor deliverability). Estos correos son
+// transaccionales (compra/deslinde) → SIN List-Unsubscribe (deben llegar).
+const sendResend = (to: string, subject: string, html: string, text?: string) =>
+  sendViaResend(to, subject, html, { ua: "caminante-confirmacion/1.0", text });
 
 export type ConfirmacionCompraInfo = {
   email: string;
@@ -85,7 +87,14 @@ export async function notifyConfirmacionCompra(info: ConfirmacionCompraInfo): Pr
   try {
     if (!info.email || !info.email.includes("@")) return false;
     const subject = `Tu lugar en ${info.experiencia} está apartado 🌿`;
-    return await sendResend(info.email, subject, confirmacionHtml(info));
+    const text =
+      `¡Tu lugar está apartado, ${firstName(info.nombre)}!\n\nRecibimos tu pago.\n` +
+      `Experiencia: ${info.experiencia}\n${info.salida ? `Salida: ${info.salida}\n` : ""}` +
+      `Personas: ${info.personas}\n${info.tierLabel ? `Nivel: ${info.tierLabel}\n` : ""}` +
+      `Total pagado: ${money(info.montoMxn)} MXN\n` +
+      (info.deslindeUrl ? `\nFalta firmar tu deslinde: ${info.deslindeUrl}\n` : "") +
+      `\n¿Dudas? Responde este correo. Caminante by NUMAN · uno@numanhub.com`;
+    return await sendResend(info.email, subject, confirmacionHtml(info), text);
   } catch {
     return false;
   }
@@ -117,7 +126,8 @@ export async function notifyDeslindePendiente(info: {
 </table>
 <div style="max-width:540px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:${OLIVO};padding:18px 8px;">Caminante by NUMAN &middot; uno@numanhub.com</div>
 </td></tr></table></body></html>`;
-    return await sendResend(info.email, `Falta tu deslinde para ${info.experiencia} 🌿`, html);
+    const text = `Falta un paso, ${name}.\n\nAntes de ${info.experiencia} necesitamos tu deslinde firmado y tu perfil de seguridad. Son dos minutos:\n${info.deslindeUrl}\n\n¿Dudas? Responde este correo. Caminante by NUMAN · uno@numanhub.com`;
+    return await sendResend(info.email, `Falta tu deslinde para ${info.experiencia} 🌿`, html, text);
   } catch {
     return false;
   }

@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 import { sendViaResend } from "@/lib/email/resend";
+import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
 const SITE = "https://caminante.numanhub.com";
 
@@ -19,13 +20,22 @@ const firstName = (full: string | null): string => {
   return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
 };
 
+// Versión en texto plano (multipart → mejor deliverability).
+function surveyText(name: string, link: string): string {
+  return `Hola, ${name}.\n\nAntes de que se te borre, cuéntanos cómo te fuiste — son dos minutos:\n${link}\n\nSi dejas unas palabras quizá las compartamos, siempre solo con tus iniciales.\n\nCaminante by NUMAN · uno@numanhub.com`;
+}
+
 // Correo brandeado con 5 estrellas clicables (cada una abre la encuesta con esa nota).
-function emailHtml(name: string, token: string): string {
+// unsubUrl (opcional) agrega el pie de "date de baja" — obligatorio en envíos en lote.
+function emailHtml(name: string, token: string, unsubUrl?: string): string {
   const link = `${SITE}/caminante/feedback/${token}`;
   let stars = "";
   for (let n = 1; n <= 5; n++) {
     stars += `<a href="${link}?s=${n}" target="_blank" style="text-decoration:none;color:${DUNA};font-size:40px;line-height:1;padding:0 4px;">★</a>`;
   }
+  const baja = unsubUrl
+    ? `<div style="max-width:540px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:${OLIVO};padding:0 8px 18px;"><a href="${unsubUrl}" style="color:${OLIVO};">Darme de baja de estos correos</a></div>`
+    : "";
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"></head>
 <body style="margin:0;padding:0;background:${CREMA};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREMA};"><tr><td align="center" style="padding:32px 16px;">
@@ -44,13 +54,10 @@ function emailHtml(name: string, token: string): string {
 <tr><td style="padding:0 36px 30px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
 <div style="border-top:1px solid ${ARENA};padding-top:18px;font-size:13px;line-height:1.6;color:${OLIVO};">Si dejas unas palabras, quizá las compartamos —siempre solo con tus iniciales. ¿Dudas? Responde este correo.</div></td></tr>
 </table>
-<div style="max-width:540px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:${OLIVO};padding:18px 8px;">Caminante by NUMAN &middot; uno@numanhub.com</div>
+<div style="max-width:540px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:${OLIVO};padding:18px 8px 6px;">Caminante by NUMAN &middot; uno@numanhub.com</div>
+${baja}
 </td></tr></table></body></html>`;
 }
-
-// Reintenta ante rate limit/5xx (ver @/lib/email/resend).
-const sendResend = (to: string, subject: string, html: string) =>
-  sendViaResend(to, subject, html, { ua: "caminante-encuesta/1.0" });
 
 export type DispatchResult = {
   dueSlots: number;
@@ -96,7 +103,7 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
     // Asistentes de la salida (reservas que apartan) + contacto
     const { data: resv } = await sb
       .from("reservations")
-      .select("id, contact_id, contacts(full_name, email)")
+      .select("id, contact_id, contacts(full_name, email, mailing_unsubscribed_at)")
       .eq("slot_id", slot.id)
       .in("status", HOLDING_STATUSES);
 
@@ -104,10 +111,10 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
       const r = rRaw as unknown as {
         id: string;
         contact_id: string;
-        contacts: { full_name: string | null; email: string | null } | null;
+        contacts: { full_name: string | null; email: string | null; mailing_unsubscribed_at: string | null } | null;
       };
       const email = r.contacts?.email;
-      if (!email) {
+      if (!email || r.contacts?.mailing_unsubscribed_at) {
         res.skipped++;
         continue;
       }
@@ -138,11 +145,13 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
         continue;
       }
       const loc = (fb.locationLabel || "tu experiencia").split(",")[0];
-      const ok = await sendResend(
-        email,
-        `¿Cómo te fuiste de ${loc}?`,
-        emailHtml(firstName(r.contacts?.full_name ?? null), token),
-      );
+      const name = firstName(r.contacts?.full_name ?? null);
+      const unsub = unsubscribeUrl(r.contact_id);
+      const ok = await sendViaResend(email, `¿Cómo te fuiste de ${loc}?`, emailHtml(name, token, unsub), {
+        ua: "caminante-encuesta/1.0",
+        text: surveyText(name, `${SITE}/caminante/feedback/${token}`),
+        listUnsubscribeUrl: unsub,
+      });
       if (ok) res.invited++;
       else res.errors++;
     }
@@ -163,17 +172,23 @@ export async function resendSurveyEmail(feedbackId: string): Promise<boolean> {
     if (!f || f.status === "submitted" || !f.token) return false;
     const { data: c } = await sb
       .from("contacts")
-      .select("full_name, email")
+      .select("full_name, email, mailing_unsubscribed_at")
       .eq("id", f.contact_id as string)
       .maybeSingle();
     const email = c?.email as string | undefined;
     if (!email) return false;
+    if (c?.mailing_unsubscribed_at) return false; // respeta la baja de mailing
+    const contactId = f.contact_id as string;
+    const token = f.token as string;
+    const link = `${SITE}/caminante/feedback/${token}`;
     const loc = ((f.location_label as string | null) || "tu experiencia").split(",")[0];
-    return await sendResend(
-      email,
-      `¿Cómo te fuiste de ${loc}?`,
-      emailHtml(firstName((c?.full_name as string | null) ?? null), f.token as string),
-    );
+    const name = firstName((c?.full_name as string | null) ?? null);
+    const unsub = unsubscribeUrl(contactId);
+    return await sendViaResend(email, `¿Cómo te fuiste de ${loc}?`, emailHtml(name, token, unsub), {
+      ua: "caminante-encuesta/1.0",
+      text: surveyText(name, link),
+      listUnsubscribeUrl: unsub,
+    });
   } catch {
     return false;
   }

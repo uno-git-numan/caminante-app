@@ -11,11 +11,22 @@ export async function sendViaResend(
   to: string,
   subject: string,
   html: string,
-  opts: { ua?: string } = {},
+  // text = versión en texto plano (multipart → mejor deliverability, menos spam).
+  // listUnsubscribeUrl = baja de un clic (List-Unsubscribe + One-Click, RFC 8058);
+  // los correos en lote la llevan → Gmail/Yahoo los premian.
+  opts: { ua?: string; text?: string; listUnsubscribeUrl?: string } = {},
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key || !to || !to.includes("@")) return false;
-  const body = JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, html });
+  const payload: Record<string, unknown> = { from: FROM, to: [to], reply_to: REPLY_TO, subject, html };
+  if (opts.text) payload.text = opts.text;
+  if (opts.listUnsubscribeUrl) {
+    payload.headers = {
+      "List-Unsubscribe": `<${opts.listUnsubscribeUrl}>, <mailto:${REPLY_TO}?subject=Baja>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+  }
+  const body = JSON.stringify(payload);
   const headers = {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
