@@ -60,17 +60,29 @@ type FeedbackRow = {
   rebook_interest: boolean | null;
 };
 
-// Satisfacción del operador: respuestas submitted de reservas atribuidas a él.
-async function feedbackDelOperador(
+// IDs de las experiencias que OPERA (dueño = operator_id). Fuente de verdad de
+// la atribución: las reservas viejas (junio, pre-0016) no traen operator_id en
+// la reserva, pero SÍ pertenecen a una experiencia del operador.
+async function expIdsOfOperator(
   sb: ReturnType<typeof createSupabaseAdminClient>,
   operatorId: string,
+): Promise<string[]> {
+  const { data } = await sb.from("experiences").select("id").eq("operator_id", operatorId);
+  return ((data ?? []) as { id: string }[]).map((r) => r.id);
+}
+
+// Satisfacción del operador: respuestas submitted de sus experiencias.
+async function feedbackByExperiences(
+  sb: ReturnType<typeof createSupabaseAdminClient>,
+  expIds: string[],
 ): Promise<FeedbackRow[]> {
+  if (!expIds.length) return [];
   const { data } = await sb
     .from("experience_feedback")
-    .select("overall_stars, rebook_interest, reservations!inner(operator_id)")
-    .eq("reservations.operator_id", operatorId)
+    .select("overall_stars, rebook_interest")
+    .in("experience_id", expIds)
     .eq("status", "submitted");
-  return (data ?? []) as unknown as FeedbackRow[];
+  return (data ?? []) as FeedbackRow[];
 }
 
 function promedioStars(rows: FeedbackRow[]): { stars: number | null; n: number } {
@@ -91,7 +103,8 @@ export async function fetchOperatorChip(operatorId: string | null): Promise<Oper
       .eq("id", operatorId)
       .maybeSingle();
     if (error || !op?.is_public || !op.slug) return null;
-    const { stars } = promedioStars(await feedbackDelOperador(sb, operatorId));
+    const expIds = await expIdsOfOperator(sb, operatorId);
+    const { stars } = promedioStars(await feedbackByExperiences(sb, expIds));
     return {
       slug: op.slug as string,
       name: op.name as string,
@@ -136,13 +149,18 @@ export async function fetchOperatorProfile(
     if (error || !op) return null;
     if (!op.is_public && !opts?.includeDraft) return null;
     const operatorId = op.id as string;
+    const expIds = await expIdsOfOperator(sb, operatorId);
 
-    // Reservas pagadas/completadas del operador → viajeros + salidas con venta.
-    const { data: resvs } = await sb
-      .from("reservations")
-      .select("num_people, status, slot_id")
-      .eq("operator_id", operatorId)
-      .in("status", ["paid", "completed"]);
+    // Reservas pagadas/completadas de SUS EXPERIENCIAS → viajeros + salidas. Se
+    // atribuye por dueño de la experiencia (no por el snapshot de la reserva,
+    // que falta en las ventas de junio pre-0016).
+    const { data: resvs } = expIds.length
+      ? await sb
+          .from("reservations")
+          .select("num_people, status, slot_id")
+          .in("experience_id", expIds)
+          .in("status", ["paid", "completed"])
+      : { data: [] };
     const pagadas = (resvs ?? []) as { num_people: number; slot_id: string | null }[];
     const viajeros = pagadas.reduce((n, r) => n + (Number(r.num_people) || 0), 0);
     const slotIds = [...new Set(pagadas.map((r) => r.slot_id).filter(Boolean))] as string[];
@@ -159,7 +177,7 @@ export async function fetchOperatorProfile(
     }
 
     // Satisfacción + % volvería (encuesta).
-    const fb = await feedbackDelOperador(sb, operatorId);
+    const fb = await feedbackByExperiences(sb, expIds);
     const { stars, n: encuestas } = promedioStars(fb);
     const conRespuesta = fb.length;
     const volveria = conRespuesta
@@ -179,16 +197,16 @@ export async function fetchOperatorProfile(
 
     // Testimonios: SOLO aprobados en el panel de Encuesta (consentimiento + firma
     // con iniciales — jamás el nombre completo).
-    const { data: testis } = await sb
+    const { data: testis } = expIds.length
+      ? await sb
       .from("experience_feedback")
-      .select(
-        "testimonial_text, testimonial_stars, location_label, reservations!inner(operator_id), contacts(full_name)",
-      )
-      .eq("reservations.operator_id", operatorId)
+      .select("testimonial_text, testimonial_stars, location_label, contacts(full_name)")
+      .in("experience_id", expIds)
       .eq("publish_status", "approved")
       .eq("testimonial_consent", true)
       .order("submitted_at", { ascending: false })
-      .limit(12);
+      .limit(12)
+      : { data: [] };
     const testimonios = ((testis ?? []) as unknown as {
       testimonial_text: string | null;
       testimonial_stars: number | null;
