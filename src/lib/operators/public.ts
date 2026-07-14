@@ -17,12 +17,22 @@ export type OperatorChip = {
   stars: number | null; // promedio de overall_stars (encuestas respondidas); null = sin datos
 };
 
+export type TeamMember = {
+  name: string;
+  role: string; // vocación/profesión
+  quote: string;
+  photoUrl: string;
+};
+
 export type OperatorProfile = {
   slug: string;
   name: string;
   bio: string | null;
   photoUrl: string | null;
+  heroPhotoUrl: string | null; // foto de naturaleza de fondo del hero
   instagram: string | null;
+  team: TeamMember[];
+  isPublic: boolean;
   since: string; // created_at (ISO) — "opera desde"
   metrics: {
     salidas: number; // salidas pasadas con al menos una reserva pagada
@@ -111,16 +121,20 @@ export async function fetchOperatorChipForExperience(
 }
 
 // Perfil completo para /caminante/operador/[slug]. Null → notFound().
-export async function fetchOperatorProfile(slug: string): Promise<OperatorProfile | null> {
+export async function fetchOperatorProfile(
+  slug: string,
+  opts?: { includeDraft?: boolean }, // true = vista previa admin aunque no sea público
+): Promise<OperatorProfile | null> {
   if (!/^[a-z0-9-]+$/.test(slug)) return null;
   try {
     const sb = createSupabaseAdminClient();
     const { data: op, error } = await sb
       .from("operators")
-      .select("id, slug, name, bio, photo_url, instagram, is_public, created_at")
+      .select("id, slug, name, bio, photo_url, hero_photo_url, instagram, team, is_public, created_at")
       .eq("slug", slug)
       .maybeSingle();
-    if (error || !op?.is_public) return null;
+    if (error || !op) return null;
+    if (!op.is_public && !opts?.includeDraft) return null;
     const operatorId = op.id as string;
 
     // Reservas pagadas/completadas del operador → viajeros + salidas con venta.
@@ -189,12 +203,24 @@ export async function fetchOperatorProfile(slug: string): Promise<OperatorProfil
         location: t.location_label || "",
       }));
 
+    const teamRaw = Array.isArray(op.team) ? (op.team as Partial<TeamMember>[]) : [];
+    const team: TeamMember[] = teamRaw
+      .filter((t) => (t?.name || "").toString().trim())
+      .map((t) => ({
+        name: String(t.name ?? "").trim(),
+        role: String(t.role ?? "").trim(),
+        quote: String(t.quote ?? "").trim(),
+        photoUrl: String(t.photoUrl ?? "").trim(),
+      }));
     return {
       slug: op.slug as string,
       name: op.name as string,
       bio: (op.bio as string | null) ?? null,
       photoUrl: (op.photo_url as string | null) ?? null,
+      heroPhotoUrl: (op.hero_photo_url as string | null) ?? null,
       instagram: (op.instagram as string | null) ?? null,
+      team,
+      isPublic: !!op.is_public,
       since: op.created_at as string,
       metrics: { salidas, viajeros, stars, encuestas, volveria },
       experiencias,

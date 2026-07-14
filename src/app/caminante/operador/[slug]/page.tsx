@@ -5,11 +5,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchOperatorProfile } from "@/lib/operators/public";
+import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { OPF_CSS } from "./opf-css";
 
-// Isotipo compacto (glifo diagonal) para el avatar sin foto — igual al diseño.
+// Sello COMPLETO de Caminante en sus colores verdaderos (olive/sand/orange) —
+// regla de marca: el sello jamás se tiñe.
 const AV_MARK =
-  '<svg viewBox="-14 -14 145 149" role="img" aria-label="Caminante"><g fill="#637154"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g></svg>';
+  '<svg viewBox="-20 -20 477.31 161.74" role="img" aria-label="Caminante"><g fill="#637154"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g><g fill="#b6ada5"><path d="M218.65,2.3c-8.09,0-14.64,6.56-14.64,14.64s6.56,14.64,14.64,14.64,14.64-6.56,14.64-14.64-6.56-14.64-14.64-14.64"/><path d="M276.91,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/><path d="M189.47,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/></g><g fill="#ff5d36"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g></svg>';
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +40,17 @@ function tituloConAcento(name: string) {
   );
 }
 
-export default async function OperadorPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function OperadorPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ draft?: string }>;
+}) {
   const { slug } = await params;
-  const op = await fetchOperatorProfile(slug);
+  // ?draft=1 (solo admin): vista previa aunque el perfil no sea público aún.
+  const esDraft = (await searchParams).draft === "1" && (await isCurrentUserAdmin());
+  const op = await fetchOperatorProfile(slug, { includeDraft: esDraft });
   if (!op) notFound();
   const m = op.metrics;
 
@@ -64,13 +74,18 @@ export default async function OperadorPage({ params }: { params: Promise<{ slug:
   return (
     <div className="opf">
       <style dangerouslySetInnerHTML={{ __html: OPF_CSS }} />
+      {esDraft && !op.isPublic ? (
+        <div style={{ background: "#ff5d36", color: "#fff", textAlign: "center", padding: "10px 16px", fontSize: 13, fontWeight: 600 }}>
+          Vista previa — este perfil aún NO es público. Publícalo desde el panel.
+        </div>
+      ) : null}
 
       {/* HERO */}
       <header className="opf-hero">
-        {op.photoUrl ? (
+        {op.heroPhotoUrl ? (
           <div className="ph">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={op.photoUrl} alt="" />
+            <img src={op.heroPhotoUrl} alt="" />
           </div>
         ) : null}
         <div className="opf-wrap">
@@ -154,6 +169,37 @@ export default async function OperadorPage({ params }: { params: Promise<{ slug:
                     <span className="go">Ver experiencia →</span>
                   </div>
                 </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* EQUIPO */}
+      {op.team.length ? (
+        <section className="opf-sec">
+          <div className="opf-wrap">
+            <div className="hd">
+              <span className="opf-eyebrow">
+                <span className="sl">//</span> Su equipo
+              </span>
+              <h2 className="opf-display">
+                Quienes caminan <em className="opf-ac">contigo.</em>
+              </h2>
+            </div>
+            <div className="opf-team">
+              {op.team.map((t, i) => (
+                <div className="opf-member" key={i}>
+                  {t.photoUrl ? (
+                    <span className="im">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={t.photoUrl} alt={t.name} />
+                    </span>
+                  ) : null}
+                  <span className="nm">{t.name}</span>
+                  {t.role ? <span className="bio">{t.role}</span> : null}
+                  {t.quote ? <span className="qt">“{t.quote}”</span> : null}
+                </div>
               ))}
             </div>
           </div>
