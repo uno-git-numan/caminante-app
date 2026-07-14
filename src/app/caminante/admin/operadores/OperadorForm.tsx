@@ -170,8 +170,11 @@ export default function OperadorForm({ operador }: { operador: Operador }) {
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Updater FUNCIONAL (lee el estado más reciente): la subida de foto hace dos
+  // updates seguidos (photoUrl y luego adjust) — con el closure viejo el segundo
+  // pisaba al primero y borraba la URL recién subida ("se pasa a blanco").
   const setMember = (i: number, patch: Partial<TeamMember>) =>
-    setTeam(team.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+    setTeam((prev) => prev.map((t, j) => (j === i ? { ...t, ...patch } : t)));
 
   async function guardar() {
     setSaving(true); setStatus("");
