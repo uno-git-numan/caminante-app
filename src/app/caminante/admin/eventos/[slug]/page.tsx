@@ -121,6 +121,15 @@ export default async function EventoDetallePage({
             >
               Flyer redes
             </a>
+            <a
+              href={`/caminante/admin/kit/${ev.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-orange btn-sm"
+              title="Kit de comunicación: las 10 piezas canónicas de la experiencia (POST 4:5 y STORY 9:16) con captions en voz de marca"
+            >
+              Kit de comunicación
+            </a>
             {ev.status === "published" ? (
               <a
                 href={`/caminante/experiencias/${ev.slug}`}
