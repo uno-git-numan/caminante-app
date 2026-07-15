@@ -13,6 +13,17 @@ export const alt = "Caminante — experiencias en naturaleza";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+// El renderizador (satori) solo puede fetchear URLs ABSOLUTAS. Varias experiencias
+// (p.ej. ensenada) guardan la foto de hero como ruta relativa (/landing/... o
+// /experiencias/...) → se resuelve contra el dominio canónico. Sin esto: 500.
+const SITE = "https://caminante.numanhub.com";
+function absoluteUrl(raw: string): string {
+  const u = raw.trim();
+  if (!u) return "";
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  return `${SITE}${u.startsWith("/") ? "" : "/"}${u}`;
+}
+
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const e = await fetchExperienceBySlug(slug);
@@ -21,8 +32,40 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const title = (hero?.title || e?.title || "Experiencia en naturaleza").trim();
   const accent = (hero?.titleAccent || e?.titleAccent || "").trim();
   const eyebrow = (hero?.eyebrow || e?.estado || "").trim();
-  const bg = hero?.bg?.url || e?.heroImageUrl || "";
+  const bgUrl = absoluteUrl(hero?.bg?.url || e?.heroImageUrl || "");
 
+  // La OG image JAMÁS debe responder 500 (un link compartido sin preview = venta
+  // perdida). El renderizador falla DURANTE el stream si no puede fetchear la
+  // foto (y ahí ya no hay catch posible), así que la pre-descargamos nosotros y
+  // se la damos como data-URI; si falla la descarga, la tarjeta sale sin foto.
+  let bg = "";
+  if (bgUrl) {
+    try {
+      const r = await fetch(bgUrl);
+      const ct = r.headers.get("content-type") || "";
+      if (r.ok && ct.startsWith("image/")) {
+        const buf = await r.arrayBuffer();
+        bg = `data:${ct};base64,${Buffer.from(buf).toString("base64")}`;
+      }
+    } catch {
+      // sin foto — la tarjeta de marca se sostiene sola
+    }
+  }
+
+  return renderCard({ title, accent, eyebrow, bg });
+}
+
+function renderCard({
+  title,
+  accent,
+  eyebrow,
+  bg,
+}: {
+  title: string;
+  accent: string;
+  eyebrow: string;
+  bg: string;
+}) {
   return new ImageResponse(
     (
       <div
