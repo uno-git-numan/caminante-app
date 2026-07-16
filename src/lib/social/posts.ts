@@ -175,3 +175,16 @@ export async function listRecentPosts(limit = 60): Promise<SocialPost[]> {
   const { data } = await sb.from("social_posts").select(SELECT).order("created_at", { ascending: false }).limit(limit);
   return ((data || []) as Row[]).map(toPost);
 }
+
+// Posts cuya fecha relevante (programada, publicada o creada) cae en [fromISO, toISO).
+// Para la vista de calendario: cubre tanto lo programado a futuro como lo ya publicado.
+export async function fetchPostsBetween(fromISO: string, toISO: string): Promise<SocialPost[]> {
+  const sb = createSupabaseAdminClient();
+  const range = (col: string) => `and(${col}.gte.${fromISO},${col}.lt.${toISO})`;
+  const { data } = await sb
+    .from("social_posts")
+    .select(SELECT)
+    .or([range("scheduled_at"), range("published_at"), range("created_at")].join(","))
+    .order("scheduled_at", { ascending: true });
+  return ((data || []) as Row[]).map(toPost);
+}

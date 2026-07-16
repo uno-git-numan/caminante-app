@@ -14,6 +14,7 @@ import KitDeck from "./KitDeck";
 import { KitPieceControls } from "./KitClient";
 import { CampanaButton } from "./CampanaButton";
 import ConexionRedes from "./ConexionRedes";
+import KitToolbar from "./KitToolbar";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -114,6 +115,8 @@ export default async function KitPage({
       {redes === "error" ? <div className="banner err">No se pudo conectar Instagram{msg ? `: ${msg}` : ""}.</div> : null}
 
       <ConexionRedes returnTo={`/caminante/admin/kit/${slug}?f=${orient}`} />
+
+      <KitToolbar slug={slug} />
 
       <div className="bar">
         <span className="seg">

@@ -1,8 +1,9 @@
 // Cola de publicaciones a redes: lo PROGRAMADO (con opción de cancelar) + el
 // histórico reciente (publicado / fallido). Solo admin (gate del layout de admin).
 // El cron `publish-social` publica lo programado cuando vence.
-import { listRecentPosts, type SocialPost } from "@/lib/social/posts";
+import { listRecentPosts, fetchPostsBetween, type SocialPost } from "@/lib/social/posts";
 import { cancelarPostForm } from "@/lib/social/publish-actions";
+import ColaCalendar from "./ColaCalendar";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Cola de redes · Admin" };
@@ -28,8 +29,18 @@ const CSS = `
 .scq .btn:hover{background:#e6e2d9;}
 .scq a{color:#c23c1c;}
 .scq .empty{color:rgba(32,33,28,.5);font-size:14px;padding:8px 0;}
-.scq .back{display:inline-block;margin-top:8px;font-size:13px;color:#637154;text-decoration:none;}
+.scq .back{display:inline-block;margin-top:18px;font-size:13px;color:#637154;text-decoration:none;}
+.scq .vtoggle{display:inline-flex;gap:3px;background:#e9e6df;border-radius:999px;padding:3px;margin:10px 0 22px;}
+.scq .vtoggle a{border-radius:999px;padding:7px 16px;font-size:13px;font-weight:600;text-decoration:none;color:#20211c;}
+.scq .vtoggle a.on{background:#20211c;color:#fff;}
 `;
+
+// Mes siguiente ("YYYY-MM") para acotar el rango del calendario.
+function nextMonth(mp: string): string {
+  const [y, m] = mp.split("-").map(Number);
+  const idx = y * 12 + (m - 1) + 1;
+  return `${Math.floor(idx / 12)}-${String((idx % 12) + 1).padStart(2, "0")}`;
+}
 
 const CHIP: Record<SocialPost["status"], string> = {
   scheduled: "c-sched",
@@ -90,26 +101,53 @@ function Row({ post }: { post: SocialPost }) {
   );
 }
 
-export default async function SocialColaPage() {
-  const posts = await listRecentPosts(80);
-  const programadas = posts.filter((p) => p.status === "scheduled" || p.status === "publishing");
-  const historico = posts.filter((p) => p.status !== "scheduled" && p.status !== "publishing");
+export default async function SocialColaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; m?: string }>;
+}) {
+  const { view, m } = await searchParams;
+  const esLista = view === "lista";
+  const nowKey = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" }); // YYYY-MM-DD (CDMX)
+  const monthParam = /^\d{4}-\d{2}$/.test(m || "") ? (m as string) : nowKey.slice(0, 7);
+
+  // Datos según la vista.
+  let programadas: SocialPost[] = [];
+  let historico: SocialPost[] = [];
+  let mesPosts: SocialPost[] = [];
+  if (esLista) {
+    const posts = await listRecentPosts(80);
+    programadas = posts.filter((p) => p.status === "scheduled" || p.status === "publishing");
+    historico = posts.filter((p) => p.status !== "scheduled" && p.status !== "publishing");
+  } else {
+    mesPosts = await fetchPostsBetween(`${monthParam}-01T00:00:00-06:00`, `${nextMonth(monthParam)}-01T00:00:00-06:00`);
+  }
 
   return (
     <div className="scq">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="eyebrow">// Redes</div>
-      <h1>Cola de publicaciones</h1>
+      <h1>Calendario de redes</h1>
       <p className="lead">
-        Lo que está programado para publicarse en Instagram y el histórico reciente. Las piezas se programan
-        desde el <b>Kit de comunicación</b> de cada experiencia. El robot publica cada día lo que ya venció.
+        Lo programado para Instagram y el histórico, por fecha. Las piezas se programan desde el{" "}
+        <b>Kit de comunicación</b> de cada experiencia. El robot publica cada día lo que ya venció.
       </p>
 
-      <h2>Programadas ({programadas.length})</h2>
-      {programadas.length ? programadas.map((p) => <Row key={p.id} post={p} />) : <div className="empty">Nada programado por ahora.</div>}
+      <div className="vtoggle">
+        <a href={`?m=${monthParam}`} className={!esLista ? "on" : ""}>Calendario</a>
+        <a href="?view=lista" className={esLista ? "on" : ""}>Lista</a>
+      </div>
 
-      <h2>Histórico</h2>
-      {historico.length ? historico.map((p) => <Row key={p.id} post={p} />) : <div className="empty">Aún no hay publicaciones.</div>}
+      {esLista ? (
+        <>
+          <h2>Programadas ({programadas.length})</h2>
+          {programadas.length ? programadas.map((p) => <Row key={p.id} post={p} />) : <div className="empty">Nada programado por ahora.</div>}
+          <h2>Histórico</h2>
+          {historico.length ? historico.map((p) => <Row key={p.id} post={p} />) : <div className="empty">Aún no hay publicaciones.</div>}
+        </>
+      ) : (
+        <ColaCalendar posts={mesPosts} monthParam={monthParam} />
+      )}
 
       <a className="back" href="/caminante/admin">← Volver al panel</a>
     </div>
