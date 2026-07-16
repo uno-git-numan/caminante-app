@@ -76,6 +76,17 @@
       all.sort(function (a, b) {
         return (a.startDate || "9999").localeCompare(b.startDate || "9999");
       });
+
+      // Badges de "Descubre" (data-estado-count) EN VIVO: N experiencias / Próximamente.
+      // Antes eran fijos y no se actualizaban al publicar una experiencia nueva.
+      var counts = {};
+      all.forEach(function (c) { var e = c.estado || ""; if (e) counts[e] = (counts[e] || 0) + 1; });
+      document.querySelectorAll("[data-estado-count]").forEach(function (span) {
+        var n = counts[span.getAttribute("data-estado-count")] || 0;
+        if (n <= 0) { span.textContent = "Próximamente"; span.style.color = "var(--dune)"; }
+        else { span.textContent = (n < 10 ? "0" + n : String(n)) + (n === 1 ? " experiencia" : " experiencias"); span.style.color = ""; }
+      });
+
       grids.forEach(function (grid) {
         var estado = grid.getAttribute("data-exp-grid") || "";
         var cards = estado
