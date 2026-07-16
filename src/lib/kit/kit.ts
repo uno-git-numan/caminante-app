@@ -89,11 +89,12 @@ function blocksOf<T extends PageBlock["type"]>(blocks: PageBlock[], type: T): Ex
   return blocks.filter((b) => b.type === type) as Extract<PageBlock, { type: T }>[];
 }
 
-// Clave de una foto = su NOMBRE DE ARCHIVO (sin query). Dos URLs distintas que
-// apuntan al mismo archivo (galería vs fondo de bloque) → misma clave → se dedup
-// como una sola. Sin esto, la misma foto entraba dos veces al banco y salía
-// repetida en un carrusel.
-const fileKey = (url: string): string => url.split("?")[0].split("/").pop() || url;
+// Clave de una foto = su nombre ORIGINAL, sin el prefijo de timestamp que le pone
+// el subidor (`<Date.now()>-<nombre-real>.jpg`) ni el query. Así, la MISMA foto
+// subida varias veces (distinto timestamp) → misma clave → se dedup como una
+// sola. Sin esto salía repetida en un carrusel (galería con la misma foto 2-3x).
+const fileKey = (url: string): string =>
+  (url.split("?")[0].split("/").pop() || url).replace(/^\d{10,}-/, "");
 
 // Banco de fotos: galería de "Lo básico" primero; luego los fondos de los bloques
 // (hero, statement, itinerario, faq, mosaicos) como respaldo. Dedup POR ARCHIVO.
@@ -361,8 +362,12 @@ export const PIEZAS: PieceDef[] = [
     formato: "Reel o carrusel",
     cta: "La próxima salida es [fecha].",
     build: (ctx) => {
-      if (ctx.gallery.length < 3) return { estado: "pendiente", razon: "Faltan fotos del viaje en la galería de «Lo básico» (mín. 3)." };
-      const fotos = shuffle(ctx.gallery.map((u) => ({ url: u })), `${ctx.exp.slug || "x"}·P9`);
+      // Dedup por nombre original (la galería puede traer la misma foto 2-3x con
+      // distinto timestamp) para que el carrusel no repita.
+      const seenG = new Set<string>();
+      const uniq = ctx.gallery.filter((u) => { const k = fileKey(u); if (seenG.has(k)) return false; seenG.add(k); return true; });
+      if (uniq.length < 3) return { estado: "pendiente", razon: "Faltan fotos del viaje en la galería de «Lo básico» (mín. 3)." };
+      const fotos = shuffle(uniq.map((u) => ({ url: u })), `${ctx.exp.slug || "x"}·P9`);
       const laminas: Lamina[] = [
         { kind: "cover", eyebrow: "Así se vivió", title: expName(ctx.exp), accent: "pasó.", bg: fotos[0] },
       ];
