@@ -77,12 +77,18 @@ export function KitPieceControls({
   orient: "post" | "story";
   captionText?: string;
 }) {
-  const [busy, setBusy] = useState<null | "dl" | "copy">(null);
+  const [busy, setBusy] = useState<null | "dl" | "copy" | "prev">(null);
+  const [preview, setPreview] = useState<string[] | null>(null); // PNGs generados (idénticos al download)
+  const [pi, setPi] = useState(0); // lámina visible en el preview
   const other = orient === "post" ? "story" : "post";
   const base = slug.replace(/[^\w-]/g, "").toLowerCase();
 
+  function slidesDe(): HTMLElement[] {
+    return Array.from(document.querySelectorAll<HTMLElement>(`[data-piece="${pieceId}"] .slide`));
+  }
+
   async function descargarActual() {
-    const slides = Array.from(document.querySelectorAll<HTMLElement>(`[data-piece="${pieceId}"] .slide`));
+    const slides = slidesDe();
     if (!slides.length) return;
     setBusy("dl");
     try {
@@ -94,6 +100,32 @@ export function KitPieceControls({
       alert("No pude generar: " + (e as Error).message);
     } finally {
       setBusy(null);
+    }
+  }
+
+  // Genera los MISMOS PNG que la descarga y los muestra en grande → ves cómo
+  // van a quedar las fotos ANTES de bajarlas.
+  async function verPreview() {
+    const slides = slidesDe();
+    if (!slides.length) return;
+    setBusy("prev");
+    try {
+      const pngs: string[] = [];
+      for (const s of slides) pngs.push(await slidePng(s));
+      setPi(0);
+      setPreview(pngs);
+    } catch (e) {
+      alert("No pude generar la vista previa: " + (e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function descargarDesdePreview() {
+    if (!preview) return;
+    for (let i = 0; i < preview.length; i++) {
+      download(preview[i], `${base}-${pieceId.toLowerCase()}-${orient}-${String(i + 1).padStart(2, "0")}.png`);
+      await new Promise((r) => setTimeout(r, 300));
     }
   }
 
@@ -110,9 +142,13 @@ export function KitPieceControls({
 
   const dlLabel = orient === "post" ? "Descargar POST (4:5)" : "Descargar STORY (9:16)";
   const otherLabel = other === "post" ? "POST (4:5)" : "STORY (9:16)";
+  const n = preview?.length ?? 0;
 
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <button type="button" onClick={verPreview} disabled={busy !== null} className="btn btn-glass btn-sm">
+        {busy === "prev" ? "Generando…" : "👁 Vista previa"}
+      </button>
       <button type="button" onClick={descargarActual} disabled={busy !== null} className="btn btn-orange btn-sm">
         {busy === "dl" ? "Generando…" : `⬇ ${dlLabel}`}
       </button>
@@ -122,6 +158,43 @@ export function KitPieceControls({
           {busy === "copy" ? "¡Copiado!" : "Copiar caption"}
         </button>
       ) : null}
+
+      {preview ? (
+        <div
+          onClick={() => setPreview(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000, background: "rgba(20,21,18,.86)",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: 24, gap: 14, backdropFilter: "blur(4px)",
+          }}
+        >
+          <div style={{ color: "rgba(255,255,255,.7)", fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase" }}>
+            Vista previa · lo que se descarga {n > 1 ? `· ${pi + 1} / ${n}` : ""}
+          </div>
+          <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 14, maxWidth: "100%" }}>
+            {n > 1 ? (
+              <button type="button" aria-label="Anterior" onClick={() => setPi((p) => (p - 1 + n) % n)}
+                style={arrowStyle}>‹</button>
+            ) : null}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview[pi]} alt={`Lámina ${pi + 1}`}
+              style={{ maxHeight: "78vh", maxWidth: n > 1 ? "78vw" : "92vw", borderRadius: 14, boxShadow: "0 30px 80px -30px rgba(0,0,0,.8)", background: "#fff" }} />
+            {n > 1 ? (
+              <button type="button" aria-label="Siguiente" onClick={() => setPi((p) => (p + 1) % n)}
+                style={arrowStyle}>›</button>
+            ) : null}
+          </div>
+          <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 10 }}>
+            <button type="button" onClick={descargarDesdePreview} className="btn btn-orange btn-sm">⬇ {dlLabel}</button>
+            <button type="button" onClick={() => setPreview(null)} className="btn btn-glass btn-sm">Cerrar</button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
+
+const arrowStyle: React.CSSProperties = {
+  flex: "0 0 auto", width: 44, height: 44, borderRadius: 999, border: "1px solid rgba(255,255,255,.3)",
+  background: "rgba(255,255,255,.12)", color: "#fff", fontSize: 24, lineHeight: 1, cursor: "pointer",
+};
