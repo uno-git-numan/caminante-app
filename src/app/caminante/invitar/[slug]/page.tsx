@@ -27,15 +27,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title };
 }
 
+// Espera IMÁGENES (decodificadas) + FUENTES antes de imprimir. img.decode()
+// garantiza que la foto esté rasterizada; img.complete puede ser true sin estar
+// pintada → con fotos pesadas Chrome imprime ANTES y el PDF sale sin fotos/flat.
+// .catch para que una foto rota no cuelgue el Promise.all; red de seguridad a 7s.
 const AUTOPRINT = `
 window.addEventListener('load', function () {
   var imgs = Array.prototype.slice.call(document.images);
   var imgsReady = Promise.all(imgs.map(function (img) {
+    if (img.decode) return img.decode().then(function(){return true;}).catch(function () { return true; });
     return img.complete ? true : new Promise(function (res) { img.onload = img.onerror = res; });
   }));
   var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-  Promise.all([imgsReady, fontsReady]).then(function () {
-    setTimeout(function () { window.print(); }, 700);
+  var safety = new Promise(function (res) { setTimeout(res, 7000); });
+  Promise.race([Promise.all([imgsReady, fontsReady]), safety]).then(function () {
+    setTimeout(function () { window.print(); }, 400);
   });
 });
 `;
