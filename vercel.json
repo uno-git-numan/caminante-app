@@ -11,6 +11,10 @@
     {
       "path": "/caminante/api/cron/refresh-social-tokens",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/caminante/api/cron/publish-social",
+      "schedule": "0 19 * * *"
     }
   ]
 }
