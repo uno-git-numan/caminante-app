@@ -20,8 +20,15 @@ export type FeedbackContext = {
   npsEnabled: boolean;
   sections: FeedbackSection[];
   testimonialPrompt: string;
+  voiceSub: string; // subtítulo del paso testimonio (data-driven por experiencia)
   feedbackVersion: string;
 };
+
+// Copys ATEMPORALES por defecto (sirven a cualquier entorno: mar, bosque, montaña…).
+// Cada experiencia puede sobreescribirlos en su config de encuesta (emailIntro/voiceSub).
+export const DEFAULT_EMAIL_INTRO =
+  "La experiencia ya quedó atrás, pero algo de ella se queda contigo. Antes de que se difumine, cuéntanos cómo te fuiste.";
+export const DEFAULT_VOICE_SUB = "Lo que te llevas, dicho con tu voz.";
 
 // Calificación de una sección del desglose.
 export type SectionRating = {

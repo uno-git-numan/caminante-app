@@ -233,7 +233,7 @@ export default function FeedbackForm({
                 </h1>
                 <div className="card" style={{ marginTop: 24 }}>
                   <p className="q">¿Nos regalas unas palabras?</p>
-                  <p className="q-sub">Lo que te llevas del mar, dicho con tu voz.</p>
+                  <p className="q-sub">{ctx.voiceSub}</p>
                   <textarea
                     value={testimonial}
                     onChange={(e) => setTestimonial(e.target.value)}

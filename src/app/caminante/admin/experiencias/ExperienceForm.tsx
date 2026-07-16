@@ -1117,6 +1117,8 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
             </div>
             <button type="button" className="add" onClick={() => setFb({ sections: [...cats, { key: "", label: "", icon: "◆" }] })}>+ Agregar categoría</button>
             <div style={{ marginTop: 18 }}><Field label="Prompt del testimonio" auto><textarea value={fb.testimonialPrompt ?? ""} placeholder="¿Nos regalas unas palabras?" onChange={(e) => setFb({ testimonialPrompt: e.target.value })} /></Field></div>
+            <div style={{ marginTop: 18 }}><Field label="Frase del correo (invitación)" auto><textarea value={fb.emailIntro ?? ""} placeholder="La experiencia ya quedó atrás, pero algo de ella se queda contigo. Antes de que se difumine, cuéntanos cómo te fuiste." onChange={(e) => setFb({ emailIntro: e.target.value })} /><span style={{ display: "block", marginTop: 6, fontSize: 12, color: "#8a8078" }}>Se ajusta a esta experiencia (bosque, montaña, mar…). Vacío = frase atemporal por defecto.</span></Field></div>
+            <div style={{ marginTop: 18 }}><Field label="Subtítulo del testimonio (encuesta)" auto><input type="text" value={fb.voiceSub ?? ""} placeholder="Lo que te llevas, dicho con tu voz." onChange={(e) => setFb({ voiceSub: e.target.value })} /></Field></div>
 
             <details className="preview">
               <summary><span className="pv-l"><span className="pv-tag">Vista previa</span> Así la verá el viajero</span><span className="chev">▾</span></summary>

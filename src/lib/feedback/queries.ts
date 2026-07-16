@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Experience } from "@/lib/experiences/types";
 import type { FeedbackContext, FeedbackSection } from "./types";
+import { DEFAULT_VOICE_SUB } from "./types";
 
 // Resuelve la encuesta desde el TOKEN del link (sin login). Trae la config de la
 // experiencia (sections variables) + el nombre de pila para el saludo.
@@ -34,6 +35,7 @@ export async function fetchFeedbackByToken(
     npsEnabled: cfg?.npsEnabled ?? true,
     sections,
     testimonialPrompt: cfg?.testimonialPrompt || "El primer día vimos…",
+    voiceSub: cfg?.voiceSub?.trim() || DEFAULT_VOICE_SUB,
     feedbackVersion: (fb.feedback_version as string) || cfg?.version || "v1",
   };
 }

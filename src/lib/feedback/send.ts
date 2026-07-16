@@ -4,6 +4,7 @@ import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 import { sendViaResend } from "@/lib/email/resend";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
+import { DEFAULT_EMAIL_INTRO } from "./types";
 
 const SITE = "https://caminante.numanhub.com";
 
@@ -20,14 +21,16 @@ const firstName = (full: string | null): string => {
   return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
 };
 
-// Versión en texto plano (multipart → mejor deliverability).
-function surveyText(name: string, link: string): string {
-  return `Hola, ${name}.\n\nAntes de que se te borre, cuéntanos cómo te fuiste — son dos minutos:\n${link}\n\nSi dejas unas palabras quizá las compartamos, siempre solo con tus iniciales.\n\nCaminante by NUMAN · uno@numanhub.com`;
+// Versión en texto plano (multipart → mejor deliverability). `intro` = la frase
+// de invitación, data-driven por experiencia (default atemporal).
+function surveyText(name: string, link: string, intro: string): string {
+  return `Hola, ${name}.\n\n${intro} Son dos minutos:\n${link}\n\nSi dejas unas palabras quizá las compartamos, siempre solo con tus iniciales.\n\nCaminante by NUMAN · uno@numanhub.com`;
 }
 
 // Correo brandeado con 5 estrellas clicables (cada una abre la encuesta con esa nota).
 // unsubUrl (opcional) agrega el pie de "date de baja" — obligatorio en envíos en lote.
-function emailHtml(name: string, token: string, unsubUrl?: string): string {
+// `intro` = frase del cuerpo, data-driven por experiencia (default atemporal).
+function emailHtml(name: string, token: string, intro: string, unsubUrl?: string): string {
   const link = `${SITE}/caminante/feedback/${token}`;
   let stars = "";
   for (let n = 1; n <= 5; n++) {
@@ -44,7 +47,7 @@ function emailHtml(name: string, token: string, unsubUrl?: string): string {
 <div style="font-size:12px;letter-spacing:3px;color:${OLIVO};text-transform:uppercase;">Caminante &middot; Naturaleza en movimiento</div></td></tr>
 <tr><td style="padding:16px 36px 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
 <h1 style="margin:0 0 14px;font-size:26px;line-height:1.25;color:${LAGOON};font-weight:600;">Hola, ${name}.</h1>
-<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:${LAGOON};">El mar ya quedó atrás, pero algo de él se queda contigo. Antes de que la marea lo borre, cuéntanos cómo te fuiste.</p>
+<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:${LAGOON};">${intro}</p>
 <p style="margin:0 0 4px;font-size:16px;line-height:1.6;color:${LAGOON};">Son <strong>dos minutos</strong>. Empieza con un toque:</p></td></tr>
 <tr><td align="center" style="padding:18px 36px 6px;">${stars}</td></tr>
 <tr><td align="center" style="padding:0 36px 8px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
@@ -147,9 +150,10 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
       const loc = (fb.locationLabel || "tu experiencia").split(",")[0];
       const name = firstName(r.contacts?.full_name ?? null);
       const unsub = unsubscribeUrl(r.contact_id);
-      const ok = await sendViaResend(email, `¿Cómo te fuiste de ${loc}?`, emailHtml(name, token, unsub), {
+      const intro = fb.emailIntro?.trim() || DEFAULT_EMAIL_INTRO;
+      const ok = await sendViaResend(email, `¿Cómo te fuiste de ${loc}?`, emailHtml(name, token, intro, unsub), {
         ua: "caminante-encuesta/1.0",
-        text: surveyText(name, `${SITE}/caminante/feedback/${token}`),
+        text: surveyText(name, `${SITE}/caminante/feedback/${token}`, intro),
         listUnsubscribeUrl: unsub,
       });
       if (ok) res.invited++;
@@ -166,7 +170,7 @@ export async function resendSurveyEmail(feedbackId: string): Promise<boolean> {
     const sb = createSupabaseAdminClient();
     const { data: f } = await sb
       .from("experience_feedback")
-      .select("token, status, contact_id, location_label")
+      .select("token, status, contact_id, location_label, experience_id")
       .eq("id", feedbackId)
       .maybeSingle();
     if (!f || f.status === "submitted" || !f.token) return false;
@@ -184,9 +188,16 @@ export async function resendSurveyEmail(feedbackId: string): Promise<boolean> {
     const loc = ((f.location_label as string | null) || "tu experiencia").split(",")[0];
     const name = firstName((c?.full_name as string | null) ?? null);
     const unsub = unsubscribeUrl(contactId);
-    return await sendViaResend(email, `¿Cómo te fuiste de ${loc}?`, emailHtml(name, token, unsub), {
+    // Intro data-driven: config de la experiencia → default atemporal.
+    let intro = DEFAULT_EMAIL_INTRO;
+    if (f.experience_id) {
+      const { data: exp } = await sb.from("experiences").select("data").eq("id", f.experience_id as string).maybeSingle();
+      const cfgIntro = (exp?.data as Experience | undefined)?.feedback?.emailIntro;
+      if (cfgIntro?.trim()) intro = cfgIntro.trim();
+    }
+    return await sendViaResend(email, `¿Cómo te fuiste de ${loc}?`, emailHtml(name, token, intro, unsub), {
       ua: "caminante-encuesta/1.0",
-      text: surveyText(name, link),
+      text: surveyText(name, link, intro),
       listUnsubscribeUrl: unsub,
     });
   } catch {

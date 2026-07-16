@@ -288,6 +288,10 @@ export type Experience = {
     // secciones del desglose opcional (⭐ + comentario) — cambian por experiencia
     sections: { key: string; label: string; icon?: string; prompt?: string }[];
     testimonialPrompt?: string; // placeholder del cuadro de testimonio
+    // Copy data-driven por experiencia (si vacío → default atemporal). Evita que
+    // el correo/página le hablen del "mar" a un viaje de bosque o montaña.
+    emailIntro?: string; // frase del cuerpo del correo de invitación
+    voiceSub?: string; // subtítulo del paso de testimonio en la encuesta
   };
 
   // card / calendar metadata (for the landing grid and the calendar)
