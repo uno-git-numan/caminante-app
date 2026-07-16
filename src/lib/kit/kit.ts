@@ -71,6 +71,17 @@ export type KitContext = {
 const has = (s?: string | null): s is string => !!s && s.trim().length > 0;
 const clean = (s: string) => s.replace(/\*\*/g, "").replace(/\*/g, "").trim();
 
+// Ajusta un texto a un máximo de caracteres SIN cortar palabras: si excede,
+// retrocede al último espacio y agrega "…" — nunca parte una palabra a la mitad.
+// El límite es generoso (la lámina tiene aire de sobra); casi nunca dispara.
+function fit(s: string, max: number): string {
+  const t = clean(s);
+  if (t.length <= max) return t;
+  const sp = t.slice(0, max + 1).lastIndexOf(" ");
+  const base = sp > 0 ? t.slice(0, sp) : t.slice(0, max);
+  return base.replace(/[\s.,;:!?¿¡"'—–-]+$/, "") + "…";
+}
+
 function block<T extends PageBlock["type"]>(blocks: PageBlock[], type: T): Extract<PageBlock, { type: T }> | undefined {
   return blocks.find((b) => b.type === type) as Extract<PageBlock, { type: T }> | undefined;
 }
@@ -100,6 +111,45 @@ function photoPool(ctx: KitContext): Foto[] {
 // Toma la n-ésima foto del banco (cíclico) — así cada lámina tiene fondo.
 const pick = (pool: Foto[], i: number): Foto => pool.length ? pool[i % pool.length] : { url: "" };
 
+// PRNG determinista (mulberry32 sembrado por un hash del string) → barajado
+// REPRODUCIBLE: el mismo slug+pieza da SIEMPRE el mismo orden (thumbnail y PNG
+// exportado coinciden; no re-baraja en cada carga), pero cada pieza recibe un
+// orden DISTINTO → dejan de repetirse las mismas fotos entre posts.
+function hashStr(s: string): number {
+  let h = 1779033703 ^ s.length;
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(h ^ s.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return h >>> 0;
+}
+function shuffle<T>(arr: T[], seed: string): T[] {
+  let a = hashStr(seed) || 1;
+  const rnd = () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = arr.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+// Banco de fotos BARAJADO por pieza (salt = id de la pieza) → cada pieza usa un
+// orden propio y se aprovecha TODA la galería, no sólo las primeras subidas.
+function poolFor(ctx: KitContext, salt: string): Foto[] {
+  return shuffle(photoPool(ctx), `${ctx.exp.slug || "x"}·${salt}`);
+}
+// Portada de una pieza: primera foto de su banco barajado (varía entre piezas),
+// con el hero como respaldo si el banco viene vacío.
+function coverBg(ctx: KitContext, pool: Foto[]): Foto {
+  return pool.length ? pool[0] : heroBg(ctx);
+}
+
 function heroBg(ctx: KitContext): Foto {
   const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
   if (hero?.bg?.url) return { url: hero.bg.url, alt: hero.bg.alt };
@@ -127,7 +177,7 @@ export const PIEZAS: PieceDef[] = [
     formato: "Reel o carrusel",
     cta: "Fechas abiertas · link en bio (a la página de la experiencia).",
     build: (ctx) => {
-      const pool = photoPool(ctx);
+      const pool = poolFor(ctx, "P1");
       const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
       const st = block(ctx.blocks, "statement") as V2Statement | undefined;
       const laminas: Lamina[] = [
@@ -148,11 +198,11 @@ export const PIEZAS: PieceDef[] = [
     formato: "Carrusel 5–7 láminas",
     cta: "Última lámina: «Caminamos ahí. Link en bio.» (sin venta).",
     build: (ctx) => {
-      const pool = photoPool(ctx);
+      const pool = poolFor(ctx, "P2");
       const datos = mundoDatos(ctx);
       if (datos.length < 2) return { estado: "pendiente", razon: "Faltan datos del lugar (llena «La experiencia» / «Bloque destacado» con cifras del ecosistema)." };
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "El mundo", title: expName(ctx.exp), accent: "por dentro.", bg: heroBg(ctx) },
+        { kind: "cover", eyebrow: "El mundo", title: expName(ctx.exp), accent: "por dentro.", bg: coverBg(ctx, pool) },
       ];
       datos.slice(0, 5).forEach((d, i) => {
         if (d.n) laminas.push({ kind: "fact", n: d.n, label: d.label, source: d.source, bg: pick(pool, i + 1) });
@@ -171,11 +221,11 @@ export const PIEZAS: PieceDef[] = [
     formato: "Carrusel 4–6 láminas",
     cta: "Suave: «Pregúntanos lo que quieras por DM».",
     build: (ctx) => {
-      const pool = photoPool(ctx);
+      const pool = poolFor(ctx, "P3");
       const perfiles = guias(ctx);
       if (perfiles.length === 0) return { estado: "pendiente", razon: "Faltan guías/aliados (llena la sección «Guías y aliados» de la experiencia)." };
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "Quiénes te llevan", title: "La gente", accent: "de la sierra.", bg: heroBg(ctx) },
+        { kind: "cover", eyebrow: "Quiénes te llevan", title: "La gente", accent: "de la sierra.", bg: coverBg(ctx, pool) },
       ];
       perfiles.slice(0, 5).forEach((p, i) => laminas.push({ ...p, photo: p.photo ?? pick(pool, i + 1) }));
       laminas.push({ kind: "cierre", eyebrow: "Pregúntanos", title: "Estamos", accent: "para eso.", cta: "DM abierto", bg: pick(pool, 6) });
@@ -192,12 +242,12 @@ export const PIEZAS: PieceDef[] = [
     formato: "Carrusel 5–8 láminas",
     cta: "Fechas y lugares en el link.",
     build: (ctx) => {
-      const pool = photoPool(ctx);
+      const pool = poolFor(ctx, "P4");
       const itin = block(ctx.blocks, "itinerary") as V2Itinerary | undefined;
       const days = itin?.days ?? [];
       if (days.length === 0) return { estado: "pendiente", razon: "Falta el itinerario de la experiencia." };
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: clean(itin?.eyebrow || "Itinerario"), title: clean(itin?.title || "Así"), accent: clean(itin?.titleAccent || "se vive."), bg: itin?.bg?.url ? { url: itin.bg.url } : heroBg(ctx) },
+        { kind: "cover", eyebrow: clean(itin?.eyebrow || "Itinerario"), title: clean(itin?.title || "Así"), accent: clean(itin?.titleAccent || "se vive."), bg: itin?.bg?.url ? { url: itin.bg.url } : coverBg(ctx, pool) },
       ];
       days.forEach((d, i) =>
         laminas.push({ kind: "dia", num: has(d.num) ? d.num : undefined, lab: clean(d.lab), ttl: has(d.ttl) ? clean(d.ttl!) : undefined, items: d.items.map((x) => x), bg: pick(pool, i + 1) }),
@@ -215,7 +265,7 @@ export const PIEZAS: PieceDef[] = [
     formato: "Carrusel 4–6 láminas",
     cta: "¿Otra duda? DM y te contestamos hoy.",
     build: (ctx) => {
-      const pool = photoPool(ctx);
+      const pool = poolFor(ctx, "P5");
       const ch = block(ctx.blocks, "checklist") as V2Checklist | undefined;
       const faq = block(ctx.blocks, "faq") as V2Faq | undefined;
       const yes = ch?.yesItems?.filter(has) ?? [];
@@ -223,7 +273,7 @@ export const PIEZAS: PieceDef[] = [
       const qa = (faq?.qa ?? []).filter((x) => has(x.q)).slice(0, 3);
       if (yes.length === 0 && qa.length === 0) return { estado: "pendiente", razon: "Falta «Incluye/No incluye» o FAQ en la experiencia." };
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "Sin letra chica", title: "Todo", accent: "claro.", bg: heroBg(ctx) },
+        { kind: "cover", eyebrow: "Sin letra chica", title: "Todo", accent: "claro.", bg: coverBg(ctx, pool) },
       ];
       if (yes.length || no.length)
         laminas.push({ kind: "incluye", eyebrow: clean(ch?.eyebrow || "Qué incluye"), title: clean(ch?.title || "Lo que"), accent: clean(ch?.titleAccent || "va contigo."), yesT: clean(ch?.yesTitle || "Incluye"), yes, noT: clean(ch?.noTitle || "No incluye"), no, noMark: ch?.noMark });
@@ -241,13 +291,13 @@ export const PIEZAS: PieceDef[] = [
     formato: "Post o carrusel de 3",
     cta: "Reserva en el link (directo a /reservar).",
     build: (ctx) => {
-      const pool = photoPool(ctx);
+      const pool = poolFor(ctx, "P6");
       const tf = block(ctx.blocks, "tariff") as V2Tariff | undefined;
       const price = clean(tf?.price || ctx.exp.price?.amount || "");
       if (!has(price)) return { estado: "pendiente", razon: "Falta el precio (sección «Inversión» de la experiencia)." };
       const tiers = (ctx.exp.priceTiers ?? []).filter((t) => has(t.amount)).map((t) => ({ l: t.label, v: t.amount.startsWith("$") ? t.amount : `$${t.amount}` }));
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "La inversión", title: "Lo que", accent: "sostiene.", bg: heroBg(ctx) },
+        { kind: "cover", eyebrow: "La inversión", title: "Lo que", accent: "sostiene.", bg: coverBg(ctx, pool) },
         { kind: "precio", eyebrow: clean(tf?.eyebrow || "Inversión"), title: clean(tf?.title || "Una tarifa"), accent: clean(tf?.titleAccent || "honesta."), tier: has(tf?.tier) ? clean(tf!.tier) : undefined, price: price.startsWith("$") ? price : `$${price}`, cur: clean(tf?.priceCur || ctx.exp.price?.currency || "MXN · por persona"), lead: has(tf?.lead) ? clean(tf!.lead!) : clean(ctx.exp.price?.desc || ""), tiers: tiers.length ? tiers : undefined, bg: pick(pool, 1) },
         { kind: "cierre", eyebrow: "Aparta tu lugar", title: "Reserva", accent: "en el link.", cta: "Reservar", bg: pick(pool, 2) },
       ];
@@ -281,9 +331,9 @@ export const PIEZAS: PieceDef[] = [
     cta: "Próximas fechas en el link.",
     build: (ctx) => {
       if (ctx.quotes.length === 0) return { estado: "pendiente", razon: "Aún no hay testimonios con consentimiento en la encuesta post-viaje." };
-      const pool = photoPool(ctx);
+      const pool = poolFor(ctx, "P8");
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "Testimonios", title: "Lo que", accent: "dijeron.", bg: heroBg(ctx) },
+        { kind: "cover", eyebrow: "Testimonios", title: "Lo que", accent: "dijeron.", bg: coverBg(ctx, pool) },
       ];
       ctx.quotes.slice(0, 6).forEach((q, i) => laminas.push({ kind: "cita", quote: clean(q.text), author: q.author, stars: q.stars ?? undefined, bg: pick(pool, i + 1) }));
       laminas.push({ kind: "cierre", eyebrow: "Próximas fechas", title: "Tu turno", accent: "sigue.", cta: "Reserva", bg: pick(pool, 7) });
@@ -300,7 +350,7 @@ export const PIEZAS: PieceDef[] = [
     cta: "La próxima salida es [fecha].",
     build: (ctx) => {
       if (ctx.gallery.length < 3) return { estado: "pendiente", razon: "Faltan fotos del viaje en la galería de «Lo básico» (mín. 3)." };
-      const fotos = ctx.gallery.map((u) => ({ url: u }));
+      const fotos = shuffle(ctx.gallery.map((u) => ({ url: u })), `${ctx.exp.slug || "x"}·P9`);
       const laminas: Lamina[] = [
         { kind: "cover", eyebrow: "Así se vivió", title: expName(ctx.exp), accent: "pasó.", bg: fotos[0] },
       ];
@@ -335,9 +385,9 @@ function mundoDatos(ctx: KitContext): { n: string; label: string; source?: strin
     if (m) {
       const n = m[1].trim();
       const label = line.replace(m[1], "").replace(/^[\s—·,:-]+/, "").trim() || line;
-      out.push({ n, label: label.length > 90 ? label.slice(0, 88) + "…" : label });
+      out.push({ n, label: fit(label, 130) }); // dato: número grande + etiqueta corta
     } else {
-      out.push({ n: "", label: line.length > 110 ? line.slice(0, 108) + "…" : line });
+      out.push({ n: "", label: fit(line, 220) }); // frase sobre foto: cabe holgado
     }
   }
   return out;
