@@ -89,14 +89,22 @@ function blocksOf<T extends PageBlock["type"]>(blocks: PageBlock[], type: T): Ex
   return blocks.filter((b) => b.type === type) as Extract<PageBlock, { type: T }>[];
 }
 
+// Clave de una foto = su NOMBRE DE ARCHIVO (sin query). Dos URLs distintas que
+// apuntan al mismo archivo (galería vs fondo de bloque) → misma clave → se dedup
+// como una sola. Sin esto, la misma foto entraba dos veces al banco y salía
+// repetida en un carrusel.
+const fileKey = (url: string): string => url.split("?")[0].split("/").pop() || url;
+
 // Banco de fotos: galería de "Lo básico" primero; luego los fondos de los bloques
-// (hero, statement, itinerario, faq, mosaicos) como respaldo. Dedup, sin vacíos.
+// (hero, statement, itinerario, faq, mosaicos) como respaldo. Dedup POR ARCHIVO.
 function photoPool(ctx: KitContext): Foto[] {
   const out: Foto[] = [];
   const seen = new Set<string>();
   const add = (url?: string, alt?: string) => {
-    if (!has(url) || seen.has(url!)) return;
-    seen.add(url!);
+    if (!has(url)) return;
+    const k = fileKey(url!);
+    if (seen.has(k)) return;
+    seen.add(k);
     out.push({ url: url!, alt });
   };
   ctx.gallery.forEach((u) => add(u));
@@ -141,8 +149,12 @@ function shuffle<T>(arr: T[], seed: string): T[] {
 }
 // Banco de fotos BARAJADO por pieza (salt = id de la pieza) → cada pieza usa un
 // orden propio y se aprovecha TODA la galería, no sólo las primeras subidas.
-function poolFor(ctx: KitContext, salt: string): Foto[] {
-  return shuffle(photoPool(ctx), `${ctx.exp.slug || "x"}·${salt}`);
+// `exclude` = URLs a sacar del banco (p.ej. la foto que ya usa la portada, para
+// que ninguna lámina del cuerpo la repita).
+function poolFor(ctx: KitContext, salt: string, exclude: (string | undefined)[] = []): Foto[] {
+  const ex = new Set(exclude.filter(has).map((u) => fileKey(u!)));
+  const base = photoPool(ctx).filter((f) => !ex.has(fileKey(f.url)));
+  return shuffle(base, `${ctx.exp.slug || "x"}·${salt}`);
 }
 // Portada de una pieza: primera foto de su banco barajado (varía entre piezas),
 // con el hero como respaldo si el banco viene vacío.
@@ -177,7 +189,7 @@ export const PIEZAS: PieceDef[] = [
     formato: "Reel o carrusel",
     cta: "Fechas abiertas · link en bio (a la página de la experiencia).",
     build: (ctx) => {
-      const pool = poolFor(ctx, "P1");
+      const pool = poolFor(ctx, "P1", [heroBg(ctx).url]); // la portada usa el hero → fuera del cuerpo
       const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
       const st = block(ctx.blocks, "statement") as V2Statement | undefined;
       const laminas: Lamina[] = [
@@ -242,8 +254,8 @@ export const PIEZAS: PieceDef[] = [
     formato: "Carrusel 5–8 láminas",
     cta: "Fechas y lugares en el link.",
     build: (ctx) => {
-      const pool = poolFor(ctx, "P4");
       const itin = block(ctx.blocks, "itinerary") as V2Itinerary | undefined;
+      const pool = poolFor(ctx, "P4", [itin?.bg?.url]); // la portada usa el fondo del itinerario → fuera del cuerpo
       const days = itin?.days ?? [];
       if (days.length === 0) return { estado: "pendiente", razon: "Falta el itinerario de la experiencia." };
       const laminas: Lamina[] = [
@@ -265,9 +277,9 @@ export const PIEZAS: PieceDef[] = [
     formato: "Carrusel 4–6 láminas",
     cta: "¿Otra duda? DM y te contestamos hoy.",
     build: (ctx) => {
-      const pool = poolFor(ctx, "P5");
       const ch = block(ctx.blocks, "checklist") as V2Checklist | undefined;
       const faq = block(ctx.blocks, "faq") as V2Faq | undefined;
+      const pool = poolFor(ctx, "P5", [faq?.bg?.url]); // la lámina de FAQ usa el fondo del FAQ → fuera del resto
       const yes = ch?.yesItems?.filter(has) ?? [];
       const no = ch?.noItems?.filter(has) ?? [];
       const qa = (faq?.qa ?? []).filter((x) => has(x.q)).slice(0, 3);
@@ -315,8 +327,8 @@ export const PIEZAS: PieceDef[] = [
     build: (ctx) => {
       const abiertas = ctx.slots.filter((s) => typeof s.available === "number" && s.available! > 0);
       if (abiertas.length === 0) return { estado: "pendiente", razon: "No hay salidas públicas con lugares (o el cupo es ilimitado)." };
-      const bg = heroBg(ctx);
-      const laminas: Lamina[] = abiertas.map((s) => ({ kind: "cupo", experiencia: expName(ctx.exp), fecha: s.label, n: s.available as number, bg }));
+      const pool = poolFor(ctx, "P7");
+      const laminas: Lamina[] = abiertas.map((s, i) => ({ kind: "cupo", experiencia: expName(ctx.exp), fecha: s.label, n: s.available as number, bg: pool.length ? pick(pool, i) : heroBg(ctx) }));
       return { estado: "lista", laminas };
     },
   },
