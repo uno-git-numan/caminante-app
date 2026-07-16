@@ -12,6 +12,7 @@ import { captionToText, type KitCaptions } from "@/lib/ai/kit-captions";
 import { kitCss } from "./kit-css";
 import KitDeck from "./KitDeck";
 import { KitPieceControls } from "./KitClient";
+import ConexionRedes from "./ConexionRedes";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -61,10 +62,10 @@ export default async function KitPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ f?: string; ok?: string; error?: string }>;
+  searchParams: Promise<{ f?: string; ok?: string; error?: string; redes?: string; msg?: string; u?: string }>;
 }) {
   const { slug } = await params;
-  const { f, ok, error } = await searchParams;
+  const { f, ok, error, redes, msg, u } = await searchParams;
   const orient: "post" | "story" = f === "story" ? "story" : "post";
 
   const ctx = await fetchKitContext(slug);
@@ -100,6 +101,12 @@ export default async function KitPage({
 
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner err">{error}</div> : null}
+      {redes === "ok" ? <div className="banner ok">✅ Instagram conectado{u ? `: @${u}` : ""}.</div> : null}
+      {redes === "desconectada" ? <div className="banner ok">Cuenta de Instagram desconectada.</div> : null}
+      {redes === "denegada" ? <div className="banner err">Conexión cancelada{msg ? `: ${msg}` : ""}.</div> : null}
+      {redes === "error" ? <div className="banner err">No se pudo conectar Instagram{msg ? `: ${msg}` : ""}.</div> : null}
+
+      <ConexionRedes returnTo={`/caminante/admin/kit/${slug}?f=${orient}`} />
 
       <div className="bar">
         <span className="seg">
