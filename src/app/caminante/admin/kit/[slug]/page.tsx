@@ -12,6 +12,7 @@ import { captionToText, type KitCaptions } from "@/lib/ai/kit-captions";
 import { kitCss } from "./kit-css";
 import KitDeck from "./KitDeck";
 import { KitPieceControls } from "./KitClient";
+import { CampanaButton } from "./CampanaButton";
 import ConexionRedes from "./ConexionRedes";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,12 @@ export default async function KitPage({
   const piezas = PIEZAS.map((p) => ({ def: p, state: p.build(ctx) }));
   const listas = piezas.filter((x) => x.state.estado === "lista");
 
+  // Piezas que entran a «Programar campaña»: listas, de M1/M2, sin P7 (P7 la dispara
+  // el cron de cupo; M3 se agenda después del viaje).
+  const campanaPiezas = piezas
+    .filter((x) => x.state.estado === "lista" && x.def.id !== "P7" && (x.def.momento.startsWith("M1") || x.def.momento.startsWith("M2")))
+    .map((x) => ({ id: x.def.id, caption: captions[x.def.id] ? captionToText(captions[x.def.id]) : undefined }));
+
   const thumbH = orient === "story" ? 1280 * THUMB_K : 900 * THUMB_K;
   const thumbW = 720 * THUMB_K;
 
@@ -120,6 +127,7 @@ export default async function KitPage({
           </button>
         </form>
         <a href={`/caminante/experiencias/${slug}`} target="_blank" rel="noreferrer" className="btn btn-glass btn-sm">Ver experiencia ↗</a>
+        {orient === "post" ? <CampanaButton slug={slug} orient="post" pieces={campanaPiezas} /> : null}
       </div>
 
       {piezas.map(({ def, state }) => {

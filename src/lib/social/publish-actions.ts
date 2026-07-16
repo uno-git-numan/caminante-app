@@ -7,8 +7,11 @@
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { getCurrentUser } from "@/lib/auth/session";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import { publishToInstagram } from "@/lib/social/publish";
 import { recordPost, schedulePost, cancelScheduledPost } from "@/lib/social/posts";
+import { computeCampaignSchedule } from "@/lib/social/campana";
 
 async function adminEmail(): Promise<string | null> {
   try {
@@ -74,6 +77,60 @@ export async function programarPieza(input: PieceInput & { scheduledAt: string }
   });
   revalidatePath("/caminante/admin/social-cola");
   return { ok: true };
+}
+
+// Programa la CAMPAÑA COMPLETA de una experiencia: recibe las piezas listas (M1+M2,
+// con sus imágenes ya subidas) y les calcula la fecha con el canon relativo a la
+// próxima salida (dos anclas: M1 al lanzamiento, M2 a la salida) → agenda todo de un
+// jalón. P7 la deja el cron de cupo; M3 se agenda después del viaje.
+export async function programarCampana(input: {
+  slug: string;
+  pieces: { pieceId: string; format: "post" | "story"; caption?: string; imageUrls: string[] }[];
+}): Promise<PublishActionResult & { scheduled?: { pieceId: string; date: string }[]; departure?: string | null }> {
+  if (!(await isCurrentUserAdmin())) return { ok: false, error: "No autorizado." };
+  const pieces = (input.pieces || []).filter((p) => p.imageUrls?.length);
+  if (!pieces.length) return { ok: false, error: "No hay piezas listas (M1/M2) para programar." };
+
+  // Fecha de la próxima salida pública (ancla de M2). Si no hay, M2 usa fallback.
+  let departure: Date | null = null;
+  try {
+    const sb = createSupabaseAdminClient();
+    const { data: exp } = await sb.from("experiences").select("id").eq("slug", input.slug).maybeSingle();
+    const expId = (exp as { id: string } | null)?.id;
+    if (expId) {
+      const slots = await fetchOpenSlotsForTemplate(expId);
+      const now = Date.now();
+      const dated = slots
+        .map((s) => (s.startsAt ? new Date(s.startsAt) : null))
+        .filter((d): d is Date => d !== null && !isNaN(d.getTime()))
+        .sort((a, b) => a.getTime() - b.getTime());
+      departure = dated.find((d) => d.getTime() >= now) ?? dated[0] ?? null;
+    }
+  } catch {
+    departure = null;
+  }
+
+  const schedule = computeCampaignSchedule(pieces.map((p) => p.pieceId), { now: new Date(), departure });
+  const byId = new Map(pieces.map((p) => [p.pieceId, p]));
+  const email = await adminEmail();
+
+  const scheduled: { pieceId: string; date: string }[] = [];
+  for (const s of schedule) {
+    const p = byId.get(s.pieceId);
+    if (!p) continue;
+    await schedulePost({
+      experienceSlug: input.slug,
+      pieceId: p.pieceId,
+      format: p.format,
+      caption: p.caption ?? null,
+      imageUrls: p.imageUrls,
+      createdBy: email,
+      scheduledAt: s.date.toISOString(),
+    });
+    scheduled.push({ pieceId: p.pieceId, date: s.date.toISOString() });
+  }
+  revalidatePath("/caminante/admin/social-cola");
+  return { ok: true, scheduled, departure: departure ? departure.toISOString() : null };
 }
 
 // Cancela una publicación programada.

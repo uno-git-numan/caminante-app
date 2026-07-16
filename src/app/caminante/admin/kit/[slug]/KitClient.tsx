@@ -23,7 +23,7 @@ async function toDataUrl(url: string): Promise<string> {
   });
 }
 
-async function slidePng(slide: HTMLElement): Promise<string> {
+export async function slidePng(slide: HTMLElement): Promise<string> {
   await document.fonts.ready;
   const w = slide.offsetWidth || 720;
   const h = slide.offsetHeight || 900;
