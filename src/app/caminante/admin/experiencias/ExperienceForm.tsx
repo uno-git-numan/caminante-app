@@ -1058,12 +1058,15 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
 
           {/* 15 · REGISTRO & DESLINDE */}
           <section className="card" id="s15">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Registro &amp; deslinde</span><h2>Registro &amp; deslinde</h2><p className="desc">Es el formulario que cada viajero llena antes del viaje: sus datos, su contacto de emergencia, su información médica y la aceptación del deslinde (la carta de responsabilidad) con su firma. Aquí lo prendes para esta experiencia, subes el documento del deslinde y escribes un resumen de sus puntos. La &quot;versión&quot; déjala en v1; solo súbela si cambias el texto del deslinde.</p></div>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Registro &amp; deslinde</span><h2>Registro &amp; deslinde</h2><p className="desc">Es el formulario que cada viajero llena antes del viaje: sus datos, su contacto de emergencia, su información médica y la aceptación del deslinde (la carta de responsabilidad) con su firma. Aquí lo <b>prendes</b> y escribes las <b>cláusulas</b> del deslinde — con eso el <b>documento legal se genera y publica solo</b> (datos de NUMAN HUB + marco legal + tus cláusulas), y el viajero siempre lo puede leer. La &quot;URL del documento&quot; es <b>opcional</b>: solo si quieres reemplazarlo por un PDF externo propio. La &quot;versión&quot; déjala en v1; súbela solo si cambias el texto.</p></div>
             <div className="field"><label className="toggle"><input type="checkbox" checked={reg.active} onChange={(e) => setReg({ active: e.target.checked })} /><span className="tk"></span><span className="tlabel">Registro activo</span></label></div>
             <div className="row c2">
               <Field label="Versión" auto><input type="text" value={reg.waiverVersion} placeholder="v1" onChange={(e) => setReg({ waiverVersion: e.target.value })} /></Field>
-              <Field label="URL del documento" auto><input type="url" value={reg.waiverDocUrl} placeholder="https://…" onChange={(e) => setReg({ waiverDocUrl: e.target.value })} /></Field>
+              <Field label="URL del documento (opcional)"><input type="url" value={reg.waiverDocUrl} placeholder="Se genera solo — pega un PDF externo solo para reemplazarlo" onChange={(e) => setReg({ waiverDocUrl: e.target.value })} /></Field>
             </div>
+            {exp.slug && reg.active && clausulas.filter((c) => c && c.trim()).length > 0 ? (
+              <p className="desc" style={{ marginTop: -4 }}>✅ El deslinde ya se genera solo. <a href={`/caminante/deslinde/${exp.slug}`} target="_blank" rel="noreferrer" style={{ color: "#c23c1c", fontWeight: 600 }}>Ver deslinde generado ↗</a></p>
+            ) : null}
             <div className="subhead">Cláusulas-resumen <span className="chip-auto">auto</span></div>
             <div className="rep-items">
               {clausulas.map((c, i) => (

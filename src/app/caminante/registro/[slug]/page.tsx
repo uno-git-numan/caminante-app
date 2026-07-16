@@ -88,7 +88,7 @@ export default async function RegistroPage({
       datesBadge={datesBadge}
       slots={slots}
       waiverClauses={(experience.registration?.waiverClauses || []).filter(Boolean)}
-      waiverDocUrl={experience.registration?.waiverDocUrl || ""}
+      waiverDocUrl={experience.registration?.waiverDocUrl?.trim() || `/caminante/deslinde/${slug}`}
       hasSession={!!user}
       sessionEmail={user?.email || ""}
       prefill={prefill}

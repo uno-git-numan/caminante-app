@@ -5,9 +5,11 @@
 //   1. publicar desde el form (ExperienceForm)
 //   2. publicar desde el dashboard (setExperienceStatus)
 //   3. cobrar (createCheckout + la página /reservar)
-// Bloquea: deslinde inactivo, sin cláusulas o SIN el documento completo
-// (waiverDocUrl) — regla de Luis (9 jul): quien firma SIEMPRE debe poder ver el
-// PDF del deslinde; el doc nunca puede estar vacío.
+// Bloquea: deslinde inactivo o sin cláusulas. La regla de Luis (9 jul) "quien
+// firma SIEMPRE debe poder leer el documento" ahora se cumple SOLA: al activar el
+// registro con cláusulas, el deslinde se genera y publica data-driven en
+// /caminante/deslinde/[slug] (deslinde-doc.ts). `waiverDocUrl` pasó a ser un
+// override OPCIONAL (subir un PDF externo) — ya no se exige.
 
 import type { Experience } from "@/lib/experiences/types";
 
@@ -25,11 +27,10 @@ export function deslindeListo(exp: Pick<Experience, "registration"> | null | und
     faltantes.push("El registro y deslinde no está activo (sección “Registro y deslinde”).");
   }
   if (clauses.length === 0) {
-    faltantes.push("El deslinde no tiene cláusulas-resumen.");
+    faltantes.push("El deslinde no tiene cláusulas: agrega al menos una en “Registro y deslinde”. (El documento legal se genera solo a partir de ellas.)");
   }
-  if (!(reg?.waiverDocUrl ?? "").trim()) {
-    faltantes.push("Falta el PDF del deslinde (URL del documento) — quien firma siempre debe poder leerlo.");
-  }
+  // waiverDocUrl ya NO se exige: el deslinde se genera data-driven en
+  // /caminante/deslinde/[slug] a partir de las cláusulas + el marco legal.
 
   return { ok: faltantes.length === 0, faltantes };
 }
