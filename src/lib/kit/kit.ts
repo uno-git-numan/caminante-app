@@ -403,7 +403,10 @@ function guias(ctx: KitContext): Extract<Lamina, { kind: "perfil" }>[] {
     if (s.paragraphs?.some(has)) {
       out.push({ kind: "perfil", name: clean([s.title, s.titleAccent].filter(Boolean).join(" ")), role: clean(s.eyebrow || ""), cred: has(s.subEyebrow) ? clean(s.subEyebrow!) : undefined, body: clean((s.paragraphs.find(has) as string) || ""), photo });
     } else if (s.items?.length) {
-      for (const it of s.items.filter((i) => has(i.name))) out.push({ kind: "perfil", name: clean(it.name), role: clean(it.role || s.eyebrow || ""), photo });
+      // Varios items comparten UNA sola foto del split → si se la damos a todos,
+      // salen láminas repetidas. La dejamos sin foto: P3 le asigna a cada una una
+      // foto DISTINTA del banco barajado (p.photo ?? pick).
+      for (const it of s.items.filter((i) => has(i.name))) out.push({ kind: "perfil", name: clean(it.name), role: clean(it.role || s.eyebrow || "") });
     }
   }
   return out;
