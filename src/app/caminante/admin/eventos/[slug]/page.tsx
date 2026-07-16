@@ -95,38 +95,11 @@ export default async function EventoDetallePage({
               Vista previa
             </a>
             <a
-              href={`/caminante/admin/print/${ev.slug}?o=v`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-glass btn-sm"
-              title="Abre la versión imprimible en vertical; elige “Guardar como PDF” para compartir"
-            >
-              PDF vertical
-            </a>
-            <a
-              href={`/caminante/admin/print/${ev.slug}?o=h`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-glass btn-sm"
-              title="Abre la versión imprimible en horizontal; elige “Guardar como PDF” para compartir"
-            >
-              PDF horizontal
-            </a>
-            <a
-              href={`/caminante/admin/social/${ev.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-glass btn-sm"
-              title="Genera el flyer para redes (posts 4:5 de Instagram) y descarga cada tarjeta como PNG"
-            >
-              Flyer redes
-            </a>
-            <a
               href={`/caminante/admin/kit/${ev.slug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-orange btn-sm"
-              title="Kit de comunicación: las 10 piezas canónicas de la experiencia (POST 4:5 y STORY 9:16) con captions en voz de marca"
+              title="Kit de comunicación: las 10 piezas canónicas + «Descargar material» (PDF vertical/horizontal + flyer para redes) + captions en voz de marca"
             >
               Kit de comunicación
             </a>
