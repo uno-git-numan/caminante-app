@@ -3,6 +3,10 @@
     {
       "path": "/caminante/api/cron/send-surveys",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/caminante/api/cron/cupo-honesto",
+      "schedule": "0 16 * * *"
     }
   ]
 }

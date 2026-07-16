@@ -227,3 +227,69 @@ export async function notifyAccesoOperador(info: AccesoOperadorInfo): Promise<vo
   const r = await Promise.allSettled([correoAcceso(info), whatsappAcceso(info)]);
   for (const x of r) if (x.status === "rejected") console.error("notifyAccesoOperador:", x.reason);
 }
+
+// ── Cupo honesto (P7 automática) ─────────────────────────────────────────────
+// El cron detecta salidas públicas con cupo restante ≤ umbral y avisa a Luis/
+// Roberta para que descarguen y publiquen la story P7 «Quedan N lugares» del
+// kit de comunicación. La story se genera sola en el kit desde la disponibilidad
+// EN VIVO — aquí solo mandamos el aviso + el link directo. Misma cascada
+// best-effort (WhatsApp libre → template → correo SIEMPRE) que las demás.
+
+const PANEL_KIT = "https://caminante.numanhub.com/caminante/admin/kit";
+
+export type CupoHonestoInfo = {
+  experiencia: string;
+  slug: string;
+  salidas: { label: string; quedan: number }[]; // salidas que dispararon el aviso
+};
+
+function kitUrl(slug: string): string {
+  return `${PANEL_KIT}/${slug}?f=story`;
+}
+
+async function correoCupo(info: CupoHonestoInfo): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const filas = info.salidas
+    .map(
+      (s) =>
+        `<tr><td style="padding:6px 12px;color:#637154;font-size:13px;">${s.label}</td><td style="padding:6px 12px;font-size:14px;font-weight:700;color:#c23c1c;">Quedan ${s.quedan}</td></tr>`,
+    )
+    .join("");
+  const html = `<body style="margin:0;background:#fbfbf7;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid rgba(32,33,28,.13);border-radius:16px;overflow:hidden;">
+<div style="background:#20392b;color:#fff;padding:16px 20px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Caminante · P7 Cupo honesto</div>
+<div style="padding:16px 20px 4px;font-size:14px;color:#20211c;">Se está agotando <b>${info.experiencia}</b>. Publica la story «Quedan N lugares» (P7) hoy:</div>
+<table style="width:100%;border-collapse:collapse;">${filas}</table>
+<div style="padding:14px 20px 20px;"><a href="${kitUrl(info.slug)}" style="display:inline-block;background:#ff5d36;color:#fff;text-decoration:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:600;">Abrir el kit → descargar P7</a></div>
+</div></body>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "User-Agent": "caminante-notify/1.0", Accept: "application/json" },
+    body: JSON.stringify({ from: FROM, to: [ADMIN_EMAIL], subject: `⚠️ Cupo bajo · ${info.experiencia} — publica P7`, html }),
+  });
+}
+
+async function whatsappCupo(info: CupoHonestoInfo): Promise<void> {
+  if (!whatsappConfigured()) return;
+  const to = process.env.WHATSAPP_ADMIN_TO || ADMIN_WHATSAPP_DEFAULT;
+  const detalle = info.salidas.map((s) => `${s.label}: quedan ${s.quedan}`).join("\n");
+  const texto =
+    `⚠️ *Cupo honesto (P7)* — ${info.experiencia}\n` +
+    `${detalle}\n\n` +
+    `Descarga y publica la story:\n${kitUrl(info.slug)}`;
+  const libre = await sendText(to, texto);
+  if (libre.ok) return;
+  const template = process.env.WHATSAPP_ADMIN_TEMPLATE || "nueva_reserva";
+  await sendTemplate(to, template, "es_MX", [
+    {
+      type: "body",
+      parameters: [info.experiencia, "P7 Cupo honesto", detalle.replace(/\n/g, " · ")].map((text) => ({ type: "text", text: text || "—" })),
+    },
+  ]);
+}
+
+export async function notifyCupoHonesto(info: CupoHonestoInfo): Promise<void> {
+  const r = await Promise.allSettled([correoCupo(info), whatsappCupo(info)]);
+  for (const x of r) if (x.status === "rejected") console.error("notifyCupoHonesto:", x.reason);
+}
