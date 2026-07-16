@@ -30,15 +30,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 // OJO: el script de glass (DECK_GLASS_SCRIPT) va ANTES en el DOM → su listener
 // de load corre primero e inyecta los clones blurreados; aquí se recogen
 // document.images DESPUÉS (incluye los clones) y se espera a que carguen.
+// Con ?noprint no dispara el diálogo (vista previa / depuración del deck).
 const AUTOPRINT = `
 window.addEventListener('load', function () {
+  if (location.search.indexOf('noprint') !== -1) return;
   var imgs = Array.prototype.slice.call(document.images);
   var imgsReady = Promise.all(imgs.map(function (img) {
+    // decode() garantiza que la imagen esté DECODIFICADA y lista para PINTAR.
+    // (img.complete puede ser true sin estar pintada → Chrome imprime la página
+    // ANTES de rasterizar las fotos → PDF sin fotos y glass flat. Con fotos
+    // pesadas el 'complete' llega antes que el decode.) .catch para que una foto
+    // rota no cuelgue el Promise.all (antes: "no descarga el PDF").
+    if (img.decode) return img.decode().then(function(){return true;}).catch(function () { return true; });
     return img.complete ? true : new Promise(function (res) { img.onload = img.onerror = res; });
   }));
   var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-  Promise.all([imgsReady, fontsReady]).then(function () {
-    setTimeout(function () { window.print(); }, 700);
+  // Red de seguridad: imprime de todos modos a los 7s aunque algo se cuelgue.
+  var safety = new Promise(function (res) { setTimeout(res, 7000); });
+  Promise.race([Promise.all([imgsReady, fontsReady]), safety]).then(function () {
+    setTimeout(function () { window.print(); }, 400);
   });
 });
 `;
