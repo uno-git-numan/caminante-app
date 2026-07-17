@@ -54,7 +54,9 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 
 /* ---- topbar (marca + pager/meta) ---- */
 .s-top{position:absolute;top:44px;left:56px;right:56px;z-index:3;display:flex;align-items:center;justify-content:space-between;}
-.s-meta{font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.82);}
+/* La fecha SIEMPRE en naranja de marca + realce oscuro → legible sobre cualquier
+   fondo (antes era blanca translúcida y se perdía en fondos claros). */
+.s-meta{font-family:"Geist Mono",monospace;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);text-shadow:0 1px 3px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.5);}
 
 /* ======================= COVER / CLOSING ======================= */
 .cover .cover-btm{margin-top:auto;padding:${orient === "h" ? "56px 56px 74px" : "48px 40px 78px"};display:flex;flex-direction:column;align-items:center;text-align:center;}
