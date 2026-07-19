@@ -5,7 +5,7 @@
 // Página inmersiva (sin AdminShell), como /admin/social y /admin/print.
 import { notFound } from "next/navigation";
 import { fetchKitContext } from "@/lib/kit/queries";
-import { PIEZAS, expName, type Lamina } from "@/lib/kit/kit";
+import { PIEZAS, PIEZAS_E, expName, type Lamina, type PieceDef, type PieceState } from "@/lib/kit/kit";
 import type { PageV2 } from "@/lib/experiences/types";
 import { generarKitCaptions } from "@/lib/kit/kit-actions";
 import { captionToText, type KitCaptions } from "@/lib/ai/kit-captions";
@@ -78,7 +78,9 @@ export default async function KitPage({
   const nombre = expName(ctx.exp);
 
   const piezas = PIEZAS.map((p) => ({ def: p, state: p.build(ctx) }));
-  const listas = piezas.filter((x) => x.state.estado === "lista");
+  // Serie E · Catálogo informativo (ficha científica + banco de fotos tipificado).
+  const piezasE = PIEZAS_E.map((p) => ({ def: p, state: p.build(ctx) }));
+  const listas = [...piezas, ...piezasE].filter((x) => x.state.estado === "lista");
 
   // Piezas que entran a «Programar campaña»: listas, de M1/M2, sin P7 (P7 la dispara
   // el cron de cupo; M3 se agenda después del viaje).
@@ -88,6 +90,53 @@ export default async function KitPage({
 
   const thumbH = orient === "story" ? 1280 * THUMB_K : 900 * THUMB_K;
   const thumbW = 720 * THUMB_K;
+
+  // Card de una pieza (compartida por las 10 canónicas y la serie E — misma
+  // UI, mismos controles: las E heredan Publicar/Programar de KitPieceControls).
+  const renderPieza = ({ def, state }: { def: PieceDef; state: PieceState }) => {
+    const cap = captions[def.id];
+    return (
+      <section className="piece" id={def.id} key={def.id}>
+        <div className="ph">
+          <div>
+            <div className="pid">{def.id} · {def.momento}</div>
+            <div className="pn">{def.nombre}</div>
+            <div className="pw">{def.trabajo} · <b>{def.formato}</b>{def.cara !== "—" ? ` · cara ${def.cara}` : ""}</div>
+          </div>
+          <span className={`chip ${state.estado === "lista" ? "c-lista" : "c-pend"}`}>
+            {state.estado === "lista" ? `Lista · ${state.laminas.length} lámina${state.laminas.length === 1 ? "" : "s"}` : "Pendiente de insumo"}
+          </span>
+        </div>
+
+        {state.estado === "pendiente" ? (
+          <div className="pend-msg">⏳ {state.razon}</div>
+        ) : (
+          <>
+            <div style={{ marginTop: 14 }}>
+              <KitPieceControls pieceId={def.id} slug={slug} orient={orient} captionText={cap ? captionToText(cap) : undefined} />
+            </div>
+            {cap ? (
+              <div className="cap">
+                {captionToText({ ...cap, hashtags: [] })}
+                {cap.hashtags.length ? <div className="tags">{cap.hashtags.join(" ")}</div> : null}
+              </div>
+            ) : (
+              <div className="cap" style={{ color: "#8a6d3b" }}>Genera los captions con IA (botón de arriba) para tener el texto listo para copiar.</div>
+            )}
+            <div className="thumbs">
+              {state.laminas.map((l: Lamina, i) => (
+                <div className="thumb" key={i} style={{ width: thumbW, height: thumbH }}>
+                  <div className={`kit ${orient}`} style={{ transform: `scale(${THUMB_K})` }}>
+                    <KitDeck laminas={[l]} orient={orient} momento={def.momento} collaborators={collaborators} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+    );
+  };
 
   return (
     <div className="kt">
@@ -136,50 +185,18 @@ export default async function KitPage({
         {orient === "post" ? <CampanaButton slug={slug} orient="post" pieces={campanaPiezas} /> : null}
       </div>
 
-      {piezas.map(({ def, state }) => {
-        const cap = captions[def.id];
-        return (
-          <section className="piece" id={def.id} key={def.id}>
-            <div className="ph">
-              <div>
-                <div className="pid">{def.id} · {def.momento}</div>
-                <div className="pn">{def.nombre}</div>
-                <div className="pw">{def.trabajo} · <b>{def.formato}</b>{def.cara !== "—" ? ` · cara ${def.cara}` : ""}</div>
-              </div>
-              <span className={`chip ${state.estado === "lista" ? "c-lista" : "c-pend"}`}>
-                {state.estado === "lista" ? `Lista · ${state.laminas.length} lámina${state.laminas.length === 1 ? "" : "s"}` : "Pendiente de insumo"}
-              </span>
-            </div>
+      {piezas.map(renderPieza)}
 
-            {state.estado === "pendiente" ? (
-              <div className="pend-msg">⏳ {state.razon}</div>
-            ) : (
-              <>
-                <div style={{ marginTop: 14 }}>
-                  <KitPieceControls pieceId={def.id} slug={slug} orient={orient} captionText={cap ? captionToText(cap) : undefined} />
-                </div>
-                {cap ? (
-                  <div className="cap">
-                    {captionToText({ ...cap, hashtags: [] })}
-                    {cap.hashtags.length ? <div className="tags">{cap.hashtags.join(" ")}</div> : null}
-                  </div>
-                ) : (
-                  <div className="cap" style={{ color: "#8a6d3b" }}>Genera los captions con IA (botón de arriba) para tener el texto listo para copiar.</div>
-                )}
-                <div className="thumbs">
-                  {state.laminas.map((l: Lamina, i) => (
-                    <div className="thumb" key={i} style={{ width: thumbW, height: thumbH }}>
-                      <div className={`kit ${orient}`} style={{ transform: `scale(${THUMB_K})` }}>
-                        <KitDeck laminas={[l]} orient={orient} momento={def.momento} collaborators={collaborators} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </section>
-        );
-      })}
+      {/* SERIE E · Catálogo informativo — piezas educativas atemporales que salen
+          de la ficha científica + banco de fotos tipificado de la experiencia. */}
+      <div className="eyebrow" style={{ marginTop: 44 }}>// Catálogo informativo</div>
+      <h2 style={{ margin: "6px 0 8px", fontSize: 26 }}>Serie E · piezas educativas</h2>
+      <p className="lead" style={{ marginBottom: 12 }}>
+        Contenido atemporal que enseña (no vende): especies, datos del lugar, glosario, temporada.
+        Sale de la <b>Ficha científica</b> y del <b>Banco de fotos</b> de la experiencia (edítalos en el
+        formulario de la experiencia). Cada dato lleva su fuente.
+      </p>
+      {piezasE.map(renderPieza)}
 
       {/* Decks a tamaño real, fuera de pantalla — de aquí exporta KitPieceControls */}
       <div className="off" aria-hidden>

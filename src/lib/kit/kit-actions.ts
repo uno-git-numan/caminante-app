@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchKitContext } from "@/lib/kit/queries";
-import { PIEZAS } from "@/lib/kit/kit";
+import { PIEZAS, PIEZAS_E } from "@/lib/kit/kit";
 import { generateKitCaptions, type KitCaptions } from "@/lib/ai/kit-captions";
 
 export async function generarKitCaptions(formData: FormData): Promise<void> {
@@ -20,7 +20,7 @@ export async function generarKitCaptions(formData: FormData): Promise<void> {
   const ctx = await fetchKitContext(slug);
   if (!ctx) redirect(`${base}?error=${encodeURIComponent("No se encontró la experiencia.")}`);
 
-  const listas = PIEZAS.filter((p) => p.build(ctx!).estado === "lista");
+  const listas = [...PIEZAS, ...PIEZAS_E].filter((p) => p.build(ctx!).estado === "lista");
   const res = await generateKitCaptions(ctx!, listas);
   if (!res.ok) redirect(`${base}?error=${encodeURIComponent(res.error)}`);
 

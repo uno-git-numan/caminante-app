@@ -38,7 +38,7 @@ export type Lamina =
   | { kind: "perfil"; name: string; role: string; cred?: string; body?: string; photo?: Foto }
   | { kind: "cierre"; eyebrow: string; title: string; accent?: string; cta: string; bg: Foto };
 
-export type Momento = "M1 · Lanzamiento" | "M2 · Venta" | "M3 · Prueba";
+export type Momento = "M1 · Lanzamiento" | "M2 · Venta" | "M3 · Prueba" | "E · Informativo";
 export type Cara = "Biología" | "Conservación" | "Comunidades" | "Problemas" | "—";
 
 export type PieceState =
@@ -63,6 +63,9 @@ export type KitContext = {
   gallery: string[]; // fotos de "Lo básico" — banco principal
   quotes: { text: string; author: string; stars: number | null }[]; // feedback con consentimiento
   slots: { label: string; available: number | null }[]; // salidas públicas abiertas
+  // Banco de fotos tipificado + ficha científica (serie E). null = sin capturar.
+  photoBank: Experience["photoBank"] | null;
+  ficha: Experience["ficha"] | null;
   reservarUrl: string;
   expUrl: string;
 };
@@ -148,14 +151,41 @@ function shuffle<T>(arr: T[], seed: string): T[] {
   }
   return out;
 }
+// Banco de fotos TIPIFICADO (photoBank): fotos por tipo de contenido.
+type BankKey = keyof NonNullable<Experience["photoBank"]>;
+const BANK_KEYS: BankKey[] = ["flora", "paisaje", "comunidad", "comida", "gente", "problemas", "cielo", "detalle"];
+function bankPhotos(ctx: KitContext, keys: BankKey[]): Foto[] {
+  const pb = ctx.photoBank ?? {};
+  const out: Foto[] = [];
+  for (const k of keys) for (const u of pb[k] ?? []) if (has(u)) out.push({ url: u });
+  return out;
+}
+
 // Banco de fotos BARAJADO por pieza (salt = id de la pieza) → cada pieza usa un
-// orden propio y se aprovecha TODA la galería, no sólo las primeras subidas.
-// `exclude` = URLs a sacar del banco (p.ej. la foto que ya usa la portada, para
-// que ninguna lámina del cuerpo la repita).
-function poolFor(ctx: KitContext, salt: string, exclude: (string | undefined)[] = []): Foto[] {
-  const ex = new Set(exclude.filter(has).map((u) => fileKey(u!)));
-  const base = photoPool(ctx).filter((f) => !ex.has(fileKey(f.url)));
-  return shuffle(base, `${ctx.exp.slug || "x"}·${salt}`);
+// orden propio. PRIORIDAD: slots tipificados pedidos (`categorias`) → resto del
+// banco → galería + fondos de bloques (compat: sin banco, funciona como hoy).
+// `exclude` = URLs a sacar (p.ej. la foto que ya usa la portada). Dedupe por
+// nombre original de archivo, conservando la prioridad.
+function poolFor(
+  ctx: KitContext,
+  salt: string,
+  opts: { exclude?: (string | undefined)[]; categorias?: BankKey[] } = {},
+): Foto[] {
+  const ex = new Set((opts.exclude ?? []).filter(has).map((u) => fileKey(u!)));
+  const seed = `${ctx.exp.slug || "x"}·${salt}`;
+  const cats = opts.categorias ?? [];
+  const prioridad = shuffle(bankPhotos(ctx, cats), seed);
+  const resto = shuffle(bankPhotos(ctx, BANK_KEYS.filter((k) => !cats.includes(k))), `${seed}·resto`);
+  const base = shuffle(photoPool(ctx), `${seed}·base`);
+  const seen = new Set<string>();
+  const out: Foto[] = [];
+  for (const f of [...prioridad, ...resto, ...base]) {
+    const k = fileKey(f.url);
+    if (ex.has(k) || seen.has(k)) continue;
+    seen.add(k);
+    out.push(f);
+  }
+  return out;
 }
 // Portada de una pieza: primera foto de su banco barajado (varía entre piezas),
 // con el hero como respaldo si el banco viene vacío.
@@ -190,7 +220,7 @@ export const PIEZAS: PieceDef[] = [
     formato: "Reel o carrusel",
     cta: "Fechas abiertas · link en bio (a la página de la experiencia).",
     build: (ctx) => {
-      const pool = poolFor(ctx, "P1", [heroBg(ctx).url]); // la portada usa el hero → fuera del cuerpo
+      const pool = poolFor(ctx, "P1", { exclude: [heroBg(ctx).url] }); // la portada usa el hero → fuera del cuerpo
       const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
       const st = block(ctx.blocks, "statement") as V2Statement | undefined;
       const laminas: Lamina[] = [
@@ -256,7 +286,7 @@ export const PIEZAS: PieceDef[] = [
     cta: "Fechas y lugares en el link.",
     build: (ctx) => {
       const itin = block(ctx.blocks, "itinerary") as V2Itinerary | undefined;
-      const pool = poolFor(ctx, "P4", [itin?.bg?.url]); // la portada usa el fondo del itinerario → fuera del cuerpo
+      const pool = poolFor(ctx, "P4", { exclude: [itin?.bg?.url] }); // la portada usa el fondo del itinerario → fuera del cuerpo
       const days = itin?.days ?? [];
       if (days.length === 0) return { estado: "pendiente", razon: "Falta el itinerario de la experiencia." };
       const laminas: Lamina[] = [
@@ -280,7 +310,7 @@ export const PIEZAS: PieceDef[] = [
     build: (ctx) => {
       const ch = block(ctx.blocks, "checklist") as V2Checklist | undefined;
       const faq = block(ctx.blocks, "faq") as V2Faq | undefined;
-      const pool = poolFor(ctx, "P5", [faq?.bg?.url]); // la lámina de FAQ usa el fondo del FAQ → fuera del resto
+      const pool = poolFor(ctx, "P5", { exclude: [faq?.bg?.url] }); // la lámina de FAQ usa el fondo del FAQ → fuera del resto
       const yes = ch?.yesItems?.filter(has) ?? [];
       const no = ch?.noItems?.filter(has) ?? [];
       const qa = (faq?.qa ?? []).filter((x) => has(x.q)).slice(0, 3);
@@ -385,6 +415,254 @@ export const PIEZAS: PieceDef[] = [
     formato: "Carrusel 5–7 láminas",
     cta: "Ninguno o suave (construye marca, no vende).",
     build: () => ({ estado: "pendiente", razon: "Requiere el episodio de La Fábrica del viaje (transcripción + datos con fuente). Se activa cuando exista." }),
+  },
+];
+
+// ── SERIE E · Catálogo informativo ───────────────────────────────────────────
+// Piezas educativas ATEMPORALES (no venden; construyen autoridad). Materia
+// prima: la FICHA CIENTÍFICA (datos con fuente, jamás inventados) + el banco de
+// fotos tipificado. El MAPEO A LÁMINAS de cada pieza vive aislado en su función
+// laminasEx() con kinds EXISTENTES provisionales — los kinds definitivos
+// (especie, dato-grande, glosario, postal) llegan de Claude Design y se
+// intercambian ahí sin tocar los builders.
+
+const FALTA_FICHA = "Falta la ficha científica — llénala en el formulario (sección «Ficha científica»)";
+
+function fichaDatos(ctx: KitContext, cara?: string): { n?: string; texto: string; fuente: string; cara?: string }[] {
+  return (ctx.ficha?.datos ?? []).filter(
+    (d) => has(d.texto) && has(d.fuente) && (cara === undefined || (d.cara || "") === cara),
+  );
+}
+
+// E1 · Ficha de especie — provisional con kind "perfil" (nombre + científico + datos).
+function laminasE1(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const esp = (ctx.ficha?.especies ?? []).filter((e) => has(e.comun)).slice(0, 5);
+  const out: Lamina[] = [
+    { kind: "cover", eyebrow: "Ficha de especie", title: "Quién vive", accent: "aquí.", bg: pool.length ? pool[0] : heroBg(ctx) },
+  ];
+  esp.forEach((e, i) => {
+    const d = (e.datos ?? []).filter((x) => has(x.texto) && has(x.fuente));
+    out.push({
+      kind: "perfil",
+      name: clean(e.comun),
+      role: clean(e.cientifico || "") || "Especie del lugar",
+      cred: d[0] ? fit(`${d[0].texto} (${d[0].fuente})`, 160) : undefined,
+      body: d[1] ? fit(`${d[1].texto} (${d[1].fuente})`, 220) : undefined,
+      photo: pick(pool, i + 1),
+    });
+  });
+  return out;
+}
+
+// E2 · El dato — fact (cifra grande + fuente) o foto con línea.
+function laminasE2(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const datos = fichaDatos(ctx).slice(0, 6);
+  const out: Lamina[] = [
+    { kind: "cover", eyebrow: "El dato", title: expName(ctx.exp), accent: "en cifras.", bg: pool.length ? pool[0] : heroBg(ctx) },
+  ];
+  datos.forEach((d, i) => {
+    if (has(d.n)) out.push({ kind: "fact", n: d.n!, label: fit(d.texto, 130), source: d.fuente, bg: pick(pool, i + 1) });
+    else out.push({ kind: "foto", line: fit(d.texto, 200), sub: `Fuente: ${d.fuente}`, bg: pick(pool, i + 1) });
+  });
+  return out;
+}
+
+// E3 · Diccionario visual — glosario en tandas de 3 (kind "qa" provisional).
+function laminasE3(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def)).slice(0, 9);
+  const out: Lamina[] = [
+    { kind: "cover", eyebrow: "Diccionario visual", title: "Habla como", accent: "el bosque.", bg: pool.length ? pool[0] : heroBg(ctx) },
+  ];
+  for (let i = 0; i < glo.length; i += 3) {
+    out.push({
+      kind: "qa",
+      eyebrow: "Diccionario",
+      title: "Términos",
+      accent: "del lugar.",
+      qa: glo.slice(i, i + 3).map((g) => ({ q: clean(g.termino), a: fit(g.def, 200) })),
+      bg: pick(pool, i / 3 + 1),
+    });
+  }
+  return out;
+}
+
+// E4 · La temporada — foto con línea por época.
+function laminasE4(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const tem = (ctx.ficha?.temporada ?? []).filter((t) => has(t.epoca) && has(t.fenomeno)).slice(0, 5);
+  const out: Lamina[] = [
+    { kind: "cover", eyebrow: "La temporada", title: "El calendario", accent: "del ecosistema.", bg: pool.length ? pool[0] : heroBg(ctx) },
+  ];
+  tem.forEach((t, i) => {
+    out.push({
+      kind: "foto",
+      line: fit(`${t.epoca}: ${t.fenomeno}`, 200),
+      sub: has(t.fuente) ? `Fuente: ${t.fuente}` : undefined,
+      bg: pick(pool, i + 1),
+    });
+  });
+  return out;
+}
+
+// E5 · Quien sabe sabe — perfiles de guías/comunidad, SIN CTA de venta.
+function laminasE5(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const perfiles = guias(ctx).slice(0, 5);
+  const out: Lamina[] = [
+    { kind: "cover", eyebrow: "Quien sabe sabe", title: "El conocimiento", accent: "del territorio.", bg: pool.length ? pool[0] : heroBg(ctx) },
+  ];
+  perfiles.forEach((p, i) => out.push({ ...p, photo: p.photo ?? pick(pool, i + 1) }));
+  return out; // sin cierre: esta pieza no vende
+}
+
+// E6 · La conexión — datos de conservación + el statement.
+function laminasE6(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const datos = fichaDatos(ctx, "conservacion").slice(0, 4);
+  const st = block(ctx.blocks, "statement") as V2Statement | undefined;
+  const out: Lamina[] = [
+    { kind: "cover", eyebrow: "La conexión", title: "Caminar también", accent: "conserva.", bg: pool.length ? pool[0] : heroBg(ctx) },
+  ];
+  datos.forEach((d, i) => {
+    if (has(d.n)) out.push({ kind: "fact", n: d.n!, label: fit(d.texto, 130), source: d.fuente, bg: pick(pool, i + 1) });
+    else out.push({ kind: "foto", line: fit(d.texto, 200), sub: `Fuente: ${d.fuente}`, bg: pick(pool, i + 1) });
+  });
+  if (has(st?.body)) out.push({ kind: "foto", line: fit(clean(st!.body!), 220), bg: pick(pool, datos.length + 1) });
+  return out;
+}
+
+// E7 · Lo incómodo — datos cara Problemas; fotos problemas (fallback natural a paisaje).
+function laminasE7(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const datos = fichaDatos(ctx, "problemas").slice(0, 4);
+  const out: Lamina[] = [
+    { kind: "cover", eyebrow: "Lo incómodo", title: "Lo que está", accent: "en juego.", bg: pool.length ? pool[0] : heroBg(ctx) },
+  ];
+  datos.forEach((d, i) => {
+    if (has(d.n)) out.push({ kind: "fact", n: d.n!, label: fit(d.texto, 130), source: d.fuente, bg: pick(pool, i + 1) });
+    else out.push({ kind: "foto", line: fit(d.texto, 200), sub: `Fuente: ${d.fuente}`, bg: pick(pool, i + 1) });
+  });
+  return out;
+}
+
+// E8 · Postal — 1 lámina, foto + una línea. Sin insumo: siempre lista.
+function laminasE8(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
+  const st = block(ctx.blocks, "statement") as V2Statement | undefined;
+  const line = clean(hero?.sub || st?.title || expName(ctx.exp));
+  return [{ kind: "foto", line: fit(line, 180), bg: pool.length ? pool[0] : heroBg(ctx) }];
+}
+
+export const PIEZAS_E: PieceDef[] = [
+  {
+    id: "E1",
+    nombre: "Ficha de especie",
+    momento: "E · Informativo",
+    trabajo: "Autoridad: una especie del lugar, con datos y fuente. Educa, no vende.",
+    cara: "Biología",
+    formato: "Carrusel 2–6 láminas",
+    cta: "Suave: «Guarda esta ficha» / link en bio.",
+    build: (ctx) => {
+      const esp = (ctx.ficha?.especies ?? []).filter((e) => has(e.comun));
+      if (!esp.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Especies.` };
+      return { estado: "lista", laminas: laminasE1(ctx, poolFor(ctx, "E1", { categorias: ["flora"] })) };
+    },
+  },
+  {
+    id: "E2",
+    nombre: "El dato",
+    momento: "E · Informativo",
+    trabajo: "Un dato duro del lugar con su fuente — el asombro está en la cifra.",
+    cara: "Biología",
+    formato: "Carrusel 3–7 láminas",
+    cta: "Suave: «Guárdalo» / link en bio.",
+    build: (ctx) => {
+      if (!fichaDatos(ctx).length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos del lugar.` };
+      return { estado: "lista", laminas: laminasE2(ctx, poolFor(ctx, "E2", { categorias: ["paisaje"] })) };
+    },
+  },
+  {
+    id: "E3",
+    nombre: "Diccionario visual",
+    momento: "E · Informativo",
+    trabajo: "Términos del ecosistema explicados en simple — vocabulario para mirar mejor.",
+    cara: "Biología",
+    formato: "Carrusel 2–4 láminas",
+    cta: "«Guárdalo para el viaje».",
+    build: (ctx) => {
+      const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def));
+      if (!glo.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Glosario.` };
+      return { estado: "lista", laminas: laminasE3(ctx, poolFor(ctx, "E3", { categorias: ["flora", "detalle"] })) };
+    },
+  },
+  {
+    id: "E4",
+    nombre: "La temporada",
+    momento: "E · Informativo",
+    trabajo: "Qué pasa en el ecosistema según la época — la naturaleza manda el calendario.",
+    cara: "Biología",
+    formato: "Carrusel 2–5 láminas",
+    cta: "Suave: «La temporada manda» / link en bio.",
+    build: (ctx) => {
+      const tem = (ctx.ficha?.temporada ?? []).filter((t) => has(t.epoca) && has(t.fenomeno));
+      if (!tem.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Temporada.` };
+      return { estado: "lista", laminas: laminasE4(ctx, poolFor(ctx, "E4", { categorias: ["paisaje", "cielo"] })) };
+    },
+  },
+  {
+    id: "E5",
+    nombre: "Quien sabe sabe",
+    momento: "E · Informativo",
+    trabajo: "El conocimiento local como autoridad — guías y comunidad, sin vender nada.",
+    cara: "Comunidades",
+    formato: "Carrusel 3–6 láminas",
+    cta: "NINGUNO — esta pieza construye respeto, no vende.",
+    build: (ctx) => {
+      if (!guias(ctx).length) {
+        return { estado: "pendiente", razon: "Faltan guías/comunidad (sección «Guías y aliados» de la experiencia)." };
+      }
+      return { estado: "lista", laminas: laminasE5(ctx, poolFor(ctx, "E5", { categorias: ["comunidad", "gente"] })) };
+    },
+  },
+  {
+    id: "E6",
+    nombre: "La conexión",
+    momento: "E · Informativo",
+    trabajo: "Cómo caminar este lugar lo conserva — el vínculo turismo→conservación con datos.",
+    cara: "Conservación",
+    formato: "Carrusel 2–5 láminas",
+    cta: "Suave: link en bio.",
+    build: (ctx) => {
+      const st = block(ctx.blocks, "statement") as V2Statement | undefined;
+      if (!fichaDatos(ctx, "conservacion").length && !has(st?.body)) {
+        return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos con cara «Conservación» (o un Bloque destacado).` };
+      }
+      return { estado: "lista", laminas: laminasE6(ctx, poolFor(ctx, "E6", { categorias: ["paisaje", "cielo"] })) };
+    },
+  },
+  {
+    id: "E7",
+    nombre: "Lo incómodo",
+    momento: "E · Informativo",
+    trabajo: "La amenaza real del ecosistema, sin drama y con fuente — la cara que nadie enseña.",
+    cara: "Problemas",
+    formato: "Carrusel 2–4 láminas",
+    cta: "Ninguno o «Compártelo».",
+    build: (ctx) => {
+      if (!fichaDatos(ctx, "problemas").length) {
+        return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos con cara «Problemas».` };
+      }
+      return { estado: "lista", laminas: laminasE7(ctx, poolFor(ctx, "E7", { categorias: ["problemas", "paisaje"] })) };
+    },
+  },
+  {
+    id: "E8",
+    nombre: "Postal",
+    momento: "E · Informativo",
+    trabajo: "Una foto que respira + una línea. Presencia pura de marca, cero fricción.",
+    cara: "—",
+    formato: "Post de 1 lámina",
+    cta: "Ninguno o link en bio.",
+    build: (ctx) => ({
+      estado: "lista",
+      laminas: laminasE8(ctx, poolFor(ctx, "E8", { categorias: ["gente", "detalle", "paisaje"] })),
+    }),
   },
 ];
 

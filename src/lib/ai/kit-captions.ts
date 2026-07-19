@@ -48,7 +48,9 @@ Cada pieza tiene un trabajo DISTINTO (te lo doy). El caption debe hacer SU traba
 
 HASHTAGS (5–8 en total): SIEMPRE #Caminante #NaturalezaMexicana #TurismoDeConservación; agrega 1–2 por cara (Biología: #BiodiversidadMexicana #CienciaEnCampo · Conservación: #Conservación #ÁreasNaturalesProtegidas · Comunidades: #ComunidadesLocales #TurismoRegenerativo · Problemas: sin hashtag) y 1–3 por destino según el estado (BCS: #MarDeCortés #BajaCaliforniaSur #Ballenas · Estado de México: #BosquesDeMéxico #Hongos #Xalatlaco · Chihuahua: #BarrancasDelCobre #SierraTarahumara · Volcanes/Iztaccíhuatl: #VolcanesDeMéxico #Iztaccíhuatl). Nunca 30 genéricos.
 
-CTA por momento: M1 (lanzamiento) = awareness, "link en bio"; M2 (venta) = a reservar; M3 (prueba) = próximas fechas / reservar.
+CTA por momento: M1 (lanzamiento) = awareness, "link en bio"; M2 (venta) = a reservar; M3 (prueba) = próximas fechas / reservar; E (informativo) = suave («Guárdalo», «link en bio») o NINGUNO (deja "cta" vacío si la pieza lo pide).
+
+SERIE E (catálogo informativo): piezas educativas ATEMPORALES — enseñan, no venden. Tono de guía de campo con belleza; el dato manda. JAMÁS vender duro ni mencionar precio/fechas/cupo. Puedes citar la fuente ABREVIADA entre paréntesis al final de una frase, ej. "(Guía de hongos, p. 12)". En E5 (comunidades) y E7 (problemas): sin CTA; respeto y honestidad, cero drama.
 
 Para cada pieza devuelve: "hook" (primera línea que frena el scroll, ≤90 caracteres), "caption" (2–4 frases, el cuerpo, SIN hashtags), "hashtags" (arreglo de 5–8, cada uno con #), "cta" (la llamada a la acción, una línea).`;
 

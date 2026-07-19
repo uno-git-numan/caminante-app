@@ -65,6 +65,9 @@ export async function fetchKitContext(slug: string): Promise<KitContext | null> 
     gallery,
     quotes,
     slots,
+    // Banco de fotos tipificado + ficha científica (serie E). null = no capturados.
+    photoBank: exp.photoBank ?? null,
+    ficha: exp.ficha ?? null,
     reservarUrl: `${SITE}/caminante/reservar/${slug}`,
     expUrl: `${SITE}/caminante/experiencias/${slug}`,
   };

@@ -9,7 +9,7 @@
 // Wiring: saveExperience (guarda jsonb) + saveExperienceSlots (experience_slots).
 // Fotos: subida con compresión en el navegador, multi-selección soportada.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { emptyExperience, slugify } from "@/lib/experiences/empty";
 import PrellenarIA from "./PrellenarIA";
 import { aplicarPrellenadoV2, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
@@ -27,6 +27,22 @@ import {
   type V2Draft,
   type V2GuideDraft,
 } from "@/lib/experiences/page-v2";
+
+// Banco de fotos tipificado: los 5 tipos NÚCLEO siempre visibles + 3 extra en
+// acordeón. Alimenta el Kit (serie E reparte fotos por tipo, con fallback a la
+// galería si un tipo está vacío).
+const BANK_CORE: { key: "flora" | "paisaje" | "comunidad" | "comida" | "gente"; label: string; hint: string }[] = [
+  { key: "flora", label: "Flora / fauna", hint: "especies de cerca — Ficha de especie y Diccionario visual" },
+  { key: "paisaje", label: "Paisaje / espacios", hint: "tomas abiertas del lugar — El dato y La temporada" },
+  { key: "comunidad", label: "Comunidad / manos", hint: "gente local trabajando — Quien sabe sabe" },
+  { key: "comida", label: "Comida", hint: "platos, fuego, ingredientes" },
+  { key: "gente", label: "Gente / momentos", hint: "viajeros viviéndolo — Postal" },
+];
+const BANK_EXTRA: { key: "problemas" | "cielo" | "detalle"; label: string; hint: string }[] = [
+  { key: "problemas", label: "Problemas / lo incómodo", hint: "amenazas del ecosistema — Lo incómodo" },
+  { key: "cielo", label: "Cielo / noche", hint: "cielos, estrellas, amaneceres" },
+  { key: "detalle", label: "Detalle / textura", hint: "close-ups y texturas" },
+];
 
 type SlotRow = { id?: string; label: string; start: string; end: string; cupo: string };
 type InitialSlot = { id: string; label: string; startsAt: string; endsAt: string | null; capacity: number | null };
@@ -460,6 +476,19 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   const clausulas = reg.waiverClauses ?? [];
   const cats = fb.sections ?? [];
 
+  // Banco de fotos tipificado + ficha científica (serie E del kit).
+  type BankKey = keyof NonNullable<Experience["photoBank"]>;
+  const bank = exp.photoBank ?? {};
+  const setBank = (k: BankKey, urls: string[]) =>
+    setExp((p) => ({ ...p, photoBank: { ...(p.photoBank ?? {}), [k]: urls } }));
+  const ficha = exp.ficha ?? {};
+  const especies = ficha.especies ?? [];
+  const fdatos = ficha.datos ?? [];
+  const glosario = ficha.glosario ?? [];
+  const temporada = ficha.temporada ?? [];
+  const setFicha = (patch: Partial<NonNullable<Experience["ficha"]>>) =>
+    setExp((p) => ({ ...p, ficha: { ...(p.ficha ?? {}), ...patch } }));
+
   const heroCompleto = `${v2.hero.title} ${v2.hero.titleAccent}`.trim();
   const suggestedSlug = useMemo(() => slugify(heroCompleto), [heroCompleto]);
   const effectiveSlug = autoSlug ? suggestedSlug : (exp.slug ?? "");
@@ -474,6 +503,70 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
     });
     setStatusOk(false);
     setStatus("Pre-llenado con IA — revisa antes de guardar");
+  }
+
+  // «Extraer con IA de mis PDFs» (ficha científica): manda los docs a
+  // api/admin/ficha-ia y PRE-LLENA los repetidores con merge NO destructivo
+  // (agrega lo nuevo, jamás pisa lo capturado; dedupe por texto/término/nombre).
+  const [fichaIaBusy, setFichaIaBusy] = useState(false);
+  const [fichaIaMsg, setFichaIaMsg] = useState<string | null>(null);
+  const fichaFileRef = useRef<HTMLInputElement>(null);
+  async function extraerFichaIA(files: FileList | null) {
+    const fs = Array.from(files ?? []);
+    if (!fs.length) return;
+    setFichaIaBusy(true);
+    setFichaIaMsg(null);
+    try {
+      const fd = new FormData();
+      fs.forEach((f) => fd.append("files", f));
+      const res = await fetch("/caminante/api/admin/ficha-ia", { method: "POST", body: fd });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || "No se pudo extraer la ficha.");
+      const key = (s: string) => (s || "").trim().toLowerCase();
+      setExp((p) => {
+        const f = p.ficha ?? {};
+        const esp = [...(f.especies ?? [])];
+        const espSeen = new Set(esp.map((x) => key(x.comun)));
+        for (const e of j.especies ?? []) {
+          if (!e?.comun || espSeen.has(key(e.comun))) continue;
+          espSeen.add(key(e.comun));
+          esp.push({
+            comun: e.comun,
+            cientifico: e.cientifico || undefined,
+            datos: (e.datos ?? []).filter((d: { texto?: string; fuente?: string }) => d?.texto && d?.fuente),
+          });
+        }
+        const dat = [...(f.datos ?? [])];
+        const datSeen = new Set(dat.map((x) => key(x.texto)));
+        for (const d of j.datos ?? []) {
+          if (!d?.texto || !d?.fuente || datSeen.has(key(d.texto))) continue;
+          datSeen.add(key(d.texto));
+          dat.push({ n: d.n || undefined, texto: d.texto, fuente: d.fuente, cara: d.cara || undefined });
+        }
+        const glo = [...(f.glosario ?? [])];
+        const gloSeen = new Set(glo.map((x) => key(x.termino)));
+        for (const g of j.glosario ?? []) {
+          if (!g?.termino || !g?.def || gloSeen.has(key(g.termino))) continue;
+          gloSeen.add(key(g.termino));
+          glo.push({ termino: g.termino, def: g.def });
+        }
+        const tem = [...(f.temporada ?? [])];
+        const temSeen = new Set(tem.map((x) => key(x.epoca + x.fenomeno)));
+        for (const t of j.temporada ?? []) {
+          if (!t?.epoca || !t?.fenomeno || temSeen.has(key(t.epoca + t.fenomeno))) continue;
+          temSeen.add(key(t.epoca + t.fenomeno));
+          tem.push({ epoca: t.epoca, fenomeno: t.fenomeno, fuente: t.fuente || undefined });
+        }
+        return { ...p, ficha: { especies: esp, datos: dat, glosario: glo, temporada: tem } };
+      });
+      setStatusOk(false);
+      setFichaIaMsg(j.notas ? `Ficha extraída — revisa y guarda. Notas de la IA: ${j.notas}` : "Ficha extraída — revisa y guarda.");
+    } catch (e) {
+      setFichaIaMsg(`⚠️ ${(e as Error).message}`);
+    } finally {
+      setFichaIaBusy(false);
+      if (fichaFileRef.current) fichaFileRef.current.value = "";
+    }
   }
 
   // Guardado real (ya con la experiencia armada). allowOverwrite viene del
@@ -649,7 +742,11 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
         <nav className="index">
           <div className="ix-title">Secciones</div>
           <div className="ix-group">Lo básico</div>
-          <div className="ix-list" style={{ marginBottom: 4 }}><a href="#s1"><span className="n">01</span>Lo básico</a></div>
+          <div className="ix-list" style={{ marginBottom: 4 }}>
+            <a href="#s1"><span className="n">01</span>Lo básico</a>
+            <a href="#s1b"><span className="n">+</span>Banco de fotos</a>
+            <a href="#s1c"><span className="n">+</span>Ficha científica</a>
+          </div>
           <div className="ix-group">Página (diseño v2)</div>
           <div className="ix-list" style={{ marginBottom: 4 }}>
             <a href="#s2"><span className="n">02</span>Portada</a>
@@ -732,6 +829,133 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
                 {exp.status === "published" ? "Publicada" : "Borrador"}
               </div>
             </Field>
+          </section>
+
+          {/* 01b · BANCO DE FOTOS (tipificado — alimenta el Kit / serie E) */}
+          <section className="card" id="s1b">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Banco de fotos</span><h2>Banco de fotos</h2><p className="desc">Fotos clasificadas por tipo de contenido. El <b>Kit de comunicación</b> reparte cada tipo a la pieza que le toca (una ficha de especie usa flora; una postal usa gente). Todo es opcional: sin banco, el kit usa la galería de &quot;Lo básico&quot;.</p></div>
+            {BANK_CORE.map((s) => {
+              const urls = bank[s.key] ?? [];
+              return (
+                <Field key={s.key} label={<>{s.label} <span className="optflag">opcional</span></>} hint={s.hint}>
+                  <div className="gallery">
+                    {urls.map((g, i) => (
+                      <div key={i} className="gal-slot" style={{ borderStyle: "solid" }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {g ? <img src={g} alt="" /> : <span style={{ fontSize: 11 }}>foto</span>}
+                        <button type="button" className="rm" onClick={() => setBank(s.key, urls.filter((_, j) => j !== i))}>✕</button>
+                      </div>
+                    ))}
+                    <MultiAdd onAddMany={(nu) => setBank(s.key, [...urls, ...nu])} />
+                  </div>
+                </Field>
+              );
+            })}
+            <details className="preview">
+              <summary><span className="pv-l"><span className="pv-tag">Más tipos</span> Si aplican a esta experiencia</span><span className="chev">▾</span></summary>
+              <div style={{ paddingTop: 14 }}>
+                {BANK_EXTRA.map((s) => {
+                  const urls = bank[s.key] ?? [];
+                  return (
+                    <Field key={s.key} label={<>{s.label} <span className="optflag">opcional</span></>} hint={s.hint}>
+                      <div className="gallery">
+                        {urls.map((g, i) => (
+                          <div key={i} className="gal-slot" style={{ borderStyle: "solid" }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {g ? <img src={g} alt="" /> : <span style={{ fontSize: 11 }}>foto</span>}
+                            <button type="button" className="rm" onClick={() => setBank(s.key, urls.filter((_, j) => j !== i))}>✕</button>
+                          </div>
+                        ))}
+                        <MultiAdd onAddMany={(nu) => setBank(s.key, [...urls, ...nu])} />
+                      </div>
+                    </Field>
+                  );
+                })}
+              </div>
+            </details>
+          </section>
+
+          {/* 01c · FICHA CIENTÍFICA (serie E — datos con fuente, jamás inventados) */}
+          <section className="card" id="s1c">
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Ficha científica</span><h2>Ficha científica</h2><p className="desc">La materia prima del <b>catálogo informativo</b> del Kit (fichas de especie, datos, diccionario, temporada). Cada dato lleva su <b>fuente</b> (documento y página) — lo que no tenga fuente no se publica. Puedes llenarla a mano o extraerla con IA de tus guías y papers.</p></div>
+
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+              <input ref={fichaFileRef} type="file" multiple accept=".pdf,image/*,.txt,.md" style={{ display: "none" }} onChange={(e) => extraerFichaIA(e.target.files)} />
+              <button type="button" className="btn btn-ghost btn-sm" disabled={fichaIaBusy} onClick={() => fichaFileRef.current?.click()}>
+                {fichaIaBusy ? "Extrayendo… (1–2 min)" : "✨ Extraer con IA de mis PDFs"}
+              </button>
+              <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>Guías de campo, papers, folletos (≤4 MB). La IA solo extrae lo que trae fuente — tú revisas y guardas.</span>
+            </div>
+            {fichaIaMsg ? <p className="desc" style={{ marginTop: 4 }}>{fichaIaMsg}</p> : null}
+
+            <div className="subhead">Especies</div>
+            <div className="rep-items">
+              {especies.map((e, i) => (
+                <div key={i} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
+                  <div className="row c2">
+                    <Field label="Nombre común"><input type="text" value={e.comun} placeholder="Hongo enchilado" onChange={(ev) => setFicha({ especies: especies.map((x, j) => (j === i ? { ...x, comun: ev.target.value } : x)) })} /></Field>
+                    <Field label="Nombre científico (opcional)"><input type="text" value={e.cientifico ?? ""} placeholder="Lactarius deliciosus" onChange={(ev) => setFicha({ especies: especies.map((x, j) => (j === i ? { ...x, cientifico: ev.target.value } : x)) })} /></Field>
+                  </div>
+                  {e.datos.map((d, k) => (
+                    <div key={k} className="rep-row">
+                      <textarea className="grow" placeholder="Dato (1 frase)" value={d.texto} onChange={(ev) => setFicha({ especies: especies.map((x, j) => (j === i ? { ...x, datos: x.datos.map((y, m) => (m === k ? { ...y, texto: ev.target.value } : y)) } : x)) })} />
+                      <input type="text" style={{ maxWidth: 220 }} placeholder="Fuente (obligatoria) · doc, pág" value={d.fuente} onChange={(ev) => setFicha({ especies: especies.map((x, j) => (j === i ? { ...x, datos: x.datos.map((y, m) => (m === k ? { ...y, fuente: ev.target.value } : y)) } : x)) })} />
+                      <button type="button" className="rm" onClick={() => setFicha({ especies: especies.map((x, j) => (j === i ? { ...x, datos: x.datos.filter((_, m) => m !== k) } : x)) })}>Quitar</button>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button type="button" className="add" onClick={() => setFicha({ especies: especies.map((x, j) => (j === i ? { ...x, datos: [...x.datos, { texto: "", fuente: "" }] } : x)) })}>+ Dato</button>
+                    <button type="button" className="rm" onClick={() => setFicha({ especies: especies.filter((_, j) => j !== i) })}>Quitar especie</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setFicha({ especies: [...especies, { comun: "", cientifico: "", datos: [{ texto: "", fuente: "" }] }] })}>+ Agregar especie</button>
+
+            <div className="subhead" style={{ marginTop: 18 }}>Datos del lugar</div>
+            <div className="rep-items">
+              {fdatos.map((d, i) => (
+                <div key={i} className="rep-row">
+                  <input type="text" style={{ maxWidth: 110 }} placeholder="Cifra (900)" value={d.n ?? ""} onChange={(ev) => setFicha({ datos: fdatos.map((x, j) => (j === i ? { ...x, n: ev.target.value } : x)) })} />
+                  <textarea className="grow" placeholder="El dato en 1 frase" value={d.texto} onChange={(ev) => setFicha({ datos: fdatos.map((x, j) => (j === i ? { ...x, texto: ev.target.value } : x)) })} />
+                  <input type="text" style={{ maxWidth: 190 }} placeholder="Fuente (obligatoria)" value={d.fuente} onChange={(ev) => setFicha({ datos: fdatos.map((x, j) => (j === i ? { ...x, fuente: ev.target.value } : x)) })} />
+                  <select style={{ maxWidth: 150 }} value={d.cara ?? ""} onChange={(ev) => setFicha({ datos: fdatos.map((x, j) => (j === i ? { ...x, cara: ev.target.value || undefined } : x)) })}>
+                    <option value="">Cara…</option>
+                    <option value="biologia">Biología</option>
+                    <option value="conservacion">Conservación</option>
+                    <option value="comunidades">Comunidades</option>
+                    <option value="problemas">Problemas</option>
+                  </select>
+                  <button type="button" className="rm" onClick={() => setFicha({ datos: fdatos.filter((_, j) => j !== i) })}>Quitar</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setFicha({ datos: [...fdatos, { texto: "", fuente: "" }] })}>+ Agregar dato</button>
+
+            <div className="subhead" style={{ marginTop: 18 }}>Glosario</div>
+            <div className="rep-items">
+              {glosario.map((g, i) => (
+                <div key={i} className="rep-row">
+                  <input type="text" style={{ maxWidth: 220 }} placeholder="Término (micelio)" value={g.termino} onChange={(ev) => setFicha({ glosario: glosario.map((x, j) => (j === i ? { ...x, termino: ev.target.value } : x)) })} />
+                  <textarea className="grow" placeholder="Definición breve" value={g.def} onChange={(ev) => setFicha({ glosario: glosario.map((x, j) => (j === i ? { ...x, def: ev.target.value } : x)) })} />
+                  <button type="button" className="rm" onClick={() => setFicha({ glosario: glosario.filter((_, j) => j !== i) })}>Quitar</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setFicha({ glosario: [...glosario, { termino: "", def: "" }] })}>+ Agregar término</button>
+
+            <div className="subhead" style={{ marginTop: 18 }}>Temporada</div>
+            <div className="rep-items">
+              {temporada.map((t, i) => (
+                <div key={i} className="rep-row">
+                  <input type="text" style={{ maxWidth: 190 }} placeholder="Época (Jul–Sep)" value={t.epoca} onChange={(ev) => setFicha({ temporada: temporada.map((x, j) => (j === i ? { ...x, epoca: ev.target.value } : x)) })} />
+                  <textarea className="grow" placeholder="Qué pasa en el ecosistema" value={t.fenomeno} onChange={(ev) => setFicha({ temporada: temporada.map((x, j) => (j === i ? { ...x, fenomeno: ev.target.value } : x)) })} />
+                  <input type="text" style={{ maxWidth: 190 }} placeholder="Fuente (recomendada)" value={t.fuente ?? ""} onChange={(ev) => setFicha({ temporada: temporada.map((x, j) => (j === i ? { ...x, fuente: ev.target.value } : x)) })} />
+                  <button type="button" className="rm" onClick={() => setFicha({ temporada: temporada.filter((_, j) => j !== i) })}>Quitar</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="add" onClick={() => setFicha({ temporada: [...temporada, { epoca: "", fenomeno: "" }] })}>+ Agregar época</button>
           </section>
 
           {/* 02 · PORTADA */}

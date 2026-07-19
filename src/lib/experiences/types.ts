@@ -303,6 +303,30 @@ export type Experience = {
   // === Campos del form nuevo (Claude Design) — TODOS opcionales ===
   // jsonb schemaless: el template legacy no los usa; las páginas nuevas son estáticas.
   gallery?: string[]; // galería de fotos (sección "Lo básico")
+
+  // Banco de fotos TIPIFICADO (jsonb, sin migración): fotos clasificadas por
+  // tipo de contenido — alimenta el Kit (serie E y reparto por pieza). Todo
+  // opcional: sin banco, el kit cae a gallery + fondos de bloques como hoy.
+  photoBank?: {
+    flora?: string[]; // flora / fauna (especies de cerca)
+    paisaje?: string[]; // paisaje / espacios
+    comunidad?: string[]; // comunidad / manos trabajando
+    comida?: string[]; // comida
+    gente?: string[]; // gente / momentos
+    problemas?: string[]; // lo incómodo (amenazas del ecosistema)
+    cielo?: string[]; // cielo / noche
+    detalle?: string[]; // detalle / textura
+  };
+
+  // Ficha científica (serie E del kit): datos con FUENTE OBLIGATORIA (nombre
+  // del documento/página). La llena el admin o la extrae la IA de sus PDFs
+  // (api/admin/ficha-ia) y el admin revisa — JAMÁS se inventa un dato.
+  ficha?: {
+    especies?: { comun: string; cientifico?: string; datos: { texto: string; fuente: string }[] }[];
+    datos?: { n?: string; texto: string; fuente: string; cara?: string }[]; // cara: biologia|conservacion|comunidades|problemas
+    glosario?: { termino: string; def: string }[];
+    temporada?: { epoca: string; fenomeno: string; fuente?: string }[];
+  };
   expIntro?: string; // "La experiencia" — intro (diseño nuevo)
   expImage?: string; // "La experiencia" — foto (diseño nuevo)
   bloques?: FreeBlock[]; // "Bloques libres extra" (secciones específicas a la experiencia)
