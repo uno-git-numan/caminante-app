@@ -24,6 +24,7 @@ import type {
 } from "@/lib/experiences/types";
 import type { SlotAvailabilityPublic } from "@/lib/experiences/availability";
 import type { OperatorChip } from "@/lib/operators/public";
+import Script from "next/script";
 import { TEMPLATE_V2_CSS } from "@/lib/experiences/template-v2-css";
 import { TEMPLATE_V2_SCRIPT } from "@/lib/experiences/template-v2-script";
 import { PixelEvent } from "@/lib/meta/pixel";
@@ -884,7 +885,12 @@ export default function ExperienceTemplateV2({
         </div>
       </footer>
 
-      <script dangerouslySetInnerHTML={{ __html: TEMPLATE_V2_SCRIPT }} />
+      {/* next/script (afterInteractive): un <script> inline normal MUERE si la
+          hidratación de React falla (#418) — React re-crea el DOM en cliente y
+          los scripts insertados así jamás ejecutan → logo sin pintar, drawer
+          móvil muerto (sin acceso a Panel/Entrar). Script de Next ejecuta
+          SIEMPRE tras la hidratación. El contenido sigue VERBATIM. */}
+      <Script id="exp-v2-js" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: TEMPLATE_V2_SCRIPT }} />
     </>
   );
 }

@@ -5,6 +5,7 @@
 // (en vivo por estado) + cierre SIEMPRE → un estado sin contenido cae en un
 // fallback válido sin romperse. Server component: el CSS y el JS (marca, nav,
 // drawer, slideshow) se inyectan como en el HTML original.
+import Script from "next/script";
 import { DESTINO_CSS } from "@/lib/destinos/destino-css";
 import { CONTACTO_DEFAULT, type DestinoContent } from "@/lib/destinos/types";
 
@@ -318,7 +319,10 @@ export default function DestinoTemplate({
         </div>
       </footer>
 
-      <script dangerouslySetInnerHTML={{ __html: BRAND_JS }} />
+      {/* next/script (afterInteractive): el <script> inline moría con el
+          hydration mismatch de React (#418) → hamburguesa móvil muerta y logo
+          sin pintar. Script de Next ejecuta SIEMPRE tras la hidratación. */}
+      <Script id="dst-brand-js" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: BRAND_JS }} />
       {/* Grilla de experiencias en vivo desde la BD (filtra por data-exp-grid) */}
       <script src="/landing/assets/exp-grid.js" defer />
     </div>

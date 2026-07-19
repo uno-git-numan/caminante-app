@@ -93,6 +93,9 @@ export default async function KitPage({
     <div className="kt">
       <style dangerouslySetInnerHTML={{ __html: UI + kitCss(orient) }} />
 
+      {/* Regla app-first: siempre hay camino de vuelta visible (nunca depender
+          del back del navegador). */}
+      <a href={`/caminante/admin/eventos/${slug}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "#637154", textDecoration: "none", marginBottom: 14 }}>← Volver a la experiencia</a>
       <div className="eyebrow">// Kit de comunicación</div>
       <h1>{nombre}</h1>
       <p className="lead">

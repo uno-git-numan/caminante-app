@@ -581,7 +581,8 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
 
       <header className="ahead">
         <div className="brand">
-          <span className="logo" aria-label="Caminante" dangerouslySetInnerHTML={{ __html: MARK }} />
+          {/* El logo REGRESA al panel (regla app-first: siempre hay camino de vuelta) */}
+          <a className="logo" href="/caminante/admin" aria-label="Volver al panel" title="Volver al panel" dangerouslySetInnerHTML={{ __html: MARK }} />
           <span className="ctx">Admin · <b>{initial ? "Editar experiencia" : "Crear experiencia"}</b></span>
         </div>
         <div className="head-actions">

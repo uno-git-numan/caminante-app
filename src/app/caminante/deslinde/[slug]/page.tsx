@@ -78,6 +78,8 @@ export default async function DeslindePage({ params }: { params: Promise<{ slug:
     <div className="dsld">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="bar">
+        {/* Regla app-first: camino de vuelta visible (nunca depender del back del navegador) */}
+        <a href={`/caminante/experiencias/${slug}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "#637154", textDecoration: "none", fontFamily: '"Geist",system-ui,sans-serif', marginRight: 4 }}>← Volver</a>
         <button className="dl" id="dl-pdf" type="button">⬇ Descargar PDF</button>
       </div>
 

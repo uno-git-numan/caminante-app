@@ -126,6 +126,8 @@ export default async function SocialColaPage({
   return (
     <div className="scq">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      {/* Regla app-first: camino de vuelta visible arriba (no solo al fondo). */}
+      <a className="back" style={{ marginTop: 0, marginBottom: 12 }} href="/caminante/admin">← Volver al panel</a>
       <div className="eyebrow">// Redes</div>
       <h1>Calendario de redes</h1>
       <p className="lead">

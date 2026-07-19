@@ -48,6 +48,13 @@ export default async function SocialPage({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: deckCss("v", { social }) }} />
+      {/* Regla app-first: camino de vuelta visible (nunca depender del back del navegador) */}
+      <a
+        href={`/caminante/admin/kit/${slug}`}
+        style={{ position: "fixed", top: 14, left: 14, zIndex: 60, background: "rgba(32,33,28,.82)", color: "#fff", borderRadius: 999, padding: "9px 16px", fontSize: 13, fontWeight: 600, textDecoration: "none", fontFamily: '"Geist",system-ui,sans-serif', backdropFilter: "blur(6px)" }}
+      >
+        ← Volver al kit
+      </a>
       <ExperienceDeck experience={e} slots={slots} orient="v" social={social} />
       <script dangerouslySetInnerHTML={{ __html: DECK_GLASS_SCRIPT }} />
       <SocialExport titulo={titulo} formato={formato} />
