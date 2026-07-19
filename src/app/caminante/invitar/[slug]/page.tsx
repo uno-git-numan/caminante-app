@@ -10,6 +10,7 @@ import type { Experience } from "@/lib/experiences/types";
 import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import { deckCss, DECK_GLASS_SCRIPT } from "@/lib/experiences/deck-css";
 import ExperienceDeck from "../../experiencias/[slug]/ExperienceDeck";
+import DeckPdfButton from "../../experiencias/[slug]/DeckPdfButton";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 // .catch para que una foto rota no cuelgue el Promise.all; red de seguridad a 7s.
 const AUTOPRINT = `
 window.addEventListener('load', function () {
+  // Móvil: window.print() ignora el @page del deck y fragmenta las láminas en
+  // cientos de páginas → ahí NO auto-imprimimos; el botón «Descargar PDF»
+  // (DeckPdfButton) genera el PDF correcto en el navegador.
+  if (window.matchMedia && matchMedia('(pointer: coarse)').matches) return;
   var imgs = Array.prototype.slice.call(document.images);
   var imgsReady = Promise.all(imgs.map(function (img) {
     if (img.decode) return img.decode().then(function(){return true;}).catch(function () { return true; });
@@ -81,9 +86,12 @@ export default async function InvitarPDFPage({
   // Sin includePrivate → solo fechas públicas (jamás expone salidas de grupo).
   const slots = await fetchOpenSlotsForTemplate((row as { id: string }).id);
 
+  const titulo =
+    [e.title, e.titleAccent].filter(Boolean).join(" ").trim() || e.docTitle || "Experiencia Caminante";
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: deckCss(orient) }} />
+      <DeckPdfButton filename={titulo} />
       <ExperienceDeck experience={e} slots={slots} orient={orient} />
       <script dangerouslySetInnerHTML={{ __html: DECK_GLASS_SCRIPT }} />
       <script dangerouslySetInnerHTML={{ __html: AUTOPRINT }} />

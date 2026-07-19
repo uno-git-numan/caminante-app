@@ -998,8 +998,32 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
         titular: titularNombre,
       });
     }
+    // Lugares PAGADOS sin acompañante capturado (capturarlos es opcional): el
+    // roster debe reflejar el grupo completo — una reserva de 3 son 3 personas
+    // en campo aunque solo el titular se haya registrado. Heredan el deslinde
+    // del titular (regla: un deslinde por grupo); el nombre delata que faltan
+    // sus datos médicos.
+    const sinRegistrar = Math.max(0, (r.num_people || 1) - 1 - (reg?.participants?.length || 0));
+    for (let i = 0; i < sinRegistrar; i++) {
+      rows.push({
+        nombre: "Acompañante por registrar",
+        edad: null,
+        emergencia: "—",
+        condiciones: "—",
+        deslinde: !!reg,
+        fechaFirma: reg ? formatDiaMes(reg.signed_at) : null,
+        titular: titularNombre,
+      });
+    }
   }
-  rows.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  // Agrupar cada grupo junto: titular primero, sus acompañantes después.
+  rows.sort((a, b) => {
+    const ga = a.titular || a.nombre;
+    const gb = b.titular || b.nombre;
+    if (ga !== gb) return ga.localeCompare(gb);
+    if (!a.titular !== !b.titular) return a.titular ? 1 : -1; // titular arriba
+    return a.nombre.localeCompare(b.nombre);
+  });
 
   return {
     slotId,
