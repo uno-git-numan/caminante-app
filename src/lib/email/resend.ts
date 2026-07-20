@@ -5,6 +5,9 @@
 // ante 429 y 5xx con backoff, respetando Retry-After.
 const FROM = "Caminante <caminante@numanhub.com>";
 const REPLY_TO = "uno@numanhub.com";
+// El dominio de envío es siempre caminante@numanhub.com (el verificado en
+// Resend, DMARC-safe); solo el NOMBRE visible cambia por tipo de correo.
+const DIR = "caminante@numanhub.com";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function sendViaResend(
@@ -14,11 +17,15 @@ export async function sendViaResend(
   // text = versión en texto plano (multipart → mejor deliverability, menos spam).
   // listUnsubscribeUrl = baja de un clic (List-Unsubscribe + One-Click, RFC 8058);
   // los correos en lote la llevan → Gmail/Yahoo los premian.
-  opts: { ua?: string; text?: string; listUnsubscribeUrl?: string } = {},
+  // fromName = nombre visible del remitente (default "Caminante"). El boletín lo
+  // firma "Luis" para que se lea 1:1 y caiga en Principal; los comprobantes y
+  // deslindes se quedan con la marca — NO tocar su default.
+  opts: { ua?: string; text?: string; listUnsubscribeUrl?: string; fromName?: string } = {},
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key || !to || !to.includes("@")) return false;
-  const payload: Record<string, unknown> = { from: FROM, to: [to], reply_to: REPLY_TO, subject, html };
+  const from = opts.fromName ? `${opts.fromName} <${DIR}>` : FROM;
+  const payload: Record<string, unknown> = { from, to: [to], reply_to: REPLY_TO, subject, html };
   if (opts.text) payload.text = opts.text;
   if (opts.listUnsubscribeUrl) {
     payload.headers = {

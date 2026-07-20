@@ -58,6 +58,9 @@ async function enviarUno(
     text,
     listUnsubscribeUrl: unsub,
     ua: "caminante-newsletter/1.0",
+    // El boletín lo firma Luis (las cartas van en su voz) → se lee como correo
+    // 1:1 y Gmail tiende a mandarlo a Principal en vez de Promociones.
+    fromName: "Luis · Caminante",
   });
 }
 
