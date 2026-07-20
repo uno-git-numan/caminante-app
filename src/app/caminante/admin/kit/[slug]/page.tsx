@@ -268,6 +268,13 @@ export default async function KitPage({
 
       {bol.tablaLista ? (
         <BoletinPanel
+          /* key = id del borrador: al pasar de «sin borrador» a «con borrador»
+             la navegación del server action reusa la MISMA instancia y los
+             useState (inicializados desde props) se quedan con los valores
+             viejos — los campos salían vacíos con el borrador ya guardado.
+             Cambiar la key fuerza el remontaje. Guardar NO cambia el id, así
+             que editar no pierde lo tecleado. */
+          key={bol.borrador?.id ?? "nuevo"}
           slug={slug}
           borrador={bol.borrador}
           previewHtml={previewHtml}
