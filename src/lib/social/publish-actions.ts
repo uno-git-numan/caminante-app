@@ -12,6 +12,7 @@ import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import { publishToInstagram } from "@/lib/social/publish";
 import { recordPost, schedulePost, cancelScheduledPost } from "@/lib/social/posts";
 import { computeCampaignSchedule } from "@/lib/social/campana";
+import { fetchBusyDates } from "@/lib/social/agenda";
 
 async function adminEmail(): Promise<string | null> {
   try {
@@ -110,7 +111,9 @@ export async function programarCampana(input: {
     departure = null;
   }
 
-  const schedule = computeCampaignSchedule(pieces.map((p) => p.pieceId), { now: new Date(), departure });
+  // Agenda GLOBAL: los días que ya ocupan otras campañas, para no encimarse.
+  const busyDates = await fetchBusyDates();
+  const schedule = computeCampaignSchedule(pieces.map((p) => p.pieceId), { now: new Date(), departure, busyDates });
   const byId = new Map(pieces.map((p) => [p.pieceId, p]));
   const email = await adminEmail();
 

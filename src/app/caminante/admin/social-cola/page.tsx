@@ -4,6 +4,7 @@
 import { listRecentPosts, fetchPostsBetween, type SocialPost } from "@/lib/social/posts";
 import { cancelarPostForm } from "@/lib/social/publish-actions";
 import ColaCalendar from "./ColaCalendar";
+import { fetchInsights, rendimientoPorPieza, type PiezaRendimiento } from "@/lib/social/insights";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Cola de redes · Admin" };
@@ -28,6 +29,7 @@ const CSS = `
 .scq .btn{border:1px solid rgba(32,33,28,.14);border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600;background:#f1eee7;cursor:pointer;font-family:inherit;color:#20211c;}
 .scq .btn:hover{background:#e6e2d9;}
 .scq a{color:#c23c1c;}
+.scq .rank{width:26px;height:26px;border-radius:999px;background:#20211c;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 .scq .empty{color:rgba(32,33,28,.5);font-size:14px;padding:8px 0;}
 .scq .back{display:inline-block;margin-top:18px;font-size:13px;color:#637154;text-decoration:none;}
 .scq .vtoggle{display:inline-flex;gap:3px;background:#e9e6df;border-radius:999px;padding:3px;margin:10px 0 22px;}
@@ -123,6 +125,14 @@ export default async function SocialColaPage({
     mesPosts = await fetchPostsBetween(`${monthParam}-01T00:00:00-06:00`, `${nextMonth(monthParam)}-01T00:00:00-06:00`);
   }
 
+  // Métricas: best-effort — si la tabla 0027 aún no existe, la página no se cae.
+  let ranking: PiezaRendimiento[] = [];
+  try {
+    ranking = rendimientoPorPieza(await fetchInsights(90));
+  } catch {
+    ranking = [];
+  }
+
   return (
     <div className="scq">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -149,6 +159,35 @@ export default async function SocialColaPage({
         </>
       ) : (
         <ColaCalendar posts={mesPosts} monthParam={monthParam} />
+      )}
+
+      {/* QUÉ ESTÁ FUNCIONANDO (playbook §8: medir y replicar). Promedio por TIPO
+          de pieza, no por post suelto: la pregunta útil es qué formato repetir. */}
+      <h2>Qué está funcionando</h2>
+      {ranking.length ? (
+        <>
+          <p className="lead" style={{ marginBottom: 12 }}>
+            Promedio por tipo de pieza en los últimos 90 días. Los <b>comentarios</b> y los <b>saves</b> pesan
+            triple: son las señales que mueven el algoritmo (los likes, casi nada).
+          </p>
+          {ranking.map((p, i) => (
+            <div className="row" key={p.pieceId}>
+              <div className="rank">{i + 1}</div>
+              <div className="meta">
+                <div className="t1">{p.pieceId}</div>
+                <div className="t2">
+                  {p.publicaciones} {p.publicaciones === 1 ? "publicación" : "publicaciones"} · {p.likes} likes ·{" "}
+                  {p.comments} comentarios · {p.saved} saves
+                </div>
+              </div>
+              <span className="chip c-pub">{p.puntajeMedio} pts</span>
+            </div>
+          ))}
+        </>
+      ) : (
+        <div className="empty">
+          Aún sin métricas. El robot las trae cada día de lo ya publicado; si acabas de publicar, dale unas horas.
+        </div>
       )}
 
       <a className="back" href="/caminante/admin">← Volver al panel</a>

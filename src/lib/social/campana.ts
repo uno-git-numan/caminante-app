@@ -37,13 +37,22 @@ export type CampaignSlot = { pieceId: string; date: Date };
 
 // Calcula la fecha de publicación de cada pieza elegible. Garantiza: orden del canon,
 // nunca antes de mañana, y ≥1 día entre piezas (nunca 2 el mismo día).
+// Día en clave YYYY-MM-DD (UTC) — la unidad del calendario: una pieza por día.
+export function diaClave(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 export function computeCampaignSchedule(
   pieceIds: string[],
-  opts: { now: Date; departure: Date | null },
+  opts: { now: Date; departure: Date | null; busyDates?: string[] },
 ): CampaignSlot[] {
   const now = opts.now;
   const dep = opts.departure;
   const tomorrow = new Date(now.getTime() + DAY);
+  // Días que YA tienen algo programado por CUALQUIER campaña. Sin esto, dos
+  // campañas calculadas por separado caen el mismo día y se encinan (pasó con
+  // Hongos: tres campañas colisionaron el 20 y el 23 de julio).
+  const ocupados = new Set(opts.busyDates ?? []);
 
   const items = pieceIds
     .filter(esElegibleCampana)
@@ -68,6 +77,13 @@ export function computeCampaignSchedule(
     if (cursor && d.getTime() <= cursor.getTime()) {
       d = atPublishHour(new Date(cursor.getTime() + DAY));
     }
+    // Empuja al siguiente día libre (tope de 1 año por si la agenda estuviera
+    // absurdamente llena: nunca un bucle infinito).
+    let guardia = 0;
+    while (ocupados.has(diaClave(d)) && guardia++ < 365) {
+      d = atPublishHour(new Date(d.getTime() + DAY));
+    }
+    ocupados.add(diaClave(d)); // esta campaña también reserva su día
     out.push({ pieceId: it.id, date: d });
     cursor = d;
   }
