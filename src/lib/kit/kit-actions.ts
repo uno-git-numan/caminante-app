@@ -27,10 +27,8 @@ import { fetchKitContext } from "@/lib/kit/queries";
 import { PIEZAS, PIEZAS_E } from "@/lib/kit/kit";
 import { generateKitCaptions, type KitCaptions } from "@/lib/ai/kit-captions";
 
-// Tamaño de lote: medido a ~28s por lote de 4, con 32s de margen bajo el
-// límite de 60s. No subirlo sin volver a medir.
-export const LOTE_CAPTIONS = 4;
-
+// (El tamaño de lote vive en captions-lote.ts — un archivo "use server" solo
+// puede exportar funciones async — y lo consume el runner del cliente.)
 export type LoteResult = { ok: true; ids: string[] } | { ok: false; error: string };
 
 // Ids de las piezas que HOY tienen sus insumos listos (las pendientes no se

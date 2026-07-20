@@ -10,7 +10,8 @@
 // cuántas piezas alcanzaron a guardarse (que quedan en la base, no se pierden).
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LOTE_CAPTIONS, generarLoteCaptions, listarPiezasListas } from "@/lib/kit/kit-actions";
+import { generarLoteCaptions, listarPiezasListas } from "@/lib/kit/kit-actions";
+import { LOTE_CAPTIONS } from "@/lib/kit/captions-lote";
 
 type Estado =
   | { fase: "idle" }
