@@ -15,6 +15,11 @@ import { KitPieceControls } from "./KitClient";
 import { CampanaButton } from "./CampanaButton";
 import ConexionRedes from "./ConexionRedes";
 import KitToolbar from "./KitToolbar";
+import BoletinPanel from "./BoletinPanel";
+import { fetchBoletin } from "@/lib/newsletter/queries";
+import { composeNewsletter } from "@/lib/newsletter/compose";
+import { contarDestinatarios } from "@/lib/newsletter/send";
+import { renderNewsletter } from "@/lib/newsletter/templates";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -56,6 +61,30 @@ const UI = `
 .kt .porq summary{cursor:pointer;color:#637154;font-weight:600;}
 .kt .porq div{margin-top:7px;line-height:1.5;}
 .kt .porq div span{display:inline-block;min-width:46px;font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#ff5d36;}
+.kt .bol h2{font-size:26px;font-weight:300;margin:6px 0 8px;}
+.kt .bol-warn{background:rgba(201,183,156,.16);border:1px solid rgba(201,183,156,.5);border-radius:10px;padding:10px 14px;font-size:13px;color:#8a6d3b;margin:12px 0;line-height:1.6;}
+.kt .bol-tpl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px;}
+.kt .bol-card{border:1px solid rgba(32,33,28,.12);border-radius:14px;padding:16px 18px;background:#fff;}
+.kt .bol-nom{font-size:17px;font-weight:500;}
+.kt .bol-para{font-size:13px;color:rgba(32,33,28,.6);line-height:1.45;margin-top:4px;}
+.kt .bol-edit{border:1px solid rgba(32,33,28,.12);border-radius:16px;padding:20px 22px;background:#fff;margin-top:16px;}
+.kt .bol-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.kt .bol-dest{font-size:12.5px;color:#637154;font-family:"Geist Mono",monospace;}
+.kt .bol-f{display:block;margin-bottom:14px;}
+.kt .bol-f>span{display:block;font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#637154;margin-bottom:6px;}
+.kt .bol-f>span i{font-weight:400;letter-spacing:0;text-transform:none;color:rgba(32,33,28,.5);}
+.kt .bol-f input,.kt .bol-f textarea,.kt .bol-sub input,.kt .bol-sub textarea{width:100%;border:1px solid rgba(32,33,28,.16);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:14px;color:#20211c;background:#faf8f3;}
+.kt .bol-sub{border-left:3px solid #ff5d36;padding-left:14px;margin:0 0 14px;display:grid;gap:8px;}
+.kt .bol-acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;}
+.kt .btn-danger{background:#c23c1c;color:#fff;}.kt .btn-danger:hover{background:#a53214;}
+.kt .bol-conf{margin-top:16px;border:1px solid rgba(194,60,28,.35);background:rgba(255,93,54,.07);border-radius:12px;padding:16px 18px;}
+.kt .bol-conf-t{font-size:15px;font-weight:600;color:#c23c1c;}
+.kt .bol-conf-b{font-size:13.5px;line-height:1.6;color:#33352d;margin-top:6px;}
+.kt .bol-prev{width:100%;height:640px;border:1px solid rgba(32,33,28,.14);border-radius:12px;margin-top:16px;background:#fff;}
+.kt .bol-hist{margin-top:18px;}
+.kt .bol-hist-t{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#637154;margin-bottom:8px;}
+.kt .bol-hist-r{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:8px 0;border-top:1px solid rgba(32,33,28,.1);}
+.kt .bol-hist-m{color:rgba(32,33,28,.55);font-family:"Geist Mono",monospace;font-size:12px;white-space:nowrap;}
 .kt .thumbs{display:flex;gap:10px;margin-top:16px;overflow-x:auto;padding-bottom:6px;}
 .kt .thumb{flex:0 0 auto;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px -16px rgba(0,0,0,.5);}
 .kt .thumb .kit{padding:0;gap:0;transform-origin:top left;}
@@ -70,10 +99,10 @@ export default async function KitPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ f?: string; ok?: string; error?: string; redes?: string; msg?: string; u?: string }>;
+  searchParams: Promise<{ f?: string; ok?: string; error?: string; redes?: string; msg?: string; u?: string; confirmar?: string; n?: string }>;
 }) {
   const { slug } = await params;
-  const { f, ok, error, redes, msg, u } = await searchParams;
+  const { f, ok, error, redes, msg, u, confirmar, n } = await searchParams;
   const orient: "post" | "story" = f === "story" ? "story" : "post";
 
   const ctx = await fetchKitContext(slug);
@@ -87,6 +116,19 @@ export default async function KitPage({
   // Serie E · Catálogo informativo (ficha científica + banco de fotos tipificado).
   const piezasE = PIEZAS_E.map((p) => ({ def: p, state: p.build(ctx) }));
   const listas = [...piezas, ...piezasE].filter((x) => x.state.estado === "lista");
+
+  // ── BOLETÍN ────────────────────────────────────────────────────────────────
+  // El borrador se pre-llena desde la MISMA fuente que el kit (ficha + serie E
+  // + salidas). `composeNewsletter` solo se llama para saber qué le falta a la
+  // experiencia; el contenido guardado del borrador manda sobre el pre-llenado.
+  const bol = await fetchBoletin(slug);
+  const boletinPrellenado = await composeNewsletter(slug, bol.borrador?.template ?? "carta");
+  const destinatarios = await contarDestinatarios();
+  // Vista previa: el HTML tal cual llegará (sin id de contacto → el link de
+  // baja apunta a la página genérica, no se firma a nadie).
+  const previewHtml = bol.borrador
+    ? renderNewsletter(bol.borrador.template, bol.borrador.body, bol.borrador.preheader)
+    : null;
 
   // Piezas que entran a «Programar campaña»: listas, de M1/M2, sin P7 (P7 la dispara
   // el cron de cupo; M3 se agenda después del viaje).
@@ -223,6 +265,23 @@ export default async function KitPage({
         formulario de la experiencia). Cada dato lleva su fuente.
       </p>
       {piezasE.map(renderPieza)}
+
+      {bol.tablaLista ? (
+        <BoletinPanel
+          slug={slug}
+          borrador={bol.borrador}
+          previewHtml={previewHtml}
+          destinatarios={destinatarios}
+          faltantes={boletinPrellenado?.faltantes ?? []}
+          enviados={bol.enviados}
+          confirmar={confirmar}
+          nConfirmado={n ? Number(n) : undefined}
+        />
+      ) : (
+        <div className="note" id="boletin" style={{ marginTop: 44 }}>
+          📬 El <b>Boletín</b> se activa al aplicar la migración <code>0028_newsletters</code> en el SQL Editor.
+        </div>
+      )}
 
       {/* Decks a tamaño real, fuera de pantalla — de aquí exporta KitPieceControls */}
       <div className="off" aria-hidden>
