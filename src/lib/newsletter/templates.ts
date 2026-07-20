@@ -105,7 +105,7 @@ function header(kicker: string, oscuro: boolean): string {
   const mark = oscuro ? MARK_CREMA : MARK_INK;
   return `<tr><td style="padding:20px 36px 18px${borde}" bgcolor="${bg}">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-<td align="left" valign="middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td valign="middle" style="padding-right:12px"><img src="${mark}" width="43" height="12" alt="" style="display:block;width:43px;height:12px;border:0"></td><td valign="middle" style="font-family:${SANS};font-size:16px;font-weight:600;letter-spacing:.28em;color:${tinta}">CAMINANTE</td></tr></table></td>
+<td align="left" valign="middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td valign="middle" style="padding-right:13px"><img src="${mark}" width="47" height="13" alt="" style="display:block;width:47px;height:13px;border:0"></td><td valign="middle" style="font-family:${SANS};font-size:16px;font-weight:600;letter-spacing:.28em;color:${tinta}">CAMINANTE</td></tr></table></td>
 <td align="right" style="font-family:${MONO};font-size:11px;letter-spacing:.14em;color:${kickerColor}"><span style="color:#ff5d36">//</span> ${esc(kicker)}</td>
 </tr></table>
 </td></tr>`;
