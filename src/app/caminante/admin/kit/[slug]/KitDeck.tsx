@@ -49,7 +49,140 @@ function Foot({ dark, collabs }: { dark: boolean; collabs: Collab[] }) {
   );
 }
 
+// ── Sistema EDITORIAL (serie E) ───────────────────────────────────────────────
+// El promocional lleva chrome de marca en TODAS las láminas (sello + momento +
+// pie); el editorial casi no: sello mínimo en la portada y firma en el cierre.
+// Cada lámina conserva la clase `.slide` (el exportador rasteriza
+// `[data-piece] .slide`) y suma `.edu-slide` para lo visual.
+function EduMark({ sm }: { sm?: boolean }) {
+  return (
+    <span className={`edu-mark${sm ? " edu-sm" : ""}`}>
+      <span dangerouslySetInnerHTML={{ __html: MARK }} />
+      <span className="edu-wm">Caminante</span>
+    </span>
+  );
+}
+function EduPhoto({ f }: { f: Foto }) {
+  return (
+    <div className="edu-photo">
+      {f.url ? <img src={f.url} alt={f.alt || ""} /> : <div style={{ width: "100%", height: "100%", background: "var(--forest)" }} />}
+    </div>
+  );
+}
+
+type EduLamina = Extract<Lamina, { kind: `edu-${string}` }>;
+const isEdu = (l: Lamina): l is EduLamina => l.kind.startsWith("edu-");
+
+function EduSlide({ l }: { l: EduLamina }) {
+  switch (l.kind) {
+    case "edu-portada":
+      return (
+        <div className="slide edu-slide">
+          <EduPhoto f={l.bg} /><div className="edu-sh-portada" />
+          <div className="edu-p-mark"><EduMark sm /></div>
+          <div className="edu-p-body">
+            <div className="edu-hook">{inline(l.hook)}</div>
+            <div className="edu-teaser">{l.teaser}</div>
+            <div className="edu-arrow">→</div>
+          </div>
+        </div>
+      );
+    case "edu-cuerpo":
+      return (
+        <div className="slide edu-slide">
+          <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
+          <div className="edu-b-body">
+            <div className="edu-claim">{inline(l.claim)}</div>
+            {l.caption ? <div className="edu-caption">{inline(l.caption)}</div> : null}
+          </div>
+          {l.src ? <div className="edu-credit">{l.src}</div> : null}
+        </div>
+      );
+    case "edu-ficha":
+      return (
+        <div className="slide edu-slide">
+          <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
+          <div className="edu-ficha">
+            <div className="edu-nom">{l.nom}</div>
+            {l.sci ? <div className="edu-sci">{l.sci}</div> : null}
+            <div className="edu-rows">
+              {l.rows.map((r, i) => (
+                <div key={i}>
+                  {i ? <div className="edu-hair" /> : null}
+                  <div className="edu-r"><span className="edu-k">{r.k}</span><span className="edu-v">{inline(r.v)}</span></div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {l.src ? <div className="edu-ficha-src">{l.src}</div> : null}
+        </div>
+      );
+    case "edu-cierre":
+      return (
+        <div className="slide edu-slide">
+          <EduPhoto f={l.bg} /><div className="edu-sh-bottom" />
+          <div className="edu-c-body">
+            <div className="edu-synth">{l.synth}</div>
+            <div className="edu-turn">{inline(l.turn)}</div>
+          </div>
+          <div className="edu-sign"><EduMark /><span className="edu-exp">{l.exp}</span></div>
+        </div>
+      );
+    case "edu-postal":
+      return (
+        <div className="slide edu-slide">
+          <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
+          <div className="edu-postal-mark"><EduMark sm /></div>
+          <div className="edu-postal-line">{l.line}</div>
+        </div>
+      );
+    case "edu-dcover":
+      return (
+        <div className="slide edu-slide">
+          <EduPhoto f={l.bg} /><div className="edu-sh-pb" />
+          <div className="edu-pb-mark"><EduMark sm /></div>
+          <div className="edu-pb-center">
+            <div className="edu-pb-h">{l.h}</div>
+            <div className="edu-pb-t">{l.t}</div>
+            <div className="edu-pb-index">{l.index}</div>
+          </div>
+          <div className="edu-pb-arrow">→</div>
+        </div>
+      );
+    case "edu-dentry":
+      return (
+        <div className="slide edu-slide">
+          <div className="edu-plate-photo">{l.img.url ? <img src={l.img.url} alt={l.term} /> : null}</div>
+          <div className="edu-plate-band">
+            <div className="edu-plate-term">{l.term}</div>
+            {l.cat ? <div className="edu-plate-cat">{l.cat}</div> : null}
+            <div className="edu-plate-def">{inline(l.def)}</div>
+            <div className="edu-plate-src">{l.src || ""}</div>
+          </div>
+        </div>
+      );
+    case "edu-retrato":
+      return (
+        <div className="slide edu-slide">
+          <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
+          <div className="edu-b-body">
+            <div className="edu-claim" style={{ fontSize: 30 }}>{l.cita}</div>
+            <div style={{ marginTop: 22, borderTop: "1px solid rgba(255,255,255,.32)", paddingTop: 14 }}>
+              <div style={{ fontWeight: 300, fontSize: 22 }}>{l.name}</div>
+              {l.role ? (
+                <div style={{ fontFamily: '"Geist Mono",ui-monospace,monospace', fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", opacity: 0.72, marginTop: 5 }}>
+                  {l.role}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      );
+  }
+}
+
 function Slide({ l, momento, collabs }: { l: Lamina; momento: string; collabs: Collab[] }) {
+  if (isEdu(l)) return <EduSlide l={l} />;
   // dark = fondo foto/oscuro (sello y texto en blanco); light = panel claro.
   const dark = !(l.kind === "lista" || l.kind === "incluye" || l.kind === "perfil");
   const chrome = (

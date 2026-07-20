@@ -36,7 +36,19 @@ export type Lamina =
   | { kind: "cupo"; experiencia: string; fecha: string; n: number; bg: Foto }
   | { kind: "cita"; quote: string; author: string; stars?: number; bg?: Foto }
   | { kind: "perfil"; name: string; role: string; cred?: string; body?: string; photo?: Foto }
-  | { kind: "cierre"; eyebrow: string; title: string; accent?: string; cta: string; bg: Foto };
+  | { kind: "cierre"; eyebrow: string; title: string; accent?: string; cta: string; bg: Foto }
+  // ── SISTEMA EDITORIAL (serie E) ────────────────────────────────────────────
+  // Segundo sistema visual: cuenta una historia en secuencia (portada → cuerpos
+  // → cierre) en vez de vender con un cartel. Marca mínima, foto e idea. Los
+  // textos con **negrita** se renderizan en <b> (ver inline() en KitDeck).
+  | { kind: "edu-portada"; hook: string; teaser: string; bg: Foto }
+  | { kind: "edu-cuerpo"; claim: string; caption?: string; src?: string; bg: Foto } // caballo de batalla
+  | { kind: "edu-ficha"; nom: string; sci?: string; rows: { k: string; v: string }[]; src?: string; bg: Foto }
+  | { kind: "edu-cierre"; synth: string; turn: string; exp: string; bg: Foto }
+  | { kind: "edu-postal"; line: string; bg: Foto }
+  | { kind: "edu-dcover"; h: string; t: string; index: string; bg: Foto } // portada del diccionario
+  | { kind: "edu-dentry"; term: string; cat?: string; def: string; src?: string; img: Foto } // lámina de espécimen 58/42
+  | { kind: "edu-retrato"; cita: string; name: string; role: string; bg: Foto };
 
 export type Momento = "M1 · Lanzamiento" | "M2 · Venta" | "M3 · Prueba" | "E · Informativo";
 export type Cara = "Biología" | "Conservación" | "Comunidades" | "Problemas" | "—";
@@ -434,119 +446,186 @@ function fichaDatos(ctx: KitContext, cara?: string): { n?: string; texto: string
   );
 }
 
-// E1 · Ficha de especie — provisional con kind "perfil" (nombre + científico + datos).
+// Lugar en corto (para ganchos y firmas): el meta del hero ("Edo. de México") o
+// el nombre de la experiencia. Nunca inventado.
+function lugarCorto(ctx: KitContext): string {
+  const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
+  return clean(hero?.metaEst || expName(ctx.exp));
+}
+
+// Portada editorial de una pieza E: gancho + teaser + flecha.
+function eduPortada(hook: string, teaser: string, ctx: KitContext, pool: Foto[]): Lamina {
+  return { kind: "edu-portada", hook: fit(hook, 90), teaser: fit(teaser, 90), bg: coverBg(ctx, pool) };
+}
+
+// Cierre editorial: síntesis + vuelta de tuerca + firma. Se arma SOLO con
+// material real (statement/hero); si no hay, la secuencia cierra sin él —
+// jamás se inventa un remate.
+function eduCierre(ctx: KitContext, pool: Foto[], exp: string, i: number): Lamina | null {
+  const st = block(ctx.blocks, "statement") as V2Statement | undefined;
+  const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
+  const synth = clean(st?.body || hero?.sub || "");
+  const turn = clean(st?.title || hero?.sub || "");
+  if (!has(synth) || !has(turn)) return null;
+  return { kind: "edu-cierre", synth: fit(synth, 240), turn: fit(turn, 90), exp, bg: pick(pool, i) };
+}
+
+// Un dato → lámina de cuerpo: la primera oración es el CLAIM (grande, itálica),
+// el resto el caption. Si el dato trae cifra (`n`), encabeza el claim.
+function datoACuerpo(d: { n?: string; texto: string; fuente: string }, bg: Foto): Lamina {
+  const t = clean(d.texto);
+  const corte = t.search(/\.\s+/);
+  const primera = corte > 0 ? t.slice(0, corte + 1) : t;
+  const resto = corte > 0 ? t.slice(corte + 2).trim() : "";
+  return {
+    kind: "edu-cuerpo",
+    claim: fit(has(d.n) ? `${d.n} · ${primera}` : primera, 120),
+    caption: has(resto) ? fit(resto, 220) : undefined,
+    src: `Fuente: ${clean(d.fuente)}`,
+    bg,
+  };
+}
+
+// E1 · Ficha de especie → portada + N×ficha + cierre.
+// Las filas k/v salen del dato: si el texto trae "Clave: valor" se parte ahí
+// (el usuario escribe "Hábitat: bosque de oyamel"); si no, la clave es el orden.
 function laminasE1(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const esp = (ctx.ficha?.especies ?? []).filter((e) => has(e.comun)).slice(0, 5);
+  const esp = (ctx.ficha?.especies ?? []).filter((e) => has(e.comun)).slice(0, 6);
   const out: Lamina[] = [
-    { kind: "cover", eyebrow: "Ficha de especie", title: "Quién vive", accent: "aquí.", bg: pool.length ? pool[0] : heroBg(ctx) },
+    eduPortada(`Quién vive en **${lugarCorto(ctx)}**`, `${esp.length} ${esp.length === 1 ? "especie" : "especies"} de este lugar.`, ctx, pool),
   ];
   esp.forEach((e, i) => {
-    const d = (e.datos ?? []).filter((x) => has(x.texto) && has(x.fuente));
+    const datos = (e.datos ?? []).filter((x) => has(x.texto) && has(x.fuente)).slice(0, 4);
     out.push({
-      kind: "perfil",
-      name: clean(e.comun),
-      role: clean(e.cientifico || "") || "Especie del lugar",
-      cred: d[0] ? fit(`${d[0].texto} (${d[0].fuente})`, 160) : undefined,
-      body: d[1] ? fit(`${d[1].texto} (${d[1].fuente})`, 220) : undefined,
-      photo: pick(pool, i + 1),
-    });
-  });
-  return out;
-}
-
-// E2 · El dato — fact (cifra grande + fuente) o foto con línea.
-function laminasE2(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const datos = fichaDatos(ctx).slice(0, 6);
-  const out: Lamina[] = [
-    { kind: "cover", eyebrow: "El dato", title: expName(ctx.exp), accent: "en cifras.", bg: pool.length ? pool[0] : heroBg(ctx) },
-  ];
-  datos.forEach((d, i) => {
-    if (has(d.n)) out.push({ kind: "fact", n: d.n!, label: fit(d.texto, 130), source: d.fuente, bg: pick(pool, i + 1) });
-    else out.push({ kind: "foto", line: fit(d.texto, 200), sub: `Fuente: ${d.fuente}`, bg: pick(pool, i + 1) });
-  });
-  return out;
-}
-
-// E3 · Diccionario visual — glosario en tandas de 3 (kind "qa" provisional).
-function laminasE3(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def)).slice(0, 9);
-  const out: Lamina[] = [
-    { kind: "cover", eyebrow: "Diccionario visual", title: "Habla como", accent: "el bosque.", bg: pool.length ? pool[0] : heroBg(ctx) },
-  ];
-  for (let i = 0; i < glo.length; i += 3) {
-    out.push({
-      kind: "qa",
-      eyebrow: "Diccionario",
-      title: "Términos",
-      accent: "del lugar.",
-      qa: glo.slice(i, i + 3).map((g) => ({ q: clean(g.termino), a: fit(g.def, 200) })),
-      bg: pick(pool, i / 3 + 1),
-    });
-  }
-  return out;
-}
-
-// E4 · La temporada — foto con línea por época.
-function laminasE4(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const tem = (ctx.ficha?.temporada ?? []).filter((t) => has(t.epoca) && has(t.fenomeno)).slice(0, 5);
-  const out: Lamina[] = [
-    { kind: "cover", eyebrow: "La temporada", title: "El calendario", accent: "del ecosistema.", bg: pool.length ? pool[0] : heroBg(ctx) },
-  ];
-  tem.forEach((t, i) => {
-    out.push({
-      kind: "foto",
-      line: fit(`${t.epoca}: ${t.fenomeno}`, 200),
-      sub: has(t.fuente) ? `Fuente: ${t.fuente}` : undefined,
+      kind: "edu-ficha",
+      nom: clean(e.comun),
+      sci: has(e.cientifico) ? clean(e.cientifico!) : undefined,
+      rows: datos.map((d, j) => {
+        const t = clean(d.texto);
+        const sep = t.indexOf(":");
+        return sep > 0 && sep <= 22
+          ? { k: t.slice(0, sep).trim(), v: fit(t.slice(sep + 1), 90) }
+          : { k: `Dato ${String(j + 1).padStart(2, "0")}`, v: fit(t, 90) };
+      }),
+      src: datos[0] ? `Fuente: ${clean(datos[0].fuente)}` : undefined,
       bg: pick(pool, i + 1),
     });
   });
+  const cierre = eduCierre(ctx, pool, "Ficha de especie", esp.length + 1);
+  if (cierre) out.push(cierre);
   return out;
 }
 
-// E5 · Quien sabe sabe — perfiles de guías/comunidad, SIN CTA de venta.
-function laminasE5(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const perfiles = guias(ctx).slice(0, 5);
+// E2 · El dato → portada + N×cuerpo + cierre (= carrusel A del sistema).
+function laminasE2(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const datos = fichaDatos(ctx).slice(0, 7);
   const out: Lamina[] = [
-    { kind: "cover", eyebrow: "Quien sabe sabe", title: "El conocimiento", accent: "del territorio.", bg: pool.length ? pool[0] : heroBg(ctx) },
+    eduPortada(`${datos.length} datos del **${lugarCorto(ctx)}**`, "Cada uno con su fuente.", ctx, pool),
   ];
-  perfiles.forEach((p, i) => out.push({ ...p, photo: p.photo ?? pick(pool, i + 1) }));
-  return out; // sin cierre: esta pieza no vende
+  datos.forEach((d, i) => out.push(datoACuerpo(d, pick(pool, i + 1))));
+  const cierre = eduCierre(ctx, pool, lugarCorto(ctx), datos.length + 1);
+  if (cierre) out.push(cierre);
+  return out;
 }
 
-// E6 · La conexión — datos de conservación + el statement.
+// E3 · Diccionario → portada macro con índice + N×lámina de espécimen + cierre
+// (= carrusel B: foto a sangre 58% + banda de papel 42%, corte nítido).
+function laminasE3(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def)).slice(0, 8);
+  const out: Lamina[] = [
+    {
+      kind: "edu-dcover",
+      h: "Diccionario básico",
+      t: `de ${lugarCorto(ctx)}`,
+      index: glo.map((g) => clean(g.termino).toUpperCase()).join(" · "),
+      bg: coverBg(ctx, pool),
+    },
+  ];
+  glo.forEach((g, i) => {
+    out.push({ kind: "edu-dentry", term: clean(g.termino), def: fit(g.def, 200), img: pick(pool, i + 1) });
+  });
+  const cierre = eduCierre(ctx, pool, "Diccionario de campo", glo.length + 1);
+  if (cierre) out.push(cierre);
+  return out;
+}
+
+// E4 · La temporada → portada + N×cuerpo (época = claim, fenómeno = caption).
+function laminasE4(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const tem = (ctx.ficha?.temporada ?? []).filter((t) => has(t.epoca) && has(t.fenomeno)).slice(0, 6);
+  const out: Lamina[] = [
+    eduPortada(`El calendario de **${lugarCorto(ctx)}**`, "La naturaleza manda las fechas.", ctx, pool),
+  ];
+  tem.forEach((t, i) => {
+    out.push({
+      kind: "edu-cuerpo",
+      claim: fit(clean(t.epoca), 60),
+      caption: fit(clean(t.fenomeno), 220),
+      src: has(t.fuente) ? `Fuente: ${clean(t.fuente!)}` : undefined,
+      bg: pick(pool, i + 1),
+    });
+  });
+  const cierre = eduCierre(ctx, pool, "La temporada", tem.length + 1);
+  if (cierre) out.push(cierre);
+  return out;
+}
+
+// E5 · Quien sabe sabe → portada + N×retrato + cierre (= carrusel C).
+// El saber en itálica es la BIO REAL del guía (de los bloques de la
+// experiencia); jamás una cita inventada.
+function laminasE5(ctx: KitContext, pool: Foto[]): Lamina[] {
+  const perfiles = guias(ctx).filter((p) => has(p.name)).slice(0, 6);
+  const out: Lamina[] = [
+    eduPortada(`Quiénes **leen** este lugar`, "El mapa no trae este conocimiento.", ctx, pool),
+  ];
+  perfiles.forEach((p, i) => {
+    const saber = clean(p.body || p.cred || "");
+    out.push({
+      kind: "edu-retrato",
+      cita: has(saber) ? fit(saber, 200) : p.name,
+      name: p.name,
+      role: clean(p.role || p.cred || ""),
+      bg: p.photo?.url ? p.photo : pick(pool, i + 1),
+    });
+  });
+  const cierre = eduCierre(ctx, pool, "Quiénes leen este lugar", perfiles.length + 1);
+  if (cierre) out.push(cierre);
+  return out;
+}
+
+// E6 · La conexión → portada + N×cuerpo (datos de conservación) + cierre.
 function laminasE6(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const datos = fichaDatos(ctx, "conservacion").slice(0, 4);
+  const datos = fichaDatos(ctx, "conservacion").slice(0, 5);
   const st = block(ctx.blocks, "statement") as V2Statement | undefined;
   const out: Lamina[] = [
-    { kind: "cover", eyebrow: "La conexión", title: "Caminar también", accent: "conserva.", bg: pool.length ? pool[0] : heroBg(ctx) },
+    eduPortada("Caminar también **conserva**", `Lo que sostiene ${lugarCorto(ctx)}.`, ctx, pool),
   ];
-  datos.forEach((d, i) => {
-    if (has(d.n)) out.push({ kind: "fact", n: d.n!, label: fit(d.texto, 130), source: d.fuente, bg: pick(pool, i + 1) });
-    else out.push({ kind: "foto", line: fit(d.texto, 200), sub: `Fuente: ${d.fuente}`, bg: pick(pool, i + 1) });
-  });
-  if (has(st?.body)) out.push({ kind: "foto", line: fit(clean(st!.body!), 220), bg: pick(pool, datos.length + 1) });
+  datos.forEach((d, i) => out.push(datoACuerpo(d, pick(pool, i + 1))));
+  if (!datos.length && has(st?.body)) {
+    out.push({ kind: "edu-cuerpo", claim: fit(clean(st!.title || ""), 120) || "Conservación", caption: fit(clean(st!.body!), 220), bg: pick(pool, 1) });
+  }
+  const cierre = eduCierre(ctx, pool, "Conservación", datos.length + 2);
+  if (cierre) out.push(cierre);
   return out;
 }
 
-// E7 · Lo incómodo — datos cara Problemas; fotos problemas (fallback natural a paisaje).
+// E7 · Lo incómodo → portada + N×cuerpo (datos cara Problemas) + cierre.
 function laminasE7(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const datos = fichaDatos(ctx, "problemas").slice(0, 4);
+  const datos = fichaDatos(ctx, "problemas").slice(0, 5);
   const out: Lamina[] = [
-    { kind: "cover", eyebrow: "Lo incómodo", title: "Lo que está", accent: "en juego.", bg: pool.length ? pool[0] : heroBg(ctx) },
+    eduPortada("Lo que está **en juego**", `La cara que nadie enseña de ${lugarCorto(ctx)}.`, ctx, pool),
   ];
-  datos.forEach((d, i) => {
-    if (has(d.n)) out.push({ kind: "fact", n: d.n!, label: fit(d.texto, 130), source: d.fuente, bg: pick(pool, i + 1) });
-    else out.push({ kind: "foto", line: fit(d.texto, 200), sub: `Fuente: ${d.fuente}`, bg: pick(pool, i + 1) });
-  });
+  datos.forEach((d, i) => out.push(datoACuerpo(d, pick(pool, i + 1))));
+  const cierre = eduCierre(ctx, pool, "Lo incómodo", datos.length + 1);
+  if (cierre) out.push(cierre);
   return out;
 }
 
-// E8 · Postal — 1 lámina, foto + una línea. Sin insumo: siempre lista.
+// E8 · Postal — 1 lámina: foto + una línea. Sin dato, sin fuente, sin flecha.
 function laminasE8(ctx: KitContext, pool: Foto[]): Lamina[] {
   const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
   const st = block(ctx.blocks, "statement") as V2Statement | undefined;
   const line = clean(hero?.sub || st?.title || expName(ctx.exp));
-  return [{ kind: "foto", line: fit(line, 180), bg: pool.length ? pool[0] : heroBg(ctx) }];
+  return [{ kind: "edu-postal", line: fit(line, 120), bg: coverBg(ctx, pool) }];
 }
 
 export const PIEZAS_E: PieceDef[] = [
@@ -556,7 +635,7 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Autoridad: una especie del lugar, con datos y fuente. Educa, no vende.",
     cara: "Biología",
-    formato: "Carrusel 2–6 láminas",
+    formato: "Carrusel editorial · portada + fichas + cierre",
     cta: "Suave: «Guarda esta ficha» / link en bio.",
     build: (ctx) => {
       const esp = (ctx.ficha?.especies ?? []).filter((e) => has(e.comun));
@@ -570,7 +649,7 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Un dato duro del lugar con su fuente — el asombro está en la cifra.",
     cara: "Biología",
-    formato: "Carrusel 3–7 láminas",
+    formato: "Carrusel editorial · portada + datos + cierre",
     cta: "Suave: «Guárdalo» / link en bio.",
     build: (ctx) => {
       if (!fichaDatos(ctx).length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos del lugar.` };
@@ -583,7 +662,7 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Términos del ecosistema explicados en simple — vocabulario para mirar mejor.",
     cara: "Biología",
-    formato: "Carrusel 2–4 láminas",
+    formato: "Diccionario · portada macro + láminas de espécimen",
     cta: "«Guárdalo para el viaje».",
     build: (ctx) => {
       const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def));
@@ -597,7 +676,7 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Qué pasa en el ecosistema según la época — la naturaleza manda el calendario.",
     cara: "Biología",
-    formato: "Carrusel 2–5 láminas",
+    formato: "Carrusel editorial · portada + épocas + cierre",
     cta: "Suave: «La temporada manda» / link en bio.",
     build: (ctx) => {
       const tem = (ctx.ficha?.temporada ?? []).filter((t) => has(t.epoca) && has(t.fenomeno));
@@ -611,7 +690,7 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "El conocimiento local como autoridad — guías y comunidad, sin vender nada.",
     cara: "Comunidades",
-    formato: "Carrusel 3–6 láminas",
+    formato: "Carrusel editorial · retratos con saber local",
     cta: "NINGUNO — esta pieza construye respeto, no vende.",
     build: (ctx) => {
       if (!guias(ctx).length) {
@@ -626,7 +705,7 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Cómo caminar este lugar lo conserva — el vínculo turismo→conservación con datos.",
     cara: "Conservación",
-    formato: "Carrusel 2–5 láminas",
+    formato: "Carrusel editorial · portada + datos + cierre",
     cta: "Suave: link en bio.",
     build: (ctx) => {
       const st = block(ctx.blocks, "statement") as V2Statement | undefined;
@@ -642,7 +721,7 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "La amenaza real del ecosistema, sin drama y con fuente — la cara que nadie enseña.",
     cara: "Problemas",
-    formato: "Carrusel 2–4 láminas",
+    formato: "Carrusel editorial · portada + datos + cierre",
     cta: "Ninguno o «Compártelo».",
     build: (ctx) => {
       if (!fichaDatos(ctx, "problemas").length) {
@@ -657,7 +736,7 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Una foto que respira + una línea. Presencia pura de marca, cero fricción.",
     cara: "—",
-    formato: "Post de 1 lámina",
+    formato: "Postal · 1 lámina, solo foto y una línea",
     cta: "Ninguno o link en bio.",
     build: (ctx) => ({
       estado: "lista",

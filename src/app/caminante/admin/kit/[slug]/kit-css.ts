@@ -150,5 +150,101 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .l-cierre .k-eyebrow{color:#fff;margin-bottom:14px;}
 .l-cierre h2{color:#fff;font-weight:200;font-size:${story ? 64 : 50}px;line-height:1.02;letter-spacing:-.02em;}
 .l-cierre .cta{display:inline-flex;align-self:flex-start;margin-top:26px;background:var(--orange);color:#fff;border-radius:999px;padding:${story ? "14px 26px" : "12px 22px"};font-size:${story ? 17 : 15}px;font-weight:600;letter-spacing:.02em;}
+
+${eduCss(story)}`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SISTEMA EDITORIAL (serie E) — el SEGUNDO sistema visual de Claude Design.
+// El promocional vende una salida con un cartel; este CUENTA una historia en
+// secuencia (portada → cuerpos → cierre) y jamás vende: marca mínima, foto e
+// idea, naranja con cuentagotas.
+//
+// ⚠️ NAMESPACE: cada clase lleva prefijo `edu-` y el layout entero cuelga de
+// `.edu-slide`. El sistema promocional usa clases genéricas (.slide, .card…) y
+// convivían en colisión directa — sin el prefijo, `.photo`/`.mark`/`.caption`
+// del editorial repintaban las láminas promocionales.
+// ⚠️ La lámina editorial CONSERVA la clase `.slide` (además de `.edu-slide`):
+// el exportador rasteriza `[data-piece] .slide` y no se toca (KitPieceControls
+// mueve la campaña en vivo). `.edu-slide` solo sobreescribe lo visual.
+// ⚠️ SIN @import de Google Fonts: el export serializa a SVG y las fuentes por
+// URL se pierden. Usa la Geist embebida en base64 (DECK_FONTS, ya arriba).
+function eduCss(story: boolean): string {
+  // Story 9:16: el diseño ancla los textos a bottom 68–132px, que en 1280 de
+  // alto cae bajo la barra de respuesta de Instagram. Subimos ~200px y
+  // respetamos ~250px de zona segura arriba y abajo.
+  const sBtm = (post: number) => (story ? post + 200 : post);
+  const topSafe = story ? 250 : 44;
+  return `
+/* ---- lámina editorial (hereda tamaño de .slide) ---- */
+.edu-slide{background:#14150f;color:#fff;font-family:"Geist",system-ui,sans-serif;}
+.edu-photo{position:absolute;inset:0;z-index:0;}
+.edu-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+/* protecciones locales, nunca velo pesado */
+.edu-sh-bottom{position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(20,21,18,.72),rgba(20,21,18,.18) 34%,transparent 52%);}
+.edu-sh-bl{position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(20,21,18,.66),transparent 46%);}
+.edu-sh-portada{position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(20,21,18,.55),transparent 40%),linear-gradient(to bottom,rgba(20,21,18,.28),transparent 26%);}
+.edu-sh-pb{position:absolute;inset:0;z-index:1;background:radial-gradient(120% 78% at 50% 46%,rgba(18,19,15,.52),rgba(18,19,15,.12) 55%),linear-gradient(to bottom,rgba(18,19,15,.42),transparent 20%,transparent 70%,rgba(18,19,15,.5));}
+
+/* sello Numan + wordmark (mínimo, en blanco) */
+.edu-mark{display:inline-flex;align-items:center;gap:10px;color:#fff;font-size:20px;}
+.edu-mark svg{height:.82em;width:auto;display:block;}
+.edu-mark svg .g1,.edu-mark svg .g2,.edu-mark svg .g3{fill:#fff;}
+.edu-mark .edu-wm{font-weight:500;font-size:1em;letter-spacing:.1em;text-transform:uppercase;line-height:1;}
+.edu-mark.edu-sm{font-size:16px;}
+
+/* PORTADA */
+.edu-p-mark{position:absolute;top:${topSafe}px;left:0;right:0;display:flex;justify-content:center;z-index:3;}
+.edu-p-body{position:absolute;left:0;right:0;bottom:${sBtm(96)}px;z-index:3;padding:0 76px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:22px;}
+.edu-hook{font-weight:300;font-size:54px;line-height:1.08;letter-spacing:-.015em;text-wrap:balance;}
+.edu-hook b{font-weight:700;font-style:italic;}
+.edu-teaser{font-style:italic;font-weight:300;font-size:20px;opacity:.92;}
+.edu-arrow{font-weight:300;font-size:28px;line-height:1;opacity:.9;}
+
+/* CUERPO — anclado tercio inferior izquierdo */
+.edu-b-body{position:absolute;left:0;bottom:0;z-index:3;width:70%;padding:0 0 ${sBtm(68)}px 76px;}
+.edu-claim{font-weight:700;font-style:italic;font-size:36px;line-height:1.12;letter-spacing:-.01em;}
+.edu-caption{font-weight:400;font-size:19px;line-height:1.42;margin-top:18px;opacity:.94;}
+.edu-credit{position:absolute;left:76px;bottom:${sBtm(30)}px;z-index:3;font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.03em;opacity:.62;}
+
+/* FICHA DE ESPECIE */
+.edu-ficha{position:absolute;left:0;bottom:0;z-index:3;width:82%;padding:0 0 ${sBtm(60)}px 76px;}
+.edu-ficha .edu-nom{font-weight:300;font-size:46px;line-height:1;letter-spacing:-.01em;}
+.edu-ficha .edu-sci{font-style:italic;font-weight:300;font-size:20px;opacity:.82;margin-top:6px;}
+.edu-ficha .edu-rows{margin-top:22px;display:flex;flex-direction:column;gap:12px;max-width:520px;}
+.edu-ficha .edu-r{display:flex;gap:16px;align-items:baseline;}
+.edu-ficha .edu-k{font-family:"Geist Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.6;flex:0 0 118px;}
+.edu-ficha .edu-v{font-weight:400;font-size:19px;line-height:1.3;}
+.edu-ficha .edu-hair{height:1px;background:#fff;opacity:.18;}
+.edu-unl{border-bottom:2px solid var(--orange);padding-bottom:1px;}
+.edu-ficha-src{position:absolute;right:40px;bottom:${sBtm(30)}px;z-index:3;font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.03em;opacity:.62;}
+
+/* CIERRE */
+.edu-c-body{position:absolute;left:0;right:0;bottom:${sBtm(132)}px;z-index:3;padding:0 76px;}
+.edu-synth{font-weight:400;font-size:21px;line-height:1.5;max-width:560px;}
+.edu-turn{font-weight:700;font-style:italic;font-size:30px;line-height:1.16;letter-spacing:-.01em;margin-top:22px;}
+.edu-sign{position:absolute;left:0;right:0;bottom:${sBtm(56)}px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.edu-sign .edu-exp{font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;opacity:.72;}
+
+/* POSTAL */
+.edu-postal-line{position:absolute;left:0;bottom:0;z-index:3;width:78%;padding:0 0 ${sBtm(64)}px 76px;font-weight:200;font-size:34px;line-height:1.18;letter-spacing:-.01em;}
+.edu-postal-mark{position:absolute;top:${topSafe}px;left:76px;z-index:3;}
+
+/* ---- CARRUSEL B · diccionario (portada macro + lámina de espécimen) ---- */
+.edu-pb-mark{position:absolute;top:${story ? topSafe : 46}px;left:0;right:0;display:flex;justify-content:center;z-index:3;}
+.edu-pb-center{position:absolute;left:0;right:0;top:${story ? 46 : 49}%;transform:translateY(-50%);z-index:3;text-align:center;padding:0 56px;}
+.edu-pb-h{font-style:italic;font-weight:300;font-size:28px;letter-spacing:.01em;opacity:.92;}
+.edu-pb-t{font-weight:300;font-size:100px;line-height:.9;letter-spacing:-.025em;margin-top:4px;}
+.edu-pb-index{font-family:"Geist Mono",ui-monospace,monospace;font-size:13px;letter-spacing:.22em;margin-top:34px;opacity:.85;line-height:1;}
+.edu-pb-arrow{position:absolute;left:0;right:0;bottom:${sBtm(72)}px;text-align:center;font-size:28px;font-weight:300;opacity:.9;z-index:3;}
+/* lámina de espécimen: foto 58% / banda papel 42%, corte nítido (% → adapta a story) */
+.edu-plate-photo{position:absolute;top:0;left:0;right:0;height:58%;overflow:hidden;z-index:0;}
+.edu-plate-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.edu-plate-band{position:absolute;left:0;right:0;bottom:0;height:42%;z-index:2;background:#efe5d1;color:#2b2720;padding:46px 60px 0;display:flex;flex-direction:column;}
+.edu-plate-term{font-weight:300;font-size:78px;line-height:.94;letter-spacing:-.02em;}
+.edu-plate-cat{font-style:italic;font-weight:300;font-size:18px;color:var(--olive);margin-top:12px;}
+.edu-plate-def{font-weight:400;font-size:20px;line-height:1.46;margin-top:18px;max-width:92%;}
+.edu-plate-def b{font-weight:600;}
+.edu-plate-src{font-family:"Geist Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.02em;opacity:.66;margin-top:auto;padding-bottom:${story ? 230 : 30}px;}
 `;
 }
