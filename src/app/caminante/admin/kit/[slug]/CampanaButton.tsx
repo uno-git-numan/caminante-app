@@ -74,7 +74,7 @@ export function CampanaButton({
   return (
     <>
       <button type="button" onClick={run} disabled={busy} className="btn btn-orange btn-sm" title="Agenda M1+M2 según la fecha de la salida">
-        {busy ? "Programando campaña…" : "🎬 Programar campaña"}
+        {busy ? "Programando campaña…" : "Programar campaña"}
       </button>
       {note ? (
         <span
@@ -89,7 +89,6 @@ export function CampanaButton({
             lineHeight: 1.5,
           }}
         >
-          {note.ok ? "✅ " : "⚠️ "}
           {note.text}
         </span>
       ) : null}

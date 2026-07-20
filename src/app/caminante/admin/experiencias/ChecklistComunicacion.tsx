@@ -52,7 +52,7 @@ export default function ChecklistComunicacion({
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="hd">
         <h2>Comunicación lista</h2>
-        <span className={`verdict ${listo ? "v-ok" : "v-no"}`}>{listo ? "✓ Lista para comunicar" : "Faltan insumos"}</span>
+        <span className={`verdict ${listo ? "v-ok" : "v-no"}`}>{listo ? "Lista para comunicar" : "Faltan insumos"}</span>
       </div>
       <p className="desc">
         Lo que el Kit necesita para armar las piezas. No hace falta tenerlo todo: cada renglón verde
@@ -75,9 +75,9 @@ export default function ChecklistComunicacion({
         {/* Mismo runner por lotes que el Kit: aquí vivía el MISMO bug de
             timeout (una sola llamada con las 18 piezas). */}
         {guardado ? (
-          <CaptionsRunner slug={slug} yaTiene={false} etiqueta="✨ Generar captions" />
+          <CaptionsRunner slug={slug} yaTiene={false} etiqueta="Generar captions" />
         ) : (
-          <button type="button" className="btn pri" disabled>✨ Generar captions</button>
+          <button type="button" className="btn pri" disabled>Generar captions</button>
         )}
         <a
           className="btn"
@@ -85,7 +85,7 @@ export default function ChecklistComunicacion({
           aria-disabled={!guardado}
           style={guardado ? undefined : { opacity: 0.42, pointerEvents: "none" }}
         >
-          🎬 Programar campaña ↗
+          Programar campaña →
         </a>
       </div>
       <p className="nota">

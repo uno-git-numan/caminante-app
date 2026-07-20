@@ -78,7 +78,7 @@ export default function BoletinPanel({
       {faltantes.length ? (
         <div className="bol-warn">
           {faltantes.map((f, i) => (
-            <div key={i}>⚠️ {f}</div>
+            <div key={i}>{f}</div>
           ))}
         </div>
       ) : null}
@@ -173,20 +173,20 @@ export default function BoletinPanel({
           <div className="bol-acts">
             <form action={guardarBoletin}>
               {oculto}
-              <button type="submit" className="btn btn-glass btn-sm">💾 Guardar</button>
+              <button type="submit" className="btn btn-glass btn-sm">Guardar</button>
             </form>
             <form action={probarBoletin}>
               {oculto}
-              <button type="submit" className="btn btn-glass btn-sm">✉️ Enviar prueba a uno@numanhub.com</button>
+              <button type="submit" className="btn btn-glass btn-sm">Enviar prueba a uno@numanhub.com</button>
             </form>
             <button type="button" className="btn btn-glass btn-sm" onClick={() => setVerPreview((v) => !v)}>
-              👁 {verPreview ? "Ocultar" : "Vista previa"}
+              {verPreview ? "Ocultar" : "Vista previa"}
             </button>
             {!confirmar ? (
               <form action={pedirConfirmacion}>
                 {oculto}
                 <button type="submit" className="btn btn-orange btn-sm">
-                  📣 Enviar a los suscriptores…
+                  Enviar a los suscriptores…
                 </button>
               </form>
             ) : null}

@@ -72,13 +72,13 @@ export default function CaptionsRunner({
     <span className="caprun">
       <button type="button" className="btn btn-orange btn-sm" onClick={correr} disabled={corriendo}>
         {corriendo
-          ? `⏳ Generando… ${st.hechas} de ${st.total || "?"}`
-          : etiqueta || (yaTiene ? "↻ Regenerar captions" : "✨ Generar captions con IA")}
+          ? `Generando… ${st.hechas} de ${st.total || "?"}`
+          : etiqueta || (yaTiene ? "Regenerar captions" : "Generar captions con IA")}
       </button>
-      {st.fase === "listo" ? <span className="caprun-ok">✅ {st.hechas} captions generados</span> : null}
+      {st.fase === "listo" ? <span className="caprun-ok">{st.hechas} captions generados</span> : null}
       {st.fase === "error" ? (
         <span className="caprun-err">
-          ⚠️ {st.motivo}
+          {st.motivo}
           {st.hechas > 0 ? ` · ${st.hechas} piezas alcanzaron a guardarse` : ""}
         </span>
       ) : null}

@@ -209,10 +209,10 @@ export function KitPieceControls({
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
       <button type="button" onClick={verPreview} disabled={busy !== null} className="btn btn-glass btn-sm">
-        {busy === "prev" ? "Generando…" : "👁 Vista previa"}
+        {busy === "prev" ? "Generando…" : "Vista previa"}
       </button>
       <button type="button" onClick={descargarActual} disabled={busy !== null} className="btn btn-orange btn-sm">
-        {busy === "dl" ? "Generando…" : `⬇ ${dlLabel}`}
+        {busy === "dl" ? "Generando…" : dlLabel}
       </button>
       <a href={`?f=${other}#${pieceId}`} className="btn btn-glass btn-sm">Cambiar a {otherLabel}</a>
       {captionText ? (
@@ -223,15 +223,15 @@ export function KitPieceControls({
 
       <span style={{ width: 1, height: 22, background: "rgba(32,33,28,.14)", margin: "0 2px" }} aria-hidden />
       <button type="button" onClick={publicarAhora} disabled={busy !== null} className="btn btn-orange btn-sm" title="Publica esta pieza en la cuenta de Instagram conectada">
-        {busy === "pub" ? "Publicando…" : `📸 Publicar ${orient === "post" ? "POST" : "STORY"}`}
+        {busy === "pub" ? "Publicando…" : `Publicar ${orient === "post" ? "POST" : "STORY"}`}
       </button>
       <button type="button" onClick={() => { setSchedOpen(true); setNote(null); }} disabled={busy !== null} className="btn btn-glass btn-sm">
-        🗓 Programar
+        Programar
       </button>
 
       {note ? (
         <div style={{ flexBasis: "100%", fontSize: 13, marginTop: 4, color: note.ok ? "#4f5d44" : "#c23c1c", background: note.ok ? "rgba(99,113,84,.12)" : "rgba(255,93,54,.1)", borderRadius: 8, padding: "8px 12px", wordBreak: "break-word" }}>
-          {note.ok ? "✅ " : "⚠️ "}{note.text}
+          {note.text}
         </div>
       ) : null}
 
@@ -276,7 +276,7 @@ export function KitPieceControls({
             ) : null}
           </div>
           <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 10 }}>
-            <button type="button" onClick={descargarDesdePreview} className="btn btn-orange btn-sm">⬇ {dlLabel}</button>
+            <button type="button" onClick={descargarDesdePreview} className="btn btn-orange btn-sm">{dlLabel}</button>
             <button type="button" onClick={() => setPreview(null)} className="btn btn-glass btn-sm">Cerrar</button>
           </div>
         </div>
