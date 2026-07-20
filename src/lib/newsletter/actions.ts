@@ -95,7 +95,10 @@ export async function guardarBoletin(fd: FormData): Promise<void> {
   volver(slug, `ok=${encodeURIComponent("Boletín guardado.")}`);
 }
 
-// PRUEBA — siempre disponible, sin confirmación. Solo a la dirección del admin.
+// PRUEBA — siempre disponible, sin confirmación. Por defecto al admin, pero
+// acepta cualquier destino (campo "to" editable en la UI) — útil para revisar
+// el render en más de un cliente de correo (p. ej. una cuenta de Gmail
+// personal además de la de trabajo) antes de enviar a la lista real.
 export async function probarBoletin(fd: FormData): Promise<void> {
   if (!(await isCurrentUserAdmin())) return;
   const slug = String(fd.get("slug") ?? "").trim();
@@ -103,11 +106,14 @@ export async function probarBoletin(fd: FormData): Promise<void> {
   const { body, subject, preheader } = leerBody(fd);
   if (!slug) return;
 
-  const ok = await enviarPrueba(PRUEBA_A, template, body, subject || "(sin asunto)", preheader);
+  const destino = String(fd.get("to") ?? "").trim() || PRUEBA_A;
+  if (!destino.includes("@")) volver(slug, `error=${encodeURIComponent("Correo de prueba inválido.")}`);
+
+  const ok = await enviarPrueba(destino, template, body, subject || "(sin asunto)", preheader);
   volver(
     slug,
     ok
-      ? `ok=${encodeURIComponent(`Prueba enviada a ${PRUEBA_A}.`)}`
+      ? `ok=${encodeURIComponent(`Prueba enviada a ${destino}.`)}`
       : `error=${encodeURIComponent("No se pudo enviar la prueba (revisa RESEND_API_KEY).")}`,
   );
 }

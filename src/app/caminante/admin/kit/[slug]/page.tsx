@@ -157,6 +157,8 @@ const UI = `
 .kt .bol-f input,.kt .bol-f textarea,.kt .bol-sub input,.kt .bol-sub textarea{width:100%;border:1px solid rgba(32,33,28,.16);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:14px;color:#20211c;background:#faf8f3;}
 .kt .bol-sub{border-left:3px solid #ff5d36;padding-left:14px;margin:0 0 14px;display:grid;gap:8px;}
 .kt .bol-acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;}
+.kt .bol-prueba{display:inline-flex;gap:8px;align-items:center;}
+.kt .bol-prueba-in{border:1px solid rgba(32,33,28,.16);border-radius:999px;padding:8px 14px;font-family:inherit;font-size:13px;color:#20211c;background:#faf8f3;width:200px;}
 .kt .bol-conf{margin-top:16px;border:1px solid rgba(194,60,28,.35);background:rgba(255,93,54,.07);border-radius:12px;padding:16px 18px;}
 .kt .bol-conf-t{font-size:15px;font-weight:600;color:#c23c1c;}
 .kt .bol-conf-b{font-size:13.5px;line-height:1.6;color:#33352d;margin-top:6px;}

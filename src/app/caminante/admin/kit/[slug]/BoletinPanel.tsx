@@ -52,6 +52,7 @@ export default function BoletinPanel({
   const [subject, setSubject] = useState(borrador?.subject ?? "");
   const [preheader, setPreheader] = useState(borrador?.preheader ?? "");
   const [verPreview, setVerPreview] = useState(false);
+  const [correoPrueba, setCorreoPrueba] = useState("uno@numanhub.com");
 
   const set = (patch: Partial<NewsletterBody>) => setBody((b) => ({ ...b, ...patch }));
   const oculto = (
@@ -175,9 +176,17 @@ export default function BoletinPanel({
               {oculto}
               <button type="submit" className="btn btn-glass btn-sm">Guardar</button>
             </form>
-            <form action={probarBoletin}>
+            <form action={probarBoletin} className="bol-prueba">
               {oculto}
-              <button type="submit" className="btn btn-glass btn-sm">Enviar prueba a uno@numanhub.com</button>
+              <input
+                type="email"
+                name="to"
+                value={correoPrueba}
+                onChange={(e) => setCorreoPrueba(e.target.value)}
+                placeholder="correo de prueba"
+                className="bol-prueba-in"
+              />
+              <button type="submit" className="btn btn-glass btn-sm">Enviar prueba</button>
             </form>
             <button type="button" className="btn btn-glass btn-sm" onClick={() => setVerPreview((v) => !v)}>
               {verPreview ? "Ocultar" : "Vista previa"}
