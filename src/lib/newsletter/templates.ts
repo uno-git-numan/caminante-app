@@ -70,6 +70,16 @@ const FIRMA = "Luis";
 const SANS = "'Geist',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif";
 const MONO = "'Geist Mono','Courier New',monospace";
 
+// ⚠️ En un correo NO hay documento base: una URL relativa ("/landing/foo.jpg")
+// no resuelve en NINGÚN cliente. Las fotos de las experiencias viejas viven en
+// rutas locales, así que TODA url se absolutiza antes de salir.
+const abs = (u: string): string => {
+  const t = (u || "").trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t)) return t;
+  return `${SITE}${t.startsWith("/") ? "" : "/"}${t}`;
+};
+
 const esc = (s: string): string =>
   (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -105,7 +115,7 @@ function header(kicker: string, oscuro: boolean): string {
 // "[ FOTO A SANGRE 600×320 ]" que jamás debe salir en un correo real).
 function foto(url: string | undefined, alto: number, alt = ""): string {
   if (!url) return "";
-  return `<tr><td style="padding:0"><img src="${esc(url)}" width="600" alt="${esc(alt)}" style="display:block;width:100%;max-width:600px;height:auto;border:0"></td></tr>`;
+  return `<tr><td style="padding:0"><img src="${esc(abs(url))}" width="600" alt="${esc(alt)}" style="display:block;width:100%;max-width:600px;height:auto;border:0"></td></tr>`;
 }
 
 // Pie con domicilio real y baja firmada por contacto.
@@ -262,7 +272,7 @@ function guia(b: NewsletterBody, pre: string, unsub: string): string {
     .map((f, i, arr) => {
       const ultima = i === arr.length - 1;
       const fotoFicha = f.fotoUrl
-        ? `<tr><td style="padding:0"><img src="${esc(f.fotoUrl)}" width="512" alt="${esc(f.nombre)}" style="display:block;width:100%;height:auto;border:0"></td></tr>`
+        ? `<tr><td style="padding:0"><img src="${esc(abs(f.fotoUrl))}" width="512" alt="${esc(f.nombre)}" style="display:block;width:100%;height:auto;border:0"></td></tr>`
         : "";
       return `<tr><td style="padding:0 44px${ultima ? " 8px" : ""}">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #ddd8ca">
@@ -304,15 +314,15 @@ function vivio(b: NewsletterBody, pre: string, unsub: string): string {
     g.length >= 2
       ? `<tr><td style="padding:8px 44px 0" bgcolor="#f6f3ec">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-<td width="48%" style="padding:0"><img src="${esc(g[0])}" width="245" alt="" style="display:block;width:100%;height:auto;border:0"></td>
+<td width="48%" style="padding:0"><img src="${esc(abs(g[0]))}" width="245" alt="" style="display:block;width:100%;height:auto;border:0"></td>
 <td width="4%" style="font-size:0;line-height:0">&nbsp;</td>
-<td width="48%" style="padding:0"><img src="${esc(g[1])}" width="245" alt="" style="display:block;width:100%;height:auto;border:0"></td>
+<td width="48%" style="padding:0"><img src="${esc(abs(g[1]))}" width="245" alt="" style="display:block;width:100%;height:auto;border:0"></td>
 </tr></table>
 </td></tr>`
       : "";
   const pano =
     g.length >= 3
-      ? `<tr><td style="padding:10px 44px 0" bgcolor="#f6f3ec"><img src="${esc(g[2])}" width="512" alt="" style="display:block;width:100%;height:auto;border:0"></td></tr>`
+      ? `<tr><td style="padding:10px 44px 0" bgcolor="#f6f3ec"><img src="${esc(abs(g[2]))}" width="512" alt="" style="display:block;width:100%;height:auto;border:0"></td></tr>`
       : "";
   const testi = b.testimonio
     ? `<tr><td style="padding:32px 44px 8px" bgcolor="#f6f3ec">

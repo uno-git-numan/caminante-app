@@ -25,6 +25,15 @@ function fechaCorta(label: string): string {
   return `${m[1].padStart(2, "0")} ${mes}`;
 }
 
+// Primera oración de un texto, acotada: los titulares del correo son de una
+// línea, no párrafos.
+function primeraOracion(s: string | undefined, max: number): string {
+  const t = limpio(s || "");
+  const corte = t.search(/\.\s+/);
+  const base = corte > 0 ? t.slice(0, corte + 1) : t;
+  return base.length <= max ? base : base.slice(0, base.slice(0, max + 1).lastIndexOf(" ")).replace(/[\s.,;:]+$/, "");
+}
+
 export type ComposeResult = {
   body: NewsletterBody;
   subject: string;
@@ -72,13 +81,33 @@ function piezaE(ctx: KitContext, id: string): Lamina[] | null {
   return st.estado === "lista" ? st.laminas : null;
 }
 
+// Firma de un texto para comparar contenidos (sin acentos, signos ni cifras
+// sueltas): sirve para detectar que dos bloques dicen LO MISMO.
+function firma(s: string): string {
+  return limpio(s)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9 ]/g, "")
+    .split(/\s+/)
+    .filter((w) => w.length > 3)
+    .slice(0, 8)
+    .join(" ");
+}
+
 // Apartados (subtítulo + párrafo) desde los cuerpos de una pieza E.
-function apartadosDe(laminas: Lamina[]): { t: string; b: string }[] {
+// `evitar` = texto que ya sale destacado en el correo (el dato con su fuente):
+// las piezas E se construyen DESDE la misma ficha, así que sin este filtro el
+// dato aparecía DOS VECES en la carta — como apartado y como bloque naranja.
+function apartadosDe(laminas: Lamina[], evitar?: string): { t: string; b: string }[] {
+  const f = evitar ? firma(evitar) : "";
   const out: { t: string; b: string }[] = [];
   for (const l of laminas) {
-    if (l.kind === "edu-cuerpo" && has(l.claim)) {
-      out.push({ t: limpio(l.claim), b: limpio(l.caption || "") });
-    }
+    if (l.kind !== "edu-cuerpo" || !has(l.claim)) continue;
+    const t = limpio(l.claim);
+    const b = limpio(l.caption || "");
+    if (f && (firma(t).includes(f) || f.includes(firma(t)) || firma(b) === f)) continue;
+    out.push({ t, b });
   }
   return out.filter((a) => has(a.b)).slice(0, 3);
 }
@@ -127,15 +156,17 @@ export async function composeNewsletter(
       body = {
         ...base,
         kicker: "LA CARTA",
-        titulo: limpio(hero?.sub || nombre),
+        // Titular: la PRIMERA oración del subtítulo (el sub completo llenaba
+        // cuatro renglones a 29px y competía con el saludo).
+        titulo: primeraOracion(hero?.sub || nombre, 90),
         saludo: "Hola, caminante:",
         intro: limpio((ctx.blocks.find((b) => b.type === "statement") as { body?: string } | undefined)?.body || ""),
-        apartados: apartadosDe(laminas),
+        apartados: apartadosDe(laminas, dato?.texto),
         dato: dato ? { texto: dato.texto, fuente: dato.fuente } : undefined,
         pregunta: "",
         cierre: "Responde este correo y cuéntanos — leemos cada respuesta.",
       };
-      subject = limpio(hero?.sub || nombre).slice(0, 80);
+      subject = primeraOracion(hero?.sub || nombre, 70);
       preheader = `Una carta desde ${donde}.`;
       break;
     }
