@@ -535,8 +535,8 @@ function laminasE3(ctx: KitContext, pool: Foto[]): Lamina[] {
   const out: Lamina[] = [
     {
       kind: "edu-dcover",
-      h: "Diccionario básico",
-      t: `de ${lugarCorto(ctx)}`,
+      h: "Diccionario básico de",
+      t: lugarCorto(ctx),
       index: glo.map((g) => clean(g.termino).toUpperCase()).join(" · "),
       bg: coverBg(ctx, pool),
     },
@@ -569,21 +569,29 @@ function laminasE4(ctx: KitContext, pool: Foto[]): Lamina[] {
   return out;
 }
 
+// Quién puede protagonizar un RETRATO de E5: solo perfiles con un saber real
+// escrito (bio o credencial). `guias()` también devuelve los items sueltos de
+// los splits — que en hongos son VARIEDADES DE HONGO ("Pambazo", "Chilero"),
+// no personas: sin este filtro salían retratados, y con su propio nombre
+// repetido como cita (jamás inventamos una frase que nadie dijo).
+function retratables(ctx: KitContext): Extract<Lamina, { kind: "perfil" }>[] {
+  return guias(ctx).filter((p) => has(p.name) && (has(p.body) || has(p.cred)));
+}
+
 // E5 · Quien sabe sabe → portada + N×retrato + cierre (= carrusel C).
 // El saber en itálica es la BIO REAL del guía (de los bloques de la
 // experiencia); jamás una cita inventada.
 function laminasE5(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const perfiles = guias(ctx).filter((p) => has(p.name)).slice(0, 6);
+  const perfiles = retratables(ctx).slice(0, 6);
   const out: Lamina[] = [
     eduPortada(`Quiénes **leen** este lugar`, "El mapa no trae este conocimiento.", ctx, pool),
   ];
   perfiles.forEach((p, i) => {
-    const saber = clean(p.body || p.cred || "");
     out.push({
       kind: "edu-retrato",
-      cita: has(saber) ? fit(saber, 200) : p.name,
+      cita: fit(clean(p.body || p.cred || ""), 200),
       name: p.name,
-      role: clean(p.role || p.cred || ""),
+      role: clean(p.role || (p.body ? p.cred || "" : "")),
       bg: p.photo?.url ? p.photo : pick(pool, i + 1),
     });
   });
@@ -693,8 +701,11 @@ export const PIEZAS_E: PieceDef[] = [
     formato: "Carrusel editorial · retratos con saber local",
     cta: "NINGUNO — esta pieza construye respeto, no vende.",
     build: (ctx) => {
-      if (!guias(ctx).length) {
-        return { estado: "pendiente", razon: "Faltan guías/comunidad (sección «Guías y aliados» de la experiencia)." };
+      if (!retratables(ctx).length) {
+        return {
+          estado: "pendiente",
+          razon: "Faltan biografías de guías/comunidad: el retrato necesita su saber escrito, no solo el nombre (sección «Guías y aliados» de la experiencia).",
+        };
       }
       return { estado: "lista", laminas: laminasE5(ctx, poolFor(ctx, "E5", { categorias: ["comunidad", "gente"] })) };
     },

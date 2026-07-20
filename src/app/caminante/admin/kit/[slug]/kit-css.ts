@@ -234,14 +234,18 @@ function eduCss(story: boolean): string {
 .edu-pb-mark{position:absolute;top:${story ? topSafe : 46}px;left:0;right:0;display:flex;justify-content:center;z-index:3;}
 .edu-pb-center{position:absolute;left:0;right:0;top:${story ? 46 : 49}%;transform:translateY(-50%);z-index:3;text-align:center;padding:0 56px;}
 .edu-pb-h{font-style:italic;font-weight:300;font-size:28px;letter-spacing:.01em;opacity:.92;}
-.edu-pb-t{font-weight:300;font-size:100px;line-height:.9;letter-spacing:-.025em;margin-top:4px;}
+/* 76px, no los 100px del mockup: sus rótulos eran cortos ("de Hongos") y con
+   nombres reales ("Bosque de Xalatlaco") la palabra se salía de la lámina. */
+.edu-pb-t{font-weight:300;font-size:76px;line-height:.95;letter-spacing:-.025em;margin-top:4px;overflow-wrap:break-word;text-wrap:balance;}
 .edu-pb-index{font-family:"Geist Mono",ui-monospace,monospace;font-size:13px;letter-spacing:.22em;margin-top:34px;opacity:.85;line-height:1;}
 .edu-pb-arrow{position:absolute;left:0;right:0;bottom:${sBtm(72)}px;text-align:center;font-size:28px;font-weight:300;opacity:.9;z-index:3;}
 /* lámina de espécimen: foto 58% / banda papel 42%, corte nítido (% → adapta a story) */
 .edu-plate-photo{position:absolute;top:0;left:0;right:0;height:58%;overflow:hidden;z-index:0;}
 .edu-plate-photo img{width:100%;height:100%;object-fit:cover;display:block;}
 .edu-plate-band{position:absolute;left:0;right:0;bottom:0;height:42%;z-index:2;background:#efe5d1;color:#2b2720;padding:46px 60px 0;display:flex;flex-direction:column;}
-.edu-plate-term{font-weight:300;font-size:78px;line-height:.94;letter-spacing:-.02em;}
+/* 68px + break-word: los términos reales del glosario ("Micorriza",
+   "Simbiosis") se salían de la banda a los 78px del mockup. */
+.edu-plate-term{font-weight:300;font-size:68px;line-height:.94;letter-spacing:-.02em;overflow-wrap:break-word;}
 .edu-plate-cat{font-style:italic;font-weight:300;font-size:18px;color:var(--olive);margin-top:12px;}
 .edu-plate-def{font-weight:400;font-size:20px;line-height:1.46;margin-top:18px;max-width:92%;}
 .edu-plate-def b{font-weight:600;}
