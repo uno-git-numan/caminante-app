@@ -628,12 +628,23 @@ function laminasE7(ctx: KitContext, pool: Foto[]): Lamina[] {
   return out;
 }
 
-// E8 · Postal — 1 lámina: foto + una línea. Sin dato, sin fuente, sin flecha.
+// E8 · Postal — 1 lámina: foto + UNA línea que respira. Sin dato, sin fuente,
+// sin flecha. Se elige el candidato real más corto y solo su primera oración:
+// el subtítulo del hero completo llenaba media lámina y salía truncado.
 function laminasE8(ctx: KitContext, pool: Foto[]): Lamina[] {
   const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
   const st = block(ctx.blocks, "statement") as V2Statement | undefined;
-  const line = clean(hero?.sub || st?.title || expName(ctx.exp));
-  return [{ kind: "edu-postal", line: fit(line, 120), bg: coverBg(ctx, pool) }];
+  const primeraOracion = (s: string) => {
+    const t = clean(s);
+    const corte = t.search(/\.\s+/);
+    return corte > 0 ? t.slice(0, corte + 1) : t;
+  };
+  const candidatos = [st?.title, hero?.sub, hero?.title, expName(ctx.exp)]
+    .filter(has)
+    .map((s) => primeraOracion(s!))
+    .filter((s) => s.length > 0);
+  const corta = candidatos.find((s) => s.length <= 70) || candidatos[0] || expName(ctx.exp);
+  return [{ kind: "edu-postal", line: fit(corta, 90), bg: coverBg(ctx, pool) }];
 }
 
 export const PIEZAS_E: PieceDef[] = [
