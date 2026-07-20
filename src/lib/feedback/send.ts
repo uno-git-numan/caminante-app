@@ -155,6 +155,7 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
         ua: "caminante-encuesta/1.0",
         text: surveyText(name, `${SITE}/caminante/feedback/${token}`, intro),
         listUnsubscribeUrl: unsub,
+        fromName: "Luis · Caminante",
       });
       if (ok) res.invited++;
       else res.errors++;
@@ -199,6 +200,7 @@ export async function resendSurveyEmail(feedbackId: string): Promise<boolean> {
       ua: "caminante-encuesta/1.0",
       text: surveyText(name, link, intro),
       listUnsubscribeUrl: unsub,
+      fromName: "Luis · Caminante",
     });
   } catch {
     return false;

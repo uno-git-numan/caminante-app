@@ -24,8 +24,11 @@ const money = (n: number) =>
 // Reintenta ante rate limit/5xx (ver @/lib/email/resend). text = versión en
 // texto plano (multipart → mejor deliverability). Estos correos son
 // transaccionales (compra/deslinde) → SIN List-Unsubscribe (deben llegar).
+// fromName "Luis · Caminante" (no "Caminante" a secas): los correos que
+// parecen 1:1 caen más seguido en Principal que en Promociones/spam — mismo
+// criterio aplicado al boletín (20 jul).
 const sendResend = (to: string, subject: string, html: string, text?: string) =>
-  sendViaResend(to, subject, html, { ua: "caminante-confirmacion/1.0", text });
+  sendViaResend(to, subject, html, { ua: "caminante-confirmacion/1.0", text, fromName: "Luis · Caminante" });
 
 export type ConfirmacionCompraInfo = {
   email: string;
@@ -86,7 +89,7 @@ ${deslinde}
 export async function notifyConfirmacionCompra(info: ConfirmacionCompraInfo): Promise<boolean> {
   try {
     if (!info.email || !info.email.includes("@")) return false;
-    const subject = `Tu lugar en ${info.experiencia} está apartado 🌿`;
+    const subject = `Tu lugar en ${info.experiencia} está apartado`;
     const text =
       `¡Tu lugar está apartado, ${firstName(info.nombre)}!\n\nRecibimos tu pago.\n` +
       `Experiencia: ${info.experiencia}\n${info.salida ? `Salida: ${info.salida}\n` : ""}` +
@@ -127,7 +130,7 @@ export async function notifyDeslindePendiente(info: {
 <div style="max-width:540px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:${OLIVO};padding:18px 8px;">Caminante by NUMAN &middot; uno@numanhub.com</div>
 </td></tr></table></body></html>`;
     const text = `Falta un paso, ${name}.\n\nAntes de ${info.experiencia} necesitamos tu deslinde firmado y tu perfil de seguridad. Son dos minutos:\n${info.deslindeUrl}\n\n¿Dudas? Responde este correo. Caminante by NUMAN · uno@numanhub.com`;
-    return await sendResend(info.email, `Falta tu deslinde para ${info.experiencia} 🌿`, html, text);
+    return await sendResend(info.email, `Falta tu deslinde para ${info.experiencia}`, html, text);
   } catch {
     return false;
   }

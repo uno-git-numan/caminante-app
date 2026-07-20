@@ -138,15 +138,19 @@ function preheader(texto: string, bg: string): string {
 
 // Bloque de próximas salidas — DATA-DRIVEN (el mockup listaba experiencias que
 // no son nuestras). Sin salidas abiertas, el bloque entero desaparece.
+// Sin tabla anidada por fila (antes: tabla dentro de tabla, ×N salidas — la
+// estructura más profunda del correo, repetida por cada fila). Dos <td> en la
+// misma fila logran el mismo layout de dos columnas con un nivel menos de
+// anidación: menos DOM total, más margen frente a clientes que recortan
+// correos largos (Apple Mail clipeó el pie en la primera prueba real).
 function salidas(items: NonNullable<NewsletterBody["salidas"]>): string {
   if (!items.length) return "";
   const filas = items
     .map(
-      (s) => `<tr><td style="padding:14px 0;border-bottom:1px solid #ddd8ca">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-<td align="left" style="font-family:${SANS};font-size:15px;color:#20211c"><strong style="font-weight:600">${esc(s.fecha)}</strong> &nbsp;·&nbsp; ${esc(s.lugar)}</td>
-<td align="right" style="font-family:${MONO};font-size:12px;color:${s.urgente ? "#ff5d36" : "#637154"}">${esc(s.lugares)}</td>
-</tr></table></td></tr>`,
+      (s) => `<tr>
+<td align="left" style="padding:14px 0;border-bottom:1px solid #ddd8ca;font-family:${SANS};font-size:15px;color:#20211c"><strong style="font-weight:600">${esc(s.fecha)}</strong> &nbsp;·&nbsp; ${esc(s.lugar)}</td>
+<td align="right" style="padding:14px 0;border-bottom:1px solid #ddd8ca;font-family:${MONO};font-size:12px;color:${s.urgente ? "#ff5d36" : "#637154"}">${esc(s.lugares)}</td>
+</tr>`,
     )
     .join("");
   return `<tr><td style="padding:20px 44px 8px" bgcolor="#f6f3ec">

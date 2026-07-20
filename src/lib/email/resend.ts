@@ -3,11 +3,15 @@
 // tenía su propio sendResend sin reintento: en envíos EN LOTE, los que topaban
 // el rate limit de Resend (~2/seg → 429) se caían EN SILENCIO. Ahora reintenta
 // ante 429 y 5xx con backoff, respetando Retry-After.
-const FROM = "Caminante <caminante@numanhub.com>";
-const REPLY_TO = "uno@numanhub.com";
-// El dominio de envío es siempre caminante@numanhub.com (el verificado en
-// Resend, DMARC-safe); solo el NOMBRE visible cambia por tipo de correo.
+// Remitente por defecto de TODOS los correos a cliente. Se firma "Luis ·
+// Caminante" (persona + marca) porque los correos que se leen como 1:1 caen en
+// Principal, no en Promociones: se midió con el boletín. La dirección es
+// siempre caminante@numanhub.com (el dominio verificado en Resend, DMARC-safe);
+// solo cambia el NOMBRE visible.
 const DIR = "caminante@numanhub.com";
+const FROM_NAME = "Luis · Caminante";
+const FROM = `${FROM_NAME} <${DIR}>`;
+const REPLY_TO = "uno@numanhub.com";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function sendViaResend(
@@ -17,9 +21,9 @@ export async function sendViaResend(
   // text = versión en texto plano (multipart → mejor deliverability, menos spam).
   // listUnsubscribeUrl = baja de un clic (List-Unsubscribe + One-Click, RFC 8058);
   // los correos en lote la llevan → Gmail/Yahoo los premian.
-  // fromName = nombre visible del remitente (default "Caminante"). El boletín lo
-  // firma "Luis" para que se lea 1:1 y caiga en Principal; los comprobantes y
-  // deslindes se quedan con la marca — NO tocar su default.
+  // fromName = override del nombre visible del remitente. El default ya es
+  // "Luis · Caminante" (ver FROM arriba); solo se pasa si un correo puntual
+  // quisiera otro nombre.
   opts: { ua?: string; text?: string; listUnsubscribeUrl?: string; fromName?: string } = {},
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
