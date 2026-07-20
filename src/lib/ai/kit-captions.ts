@@ -10,10 +10,21 @@ import { expName } from "@/lib/kit/kit";
 const MODEL = "claude-opus-4-8";
 const API = "https://api.anthropic.com/v1/messages";
 
-export type KitCaption = { hook: string; caption: string; hashtags: string[]; cta: string };
+// `cierre` (la pregunta al lector) y `porques` llegaron con la integración de
+// 04-FORMULAS.md §1/§6 — OPCIONALES para no romper los captions ya guardados en
+// experiences.data.kitCaptions, que no los traen.
+export type KitCaption = {
+  hook: string;
+  caption: string;
+  cierre?: string; // pregunta directa al lector — nace del 3er porqué (§6)
+  porques?: { safe: string; real: string; raw: string }; // nota interna, NO se publica
+  hashtags: string[];
+  cta: string;
+};
 export type KitCaptions = Record<string, KitCaption>;
 
 const clean = (s?: string) => (s || "").replace(/\*\*/g, "").replace(/\*/g, "").trim();
+const has = (s?: string) => !!s && s.trim().length > 0;
 
 // Resumen compacto de la experiencia (materia prima para los captions).
 function resumen(ctx: KitContext): string {
@@ -48,11 +59,17 @@ Cada pieza tiene un trabajo DISTINTO (te lo doy). El caption debe hacer SU traba
 
 HASHTAGS (5–8 en total): SIEMPRE #Caminante #NaturalezaMexicana #TurismoDeConservación; agrega 1–2 por cara (Biología: #BiodiversidadMexicana #CienciaEnCampo · Conservación: #Conservación #ÁreasNaturalesProtegidas · Comunidades: #ComunidadesLocales #TurismoRegenerativo · Problemas: sin hashtag) y 1–3 por destino según el estado (BCS: #MarDeCortés #BajaCaliforniaSur #Ballenas · Estado de México: #BosquesDeMéxico #Hongos #Xalatlaco · Chihuahua: #BarrancasDelCobre #SierraTarahumara · Volcanes/Iztaccíhuatl: #VolcanesDeMéxico #Iztaccíhuatl). Nunca 30 genéricos.
 
-CTA por momento: M1 (lanzamiento) = awareness, "link en bio"; M2 (venta) = a reservar; M3 (prueba) = próximas fechas / reservar; E (informativo) = suave («Guárdalo», «link en bio») o NINGUNO (deja "cta" vacío si la pieza lo pide).
+ANATOMÍA DEL CAPTION (04-FORMULAS.md §1 — fórmula fija): párrafos CORTOS separados por línea en blanco: (1) GANCHO ≤90 caracteres, jamás "Te contamos sobre…" ni "Conoce…"; (2) CONTEXTO: por qué importa / de dónde viene; (3) TENSIÓN o DATO: el giro, la cifra dura, lo que casi nadie sabe; (4) PROFUNDIZACIÓN opcional: el detalle que premia a quien sigue leyendo; (5) CIERRE con PREGUNTA directa al lector — SIEMPRE, en TODOS los captions sin excepción (ahí viven los comentarios). Los párrafos 2–4 van en "caption"; la pregunta va SOLA en "cierre".
+
+LOS 3 PORQUÉS (04-FORMULAS.md §6 — OBLIGADO antes de escribir el cierre): todo caption tiene 3 profundidades: safe (el dato) → real (lo que implica) → raw (lo que te hace sentir / la verdad incómoda). Los promedio se quedan en safe; los mejores llegan a raw. ANTES de escribir la pregunta, baja tres porqués desde el dato de la pieza y escríbelos en "porques".
+Ejemplo del manual: dato "en agosto caen hasta 85 meteoros por hora" → ¿por qué importa? los cielos oscuros donde se ven están desapareciendo → ¿por qué? la luz de las ciudades borró las estrellas para el 80% de nosotros → ¿por qué me toca? "¿Cuántos estaremos mirando cuando suceda?" ← ESE es el cierre.
+LA PREGUNTA DEL CIERRE SALE SIEMPRE DEL TERCER PORQUÉ (raw), NUNCA DEL PRIMERO: existencial/personal («¿cuántos de nosotros estaremos mirando cuando suceda?») gana sobre técnica («¿sabías este dato?»). Caso verificado: 7.8K likes con pregunta existencial vs ~1.2K con dato solo. Los porqués son NOTA INTERNA de trabajo (no se publican): escríbelos igual, siempre.
+
+CTA por momento: M1 (lanzamiento) = awareness, "link en bio"; M2 (venta) = a reservar; M3 (prueba) = próximas fechas / reservar; E (informativo) = suave («Guárdalo», «link en bio») o NINGUNO (deja "cta" vacío si la pieza lo pide). El CTA va DESPUÉS del cierre y jamás lo sustituye: aunque la pieza no lleve CTA, la pregunta va.
 
 SERIE E (catálogo informativo): piezas educativas ATEMPORALES — enseñan, no venden. Tono de guía de campo con belleza; el dato manda. JAMÁS vender duro ni mencionar precio/fechas/cupo. Puedes citar la fuente ABREVIADA entre paréntesis al final de una frase, ej. "(Guía de hongos, p. 12)". En E5 (comunidades) y E7 (problemas): sin CTA; respeto y honestidad, cero drama.
 
-Para cada pieza devuelve: "hook" (primera línea que frena el scroll, ≤90 caracteres), "caption" (2–4 frases, el cuerpo, SIN hashtags), "hashtags" (arreglo de 5–8, cada uno con #), "cta" (la llamada a la acción, una línea).`;
+Para cada pieza devuelve: "hook" (primera línea que frena el scroll, ≤90 caracteres), "caption" (2–4 frases, el cuerpo SIN la pregunta y SIN hashtags), "porques" ({"safe","real","raw"}: los tres porqués, una línea cada uno), "cierre" (la pregunta directa al lector que sale del porqué raw, una sola línea terminada en "?"), "hashtags" (arreglo de 5–8, cada uno con #), "cta" (la llamada a la acción, una línea; vacío si la pieza no lleva).`;
 
 export async function generateKitCaptions(
   ctx: KitContext,
@@ -69,7 +86,7 @@ export async function generateKitCaptions(
     `RESUMEN DE LA EXPERIENCIA:\n${resumen(ctx)}\n\n` +
     `Link de la experiencia (bio): ${ctx.expUrl}\nLink de reserva: ${ctx.reservarUrl}\n\n` +
     `PIEZAS A REDACTAR (una entrada por id en el JSON):\n${piezasTxt}\n\n` +
-    `Devuelve SOLO un objeto JSON: {"captions":{"P1":{"hook":"…","caption":"…","hashtags":["#…"],"cta":"…"}, …}} con una clave por cada id de arriba.`;
+    `Devuelve SOLO un objeto JSON: {"captions":{"P1":{"hook":"…","caption":"…","porques":{"safe":"…","real":"…","raw":"…"},"cierre":"¿…?","hashtags":["#…"],"cta":"…"}, …}} con una clave por cada id de arriba.`;
 
   let res: Response;
   try {
@@ -98,9 +115,18 @@ export async function generateKitCaptions(
     const raw = parsed.captions || {};
     const out: KitCaptions = {};
     for (const [id, c] of Object.entries(raw)) {
+      const p = c?.porques;
+      const porques =
+        has(p?.safe) || has(p?.real) || has(p?.raw)
+          ? { safe: clean(p?.safe || ""), real: clean(p?.real || ""), raw: clean(p?.raw || "") }
+          : undefined;
       out[id] = {
         hook: clean(c?.hook),
         caption: clean(c?.caption),
+        // El cierre-pregunta es obligatorio (§1) pero no lo fabricamos: si la IA
+        // no lo devolvió, se queda vacío y se ve el hueco al revisar.
+        cierre: has(c?.cierre) ? clean(c!.cierre!) : undefined,
+        porques,
         hashtags: Array.isArray(c?.hashtags) ? c.hashtags.map((h) => String(h).trim()).filter(Boolean).slice(0, 8) : [],
         cta: clean(c?.cta),
       };
@@ -111,9 +137,10 @@ export async function generateKitCaptions(
   }
 }
 
-// Texto listo para copiar (hook + caption + CTA + hashtags).
+// Texto listo para copiar, en el orden del §1: gancho → cuerpo → PREGUNTA →
+// CTA → hashtags. Los 3 porqués son nota de trabajo interna: JAMÁS se publican.
 export function captionToText(c: KitCaption): string {
-  const bloques = [c.hook, c.caption, c.cta].map((x) => (x || "").trim()).filter(Boolean);
+  const bloques = [c.hook, c.caption, c.cierre, c.cta].map((x) => (x || "").trim()).filter(Boolean);
   const body = bloques.join("\n\n");
   return c.hashtags.length ? `${body}\n\n${c.hashtags.join(" ")}` : body;
 }

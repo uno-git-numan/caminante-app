@@ -50,6 +50,10 @@ const UI = `
 .kt .pend-msg{margin-top:12px;font-size:13.5px;color:#8a6d3b;background:rgba(201,183,156,.14);border-radius:10px;padding:10px 14px;}
 .kt .cap{margin-top:14px;background:#faf8f3;border:1px solid rgba(32,33,28,.09);border-radius:10px;padding:14px 16px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;color:#33352d;}
 .kt .cap .tags{color:#637154;margin-top:8px;}
+.kt .porq{margin-top:8px;font-size:12.5px;color:#6b6d62;}
+.kt .porq summary{cursor:pointer;color:#637154;font-weight:600;}
+.kt .porq div{margin-top:7px;line-height:1.5;}
+.kt .porq div span{display:inline-block;min-width:46px;font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#ff5d36;}
 .kt .thumbs{display:flex;gap:10px;margin-top:16px;overflow-x:auto;padding-bottom:6px;}
 .kt .thumb{flex:0 0 auto;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px -16px rgba(0,0,0,.5);}
 .kt .thumb .kit{padding:0;gap:0;transform-origin:top left;}
@@ -116,10 +120,22 @@ export default async function KitPage({
               <KitPieceControls pieceId={def.id} slug={slug} orient={orient} captionText={cap ? captionToText(cap) : undefined} />
             </div>
             {cap ? (
-              <div className="cap">
-                {captionToText({ ...cap, hashtags: [] })}
-                {cap.hashtags.length ? <div className="tags">{cap.hashtags.join(" ")}</div> : null}
-              </div>
+              <>
+                <div className="cap">
+                  {captionToText({ ...cap, hashtags: [] })}
+                  {cap.hashtags.length ? <div className="tags">{cap.hashtags.join(" ")}</div> : null}
+                </div>
+                {/* Los 3 porqués (04-FORMULAS.md §6): el trabajo del que nace la
+                    pregunta del cierre. NOTA INTERNA — no va en el copiado. */}
+                {cap.porques ? (
+                  <details className="porq">
+                    <summary>Los 3 porqués · de dónde salió la pregunta</summary>
+                    <div><span>safe</span>{cap.porques.safe}</div>
+                    <div><span>real</span>{cap.porques.real}</div>
+                    <div><span>raw</span>{cap.porques.raw}</div>
+                  </details>
+                ) : null}
+              </>
             ) : (
               <div className="cap" style={{ color: "#8a6d3b" }}>Genera los captions con IA (botón de arriba) para tener el texto listo para copiar.</div>
             )}
