@@ -11,6 +11,32 @@ import { fetchKitContext } from "@/lib/kit/queries";
 import { PIEZAS, PIEZAS_E } from "@/lib/kit/kit";
 import { generateKitCaptions, type KitCaptions } from "@/lib/ai/kit-captions";
 
+// Misma generación, pero devolviendo AL FORMULARIO: el checklist de comunicación
+// vive ahí y la idea es no mandar a Luis a otra página para un botón.
+export async function generarCaptionsDesdeForm(formData: FormData): Promise<void> {
+  if (!(await isCurrentUserAdmin())) return;
+  const slug = String(formData.get("slug") ?? "").trim();
+  if (!slug) return;
+  const volver = `/caminante/admin/experiencias/${slug}`;
+
+  const ctx = await fetchKitContext(slug);
+  if (!ctx) redirect(`${volver}?error=${encodeURIComponent("Guarda la experiencia antes de generar captions.")}`);
+
+  const listas = [...PIEZAS, ...PIEZAS_E].filter((p) => p.build(ctx!).estado === "lista");
+  const res = await generateKitCaptions(ctx!, listas);
+  if (!res.ok) redirect(`${volver}?error=${encodeURIComponent(res.error)}`);
+
+  const sb = createSupabaseAdminClient();
+  const { data: row } = await sb.from("experiences").select("data").eq("slug", slug).maybeSingle();
+  if (!row) redirect(`${volver}?error=${encodeURIComponent("No se pudo guardar.")}`);
+  const data = (row.data ?? {}) as Record<string, unknown>;
+  data.kitCaptions = (res as { ok: true; captions: KitCaptions }).captions;
+  await sb.from("experiences").update({ data }).eq("slug", slug);
+
+  revalidatePath(volver);
+  redirect(`${volver}?ok=${encodeURIComponent(`Captions generados para ${listas.length} piezas.`)}`);
+}
+
 export async function generarKitCaptions(formData: FormData): Promise<void> {
   if (!(await isCurrentUserAdmin())) return;
   const slug = String(formData.get("slug") ?? "").trim();

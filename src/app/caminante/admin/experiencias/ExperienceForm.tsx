@@ -12,6 +12,7 @@
 import { useMemo, useRef, useState } from "react";
 import { emptyExperience, slugify } from "@/lib/experiences/empty";
 import PrellenarIA from "./PrellenarIA";
+import ChecklistComunicacion from "./ChecklistComunicacion";
 import { aplicarPrellenadoV2, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
@@ -743,6 +744,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
           <div className="ix-title">Secciones</div>
           <div className="ix-group">Lo básico</div>
           <div className="ix-list" style={{ marginBottom: 4 }}>
+            <a href="#s0"><span className="n">✓</span>Comunicación lista</a>
             <a href="#s1"><span className="n">01</span>Lo básico</a>
             <a href="#s1b"><span className="n">+</span>Banco de fotos</a>
             <a href="#s1c"><span className="n">+</span>Ficha científica</a>
@@ -789,6 +791,18 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
           </details>
 
           <p className="form-intro"><span className="sl">{"// Cómo funciona"}</span>Aquí armas la página de la experiencia en el diseño de la marca (el mismo de Ensenada y Hongos): portada, la experiencia en 3 puntos, guías, itinerario, inversión, mochila… Cada sección es opcional — si la dejas vacía, no aparece. Abajo está la operación: precio que se cobra, fechas y cupo, registro y encuesta. Guarda el borrador y usa &quot;Vista previa&quot; para verla tal cual la verá el viajero.</p>
+
+          <ChecklistComunicacion
+            slug={exp.slug}
+            guardado={!!initial}
+            entrada={{
+              photoBank: exp.photoBank,
+              ficha: exp.ficha,
+              registration: exp.registration,
+              guias: v2.guides.map((g) => ({ name: g.title, bio: (g.paragraphs || []).find((x) => x && x.trim()) })),
+              salidas: slots.map((sl) => ({ date: sl.start })),
+            }}
+          />
 
           {/* 01 · LO BÁSICO */}
           <section className="card" id="s1">
