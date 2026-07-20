@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { fetchKitContext } from "@/lib/kit/queries";
 import { PIEZAS, PIEZAS_E, expName, type Lamina, type PieceDef, type PieceState } from "@/lib/kit/kit";
 import type { PageV2 } from "@/lib/experiences/types";
-import { generarKitCaptions } from "@/lib/kit/kit-actions";
+import CaptionsRunner from "./CaptionsRunner";
 import { captionToText, palabraTrigger, type KitCaptions } from "@/lib/ai/kit-captions";
 import { kitCss } from "./kit-css";
 import KitDeck from "./KitDeck";
@@ -85,6 +85,9 @@ const UI = `
 .kt .bol-hist-t{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#637154;margin-bottom:8px;}
 .kt .bol-hist-r{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:8px 0;border-top:1px solid rgba(32,33,28,.1);}
 .kt .bol-hist-m{color:rgba(32,33,28,.55);font-family:"Geist Mono",monospace;font-size:12px;white-space:nowrap;}
+.kt .caprun{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.kt .caprun-ok{font-size:12.5px;color:#4f5d44;font-weight:600;}
+.kt .caprun-err{font-size:12.5px;color:#c23c1c;max-width:44ch;line-height:1.45;}
 .kt .thumbs{display:flex;gap:10px;margin-top:16px;overflow-x:auto;padding-bottom:6px;}
 .kt .thumb{flex:0 0 auto;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px -16px rgba(0,0,0,.5);}
 .kt .thumb .kit{padding:0;gap:0;transform-origin:top left;}
@@ -243,12 +246,7 @@ export default async function KitPage({
           <a href="?f=post" className={orient === "post" ? "on" : ""}>Post 4:5</a>
           <a href="?f=story" className={orient === "story" ? "on" : ""}>Story 9:16</a>
         </span>
-        <form action={generarKitCaptions}>
-          <input type="hidden" name="slug" value={slug} />
-          <button type="submit" className="btn btn-orange btn-sm">
-            {Object.keys(captions).length ? "↻ Regenerar captions" : "✨ Generar captions con IA"}
-          </button>
-        </form>
+        <CaptionsRunner slug={slug} yaTiene={Object.keys(captions).length > 0} />
         <a href={`/caminante/experiencias/${slug}`} target="_blank" rel="noreferrer" className="btn btn-glass btn-sm">Ver experiencia ↗</a>
         {orient === "post" ? <CampanaButton slug={slug} orient="post" pieces={campanaPiezas} /> : null}
       </div>

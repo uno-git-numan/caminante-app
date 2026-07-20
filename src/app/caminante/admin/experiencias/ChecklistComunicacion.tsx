@@ -5,7 +5,7 @@
 // volver a adivinar qué faltaba. Aquí se ve mientras capturas y cada renglón
 // lleva a la sección que lo arregla.
 import { evaluarChecklist, listoParaComunicar, type ChecklistEntrada, type ItemEstado } from "@/lib/kit/checklist";
-import { generarCaptionsDesdeForm } from "@/lib/kit/kit-actions";
+import CaptionsRunner from "@/app/caminante/admin/kit/[slug]/CaptionsRunner";
 
 const CSS = `
 .ckl{border:1px solid rgba(32,33,28,.13);border-radius:16px;background:#fff;padding:20px 22px;margin-bottom:22px;}
@@ -72,10 +72,13 @@ export default function ChecklistComunicacion({
       ))}
 
       <div className="acts">
-        <form action={generarCaptionsDesdeForm}>
-          <input type="hidden" name="slug" value={slug} />
-          <button type="submit" className="btn pri" disabled={!guardado}>✨ Generar captions</button>
-        </form>
+        {/* Mismo runner por lotes que el Kit: aquí vivía el MISMO bug de
+            timeout (una sola llamada con las 18 piezas). */}
+        {guardado ? (
+          <CaptionsRunner slug={slug} yaTiene={false} etiqueta="✨ Generar captions" />
+        ) : (
+          <button type="button" className="btn pri" disabled>✨ Generar captions</button>
+        )}
         <a
           className="btn"
           href={guardado ? `/caminante/admin/kit/${slug}` : undefined}
