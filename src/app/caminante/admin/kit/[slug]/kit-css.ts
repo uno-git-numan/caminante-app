@@ -205,7 +205,7 @@ function eduCss(story: boolean): string {
 .edu-b-body{position:absolute;left:0;bottom:0;z-index:3;width:70%;padding:0 0 ${sBtm(68)}px 76px;}
 .edu-claim{font-weight:700;font-style:italic;font-size:36px;line-height:1.12;letter-spacing:-.01em;}
 .edu-caption{font-weight:400;font-size:19px;line-height:1.42;margin-top:18px;opacity:.94;}
-.edu-credit{position:absolute;left:76px;bottom:${sBtm(30)}px;z-index:3;font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.03em;opacity:.62;}
+.edu-credit{position:absolute;left:76px;bottom:${story ? 250 : 30}px;z-index:3;font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.03em;opacity:.62;}
 
 /* FICHA DE ESPECIE */
 .edu-ficha{position:absolute;left:0;bottom:0;z-index:3;width:82%;padding:0 0 ${sBtm(60)}px 76px;}
@@ -217,7 +217,7 @@ function eduCss(story: boolean): string {
 .edu-ficha .edu-v{font-weight:400;font-size:19px;line-height:1.3;}
 .edu-ficha .edu-hair{height:1px;background:#fff;opacity:.18;}
 .edu-unl{border-bottom:2px solid var(--orange);padding-bottom:1px;}
-.edu-ficha-src{position:absolute;right:40px;bottom:${sBtm(30)}px;z-index:3;font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.03em;opacity:.62;}
+.edu-ficha-src{position:absolute;right:40px;bottom:${story ? 250 : 30}px;z-index:3;font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.03em;opacity:.62;}
 
 /* CIERRE */
 .edu-c-body{position:absolute;left:0;right:0;bottom:${sBtm(132)}px;z-index:3;padding:0 76px;}
@@ -249,6 +249,6 @@ function eduCss(story: boolean): string {
 .edu-plate-cat{font-style:italic;font-weight:300;font-size:18px;color:var(--olive);margin-top:12px;}
 .edu-plate-def{font-weight:400;font-size:20px;line-height:1.46;margin-top:18px;max-width:92%;}
 .edu-plate-def b{font-weight:600;}
-.edu-plate-src{font-family:"Geist Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.02em;opacity:.66;margin-top:auto;padding-bottom:${story ? 230 : 30}px;}
+.edu-plate-src{font-family:"Geist Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.02em;opacity:.66;margin-top:auto;padding-bottom:${story ? 250 : 30}px;}
 `;
 }
