@@ -8,7 +8,7 @@ import { fetchKitContext } from "@/lib/kit/queries";
 import { PIEZAS, PIEZAS_E, expName, type Lamina, type PieceDef, type PieceState } from "@/lib/kit/kit";
 import type { PageV2 } from "@/lib/experiences/types";
 import { generarKitCaptions } from "@/lib/kit/kit-actions";
-import { captionToText, type KitCaptions } from "@/lib/ai/kit-captions";
+import { captionToText, palabraTrigger, type KitCaptions } from "@/lib/ai/kit-captions";
 import { kitCss } from "./kit-css";
 import KitDeck from "./KitDeck";
 import { KitPieceControls } from "./KitClient";
@@ -45,6 +45,8 @@ const UI = `
 .kt .pn{font-size:20px;font-weight:400;margin:2px 0;}
 .kt .pw{font-size:13.5px;color:rgba(32,33,28,.62);line-height:1.45;max-width:60ch;}
 .kt .chip{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:5px 12px;white-space:nowrap;}
+.kt .chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.kt .chip.c-trig{background:#fff1ec;color:#c1330f;border:1px solid rgba(255,93,54,.32);}
 .kt .c-lista{background:rgba(99,113,84,.14);color:#4f5d44;}
 .kt .c-pend{background:rgba(201,183,156,.28);color:#8a6d3b;}
 .kt .pend-msg{margin-top:12px;font-size:13.5px;color:#8a6d3b;background:rgba(201,183,156,.14);border-radius:10px;padding:10px 14px;}
@@ -107,9 +109,17 @@ export default async function KitPage({
             <div className="pn">{def.nombre}</div>
             <div className="pw">{def.trabajo} · <b>{def.formato}</b>{def.cara !== "—" ? ` · cara ${def.cara}` : ""}</div>
           </div>
-          <span className={`chip ${state.estado === "lista" ? "c-lista" : "c-pend"}`}>
-            {state.estado === "lista" ? `Lista · ${state.laminas.length} lámina${state.laminas.length === 1 ? "" : "s"}` : "Pendiente de insumo"}
-          </span>
+          <div className="chips">
+            {/* Palabra-trigger activa (§2/§3): lo que hay que VIGILAR en los
+                comentarios de esta pieza — cada uno es un lead que se contesta
+                por DM, no con un link. */}
+            {palabraTrigger(captions[def.id]) ? (
+              <span className="chip c-trig">👁 vigilar: {palabraTrigger(captions[def.id])}</span>
+            ) : null}
+            <span className={`chip ${state.estado === "lista" ? "c-lista" : "c-pend"}`}>
+              {state.estado === "lista" ? `Lista · ${state.laminas.length} lámina${state.laminas.length === 1 ? "" : "s"}` : "Pendiente de insumo"}
+            </span>
+          </div>
         </div>
 
         {state.estado === "pendiente" ? (

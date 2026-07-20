@@ -18,9 +18,15 @@ export type KitCaption = {
   caption: string;
   cierre?: string; // pregunta directa al lector — nace del 3er porqué (§6)
   porques?: { safe: string; real: string; raw: string }; // nota interna, NO se publica
+  trigger?: string; // palabra-comentario (§2/§3) — SOLO P4–P6 y E4
   hashtags: string[];
   cta: string;
 };
+
+// Piezas que llevan palabra-trigger (04-FORMULAS.md §2/§3): solo las de VENTA y
+// la de temporada. Jamás en lanzamiento (P1–P3 no venden) ni en las
+// informativas puras (E1–E3, E5–E8 no piden nada).
+const CON_TRIGGER = new Set(["P4", "P5", "P6", "E4"]);
 export type KitCaptions = Record<string, KitCaption>;
 
 const clean = (s?: string) => (s || "").replace(/\*\*/g, "").replace(/\*/g, "").trim();
@@ -67,9 +73,11 @@ LA PREGUNTA DEL CIERRE SALE SIEMPRE DEL TERCER PORQUÉ (raw), NUNCA DEL PRIMERO:
 
 CTA por momento: M1 (lanzamiento) = awareness, "link en bio"; M2 (venta) = a reservar; M3 (prueba) = próximas fechas / reservar; E (informativo) = suave («Guárdalo», «link en bio») o NINGUNO (deja "cta" vacío si la pieza lo pide). El CTA va DESPUÉS del cierre y jamás lo sustituye: aunque la pieza no lleve CTA, la pregunta va.
 
+PALABRA-TRIGGER (04-FORMULAS.md §2/§3): cada comentario con la palabra = un lead + señal masiva para el algoritmo. Formato: «Comenta PALABRA y te mando las fechas» (o el itinerario / la guía). Reglas: palabra CORTA, UNA sola, en MAYÚSCULAS, ligada al tema del lugar (HONGO, VOLCÁN, BARRANCA, BALLENA); la promesa se cumple EN EL DM, no en el link ("te mando…", nunca "link en bio"). SOLO en las piezas que te marque con [LLEVA TRIGGER] — en las demás deja "trigger" vacío: el lanzamiento no vende y las informativas puras no piden nada. Escribe en "trigger" la línea completa lista para publicar.
+
 SERIE E (catálogo informativo): piezas educativas ATEMPORALES — enseñan, no venden. Tono de guía de campo con belleza; el dato manda. JAMÁS vender duro ni mencionar precio/fechas/cupo. Puedes citar la fuente ABREVIADA entre paréntesis al final de una frase, ej. "(Guía de hongos, p. 12)". En E5 (comunidades) y E7 (problemas): sin CTA; respeto y honestidad, cero drama.
 
-Para cada pieza devuelve: "hook" (primera línea que frena el scroll, ≤90 caracteres), "caption" (2–4 frases, el cuerpo SIN la pregunta y SIN hashtags), "porques" ({"safe","real","raw"}: los tres porqués, una línea cada uno), "cierre" (la pregunta directa al lector que sale del porqué raw, una sola línea terminada en "?"), "hashtags" (arreglo de 5–8, cada uno con #), "cta" (la llamada a la acción, una línea; vacío si la pieza no lleva).`;
+Para cada pieza devuelve: "hook" (primera línea que frena el scroll, ≤90 caracteres), "caption" (2–4 frases, el cuerpo SIN la pregunta y SIN hashtags), "porques" ({"safe","real","raw"}: los tres porqués, una línea cada uno), "cierre" (la pregunta directa al lector que sale del porqué raw, una sola línea terminada en "?"), "trigger" (la línea de palabra-comentario SOLO si la pieza va marcada [LLEVA TRIGGER]; si no, ""), "hashtags" (arreglo de 5–8, cada uno con #), "cta" (la llamada a la acción, una línea; vacío si la pieza no lleva).`;
 
 export async function generateKitCaptions(
   ctx: KitContext,
@@ -80,7 +88,11 @@ export async function generateKitCaptions(
   if (!piezasListas.length) return { ok: true, captions: {} };
 
   const piezasTxt = piezasListas
-    .map((p) => `- ${p.id} "${p.nombre}" [${p.momento}] cara:${p.cara} · trabajo: ${p.trabajo} · CTA sugerido: ${p.cta}`)
+    .map(
+      (p) =>
+        `- ${p.id} "${p.nombre}" [${p.momento}] cara:${p.cara} · trabajo: ${p.trabajo} · CTA sugerido: ${p.cta}` +
+        (CON_TRIGGER.has(p.id) ? " · [LLEVA TRIGGER]" : ""),
+    )
     .join("\n");
   const user =
     `RESUMEN DE LA EXPERIENCIA:\n${resumen(ctx)}\n\n` +
@@ -127,6 +139,9 @@ export async function generateKitCaptions(
         // no lo devolvió, se queda vacío y se ve el hueco al revisar.
         cierre: has(c?.cierre) ? clean(c!.cierre!) : undefined,
         porques,
+        // Guarda dura: aunque la IA se despiste, el trigger SOLO existe en las
+        // piezas que lo permiten (§3: nunca en lanzamiento ni en informativas).
+        trigger: CON_TRIGGER.has(id) && has(c?.trigger) ? clean(c!.trigger!) : undefined,
         hashtags: Array.isArray(c?.hashtags) ? c.hashtags.map((h) => String(h).trim()).filter(Boolean).slice(0, 8) : [],
         cta: clean(c?.cta),
       };
@@ -138,11 +153,21 @@ export async function generateKitCaptions(
 }
 
 // Texto listo para copiar, en el orden del §1: gancho → cuerpo → PREGUNTA →
-// CTA → hashtags. Los 3 porqués son nota de trabajo interna: JAMÁS se publican.
+// CTA → trigger → hashtags. Los 3 porqués son nota de trabajo interna: JAMÁS
+// se publican.
 export function captionToText(c: KitCaption): string {
-  const bloques = [c.hook, c.caption, c.cierre, c.cta].map((x) => (x || "").trim()).filter(Boolean);
+  const bloques = [c.hook, c.caption, c.cierre, c.cta, c.trigger].map((x) => (x || "").trim()).filter(Boolean);
   const body = bloques.join("\n\n");
   return c.hashtags.length ? `${body}\n\n${c.hashtags.join(" ")}` : body;
+}
+
+// La PALABRA que hay que vigilar en los comentarios, extraída de la línea de
+// trigger («Comenta HONGO y te mando las fechas» → "HONGO"). §3 la exige CORTA,
+// UNA sola y en MAYÚSCULAS, así que se reconoce sola dentro de la frase.
+export function palabraTrigger(c?: KitCaption): string | null {
+  if (!c?.trigger) return null;
+  const m = c.trigger.match(/\b[A-ZÁÉÍÓÚÜÑ]{3,15}\b/);
+  return m ? m[0] : null;
 }
 
 // Extrae los campos de Experience que kit-captions necesita (para tipar el save).
