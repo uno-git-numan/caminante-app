@@ -19,6 +19,7 @@ import { notFound } from "next/navigation";
 import { fetchKitContext } from "@/lib/kit/queries";
 import { PIEZAS, PIEZAS_E, expName, type Lamina, type PieceDef, type PieceState, type Momento } from "@/lib/kit/kit";
 import { fetchEstadoPiezas, fechaPill, type PiezaEnCola } from "@/lib/kit/pieza-estado";
+import { HORA_PUBLICACION } from "@/lib/social/publish-hora";
 import type { PageV2 } from "@/lib/experiences/types";
 import CaptionsRunner from "./CaptionsRunner";
 import { captionToText, palabraTrigger, type KitCaptions } from "@/lib/ai/kit-captions";
@@ -193,7 +194,9 @@ function cicloDe(
   if (cola) {
     if (cola.status === "published") return { cls: "lc-pub", texto: `Publicada · ${fechaPill(cola.publishedAt, false)}` };
     if (cola.status === "failed") return { cls: "lc-fail", texto: "Falló al publicar" };
-    return { cls: "lc-prog", texto: `Programada · ${fechaPill(cola.scheduledAt, true)}` };
+    // La hora guardada de una programada es la normalizada (≈02:00) que solo
+    // marca el día; el robot publica ~1:00 p.m. → fecha + hora REAL del cron.
+    return { cls: "lc-prog", texto: `Programada · ${fechaPill(cola.scheduledAt, false)} · ${HORA_PUBLICACION}` };
   }
   if (state.estado === "pendiente") return { cls: "lc-insumo", texto: "Falta insumo" };
   if (!tieneCaption) return { cls: "lc-nocap", texto: "Sin caption" };
@@ -290,7 +293,7 @@ export default async function KitPage({
               ) : enColaPieza.status === "failed" ? (
                 <span>Falló al publicar{enColaPieza.error ? `: ${enColaPieza.error.slice(0, 120)}` : ""}</span>
               ) : (
-                <span>Programada para el {fechaPill(enColaPieza.scheduledAt, true)}</span>
+                <span>Programada para el {fechaPill(enColaPieza.scheduledAt, false)} · {HORA_PUBLICACION}</span>
               )}
               {enColaPieza.igPermalink ? (
                 <a href={enColaPieza.igPermalink} target="_blank" rel="noreferrer">Ver en Instagram</a>

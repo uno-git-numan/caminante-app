@@ -3,6 +3,7 @@
 // El cron `publish-social` publica lo programado cuando vence.
 import { listRecentPosts, fetchPostsBetween, type SocialPost } from "@/lib/social/posts";
 import { cancelarPostForm } from "@/lib/social/publish-actions";
+import { HORA_PUBLICACION } from "@/lib/social/publish-hora";
 import ColaCalendar from "./ColaCalendar";
 import { fetchInsights, rendimientoPorPieza, type PiezaRendimiento } from "@/lib/social/insights";
 
@@ -59,15 +60,14 @@ const LABEL: Record<SocialPost["status"], string> = {
   canceled: "Cancelada",
 };
 
-function fmt(iso: string | null): string {
+function fmt(iso: string | null, conHora = true): string {
   if (!iso) return "";
   try {
     return new Date(iso).toLocaleString("es-MX", {
       timeZone: "America/Mexico_City",
       day: "2-digit",
       month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
+      ...(conHora ? { hour: "2-digit" as const, minute: "2-digit" as const } : {}),
     });
   } catch {
     return iso;
@@ -75,7 +75,14 @@ function fmt(iso: string | null): string {
 }
 
 function Row({ post }: { post: SocialPost }) {
-  const fecha = post.status === "scheduled" ? `Programada para ${fmt(post.scheduledAt)}` : post.status === "published" ? `Publicada ${fmt(post.publishedAt)}` : fmt(post.createdAt);
+  // Programada: la hora guardada es la normalizada (≈02:00) que solo marca el
+  // día; el robot publica ~1:00 p.m. → mostramos fecha + la hora REAL del cron.
+  const fecha =
+    post.status === "scheduled"
+      ? `Programada para ${fmt(post.scheduledAt, false)} · ${HORA_PUBLICACION}`
+      : post.status === "published"
+        ? `Publicada ${fmt(post.publishedAt)}`
+        : fmt(post.createdAt);
   return (
     <div className="row">
       {/* eslint-disable-next-line @next/next/no-img-element */}

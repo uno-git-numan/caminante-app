@@ -3,6 +3,7 @@
 // las programadas se pueden cancelar desde su chip. Navegación mes anterior/siguiente.
 import type { SocialPost } from "@/lib/social/posts";
 import { cancelarPostForm } from "@/lib/social/publish-actions";
+import { HORA_PUBLICACION_CORTA } from "@/lib/social/publish-hora";
 
 const TZ = "America/Mexico_City";
 const dayKey = (iso: string | null): string =>
@@ -103,7 +104,11 @@ export default function ColaCalendar({ posts, monthParam }: { posts: SocialPost[
             <div key={i} className={`cell${key === todayKey ? " today" : ""}`}>
               <div className="dn">{d}</div>
               {dayPosts.map((p) => {
-                const label = `${p.pieceId ? p.pieceId + " " : ""}${hora(postDate(p))}`;
+                // Publicada: hora real de published_at. Programada (y demás): la
+                // hora guardada es la normalizada (≈02:00) que solo marca el día
+                // → mostramos la hora REAL del cron (~1pm), no la que engaña.
+                const t = p.status === "published" ? hora(postDate(p)) : HORA_PUBLICACION_CORTA;
+                const label = `${p.pieceId ? p.pieceId + " " : ""}${t}`;
                 const inner = (
                   <>
                     <span>{label}</span>
