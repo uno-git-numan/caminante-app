@@ -29,6 +29,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/admin/kit") || // kit de comunicación (→ PNGs 4:5 y 9:16)
 
     pathname.startsWith("/caminante/admin/eventos") || // dashboard (AdminShell)
+    pathname.startsWith("/caminante/admin/comunicacion") || // Comunicación (AdminShell)
     pathname.startsWith("/caminante/admin/reservas") ||
     pathname.startsWith("/caminante/admin/personas") ||
     pathname.startsWith("/caminante/admin/roster") ||
