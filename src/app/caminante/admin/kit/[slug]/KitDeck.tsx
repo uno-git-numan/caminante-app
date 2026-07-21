@@ -69,6 +69,15 @@ function EduPhoto({ f }: { f: Foto }) {
     </div>
   );
 }
+// La marca SUSURRA (P4): el MISMO sello chico de las postales, en la esquina, en
+// TODA lámina editorial. Sin pie de página, sin etiqueta de momento, sin firma.
+function EduSeal() {
+  return (
+    <div className="edu-seal">
+      <EduMark sm />
+    </div>
+  );
+}
 
 type EduLamina = Extract<Lamina, { kind: `edu-${string}` }>;
 const isEdu = (l: Lamina): l is EduLamina => l.kind.startsWith("edu-");
@@ -79,7 +88,7 @@ function EduSlide({ l }: { l: EduLamina }) {
       return (
         <div className="slide edu-slide">
           <EduPhoto f={l.bg} /><div className="edu-sh-portada" />
-          <div className="edu-p-mark"><EduMark sm /></div>
+          <EduSeal />
           <div className="edu-p-body">
             <div className="edu-hook">{inline(l.hook)}</div>
             <div className="edu-teaser">{l.teaser}</div>
@@ -91,6 +100,7 @@ function EduSlide({ l }: { l: EduLamina }) {
       return (
         <div className="slide edu-slide">
           <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
+          <EduSeal />
           <div className="edu-b-body">
             <div className="edu-claim">{inline(l.claim)}</div>
             {l.caption ? <div className="edu-caption">{inline(l.caption)}</div> : null}
@@ -102,6 +112,7 @@ function EduSlide({ l }: { l: EduLamina }) {
       return (
         <div className="slide edu-slide">
           <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
+          <EduSeal />
           <div className="edu-ficha">
             <div className="edu-nom">{l.nom}</div>
             {l.sci ? <div className="edu-sci">{l.sci}</div> : null}
@@ -117,30 +128,22 @@ function EduSlide({ l }: { l: EduLamina }) {
           {l.src ? <div className="edu-ficha-src">{l.src}</div> : null}
         </div>
       );
-    case "edu-cierre":
-      return (
-        <div className="slide edu-slide">
-          <EduPhoto f={l.bg} /><div className="edu-sh-bottom" />
-          <div className="edu-c-body">
-            <div className="edu-synth">{l.synth}</div>
-            <div className="edu-turn">{inline(l.turn)}</div>
-          </div>
-          <div className="edu-sign"><EduMark /><span className="edu-exp">{l.exp}</span></div>
-        </div>
-      );
     case "edu-postal":
       return (
         <div className="slide edu-slide">
           <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
-          <div className="edu-postal-mark"><EduMark sm /></div>
-          <div className="edu-postal-line">{l.line}</div>
+          <EduSeal />
+          <div className="edu-postal-body">
+            <div className="edu-postal-eyebrow">NUESTROS VIAJES</div>
+            <div className="edu-postal-line">{l.line}</div>
+          </div>
         </div>
       );
     case "edu-dcover":
       return (
         <div className="slide edu-slide">
           <EduPhoto f={l.bg} /><div className="edu-sh-pb" />
-          <div className="edu-pb-mark"><EduMark sm /></div>
+          <EduSeal />
           <div className="edu-pb-center">
             <div className="edu-pb-h">{l.h}</div>
             <div className="edu-pb-t">{l.t}</div>
@@ -153,6 +156,7 @@ function EduSlide({ l }: { l: EduLamina }) {
       return (
         <div className="slide edu-slide">
           <div className="edu-plate-photo">{l.img.url ? <img src={l.img.url} alt={l.term} /> : null}</div>
+          <EduSeal />
           <div className="edu-plate-band">
             <div className="edu-plate-term">{l.term}</div>
             {l.cat ? <div className="edu-plate-cat">{l.cat}</div> : null}
@@ -165,15 +169,12 @@ function EduSlide({ l }: { l: EduLamina }) {
       return (
         <div className="slide edu-slide">
           <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
+          <EduSeal />
           <div className="edu-b-body">
-            <div className="edu-claim" style={{ fontSize: 30 }}>{l.cita}</div>
-            <div style={{ marginTop: 22, borderTop: "1px solid rgba(255,255,255,.32)", paddingTop: 14 }}>
-              <div style={{ fontWeight: 300, fontSize: 22 }}>{l.name}</div>
-              {l.role ? (
-                <div style={{ fontFamily: '"Geist Mono",ui-monospace,monospace', fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", opacity: 0.72, marginTop: 5 }}>
-                  {l.role}
-                </div>
-              ) : null}
+            <div className="edu-claim edu-cita">{l.cita}</div>
+            <div className="edu-retrato-id">
+              <div className="edu-retrato-name">{l.name}</div>
+              {l.role ? <div className="edu-retrato-role">{l.role}</div> : null}
             </div>
           </div>
         </div>

@@ -39,6 +39,7 @@ document.addEventListener('click',function(e){
 export type AdminSection =
   | "panorama"
   | "eventos"
+  | "comunicacion"
   | "solicitudes"
   | "reservas"
   | "personas"
@@ -53,6 +54,7 @@ export type AdminSection =
 const items: { key: AdminSection; label: string; href?: string; soon?: boolean }[] = [
   { key: "panorama", label: "Panorama", href: "/caminante/admin" },
   { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
+  { key: "comunicacion", label: "Comunicación", href: "/caminante/admin/comunicacion" },
   { key: "solicitudes", label: "Solicitudes", href: "/caminante/admin/solicitudes" },
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
   { key: "personas", label: "Personas", href: "/caminante/admin/personas" },

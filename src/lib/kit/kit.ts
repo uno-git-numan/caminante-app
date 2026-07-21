@@ -44,7 +44,6 @@ export type Lamina =
   | { kind: "edu-portada"; hook: string; teaser: string; bg: Foto }
   | { kind: "edu-cuerpo"; claim: string; caption?: string; src?: string; bg: Foto } // caballo de batalla
   | { kind: "edu-ficha"; nom: string; sci?: string; rows: { k: string; v: string }[]; src?: string; bg: Foto }
-  | { kind: "edu-cierre"; synth: string; turn: string; exp: string; bg: Foto }
   | { kind: "edu-postal"; line: string; bg: Foto }
   | { kind: "edu-dcover"; h: string; t: string; index: string; bg: Foto } // portada del diccionario
   | { kind: "edu-dentry"; term: string; cat?: string; def: string; src?: string; img: Foto } // lámina de espécimen 58/42
@@ -453,21 +452,67 @@ function lugarCorto(ctx: KitContext): string {
   return clean(hero?.metaEst || expName(ctx.exp));
 }
 
-// Portada editorial de una pieza E: gancho + teaser + flecha.
-function eduPortada(hook: string, teaser: string, ctx: KitContext, pool: Foto[]): Lamina {
-  return { kind: "edu-portada", hook: fit(hook, 90), teaser: fit(teaser, 90), bg: coverBg(ctx, pool) };
-}
+// ── Sistema EDITORIAL (serie E) — REDISEÑO 21 jul (5 principios de Luis) ───────
+// P1 la foto NUNCA contradice el texto · P3 nada de medias piezas · P4 la marca
+// susurra · P5 nada se repite. El reparto de fotos es un REGISTRO GLOBAL
+// (ledger): cada lámina toma una foto ÚNICA del slot correcto; si no alcanzan,
+// se generan MENOS láminas o la pieza queda pendiente — jamás se repite ni se
+// mete una foto que contradiga el texto.
+const NEUTRO: BankKey[] = ["paisaje", "cielo"]; // ÚNICO fondo válido detrás de ciencia
 
-// Cierre editorial: síntesis + vuelta de tuerca + firma. Se arma SOLO con
-// material real (statement/hero); si no hay, la secuencia cierra sin él —
-// jamás se inventa un remate.
-function eduCierre(ctx: KitContext, pool: Foto[], exp: string, i: number): Lamina | null {
-  const st = block(ctx.blocks, "statement") as V2Statement | undefined;
-  const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
-  const synth = clean(st?.body || hero?.sub || "");
-  const turn = clean(st?.title || hero?.sub || "");
-  if (!has(synth) || !has(turn)) return null;
-  return { kind: "edu-cierre", synth: fit(synth, 240), turn: fit(turn, 90), exp, bg: pick(pool, i) };
+type EduLedger = {
+  take: (cats: BankKey[]) => Foto | null;
+  takePref: (pref: Foto | undefined, cats: BankKey[]) => Foto | null;
+};
+// Registro de fotos del kit: reparte fotos ÚNICAS por slot. Orden determinista
+// por slug (thumbnail y PNG coinciden). `usados` es global → ninguna foto se
+// repite entre piezas NI entre láminas contiguas (cada take() da una no usada).
+function makeLedger(ctx: KitContext): EduLedger {
+  const slug = ctx.exp.slug || "x";
+  const bySlot: Partial<Record<BankKey, Foto[]>> = {};
+  for (const k of BANK_KEYS) bySlot[k] = shuffle(bankPhotos(ctx, [k]), `${slug}·${k}`);
+  const usados = new Set<string>();
+  const take = (cats: BankKey[]): Foto | null => {
+    for (const c of cats)
+      for (const f of bySlot[c] ?? []) {
+        const key = fileKey(f.url);
+        if (!usados.has(key)) {
+          usados.add(key);
+          return f;
+        }
+      }
+    return null;
+  };
+  return {
+    take,
+    takePref(pref, cats) {
+      if (pref?.url) {
+        const k = fileKey(pref.url);
+        if (!usados.has(k)) {
+          usados.add(k);
+          return pref;
+        }
+      }
+      return take(cats);
+    },
+  };
+}
+// Toma hasta n fotos únicas de las categorías dadas (contenido de una pieza).
+function tomar(led: EduLedger, cats: BankKey[], n: number): Foto[] {
+  const out: Foto[] = [];
+  for (let i = 0; i < n; i++) {
+    const f = led.take(cats);
+    if (!f) break;
+    out.push(f);
+  }
+  return out;
+}
+const PENDIENTE_PAISAJE =
+  "Faltan fotos de PAISAJE únicas para armar esta pieza sin repetir — sube más al Banco de fotos (slots «Paisaje»/«Cielo»). Nunca ponemos una foto que contradiga el texto.";
+
+// Portada editorial: gancho + teaser + flecha (el fondo lo asigna el ledger).
+function eduPortada(hook: string, teaser: string, bg: Foto): Lamina {
+  return { kind: "edu-portada", hook: fit(hook, 90), teaser: fit(teaser, 90), bg };
 }
 
 // Un dato → lámina de cuerpo: la primera oración es el CLAIM (grande, itálica),
@@ -486,17 +531,17 @@ function datoACuerpo(d: { n?: string; texto: string; fuente: string }, bg: Foto)
   };
 }
 
-// E1 · Ficha de especie → portada + N×ficha + cierre.
-// Las filas k/v salen del dato: si el texto trae "Clave: valor" se parte ahí
-// (el usuario escribe "Hábitat: bosque de oyamel"); si no, la clave es el orden.
-function laminasE1(ctx: KitContext, pool: Foto[]): Lamina[] {
+// E1 · Ficha de especie (el sujeto ES la especie → foto del slot «flora»).
+// Las filas k/v salen del dato: si el texto trae "Clave: valor" se parte ahí.
+function buildE1(ctx: KitContext, led: EduLedger): PieceState {
   const esp = (ctx.ficha?.especies ?? []).filter((e) => has(e.comun)).slice(0, 6);
-  const out: Lamina[] = [
-    eduPortada(`Quién vive en **${lugarCorto(ctx)}**`, `${esp.length} ${esp.length === 1 ? "especie" : "especies"} de este lugar.`, ctx, pool),
-  ];
-  esp.forEach((e, i) => {
+  if (!esp.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Especies.` };
+  const fichas: Lamina[] = [];
+  for (const e of esp) {
+    const bg = led.take(["flora"]) ?? led.take(NEUTRO);
+    if (!bg) break;
     const datos = (e.datos ?? []).filter((x) => has(x.texto) && has(x.fuente)).slice(0, 4);
-    out.push({
+    fichas.push({
       kind: "edu-ficha",
       nom: clean(e.comun),
       sci: has(e.cientifico) ? clean(e.cientifico!) : undefined,
@@ -508,145 +553,157 @@ function laminasE1(ctx: KitContext, pool: Foto[]): Lamina[] {
           : { k: `Dato ${String(j + 1).padStart(2, "0")}`, v: fit(t, 90) };
       }),
       src: datos[0] ? `Fuente: ${clean(datos[0].fuente)}` : undefined,
-      bg: pick(pool, i + 1),
+      bg,
     });
-  });
-  const cierre = eduCierre(ctx, pool, "Ficha de especie", esp.length + 1);
-  if (cierre) out.push(cierre);
-  return out;
+  }
+  const portada = led.take(["flora"]) ?? led.take(NEUTRO);
+  if (!portada || fichas.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
+  return {
+    estado: "lista",
+    laminas: [eduPortada(`Quién vive en **${lugarCorto(ctx)}**`, `${fichas.length} ${fichas.length === 1 ? "especie" : "especies"} de este lugar.`, portada), ...fichas],
+  };
 }
 
-// E2 · El dato → portada + N×cuerpo + cierre (= carrusel A del sistema).
-function laminasE2(ctx: KitContext, pool: Foto[]): Lamina[] {
+// E2 · El dato → portada + cuerpos (cada dato con su fuente). Fondo NEUTRO.
+function buildE2(ctx: KitContext, led: EduLedger): PieceState {
   const datos = fichaDatos(ctx).slice(0, 7);
-  const out: Lamina[] = [
-    eduPortada(`${datos.length} datos del **${lugarCorto(ctx)}**`, "Cada uno con su fuente.", ctx, pool),
-  ];
-  datos.forEach((d, i) => out.push(datoACuerpo(d, pick(pool, i + 1))));
-  const cierre = eduCierre(ctx, pool, lugarCorto(ctx), datos.length + 1);
-  if (cierre) out.push(cierre);
-  return out;
+  if (!datos.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos del lugar.` };
+  const cuerpos: Lamina[] = [];
+  for (const d of datos) {
+    const bg = led.take(NEUTRO);
+    if (!bg) break;
+    cuerpos.push(datoACuerpo(d, bg));
+  }
+  const portada = led.take(NEUTRO);
+  if (!portada || cuerpos.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
+  return { estado: "lista", laminas: [eduPortada(`${cuerpos.length} datos del **${lugarCorto(ctx)}**`, "Cada uno con su fuente.", portada), ...cuerpos] };
 }
 
-// E3 · Diccionario → portada macro con índice + N×lámina de espécimen + cierre
-// (= carrusel B: foto a sangre 58% + banda de papel 42%, corte nítido).
-function laminasE3(ctx: KitContext, pool: Foto[]): Lamina[] {
+// E3 · Diccionario → portada macro + láminas de espécimen. Fondo NEUTRO (el
+// glosario es ciencia: va sobre el paisaje del lugar, jamás sobre un interior).
+function buildE3(ctx: KitContext, led: EduLedger): PieceState {
   const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def)).slice(0, 8);
-  const out: Lamina[] = [
-    {
-      kind: "edu-dcover",
-      h: "Diccionario básico de",
-      t: lugarCorto(ctx),
-      index: glo.map((g) => clean(g.termino).toUpperCase()).join(" · "),
-      bg: coverBg(ctx, pool),
-    },
-  ];
-  glo.forEach((g, i) => {
-    out.push({ kind: "edu-dentry", term: clean(g.termino), def: fit(g.def, 200), img: pick(pool, i + 1) });
-  });
-  const cierre = eduCierre(ctx, pool, "Diccionario de campo", glo.length + 1);
-  if (cierre) out.push(cierre);
-  return out;
+  if (!glo.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Glosario.` };
+  const entries: Lamina[] = [];
+  for (const g of glo) {
+    const img = led.take(NEUTRO);
+    if (!img) break;
+    entries.push({ kind: "edu-dentry", term: clean(g.termino), def: fit(g.def, 200), img });
+  }
+  const portada = led.take(NEUTRO);
+  if (!portada || entries.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
+  const index = glo.slice(0, entries.length).map((g) => clean(g.termino).toUpperCase()).join(" · ");
+  return { estado: "lista", laminas: [{ kind: "edu-dcover", h: "Diccionario básico de", t: lugarCorto(ctx), index, bg: portada }, ...entries] };
 }
 
-// E4 · La temporada → portada + N×cuerpo (época = claim, fenómeno = caption).
-function laminasE4(ctx: KitContext, pool: Foto[]): Lamina[] {
+// E4 · La temporada → requiere ≥3 épocas (que cuente el AÑO, no una estación
+// suelta). Fondo NEUTRO.
+function buildE4(ctx: KitContext, led: EduLedger): PieceState {
   const tem = (ctx.ficha?.temporada ?? []).filter((t) => has(t.epoca) && has(t.fenomeno)).slice(0, 6);
-  const out: Lamina[] = [
-    eduPortada(`El calendario de **${lugarCorto(ctx)}**`, "La naturaleza manda las fechas.", ctx, pool),
-  ];
-  tem.forEach((t, i) => {
-    out.push({
-      kind: "edu-cuerpo",
-      claim: fit(clean(t.epoca), 60),
-      caption: fit(clean(t.fenomeno), 220),
-      src: has(t.fuente) ? `Fuente: ${clean(t.fuente!)}` : undefined,
-      bg: pick(pool, i + 1),
-    });
-  });
-  const cierre = eduCierre(ctx, pool, "La temporada", tem.length + 1);
-  if (cierre) out.push(cierre);
-  return out;
+  if (!tem.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Temporada.` };
+  if (tem.length < 3) return { estado: "pendiente", razon: "La temporada necesita al menos 3 épocas para contar el año completo — complétala en la ficha (sección «Temporada»)." };
+  const cuerpos: Lamina[] = [];
+  for (const t of tem) {
+    const bg = led.take(NEUTRO);
+    if (!bg) break;
+    cuerpos.push({ kind: "edu-cuerpo", claim: fit(clean(t.epoca), 60), caption: fit(clean(t.fenomeno), 220), src: has(t.fuente) ? `Fuente: ${clean(t.fuente!)}` : undefined, bg });
+  }
+  const portada = led.take(NEUTRO);
+  if (!portada || cuerpos.length < 3) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
+  return { estado: "lista", laminas: [eduPortada(`El calendario de **${lugarCorto(ctx)}**`, "La naturaleza manda las fechas.", portada), ...cuerpos] };
 }
 
-// Quién puede protagonizar un RETRATO de E5: solo perfiles con un saber real
-// escrito (bio o credencial). `guias()` también devuelve los items sueltos de
-// los splits — que en hongos son VARIEDADES DE HONGO ("Pambazo", "Chilero"),
-// no personas: sin este filtro salían retratados, y con su propio nombre
-// repetido como cita (jamás inventamos una frase que nadie dijo).
+// Quién puede protagonizar un RETRATO de E5: solo perfiles con saber real
+// escrito (bio o credencial). `guias()` también devuelve items sueltos de los
+// splits (en hongos, VARIEDADES) — sin este filtro salían como personas.
 function retratables(ctx: KitContext): Extract<Lamina, { kind: "perfil" }>[] {
   return guias(ctx).filter((p) => has(p.name) && (has(p.body) || has(p.cred)));
 }
 
-// E5 · Quien sabe sabe → portada + N×retrato + cierre (= carrusel C).
-// El saber en itálica es la BIO REAL del guía (de los bloques de la
-// experiencia); jamás una cita inventada.
-function laminasE5(ctx: KitContext, pool: Foto[]): Lamina[] {
+// E5 · Quien sabe sabe → retratos de PERSONAS (slots gente/comunidad; el sujeto
+// ES la persona). La cita es la BIO REAL del guía, jamás inventada.
+function buildE5(ctx: KitContext, led: EduLedger): PieceState {
   const perfiles = retratables(ctx).slice(0, 6);
-  const out: Lamina[] = [
-    eduPortada(`Quiénes **leen** este lugar`, "El mapa no trae este conocimiento.", ctx, pool),
-  ];
-  perfiles.forEach((p, i) => {
-    out.push({
-      kind: "edu-retrato",
-      cita: fit(clean(p.body || p.cred || ""), 200),
-      name: p.name,
-      role: clean(p.role || (p.body ? p.cred || "" : "")),
-      bg: p.photo?.url ? p.photo : pick(pool, i + 1),
-    });
-  });
-  const cierre = eduCierre(ctx, pool, "Quiénes leen este lugar", perfiles.length + 1);
-  if (cierre) out.push(cierre);
-  return out;
-}
-
-// E6 · La conexión → portada + N×cuerpo (datos de conservación) + cierre.
-function laminasE6(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const datos = fichaDatos(ctx, "conservacion").slice(0, 5);
-  const st = block(ctx.blocks, "statement") as V2Statement | undefined;
-  const out: Lamina[] = [
-    eduPortada("Caminar también **conserva**", `Lo que sostiene ${lugarCorto(ctx)}.`, ctx, pool),
-  ];
-  datos.forEach((d, i) => out.push(datoACuerpo(d, pick(pool, i + 1))));
-  if (!datos.length && has(st?.body)) {
-    out.push({ kind: "edu-cuerpo", claim: fit(clean(st!.title || ""), 120) || "Conservación", caption: fit(clean(st!.body!), 220), bg: pick(pool, 1) });
+  if (!perfiles.length) return { estado: "pendiente", razon: "Faltan biografías de guías/comunidad: el retrato necesita su saber escrito, no solo el nombre (sección «Guías y aliados» de la experiencia)." };
+  const retratos: Lamina[] = [];
+  for (const p of perfiles) {
+    const bg = led.takePref(p.photo?.url ? p.photo : undefined, ["gente", "comunidad"]);
+    if (!bg) break;
+    retratos.push({ kind: "edu-retrato", cita: fit(clean(p.body || p.cred || ""), 200), name: p.name, role: clean(p.role || (p.body ? p.cred || "" : "")), bg });
   }
-  const cierre = eduCierre(ctx, pool, "Conservación", datos.length + 2);
-  if (cierre) out.push(cierre);
-  return out;
+  const portada = led.take(["gente", "comunidad"]) ?? led.take(NEUTRO);
+  if (!portada || retratos.length < 2) return { estado: "pendiente", razon: "Faltan fotos de GENTE/COMUNIDAD únicas para los retratos — sube más al Banco de fotos (slots «Gente»/«Comunidad»)." };
+  return { estado: "lista", laminas: [eduPortada("Quiénes **leen** este lugar", "El mapa no trae este conocimiento.", portada), ...retratos] };
 }
 
-// E7 · Lo incómodo → portada + N×cuerpo (datos cara Problemas) + cierre.
-function laminasE7(ctx: KitContext, pool: Foto[]): Lamina[] {
-  const datos = fichaDatos(ctx, "problemas").slice(0, 5);
-  const out: Lamina[] = [
-    eduPortada("Lo que está **en juego**", `La cara que nadie enseña de ${lugarCorto(ctx)}.`, ctx, pool),
-  ];
-  datos.forEach((d, i) => out.push(datoACuerpo(d, pick(pool, i + 1))));
-  const cierre = eduCierre(ctx, pool, "Lo incómodo", datos.length + 1);
-  if (cierre) out.push(cierre);
-  return out;
+// E6 · La conexión → datos de conservación (fondo NEUTRO). Necesita ≥2 datos
+// con cara «Conservación» — una sola lámina no se publica.
+function buildE6(ctx: KitContext, led: EduLedger): PieceState {
+  const datos = fichaDatos(ctx, "conservacion").slice(0, 5);
+  if (datos.length < 2) return { estado: "pendiente", razon: `${FALTA_FICHA} → al menos 2 datos con cara «Conservación».` };
+  const cuerpos: Lamina[] = [];
+  for (const d of datos) {
+    const bg = led.take(NEUTRO);
+    if (!bg) break;
+    cuerpos.push(datoACuerpo(d, bg));
+  }
+  const portada = led.take(NEUTRO);
+  if (!portada || cuerpos.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
+  return { estado: "lista", laminas: [eduPortada("Caminar también **conserva**", `Lo que sostiene ${lugarCorto(ctx)}.`, portada), ...cuerpos] };
 }
 
-// E8 · Postal — 1 lámina: foto + UNA línea que respira. Sin dato, sin fuente,
-// sin flecha. Se elige el candidato real más corto y solo su primera oración:
-// el subtítulo del hero completo llenaba media lámina y salía truncado.
-function laminasE8(ctx: KitContext, pool: Foto[]): Lamina[] {
+// E8 · Postales — 4–6 láminas, cada una FOTO DISTINTA (paisaje/gente/detalle) +
+// una línea corta tipo título de película. Sin dato, sin fuente, sin CTA.
+function buildE8(ctx: KitContext, led: EduLedger): PieceState {
   const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
   const st = block(ctx.blocks, "statement") as V2Statement | undefined;
-  const primeraOracion = (s: string) => {
+  const primera = (s: string) => {
     const t = clean(s);
-    const corte = t.search(/\.\s+/);
-    return corte > 0 ? t.slice(0, corte + 1) : t;
+    const c = t.search(/\.\s+/);
+    return c > 0 ? t.slice(0, c + 1) : t;
   };
-  const candidatos = [st?.title, hero?.sub, hero?.title, expName(ctx.exp)]
-    .filter(has)
-    .map((s) => primeraOracion(s!))
-    .filter((s) => s.length > 0);
-  const corta = candidatos.find((s) => s.length <= 70) || candidatos[0] || expName(ctx.exp);
-  return [{ kind: "edu-postal", line: fit(corta, 90), bg: coverBg(ctx, pool) }];
+  const seen = new Set<string>();
+  const lineas: string[] = [];
+  for (const raw of [hero?.title, hero?.sub, st?.title, st?.body, expName(ctx.exp)]) {
+    if (!has(raw)) continue;
+    const l = primera(raw!);
+    const sig = l.toLowerCase().replace(/[^a-z0-9áéíóúñ]/g, "");
+    if (l.length > 0 && l.length <= 80 && sig && !seen.has(sig)) {
+      seen.add(sig);
+      lineas.push(l);
+    }
+  }
+  if (!lineas.length) lineas.push(expName(ctx.exp));
+  const fotos = tomar(led, ["paisaje", "gente", "detalle"], 6);
+  if (!fotos.length) fotos.push(coverBg(ctx, photoPool(ctx)));
+  const laminas: Lamina[] = fotos.map((bg, i) => ({ kind: "edu-postal", line: fit(lineas[i % lineas.length], 90), bg }));
+  return { estado: "lista", laminas };
 }
 
+// Construye TODA la serie E con un registro de fotos COMPARTIDO. El orden de
+// REPARTO (no el de display) da el pool NEUTRO primero a la ciencia (E4 estrella
+// → E2 → E3 → E6), luego E1 (flora), E5 (gente/comunidad) y las postales E8 al
+// final. Memoizado por ctx (cada pieza pregunta por su id).
+const _serieE = new WeakMap<object, Record<string, PieceState>>();
+function buildSerieE(ctx: KitContext): Record<string, PieceState> {
+  const hit = _serieE.get(ctx as object);
+  if (hit) return hit;
+  const led = makeLedger(ctx);
+  const out: Record<string, PieceState> = {};
+  out.E4 = buildE4(ctx, led);
+  out.E2 = buildE2(ctx, led);
+  out.E3 = buildE3(ctx, led);
+  out.E6 = buildE6(ctx, led);
+  out.E1 = buildE1(ctx, led);
+  out.E5 = buildE5(ctx, led);
+  out.E8 = buildE8(ctx, led);
+  _serieE.set(ctx as object, out);
+  return out;
+}
+
+// Serie E — REDISEÑO 21 jul: E7 «Lo incómodo» ELIMINADA (P4). Cada `build`
+// delega al constructor coordinado `buildSerieE` (registro de fotos compartido);
+// el orden de display es E1..E6, E8, el de reparto de fotos vive en buildSerieE.
 export const PIEZAS_E: PieceDef[] = [
   {
     id: "E1",
@@ -654,13 +711,9 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Autoridad: una especie del lugar, con datos y fuente. Educa, no vende.",
     cara: "Biología",
-    formato: "Carrusel editorial · portada + fichas + cierre",
+    formato: "Carrusel editorial · portada + fichas",
     cta: "Suave: «Guarda esta ficha» / link en bio.",
-    build: (ctx) => {
-      const esp = (ctx.ficha?.especies ?? []).filter((e) => has(e.comun));
-      if (!esp.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Especies.` };
-      return { estado: "lista", laminas: laminasE1(ctx, poolFor(ctx, "E1", { categorias: ["flora"] })) };
-    },
+    build: (ctx) => buildSerieE(ctx).E1,
   },
   {
     id: "E2",
@@ -668,12 +721,9 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Un dato duro del lugar con su fuente — el asombro está en la cifra.",
     cara: "Biología",
-    formato: "Carrusel editorial · portada + datos + cierre",
+    formato: "Carrusel editorial · portada + datos",
     cta: "Suave: «Guárdalo» / link en bio.",
-    build: (ctx) => {
-      if (!fichaDatos(ctx).length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos del lugar.` };
-      return { estado: "lista", laminas: laminasE2(ctx, poolFor(ctx, "E2", { categorias: ["paisaje"] })) };
-    },
+    build: (ctx) => buildSerieE(ctx).E2,
   },
   {
     id: "E3",
@@ -683,11 +733,7 @@ export const PIEZAS_E: PieceDef[] = [
     cara: "Biología",
     formato: "Diccionario · portada macro + láminas de espécimen",
     cta: "«Guárdalo para el viaje».",
-    build: (ctx) => {
-      const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def));
-      if (!glo.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Glosario.` };
-      return { estado: "lista", laminas: laminasE3(ctx, poolFor(ctx, "E3", { categorias: ["flora", "detalle"] })) };
-    },
+    build: (ctx) => buildSerieE(ctx).E3,
   },
   {
     id: "E4",
@@ -695,13 +741,9 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Qué pasa en el ecosistema según la época — la naturaleza manda el calendario.",
     cara: "Biología",
-    formato: "Carrusel editorial · portada + épocas + cierre",
+    formato: "Carrusel editorial · portada + épocas (año completo)",
     cta: "Suave: «La temporada manda» / link en bio.",
-    build: (ctx) => {
-      const tem = (ctx.ficha?.temporada ?? []).filter((t) => has(t.epoca) && has(t.fenomeno));
-      if (!tem.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Temporada.` };
-      return { estado: "lista", laminas: laminasE4(ctx, poolFor(ctx, "E4", { categorias: ["paisaje", "cielo"] })) };
-    },
+    build: (ctx) => buildSerieE(ctx).E4,
   },
   {
     id: "E5",
@@ -711,15 +753,7 @@ export const PIEZAS_E: PieceDef[] = [
     cara: "Comunidades",
     formato: "Carrusel editorial · retratos con saber local",
     cta: "NINGUNO — esta pieza construye respeto, no vende.",
-    build: (ctx) => {
-      if (!retratables(ctx).length) {
-        return {
-          estado: "pendiente",
-          razon: "Faltan biografías de guías/comunidad: el retrato necesita su saber escrito, no solo el nombre (sección «Guías y aliados» de la experiencia).",
-        };
-      }
-      return { estado: "lista", laminas: laminasE5(ctx, poolFor(ctx, "E5", { categorias: ["comunidad", "gente"] })) };
-    },
+    build: (ctx) => buildSerieE(ctx).E5,
   },
   {
     id: "E6",
@@ -727,43 +761,19 @@ export const PIEZAS_E: PieceDef[] = [
     momento: "E · Informativo",
     trabajo: "Cómo caminar este lugar lo conserva — el vínculo turismo→conservación con datos.",
     cara: "Conservación",
-    formato: "Carrusel editorial · portada + datos + cierre",
+    formato: "Carrusel editorial · portada + datos",
     cta: "Suave: link en bio.",
-    build: (ctx) => {
-      const st = block(ctx.blocks, "statement") as V2Statement | undefined;
-      if (!fichaDatos(ctx, "conservacion").length && !has(st?.body)) {
-        return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos con cara «Conservación» (o un Bloque destacado).` };
-      }
-      return { estado: "lista", laminas: laminasE6(ctx, poolFor(ctx, "E6", { categorias: ["paisaje", "cielo"] })) };
-    },
-  },
-  {
-    id: "E7",
-    nombre: "Lo incómodo",
-    momento: "E · Informativo",
-    trabajo: "La amenaza real del ecosistema, sin drama y con fuente — la cara que nadie enseña.",
-    cara: "Problemas",
-    formato: "Carrusel editorial · portada + datos + cierre",
-    cta: "Ninguno o «Compártelo».",
-    build: (ctx) => {
-      if (!fichaDatos(ctx, "problemas").length) {
-        return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos con cara «Problemas».` };
-      }
-      return { estado: "lista", laminas: laminasE7(ctx, poolFor(ctx, "E7", { categorias: ["problemas", "paisaje"] })) };
-    },
+    build: (ctx) => buildSerieE(ctx).E6,
   },
   {
     id: "E8",
     nombre: "Postal",
     momento: "E · Informativo",
-    trabajo: "Una foto que respira + una línea. Presencia pura de marca, cero fricción.",
+    trabajo: "Fotos que respiran + una línea. Presencia pura de marca, cero fricción.",
     cara: "—",
-    formato: "Postal · 1 lámina, solo foto y una línea",
+    formato: "Postales · 4–6 láminas, solo foto y una línea",
     cta: "Ninguno o link en bio.",
-    build: (ctx) => ({
-      estado: "lista",
-      laminas: laminasE8(ctx, poolFor(ctx, "E8", { categorias: ["gente", "detalle", "paisaje"] })),
-    }),
+    build: (ctx) => buildSerieE(ctx).E8,
   },
 ];
 

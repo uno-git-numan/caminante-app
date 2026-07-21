@@ -94,14 +94,15 @@ export default async function EventoDetallePage({
             >
               Vista previa
             </a>
+            {/* El Kit ya no vive aquí: la comunicación de cada evento (kit,
+                calendario y cola de redes) se opera desde la sección
+                «Comunicación» del panel. Este botón lleva ahí. */}
             <a
-              href={`/caminante/admin/kit/${ev.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-orange btn-sm"
-              title="Kit de comunicación: las 10 piezas canónicas + «Descargar material» (PDF vertical/horizontal + flyer para redes) + captions en voz de marca"
+              href={`/caminante/admin/comunicacion#ev-${ev.slug}`}
+              className="btn btn-glass btn-sm"
+              title="Comunicación del evento: kit de piezas, captions, calendario y cola de redes — en el panel"
             >
-              Kit de comunicación
+              Comunicación →
             </a>
             {ev.status === "published" ? (
               <a
