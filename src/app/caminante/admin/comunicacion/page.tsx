@@ -50,6 +50,17 @@ function fmtFecha(iso: string | null, conHora: boolean): string {
 
 const RANK: Record<SocialPost["status"], number> = { publishing: 0, scheduled: 1, failed: 2, published: 3, canceled: 4 };
 
+// La Lista global se agrupa por estado (programadas primero — lo accionable —,
+// luego publicadas, falló y canceladas). Programadas ascendente (la más próxima
+// arriba); el resto descendente (lo más reciente arriba).
+const GRUPOS: { key: string; label: string; estados: SocialPost["status"][]; asc?: boolean }[] = [
+  { key: "prog", label: "Programadas", estados: ["scheduled", "publishing"], asc: true },
+  { key: "pub", label: "Publicadas", estados: ["published"] },
+  { key: "fail", label: "Falló", estados: ["failed"] },
+  { key: "canc", label: "Canceladas", estados: ["canceled"] },
+];
+const fechaOrden = (p: SocialPost) => p.publishedAt || p.scheduledAt || p.createdAt;
+
 function chipDe(s: SocialPost["status"]): { cls: string; label: string } {
   switch (s) {
     case "published":
@@ -171,7 +182,18 @@ export default async function ComunicacionPage({
             recientes.length === 0 ? (
               <div className="empty">Aún no hay nada programado ni publicado. Programa piezas desde el Kit de un evento.</div>
             ) : (
-              <ColaTabla posts={ordenar(recientes).slice(0, 80)} conEvento />
+              GRUPOS.map((g) => {
+                const posts = recientes
+                  .filter((p) => g.estados.includes(p.status))
+                  .sort((a, b) => (g.asc ? fechaOrden(a).localeCompare(fechaOrden(b)) : fechaOrden(b).localeCompare(fechaOrden(a))));
+                if (!posts.length) return null;
+                return (
+                  <div key={g.key} style={{ marginBottom: 24 }}>
+                    <span className="subtitle">{g.label} · {posts.length}</span>
+                    <ColaTabla posts={posts.slice(0, 80)} conEvento />
+                  </div>
+                );
+              })
             )
           ) : (
             <ColaCalendar posts={mesPosts} monthParam={monthParam} />
