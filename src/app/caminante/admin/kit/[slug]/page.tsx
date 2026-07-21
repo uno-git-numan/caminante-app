@@ -198,7 +198,9 @@ function cicloDe(
     // marca el día; el robot publica ~1:00 p.m. → fecha + hora REAL del cron.
     return { cls: "lc-prog", texto: `Programada · ${fechaPill(cola.scheduledAt, false)} · ${HORA_PUBLICACION}` };
   }
-  if (state.estado === "pendiente") return { cls: "lc-insumo", texto: "Falta insumo" };
+  // P1 · una pieza pendiente POR FALTA DE FOTOS lo dice a la cara (para que Luis
+  // sepa que sube fotos, no ficha); las demás pendientes = «Falta insumo».
+  if (state.estado === "pendiente") return { cls: "lc-insumo", texto: /foto/i.test(state.razon) ? "Faltan fotos" : "Falta insumo" };
   if (!tieneCaption) return { cls: "lc-nocap", texto: "Sin caption" };
   return { cls: "lc-lista", texto: `Lista · ${state.laminas.length} lámina${state.laminas.length === 1 ? "" : "s"}` };
 }
