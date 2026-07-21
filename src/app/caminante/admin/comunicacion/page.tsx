@@ -2,7 +2,7 @@
 // cada experiencia y te mandaba a una página web separada; ahora la comunicación
 // se opera desde aquí: un desplegable POR EVENTO (kit, material, cola de ese
 // evento) + la cola de redes GLOBAL (calendario/lista) arriba. Vive dentro de
-// AdminShell (nav de píldoras + expandibles [data-x]).
+// AdminShell y reusa el design system .adm (tablas, chips, cards, act-row).
 import AdminShell from "../ui/AdminShell";
 import ColaCalendar from "../social-cola/ColaCalendar";
 import { fetchEventos } from "@/lib/admin/queries";
@@ -19,25 +19,19 @@ if(!card)return;var head=card.querySelector('[data-x]');if(head){var b=document.
 card.scrollIntoView({block:'start'});})();
 `;
 
+// Extras mínimos — todo lo demás sale del design system .adm.
 const CSS = `
-.cmx .lead{color:var(--ink-soft);max-width:640px;margin:.4rem 0 0;font-size:14px;line-height:1.5;}
-.cmx .vtoggle{display:inline-flex;gap:6px;margin:16px 0 10px;}
-.cmx .vtoggle a{padding:6px 14px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink-soft);text-decoration:none;}
+.cmx .lead{color:var(--ink-soft);max-width:660px;font-size:13.5px;line-height:1.55;margin-top:6px;}
+.cmx .vtoggle{display:inline-flex;gap:7px;margin-bottom:16px;}
+.cmx .vtoggle a{padding:8px 16px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:500;color:var(--ink-soft);background:#fff;}
+.cmx .vtoggle a:hover{color:var(--charcoal);}
 .cmx .vtoggle a.on{background:var(--forest);color:#fff;border-color:var(--forest);}
-.cmx .evrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.cmx .evrow .nm{font-weight:600;font-size:16px;}
-.cmx .evrow .sub{color:var(--ink-soft);font-size:12.5px;margin-left:auto;display:flex;gap:10px;align-items:center;}
-.cmx .acts{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 14px;}
-.cmx .mini{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:7px;}
-.cmx .mini .m{display:flex;gap:10px;align-items:baseline;font-size:13px;flex-wrap:wrap;}
-.cmx .mini .m .pid{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-soft);min-width:30px;}
-.cmx .mini .m .st{font-weight:600;}
-.cmx .mini .m .st.sched{color:#7a5e2e;}
-.cmx .mini .m .st.pub{color:#46543a;}
-.cmx .mini .m .st.fail{color:#b0341a;}
-.cmx .mini .m a{color:var(--forest);}
-.cmx .muted{color:var(--ink-soft);font-size:13px;}
-.cmx .draft{opacity:.66;}
+.cmx .cev{overflow:hidden;margin-bottom:12px;}
+.cmx .cevh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:15px 20px;}
+.cmx .cevh .nm{font-weight:600;font-size:15.5px;}
+.cmx .cevh .metas{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--ink-soft);}
+.cmx .cevh.open{border-bottom:1px solid var(--line);}
+.cmx .igl{color:var(--olive);font-weight:500;margin-left:8px;}
 `;
 
 function fmtFecha(iso: string | null, conHora: boolean): string {
@@ -56,38 +50,65 @@ function fmtFecha(iso: string | null, conHora: boolean): string {
 
 const RANK: Record<SocialPost["status"], number> = { publishing: 0, scheduled: 1, failed: 2, published: 3, canceled: 4 };
 
-// Una línea de estado por post (misma verdad que la cola: una programada NO
-// muestra la hora normalizada, muestra la hora REAL del cron).
-function EstadoLinea({ p }: { p: SocialPost }) {
-  if (p.status === "published") {
-    return (
-      <span className="m">
-        <span className="pid">{p.pieceId || "—"}</span>
-        <span className="st pub">Publicada</span>
-        <span className="muted">{fmtFecha(p.publishedAt, true)}</span>
-        {p.igPermalink ? (
-          <a href={p.igPermalink} target="_blank" rel="noreferrer">ver en Instagram ↗</a>
-        ) : null}
-      </span>
-    );
+function chipDe(s: SocialPost["status"]): { cls: string; label: string } {
+  switch (s) {
+    case "published":
+      return { cls: "c-pub", label: "Publicada" };
+    case "scheduled":
+    case "publishing":
+      return { cls: "c-sol", label: "Programada" };
+    case "failed":
+      return { cls: "c-full", label: "Falló" };
+    case "canceled":
+      return { cls: "c-canc", label: "Cancelada" };
   }
-  if (p.status === "failed") {
-    return (
-      <span className="m">
-        <span className="pid">{p.pieceId || "—"}</span>
-        <span className="st fail">Falló</span>
-        {p.error ? <span className="muted">{p.error.slice(0, 80)}</span> : null}
-      </span>
-    );
-  }
-  if (p.status === "canceled") return <span className="m draft"><span className="pid">{p.pieceId || "—"}</span><span className="st muted">Cancelada</span></span>;
-  // scheduled / publishing
+}
+
+// La hora mostrada de una programada es la REAL del cron (~1pm), no la
+// normalizada; la publicada lleva su published_at real; la fallida, el error.
+function cuando(p: SocialPost): string {
+  if (p.status === "published") return fmtFecha(p.publishedAt, true);
+  if (p.status === "scheduled" || p.status === "publishing") return `${fmtFecha(p.scheduledAt, false)} · ${HORA_PUBLICACION}`;
+  if (p.status === "failed") return p.error ? p.error.slice(0, 90) : "";
+  return "";
+}
+
+function ColaTabla({ posts, conEvento }: { posts: SocialPost[]; conEvento: boolean }) {
   return (
-    <span className="m">
-      <span className="pid">{p.pieceId || "—"}</span>
-      <span className="st sched">Programada</span>
-      <span className="muted">{fmtFecha(p.scheduledAt, false)} · {HORA_PUBLICACION}</span>
-    </span>
+    <div className="card">
+      <div className="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pieza</th>
+              <th>Estado</th>
+              <th>Cuándo</th>
+              {conEvento ? <th>Evento</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {posts.map((p) => {
+              const c = chipDe(p.status);
+              return (
+                <tr key={p.id}>
+                  <td className="mono">{p.pieceId || "—"}</td>
+                  <td>
+                    <span className={`chip ${c.cls}`}>{c.label}</span>
+                  </td>
+                  <td className="mut">
+                    {cuando(p)}
+                    {p.igPermalink ? (
+                      <a className="igl" href={p.igPermalink} target="_blank" rel="noreferrer">ver en Instagram ↗</a>
+                    ) : null}
+                  </td>
+                  {conEvento ? <td className="mut">{p.experienceSlug}</td> : null}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -99,7 +120,6 @@ export default async function ComunicacionPage({
   const { view, m } = await searchParams;
   const esLista = view === "lista";
 
-  // Mes en curso (CDMX) para el calendario.
   const cdmxMonth = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Mexico_City",
     year: "numeric",
@@ -116,14 +136,14 @@ export default async function ComunicacionPage({
     esLista ? Promise.resolve<SocialPost[]>([]) : fetchPostsBetween(inicioMes, inicioSig),
   ]);
 
-  // Agrupar posts por evento (para el desplegable de cada evento).
   const porEvento = new Map<string, SocialPost[]>();
   for (const p of recientes) {
     const k = p.experienceSlug || "";
     if (!k) continue;
     (porEvento.get(k) ?? porEvento.set(k, []).get(k)!).push(p);
   }
-
+  const ordenar = (posts: SocialPost[]) =>
+    [...posts].sort((a, b) => RANK[a.status] - RANK[b.status] || (b.scheduledAt || b.createdAt).localeCompare(a.scheduledAt || a.createdAt));
   const cuenta = (posts: SocialPost[], st: SocialPost["status"]) => posts.filter((p) => p.status === st).length;
 
   return (
@@ -131,38 +151,28 @@ export default async function ComunicacionPage({
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="cmx">
         <div className="sec-head">
-          <div className="eyebrow">// Comunicación</div>
-          <h1>Comunicación</h1>
-          <p className="lead">
-            Todo el contenido de cada evento en un solo lugar: abre su <strong>Kit</strong> (piezas + captions), su material y su cola.
-            Arriba, la cola de redes global — lo programado y lo publicado, por fecha. El robot publica cada día lo que ya venció (~1:00 p.m.).
-          </p>
+          <div>
+            <div className="eyebrow"><span className="sl">//</span> Comunicación</div>
+            <h1>Comunicación</h1>
+          </div>
         </div>
+        <p className="lead">
+          El contenido de cada evento en un solo lugar: abre su <strong>Kit</strong> (piezas + captions), su material y su cola.
+          Arriba, la cola de redes global. El robot publica cada día lo que ya venció (~1:00 p.m.).
+        </p>
 
         {/* ── Cola de redes GLOBAL ── */}
-        <div className="sec">
+        <div className="sec" style={{ marginTop: 26 }}>
           <div className="vtoggle">
             <a href="/caminante/admin/comunicacion" className={!esLista ? "on" : ""}>Calendario</a>
             <a href="/caminante/admin/comunicacion?view=lista" className={esLista ? "on" : ""}>Lista</a>
           </div>
           {esLista ? (
-            <div className="card">
-              {recientes.length === 0 ? (
-                <div className="muted">Aún no hay nada programado ni publicado. Programa piezas desde el Kit de un evento.</div>
-              ) : (
-                <div className="mini" style={{ borderTop: "none", paddingTop: 0 }}>
-                  {[...recientes]
-                    .sort((a, b) => RANK[a.status] - RANK[b.status] || (b.scheduledAt || b.createdAt).localeCompare(a.scheduledAt || a.createdAt))
-                    .slice(0, 80)
-                    .map((p) => (
-                      <div key={p.id} className="m">
-                        <EstadoLinea p={p} />
-                        {p.experienceSlug ? <span className="muted">· {p.experienceSlug}</span> : null}
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
+            recientes.length === 0 ? (
+              <div className="empty">Aún no hay nada programado ni publicado. Programa piezas desde el Kit de un evento.</div>
+            ) : (
+              <ColaTabla posts={ordenar(recientes).slice(0, 80)} conEvento />
+            )
           ) : (
             <ColaCalendar posts={mesPosts} monthParam={monthParam} />
           )}
@@ -170,48 +180,44 @@ export default async function ComunicacionPage({
 
         {/* ── Por evento ── */}
         <div className="sec">
-          <div className="sec-head"><h1 style={{ fontSize: 20 }}>Por evento</h1></div>
+          <div className="sec-head">
+            <h2>Por evento</h2>
+          </div>
           {eventos.length === 0 ? (
-            <div className="card muted">No hay eventos todavía. Crea uno desde «+ Experiencia».</div>
+            <div className="empty">No hay eventos todavía. Crea uno desde «+ Experiencia».</div>
           ) : (
             eventos.map((ev) => {
               const posts = porEvento.get(ev.slug) ?? [];
               const prog = cuenta(posts, "scheduled") + cuenta(posts, "publishing");
               const pub = cuenta(posts, "published");
-              const ordenados = [...posts].sort(
-                (a, b) => RANK[a.status] - RANK[b.status] || (b.scheduledAt || b.createdAt).localeCompare(a.scheduledAt || a.createdAt),
-              );
+              const ordenados = ordenar(posts).filter((p) => p.status !== "canceled");
               return (
-                <div key={ev.slug} className={`card${ev.status !== "published" ? " draft" : ""}`} id={`ev-${ev.slug}`} style={{ marginBottom: 10 }}>
-                  <div className="evrow xhead" data-x={`evb-${ev.slug}`} style={{ cursor: "pointer" }}>
+                <div key={ev.slug} className="card cev" id={`ev-${ev.slug}`}>
+                  <div className="cevh xhead" data-x={`evb-${ev.slug}`}>
                     <span className="nm">{ev.nombre}</span>
-                    {ev.status !== "published" ? <span className="chip">Borrador</span> : null}
-                    <span className="sub">
-                      <span>{prog} programada{prog === 1 ? "" : "s"}</span>
-                      <span>·</span>
-                      <span>{pub} publicada{pub === 1 ? "" : "s"}</span>
+                    {ev.status !== "published" ? <span className="chip c-draft">Borrador</span> : null}
+                    <span className="metas">
+                      <span>{prog} programada{prog === 1 ? "" : "s"} · {pub} publicada{pub === 1 ? "" : "s"}</span>
                       <span className="chev2" aria-hidden>▾</span>
                     </span>
                   </div>
                   <div className="xbody" id={`evb-${ev.slug}`}>
-                    <div className="acts">
-                      <a href={`/caminante/admin/kit/${ev.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-orange btn-sm">
-                        Abrir Kit de comunicación →
-                      </a>
-                      <a href={`/caminante/admin/print/${ev.slug}?o=v`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm">PDF vertical</a>
-                      <a href={`/caminante/admin/print/${ev.slug}?o=h`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm">PDF horizontal</a>
-                      <a href={`/caminante/admin/social/${ev.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm">Flyer redes</a>
-                      <a href={`/caminante/admin/eventos/${ev.slug}`} className="btn btn-glass btn-sm">Ver evento</a>
-                    </div>
-                    {ordenados.length === 0 ? (
-                      <div className="muted">Sin piezas en la cola. Programa una campaña desde el Kit.</div>
-                    ) : (
-                      <div className="mini">
-                        {ordenados.slice(0, 20).map((p) => (
-                          <EstadoLinea key={p.id} p={p} />
-                        ))}
+                    <div className="xpad" style={{ padding: "16px 20px 18px" }}>
+                      <div className="act-row" style={{ marginTop: 0, marginBottom: 16 }}>
+                        <a href={`/caminante/admin/kit/${ev.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-orange btn-sm">
+                          Abrir Kit de comunicación →
+                        </a>
+                        <a href={`/caminante/admin/print/${ev.slug}?o=v`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm">PDF vertical</a>
+                        <a href={`/caminante/admin/print/${ev.slug}?o=h`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm">PDF horizontal</a>
+                        <a href={`/caminante/admin/social/${ev.slug}`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm">Flyer redes</a>
+                        <a href={`/caminante/admin/eventos/${ev.slug}`} className="btn btn-ghost btn-sm">Ver evento</a>
                       </div>
-                    )}
+                      {ordenados.length === 0 ? (
+                        <div className="empty">Sin piezas en la cola. Programa una campaña desde el Kit.</div>
+                      ) : (
+                        <ColaTabla posts={ordenados.slice(0, 20)} conEvento={false} />
+                      )}
+                    </div>
                   </div>
                 </div>
               );
