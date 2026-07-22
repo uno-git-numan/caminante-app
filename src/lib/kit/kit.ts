@@ -454,51 +454,83 @@ function lugarCorto(ctx: KitContext): string {
 
 // ── Sistema EDITORIAL (serie E) — REDISEÑO 21 jul (5 principios de Luis) ───────
 // P1 la foto NUNCA contradice el texto · P3 nada de medias piezas · P4 la marca
-// susurra · P5 nada se repite. El reparto de fotos es un REGISTRO GLOBAL
-// (ledger): cada lámina toma una foto ÚNICA del slot correcto; si no alcanzan,
-// se generan MENOS láminas o la pieza queda pendiente — jamás se repite ni se
-// mete una foto que contradiga el texto.
+// susurra · P5 nada se repite DENTRO de un post.
+//
+// P5 — REGLA DE REÚSO (22 jul, decisión de Luis): una foto SÍ puede aparecer en
+// varios posts; lo prohibido es que se repita dentro del MISMO post. Antes el
+// registro era global y marcaba la foto como quemada para siempre: con bancos
+// chicos, la primera pieza se llevaba todas y las demás quedaban "pendientes"
+// aunque la ficha estuviera completa. Ahora el ledger CUENTA usos y siempre
+// entrega la foto MENOS USADA del slot → nadie repite hasta que todas dieron
+// una vuelta, nadie va a la tercera hasta que todas llevan dos. Se reparte el
+// desgaste solo, sin tope arbitrario: repetir sí, quemar no.
 const NEUTRO: BankKey[] = ["paisaje", "cielo"]; // ÚNICO fondo válido detrás de ciencia
 
-type EduLedger = {
+// Repartidor con el alcance de UNA pieza (lo que ve cada build*).
+type EduTaker = {
   take: (cats: BankKey[]) => Foto | null;
   takePref: (pref: Foto | undefined, cats: BankKey[]) => Foto | null;
+  // Portada: además de repartir parejo, evita reusar una foto que YA fue portada
+  // de otra pieza — la portada es lo que se ve en el feed sin abrir el carrusel.
+  cover: (cats: BankKey[]) => Foto | null;
 };
-// Registro de fotos del kit: reparte fotos ÚNICAS por slot. Orden determinista
-// por slug (thumbnail y PNG coinciden). `usados` es global → ninguna foto se
-// repite entre piezas NI entre láminas contiguas (cada take() da una no usada).
+type EduLedger = { scope: (pieceId: string) => EduTaker };
+
+// Registro de fotos del kit. Orden determinista por slug (thumbnail y PNG
+// exportado coinciden): ante empate de usos gana el primero del barajado.
 function makeLedger(ctx: KitContext): EduLedger {
   const slug = ctx.exp.slug || "x";
   const bySlot: Partial<Record<BankKey, Foto[]>> = {};
   for (const k of BANK_KEYS) bySlot[k] = shuffle(bankPhotos(ctx, [k]), `${slug}·${k}`);
-  const usados = new Set<string>();
-  const take = (cats: BankKey[]): Foto | null => {
-    for (const c of cats)
-      for (const f of bySlot[c] ?? []) {
-        const key = fileKey(f.url);
-        if (!usados.has(key)) {
-          usados.add(key);
-          return f;
-        }
-      }
-    return null;
-  };
+  const usos = new Map<string, number>(); // veces que se usó cada foto en TODO el kit
+  const portadas = new Set<string>(); // fotos que ya fueron portada de alguna pieza
+  const veces = (k: string) => usos.get(k) ?? 0;
+
   return {
-    take,
-    takePref(pref, cats) {
-      if (pref?.url) {
-        const k = fileKey(pref.url);
-        if (!usados.has(k)) {
-          usados.add(k);
-          return pref;
-        }
-      }
-      return take(cats);
+    scope(_pieceId: string): EduTaker {
+      const enPieza = new Set<string>(); // REGLA DURA: nunca dos veces en el mismo post
+      const elegir = (cats: BankKey[], esPortada: boolean): Foto | null => {
+        let mejor: Foto | null = null;
+        let mejorPeso = Infinity;
+        for (const c of cats)
+          for (const f of bySlot[c] ?? []) {
+            const k = fileKey(f.url);
+            if (enPieza.has(k)) continue;
+            // El uso pesa el doble que "ya fue portada": primero repartir parejo,
+            // y entre las igual de frescas, preferir una que no haya sido portada.
+            const peso = veces(k) * 2 + (esPortada && portadas.has(k) ? 1 : 0);
+            if (peso < mejorPeso) {
+              mejor = f;
+              mejorPeso = peso;
+            }
+          }
+        if (!mejor) return null;
+        const k = fileKey(mejor.url);
+        enPieza.add(k);
+        usos.set(k, veces(k) + 1);
+        if (esPortada) portadas.add(k);
+        return mejor;
+      };
+      return {
+        take: (cats) => elegir(cats, false),
+        cover: (cats) => elegir(cats, true),
+        takePref(pref, cats) {
+          if (pref?.url) {
+            const k = fileKey(pref.url);
+            if (!enPieza.has(k)) {
+              enPieza.add(k);
+              usos.set(k, veces(k) + 1);
+              return pref;
+            }
+          }
+          return elegir(cats, false);
+        },
+      };
     },
   };
 }
-// Toma hasta n fotos únicas de las categorías dadas (contenido de una pieza).
-function tomar(led: EduLedger, cats: BankKey[], n: number): Foto[] {
+// Toma hasta n fotos DISTINTAS ENTRE SÍ de las categorías dadas (una pieza).
+function tomar(led: EduTaker, cats: BankKey[], n: number): Foto[] {
   const out: Foto[] = [];
   for (let i = 0; i < n; i++) {
     const f = led.take(cats);
@@ -508,7 +540,7 @@ function tomar(led: EduLedger, cats: BankKey[], n: number): Foto[] {
   return out;
 }
 const PENDIENTE_PAISAJE =
-  "Faltan fotos de PAISAJE únicas para armar esta pieza sin repetir — sube más al Banco de fotos (slots «Paisaje»/«Cielo»). Nunca ponemos una foto que contradiga el texto.";
+  "Esta pieza necesita más fotos DISTINTAS de paisaje: una foto puede repetirse entre posts, pero nunca dos veces dentro del mismo post — sube más al Banco de fotos (slots «Paisaje»/«Cielo»). Nunca ponemos una foto que contradiga el texto.";
 
 // Portada editorial: gancho + teaser + flecha (el fondo lo asigna el ledger).
 function eduPortada(hook: string, teaser: string, bg: Foto): Lamina {
@@ -533,7 +565,7 @@ function datoACuerpo(d: { n?: string; texto: string; fuente: string }, bg: Foto)
 
 // E1 · Ficha de especie (el sujeto ES la especie → foto del slot «flora»).
 // Las filas k/v salen del dato: si el texto trae "Clave: valor" se parte ahí.
-function buildE1(ctx: KitContext, led: EduLedger): PieceState {
+function buildE1(ctx: KitContext, led: EduTaker): PieceState {
   const esp = (ctx.ficha?.especies ?? []).filter((e) => has(e.comun)).slice(0, 6);
   if (!esp.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Especies.` };
   const fichas: Lamina[] = [];
@@ -556,7 +588,7 @@ function buildE1(ctx: KitContext, led: EduLedger): PieceState {
       bg,
     });
   }
-  const portada = led.take(["flora"]) ?? led.take(NEUTRO);
+  const portada = led.cover(["flora"]) ?? led.cover(NEUTRO);
   if (!portada || fichas.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
   return {
     estado: "lista",
@@ -565,7 +597,7 @@ function buildE1(ctx: KitContext, led: EduLedger): PieceState {
 }
 
 // E2 · El dato → portada + cuerpos (cada dato con su fuente). Fondo NEUTRO.
-function buildE2(ctx: KitContext, led: EduLedger): PieceState {
+function buildE2(ctx: KitContext, led: EduTaker): PieceState {
   const datos = fichaDatos(ctx).slice(0, 7);
   if (!datos.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Datos del lugar.` };
   const cuerpos: Lamina[] = [];
@@ -574,14 +606,14 @@ function buildE2(ctx: KitContext, led: EduLedger): PieceState {
     if (!bg) break;
     cuerpos.push(datoACuerpo(d, bg));
   }
-  const portada = led.take(NEUTRO);
+  const portada = led.cover(NEUTRO);
   if (!portada || cuerpos.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
   return { estado: "lista", laminas: [eduPortada(`${cuerpos.length} datos del **${lugarCorto(ctx)}**`, "Cada uno con su fuente.", portada), ...cuerpos] };
 }
 
 // E3 · Diccionario → portada macro + láminas de espécimen. Fondo NEUTRO (el
 // glosario es ciencia: va sobre el paisaje del lugar, jamás sobre un interior).
-function buildE3(ctx: KitContext, led: EduLedger): PieceState {
+function buildE3(ctx: KitContext, led: EduTaker): PieceState {
   const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def)).slice(0, 8);
   if (!glo.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Glosario.` };
   const entries: Lamina[] = [];
@@ -590,7 +622,7 @@ function buildE3(ctx: KitContext, led: EduLedger): PieceState {
     if (!img) break;
     entries.push({ kind: "edu-dentry", term: clean(g.termino), def: fit(g.def, 200), img });
   }
-  const portada = led.take(NEUTRO);
+  const portada = led.cover(NEUTRO);
   if (!portada || entries.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
   const index = glo.slice(0, entries.length).map((g) => clean(g.termino).toUpperCase()).join(" · ");
   return { estado: "lista", laminas: [{ kind: "edu-dcover", h: "Diccionario básico de", t: lugarCorto(ctx), index, bg: portada }, ...entries] };
@@ -598,7 +630,7 @@ function buildE3(ctx: KitContext, led: EduLedger): PieceState {
 
 // E4 · La temporada → requiere ≥3 épocas (que cuente el AÑO, no una estación
 // suelta). Fondo NEUTRO.
-function buildE4(ctx: KitContext, led: EduLedger): PieceState {
+function buildE4(ctx: KitContext, led: EduTaker): PieceState {
   const tem = (ctx.ficha?.temporada ?? []).filter((t) => has(t.epoca) && has(t.fenomeno)).slice(0, 6);
   if (!tem.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Temporada.` };
   if (tem.length < 3) return { estado: "pendiente", razon: "La temporada necesita al menos 3 épocas para contar el año completo — complétala en la ficha (sección «Temporada»)." };
@@ -608,7 +640,7 @@ function buildE4(ctx: KitContext, led: EduLedger): PieceState {
     if (!bg) break;
     cuerpos.push({ kind: "edu-cuerpo", claim: fit(clean(t.epoca), 60), caption: fit(clean(t.fenomeno), 220), src: has(t.fuente) ? `Fuente: ${clean(t.fuente!)}` : undefined, bg });
   }
-  const portada = led.take(NEUTRO);
+  const portada = led.cover(NEUTRO);
   if (!portada || cuerpos.length < 3) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
   return { estado: "lista", laminas: [eduPortada(`El calendario de **${lugarCorto(ctx)}**`, "La naturaleza manda las fechas.", portada), ...cuerpos] };
 }
@@ -622,7 +654,7 @@ function retratables(ctx: KitContext): Extract<Lamina, { kind: "perfil" }>[] {
 
 // E5 · Quien sabe sabe → retratos de PERSONAS (slots gente/comunidad; el sujeto
 // ES la persona). La cita es la BIO REAL del guía, jamás inventada.
-function buildE5(ctx: KitContext, led: EduLedger): PieceState {
+function buildE5(ctx: KitContext, led: EduTaker): PieceState {
   const perfiles = retratables(ctx).slice(0, 6);
   if (!perfiles.length) return { estado: "pendiente", razon: "Faltan biografías de guías/comunidad: el retrato necesita su saber escrito, no solo el nombre (sección «Guías y aliados» de la experiencia)." };
   const retratos: Lamina[] = [];
@@ -631,14 +663,14 @@ function buildE5(ctx: KitContext, led: EduLedger): PieceState {
     if (!bg) break;
     retratos.push({ kind: "edu-retrato", cita: fit(clean(p.body || p.cred || ""), 200), name: p.name, role: clean(p.role || (p.body ? p.cred || "" : "")), bg });
   }
-  const portada = led.take(["gente", "comunidad"]) ?? led.take(NEUTRO);
+  const portada = led.cover(["gente", "comunidad"]) ?? led.cover(NEUTRO);
   if (!portada || retratos.length < 2) return { estado: "pendiente", razon: "Faltan fotos de GENTE/COMUNIDAD únicas para los retratos — sube más al Banco de fotos (slots «Gente»/«Comunidad»)." };
   return { estado: "lista", laminas: [eduPortada("Quiénes **leen** este lugar", "El mapa no trae este conocimiento.", portada), ...retratos] };
 }
 
 // E6 · La conexión → datos de conservación (fondo NEUTRO). Necesita ≥2 datos
 // con cara «Conservación» — una sola lámina no se publica.
-function buildE6(ctx: KitContext, led: EduLedger): PieceState {
+function buildE6(ctx: KitContext, led: EduTaker): PieceState {
   const datos = fichaDatos(ctx, "conservacion").slice(0, 5);
   if (datos.length < 2) return { estado: "pendiente", razon: `${FALTA_FICHA} → al menos 2 datos con cara «Conservación».` };
   const cuerpos: Lamina[] = [];
@@ -647,14 +679,14 @@ function buildE6(ctx: KitContext, led: EduLedger): PieceState {
     if (!bg) break;
     cuerpos.push(datoACuerpo(d, bg));
   }
-  const portada = led.take(NEUTRO);
+  const portada = led.cover(NEUTRO);
   if (!portada || cuerpos.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
   return { estado: "lista", laminas: [eduPortada("Caminar también **conserva**", `Lo que sostiene ${lugarCorto(ctx)}.`, portada), ...cuerpos] };
 }
 
 // E8 · Postales — 4–6 láminas, cada una FOTO DISTINTA (paisaje/gente/detalle) +
 // una línea corta tipo título de película. Sin dato, sin fuente, sin CTA.
-function buildE8(ctx: KitContext, led: EduLedger): PieceState {
+function buildE8(ctx: KitContext, led: EduTaker): PieceState {
   const hero = block(ctx.blocks, "hero") as V2Hero | undefined;
   const st = block(ctx.blocks, "statement") as V2Statement | undefined;
   const primera = (s: string) => {
@@ -690,13 +722,13 @@ function buildSerieE(ctx: KitContext): Record<string, PieceState> {
   if (hit) return hit;
   const led = makeLedger(ctx);
   const out: Record<string, PieceState> = {};
-  out.E4 = buildE4(ctx, led);
-  out.E2 = buildE2(ctx, led);
-  out.E3 = buildE3(ctx, led);
-  out.E6 = buildE6(ctx, led);
-  out.E1 = buildE1(ctx, led);
-  out.E5 = buildE5(ctx, led);
-  out.E8 = buildE8(ctx, led);
+  out.E4 = buildE4(ctx, led.scope("E4"));
+  out.E2 = buildE2(ctx, led.scope("E2"));
+  out.E3 = buildE3(ctx, led.scope("E3"));
+  out.E6 = buildE6(ctx, led.scope("E6"));
+  out.E1 = buildE1(ctx, led.scope("E1"));
+  out.E5 = buildE5(ctx, led.scope("E5"));
+  out.E8 = buildE8(ctx, led.scope("E8"));
   _serieE.set(ctx as object, out);
   return out;
 }
