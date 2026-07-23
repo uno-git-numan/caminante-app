@@ -91,6 +91,22 @@ async function pendientesAccesos(): Promise<number> {
   }
 }
 
+// Aplicaciones de EMBAJADOR pendientes → badge. Best-effort: si la tabla no
+// existe todavía (0029 sin aplicar), cuenta 0 — jamás rompe el nav.
+async function pendientesEmbajadores(): Promise<number> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const { count, error } = await sb
+      .from("ambassador_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export default async function AdminShell({
   active,
   children,
@@ -98,9 +114,14 @@ export default async function AdminShell({
   active: AdminSection;
   children: React.ReactNode;
 }) {
-  const [pendientes, accesos] = await Promise.all([pendientesSolicitudes(), pendientesAccesos()]);
-  // Solicitudes ahora agrupa operador (accesos) + cliente (fechas) → un solo badge.
-  const badgeDe = (key: AdminSection): number => (key === "solicitudes" ? pendientes + accesos : 0);
+  const [pendientes, accesos, embajadores] = await Promise.all([
+    pendientesSolicitudes(),
+    pendientesAccesos(),
+    pendientesEmbajadores(),
+  ]);
+  // Solicitudes agrupa operador (accesos) + cliente (fechas) + embajador → un solo badge.
+  const badgeDe = (key: AdminSection): number =>
+    key === "solicitudes" ? pendientes + accesos + embajadores : 0;
   return (
     <div className="adm">
       <style dangerouslySetInnerHTML={{ __html: ADMIN_CSS }} />

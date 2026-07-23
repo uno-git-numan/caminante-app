@@ -7,6 +7,7 @@ import AdminShell from "../ui/AdminShell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import SolicitudCard, { type SolicitudView } from "./SolicitudCard";
 import AccesoCard from "./AccesoCard";
+import EmbajadorCard, { type EmbAppView } from "./EmbajadorCard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Solicitudes · Admin" };
@@ -27,6 +28,36 @@ type Row = {
 
 type WLRow = { email: string; is_active: boolean; note: string | null; created_at: string };
 
+type EmbRow = {
+  id: string;
+  full_name: string;
+  email: string;
+  whatsapp: string | null;
+  profile_kind: string;
+  social_links: string;
+  experience: string | null;
+  why_caminante: string | null;
+  referral_source: string | null;
+  status: string;
+  created_at: string;
+};
+
+// Aplicaciones de embajador — best-effort: si la tabla aún no existe (0029 sin
+// aplicar), la página no se cae; la sección sale vacía con la nota.
+async function fetchEmbApps(): Promise<{ rows: EmbRow[]; tablaLista: boolean }> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const { data, error } = await sb
+      .from("ambassador_applications")
+      .select("id, full_name, email, whatsapp, profile_kind, social_links, experience, why_caminante, referral_source, status, created_at")
+      .order("created_at", { ascending: false });
+    if (error) return { rows: [], tablaLista: false };
+    return { rows: (data ?? []) as EmbRow[], tablaLista: true };
+  } catch {
+    return { rows: [], tablaLista: false };
+  }
+}
+
 const TZ = "America/Mexico_City";
 function fmtFecha(iso: string): string {
   return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short", timeZone: TZ });
@@ -46,7 +77,7 @@ function nombreDeNota(note: string | null): string {
 
 export default async function SolicitudesPage() {
   const sb = createSupabaseAdminClient();
-  const [{ data: reqData }, { data: wlData }] = await Promise.all([
+  const [{ data: reqData }, { data: wlData }, emb] = await Promise.all([
     sb
       .from("slot_requests")
       .select(
@@ -57,6 +88,7 @@ export default async function SolicitudesPage() {
       .from("admin_whitelist")
       .select("email, is_active, note, created_at")
       .order("created_at", { ascending: false }),
+    fetchEmbApps(),
   ]);
 
   const rows = (reqData ?? []) as unknown as Row[];
@@ -67,6 +99,21 @@ export default async function SolicitudesPage() {
   const opPend = wl.filter((r) => !r.is_active);
   const opActivos = wl.filter((r) => r.is_active);
 
+  const embPend = emb.rows.filter((r) => r.status === "pending");
+  const embResueltas = emb.rows.filter((r) => r.status !== "pending");
+  const aVista = (r: EmbRow): EmbAppView => ({
+    id: r.id,
+    nombre: r.full_name,
+    email: r.email,
+    whatsapp: r.whatsapp,
+    perfil: r.profile_kind,
+    links: r.social_links,
+    experiencia: r.experience,
+    porque: r.why_caminante,
+    conociste: r.referral_source,
+    fecha: fmtFecha(r.created_at),
+  });
+
   return (
     <AdminShell active="solicitudes">
       <div className="sec-head">
@@ -75,10 +122,69 @@ export default async function SolicitudesPage() {
           Lo que <em className="ac">piden.</em>
         </h1>
         <p className="subtitle">
-          Todo lo que llega pidiendo algo: <b>operadores</b> que quieren acceso al panel y{" "}
-          <b>clientes</b> que piden una nueva fecha.
+          Todo lo que llega pidiendo algo: <b>embajadores</b> que aplican al programa,{" "}
+          <b>operadores</b> que quieren acceso al panel y <b>clientes</b> que piden una nueva fecha.
         </p>
       </div>
+
+      {/* ── Solicitud embajador (programa curado) ── */}
+      <div className="sec-head" style={{ marginTop: 8 }}>
+        <span className="eyebrow"><span className="sl">{"//"}</span> Solicitud embajador</span>
+        <p className="subtitle">
+          Aplicaciones al <b>programa de embajadores</b> (curado: aplicación → llamada de 30 min →
+          convenio). Aprobar lo da de alta como <b>aliado</b> para la atribución de sus ventas y le
+          manda el correo de bienvenida; rechazar manda un «por ahora no» amable. Ninguna de las dos
+          le da acceso al panel.
+        </p>
+      </div>
+
+      {!emb.tablaLista ? (
+        <div className="empty">
+          La tabla de aplicaciones aún no existe — aplica la migración <b>0029_ambassador_applications</b> en el SQL Editor.
+        </div>
+      ) : embPend.length === 0 ? (
+        <div className="empty">Sin aplicaciones de embajador pendientes.</div>
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {embPend.map((r) => (
+            <EmbajadorCard key={r.id} app={aVista(r)} />
+          ))}
+        </div>
+      )}
+
+      {embResueltas.length ? (
+        <>
+          <div className="sec-head" style={{ marginTop: 24 }}>
+            <span className="eyebrow"><span className="sl">{"//"}</span> Historial de embajadores</span>
+          </div>
+          <div className="card" style={{ overflow: "hidden" }}>
+            <div className="tbl-wrap">
+              <table>
+                <thead>
+                  <tr><th>Nombre</th><th>Correo</th><th>Perfil</th><th>Estado</th><th>Fecha</th></tr>
+                </thead>
+                <tbody>
+                  {embResueltas.map((r) => (
+                    <tr key={r.id}>
+                      <td style={{ fontWeight: 500 }}>{r.full_name}</td>
+                      <td className="mut">{r.email}</td>
+                      <td className="mut">{r.profile_kind}</td>
+                      <td>
+                        {r.status === "approved" ? (
+                          <span className="chip c-paid">Embajador</span>
+                        ) : (
+                          <span className="chip c-canc">Rechazada</span>
+                        )}
+                      </td>
+                      <td className="mut">{fmtFecha(r.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      ) : null}
 
       {/* ── Solicitud operador (acceso al panel) ── */}
       <div className="sec-head" style={{ marginTop: 8 }}>
