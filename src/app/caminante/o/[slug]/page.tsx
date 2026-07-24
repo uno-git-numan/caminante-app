@@ -22,9 +22,12 @@ const OPW_CSS = `
 .opw img{display:block;max-width:100%;}
 .opw a{color:var(--olive);text-decoration:none;}
 
-.opw-hero{position:relative;isolation:isolate;background:var(--forest);color:#fff;padding:120px 22px 84px;text-align:center;overflow:hidden;}
+.opw-hero{position:relative;isolation:isolate;background:var(--forest);color:#fff;padding:132px 22px 96px;text-align:center;overflow:hidden;}
 .opw-hero .ph{position:absolute;inset:0;z-index:-2;}
-.opw-hero .ph img{width:100%;height:100%;object-fit:cover;opacity:.42;}
+.opw-hero .ph img{width:100%;height:100%;object-fit:cover;opacity:.5;}
+/* VELO obligatorio: la foto del operador puede ser clarísima (Izta a mediodía) y
+   sin él el título se pierde. Nunca quitarlo por "ver mejor la foto". */
+.opw-hero .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(12,14,11,.62),rgba(12,14,11,.34) 45%,rgba(12,14,11,.72));}
 .opw-topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:center;padding:26px 22px;}
 .opw-logo{height:30px;width:auto;filter:brightness(0) invert(1);}
 .opw-hero h1{font-weight:200;letter-spacing:-.02em;line-height:1.06;font-size:clamp(34px,6.6vw,58px);max-width:22ch;margin:0 auto;}
@@ -37,14 +40,18 @@ const OPW_CSS = `
 .opw-eyebrow .sl{color:var(--orange);font-weight:700;}
 .opw-grid{display:grid;gap:20px;margin-top:26px;}
 @media(min-width:720px){.opw-grid{grid-template-columns:repeat(2,1fr);}}
-.opw-card{position:relative;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);isolation:isolate;min-height:320px;display:flex;align-items:flex-end;color:#fff;}
+/* ⚠️ Las reglas de la tarjeta van prefijadas con .opw: ".opw a" (0-1-1) le gana
+   a una clase sola (0-1-0) y el título salía del color primario del operador
+   (negro sobre pasto claro = invisible). Mismo tropiezo que el CTA de
+   embajadores — si agregas texto sobre foto aquí, prefíjalo. */
+.opw .opw-card{position:relative;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);isolation:isolate;min-height:340px;display:flex;align-items:flex-end;color:#fff;}
 .opw-card .bg{position:absolute;inset:0;z-index:-2;}
 .opw-card .bg img{width:100%;height:100%;object-fit:cover;transition:transform .5s;}
 .opw-card:hover .bg img{transform:scale(1.04);}
-.opw-card::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,rgba(16,18,14,.78),transparent 62%);}
-.opw-card .body{padding:22px 24px;width:100%;}
-.opw-card .t{font-weight:300;font-size:24px;letter-spacing:-.01em;line-height:1.15;}
-.opw-card .cta{display:inline-flex;margin-top:12px;padding:9px 20px;border-radius:999px;background:var(--orange);color:#fff;font-size:13.5px;font-weight:500;}
+.opw-card .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(12,14,11,.86),rgba(12,14,11,.28) 58%,transparent);}
+.opw-card .body{padding:24px 26px;width:100%;}
+.opw .opw-card .t{display:block;font-weight:300;font-size:25px;letter-spacing:-.01em;line-height:1.15;color:#fff;}
+.opw .opw-card .cta{display:inline-flex;margin-top:14px;padding:10px 22px;border-radius:999px;background:var(--orange);color:#fff;font-size:13.5px;font-weight:500;}
 .opw-empty{border:1px dashed var(--line);border-radius:var(--r);padding:40px;text-align:center;color:var(--ink-soft);margin-top:26px;}
 
 .opw-foot{border-top:1px solid var(--line);padding:26px 22px 36px;text-align:center;}
@@ -121,7 +128,6 @@ export default async function PortalOperadorPage({ params }: Params) {
                   </span>
                   <span className="body">
                     <span className="t">{e.titulo}</span>
-                    <br />
                     <span className="cta">Ver y reservar →</span>
                   </span>
                 </a>
