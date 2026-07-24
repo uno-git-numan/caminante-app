@@ -34,8 +34,9 @@ em.emb-ac{font-style:italic;color:var(--orange);font-weight:300;}
 .emb-logo{height:20px;display:block;}
 .emb-logo svg{height:100%;width:auto;display:block;}
 .emb .emb-logo .g1,.emb .emb-logo .g2,.emb .emb-logo .g3,.emb .emb-logo .gw{fill:#fff;}
-/* ⚠️ Los links del hero se prefijan con .emb: la regla `.emb a{color:olive}`
-   (0-1-1) le ganaba a una clase sola (0-1-0) y el CTA salía verde. */
+/* ⚠️ Los links del hero se prefijan con .emb: la regla ".emb a" (0-1-1) le
+   ganaba a una clase sola (0-1-0) y el CTA salía verde. OJO: nada de
+   backticks dentro de este template literal. */
 .emb .emb-back{font-size:13px;font-weight:500;color:rgba(255,255,255,.85);display:inline-flex;align-items:center;gap:.5em;}
 .emb .emb-back:hover{color:#fff;}
 /* CTA glass del hero (regla de la casa: glassy sobre foto) */
