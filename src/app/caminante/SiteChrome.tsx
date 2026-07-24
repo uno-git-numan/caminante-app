@@ -39,6 +39,7 @@ function isImmersive(pathname: string): boolean {
     pathname === "/caminante/admin" || // dashboard: trae su propio shell (AdminShell)
     pathname === "/caminante/perfil" || // Mi espacio: topbar propio (.mesp)
     pathname.startsWith("/caminante/operador/") || // perfil de operador (.opf)
+    pathname.startsWith("/caminante/o/") || // portal white-label del operador (.opw)
     pathname === "/caminante/calendario"
   );
 }
