@@ -5,7 +5,7 @@
 // definición del programa. Ruta inmersiva (topbar propio, regreso visible:
 // regla app-first). Diseño .emb-* (paleta de la casa + glass sobre foto).
 import type { Metadata } from "next";
-import { BRAND_MARK } from "@/lib/experiences/brand-svg";
+import { BRAND_WORD } from "@/lib/experiences/brand-svg";
 import EmbForm from "./EmbForm";
 import { EMB_CSS } from "./emb-css";
 
@@ -47,7 +47,7 @@ export default async function EmbajadoresPage({
           <img src={`${BUCKET}/delfines-brinco.jpg`} alt="Delfines en Baja California Sur" />
         </div>
         <div className="emb-topbar">
-          <a className="emb-logo" href="/caminante" aria-label="Caminante" dangerouslySetInnerHTML={{ __html: BRAND_MARK }} />
+          <a className="emb-logo" href="/caminante" aria-label="Caminante" dangerouslySetInnerHTML={{ __html: BRAND_WORD }} />
           <a className="emb-back" href="/caminante">← Volver a Caminante</a>
         </div>
         <span className="emb-eyebrow"><span className="sl">{"//"}</span> Programa de embajadores</span>
@@ -82,12 +82,12 @@ export default async function EmbajadoresPage({
               </ul>
             </div>
           </div>
-          <p className="emb-lead" style={{ marginTop: 26 }}>
-            No necesitas ser agencia: <strong>necesitas comunidad.</strong>
-          </p>
         </section>
+      </div>
 
-        {/* ===== 4 PASOS ===== */}
+      {/* ===== 4 PASOS (tinte panel — rompe el blanco) ===== */}
+      <div className="emb-tint">
+        <div className="emb-wrap">
         <section className="emb-sec">
           <span className="emb-eyebrow"><span className="sl">{"//"}</span> Cómo funciona</span>
           <h2 className="emb-display">Cuatro pasos.</h2>
@@ -117,9 +117,10 @@ export default async function EmbajadoresPage({
             Transparencia total: la utilidad se calcula con la hoja de costeo de cada experiencia — la ves antes de vender.
           </p>
         </section>
+        </div>
       </div>
 
-      {/* ===== LO QUE RECIBES (banda con glass) ===== */}
+      {/* ===== LO QUE RECIBES (banda con glass · Barrancas del Cobre) ===== */}
       <section className="emb-band">
         <div className="emb-wrap">
           <span className="emb-eyebrow"><span className="sl">{"//"}</span> Además de tu comisión</span>
@@ -141,7 +142,7 @@ export default async function EmbajadoresPage({
         </div>
         <div className="emb-ph">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${BUCKET}/team-panga.jpg`} alt="Equipo Caminante en panga" />
+          <img src={`${BUCKET}/barrancas-tormenta.jpg`} alt="Tormenta sobre las Barrancas del Cobre" />
         </div>
       </section>
 
@@ -168,8 +169,20 @@ export default async function EmbajadoresPage({
             <strong>Lo único que pedimos:</strong> comunidad propia real, cuidado por tu gente, y jugar con las reglas de la plataforma. Nosotros ponemos todo lo demás.
           </div>
         </section>
+      </div>
 
-        {/* ===== REGLAS CLARAS ===== */}
+      {/* ===== MANIFIESTO (Iztaccíhuatl) ===== */}
+      <section className="emb-manif">
+        <div className="emb-ph">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${BUCKET}/izta-rayos.jpg`} alt="Luz entre las laderas del Iztaccíhuatl" />
+        </div>
+        <p>No necesitas ser agencia: <b>necesitas comunidad.</b></p>
+      </section>
+
+      {/* ===== REGLAS CLARAS (sección oscura) ===== */}
+      <div className="emb-dark">
+        <div className="emb-wrap">
         <section className="emb-sec">
           <span className="emb-eyebrow"><span className="sl">{"//"}</span> Las reglas, claras desde el día uno</span>
           <div className="emb-reglas">
@@ -181,9 +194,16 @@ export default async function EmbajadoresPage({
             <div className="emb-regla"><span><b>Selección:</b> el programa es curado — aplicas, platicamos 30 minutos, y si hace clic firmamos convenio.</span></div>
           </div>
         </section>
+        </div>
+      </div>
 
-        {/* ===== APLICACIÓN ===== */}
-        <section className="emb-formsec" id="aplicar">
+      {/* ===== APLICACIÓN (sobre foto · Hacienda San Andrés) ===== */}
+      <section className="emb-formband" id="aplicar">
+        <div className="emb-ph">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${BUCKET}/san-andres-cocina.jpg`} alt="Cocina de la Hacienda San Andrés" />
+        </div>
+        <div className="emb-wrap">
           <div style={{ textAlign: "center" }}>
             <span className="emb-eyebrow"><span className="sl">{"//"}</span> Únete</span>
             <h2 className="emb-display" style={{ margin: "14px auto 0", maxWidth: "18ch" }}>
@@ -212,8 +232,8 @@ export default async function EmbajadoresPage({
               </>
             )}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       <footer className="emb-foot">Caminante by NUMAN · @somos.caminante · uno@numanhub.com</footer>
     </div>

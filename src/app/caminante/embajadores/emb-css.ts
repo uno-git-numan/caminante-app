@@ -30,24 +30,51 @@ em.emb-ac{font-style:italic;color:var(--orange);font-weight:300;}
 .emb-hero h1{font-size:clamp(40px,8.4vw,72px);margin-top:18px;}
 .emb-hero .emb-sub{font-size:clamp(15px,2.2vw,18.5px);font-weight:300;color:rgba(255,255,255,.88);margin:18px auto 0;max-width:44ch;}
 .emb-topbar{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:20px 22px;}
-.emb-logo{height:22px;display:block;}
+/* Wordmark COMPLETO (sello + CAMINANTE) todo en blanco — como el landing, en blanco */
+.emb-logo{height:20px;display:block;}
 .emb-logo svg{height:100%;width:auto;display:block;}
-.emb-logo .g1{fill:#637154;}.emb-logo .g2{fill:#fbfbf7;}.emb-logo .g3{fill:#ff5d36;}.emb-logo .gw{fill:#fff;}
-.emb-back{font-size:13px;font-weight:500;color:rgba(255,255,255,.85);display:inline-flex;align-items:center;gap:.5em;}
-.emb-back:hover{color:#fff;}
+.emb .emb-logo .g1,.emb .emb-logo .g2,.emb .emb-logo .g3,.emb .emb-logo .gw{fill:#fff;}
+/* ⚠️ Los links del hero se prefijan con .emb: la regla `.emb a{color:olive}`
+   (0-1-1) le ganaba a una clase sola (0-1-0) y el CTA salía verde. */
+.emb .emb-back{font-size:13px;font-weight:500;color:rgba(255,255,255,.85);display:inline-flex;align-items:center;gap:.5em;}
+.emb .emb-back:hover{color:#fff;}
 /* CTA glass del hero (regla de la casa: glassy sobre foto) */
-.emb-cta{display:inline-flex;align-items:center;justify-content:center;gap:.55em;min-height:56px;padding:0 34px;margin-top:34px;border-radius:999px;font-size:16px;font-weight:500;color:#fff;background:rgba(255,93,54,.92);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background .18s,transform .1s;}
-.emb-cta:hover{background:#e8431f;color:#fff;}
-.emb-cta:active{transform:translateY(1px);}
-.emb-cta-ghost{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:56px;padding:0 26px;margin:34px 0 0 12px;border-radius:999px;font-size:15px;font-weight:500;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background .18s;}
-.emb-cta-ghost:hover{background:rgba(255,255,255,.24);color:#fff;}
+.emb .emb-cta{display:inline-flex;align-items:center;justify-content:center;gap:.55em;min-height:56px;padding:0 34px;margin-top:34px;border-radius:999px;font-size:16px;font-weight:500;color:#fff;background:rgba(255,93,54,.92);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background .18s,transform .1s;}
+.emb .emb-cta:hover{background:#e8431f;color:#fff;}
+.emb .emb-cta:active{transform:translateY(1px);}
 
 /* ===== SECCIONES ===== */
+/* Ritmo: foto → crema → PANEL (tinte) → foto → crema → foto manifiesto →
+   BOSQUE (oscuro) → foto con card. Dos secciones seguidas nunca comparten
+   fondo — feedback de Luis: "se pierde". */
 .emb-wrap{max-width:1020px;margin:0 auto;padding:0 22px;}
-.emb-sec{padding:72px 0 8px;}
+.emb-sec{padding:72px 0 40px;}
 .emb-sec .emb-eyebrow{color:var(--olive);}
 .emb-sec h2{font-size:clamp(28px,5vw,44px);font-weight:200;letter-spacing:-.02em;margin-top:14px;max-width:22ch;}
 .emb-sec .emb-lead{font-size:clamp(15px,2vw,17px);font-weight:300;color:var(--ink-soft);margin-top:14px;max-width:56ch;}
+/* sección con tinte panel (rompe el blanco) */
+.emb-tint{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.emb-tint .emb-step{background:var(--cream);}
+/* banda manifiesto: UNA línea grande sobre foto */
+.emb-manif{position:relative;isolation:isolate;color:#fff;padding:110px 22px;text-align:center;overflow:hidden;}
+.emb-manif .emb-ph{position:absolute;inset:0;z-index:-2;}
+.emb-manif .emb-ph img{width:100%;height:100%;object-fit:cover;}
+.emb-manif::after{content:"";position:absolute;inset:0;z-index:-1;background:rgba(18,26,17,.52);}
+.emb-manif p{font-size:clamp(26px,4.6vw,42px);font-weight:200;letter-spacing:-.02em;line-height:1.15;max-width:24ch;margin:0 auto;}
+.emb-manif p b{font-weight:400;font-style:italic;color:var(--orange);}
+/* sección OSCURA (reglas) */
+.emb-dark{background:var(--forest);color:#fff;}
+.emb-dark .emb-eyebrow{color:var(--salvia);}
+.emb-dark .emb-regla{color:rgba(255,255,255,.82);border-bottom-color:rgba(255,255,255,.16);}
+.emb-dark .emb-regla b{color:#fff;}
+/* sección del FORM sobre foto (la card crema encima) */
+.emb-formband{position:relative;isolation:isolate;color:#fff;padding:84px 22px 96px;overflow:hidden;scroll-margin-top:20px;}
+.emb-formband .emb-ph{position:absolute;inset:0;z-index:-2;}
+.emb-formband .emb-ph img{width:100%;height:100%;object-fit:cover;}
+.emb-formband::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to bottom,rgba(18,26,17,.66),rgba(18,26,17,.78));}
+.emb-formband .emb-eyebrow{color:rgba(255,255,255,.9);}
+.emb-formband h2{color:#fff;}
+.emb-formband .emb-lead{color:rgba(255,255,255,.85);}
 
 /* dos columnas tú/nosotros */
 .emb-duo{display:grid;gap:18px;margin-top:34px;}
@@ -101,7 +128,6 @@ em.emb-ac{font-style:italic;color:var(--orange);font-weight:300;}
 .emb-regla b{color:var(--charcoal);font-weight:600;}
 
 /* ===== FORM ===== */
-.emb-formsec{padding:84px 0 96px;scroll-margin-top:20px;}
 .emb-card{max-width:640px;margin:34px auto 0;background:var(--cream);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:clamp(24px,5vw,40px);}
 .emb-err{border:1px solid rgba(255,93,54,.4);background:rgba(255,93,54,.08);color:#b33517;border-radius:13px;padding:12px 16px;font-size:13.5px;margin-bottom:22px;}
 .emb-group{margin-bottom:30px;}
