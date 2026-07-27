@@ -324,7 +324,10 @@ export type Experience = {
   ficha?: {
     especies?: { comun: string; cientifico?: string; datos: { texto: string; fuente: string }[] }[];
     datos?: { n?: string; texto: string; fuente: string; cara?: string }[]; // cara: biologia|conservacion|comunidades|problemas
-    glosario?: { termino: string; def: string }[];
+    // `foto`: la imagen de ESE término. Regla de Luis (27 jul 2026): la lámina del
+    // diccionario solo se publica si la foto muestra lo que el texto explica; si el
+    // término no trae su foto, la pieza E3 queda pendiente (no se usa una genérica).
+    glosario?: { termino: string; def: string; foto?: string }[];
     temporada?: { epoca: string; fenomeno: string; fuente?: string }[];
   };
   expIntro?: string; // "La experiencia" — intro (diseño nuevo)

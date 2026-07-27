@@ -45,6 +45,8 @@ export type Lamina =
   | { kind: "edu-cuerpo"; claim: string; caption?: string; src?: string; bg: Foto } // caballo de batalla
   | { kind: "edu-ficha"; nom: string; sci?: string; rows: { k: string; v: string }[]; src?: string; bg: Foto }
   | { kind: "edu-postal"; line: string; bg: Foto }
+  // Portada de la serie de postales: mono centrado, aire de cartela de película.
+  | { kind: "edu-postal-cover"; titulo: string; pie: string; bg: Foto }
   | { kind: "edu-dcover"; h: string; t: string; index: string; bg: Foto } // portada del diccionario
   | { kind: "edu-dentry"; term: string; cat?: string; def: string; src?: string; img: Foto } // lámina de espécimen 58/42
   | { kind: "edu-retrato"; cita: string; name: string; role: string; bg: Foto };
@@ -708,10 +710,21 @@ function buildE2(ctx: KitContext, led: EduTaker): PieceState {
 function buildE3(ctx: KitContext, led: EduTaker): PieceState {
   const glo = (ctx.ficha?.glosario ?? []).filter((g) => has(g.termino) && has(g.def)).slice(0, 8);
   if (!glo.length) return { estado: "pendiente", razon: `${FALTA_FICHA} → Glosario.` };
+  // REGLA DURA (Luis, 27 jul 2026): la foto de cada lámina DEBE mostrar el término que
+  // explica. Antes se rellenaba con paisaje genérico — "una foto de bosque detrás de la
+  // palabra «micelio»" enseña mal. Si un término no trae SU foto, la pieza no se publica.
+  const conFoto = glo.filter((g) => has(g.foto));
+  if (conFoto.length < 2) {
+    return {
+      estado: "pendiente",
+      razon: "Cada término del diccionario necesita SU propia foto (la que muestra lo que explica). " +
+        `Hoy ${conFoto.length} de ${glo.length} la tienen — asígnalas en la ficha científica, sección «Glosario». ` +
+        "Nunca ponemos una foto genérica detrás de un término.",
+    };
+  }
   const entries: Lamina[] = [];
-  for (const g of glo) {
-    const img = led.take(NEUTRO);
-    if (!img) break;
+  for (const g of conFoto) {
+    const img: Foto = { url: g.foto! };
     entries.push({ kind: "edu-dentry", term: clean(g.termino), def: fit(g.def, 420), img });
   }
   const portada = led.cover(NEUTRO);
@@ -803,7 +816,12 @@ function buildE8(ctx: KitContext, led: EduTaker): PieceState {
   const POSTAL: BankKey[] = ["paisaje", "gente", "detalle"];
   const fotos = [led.cover(POSTAL), ...tomar(led, POSTAL, 5)].filter((f): f is Foto => !!f?.url);
   if (!fotos.length) fotos.push(coverBg(ctx, photoPool(ctx)));
-  const laminas: Lamina[] = fotos.map((bg, i) => ({ kind: "edu-postal", line: fit(lineas[i % lineas.length], 160), bg }));
+  // 1ª lámina = cartela: «POSTALES DE <viaje>» centrada en mono (Luis, 27 jul 2026).
+  const [fotoCartela, ...restoFotos] = fotos;
+  const laminas: Lamina[] = [
+    { kind: "edu-postal-cover", titulo: `Postales de ${lugarCorto(ctx)}`, pie: eyebrowExp(ctx.exp) || "Nuestros viajes", bg: fotoCartela },
+    ...restoFotos.map((bg, i) => ({ kind: "edu-postal" as const, line: fit(lineas[i % lineas.length], 160), bg })),
+  ];
   return { estado: "lista", laminas };
 }
 

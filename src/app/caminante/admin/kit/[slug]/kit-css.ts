@@ -20,7 +20,7 @@ html,body{background:#e9e7e0;}
 .kit{font-family:"Geist",system-ui,sans-serif;color:var(--charcoal);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;display:flex;flex-direction:column;align-items:center;gap:22px;padding:22px;}
 .kit img{display:block;}
 .slide{position:relative;width:${W}px;height:${H}px;overflow:hidden;background:var(--cream);box-shadow:0 20px 50px -30px rgba(0,0,0,.5);}
-em.ac{font-style:italic;color:var(--orange);font-weight:300;}
+em.ac{font-style:italic;color:var(--olive-d);font-weight:300;}
 
 /* ---- capa foto a sangre + veil ---- */
 .k-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
@@ -48,7 +48,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .k-foot.on-dark img{filter:brightness(0) invert(1);opacity:.9;}
 
 .k-eyebrow{font-size:12px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--olive);display:inline-flex;align-items:center;gap:.6em;}
-.k-eyebrow .sl{color:var(--orange);font-weight:700;}
+.k-eyebrow .sl{color:var(--olive);font-weight:600;}
 .k-eyebrow.on-dark{color:rgba(255,255,255,.9);}
 .k-title{font-weight:200;letter-spacing:-.02em;line-height:1.04;}
 
@@ -75,7 +75,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .l-lista h2{font-size:${story ? 48 : 40}px;margin:14px 0 ${story ? 30 : 22}px;}
 .l-lista .it{font-size:${story ? 20 : 17}px;font-weight:500;line-height:1.4;padding:${story ? 18 : 14}px 0;border-top:1px solid var(--line);display:flex;gap:12px;}
 .l-lista .it:first-child{border-top:0;}
-.l-lista .it .mk{color:var(--orange);font-weight:700;flex:0 0 auto;}
+.l-lista .it .mk{color:var(--olive);font-weight:500;flex:0 0 auto;}
 
 /* ============ INCLUYE / NO ============ */
 .l-incluye{background:var(--cream);}
@@ -83,11 +83,11 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .l-incluye h2{font-size:${story ? 46 : 38}px;margin:14px 0 ${story ? 28 : 20}px;}
 .l-incluye .cols{display:grid;grid-template-columns:${story ? "1fr" : "1fr 1fr"};gap:${story ? "22px 0" : "10px 36px"};}
 .l-incluye .ch{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-bottom:10px;}
-.l-incluye .yes-h{color:var(--orange);}.l-incluye .no-h{color:var(--sand);}
+.l-incluye .yes-h{color:var(--olive);}.l-incluye .no-h{color:var(--sand);}
 .l-incluye .inc{display:flex;gap:9px;font-size:${story ? 15.5 : 14}px;line-height:1.34;padding:7px 0;border-top:1px solid var(--line);}
 .l-incluye .inc:first-of-type{border-top:0;}
 .l-incluye .inc .mk{font-weight:700;flex:0 0 auto;}
-.l-incluye .inc.yes .mk{color:var(--orange);}.l-incluye .inc.no{color:rgba(32,33,28,.6);}.l-incluye .inc.no .mk{color:var(--sand);}
+.l-incluye .inc.yes .mk{color:var(--olive);}.l-incluye .inc.no{color:rgba(32,33,28,.6);}.l-incluye .inc.no .mk{color:var(--sand);}
 
 /* ============ QA (faq glass sobre foto) ============ */
 .l-qa .k-in{justify-content:center;}
@@ -102,7 +102,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .l-dia .k-in{justify-content:flex-end;padding-bottom:${story ? 120 : 96}px;}
 .l-dia .card{background:rgba(16,22,19,.34);border:1px solid rgba(255,255,255,.28);border-radius:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);padding:${story ? "28px 28px 24px" : "24px 24px 20px"};}
 .l-dia .dnum{color:#fff;font-weight:200;font-size:${story ? 44 : 36}px;line-height:1;}
-.l-dia .dlab{color:var(--orange);font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin:${story ? 12 : 10}px 0 ${story ? 14 : 12}px;}
+.l-dia .dlab{color:var(--olive);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;margin:${story ? 12 : 10}px 0 ${story ? 14 : 12}px;}
 .l-dia ul{list-style:none;}
 .l-dia li{color:rgba(251,251,247,.9);font-size:${story ? 17 : 15}px;line-height:1.44;padding:${story ? 8 : 6}px 0;border-top:1px solid rgba(255,255,255,.15);}
 .l-dia li:first-child{border-top:0;}
@@ -112,7 +112,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .l-precio .k-in{justify-content:center;}
 .l-precio h2{color:#fff;font-size:${story ? 40 : 34}px;margin:12px 0 24px;max-width:14ch;}
 .l-precio .card{background:rgba(14,20,20,.36);border:1px solid rgba(255,255,255,.30);border-radius:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);padding:${story ? "30px 30px" : "26px 28px"};}
-.l-precio .tier{color:var(--orange);font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;}
+.l-precio .tier{color:var(--olive);font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;}
 .l-precio .price{color:#fff;font-weight:200;font-size:${story ? 60 : 48}px;letter-spacing:-.02em;line-height:1;margin-top:12px;}
 .l-precio .price .cur{font-size:16px;font-weight:400;color:rgba(255,255,255,.62);margin-left:8px;}
 .l-precio .lead{color:rgba(255,255,255,.84);font-size:${story ? 16 : 14.5}px;line-height:1.5;margin-top:16px;}
@@ -130,7 +130,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 
 /* ============ CITA (testimonio) ============ */
 .l-cita .k-in{justify-content:center;}
-.l-cita .stars{color:var(--orange);font-size:24px;letter-spacing:4px;margin-bottom:22px;}
+.l-cita .stars{color:var(--sand);font-size:24px;letter-spacing:4px;margin-bottom:22px;}
 .l-cita .quote{color:#fff;font-weight:200;letter-spacing:-.01em;line-height:1.22;font-size:${story ? 40 : 32}px;}
 .l-cita .who{color:var(--dune);font-family:"Geist Mono",monospace;font-size:14px;letter-spacing:.14em;text-transform:uppercase;margin-top:${story ? 28 : 22}px;}
 
@@ -140,7 +140,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .l-perfil .ph{position:absolute;inset:0;bottom:${story ? "42%" : "46%"};z-index:1;}
 .l-perfil .ph img{width:100%;height:100%;object-fit:cover;}
 .l-perfil .body{position:relative;z-index:2;margin-top:auto;background:var(--cream);padding:${pad}px;}
-.l-perfil .role{color:var(--orange);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;}
+.l-perfil .role{color:var(--olive);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;}
 .l-perfil .name{font-size:${story ? 44 : 36}px;font-weight:300;margin:10px 0 6px;letter-spacing:-.01em;}
 .l-perfil .cred{color:var(--olive);font-size:14px;font-style:italic;margin-bottom:14px;}
 .l-perfil .bio{color:#36382f;font-size:${story ? 17 : 15}px;line-height:1.5;font-weight:300;}
@@ -264,6 +264,14 @@ function eduCss(story: boolean): string {
 
 /* POSTAL (E8) — cinematográfica: eyebrow diminuto «NUESTROS VIAJES» + una línea
    corta tipo título de película. Texto mínimo, la foto manda. */
+/* cartela de postales - aire de película: título mono centrado, y abajo el pie y el
+   sello en las esquinas, al MISMO tamaño (Luis, 27 jul 2026) */
+.edu-pc-title{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);z-index:3;
+  text-align:center;padding:0 76px;
+  font-family:var(--mono);font-size:26px;letter-spacing:.3em;text-transform:uppercase;line-height:1.6;}
+.edu-pc-foot{position:absolute;right:64px;bottom:${sBtm(56)}px;z-index:4;
+  font-family:var(--mono);font-size:13px;letter-spacing:.22em;text-transform:uppercase;opacity:.86;}
+.edu-pc-seal{position:absolute;left:64px;bottom:${sBtm(56)}px;z-index:4;}
 .edu-postal-body{position:absolute;left:0;right:0;bottom:0;z-index:3;width:82%;padding:0 0 ${sBtm(64)}px 76px;}
 .edu-postal-eyebrow{font-family:"Geist Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase;opacity:.82;margin-bottom:16px;}
 .edu-postal-line{font-weight:200;font-size:38px;line-height:1.14;letter-spacing:-.015em;}
@@ -277,14 +285,14 @@ function eduCss(story: boolean): string {
 .edu-pb-index{font-family:"Geist Mono",ui-monospace,monospace;font-size:13px;letter-spacing:.22em;margin-top:34px;opacity:.85;line-height:1;}
 .edu-pb-arrow{position:absolute;left:0;right:0;bottom:${sBtm(72)}px;text-align:center;font-size:28px;font-weight:300;opacity:.9;z-index:3;}
 /* lámina de espécimen: foto 58% / banda papel 42%, corte nítido (% → adapta a story) */
-.edu-plate-photo{position:absolute;top:0;left:0;right:0;height:58%;overflow:hidden;z-index:0;}
+.edu-plate-photo{position:absolute;top:0;left:0;right:0;height:70%;overflow:hidden;z-index:0;}
 .edu-plate-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-.edu-plate-band{position:absolute;left:0;right:0;bottom:0;height:42%;z-index:2;background:#efe5d1;color:#2b2720;padding:46px 60px 0;display:flex;flex-direction:column;}
+.edu-plate-band{position:absolute;left:0;right:0;bottom:0;height:30%;z-index:2;background:#efe5d1;color:#2b2720;padding:34px 60px 0;display:flex;flex-direction:column;}
 /* 68px + break-word: los términos reales del glosario ("Micorriza",
    "Simbiosis") se salían de la banda a los 78px del mockup. */
-.edu-plate-term{font-weight:300;font-size:68px;line-height:.94;letter-spacing:-.02em;overflow-wrap:break-word;}
-.edu-plate-cat{font-style:italic;font-weight:300;font-size:18px;color:var(--olive);margin-top:12px;}
-.edu-plate-def{font-weight:400;font-size:20px;line-height:1.46;margin-top:18px;max-width:92%;}
+.edu-plate-term{font-weight:300;font-size:54px;line-height:.94;letter-spacing:-.02em;overflow-wrap:break-word;}
+.edu-plate-cat{font-style:italic;font-weight:300;font-size:17px;color:var(--olive);margin-top:8px;}
+.edu-plate-def{font-weight:400;font-size:18px;line-height:1.42;margin-top:12px;max-width:95%;}
 .edu-plate-def b{font-weight:600;}
 .edu-plate-src{font-family:"Geist Mono",ui-monospace,monospace;font-size:12px;letter-spacing:.02em;opacity:.66;margin-top:auto;padding-bottom:${story ? 250 : 30}px;}
 `;

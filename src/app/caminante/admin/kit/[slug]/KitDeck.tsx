@@ -185,6 +185,16 @@ function EduSlide({ l }: { l: EduLamina }) {
           {l.src ? <div className="edu-ficha-src">{l.src}</div> : null}
         </div>
       );
+    case "edu-postal-cover":
+      // Cartela de la serie: mono centrado; abajo, sello y pie en las esquinas al mismo tamaño.
+      return (
+        <div className="slide edu-slide">
+          <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
+          <div className="edu-pc-title">{l.titulo}</div>
+          <div className="edu-pc-seal"><EduMark sm /></div>
+          <div className="edu-pc-foot">{l.pie}</div>
+        </div>
+      );
     case "edu-postal":
       return (
         <div className="slide edu-slide">
