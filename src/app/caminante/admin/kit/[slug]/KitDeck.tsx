@@ -18,6 +18,20 @@ const WORD = `<svg viewBox="0 0 1581.13 121.74" role="img" aria-label="Caminante
 const MARK = `<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">${G1}${G2}${G3}</svg>`;
 
 // **negrita** → <b>
+// ── TIPOGRAFÍA QUE SE ADAPTA (fix 27 jul 2026) ───────────────────────────────
+// Antes los textos largos se TRUNCABAN con "…" (se vio en vivo: un dato de Ensenada
+// cortado a media frase). Un dato científico incompleto no se publica — la regla del
+// sistema es "una pieza incompleta no sale". Ahora, en vez de cortar el texto, ENCOGE
+// la tipografía: el texto siempre cabe completo y la lámina nunca desborda.
+// `base` = tamaño de diseño, `hasta` = cuántos caracteres caben a ese tamaño.
+// A partir de ahí baja proporcional (√) hasta `min`, que sigue siendo legible en 1080px.
+function autoSize(texto: string, base: number, hasta: number, min: number): string {
+  const n = (texto || "").length;
+  if (n <= hasta) return `${base}px`;
+  const px = Math.max(min, Math.round(base * Math.sqrt(hasta / n)));
+  return `${px}px`;
+}
+
 function inline(text: string): ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((p, i) =>
@@ -90,7 +104,7 @@ function EduSlide({ l }: { l: EduLamina }) {
           <EduPhoto f={l.bg} /><div className="edu-sh-portada" />
           <EduSeal />
           <div className="edu-p-body">
-            <div className="edu-hook">{inline(l.hook)}</div>
+            <div className="edu-hook" style={{ fontSize: autoSize(l.hook, 54, 90, 34) }}>{inline(l.hook)}</div>
             <div className="edu-teaser">{l.teaser}</div>
             <div className="edu-arrow">→</div>
           </div>
@@ -102,8 +116,8 @@ function EduSlide({ l }: { l: EduLamina }) {
           <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
           <EduSeal />
           <div className="edu-b-body">
-            <div className="edu-claim">{inline(l.claim)}</div>
-            {l.caption ? <div className="edu-caption">{inline(l.caption)}</div> : null}
+            <div className="edu-claim" style={{ fontSize: autoSize(l.claim, 40, 120, 24) }}>{inline(l.claim)}</div>
+            {l.caption ? <div className="edu-caption" style={{ fontSize: autoSize(l.caption, 19, 220, 15) }}>{inline(l.caption)}</div> : null}
           </div>
           {l.src ? <div className="edu-credit">{l.src}</div> : null}
         </div>
@@ -120,7 +134,7 @@ function EduSlide({ l }: { l: EduLamina }) {
               {l.rows.map((r, i) => (
                 <div key={i}>
                   {i ? <div className="edu-hair" /> : null}
-                  <div className="edu-r"><span className="edu-k">{r.k}</span><span className="edu-v">{inline(r.v)}</span></div>
+                  <div className="edu-r"><span className="edu-k">{r.k}</span><span className="edu-v" style={{ fontSize: autoSize(r.v, 17, 90, 13) }}>{inline(r.v)}</span></div>
                 </div>
               ))}
             </div>
@@ -160,7 +174,7 @@ function EduSlide({ l }: { l: EduLamina }) {
           <div className="edu-plate-band">
             <div className="edu-plate-term">{l.term}</div>
             {l.cat ? <div className="edu-plate-cat">{l.cat}</div> : null}
-            <div className="edu-plate-def">{inline(l.def)}</div>
+            <div className="edu-plate-def" style={{ fontSize: autoSize(l.def, 22, 200, 16) }}>{inline(l.def)}</div>
             <div className="edu-plate-src">{l.src || ""}</div>
           </div>
         </div>
@@ -171,7 +185,7 @@ function EduSlide({ l }: { l: EduLamina }) {
           <EduPhoto f={l.bg} /><div className="edu-sh-bl" />
           <EduSeal />
           <div className="edu-b-body">
-            <div className="edu-claim edu-cita">{l.cita}</div>
+            <div className="edu-claim edu-cita" style={{ fontSize: autoSize(l.cita, 30, 200, 19) }}>{l.cita}</div>
             <div className="edu-retrato-id">
               <div className="edu-retrato-name">{l.name}</div>
               {l.role ? <div className="edu-retrato-role">{l.role}</div> : null}

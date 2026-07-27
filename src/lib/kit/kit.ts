@@ -87,7 +87,12 @@ const clean = (s: string) => s.replace(/\*\*/g, "").replace(/\*/g, "").trim();
 
 // Ajusta un texto a un máximo de caracteres SIN cortar palabras: si excede,
 // retrocede al último espacio y agrega "…" — nunca parte una palabra a la mitad.
-// El límite es generoso (la lámina tiene aire de sobra); casi nunca dispara.
+//
+// ⚠️ 27 jul 2026: estos límites YA NO son "lo que cabe en la lámina" — son un tope de
+// SEGURIDAD (por si alguien pega un párrafo entero en la ficha). Lo que cabe lo resuelve
+// `autoSize()` en KitDeck, que ENCOGE la tipografía en vez de cortar el texto. Antes se
+// publicó un dato de Ensenada cortado a media frase; un dato incompleto no se publica.
+// Si vuelves a bajar estos números, vas a truncar contenido real otra vez.
 function fit(s: string, max: number): string {
   const t = clean(s);
   if (t.length <= max) return t;
@@ -604,7 +609,7 @@ const PENDIENTE_PAISAJE =
 
 // Portada editorial: gancho + teaser + flecha (el fondo lo asigna el ledger).
 function eduPortada(hook: string, teaser: string, bg: Foto): Lamina {
-  return { kind: "edu-portada", hook: fit(hook, 90), teaser: fit(teaser, 90), bg };
+  return { kind: "edu-portada", hook: fit(hook, 200), teaser: fit(teaser, 140), bg };
 }
 
 // Un dato → lámina de cuerpo: la primera oración es el CLAIM (grande, itálica),
@@ -616,8 +621,8 @@ function datoACuerpo(d: { n?: string; texto: string; fuente: string }, bg: Foto)
   const resto = corte > 0 ? t.slice(corte + 2).trim() : "";
   return {
     kind: "edu-cuerpo",
-    claim: fit(has(d.n) ? `${d.n} · ${primera}` : primera, 120),
-    caption: has(resto) ? fit(resto, 220) : undefined,
+    claim: fit(has(d.n) ? `${d.n} · ${primera}` : primera, 300),
+    caption: has(resto) ? fit(resto, 420) : undefined,
     src: `Fuente: ${clean(d.fuente)}`,
     bg,
   };
@@ -641,8 +646,8 @@ function buildE1(ctx: KitContext, led: EduTaker): PieceState {
         const t = clean(d.texto);
         const sep = t.indexOf(":");
         return sep > 0 && sep <= 22
-          ? { k: t.slice(0, sep).trim(), v: fit(t.slice(sep + 1), 90) }
-          : { k: `Dato ${String(j + 1).padStart(2, "0")}`, v: fit(t, 90) };
+          ? { k: t.slice(0, sep).trim(), v: fit(t.slice(sep + 1), 200) }
+          : { k: `Dato ${String(j + 1).padStart(2, "0")}`, v: fit(t, 200) };
       }),
       src: datos[0] ? `Fuente: ${clean(datos[0].fuente)}` : undefined,
       bg,
@@ -680,7 +685,7 @@ function buildE3(ctx: KitContext, led: EduTaker): PieceState {
   for (const g of glo) {
     const img = led.take(NEUTRO);
     if (!img) break;
-    entries.push({ kind: "edu-dentry", term: clean(g.termino), def: fit(g.def, 200), img });
+    entries.push({ kind: "edu-dentry", term: clean(g.termino), def: fit(g.def, 420), img });
   }
   const portada = led.cover(NEUTRO);
   if (!portada || entries.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
@@ -698,7 +703,7 @@ function buildE4(ctx: KitContext, led: EduTaker): PieceState {
   for (const t of tem) {
     const bg = led.take(NEUTRO);
     if (!bg) break;
-    cuerpos.push({ kind: "edu-cuerpo", claim: fit(clean(t.epoca), 60), caption: fit(clean(t.fenomeno), 220), src: has(t.fuente) ? `Fuente: ${clean(t.fuente!)}` : undefined, bg });
+    cuerpos.push({ kind: "edu-cuerpo", claim: fit(clean(t.epoca), 140), caption: fit(clean(t.fenomeno), 420), src: has(t.fuente) ? `Fuente: ${clean(t.fuente!)}` : undefined, bg });
   }
   const portada = led.cover(NEUTRO);
   if (!portada || cuerpos.length < 3) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
@@ -721,7 +726,7 @@ function buildE5(ctx: KitContext, led: EduTaker): PieceState {
   for (const p of perfiles) {
     const bg = led.takePref(p.photo?.url ? p.photo : undefined, ["gente", "comunidad"]);
     if (!bg) break;
-    retratos.push({ kind: "edu-retrato", cita: fit(clean(p.body || p.cred || ""), 200), name: p.name, role: clean(p.role || (p.body ? p.cred || "" : "")), bg });
+    retratos.push({ kind: "edu-retrato", cita: fit(clean(p.body || p.cred || ""), 420), name: p.name, role: clean(p.role || (p.body ? p.cred || "" : "")), bg });
   }
   const portada = led.cover(["gente", "comunidad"]) ?? led.cover(NEUTRO);
   if (!portada || retratos.length < 2) return { estado: "pendiente", razon: "Faltan fotos de GENTE/COMUNIDAD únicas para los retratos — sube más al Banco de fotos (slots «Gente»/«Comunidad»)." };
@@ -771,7 +776,7 @@ function buildE8(ctx: KitContext, led: EduTaker): PieceState {
   const POSTAL: BankKey[] = ["paisaje", "gente", "detalle"];
   const fotos = [led.cover(POSTAL), ...tomar(led, POSTAL, 5)].filter((f): f is Foto => !!f?.url);
   if (!fotos.length) fotos.push(coverBg(ctx, photoPool(ctx)));
-  const laminas: Lamina[] = fotos.map((bg, i) => ({ kind: "edu-postal", line: fit(lineas[i % lineas.length], 90), bg }));
+  const laminas: Lamina[] = fotos.map((bg, i) => ({ kind: "edu-postal", line: fit(lineas[i % lineas.length], 160), bg }));
   return { estado: "lista", laminas };
 }
 
