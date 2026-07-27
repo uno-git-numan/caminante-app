@@ -41,13 +41,23 @@ export type Lamina =
   // Segundo sistema visual: cuenta una historia en secuencia (portada → cuerpos
   // → cierre) en vez de vender con un cartel. Marca mínima, foto e idea. Los
   // textos con **negrita** se renderizan en <b> (ver inline() en KitDeck).
-  | { kind: "edu-portada"; hook: string; teaser: string; bg: Foto }
+  | { kind: "edu-portada"; hook: string; teaser: string; bg: Foto; comp?: EduComp; indice?: string }
   | { kind: "edu-cuerpo"; claim: string; caption?: string; src?: string; bg: Foto } // caballo de batalla
   | { kind: "edu-ficha"; nom: string; sci?: string; rows: { k: string; v: string }[]; src?: string; bg: Foto }
   | { kind: "edu-postal"; line: string; bg: Foto }
   | { kind: "edu-dcover"; h: string; t: string; index: string; bg: Foto } // portada del diccionario
   | { kind: "edu-dentry"; term: string; cat?: string; def: string; src?: string; img: Foto } // lámina de espécimen 58/42
   | { kind: "edu-retrato"; cita: string; name: string; role: string; bg: Foto };
+
+// Composición de la portada editorial. Cada pieza E usa la SUYA para que dos posts
+// nunca se vean iguales en el feed (feedback de Luis, 27 jul 2026): antes todas las
+// portadas eran «título centrado abajo + itálica + flecha».
+//   centro  → título centrado (la clásica; se reserva para UNA pieza)
+//   cifra   → el NÚMERO gigante manda, el resto pequeño al lado (E2 «El dato»)
+//   agenda  → título a la izquierda arriba + índice de épocas abajo (E4 «La temporada»)
+//   bloque  → título alineado a la izquierda en columna angosta, con filete (E6 «La conexión»)
+//   placa   → tipo cédula de museo: filete + título abajo-izquierda, sin flecha (E1 «Especie»)
+export type EduComp = "centro" | "cifra" | "agenda" | "bloque" | "placa";
 
 export type Momento = "M1 · Lanzamiento" | "M2 · Venta" | "M3 · Prueba" | "E · Informativo";
 export type Cara = "Biología" | "Conservación" | "Comunidades" | "Problemas" | "—";
@@ -222,6 +232,14 @@ function poolFor(
 // pero eso solo pasa con menos fotos que piezas.
 const ORDEN_PORTADAS = ["P1", "P4", "P2", "P3", "P5", "P6", "P7", "P8", "P9", "P10"];
 
+// De qué slot del banco viene una foto (para diversificar las portadas por TIPO).
+function slotDe(ctx: KitContext, url: string): BankKey | "base" {
+  const pb = ctx.photoBank ?? {};
+  const k = fileKey(url);
+  for (const s of BANK_KEYS) if ((pb[s] ?? []).some((u) => fileKey(u) === k)) return s;
+  return "base";
+}
+
 const _portadas = new WeakMap<object, Map<string, Foto>>();
 function repartoPortadas(ctx: KitContext): Map<string, Foto> {
   const hit = _portadas.get(ctx as object);
@@ -237,12 +255,21 @@ function repartoPortadas(ctx: KitContext): Map<string, Foto> {
     P4: itin?.bg?.url ? { url: itin.bg.url } : undefined,
   };
   // 2) reparto: la primera foto LIBRE del pool de cada pieza
+  // Además de no repetir ARCHIVO, las portadas rotan de TIPO de foto: si la anterior
+  // fue «paisaje», la siguiente prefiere gente/detalle/flora. Sin esto, un banco con
+  // muchas tomas del mismo estilo (p.ej. 8 vistas de dron sobre agua) daba portadas
+  // que se ven casi idénticas aunque sean archivos distintos (feedback de Luis 27 jul).
+  const recientes: (BankKey | "base")[] = [];
   for (const id of ORDEN_PORTADAS) {
     const fija = fijas[id];
-    if (fija?.url) { m.set(id, reservar(fija)!); continue; }
-    const pool = poolFor(ctx, id);
-    const libre = pool.find((f) => !usadas.has(fileKey(f.url)));
-    const elegida = libre ?? pool[0] ?? heroBg(ctx);
+    if (fija?.url) { recientes.unshift(slotDe(ctx, fija.url)); m.set(id, reservar(fija)!); continue; }
+    const pool = poolFor(ctx, id).filter((f) => !usadas.has(fileKey(f.url)));
+    const evitar = recientes.slice(0, 2);
+    const elegida =
+      pool.find((f) => !evitar.includes(slotDe(ctx, f.url))) ??  // 1º: tipo distinto a las 2 previas
+      pool[0] ??                                                  // 2º: la que haya
+      heroBg(ctx);
+    recientes.unshift(slotDe(ctx, elegida.url));
     m.set(id, reservar(elegida)!);
   }
   _portadas.set(ctx as object, m);
@@ -608,8 +635,8 @@ const PENDIENTE_PAISAJE =
   "Esta pieza necesita más fotos DISTINTAS de paisaje: una foto puede repetirse entre posts, pero nunca dos veces dentro del mismo post — sube más al Banco de fotos (slots «Paisaje»/«Cielo»). Nunca ponemos una foto que contradiga el texto.";
 
 // Portada editorial: gancho + teaser + flecha (el fondo lo asigna el ledger).
-function eduPortada(hook: string, teaser: string, bg: Foto): Lamina {
-  return { kind: "edu-portada", hook: fit(hook, 200), teaser: fit(teaser, 140), bg };
+function eduPortada(hook: string, teaser: string, bg: Foto, comp: EduComp = "centro", indice?: string): Lamina {
+  return { kind: "edu-portada", hook: fit(hook, 200), teaser: fit(teaser, 140), bg, comp, indice };
 }
 
 // Un dato → lámina de cuerpo: la primera oración es el CLAIM (grande, itálica),
@@ -657,7 +684,7 @@ function buildE1(ctx: KitContext, led: EduTaker): PieceState {
   if (!portada || fichas.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
   return {
     estado: "lista",
-    laminas: [eduPortada(`Quién vive en **${lugarCorto(ctx)}**`, `${fichas.length} ${fichas.length === 1 ? "especie" : "especies"} de este lugar.`, portada), ...fichas],
+    laminas: [eduPortada(`Quién vive en **${lugarCorto(ctx)}**`, `${fichas.length} ${fichas.length === 1 ? "especie" : "especies"} de este lugar.`, portada, "placa", esp.slice(0, fichas.length).map((e) => clean(e.comun)).join(" · ")), ...fichas],
   };
 }
 
@@ -673,7 +700,7 @@ function buildE2(ctx: KitContext, led: EduTaker): PieceState {
   }
   const portada = led.cover(NEUTRO);
   if (!portada || cuerpos.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
-  return { estado: "lista", laminas: [eduPortada(`${cuerpos.length} datos del **${lugarCorto(ctx)}**`, "Cada uno con su fuente.", portada), ...cuerpos] };
+  return { estado: "lista", laminas: [eduPortada(`${cuerpos.length} datos del **${lugarCorto(ctx)}**`, "Cada uno con su fuente.", portada, "cifra"), ...cuerpos] };
 }
 
 // E3 · Diccionario → portada macro + láminas de espécimen. Fondo NEUTRO (el
@@ -707,7 +734,7 @@ function buildE4(ctx: KitContext, led: EduTaker): PieceState {
   }
   const portada = led.cover(NEUTRO);
   if (!portada || cuerpos.length < 3) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
-  return { estado: "lista", laminas: [eduPortada(`El calendario de **${lugarCorto(ctx)}**`, "La naturaleza manda las fechas.", portada), ...cuerpos] };
+  return { estado: "lista", laminas: [eduPortada(`El calendario de **${lugarCorto(ctx)}**`, "La naturaleza manda las fechas.", portada, "agenda", tem.slice(0, cuerpos.length).map((t) => clean(t.epoca)).join(" · ")), ...cuerpos] };
 }
 
 // Quién puede protagonizar un RETRATO de E5: solo perfiles con saber real
@@ -730,7 +757,7 @@ function buildE5(ctx: KitContext, led: EduTaker): PieceState {
   }
   const portada = led.cover(["gente", "comunidad"]) ?? led.cover(NEUTRO);
   if (!portada || retratos.length < 2) return { estado: "pendiente", razon: "Faltan fotos de GENTE/COMUNIDAD únicas para los retratos — sube más al Banco de fotos (slots «Gente»/«Comunidad»)." };
-  return { estado: "lista", laminas: [eduPortada("Quiénes **leen** este lugar", "El mapa no trae este conocimiento.", portada), ...retratos] };
+  return { estado: "lista", laminas: [eduPortada("Quiénes **leen** este lugar", "El mapa no trae este conocimiento.", portada, "centro"), ...retratos] };
 }
 
 // E6 · La conexión → datos de conservación (fondo NEUTRO). Necesita ≥2 datos
@@ -746,7 +773,7 @@ function buildE6(ctx: KitContext, led: EduTaker): PieceState {
   }
   const portada = led.cover(NEUTRO);
   if (!portada || cuerpos.length < 2) return { estado: "pendiente", razon: PENDIENTE_PAISAJE };
-  return { estado: "lista", laminas: [eduPortada("Caminar también **conserva**", `Lo que sostiene ${lugarCorto(ctx)}.`, portada), ...cuerpos] };
+  return { estado: "lista", laminas: [eduPortada("Caminar también **conserva**", `Lo que sostiene ${lugarCorto(ctx)}.`, portada, "bloque"), ...cuerpos] };
 }
 
 // E8 · Postales — 4–6 láminas, cada una FOTO DISTINTA (paisaje/gente/detalle) +

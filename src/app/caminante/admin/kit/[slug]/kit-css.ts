@@ -203,6 +203,39 @@ function eduCss(story: boolean): string {
 .edu-teaser{font-style:italic;font-weight:300;font-size:20px;opacity:.92;}
 .edu-arrow{font-weight:300;font-size:28px;line-height:1;opacity:.9;}
 
+
+/* ── COMPOSICIONES DE PORTADA (27 jul 2026) ──────────────────────────────────
+   Feedback de Luis: todas las portadas E se veían iguales (título centrado abajo
+   + itálica + flecha). Cada pieza usa ahora la suya, para que dos posts nunca se
+   confundan en el feed. El .edu-p-body de arriba es la variante 'centro'. */
+
+/* cifra - E2 «El dato»: el número manda, alineado a la izquierda */
+.edu-p-cifra{position:absolute;left:0;right:0;bottom:${sBtm(96)}px;z-index:3;padding:0 76px;text-align:left;}
+.edu-p-cifra .edu-n{font-weight:200;font-size:190px;line-height:.82;letter-spacing:-.05em;display:block;}
+.edu-p-cifra .edu-resto{font-weight:300;font-size:38px;line-height:1.1;letter-spacing:-.015em;margin-top:6px;max-width:78%;}
+.edu-p-cifra .edu-teaser{margin-top:16px;display:block;}
+
+/* agenda - E4 «La temporada»: título arriba-izquierda, índice de épocas abajo */
+.edu-p-agenda{position:absolute;left:0;right:0;top:${sBtm(150)}px;z-index:3;padding:0 76px;text-align:left;}
+.edu-p-agenda .edu-hook{font-size:46px;max-width:80%;}
+.edu-p-agenda .edu-teaser{margin-top:14px;display:block;}
+.edu-p-idx{position:absolute;left:76px;right:76px;bottom:${sBtm(90)}px;z-index:3;
+  font-family:var(--mono);font-size:15px;letter-spacing:.1em;text-transform:uppercase;opacity:.82;line-height:1.7;}
+.edu-p-idx::before{content:"";display:block;height:1px;background:rgba(251,251,247,.34);margin-bottom:16px;}
+
+/* bloque - E6 «La conexión»: columna angosta a la izquierda con filete vertical */
+.edu-p-bloque{position:absolute;left:76px;bottom:${sBtm(96)}px;z-index:3;max-width:56%;
+  text-align:left;padding-left:26px;border-left:1px solid rgba(251,251,247,.42);}
+.edu-p-bloque .edu-hook{font-size:50px;}
+.edu-p-bloque .edu-teaser{margin-top:14px;display:block;}
+
+/* placa - E1 «Ficha de especie»: cédula de museo, sin flecha */
+.edu-p-placa{position:absolute;left:76px;right:76px;bottom:${sBtm(96)}px;z-index:3;text-align:left;}
+.edu-p-placa::before{content:"";display:block;width:64px;height:2px;background:var(--orange);margin-bottom:22px;}
+.edu-p-placa .edu-hook{font-size:44px;max-width:86%;}
+.edu-p-placa .edu-teaser{margin-top:12px;display:block;}
+.edu-p-placa .edu-p-idx{position:static;margin-top:20px;font-size:13px;}
+.edu-p-placa .edu-p-idx::before{margin-bottom:12px;}
 /* CUERPO — anclado tercio inferior izquierdo. P2 · PESO EDITORIAL: el claim en
    LIGERO y grande (no bold pesado); la itálica/negrita SOLO para un acento
    corto (**...**), jamás el párrafo entero. */

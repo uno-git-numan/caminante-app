@@ -103,11 +103,54 @@ function EduSlide({ l }: { l: EduLamina }) {
         <div className="slide edu-slide">
           <EduPhoto f={l.bg} /><div className="edu-sh-portada" />
           <EduSeal />
-          <div className="edu-p-body">
-            <div className="edu-hook" style={{ fontSize: autoSize(l.hook, 54, 90, 34) }}>{inline(l.hook)}</div>
-            <div className="edu-teaser">{l.teaser}</div>
-            <div className="edu-arrow">→</div>
-          </div>
+          {(() => {
+            // Una composición por tipo de pieza: en el feed, dos portadas nunca se ven iguales.
+            const comp = l.comp || "centro";
+            const teaser = <div className="edu-teaser">{l.teaser}</div>;
+            const flecha = <div className="edu-arrow">→</div>;
+            const idx = l.indice ? <div className="edu-p-idx">{l.indice}</div> : null;
+
+            if (comp === "cifra") {
+              // el número que abre el hook se vuelve el elemento gráfico
+              const m = (l.hook || "").match(/^(\d[\d.,]*)\s+([\s\S]*)$/);
+              if (m) return (
+                <div className="edu-p-cifra">
+                  <span className="edu-n">{m[1]}</span>
+                  <div className="edu-resto">{inline(m[2])}</div>
+                  {teaser}
+                </div>
+              );
+            }
+            if (comp === "agenda") return (
+              <>
+                <div className="edu-p-agenda">
+                  <div className="edu-hook" style={{ fontSize: autoSize(l.hook, 46, 90, 30) }}>{inline(l.hook)}</div>
+                  {teaser}
+                </div>
+                {idx}
+              </>
+            );
+            if (comp === "bloque") return (
+              <div className="edu-p-bloque">
+                <div className="edu-hook" style={{ fontSize: autoSize(l.hook, 50, 90, 32) }}>{inline(l.hook)}</div>
+                {teaser}
+              </div>
+            );
+            if (comp === "placa") return (
+              <div className="edu-p-placa">
+                <div className="edu-hook" style={{ fontSize: autoSize(l.hook, 44, 90, 30) }}>{inline(l.hook)}</div>
+                {teaser}
+                {idx}
+              </div>
+            );
+            return (
+              <div className="edu-p-body">
+                <div className="edu-hook" style={{ fontSize: autoSize(l.hook, 54, 90, 34) }}>{inline(l.hook)}</div>
+                {teaser}
+                {flecha}
+              </div>
+            );
+          })()}
         </div>
       );
     case "edu-cuerpo":
