@@ -554,9 +554,11 @@ function makeLedger(ctx: KitContext): EduLedger {
           for (const f of bySlot[c] ?? []) {
             const k = fileKey(f.url);
             if (enPieza.has(k)) continue;
-            // El uso pesa el doble que "ya fue portada": primero repartir parejo,
-            // y entre las igual de frescas, preferir una que no haya sido portada.
-            const peso = veces(k) * 2 + (esPortada && portadas.has(k) ? 1 : 0);
+            // Repetir una PORTADA es lo peor que puede pasar (es lo que se ve en el feed sin
+            // abrir el post), así que domina cualquier otra consideración: una foto que ya fue
+            // portada solo se vuelve a elegir como portada si TODAS lo fueron. Después de eso,
+            // se reparte parejo por número de usos.
+            const peso = (esPortada && portadas.has(k) ? 1000 : 0) + veces(k) * 2;
             if (peso < mejorPeso) {
               mejor = f;
               mejorPeso = peso;
@@ -764,7 +766,10 @@ function buildE8(ctx: KitContext, led: EduTaker): PieceState {
     }
   }
   if (!lineas.length) lineas.push(expName(ctx.exp));
-  const fotos = tomar(led, ["paisaje", "gente", "detalle"], 6);
+  // La 1ª lámina de la postal es la portada del post → pasa por cover() para no repetir
+  // ninguna otra portada del kit; el resto son cuerpo y usan el reparto normal.
+  const POSTAL: BankKey[] = ["paisaje", "gente", "detalle"];
+  const fotos = [led.cover(POSTAL), ...tomar(led, POSTAL, 5)].filter((f): f is Foto => !!f?.url);
   if (!fotos.length) fotos.push(coverBg(ctx, photoPool(ctx)));
   const laminas: Lamina[] = fotos.map((bg, i) => ({ kind: "edu-postal", line: fit(lineas[i % lineas.length], 90), bg }));
   return { estado: "lista", laminas };
