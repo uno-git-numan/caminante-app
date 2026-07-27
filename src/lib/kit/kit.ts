@@ -198,10 +198,59 @@ function poolFor(
   }
   return out;
 }
-// Portada de una pieza: primera foto de su banco barajado (varía entre piezas),
-// con el hero como respaldo si el banco viene vacío.
-function coverBg(ctx: KitContext, pool: Foto[]): Foto {
+// ── REGISTRO GLOBAL DE PORTADAS (fix 26 jul 2026) ────────────────────────────
+// BUG que corrige: cada pieza barajaba su pool por separado y tomaba `pool[0]`,
+// así que nada impedía que dos piezas sacaran la MISMA portada — en el feed real
+// salieron 3 posts distintos con la misma foto de portada. Con bancos chicos la
+// colisión es casi segura, no mala suerte.
+//
+// Ahora las portadas de TODAS las piezas se reparten UNA sola vez por kit, en
+// orden fijo y determinista: cada pieza recibe la primera foto de SU pool que
+// ninguna otra haya tomado ya. Las portadas FIJAS (el hero de P1, el fondo del
+// itinerario de P4) se reservan primero para que nadie más las pise.
+// Si el banco se agota, se permite repetir (mejor una repetida que una vacía)
+// pero eso solo pasa con menos fotos que piezas.
+const ORDEN_PORTADAS = ["P1", "P4", "P2", "P3", "P5", "P6", "P7", "P8", "P9", "P10"];
+
+const _portadas = new WeakMap<object, Map<string, Foto>>();
+function repartoPortadas(ctx: KitContext): Map<string, Foto> {
+  const hit = _portadas.get(ctx as object);
+  if (hit) return hit;
+  const m = new Map<string, Foto>();
+  const usadas = new Set<string>();
+  const reservar = (f?: Foto) => { if (f?.url) usadas.add(fileKey(f.url)); return f; };
+
+  // 1) portadas fijas por diseño (no se eligen del pool)
+  const itin = block(ctx.blocks, "itinerary") as V2Itinerary | undefined;
+  const fijas: Record<string, Foto | undefined> = {
+    P1: heroBg(ctx),
+    P4: itin?.bg?.url ? { url: itin.bg.url } : undefined,
+  };
+  // 2) reparto: la primera foto LIBRE del pool de cada pieza
+  for (const id of ORDEN_PORTADAS) {
+    const fija = fijas[id];
+    if (fija?.url) { m.set(id, reservar(fija)!); continue; }
+    const pool = poolFor(ctx, id);
+    const libre = pool.find((f) => !usadas.has(fileKey(f.url)));
+    const elegida = libre ?? pool[0] ?? heroBg(ctx);
+    m.set(id, reservar(elegida)!);
+  }
+  _portadas.set(ctx as object, m);
+  return m;
+}
+// Portada de una pieza, ÚNICA en todo el kit. `pool` queda como respaldo por si
+// la pieza no está en el reparto.
+function coverBg(ctx: KitContext, pool: Foto[], pieceId?: string): Foto {
+  if (pieceId) {
+    const f = repartoPortadas(ctx).get(pieceId);
+    if (f?.url) return f;
+  }
   return pool.length ? pool[0] : heroBg(ctx);
+}
+// Las portadas ya tomadas por las piezas promocionales — la serie E las evita
+// para que tampoco se repitan entre los dos sistemas.
+function portadasUsadas(ctx: KitContext): Set<string> {
+  return new Set([...repartoPortadas(ctx).values()].filter((f) => f?.url).map((f) => fileKey(f.url)));
 }
 
 function heroBg(ctx: KitContext): Foto {
@@ -256,7 +305,7 @@ export const PIEZAS: PieceDef[] = [
       const datos = mundoDatos(ctx);
       if (datos.length < 2) return { estado: "pendiente", razon: "Faltan datos del lugar (llena «La experiencia» / «Bloque destacado» con cifras del ecosistema)." };
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "El mundo", title: expName(ctx.exp), accent: "por dentro.", bg: coverBg(ctx, pool) },
+        { kind: "cover", eyebrow: "El mundo", title: expName(ctx.exp), accent: "por dentro.", bg: coverBg(ctx, pool, "P2") },
       ];
       datos.slice(0, 5).forEach((d, i) => {
         if (d.n) laminas.push({ kind: "fact", n: d.n, label: d.label, source: d.source, bg: pick(pool, i + 1) });
@@ -279,7 +328,7 @@ export const PIEZAS: PieceDef[] = [
       const perfiles = guias(ctx);
       if (perfiles.length === 0) return { estado: "pendiente", razon: "Faltan guías/aliados (llena la sección «Guías y aliados» de la experiencia)." };
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "Quiénes te llevan", title: "La gente", accent: "de la sierra.", bg: coverBg(ctx, pool) },
+        { kind: "cover", eyebrow: "Quiénes te llevan", title: "La gente", accent: "de la sierra.", bg: coverBg(ctx, pool, "P3") },
       ];
       perfiles.slice(0, 5).forEach((p, i) => laminas.push({ ...p, photo: p.photo ?? pick(pool, i + 1) }));
       laminas.push({ kind: "cierre", eyebrow: "Pregúntanos", title: "Estamos", accent: "para eso.", cta: "DM abierto", bg: pick(pool, 6) });
@@ -301,7 +350,7 @@ export const PIEZAS: PieceDef[] = [
       const days = itin?.days ?? [];
       if (days.length === 0) return { estado: "pendiente", razon: "Falta el itinerario de la experiencia." };
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: clean(itin?.eyebrow || "Itinerario"), title: clean(itin?.title || "Así"), accent: clean(itin?.titleAccent || "se vive."), bg: itin?.bg?.url ? { url: itin.bg.url } : coverBg(ctx, pool) },
+        { kind: "cover", eyebrow: clean(itin?.eyebrow || "Itinerario"), title: clean(itin?.title || "Así"), accent: clean(itin?.titleAccent || "se vive."), bg: coverBg(ctx, pool, "P4") },
       ];
       days.forEach((d, i) =>
         laminas.push({ kind: "dia", num: has(d.num) ? d.num : undefined, lab: clean(d.lab), ttl: has(d.ttl) ? clean(d.ttl!) : undefined, items: d.items.map((x) => x), bg: pick(pool, i + 1) }),
@@ -327,7 +376,7 @@ export const PIEZAS: PieceDef[] = [
       const qa = (faq?.qa ?? []).filter((x) => has(x.q)).slice(0, 3);
       if (yes.length === 0 && qa.length === 0) return { estado: "pendiente", razon: "Falta «Incluye/No incluye» o FAQ en la experiencia." };
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "Sin letra chica", title: "Todo", accent: "claro.", bg: coverBg(ctx, pool) },
+        { kind: "cover", eyebrow: "Sin letra chica", title: "Todo", accent: "claro.", bg: coverBg(ctx, pool, "P5") },
       ];
       if (yes.length || no.length)
         laminas.push({ kind: "incluye", eyebrow: clean(ch?.eyebrow || "Qué incluye"), title: clean(ch?.title || "Lo que"), accent: clean(ch?.titleAccent || "va contigo."), yesT: clean(ch?.yesTitle || "Incluye"), yes, noT: clean(ch?.noTitle || "No incluye"), no, noMark: ch?.noMark });
@@ -351,7 +400,7 @@ export const PIEZAS: PieceDef[] = [
       if (!has(price)) return { estado: "pendiente", razon: "Falta el precio (sección «Inversión» de la experiencia)." };
       const tiers = (ctx.exp.priceTiers ?? []).filter((t) => has(t.amount)).map((t) => ({ l: t.label, v: t.amount.startsWith("$") ? t.amount : `$${t.amount}` }));
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "La inversión", title: "Lo que", accent: "sostiene.", bg: coverBg(ctx, pool) },
+        { kind: "cover", eyebrow: "La inversión", title: "Lo que", accent: "sostiene.", bg: coverBg(ctx, pool, "P6") },
         { kind: "precio", eyebrow: clean(tf?.eyebrow || "Inversión"), title: clean(tf?.title || "Una tarifa"), accent: clean(tf?.titleAccent || "honesta."), tier: has(tf?.tier) ? clean(tf!.tier) : undefined, price: price.startsWith("$") ? price : `$${price}`, cur: clean(tf?.priceCur || ctx.exp.price?.currency || "MXN · por persona"), lead: has(tf?.lead) ? clean(tf!.lead!) : clean(ctx.exp.price?.desc || ""), tiers: tiers.length ? tiers : undefined, bg: pick(pool, 1) },
         { kind: "cierre", eyebrow: "Aparta tu lugar", title: "Reserva", accent: "en el link.", cta: "Reservar", bg: pick(pool, 2) },
       ];
@@ -387,7 +436,7 @@ export const PIEZAS: PieceDef[] = [
       if (ctx.quotes.length === 0) return { estado: "pendiente", razon: "Aún no hay testimonios con consentimiento en la encuesta post-viaje." };
       const pool = poolFor(ctx, "P8");
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "Testimonios", title: "Lo que", accent: "dijeron.", bg: coverBg(ctx, pool) },
+        { kind: "cover", eyebrow: "Testimonios", title: "Lo que", accent: "dijeron.", bg: coverBg(ctx, pool, "P8") },
       ];
       ctx.quotes.slice(0, 6).forEach((q, i) => laminas.push({ kind: "cita", quote: clean(q.text), author: q.author, stars: q.stars ?? undefined, bg: pick(pool, i + 1) }));
       laminas.push({ kind: "cierre", eyebrow: "Próximas fechas", title: "Tu turno", accent: "sigue.", cta: "Reserva", bg: pick(pool, 7) });
@@ -483,7 +532,9 @@ function makeLedger(ctx: KitContext): EduLedger {
   const bySlot: Partial<Record<BankKey, Foto[]>> = {};
   for (const k of BANK_KEYS) bySlot[k] = shuffle(bankPhotos(ctx, [k]), `${slug}·${k}`);
   const usos = new Map<string, number>(); // veces que se usó cada foto en TODO el kit
-  const portadas = new Set<string>(); // fotos que ya fueron portada de alguna pieza
+  // Arranca con las portadas que YA tomaron las piezas promocionales: así una portada
+  // de la serie E nunca repite la de un post promocional (fix 26 jul 2026).
+  const portadas = new Set<string>(portadasUsadas(ctx));
   const veces = (k: string) => usos.get(k) ?? 0;
 
   return {
