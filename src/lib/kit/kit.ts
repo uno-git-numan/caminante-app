@@ -107,8 +107,13 @@ function blocksOf<T extends PageBlock["type"]>(blocks: PageBlock[], type: T): Ex
 // el subidor (`<Date.now()>-<nombre-real>.jpg`) ni el query. Así, la MISMA foto
 // subida varias veces (distinto timestamp) → misma clave → se dedup como una
 // sola. Sin esto salía repetida en un carrusel (galería con la misma foto 2-3x).
+const SLOTS_PREFIJO = /^(flora|paisaje|comunidad|comida|gente|problemas|cielo|detalle)-/;
 const fileKey = (url: string): string =>
-  (url.split("?")[0].split("/").pop() || url).replace(/^\d{10,}-/, "");
+  (url.split("?")[0].split("/").pop() || url)
+    .replace(/^\d{10,}-/, "")
+    // `scripts/subir-banco.mjs` guarda como `<slot>-<nombre>`: sin quitar ese prefijo, la MISMA
+    // foto contaba como dos (una en la galería, otra en el banco) y salía repetida en el kit.
+    .replace(SLOTS_PREFIJO, "");
 
 // Banco de fotos: galería de "Lo básico" primero; luego los fondos de los bloques
 // (hero, statement, itinerario, faq, mosaicos) como respaldo. Dedup POR ARCHIVO.
@@ -419,7 +424,9 @@ export const PIEZAS: PieceDef[] = [
       const abiertas = ctx.slots.filter((s) => typeof s.available === "number" && s.available! > 0);
       if (abiertas.length === 0) return { estado: "pendiente", razon: "No hay salidas públicas con lugares (o el cupo es ilimitado)." };
       const pool = poolFor(ctx, "P7");
-      const laminas: Lamina[] = abiertas.map((s, i) => ({ kind: "cupo", experiencia: expName(ctx.exp), fecha: s.label, n: s.available as number, bg: pool.length ? pick(pool, i) : heroBg(ctx) }));
+      // La 1ª lámina usa la portada asignada en el reparto global (si no, chocaba con otra pieza).
+      const portada = coverBg(ctx, pool, "P7");
+      const laminas: Lamina[] = abiertas.map((s, i) => ({ kind: "cupo", experiencia: expName(ctx.exp), fecha: s.label, n: s.available as number, bg: i === 0 ? portada : (pool.length ? pick(pool, i) : heroBg(ctx)) }));
       return { estado: "lista", laminas };
     },
   },
@@ -459,7 +466,7 @@ export const PIEZAS: PieceDef[] = [
       if (uniq.length < 3) return { estado: "pendiente", razon: "Faltan fotos del viaje en la galería de «Lo básico» (mín. 3)." };
       const fotos = shuffle(uniq.map((u) => ({ url: u })), `${ctx.exp.slug || "x"}·P9`);
       const laminas: Lamina[] = [
-        { kind: "cover", eyebrow: "Así se vivió", title: expName(ctx.exp), accent: "pasó.", bg: fotos[0] },
+        { kind: "cover", eyebrow: "Así se vivió", title: expName(ctx.exp), accent: "pasó.", bg: coverBg(ctx, fotos, "P9") },
       ];
       fotos.slice(1, 7).forEach((f) => laminas.push({ kind: "foto", bg: f }));
       laminas.push({ kind: "cierre", eyebrow: "La próxima salida", title: "Te esperamos", accent: "a ti.", cta: "Reserva", bg: fotos[fotos.length - 1] });
