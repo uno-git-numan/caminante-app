@@ -74,7 +74,22 @@ export async function updateSlot(input: {
     if (Number.isNaN(Date.parse(input.startsAt))) return fail("Fecha inválida.");
     patch.starts_at = input.startsAt;
   }
-  if (input.endsAt !== undefined) patch.ends_at = input.endsAt || null;
+  if (input.endsAt !== undefined) {
+    // ⚠️ El fin no puede ser anterior al inicio: `ends_at` dispara la ENCUESTA
+    // automática (+24h) — una fecha invertida manda "¿cómo te fue?" antes del
+    // viaje. Se compara contra el inicio NUEVO si viene en el mismo patch, y si
+    // no contra el guardado. (Ver el mismo guard en slots-admin.ts.)
+    if (input.endsAt) {
+      const fin = Date.parse(input.endsAt);
+      if (Number.isNaN(fin)) return fail("Fecha de fin inválida.");
+      const iniRaw = (patch.starts_at as string | undefined) ?? (slot.starts_at as string | null);
+      const ini = iniRaw ? Date.parse(iniRaw) : NaN;
+      if (!Number.isNaN(ini) && fin < ini) {
+        return fail("La salida no puede terminar antes de empezar. Revisa el mes o el año.");
+      }
+    }
+    patch.ends_at = input.endsAt || null;
+  }
   if (input.capacityTotal !== undefined) {
     if (input.capacityTotal !== null) {
       if (!Number.isInteger(input.capacityTotal) || input.capacityTotal < 0) {

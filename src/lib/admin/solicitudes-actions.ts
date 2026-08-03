@@ -128,6 +128,11 @@ export async function approveSlotRequest(input: AprobarInput): Promise<AprobarRe
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.startsAt)) {
     return { ok: false, error: "La salida necesita fecha de inicio." };
   }
+  // ⚠️ El fin no puede ser anterior al inicio: `ends_at` dispara la ENCUESTA
+  // automática (+24h). Mismo guard que slots-admin.ts y eventos-actions.ts.
+  if (input.endsAt && input.endsAt < input.startsAt) {
+    return { ok: false, error: "La salida no puede terminar antes de empezar. Revisa el mes o el año." };
+  }
 
   const accessToken =
     input.visibility === "private" ? randomBytes(16).toString("base64url") : null;

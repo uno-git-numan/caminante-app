@@ -79,9 +79,25 @@ export async function saveExperienceSlots(
   if (!expId) return { ok: false, error: "No encontré la experiencia (¿ya la guardaste?)." };
 
   // Validación: cada salida necesita label + fecha de inicio (NOT NULL en BD).
+  // ⚠️ Y el fin NUNCA puede ser anterior al inicio: `ends_at` es lo que dispara la
+  // ENCUESTA automática (+24h), así que un mes mal tecleado manda el correo
+  // "¿cómo te fue?" ANTES del viaje. Pasó de verdad: la salida "Ago 29-30" de
+  // volcanes se guardó con ends_at en JULIO (corregido a mano el 3 ago 2026) y
+  // el sistema la daba por terminada 4 semanas antes de salir.
   for (const s of slots) {
     if (!s.label?.trim()) return { ok: false, error: "Cada salida necesita una etiqueta (label)." };
     if (!s.startsAt) return { ok: false, error: `La salida "${s.label}" necesita fecha de inicio.` };
+    if (s.endsAt) {
+      const ini = Date.parse(s.startsAt);
+      const fin = Date.parse(s.endsAt);
+      if (Number.isNaN(fin)) return { ok: false, error: `La salida "${s.label}" tiene una fecha de fin inválida.` };
+      if (!Number.isNaN(ini) && fin < ini) {
+        return {
+          ok: false,
+          error: `La salida "${s.label}" termina antes de empezar (${s.startsAt.slice(0, 10)} → ${s.endsAt.slice(0, 10)}). Revisa el mes o el año.`,
+        };
+      }
+    }
   }
 
   const keepIds: string[] = [];
