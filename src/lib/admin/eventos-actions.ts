@@ -55,7 +55,7 @@ export async function updateSlot(input: {
   const sb = createSupabaseAdminClient();
   const { data: slot } = await sb
     .from("experience_slots")
-    .select("id, experience_id, status")
+    .select("id, experience_id, status, starts_at") // starts_at: para validar que el fin no sea anterior
     .eq("id", input.slotId)
     .maybeSingle();
   if (!slot) return fail("Esa salida no existe.");
