@@ -93,6 +93,36 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
 - **Correo de confirmación AL CLIENTE** (`src/lib/notifications/notify-customer.ts`, patrón del correo de encuesta de feedback/send.ts): comprobante brandeado (experiencia/salida/personas/nivel/monto) + CTA "Firmar mi deslinde" (con `?reserva=`) si el deslinde está activo. Cableado en `finalize-selfserve` junto a `notifyNuevaReserva` (Promise.allSettled, best-effort, jamás tira el webhook). El copy de la pantalla de éxito ("te enviamos la confirmación...") ahora ES verdad.
 - Estado deslindes (9 jul): ensenada ✓ · hongos ✓ (activo con doc — nota vieja de "hongos sin deslinde" QUEDÓ OBSOLETA) · bosque-volcanes ✓ COMPLETO (activado + PDF conectado 9 jul) · **mariposas SIN doc → el gate le impide vender** (su única salida ya pasó; al relanzarla, generar su deslinde con el sistema legal).
 
+## REGLA: "prendido TODO antes de publicar" — deslinde + encuesta (3 ago)
+- **REGLA DE LUIS (3 ago 2026): "siempre tiene que estar prendido todo antes de publicar la
+  experiencia."** Nació del caso hongos: la salida del 26 jul salió con **18 personas y nadie
+  recibió encuesta**. La casilla «Encuesta activa» del formulario **nace apagada**, ningún gate la
+  exigía y el checklist no la mencionaba → se vendió, se viajó y se terminó sin medir; el único
+  síntoma fue el silencio. Volcanes y barrancas estaban igual (configuradas pero apagadas).
+- **`listaParaPublicar(exp)`** (`src/lib/experiences/flujo-venta.ts`) = `deslindeListo` +
+  **`encuestaLista`** (activa && ≥1 categoría && `locationLabel`, que es la que arma el asunto
+  «¿Cómo te fuiste de …?»). Es el candado ÚNICO de publicar y lo consultan **los dos caminos**:
+  `ExperienceForm.onSubmit` y `setExperienceStatus` (este último era el bypass del gate del form).
+- ⚠️ **La encuesta NO bloquea cobrar**, a diferencia del deslinde: una venta con la encuesta
+  apagada no le hace daño al cliente. El candado va en publicar, que es donde Luis lo pidió.
+- **Checklist** (`lib/kit/checklist.ts`): «Encuesta» es ítem **DURO** (ancla `#s16`) y
+  `listoParaComunicar` lo exige junto a deslinde y salidas → se ve ANTES de intentar publicar.
+- Estado (3 ago): las 4 publicadas + mariposas quedaron con **deslinde y encuesta activos**.
+
+## Fechas de salida: el fin nunca antes del inicio (3 ago)
+- La salida «Ago 29-30» de volcanes tenía `ends_at` en **JULIO** (mes tecleado mal) → el sistema la
+  daba por terminada 4 semanas antes de salir. Como **`ends_at` dispara la encuesta (+24h)**, con la
+  encuesta activa les habría llegado «¿cómo te fue?» a 6 clientes que aún no viajan. (La encuesta
+  apagada fue lo único que lo evitó — accidente, no diseño.) Fecha corregida a mano en la base.
+- Guard en los **tres** caminos que escriben `ends_at`: `slots-admin.ts` (form),
+  `eventos-actions.ts` (dashboard, compara contra el inicio nuevo si viene en el mismo patch) y
+  `solicitudes-actions.ts` (aprobar solicitud).
+- ⚠️ **`send-surveys` corre 17:00 UTC (11am CDMX) y exige `ends_at` ≤ ahora−24h** → una salida que
+  termina 5pm CDMX recibe encuesta ~42h después, no 24. El despacho es **idempotente** (salta las
+  reservas que ya tienen fila en `experience_feedback`) y su ventana es de **60 días**, así que
+  encender una encuesta tarde SÍ recupera salidas recientes. Se puede disparar a mano con el botón
+  **Run** del cron en Vercel → Settings → Cron Jobs (el `CRON_SECRET` no está en `.env.local`).
+
 ## Participantes por reserva (multi-boleto + perfiles opcionales) — **EN PRODUCCIÓN (1 jul)**
 - **Multi-boleto → cobro** ya existía: el selector "PERSONAS" de `/caminante/reservar/[slug]` cobra `precio_slot × num_people` y el cupo descuenta `Σ num_people` de reservas en HOLDING. Sin cambios.
 - **Perfiles por participante (nuevo, OPCIONAL)**: en el deslinde `/caminante/registro/[slug]`, sección **"Participantes (opcional)"**, el titular agrega acompañantes (p. ej. hijos). **Decisiones de Luis**: el titular firma UN solo deslinde por todo el grupo; capturarlos es **opcional** (nunca bloquea pago ni firma).
