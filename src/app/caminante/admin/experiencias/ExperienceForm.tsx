@@ -16,7 +16,7 @@ import ChecklistComunicacion from "./ChecklistComunicacion";
 import { aplicarPrellenadoV2, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
-import { deslindeListo } from "@/lib/experiences/flujo-venta";
+import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import { ESTADOS } from "@/lib/experiences/estados";
 import { saveExperienceSlots } from "@/lib/experiences/slots-admin";
 import type { Experience, V2Image } from "@/lib/experiences/types";
@@ -622,15 +622,13 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
         setStatus(`No puedes publicar sin ${faltan.join(" y ")}. Guárdala como borrador o complétala.`);
         return;
       }
-      // REGLA: toda experiencia a la venta lleva registro y deslinde COMPLETO.
-      // (Caso Enyd, 9 jul: se vendió una experiencia sin deslinde activo.)
-      const flujo = deslindeListo({ registration: reg });
+      // REGLA DE LUIS: "siempre tiene que estar prendido todo antes de publicar
+      // la experiencia" — deslinde COMPLETO (caso Enyd, 9 jul) Y encuesta
+      // ACTIVA (caso hongos, 3 ago: 18 personas viajaron sin que nadie midiera).
+      const flujo = listaParaPublicar({ registration: reg, feedback: fb });
       if (!flujo.ok) {
         setStatusOk(false);
-        setStatus(
-          `No puedes publicar sin el registro y deslinde completo: ${flujo.faltantes.join(" ")} ` +
-            `Actívalo en la sección “Registro y deslinde” — toda experiencia a la venta lo lleva.`,
-        );
+        setStatus(`No puedes publicar todavía: ${flujo.faltantes.join(" ")}`);
         return;
       }
     }
@@ -799,6 +797,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               photoBank: exp.photoBank,
               ficha: exp.ficha,
               registration: exp.registration,
+              feedback: exp.feedback,
               guias: v2.guides.map((g) => ({ name: g.title, bio: (g.paragraphs || []).find((x) => x && x.trim()) })),
               salidas: slots.map((sl) => ({ date: sl.start })),
             }}

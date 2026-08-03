@@ -34,3 +34,41 @@ export function deslindeListo(exp: Pick<Experience, "registration"> | null | und
 
   return { ok: faltantes.length === 0, faltantes };
 }
+
+// REGLA DE LUIS (3 ago 2026): "siempre tiene que estar prendido todo antes de
+// publicar la experiencia."
+//
+// El caso: la salida de hongos del 26 jul salió con 18 personas y NADIE recibió
+// encuesta — la casilla "Encuesta activa" del formulario nace apagada y nada
+// avisaba. Se vendió, se viajó y se terminó sin medir; el único síntoma fue el
+// silencio. (Volcanes y barrancas estaban igual.)
+//
+// A diferencia del deslinde, esto NO bloquea cobrar: una venta con la encuesta
+// apagada no le hace daño al cliente. Bloquea PUBLICAR, que es donde Luis quiere
+// el candado.
+export function encuestaLista(exp: Pick<Experience, "feedback"> | null | undefined): FlujoVenta {
+  const fb = exp?.feedback;
+  const secciones = (fb?.sections ?? []).filter((s) => s?.label && s.label.trim());
+  const faltantes: string[] = [];
+
+  if (!fb?.active) {
+    faltantes.push("La encuesta de satisfacción no está activa (sección “Encuesta de satisfacción”). Sin ella la salida se opera sin medir.");
+  }
+  if (secciones.length === 0) {
+    faltantes.push("La encuesta no tiene categorías que calificar: agrega al menos una en “Encuesta de satisfacción”.");
+  }
+  if (!fb?.locationLabel?.trim()) {
+    faltantes.push("La encuesta necesita “Etiqueta de locación”: da el asunto del correo (“¿Cómo te fuiste de …?”).");
+  }
+
+  return { ok: faltantes.length === 0, faltantes };
+}
+
+// El candado ÚNICO de publicar: deslinde + encuesta. Lo consultan los dos
+// caminos que publican (el formulario y el dashboard).
+export function listaParaPublicar(
+  exp: Pick<Experience, "registration" | "feedback"> | null | undefined,
+): FlujoVenta {
+  const faltantes = [...deslindeListo(exp).faltantes, ...encuestaLista(exp).faltantes];
+  return { ok: faltantes.length === 0, faltantes };
+}

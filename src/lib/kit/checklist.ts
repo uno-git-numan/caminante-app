@@ -33,6 +33,7 @@ export type ChecklistEntrada = {
   photoBank: Experience["photoBank"];
   ficha: Experience["ficha"];
   registration: Experience["registration"];
+  feedback: Experience["feedback"];
   // Guías tal como viven en el borrador del form (bio = el "saber" de E5).
   guias: { name?: string; bio?: string }[];
   // Salidas abiertas capturadas en «Fechas & cupo».
@@ -114,6 +115,31 @@ export function evaluarChecklist(e: ChecklistEntrada): ChecklistItem[] {
     desbloquea: "Publicar y COBRAR: sin deslinde completo la venta está bloqueada",
   });
 
+  // 4b · ENCUESTA (regla dura de Luis, 3 ago: "siempre tiene que estar prendido
+  // todo antes de publicar"). Se agregó tras el caso hongos: 18 personas
+  // viajaron y nadie recibió encuesta porque la casilla nace apagada y nada
+  // avisaba. Sin esto, una salida se opera sin medir y el único síntoma es el
+  // silencio. ─────────────────────────────────────────────────────────────────
+  const enc = e.feedback; // ojo: `f` ya es la ficha científica más arriba
+  const catsEnc = (enc?.sections ?? []).filter((s) => has(s?.label)).length;
+  const okEncuesta = !!enc?.active && catsEnc > 0 && has(enc?.locationLabel);
+  items.push({
+    id: "encuesta",
+    titulo: "Encuesta",
+    detalle: okEncuesta
+      ? `Activa · ${catsEnc} categoría${catsEnc === 1 ? "" : "s"}`
+      : [
+          enc?.active ? null : "apagada",
+          catsEnc ? null : "sin categorías",
+          has(enc?.locationLabel) ? null : "sin etiqueta de locación",
+        ]
+          .filter(Boolean)
+          .join(" · "),
+    estado: okEncuesta ? "ok" : enc?.active || catsEnc ? "parcial" : "falta",
+    ancla: "#s16",
+    desbloquea: "Publicar: sin encuesta la salida se opera sin medir (ni testimonios)",
+  });
+
   // 5 · SALIDAS ───────────────────────────────────────────────────────────────
   const salidas = e.salidas.filter((s) => has(s.date));
   items.push({
@@ -128,10 +154,11 @@ export function evaluarChecklist(e: ChecklistEntrada): ChecklistItem[] {
   return items;
 }
 
-// Verde = todo listo para comunicar. El deslinde y las salidas son duros; los
-// insumos de contenido pueden ir "parcial" y aun así hay campaña que programar.
+// Verde = todo listo para comunicar. Deslinde, ENCUESTA y salidas son duros
+// (los tres bloquean publicar); los insumos de contenido pueden ir "parcial" y
+// aun así hay campaña que programar.
 export function listoParaComunicar(items: ChecklistItem[]): boolean {
   const duro = (id: string) => items.find((i) => i.id === id)?.estado === "ok";
   const nada = (id: string) => items.find((i) => i.id === id)?.estado === "falta";
-  return duro("deslinde") && duro("salidas") && !nada("fotos") && !nada("ficha");
+  return duro("deslinde") && duro("encuesta") && duro("salidas") && !nada("fotos") && !nada("ficha");
 }
