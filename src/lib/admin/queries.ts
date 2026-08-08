@@ -1492,3 +1492,58 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     ledger,
   };
 }
+
+// ── Salidas candidatas al LINK ABIERTO de encuesta (el que va al grupo) ──────
+// Solo salidas que YA terminaron y cuya experiencia tiene la encuesta activa:
+// un link de una salida futura no tendría a quién preguntarle. Best-effort: si
+// la 0031 no está aplicada (`feedback_token` no existe) devuelve [] y el panel
+// muestra el vacío en vez de romperse.
+export type SalidaLinkAbierto = {
+  id: string;
+  label: string;
+  experiencia: string;
+  token: string | null;
+  respuestas: number;
+};
+
+export async function fetchSalidasParaLinkAbierto(): Promise<SalidaLinkAbierto[]> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const ahora = new Date().toISOString();
+    const [{ data: slots }, { data: fbs }] = await Promise.all([
+      sb
+        .from("experience_slots")
+        .select("id, label, ends_at, feedback_token, experiences(slug, data)")
+        .not("ends_at", "is", null)
+        .lte("ends_at", ahora)
+        .order("ends_at", { ascending: false })
+        .limit(30),
+      sb.from("experience_feedback").select("slot_id, status"),
+    ]);
+    if (!slots) return [];
+
+    const respondidas = new Map<string, number>();
+    for (const f of (fbs ?? []) as { slot_id: string | null; status: string }[]) {
+      if (f.slot_id && f.status === "submitted") {
+        respondidas.set(f.slot_id, (respondidas.get(f.slot_id) ?? 0) + 1);
+      }
+    }
+
+    return (slots as unknown as {
+      id: string;
+      label: string;
+      feedback_token: string | null;
+      experiences: { slug: string; data: Experience } | null;
+    }[])
+      .filter((s) => s.experiences?.data?.feedback?.active === true)
+      .map((s) => ({
+        id: s.id,
+        label: s.label || "—",
+        experiencia: experienceTitle(s.experiences?.data ?? null, s.experiences?.slug ?? ""),
+        token: s.feedback_token,
+        respuestas: respondidas.get(s.id) ?? 0,
+      }));
+  } catch {
+    return [];
+  }
+}

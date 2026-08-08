@@ -9,6 +9,8 @@ import {
   reenviarDeslinde,
   reenviarDeslindesTodos,
 } from "@/lib/feedback/resend-actions";
+import { generarLinkEncuestaSalida, linkAbierto } from "@/lib/feedback/link-abierto";
+import { fetchSalidasParaLinkAbierto } from "@/lib/admin/queries";
 import { fetchDeslindesPendientes } from "@/lib/registration/pending";
 import type { DeslindePendiente } from "@/lib/registration/pending";
 import ConfirmSubmit from "../ui/ConfirmSubmit";
@@ -71,9 +73,9 @@ function ExpMenu({
 export default async function EncuestaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; error?: string }>;
+  searchParams: Promise<{ ok?: string; error?: string; link?: string }>;
 }) {
-  const { ok, error } = await searchParams;
+  const { ok, error, link } = await searchParams;
   const [{ experiencias, testimoniosPendientes }, deslindesPend] = await Promise.all([
     fetchEncuestaAdmin(),
     fetchDeslindesPendientes(),
@@ -93,6 +95,7 @@ export default async function EncuestaPage({
     .filter((x) => x.pend.length);
   const encuestasPend = conPendientes.reduce((n, x) => n + x.pend.length, 0);
   const conRespuestas = experiencias.filter((e) => e.respondidas > 0);
+  const salidasLink = await fetchSalidasParaLinkAbierto();
 
   return (
     <AdminShell active="encuesta">
@@ -113,6 +116,56 @@ export default async function EncuestaPage({
             <div className="desc">Organizado por tipo y por experiencia: quién falta de firmar, quién falta de responder, y qué dijeron.</div>
           </div>
         </div>
+
+        {link ? (
+          <div className="glass pad" style={{ marginBottom: 18 }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}><span className="sl">{"//"}</span> Link para el grupo</div>
+            <code className="mono" style={{ fontSize: 13, wordBreak: "break-all", display: "block" }}>{link}</code>
+            <div className="mut" style={{ fontSize: 12.5, marginTop: 8 }}>
+              Cópialo y mándalo al grupo de WhatsApp. Sirve para acompañantes y para quien no vio el correo:
+              pide nombre y correo, y cada quien contesta en su propia hoja (nadie se pisa).
+            </div>
+          </div>
+        ) : null}
+
+        {/* ══════════ ⓪ LINK ABIERTO POR SALIDA ══════════ */}
+        <div className="sec-head" style={{ marginTop: 6 }}>
+          <div>
+            <span className="eyebrow"><span className="sl">{"//"}</span> Encuesta del grupo</span>
+            <div className="subtitle" style={{ margin: "4px 0 0" }}>
+              El correo personal sale solo 24 h después de cada salida. Este link es la <b>segunda puerta</b>:
+              lo mandas al grupo para los que fueron de acompañantes o no vieron el correo.
+            </div>
+          </div>
+        </div>
+        {salidasLink.length === 0 ? (
+          <div className="empty">No hay salidas terminadas con encuesta activa.</div>
+        ) : (
+          <div className="tbl-wrap">
+            <table>
+              <thead><tr><th>Salida</th><th>Experiencia</th><th>Respuestas</th><th></th></tr></thead>
+              <tbody>
+                {salidasLink.map((sl) => (
+                  <tr key={sl.id}>
+                    <td>{sl.label}</td>
+                    <td className="mut">{sl.experiencia}</td>
+                    <td className="mono">{sl.respuestas}</td>
+                    <td style={{ textAlign: "right" }}>
+                      {sl.token ? (
+                        <code className="mono" style={{ fontSize: 12, wordBreak: "break-all" }}>{`/caminante/feedback/salida/${sl.token}`}</code>
+                      ) : (
+                        <form action={generarLinkEncuestaSalida}>
+                          <input type="hidden" name="slotId" value={sl.id} />
+                          <button type="submit" className="btn btn-glass btn-sm">Generar link de grupo</button>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* ══════════ ① DESLINDE ══════════ */}
         <div className="sec-head" style={{ marginTop: 6 }}>
