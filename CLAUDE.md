@@ -109,6 +109,26 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
   `listoParaComunicar` lo exige junto a deslinde y salidas → se ve ANTES de intentar publicar.
 - Estado (3 ago): las 4 publicadas + mariposas quedaron con **deslinde y encuesta activos**.
 
+## Encuesta POR SALIDA en el panel (10 ago)
+- El panel agrupaba las respuestas por **experiencia**. Con dos salidas de lo mismo eso esconde lo
+  único que importa: **Ensenada mostraba «12 respuestas · 4.8★»** cuando en realidad son
+  **Jun 12-15 · 7 · 4.6★** y **Jun 18-21 · 5 · 5.0★**. Ahora `RespuestasExp` agrupa por
+  `salidaLabel` con conteo y promedio propios.
+- **La salida de una respuesta sale de `experience_feedback.slot_id` (0031)** y solo si falta, de la
+  reserva. Antes se resolvía SIEMPRE por la reserva → las respuestas del **link abierto de grupo**
+  (un acompañante que no compró, sin reserva) salían sin salida. Caso real: Alexandra, hongos
+  26 jul. Si el slot no tiene `label`, el label cae a la fecha en vez de quedar vacío.
+- **`via: "correo" | "grupo"`** en `EncuestaRespuesta`/`EncuestaPersona` (se deriva de
+  `reservation_id`, no de `source` — ver el bug de abajo). Chip «grupo» en la respuesta.
+- ⚠️ **Bug corregido en `feedback/actions.ts`:** al enviar, el update escribía `source:"web"` fijo y
+  **pisaba `source:'abierta'`** — la única marca de que la persona llegó por el link del grupo se
+  borraba justo al responder. Por eso Alexandra quedó con `source='web'` en la base: respondió antes
+  del fix. `via` se deriva de `reservation_id` precisamente para no depender del dato dañado.
+- **Eventos → detalle:** columna **Encuesta** por salida (`respondidas/invitadas · promedio★`,
+  best-effort vía `fetchSlotFeedbackStats`) que liga a `/admin/encuesta#res-<slug16>`.
+- **`AdminShell`:** llegar con `#id` abre ese expandible y lo centra (`abrirHash`, + `hashchange`).
+  Sin eso el link de Eventos aterrizaba en una tarjeta cerrada. Aplica a TODOS los `[data-x]`.
+
 ## Fechas de salida: el fin nunca antes del inicio (3 ago)
 - La salida «Ago 29-30» de volcanes tenía `ends_at` en **JULIO** (mes tecleado mal) → el sistema la
   daba por terminada 4 semanas antes de salir. Como **`ends_at` dispara la encuesta (+24h)**, con la
