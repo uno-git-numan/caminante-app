@@ -14,8 +14,14 @@ interface LoginPageProps {
 }
 
 // Mensajes en español para los códigos/errores comunes (voz "tú").
+//
+// ⚠️ El fallback NUNCA devuelve el texto crudo: `confirm/route.ts` reenvía el
+// `error.message` de Supabase, que viene en INGLÉS. Un usuario mexicano veía
+// "Email link is invalid or has expired" en una pantalla en español (detectado
+// en el audit móvil del 8 ago 2026). Ante un mensaje desconocido preferimos una
+// frase en español que diga qué hacer, y el crudo se queda en el log.
 function friendlyError(raw: string): string {
-  const map: Record<string, string> = {
+  const exactos: Record<string, string> = {
     invalid_credentials: "Correo o contraseña incorrectos.",
     invalid_email: "Escribe un correo válido.",
     missing_code: "No pudimos completar el inicio de sesión. Inténtalo de nuevo.",
@@ -23,7 +29,20 @@ function friendlyError(raw: string): string {
     "Invalid login credentials": "Correo o contraseña incorrectos.",
     "Email not confirmed": "Confirma tu correo antes de entrar (revisa tu bandeja).",
   };
-  return map[raw] ?? raw;
+  if (exactos[raw]) return exactos[raw];
+
+  // Patrones de Supabase (su copy cambia entre versiones; el patrón aguanta).
+  const patrones: [RegExp, string][] = [
+    [/expired|invalid.*(link|token)|otp.*expired/i, "Ese enlace ya venció o se usó. Pide uno nuevo aquí abajo."],
+    [/rate limit|too many/i, "Demasiados intentos. Espera un minuto y vuelve a intentar."],
+    [/user (not found|already registered)/i, "Revisa el correo: no encontramos esa cuenta."],
+    [/password/i, "Correo o contraseña incorrectos."],
+    [/network|fetch failed/i, "Se cayó la conexión. Inténtalo otra vez."],
+  ];
+  for (const [re, msg] of patrones) if (re.test(raw)) return msg;
+
+  if (raw) console.warn("[login] error sin traducir:", raw);
+  return "No pudimos completar el inicio de sesión. Inténtalo de nuevo o pide un enlace nuevo.";
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {

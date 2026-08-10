@@ -26,6 +26,7 @@ import type { SlotAvailabilityPublic } from "@/lib/experiences/availability";
 import type { OperatorChip } from "@/lib/operators/public";
 import Script from "next/script";
 import { TEMPLATE_V2_CSS } from "@/lib/experiences/template-v2-css";
+import { MOVIL_FIXES_CSS } from "@/lib/experiences/movil-fixes-css";
 import { TEMPLATE_V2_SCRIPT } from "@/lib/experiences/template-v2-script";
 import { PixelEvent } from "@/lib/meta/pixel";
 
@@ -773,7 +774,7 @@ export default function ExperienceTemplateV2({
           ...(vcValue ? { value: vcValue, currency: "MXN" } : {}),
         }}
       />
-      <style dangerouslySetInnerHTML={{ __html: TEMPLATE_V2_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: TEMPLATE_V2_CSS + MOVIL_FIXES_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: COLLAB_CSS }} />
 
       {/* NAV */}

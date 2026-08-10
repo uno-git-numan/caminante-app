@@ -66,7 +66,18 @@ export default async function ReservarPage({
   const avail = await fetchSlotAvailability(experienceId);
   const basePrice = parseMxnAmount(experience?.price?.amount);
 
-  const slots: ReservarSlot[] = (slotRows ?? [])
+  // ⚠️ Fuera las salidas que YA SALIERON. La consulta filtra por status='open',
+  // que es un estado comercial (¿se vende?), NO temporal: una salida pasada que
+  // nadie cerró a mano seguía apareciendo en el selector — el 26 jul de hongos
+  // se mostraba como "Agotado" días después del viaje (audit del 8 ago 2026).
+  // No se puede reservar un viaje que ya se fue.
+  const ahora = Date.now();
+  const vigentes = (slotRows ?? []).filter((s) => {
+    const inicio = s.starts_at ? Date.parse(s.starts_at as string) : NaN;
+    return Number.isNaN(inicio) || inicio >= ahora;
+  });
+
+  const slots: ReservarSlot[] = vigentes
     .map((s) => {
       const a = avail.get(s.id as string);
       const available = a ? a.available : null; // null = sin tope
