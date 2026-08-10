@@ -22,7 +22,7 @@ export async function submitFeedback(
   const sb = createSupabaseAdminClient();
   const { data: fb } = await sb
     .from("experience_feedback")
-    .select("id, status, contact_id, reservation_id, location_label")
+    .select("id, status, contact_id, reservation_id, location_label, source")
     .eq("token", input.token)
     .maybeSingle();
   if (!fb) return { ok: false, error: "Esta encuesta ya no está disponible." };
@@ -47,7 +47,10 @@ export async function submitFeedback(
     .from("experience_feedback")
     .update({
       status: "submitted",
-      source: "web",
+      // ⚠️ NO pisar 'abierta': es la única marca de que la persona llegó por el
+      // link del grupo (un acompañante que no compró). Pisarla a "web" borraba
+      // la procedencia justo al responder — detectado al probar el 8 ago 2026.
+      source: fb.source === "abierta" ? "abierta" : "web",
       submitted_at: new Date().toISOString(),
       overall_stars: overall,
       nps,

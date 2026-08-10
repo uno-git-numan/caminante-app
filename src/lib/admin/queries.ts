@@ -430,6 +430,9 @@ export type SlotAdmin = {
   accessToken: string | null; // token del link privado (para re-copiarlo)
   taken: number;
   pasada: boolean;
+  encInvitadas: number; // encuestas creadas para esta salida
+  encRespondidas: number;
+  encStars: number | null; // promedio general de las respondidas
 };
 
 export type OperadorRow = {
@@ -532,6 +535,7 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
   ]);
 
   const avail = await fetchSlotOccupancy(exp.id as string);
+  const enc = await fetchSlotFeedbackStats(exp.id as string);
   const hoy = cdmxDay(new Date());
 
   return {
@@ -563,6 +567,9 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
       accessToken: s.access_token,
       taken: avail.get(s.id) || 0,
       pasada: !!s.starts_at && cdmxDay(s.starts_at) < hoy,
+      encInvitadas: enc.get(s.id)?.invitadas || 0,
+      encRespondidas: enc.get(s.id)?.respondidas || 0,
+      encStars: enc.get(s.id)?.stars ?? null,
     })),
     operadores: ((ops || []) as {
       id: string;
@@ -576,6 +583,53 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
       commissionPct: o.commission_pct != null ? Number(o.commission_pct) : null,
     })),
   };
+}
+
+// Encuestas por SALIDA de una experiencia. La salida sale de experience_feedback.slot_id
+// (0031); las respuestas viejas, anteriores a esa migración, se resuelven por su reserva.
+// Best-effort: si la columna no existe todavía, el evento se muestra sin encuesta.
+async function fetchSlotFeedbackStats(
+  experienceId: string,
+): Promise<Map<string, { invitadas: number; respondidas: number; stars: number | null }>> {
+  const sb = createSupabaseAdminClient();
+  const out = new Map<string, { invitadas: number; respondidas: number; stars: number | null }>();
+  const { data, error } = await sb
+    .from("experience_feedback")
+    .select("slot_id, reservation_id, status, overall_stars")
+    .eq("experience_id", experienceId);
+  if (error || !data) return out;
+
+  const sinSlot = (data as { slot_id: string | null; reservation_id: string | null }[])
+    .filter((f) => !f.slot_id && f.reservation_id)
+    .map((f) => f.reservation_id as string);
+  const slotByResv = new Map<string, string | null>();
+  if (sinSlot.length) {
+    const { data: rs } = await sb.from("reservations").select("id, slot_id").in("id", sinSlot);
+    for (const r of (rs || []) as { id: string; slot_id: string | null }[]) slotByResv.set(r.id, r.slot_id);
+  }
+
+  const acc = new Map<string, number[]>();
+  for (const f of data as {
+    slot_id: string | null;
+    reservation_id: string | null;
+    status: string;
+    overall_stars: number | null;
+  }[]) {
+    const sid = f.slot_id ?? (f.reservation_id ? slotByResv.get(f.reservation_id) : null);
+    if (!sid) continue;
+    const cur = out.get(sid) || { invitadas: 0, respondidas: 0, stars: null };
+    cur.invitadas += 1;
+    if (f.status === "submitted") {
+      cur.respondidas += 1;
+      if (f.overall_stars != null) acc.set(sid, [...(acc.get(sid) || []), Number(f.overall_stars)]);
+    }
+    out.set(sid, cur);
+  }
+  for (const [sid, xs] of acc) {
+    const cur = out.get(sid);
+    if (cur) cur.stars = Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10;
+  }
+  return out;
 }
 
 // Ocupación (Σ num_people HOLDING) por slot de una experiencia.
@@ -1046,6 +1100,9 @@ export type EncuestaPersona = {
   token: string; // para armar el link /caminante/feedback/[token]
   email: string | null; // a dónde se reenvía la encuesta
   stars: number | null;
+  // Cómo llegó. `source` NO sirve: submitFeedback lo pisa a "web" al enviar.
+  // Sin reserva ⇒ entró por el link abierto del grupo (un acompañante).
+  via: "correo" | "grupo";
 };
 
 export type EncuestaExperiencia = {
@@ -1074,6 +1131,8 @@ export type EncuestaRespuesta = {
   fecha: string; // display (día mes)
   fechaIso: string; // orden
   textos: string[]; // respuestas abiertas ya con prefijo ("Por mejorar: …")
+  salidaLabel: string; // de QUÉ salida habla — se agrupa por aquí
+  via: "correo" | "grupo"; // grupo = acompañante que entró por el link abierto
 };
 
 export type TestimonioPendiente = {
@@ -1118,24 +1177,25 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
     sb
       .from("experience_feedback")
       .select(
-        "id, experience_id, reservation_id, contact_id, location_label, token, status, overall_stars, nps, section_ratings, loved_text, improve_text, expected_gap_text, testimonial_text, testimonial_stars, testimonial_consent, publish_status, invited_at, submitted_at",
+        "id, experience_id, reservation_id, slot_id, contact_id, location_label, token, status, overall_stars, nps, section_ratings, loved_text, improve_text, expected_gap_text, testimonial_text, testimonial_stars, testimonial_consent, publish_status, invited_at, submitted_at",
       ),
     sb.from("experiences").select("id, slug, data"),
     sb.from("contacts").select("id, full_name, email"),
     sb.from("reservations").select("id, slot_id"),
-    sb.from("experience_slots").select("id, label"),
+    sb.from("experience_slots").select("id, label, starts_at"),
   ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
     FbFullRow[],
     ExpRow[],
     { id: string; full_name: string | null; email: string }[],
     { id: string; slot_id: string | null }[],
-    { id: string; label: string | null }[],
+    { id: string; label: string | null; starts_at: string | null }[],
   ];
 
   const eById = new Map(exps.map((e) => [e.id, e]));
   const cById = new Map(contacts.map((c) => [c.id, c]));
   const slotByResv = new Map(resvs.map((r) => [r.id, r.slot_id]));
-  const labelBySlot = new Map(slots.map((s) => [s.id, s.label || ""]));
+  // Sin label la salida quedaba en blanco: la fecha siempre sirve de nombre.
+  const labelBySlot = new Map(slots.map((s) => [s.id, s.label || formatFechaCorta(s.starts_at)]));
 
   const porExp = new Map<string, FbFullRow[]>();
   for (const f of fbs) {
@@ -1224,6 +1284,11 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
           fecha: formatDiaMes(f.submitted_at),
           fechaIso: f.submitted_at || "",
           textos,
+          salidaLabel: (() => {
+            const sid = f.slot_id ?? slotByResv.get(f.reservation_id);
+            return (sid && labelBySlot.get(sid)) || "";
+          })(),
+          via: f.reservation_id ? "correo" : "grupo",
         };
       })
       .sort((a, b) => b.fechaIso.localeCompare(a.fechaIso)); // reciente primero
@@ -1232,7 +1297,10 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
     const personas: EncuestaPersona[] = rows
       .map((f): EncuestaPersona => {
         const quien = cById.get(f.contact_id);
-        const slotId = slotByResv.get(f.reservation_id);
+        // La salida sale de la ENCUESTA (0031) y solo si no, de la reserva: las
+        // respuestas del link de grupo no tienen reserva — un acompañante no
+        // compró — y antes se quedaban sin salida (caso Alexandra, 8 ago 2026).
+        const slotId = f.slot_id ?? slotByResv.get(f.reservation_id);
         return {
           id: f.id,
           nombre: quien?.full_name || quien?.email || "—",
@@ -1242,6 +1310,7 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
           token: f.token,
           email: quien?.email ?? null,
           stars: f.overall_stars,
+          via: f.reservation_id ? "correo" : "grupo",
         };
       })
       .sort((a, b) => Number(b.estado === "respondida") - Number(a.estado === "respondida"));

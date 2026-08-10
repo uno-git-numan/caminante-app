@@ -25,10 +25,25 @@ function Stars({ v }: { v: number | null }) {
   );
 }
 
+const promedio = (xs: EncuestaRespuesta[]): number | null => {
+  const v = xs.map((x) => x.stars).filter((n): n is number => n != null);
+  return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : null;
+};
+
 export default function RespuestasExp({ respuestas }: { respuestas: EncuestaRespuesta[] }) {
   const [f, setF] = useState<Filtro>("todas");
   const cuenta = (k: Filtro) => (k === "todas" ? respuestas.length : respuestas.filter((r) => r.bucket === k).length);
   const lista = f === "todas" ? respuestas : respuestas.filter((r) => r.bucket === f);
+
+  // Agrupado por SALIDA: mezclar las salidas de una misma experiencia esconde
+  // que una salió bien y otra mal — que es justo lo que hay que ver.
+  const porSalida = Array.from(
+    lista.reduce((m, r) => {
+      const k = r.salidaLabel || "—";
+      m.set(k, [...(m.get(k) ?? []), r]);
+      return m;
+    }, new Map<string, EncuestaRespuesta[]>()),
+  );
 
   if (!respuestas.length) return <div className="empty">Aún sin respuestas.</div>;
 
@@ -63,8 +78,18 @@ export default function RespuestasExp({ respuestas }: { respuestas: EncuestaResp
         })}
       </div>
 
-      <div style={{ display: "grid", gap: 10 }}>
-        {lista.map((r, i) => (
+      {porSalida.map(([salida, items]) => (
+      <div key={salida} style={{ marginBottom: 18 }}>
+        <div className="eyebrow" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span className="sl">{"//"}</span>
+          {salida === "—" ? "Salida sin identificar" : salida}
+          <span className="mut" style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: 0, textTransform: "none" }}>
+            {items.length} {items.length === 1 ? "respuesta" : "respuestas"}
+            {promedio(items) != null ? ` · ${promedio(items)}★` : ""}
+          </span>
+        </div>
+        <div style={{ display: "grid", gap: 10 }}>
+        {items.map((r, i) => (
           <div
             key={i}
             className="card pad"
@@ -73,6 +98,11 @@ export default function RespuestasExp({ respuestas }: { respuestas: EncuestaResp
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span className="av" style={{ flex: "0 0 auto" }}>{r.iniciales}</span>
               <b style={{ fontSize: 13.5 }}>{r.nombre}</b>
+              {r.via === "grupo" ? (
+                <span className="mut" style={{ fontSize: 11, fontFamily: "var(--mono)", border: "1px solid var(--line)", borderRadius: 999, padding: "1px 7px" }} title="Respondió por el link abierto del grupo — normalmente un acompañante que no compró">
+                  grupo
+                </span>
+              ) : null}
               <Stars v={r.stars} />
               {r.nps != null ? <span className="mut" style={{ fontSize: 12 }}>NPS {r.nps}</span> : null}
               <span className="mut" style={{ fontSize: 12, marginLeft: "auto" }}>{r.fecha}</span>
@@ -88,8 +118,10 @@ export default function RespuestasExp({ respuestas }: { respuestas: EncuestaResp
             )}
           </div>
         ))}
-        {!lista.length ? <div className="empty">Nada con ese filtro.</div> : null}
+        </div>
       </div>
+      ))}
+      {!lista.length ? <div className="empty">Nada con ese filtro.</div> : null}
     </div>
   );
 }

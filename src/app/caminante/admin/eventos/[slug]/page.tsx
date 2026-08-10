@@ -148,6 +148,7 @@ export default async function EventoDetallePage({
                   <th className="num">Cupo</th>
                   <th className="num right">Precio</th>
                   <th>Ocupación</th>
+                  <th>Encuesta</th>
                   <th>Estado</th>
                   <th className="right">Operación</th>
                 </tr>
@@ -178,6 +179,21 @@ export default async function EventoDetallePage({
                           {s.capacity !== null ? `/${s.capacity}` : ""}
                         </span>
                       </div>
+                    </td>
+                    <td>
+                      {s.encInvitadas ? (
+                        <Link
+                          href={`/caminante/admin/encuesta#res-${ev.slug.slice(0, 16)}`}
+                          className="mono"
+                          style={{ fontSize: 12, textDecoration: "underline" }}
+                          title="Ver las respuestas de esta salida"
+                        >
+                          {s.encRespondidas}/{s.encInvitadas}
+                          {s.encStars != null ? ` · ${s.encStars}★` : ""}
+                        </Link>
+                      ) : (
+                        <span className="mut" style={{ fontSize: 12 }}>—</span>
+                      )}
                     </td>
                     <td>
                       {s.pasada ? (
@@ -222,7 +238,7 @@ export default async function EventoDetallePage({
                 ))}
                 {ev.slots.length === 0 ? (
                   <tr>
-                    <td colSpan={7}>
+                    <td colSpan={8}>
                       <div className="empty" style={{ border: 0 }}>
                         Sin salidas aún.{" "}
                         <Link

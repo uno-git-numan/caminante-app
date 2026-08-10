@@ -34,6 +34,20 @@ document.addEventListener('click',function(e){
   var on=body.classList.toggle('on');
   h.classList.toggle('open',on);
 });
+// Llegar con #id abre ese expandible: si no, un link de otra pantalla
+// (p.ej. Eventos -> Encuesta) aterriza en una tarjeta cerrada.
+function abrirHash(){
+  var id=(location.hash||'').slice(1);
+  if(!id) return;
+  var body=document.getElementById(id);
+  if(!body||!body.classList.contains('xbody')) return;
+  body.classList.add('on');
+  var h=document.querySelector('[data-x="'+id+'"]');
+  if(h) h.classList.add('open');
+  body.scrollIntoView({block:'center'});
+}
+window.addEventListener('hashchange',abrirHash);
+abrirHash();
 `;
 
 export type AdminSection =
