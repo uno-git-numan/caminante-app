@@ -1152,7 +1152,10 @@ export type EncuestaAdmin = {
 type FbFullRow = {
   id: string;
   experience_id: string;
-  reservation_id: string;
+  // Desde la 0031 una encuesta puede NO tener reserva (link abierto del grupo)
+  // y traer su salida directa.
+  reservation_id: string | null;
+  slot_id: string | null;
   contact_id: string;
   location_label: string | null;
   token: string;
@@ -1285,7 +1288,7 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
           fechaIso: f.submitted_at || "",
           textos,
           salidaLabel: (() => {
-            const sid = f.slot_id ?? slotByResv.get(f.reservation_id);
+            const sid = f.slot_id ?? (f.reservation_id ? slotByResv.get(f.reservation_id) : null);
             return (sid && labelBySlot.get(sid)) || "";
           })(),
           via: f.reservation_id ? "correo" : "grupo",
@@ -1300,7 +1303,7 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
         // La salida sale de la ENCUESTA (0031) y solo si no, de la reserva: las
         // respuestas del link de grupo no tienen reserva — un acompañante no
         // compró — y antes se quedaban sin salida (caso Alexandra, 8 ago 2026).
-        const slotId = f.slot_id ?? slotByResv.get(f.reservation_id);
+        const slotId = f.slot_id ?? (f.reservation_id ? slotByResv.get(f.reservation_id) : null);
         return {
           id: f.id,
           nombre: quien?.full_name || quien?.email || "—",
