@@ -17,7 +17,8 @@
 //     se cuenta sumando `num_people` de las reservas que apartan.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { experienceTitle, formatFechaCorta, HOLDING_STATUSES } from "@/lib/admin/queries";
+import { experienceTitle, formatFechaCorta } from "@/lib/admin/queries";
+import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 
 const IVA = 0.16;
