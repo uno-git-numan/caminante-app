@@ -144,6 +144,10 @@ function Cascada({ s }: { s: SalidaRentabilidad }) {
             <div className="d">
               {s.costos.length} {s.costos.length === 1 ? "línea" : "líneas"} · fijos {mx(s.costosFijos)} · variables{" "}
               {mx(s.costosVariables)}
+              {/* Un número que sube solo tiene que explicarse, o parece error. */}
+              {s.bufferLiberado > 0
+                ? ` · buffer liberado ${mx(s.bufferLiberado)}: la salida ya se fue sin imprevistos`
+                : ""}
             </div>
           </div>
           <div className="n neg">−{mx(s.proveedoresConIva)}</div>

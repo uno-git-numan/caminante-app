@@ -22,7 +22,7 @@
 import Link from "next/link";
 import { formatMXN, type LedgerLinea, type PayoutOperador } from "@/lib/admin/queries";
 import type { SalidaRentabilidad } from "@/lib/admin/rentabilidad";
-import { Fila, mx } from "./ui";
+import { mx } from "./ui";
 
 /** Agrupa las salidas por experiencia. */
 function porExperiencia(salidas: SalidaRentabilidad[]) {
@@ -38,26 +38,10 @@ function porExperiencia(salidas: SalidaRentabilidad[]) {
   }));
 }
 
-const Cabeza = () => (
-  <div className="row row--head">
-    <div className="c-name">Experiencia</div>
-    <div>Llenado</div>
-    <div className="r">Ingreso</div>
-    <div className="r">IVA</div>
-    <div className="r">Stripe</div>
-    <div className="r">Proveedores</div>
-    <div className="r">Utilidad</div>
-    <div></div>
-  </div>
-);
-
-const Vacias = ({ n }: { n: number }) => (
-  <>
-    {Array.from({ length: n }, (_, i) => (
-      <div key={i}></div>
-    ))}
-  </>
-);
+// Estas dos secciones NO llevan las columnas de la escalera (llenado, IVA,
+// Stripe, proveedores, utilidad): aquí la pregunta es «quién pagó qué» y «a
+// quién se le paga», no la rentabilidad — esa ya vive arriba, en «Fechas y
+// equilibrio». Con `.ladder--simple` la fila es nombre · monto · chevron.
 
 // ── INGRESOS ─────────────────────────────────────────────────────────────
 
@@ -81,8 +65,7 @@ export function Ingresos({
           </span>
         </div>
         <div className="scroller">
-          <div className="ladder">
-            <Cabeza />
+          <div className="ladder ladder--simple">
             {grupos.map((g) => (
               <details key={g.nombre}>
                 <summary className="row row--mes" style={{ ["--depth" as string]: 0 }}>
@@ -93,16 +76,22 @@ export function Ingresos({
                       {g.pagos === 1 ? "pago" : "pagos"}
                     </div>
                   </div>
-                  <div></div>
                   <div className="money">{mx(g.ingreso)}</div>
-                  <Vacias n={4} />
                   <span className="chev2">▼</span>
                 </summary>
 
                 {g.ss.map((s) => (
                   <details key={s.slotId}>
                     <summary className="row row--sal" style={{ ["--depth" as string]: 1 }}>
-                      <Fila s={s} />
+                      <div className="c-name">
+                        <div className="sal-lbl">{s.salidaLabel}</div>
+                        <div className="sub">
+                          {s.pagos.length} {s.pagos.length === 1 ? "pago" : "pagos"} · {s.vendidos}{" "}
+                          {s.vendidos === 1 ? "persona" : "personas"}
+                        </div>
+                      </div>
+                      <div className="money">{mx(s.ingreso)}</div>
+                      <span className="chev2">▼</span>
                     </summary>
                     <div className="drawer">
                       <Link className="btn btn-glass btn-sm" href={`/caminante/admin/roster/${s.slotId}`}>
@@ -206,7 +195,7 @@ export function Ingresos({
           </span>
         </div>
         <div className="scroller">
-          <div className="ladder">
+          <div className="ladder ladder--simple">
             {payouts.map((p) => (
               <details key={p.operador}>
                 <summary className="row row--mes" style={{ ["--depth" as string]: 0 }}>
@@ -214,9 +203,7 @@ export function Ingresos({
                     <div className="mes-lbl">{p.operador}</div>
                     <div className="sub">{p.email}</div>
                   </div>
-                  <div></div>
                   <div className="money">{formatMXN(p.bruto)}</div>
-                  <Vacias n={3} />
                   {/* Nunca se inventa un neto: sin el % congelado se dice, en
                       vez de proponer que se deposite el 100% del bruto. */}
                   <div className="money money--util">
@@ -346,8 +333,7 @@ export function Egresos({ salidas }: { salidas: SalidaRentabilidad[] }) {
         </span>
       </div>
       <div className="scroller">
-        <div className="ladder">
-          <Cabeza />
+        <div className="ladder ladder--simple">
           {grupos.map((g) => (
             <details key={g.nombre}>
               <summary className="row row--mes" style={{ ["--depth" as string]: 0 }}>
@@ -358,16 +344,23 @@ export function Egresos({ salidas }: { salidas: SalidaRentabilidad[] }) {
                     {g.lineas === 1 ? "línea de costo" : "líneas de costo"}
                   </div>
                 </div>
-                <Vacias n={4} />
                 <div className="money neg">−{mx(g.costos)}</div>
-                <div></div>
                 <span className="chev2">▼</span>
               </summary>
 
               {g.ss.map((s) => (
                 <details key={s.slotId}>
                   <summary className="row row--sal" style={{ ["--depth" as string]: 1 }}>
-                    <Fila s={s} />
+                    <div className="c-name">
+                      <div className="sal-lbl">{s.salidaLabel}</div>
+                      <div className="sub">
+                        {s.costos.length} {s.costos.length === 1 ? "línea" : "líneas"} · fijos{" "}
+                        {mx(s.costosFijos)} · variables {mx(s.costosVariables)}
+                        {s.bufferLiberado > 0 ? ` · buffer liberado ${mx(s.bufferLiberado)}` : ""}
+                      </div>
+                    </div>
+                    <div className="money neg">−{mx(s.proveedoresConIva)}</div>
+                    <span className="chev2">▼</span>
                   </summary>
                   <div className="drawer">
                     <div className="cascade">

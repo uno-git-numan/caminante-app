@@ -5,6 +5,8 @@
 
 import AppShell from "./AppShell";
 import Panorama, { type PanoramaData } from "./Panorama";
+import Recursos from "./Recursos";
+import type { RecursosMovil } from "@/lib/admin/movil-datos";
 import { Empty } from "./kit";
 
 // Fases pendientes: en vez de una pestaña muerta, la pantalla dice qué falta y
@@ -31,14 +33,20 @@ function EnCamino({ que, ruta }: { que: string; ruta: string }) {
   );
 }
 
-export default function MovilApp({ panorama }: { panorama: PanoramaData }) {
+export default function MovilApp({
+  panorama,
+  recursos,
+}: {
+  panorama: PanoramaData;
+  recursos: RecursosMovil;
+}) {
   return (
     <AppShell
       roots={{
         panorama: ({ nav, ui }) => <Panorama d={panorama} nav={nav} ui={ui} />,
         eventos: () => <EnCamino que="Eventos" ruta="/caminante/admin/eventos" />,
         gente: () => <EnCamino que="Gente" ruta="/caminante/admin/reservas" />,
-        dinero: () => <EnCamino que="Dinero" ruta="/caminante/admin/dinero" />,
+        recursos: () => <Recursos d={recursos} />,
         mas: () => <EnCamino que="Más" ruta="/caminante/admin" />,
       }}
       screens={{

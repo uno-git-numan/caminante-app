@@ -206,7 +206,9 @@ export const TabIcon: Record<string, ReactNode> = {
       <path d="M16.5 14.2c1.6.5 2.6 1.7 3 3.3" strokeWidth="1.75" strokeLinecap="round" />
     </svg>
   ),
-  dinero: (
+  // La llave siguió al nombre de la pestaña (dinero → recursos); el ícono
+  // del entregable no cambia.
+  recursos: (
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
       <circle cx="11" cy="11" r="8.25" strokeWidth="1.75" />
       <path

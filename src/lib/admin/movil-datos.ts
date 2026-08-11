@@ -4,7 +4,8 @@
 // verdad de los mismos números. Si el panel de escritorio y el teléfono
 // discreparan en una cifra, el bug sería imposible de explicar.
 
-import { fetchAdminOverview, formatFechaCorta } from "@/lib/admin/queries";
+import { fetchAdminOverview, fetchDinero, formatFechaCorta } from "@/lib/admin/queries";
+import { fetchRentabilidad } from "@/lib/admin/rentabilidad";
 import type { PanoramaData } from "@/app/caminante/admin/m/ui/Panorama";
 
 const CDMX = "America/Mexico_City";
@@ -82,5 +83,95 @@ export async function fetchPanoramaMovil(): Promise<PanoramaData> {
     },
     hoy,
     pendienteCobro,
+  };
+}
+
+// ── RECURSOS (la pestaña de dinero en el teléfono) ───────────────────────
+//
+// La pestaña se llamaba «Dinero» y ahora es «Recursos», igual que en el panel
+// de escritorio (Luis, 11 ago): es la misma pregunta —qué entra y qué sale— y
+// tener dos nombres para lo mismo confunde.
+//
+// Reusa `fetchRentabilidad`, la MISMA fuente del escritorio. Si el teléfono y
+// la computadora discreparan en una cifra, el bug sería imposible de explicar.
+
+export type RecursosMovil = {
+  mesLabel: string;
+  ingresosMes: number;
+  historico: number;
+  pendiente: number;
+  pendienteN: number;
+  enRiesgo: { nombre: string; salida: string; faltan: number; utilidad: number } | null;
+  experiencias: {
+    nombre: string;
+    ingreso: number;
+    egreso: number;
+    utilidad: number | null; // null = sin costear, no se inventa
+    salidas: {
+      slotId: string;
+      label: string;
+      ingreso: number;
+      egreso: number;
+      pagos: number;
+      vendidos: number;
+      cupo: number | null;
+    }[];
+  }[];
+};
+
+export async function fetchRecursosMovil(): Promise<RecursosMovil> {
+  const [salidas, dinero] = await Promise.all([fetchRentabilidad(), fetchDinero()]);
+
+  const m = new Map<string, typeof salidas>();
+  for (const s of salidas) m.set(s.experienciaNombre, [...(m.get(s.experienciaNombre) || []), s]);
+
+  const experiencias = [...m.entries()]
+    .map(([nombre, ss]) => ({
+      nombre,
+      ingreso: ss.reduce((a, s) => a + s.ingreso, 0),
+      egreso: ss.reduce((a, s) => a + s.proveedoresConIva, 0),
+      // Sin costos no hay utilidad que enseñar: se dice, no se pone cero.
+      utilidad: ss.some((s) => s.sinCostos) ? null : ss.reduce((a, s) => a + s.utilidad, 0),
+      salidas: [...ss]
+        .sort((a, b) => (b.startsAt || "").localeCompare(a.startsAt || ""))
+        .map((s) => ({
+          slotId: s.slotId,
+          label: s.salidaLabel,
+          ingreso: s.ingreso,
+          egreso: s.proveedoresConIva,
+          pagos: s.pagos.length,
+          vendidos: s.vendidos,
+          cupo: s.cupo,
+        })),
+    }))
+    .sort((a, b) => b.ingreso - a.ingreso);
+
+  // La salida más urgente: la que va abajo de su equilibrio y aún no se va.
+  const hoy = diaCdmx(new Date());
+  const riesgo = salidas
+    .filter(
+      (s) =>
+        s.startsAt &&
+        diaCdmx(s.startsAt) >= hoy &&
+        s.equilibrio != null &&
+        s.vendidos < s.equilibrio,
+    )
+    .sort((a, b) => (a.startsAt || "").localeCompare(b.startsAt || ""))[0];
+
+  return {
+    mesLabel: dinero.mesLabel,
+    ingresosMes: dinero.ingresosMes,
+    historico: dinero.ingresosTotal,
+    pendiente: dinero.pendiente,
+    pendienteN: dinero.pendienteN,
+    enRiesgo: riesgo
+      ? {
+          nombre: riesgo.experienciaNombre,
+          salida: riesgo.salidaLabel,
+          faltan: (riesgo.equilibrio || 0) - riesgo.vendidos,
+          utilidad: riesgo.utilidad,
+        }
+      : null,
+    experiencias,
   };
 }

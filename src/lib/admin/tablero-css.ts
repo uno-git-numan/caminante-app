@@ -52,4 +52,16 @@ export const FIN_EXTRA_CSS = `
 .fin .pgf .ancho{grid-column:1/-1;}
 .fin .actrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
 .fin .seg{display:flex;gap:8px;}
+
+/* Los KPIs, del mismo tamaño que los de Panorama (Luis, 11 ago). El entregable
+   los baja a 26px al final de la hoja; Panorama usa 32px y las dos secciones se
+   ven una junto a la otra. Misma familia (mono) y mismo peso (300) ya tenían. */
+.fin .kpi .k-val{font-size:32px;}
+
+/* Ingresos y Egresos NO usan las columnas de la escalera (llenado, IVA, Stripe,
+   proveedores, utilidad): ahí la pregunta es quién pagó qué y a quién se le
+   paga, no la rentabilidad — esa ya vive arriba. Tres columnas: nombre, monto y
+   el chevron. */
+.fin .ladder--simple .row{grid-template-columns:1fr auto 26px;}
+.fin .ladder--simple .row .money{text-align:right;}
 `;

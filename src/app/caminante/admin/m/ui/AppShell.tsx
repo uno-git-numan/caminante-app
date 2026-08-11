@@ -57,7 +57,9 @@ const TABS: [string, string][] = [
   ["panorama", "Panorama"],
   ["eventos", "Eventos"],
   ["gente", "Gente"],
-  ["dinero", "Dinero"],
+  // «Dinero» pasó a «Recursos», igual que en el panel de escritorio: es la
+  // misma pregunta —qué entra y qué sale— y dos nombres para lo mismo confunden.
+  ["recursos", "Recursos"],
   ["mas", "Más"],
 ];
 
@@ -173,7 +175,14 @@ export default function AppShell({
   };
 
   const top = stack[stack.length - 1];
-  const render = top ? screens[top.id] : roots[tab];
+  // ⚠️ Se montan como COMPONENTES (<Pantalla .../>), no llamando la función
+  // (`Pantalla({...})`). Llamarla mete su cuerpo en el render de AppShell: sus
+  // hooks pasarían a contar como hooks de este componente y al cambiar de
+  // pestaña —que cambia cuántos se ejecutan— React truena con "rendered fewer
+  // hooks than expected". Hoy ninguna pantalla usa hooks y por eso no ha
+  // fallado; la primera que los use lo haría, y el error apuntaría aquí, no a
+  // ella. Es también lo que marcaba el lint de React.
+  const Pantalla = top ? screens[top.id] : roots[tab];
   const Sheet = sheet ? sheets[sheet.id] : null;
   const Dialog = dialog ? dialogs[dialog.id] : null;
 
@@ -185,7 +194,7 @@ export default function AppShell({
     <div className="adm-app">
       <Status hora={hora} warnTxt={top && top.id === "roster" ? "SIN SEÑAL" : null} />
       <div className={"adm-scroll" + (top ? " nopad" : "")} ref={scrollRef} key={tab + "/" + stack.length}>
-        {render ? render({ nav, ui, params: top ? top.params : {} }) : null}
+        {Pantalla ? <Pantalla nav={nav} ui={ui} params={top ? top.params : {}} /> : null}
       </div>
       {!top && (
         <nav className="adm-tabbar">
@@ -212,8 +221,12 @@ export default function AppShell({
           }}
         ></div>
       )}
-      {Sheet ? Sheet({ nav, ui, params: sheet!.params }) : null}
-      {Dialog ? <div className="adm-dlg-wrap">{Dialog({ nav, ui, params: dialog!.params })}</div> : null}
+      {Sheet ? <Sheet nav={nav} ui={ui} params={sheet!.params} /> : null}
+      {Dialog ? (
+        <div className="adm-dlg-wrap">
+          <Dialog nav={nav} ui={ui} params={dialog!.params} />
+        </div>
+      ) : null}
       {toast && (
         <div className="adm-toast">
           <span className="ok">✓</span>

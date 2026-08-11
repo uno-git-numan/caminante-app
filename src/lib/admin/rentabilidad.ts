@@ -12,12 +12,16 @@
 //   · Los montos de `experience_costs` son SIN IVA (así se sembraron). Para
 //     mostrar "lo que se pagó" hay que multiplicar por 1.16; para la utilidad
 //     se usan sin IVA, porque el IVA se acredita aparte.
-//   · El `buffer` cuenta como fijo para el equilibrio: hay que cubrirlo igual.
+//   · El `buffer` cuenta como fijo para el equilibrio: hay que cubrirlo igual
+//     MIENTRAS la salida no se haya ido. Cuando ya pasó y nadie capturó un
+//     costo después de la fecha, el buffer no se usó y se vuelve UTILIDAD
+//     (regla de Luis, 11 ago). Ver `bufferLiberado` abajo.
 //   · `seats_taken` NO se usa: está en 0 en las salidas self-serve. El llenado
 //     se cuenta sumando `num_people` de las reservas que apartan.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
+  cdmxDay,
   experienceTitle,
   formatDiaMes,
   formatFechaCorta,
@@ -70,6 +74,11 @@ export type SalidaRentabilidad = {
   costosIncompletos: boolean;
   /** No hay ni un costo cargado: no se puede hablar de utilidad. */
   sinCostos: boolean;
+  /**
+   * El buffer se liberó: la salida ya se fue y no se capturó ningún costo
+   * después de la fecha, así que ese colchón no se gastó y es ganancia.
+   */
+  bufferLiberado: number;
 
   /**
    * Los pagos de ESTA salida (pagados, reembolsados y pendientes).
@@ -93,7 +102,7 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
       .select(
         "reservation_id, contact_id, amount_mxn, status, method, paid_at, created_at, stripe_fee_mxn, stripe_fee_tax_mxn, refunded_mxn, referencia, comprobante_url",
       ),
-    sb.from("experience_costs").select("slot_id, concepto, tipo, monto_mxn, notas"),
+    sb.from("experience_costs").select("slot_id, concepto, tipo, monto_mxn, notas, created_at"),
   ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
     { id: string; experience_id: string; label: string | null; starts_at: string | null; capacity_total: number | null; price_mxn: number | null }[],
     { id: string; slug: string; data: Partial<Experience> | null }[],
@@ -112,7 +121,14 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
       referencia: string | null;
       comprobante_url: string | null;
     }[],
-    { slot_id: string | null; concepto: string; tipo: string; monto_mxn: number; notas: string | null }[],
+    {
+      slot_id: string | null;
+      concepto: string;
+      tipo: string;
+      monto_mxn: number;
+      notas: string | null;
+      created_at: string;
+    }[],
   ];
 
   const { data: contactRows } = await sb.from("contacts").select("id, full_name, email");
@@ -174,6 +190,7 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
   }
 
   const r2 = (n: number) => Math.round(n * 100) / 100;
+  const hoy = cdmxDay(new Date());
   const out: SalidaRentabilidad[] = [];
 
   for (const s of slots) {
@@ -192,6 +209,27 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
     const stripe = d?.stripe || 0;
     const stripeSinIva = d?.stripeSinIva || 0;
 
+    // ¿Se liberó el buffer? (regla de Luis, 11 ago, opción A)
+    //
+    // El buffer del 5% es un colchón para imprevistos. Mientras la salida no se
+    // ha ido hay que cubrirlo — cuenta como costo fijo y sube el equilibrio.
+    // Pero si la salida YA PASÓ y nadie capturó un costo después de la fecha,
+    // el imprevisto nunca ocurrió: ese dinero no salió y es utilidad.
+    //
+    // ⚠️ La señal es «nadie agregó un costo después de la salida». Es una
+    // inferencia, no un dato: si un imprevisto se captura ANTES de viajar o
+    // nunca se captura, el sistema no se entera. Luis lo eligió así a propósito
+    // («por ahora, hazlo con A») porque no quiere un paso más al cerrar; el día
+    // que haya un cierre explícito de salida, esto se reemplaza por el dato.
+    const yaSeFue = !!s.starts_at && cdmxDay(s.starts_at) < hoy;
+    const huboGastoDespues = cs.some(
+      (c) => s.starts_at && c.created_at && c.created_at > s.starts_at,
+    );
+    const liberaBuffer = yaSeFue && !huboGastoDespues;
+    const bufferLiberado = liberaBuffer
+      ? cs.filter((c) => c.tipo === "buffer").reduce((a, c) => a + Number(c.monto_mxn || 0), 0)
+      : 0;
+
     const lineas: CostoLinea[] = cs.map((c) => ({
       concepto: c.concepto,
       tipo: (c.tipo === "variable" || c.tipo === "buffer" ? c.tipo : "fijo") as CostoLinea["tipo"],
@@ -199,8 +237,10 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
       notas: c.notas,
       sinCotizar: Number(c.monto_mxn || 0) === 0,
     }));
-    const provSinIva = lineas.reduce((a, l) => a + l.montoSinIva, 0);
-    const fijos = lineas.filter((l) => l.tipo !== "variable").reduce((a, l) => a + l.montoSinIva, 0);
+    const provSinIva = lineas.reduce((a, l) => a + l.montoSinIva, 0) - bufferLiberado;
+    const fijos =
+      lineas.filter((l) => l.tipo !== "variable").reduce((a, l) => a + l.montoSinIva, 0) -
+      bufferLiberado;
     const variables = lineas.filter((l) => l.tipo === "variable").reduce((a, l) => a + l.montoSinIva, 0);
 
     // IVA: se traslada sobre el ingreso y se acredita sobre lo que se pagó con
@@ -243,6 +283,7 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
       costos: lineas,
       costosFijos: r2(fijos),
       costosVariables: r2(variables),
+      bufferLiberado: r2(bufferLiberado),
       costosIncompletos: lineas.some((l) => l.sinCotizar),
       sinCostos: lineas.length === 0,
       pagos: pagosBySlot.get(s.id) || [],
