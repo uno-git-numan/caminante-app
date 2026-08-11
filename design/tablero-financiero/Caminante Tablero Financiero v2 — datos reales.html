@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dinero · Admin — Caminante</title>
+<style>
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-Italic-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:italic;font-display:swap;}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/GeistMono-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+:root{
+  --cream:#fbfbf7;--charcoal:#20211c;--lagoon:#1c6f6a;--forest:#20392b;
+  --olive:#637154;--olive-d:#4f5d44;--sand:#b6ada5;--dune:#c9b79c;--salvia:#d6d8c7;--orange:#ff5d36;
+  --panel:#f1eee7;--bg:#eceae3;--line:rgba(32,33,28,.13);--ink-soft:rgba(32,33,28,.6);
+  --r:16px;--eb:.2em;--shadow:0 12px 34px -22px rgba(32,33,28,.42);
+  --mono:"Geist Mono",ui-monospace,monospace;
+  --neg:#ff5d36;--negbg:rgba(255,93,54,.08);
+  --cols:minmax(210px,1.7fr) 140px repeat(5,minmax(96px,.9fr)) 36px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Geist",system-ui,sans-serif;color:var(--charcoal);background:var(--bg);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+button{font-family:inherit;cursor:pointer;}
+a{color:var(--charcoal);text-decoration:none;}
+.mono{font-family:var(--mono);}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;display:inline-flex;align-items:center;gap:.5em;line-height:1;color:var(--olive);}
+.eyebrow .sl{color:var(--orange);font-weight:700;}
+.display{font-weight:200;letter-spacing:-.02em;line-height:1.05;}
+em.ac{font-style:italic;color:var(--orange);font-weight:300;}
+:where(summary,a,button):focus-visible{outline:2px solid var(--olive);outline-offset:3px;border-radius:8px;}
+
+/* ===== SHELL ===== */
+.ahead{position:sticky;top:0;z-index:50;background:rgba(251,251,247,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+.ahead .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 22px;}
+.ahead .brand{display:flex;align-items:center;gap:13px;}
+.ahead .logo{height:25px;}.ahead .logo svg{height:100%;width:auto;display:block;}
+.ahead .logo .g1{fill:var(--olive);}.ahead .logo .g2{fill:var(--sand);}.ahead .logo .g3{fill:var(--orange);}
+.ahead .mode{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);border-left:1px solid var(--line);padding-left:13px;}
+.qa{display:flex;gap:10px;}
+.nav{display:flex;gap:7px;padding:0 22px 12px;overflow-x:auto;}
+.nav a{flex:0 0 auto;font-size:13.5px;font-weight:500;color:var(--ink-soft);padding:8px 15px;border-radius:999px;border:1px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav a:hover{color:var(--charcoal);background:var(--panel);}
+.nav a.on{background:var(--forest);color:#fff;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:40px;padding:0 17px;border-radius:999px;font-size:13.5px;font-weight:500;border:1px solid transparent;transition:background .18s,transform .1s,color .18s,border-color .18s;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-glass{background:rgba(255,255,255,.55);color:var(--olive);border-color:rgba(99,113,84,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.btn-glass:hover{background:rgba(255,255,255,.85);}
+.btn-sm{min-height:33px;padding:0 12px;font-size:12.5px;}
+
+/* ===== LAYOUT ===== */
+.page{max-width:1200px;margin:0 auto;padding:26px 22px 90px;}
+.phead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;}
+.phead h1{font-size:clamp(30px,4.6vw,44px);margin-top:10px;}
+.phead .note{font-size:13.5px;color:var(--ink-soft);padding-bottom:6px;}
+.phead .note b{color:var(--charcoal);font-weight:600;}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);}
+.pad{padding:20px 22px;}
+.sec{margin-bottom:26px;}
+.card-lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;}
+.card-lbl .m{color:var(--ink-soft);font-weight:600;}
+.card-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:18px 22px 14px;}
+.card-desc{font-size:13px;color:var(--ink-soft);flex-basis:100%;max-width:78ch;}
+
+/* ===== ALERTA ===== */
+.alert{border-left:3px solid var(--neg);display:grid;grid-template-columns:auto 1fr;gap:8px 28px;padding:20px 22px;align-items:center;}
+.alert .a-top{grid-column:1/3;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.alert .a-t{font-size:15.5px;font-weight:600;line-height:1.35;}
+.alert .a-n{font-family:var(--mono);font-weight:300;font-size:clamp(30px,6vw,40px);color:var(--neg);line-height:1.05;letter-spacing:-.02em;}
+.alert .a-g{font-size:11.5px;color:var(--ink-soft);max-width:20ch;line-height:1.35;margin-top:2px;}
+.alert .a-body{font-size:13.5px;color:var(--ink-soft);line-height:1.6;}
+.alert .a-body b{color:var(--charcoal);font-weight:600;}
+@media(max-width:560px){.alert{grid-template-columns:1fr;}.alert .a-top{grid-column:1;}}
+
+/* ===== KPI ===== */
+.kpis{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-bottom:26px;}
+@media(min-width:1000px){.kpis{grid-template-columns:repeat(4,1fr);}}
+.kpi{padding:20px 20px 18px;border-radius:var(--r);}
+.kpi .k-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;justify-content:space-between;}
+.kpi .k-lbl:after{content:"▾";color:var(--sand);font-size:9px;}
+.kpi .k-val{font-family:var(--mono);font-weight:300;font-size:32px;letter-spacing:-.02em;margin:10px 0 2px;}
+.kpi .k-sub{font-size:12.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
+.kpi .k-sub b{color:var(--charcoal);font-weight:600;}
+.k-neg{color:var(--neg);}.k-pos{color:var(--olive-d);}.k-tot{color:var(--orange);}
+@media(max-width:640px){.kpi .k-val{font-size:26px;}}
+
+/* ===== ESCALERA ===== */
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:11.5px;color:var(--ink-soft);margin-left:auto;}
+.legend i{font-style:normal;display:inline-flex;align-items:center;gap:6px;}
+.ldot{width:8px;height:8px;border-radius:999px;display:inline-block;}
+.scroller{overflow-x:auto;border-top:1px solid var(--line);border-radius:0 0 var(--r) var(--r);-webkit-overflow-scrolling:touch;}
+.ladder{min-width:980px;background:#fff;}
+.row{display:grid;grid-template-columns:var(--cols);align-items:center;list-style:none;}
+.row::-webkit-details-marker{display:none;}
+.row>*{padding:0 12px;min-width:0;}
+.c-name{position:sticky;left:0;z-index:2;background:var(--row-bg,#fff);padding-left:calc(22px + var(--depth,0)*18px)!important;padding-right:14px!important;}
+.row--head{--row-bg:var(--cream);background:var(--cream);position:sticky;top:0;z-index:4;height:40px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;border-bottom:1px solid var(--line);}
+.row--head .c-name{z-index:5;}
+.row--head .r{text-align:right;}
+.row--mes,.row--sal{--row-bg:#fff;background:var(--row-bg);cursor:pointer;min-height:62px;border-bottom:1px solid var(--line);transition:background .12s;-webkit-tap-highlight-color:transparent;}
+.row--mes:hover,.row--sal:hover{--row-bg:var(--panel);}
+.row--sal.is-idle{--row-bg:var(--panel);}
+.row--total{--row-bg:#fff;background:var(--row-bg);min-height:66px;border-top:2px solid var(--orange);}
+.mes-lbl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;}
+.sal-lbl{font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;text-decoration-color:rgba(32,33,28,.35);}
+.row--sal:hover .sal-lbl{text-decoration-color:var(--orange);}
+.sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tot-lbl{font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);font-weight:700;}
+.money{font-family:var(--mono);font-size:13px;text-align:right;color:var(--ink-soft);white-space:nowrap;}
+.money--util{font-size:14.5px;font-weight:600;color:var(--charcoal);}
+.pos{color:var(--olive-d);}.neg{color:var(--neg);}.zero{color:var(--sand);}
+.money.pos{color:var(--olive-d);}.money.neg{color:var(--neg);}.money.zero{color:var(--sand);}
+.row--total .money{color:var(--charcoal);}.row--total .money--util{font-size:16px;}
+.chev2{display:inline-block;color:var(--sand);font-size:10px;transition:transform .25s ease;justify-self:end;}
+details[open]>.row .chev2{transform:rotate(180deg);color:var(--olive);}
+
+/* barra de llenado */
+.prog2{display:flex;flex-direction:column;gap:6px;}
+.tk{position:relative;height:6px;border-radius:999px;background:var(--salvia);}
+.tk i{position:absolute;inset:0 auto 0 0;width:var(--pct);border-radius:999px;background:var(--olive);display:block;}
+.prog2.warn .tk i{background:var(--orange);}
+.tk .eq{position:absolute;top:-4px;left:var(--eq);width:2px;height:14px;border-radius:1px;background:var(--charcoal);opacity:.65;}
+.fr{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;color:var(--ink-soft);}
+.fr b{color:var(--charcoal);font-weight:600;}
+
+/* cajón / cascada */
+.drawer{background:var(--panel);border-bottom:1px solid var(--line);padding:16px 20px 20px 40px;display:flex;flex-direction:column;gap:13px;}
+.drawer .btn-glass{width:fit-content;}
+.drawer .btn-glass .arw{color:var(--orange);}
+.cascade{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;}
+.crow{display:grid;grid-template-columns:1fr 150px 28px;align-items:center;padding:11px 15px;list-style:none;cursor:pointer;border-bottom:1px solid var(--line);gap:10px;transition:background .12s;}
+.crow:hover{background:var(--panel);}
+.crow::-webkit-details-marker{display:none;}
+.crow .t{font-size:13px;font-weight:500;}
+.crow .d{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-top:1px;}
+.crow .n{font-family:var(--mono);text-align:right;font-size:13.5px;}
+.crow--util{background:var(--cream);cursor:default;border-bottom:0;border-top:2px solid var(--orange);}
+.crow--util .t{letter-spacing:.1em;text-transform:uppercase;color:var(--orange);font-weight:700;font-size:11.5px;}
+.crow--util .n{font-size:16px;font-weight:600;}
+.dtl{background:var(--cream);border-bottom:1px solid var(--line);padding:4px 15px 13px;}
+.dtl table{width:100%;border-collapse:collapse;background:transparent;font-size:12.5px;}
+.dtl th{text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:8px;border-bottom:1px solid var(--line);}
+.dtl th.right,.dtl td.right{text-align:right;}
+.dtl td{padding:8px;border-bottom:1px solid var(--line);color:var(--ink-soft);vertical-align:top;}
+.dtl tr:last-child td{border-bottom:0;}
+.dtl td.c{color:var(--charcoal);font-weight:500;}
+.dtl td.num{font-family:var(--mono);color:var(--charcoal);white-space:nowrap;}
+.notes{display:flex;flex-wrap:wrap;gap:8px;padding:8px 8px 0;}
+.empty{padding:16px;text-align:center;font-size:13px;color:var(--ink-soft);background:#fff;border:1px dashed var(--sand);border-radius:12px;}
+
+/* chips (mismos del panel) */
+.chip{display:inline-flex;align-items:center;gap:.4em;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+.c-paid{background:rgba(99,113,84,.16);color:var(--olive-d);}
+.c-sol{background:rgba(201,183,156,.3);color:var(--olive-d);}
+.c-full{background:rgba(255,93,54,.14);color:#e8431f;}
+.c-draft{background:var(--salvia);color:var(--olive-d);}
+.c-var{background:transparent;color:var(--ink-soft);border:1px solid var(--line);font-weight:500;}
+.c-info{background:transparent;color:var(--ink-soft);border:1px solid var(--sand);font-weight:500;}
+.chip-sm{font-size:10.5px;padding:3px 9px;}
+
+/* mini KPI dentro de tarjeta */
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:0 22px 16px;}
+.mini>div{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:13px 15px;}
+.mini .l{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;}
+.mini .v{font-family:var(--mono);font-weight:300;font-size:24px;letter-spacing:-.02em;margin:6px 0 2px;}
+.mini .g{font-size:11.5px;color:var(--ink-soft);line-height:1.4;}
+
+/* tablas de análisis (mismas del panel) */
+.tbl-wrap{overflow-x:auto;border-radius:0 0 var(--r) var(--r);border-top:1px solid var(--line);}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px;background:#fff;min-width:840px;}
+.tbl thead th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:12px 15px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--cream);}
+.tbl tbody td{padding:12px 15px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+.tbl tbody tr{transition:background .12s;}
+.tbl tbody tr:hover{background:var(--panel);}
+.tbl tbody tr:last-child td{border-bottom:0;}
+.tbl td.num,.tbl th.num{font-family:var(--mono);}
+.tbl td.right,.tbl th.right{text-align:right;}
+.tbl td.c{font-weight:500;}
+.tbl tr.is-group td{background:var(--cream);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;}
+.tbl tr.is-group:hover td{background:var(--cream);}
+.tbl tr.is-crit td{background:var(--negbg);}
+.tbl tr.is-cliff td{background:var(--negbg);border-bottom:2px solid var(--neg);}
+.tbl tr.is-cliff td:first-child{box-shadow:inset 3px 0 0 var(--neg);}
+.tbl tr.is-best td{background:rgba(99,113,84,.1);}
+.tbl tr.is-best td:first-child{box-shadow:inset 3px 0 0 var(--olive);}
+.flag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--neg);font-weight:700;margin-left:8px;}
+.flag--ok{color:var(--olive-d);}
+
+/* pendientes */
+.todo{padding:4px 22px 20px;}
+.todo ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px;font-size:13px;color:var(--ink-soft);}
+.todo li::marker{font-family:var(--mono);color:var(--olive);font-weight:600;}
+.todo li b{color:var(--charcoal);font-weight:600;}
+details.card>summary{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+details.card>summary::-webkit-details-marker{display:none;}
+details.card>summary .chev2{margin-left:auto;align-self:center;}
+details.card[open]>summary .chev2{transform:rotate(180deg);color:var(--olive);}
+.sum-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+.foot{margin-top:8px;display:flex;flex-direction:column;gap:5px;}
+.foot p{font-family:var(--mono);font-size:10.5px;line-height:1.7;color:var(--ink-soft);letter-spacing:.02em;}
+
+@media(max-width:900px){
+.page{padding:20px 14px 70px;}
+.c-name{box-shadow:8px 0 8px -8px rgba(32,33,28,.2);}
+.drawer{padding-left:22px;}
+}
+@media(max-width:520px){
+:root{--cols:minmax(176px,1.6fr) 122px repeat(5,minmax(90px,.9fr)) 30px;}
+.ladder{min-width:900px;}
+.crow{grid-template-columns:1fr 120px 24px;}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important;}}
+</style>
+</head>
+<body>
+
+<!-- ===== SHELL ===== -->
+<header class="ahead">
+  <div class="top">
+    <div class="brand"><span class="logo" data-mark aria-label="Caminante"></span><span class="mode">Modo admin</span></div>
+    <div class="qa"><button class="btn btn-glass btn-sm">Exportar corte</button></div>
+  </div>
+  <nav class="nav">
+    <a href="Caminante Admin - Dashboard copy.html#panorama">Panorama</a>
+    <a href="Caminante Admin - Dashboard copy.html#eventos">Eventos</a>
+    <a href="Caminante Admin - Dashboard copy.html#reservas">Reservas</a>
+    <a href="Caminante Admin - Dashboard copy.html#roster">Personas</a>
+    <a href="#" class="on">Dinero</a>
+    <a href="Caminante Admin - Dashboard copy.html#encuesta">Encuesta</a>
+  </nav>
+</header>
+
+<div class="page">
+
+<header class="phead">
+<div>
+<span class="eyebrow"><span class="sl">//</span> Dinero · corte 25 jul 2026</span>
+<h1 class="display">Fechas, proveedores, <em class="ac">y equilibrio.</em></h1>
+</div>
+<p class="note">todos los montos incluyen IVA · <b>toca cualquier fila para desarrollarla</b></p>
+</header>
+
+<!-- alerta -->
+<section class="sec card alert">
+<div class="a-top"><span class="chip c-full chip-sm">ESTADO CRÍTICO</span><span class="a-t">Barrancas 8-oct: comprometido con Octavio por 8 pasajeros, 2 vendidos</span></div>
+<div><div class="a-n">−$32,092</div><div class="a-g">si la salida se va con lo vendido hoy</div></div>
+<p class="a-body">El viaje completo cuesta <b>$65,563.20</b> con IVA y ya pagaste $6,556.32 de bloqueo. Con 8 pasajeros llenos deja <b>+$36,044 (36.2%)</b>. Necesitas <b>3 clientes más</b> para dejar de perder y 5 para llenar.</p>
+</section>
+
+<!-- KPI -->
+<section class="kpis">
+<div class="card kpi"><div class="k-lbl">Ya ganado</div><div class="k-val k-pos">$1,400</div><div class="k-sub">julio cerrado · <b>dinero en la cuenta</b></div></div>
+<div class="card kpi"><div class="k-lbl">Posición de las 5 fechas</div><div class="k-val k-neg">−$47,797</div><div class="k-sub">si todo se queda como está hoy</div></div>
+<div class="card kpi"><div class="k-lbl">Si llenas las 4 abiertas</div><div class="k-val k-tot">$132,172</div><div class="k-sub">techo del trimestre a cupo lleno</div></div>
+<div class="card kpi"><div class="k-lbl">Gasto fijo del negocio</div><div class="k-val">$1,000</div><div class="k-sub">al mes, fuera de las salidas</div></div>
+</section>
+
+<!-- ===== ESCALERA ===== -->
+<section class="sec card">
+<div class="card-head">
+<span class="card-lbl">Fechas y equilibrio <span class="m">· toca una fila para el detalle</span></span>
+<div class="legend">
+<i><span class="ldot" style="background:var(--olive)"></span>arriba del equilibrio</i>
+<i><span class="ldot" style="background:var(--orange)"></span>abajo</i>
+<i><span style="display:inline-block;width:2px;height:11px;background:var(--charcoal);opacity:.65"></span>equilibrio</i>
+<i><span class="pos">+</span> a favor · <span class="neg">−</span> a cargo</i>
+</div>
+</div>
+<div class="scroller">
+<div class="ladder">
+
+<div class="row row--head">
+<div class="c-name">Experiencia</div>
+<div>Llenado</div>
+<div class="r">Ingreso</div>
+<div class="r">IVA</div>
+<div class="r">Stripe</div>
+<div class="r">Proveedores</div>
+<div class="r">Utilidad</div>
+<div></div>
+</div>
+
+<!-- ══ JULIO ══ -->
+<details>
+<summary class="row row--mes" style="--depth:0">
+<div class="c-name"><div class="mes-lbl">Julio 2026</div><div class="sub">1 salida · 17 personas</div></div>
+<div><div class="prog2"><div class="tk" style="--pct:94%;--eq:61%"><i></i><span class="eq"></span></div><div class="fr"><span><b>17</b>/18</span><span>eq. 11</span></div></div></div>
+<div class="money">$43,350</div>
+<div class="money neg">−$224</div>
+<div class="money neg">−$1,856</div>
+<div class="money neg">−$39,869</div>
+<div class="money money--util pos">+$1,400</div>
+<span class="chev2">▼</span>
+</summary>
+
+<details>
+<summary class="row row--sal" style="--depth:1">
+<div class="c-name"><div class="sal-lbl">Hongos · día de campo</div><div class="sub">26 jul · NANAE · cerrada</div></div>
+<div><div class="prog2"><div class="tk" style="--pct:94%;--eq:61%"><i></i><span class="eq"></span></div><div class="fr"><span><b>17</b>/18</span><span>eq. 11</span></div></div></div>
+<div class="money">$43,350</div>
+<div class="money neg">−$224</div>
+<div class="money neg">−$1,856</div>
+<div class="money neg">−$39,869</div>
+<div class="money money--util pos">+$1,400</div>
+<span class="chev2">▼</span>
+</summary>
+<div class="drawer">
+<a class="btn btn-glass btn-sm" href="https://docs.google.com/spreadsheets/d/1r7H9gB7VvdanYmi41B5rE7qZjEATga5RVVPN0Tn4RGs/edit" target="_blank" rel="noopener">Abrir hoja de costeo de Hongos · día de campo <span class="arw">↗</span></a>
+<div class="cascade">
+
+<details>
+<summary class="crow">
+<div><div class="t">Ingreso cobrado</div><div class="d">17 lugares vendidos</div></div>
+<div class="n">$43,350.00</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Lugar individual</td><td class="num">17 × $2,550</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">$43,350.00</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">IVA neto al SAT</div><div class="d">trasladado − acreditable · a cargo</div></div>
+<div class="n neg">−$224.05</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">IVA trasladado</td><td class="num">$43,350 ÷ 1.16 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$5,979.31</td></tr>
+<tr><td class="c">IVA acreditable de proveedores y Stripe</td><td class="num">$35,970 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right pos">+$5,755.26</td></tr>
+</table>
+<div class="notes"><span class="chip c-paid chip-sm">CFDI de NANAE recibido · UUID 7B55E975</span><span class="chip c-full chip-sm">falta el XML para registrarlo en La Caja</span></div></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">Comisión Stripe</div><div class="d">3.6% + $3 por cargo, con IVA</div></div>
+<div class="n neg">−$1,856.42</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Comisión base · 9 cobros</td><td class="num">3.6% + $3 c/u</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$1,600.36</td></tr>
+<tr><td class="c">IVA sobre comisión</td><td class="num">$1,600.36 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$256.06</td></tr>
+</table>
+<div class="notes"><span class="chip c-info chip-sm">medido en la API de Stripe · uno de los 9 fue Amex de EE.UU. y pagó 4.1% + $3</span></div></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">Proveedores</div><div class="d">NANAE · gorras · IVA</div></div>
+<div class="n neg">−$39,869.20</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">NANAE · operación</td><td class="num">17 × $1,900</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$32,300.00</td></tr>
+<tr><td class="c">Gorras</td><td class="num">lote de 18</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right">−$2,070.00</td></tr>
+<tr><td class="c">IVA 16%</td><td class="num">$34,370 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$5,499.20</td></tr>
+</table>
+<div class="notes"><span class="chip c-info chip-sm">IVA acreditable</span><span class="chip c-sol chip-sm">verificar costo unitario de gorra</span></div></div>
+</details>
+
+<div class="crow crow--util">
+<div><div class="t">= Utilidad</div></div>
+<div class="n pos">$1,400.33</div><span></span>
+</div>
+</div>
+</div>
+</details>
+</details>
+
+<!-- ══ AGOSTO ══ -->
+<details>
+<summary class="row row--mes" style="--depth:0">
+<div class="c-name"><div class="mes-lbl">Agosto 2026</div><div class="sub">2 salidas · 10 personas</div></div>
+<div><div class="prog2 warn"><div class="tk" style="--pct:29%;--eq:62%"><i></i><span class="eq"></span></div><div class="fr"><span><b>10</b>/34</span><span>eq. 21</span></div></div></div>
+<div class="money">$70,250</div>
+<div class="money pos">+$2,737</div>
+<div class="money neg">−$2,958</div>
+<div class="money neg">−$87,135</div>
+<div class="money money--util neg">−$17,106</div>
+<span class="chev2">▼</span>
+</summary>
+
+<details>
+<summary class="row row--sal" style="--depth:1">
+<div class="c-name"><div class="sal-lbl">Hongos · día de campo</div><div class="sub">23 ago · NANAE</div></div>
+<div><div class="prog2 warn"><div class="tk" style="--pct:28%;--eq:61%"><i></i><span class="eq"></span></div><div class="fr"><span><b>5</b>/18</span><span>eq. 11</span></div></div></div>
+<div class="money">$12,750</div>
+<div class="money pos">+$168</div>
+<div class="money neg">−$546</div>
+<div class="money neg">−$13,421</div>
+<div class="money money--util neg">−$1,050</div>
+<span class="chev2">▼</span>
+</summary>
+<div class="drawer">
+<a class="btn btn-glass btn-sm" href="https://docs.google.com/spreadsheets/d/1r7H9gB7VvdanYmi41B5rE7qZjEATga5RVVPN0Tn4RGs/edit" target="_blank" rel="noopener">Abrir hoja de costeo de Hongos · día de campo <span class="arw">↗</span></a>
+<div class="cascade">
+
+<details>
+<summary class="crow">
+<div><div class="t">Ingreso cobrado</div><div class="d">5 lugares vendidos de 18</div></div>
+<div class="n">$12,750.00</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Lugar individual</td><td class="num">5 × $2,550</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">$12,750.00</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">IVA neto al SAT</div><div class="d">acreditable &gt; trasladado · a favor</div></div>
+<div class="n pos">+$168.28</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">IVA trasladado</td><td class="num">$12,750 ÷ 1.16 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$1,682.92</td></tr>
+<tr><td class="c">IVA acreditable de proveedores</td><td class="num">$11,570 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right pos">+$1,851.20</td></tr>
+</table>
+<div class="notes"><span class="chip c-info chip-sm">saldo a favor: se compensa en el mes</span></div></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">Comisión Stripe</div><div class="d">3.6% + $3 por cargo, con IVA</div></div>
+<div class="n neg">−$546.12</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Comisión variable</td><td class="num">$12,750 × 3.6%</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$459.00</td></tr>
+<tr><td class="c">Cuota fija por cargo</td><td class="num">5 × $3.00</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$15.00</td></tr>
+<tr><td class="c">IVA sobre comisión</td><td class="num">$474 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$75.84</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">Proveedores</div><div class="d">NANAE · gorras · IVA</div></div>
+<div class="n neg">−$13,421.20</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">NANAE · operación</td><td class="num">5 × $1,900</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$9,500.00</td></tr>
+<tr><td class="c">Gorras</td><td class="num">lote de 18</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right">−$2,070.00</td></tr>
+<tr><td class="c">IVA 16%</td><td class="num">$11,570 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$1,851.20</td></tr>
+</table>
+<div class="notes"><span class="chip c-full chip-sm">el lote de gorras es fijo: pesa 3× más con 5 personas que con 17</span></div></div>
+</details>
+
+<div class="crow crow--util">
+<div><div class="t">= Utilidad</div></div>
+<div class="n neg">−$1,049.04</div><span></span>
+</div>
+</div>
+</div>
+</details>
+
+<details>
+<summary class="row row--sal" style="--depth:1">
+<div class="c-name"><div class="sal-lbl">Volcanes</div><div class="sub">29 ago · Hacienda San Andrés, Amecameca · Kéntro 0%</div></div>
+<div><div class="prog2 warn"><div class="tk" style="--pct:31%;--eq:63%"><i></i><span class="eq"></span></div><div class="fr"><span><b>5</b>/16</span><span>eq. 10</span></div></div></div>
+<div class="money">$57,500</div>
+<div class="money pos">+$2,569</div>
+<div class="money neg">−$2,412</div>
+<div class="money neg">−$73,713</div>
+<div class="money money--util neg">−$16,056</div>
+<span class="chev2">▼</span>
+</summary>
+<div class="drawer">
+<a class="btn btn-glass btn-sm" href="https://docs.google.com/spreadsheets/d/1umLMS3xdbjm-k4jv5aZcdl7T8SXScz9LctQpg0wrCLA/edit" target="_blank" rel="noopener">Abrir hoja de costeo de Volcanes <span class="arw">↗</span></a>
+<div class="cascade">
+
+<details>
+<summary class="crow">
+<div><div class="t">Ingreso cobrado</div><div class="d">5 lugares vendidos de 16</div></div>
+<div class="n">$57,500.00</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Lugar individual</td><td class="num">5 × $11,500</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">$57,500.00</td></tr>
+</table>
+<div class="notes"><span class="chip c-info chip-sm">Kéntro cobra 0% de comisión</span></div></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">IVA neto al SAT</div><div class="d">acreditable &gt; trasladado · a favor</div></div>
+<div class="n pos">+$2,569.02</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">IVA trasladado</td><td class="num">$57,500 ÷ 1.16 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$7,931.03</td></tr>
+<tr><td class="c">IVA acreditable de proveedores y Stripe</td><td class="num">$65,625 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right pos">+$10,500.05</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">Comisión Stripe</div><div class="d">3.6% + $3 por cargo, con IVA</div></div>
+<div class="n neg">−$2,412.00</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Comisión base · 3 cobros</td><td class="num">3.6% + $3 c/u</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$2,079.31</td></tr>
+<tr><td class="c">IVA sobre comisión</td><td class="num">$2,079.31 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$332.69</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">Proveedores</div><div class="d">hospedaje · caminata · van · buffer · IVA</div></div>
+<div class="n neg">−$73,713.36</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Hospedaje clientes</td><td class="num">5 × $4,650</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$23,250.00</td></tr>
+<tr><td class="c">Hospedaje Luis + Concha</td><td class="num">2 × $4,650 compartida</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right">−$9,300.00</td></tr>
+<tr><td class="c">Hospedaje Mario</td><td class="num">1 × $6,900 sencilla</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right">−$6,900.00</td></tr>
+<tr><td class="c">Caminata guiada</td><td class="num">8 × $1,250</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$10,000.00</td></tr>
+<tr><td class="c">Van</td><td class="num">3 movimientos × $3,000</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right">−$9,000.00</td></tr>
+<tr><td class="c">Gorras · lote de 18</td><td class="num">18 × $115</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right">−$2,070.00</td></tr>
+<tr><td class="c">Buffer operativo</td><td class="num">5% sobre $60,520</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$3,026.00</td></tr>
+<tr><td class="c">IVA 16%</td><td class="num">$63,546 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$10,167.36</td></tr>
+</table>
+<div class="notes"><span class="chip c-full chip-sm">$32,571 fijos con buffer: se pagan con 5 o con 16 personas</span><span class="chip c-draft chip-sm">Mario es cortesía de Caminante: $6,900 de sencilla + $1,250 de caminata</span><span class="chip c-info chip-sm">Kéntro al 0%: la utilidad es toda de Caminante</span></div></div>
+</details>
+
+<div class="crow crow--util">
+<div><div class="t">= Utilidad</div></div>
+<div class="n neg">−$16,056.34</div><span></span>
+</div>
+</div>
+</div>
+</details>
+</details>
+
+<!-- ══ OCTUBRE ══ -->
+<details>
+<summary class="row row--mes" style="--depth:0">
+<div class="c-name"><div class="mes-lbl">Octubre 2026</div><div class="sub">2 salidas · 2 personas</div></div>
+<div><div class="prog2 warn"><div class="tk" style="--pct:8%;--eq:42%"><i></i><span class="eq"></span></div><div class="fr"><span><b>2</b>/24</span><span>eq. 10</span></div></div></div>
+<div class="money">$33,000</div>
+<div class="money pos">+$5,135</div>
+<div class="money neg">−$1,385</div>
+<div class="money neg">−$68,841</div>
+<div class="money money--util neg">−$32,092</div>
+<span class="chev2">▼</span>
+</summary>
+
+<details>
+<summary class="row row--sal" style="--depth:1">
+<div class="c-name"><div class="sal-lbl">Barrancas del Cobre</div><div class="sub">8–11 oct · Chihuahua · Octavio</div></div>
+<div><div class="prog2 warn"><div class="tk" style="--pct:17%;--eq:42%"><i></i><span class="eq"></span></div><div class="fr"><span><b>2</b>/12</span><span>eq. 5</span></div></div></div>
+<div class="money">$33,000</div>
+<div class="money pos">+$5,135</div>
+<div class="money neg">−$1,385</div>
+<div class="money neg">−$68,841</div>
+<div class="money money--util neg">−$32,092</div>
+<span class="chev2">▼</span>
+</summary>
+<div class="drawer">
+<a class="btn btn-glass btn-sm" href="https://docs.google.com/spreadsheets/d/1-dBtdp7qTtZgago-f-A6EStT-siDv3D5nvJjjq-IfZM/edit" target="_blank" rel="noopener">Abrir hoja de costeo de Barrancas del Cobre <span class="arw">↗</span></a>
+<div class="cascade">
+
+<details>
+<summary class="crow">
+<div><div class="t">Ingreso cobrado</div><div class="d">2 lugares vendidos de 12</div></div>
+<div class="n">$33,000.00</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Lugar individual</td><td class="num">2 × $16,500</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">$33,000.00</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">IVA neto al SAT</div><div class="d">acreditable &gt; trasladado · a favor</div></div>
+<div class="n pos">+$5,134.90</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">IVA trasladado</td><td class="num">$33,000 ÷ 1.16 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$4,551.72</td></tr>
+<tr><td class="c">IVA acreditable de proveedores</td><td class="num">$60,553 × .16</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right pos">+$9,686.62</td></tr>
+</table>
+<div class="notes"><span class="chip c-sol chip-sm">el saldo a favor solo sirve si hay ingreso contra qué acreditarlo</span></div></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">Comisión Stripe</div><div class="d">3.6% + $3 por cargo, con IVA</div></div>
+<div class="n neg">−$1,385.57</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Comisión variable</td><td class="num">$33,000 × 3.6%</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$1,188.00</td></tr>
+<tr><td class="c">Cuota fija por cargo</td><td class="num">2 × $3.00</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$6.00</td></tr>
+<tr><td class="c">IVA sobre comisión</td><td class="num">$1,194 × .16</td><td><span class="chip c-var chip-sm">variable</span></td><td class="num right">−$191.04</td></tr>
+</table></div>
+</details>
+
+<details>
+<summary class="crow">
+<div><div class="t">Proveedores</div><div class="d">Octavio · buffer 5%</div></div>
+<div class="n neg">−$68,841.36</div><span class="chev2">▼</span>
+</summary>
+<div class="dtl"><table>
+<tr><th>Concepto</th><th>Cálculo</th><th>Tipo</th><th class="right">Monto</th></tr>
+<tr><td class="c">Octavio · viaje completo</td><td class="num">$56,520 + IVA · 8 pax comprometidos</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right">−$65,563.20</td></tr>
+<tr><td class="c">Buffer operativo</td><td class="num">5% sobre $65,563.20</td><td><span class="chip c-draft chip-sm">fijo</span></td><td class="num right">−$3,278.16</td></tr>
+</table>
+<div class="notes"><span class="chip c-full chip-sm">100% fijo: el costo no baja si van 2 en vez de 8</span><span class="chip c-info chip-sm">bloqueo pagado $6,556.32 (10%)</span></div></div>
+</details>
+
+<div class="crow crow--util">
+<div><div class="t">= Utilidad</div></div>
+<div class="n neg">−$32,092.03</div><span></span>
+</div>
+</div>
+</div>
+</details>
+
+<details>
+<summary class="row row--sal is-idle" style="--depth:1">
+<div class="c-name"><div class="sal-lbl">Barrancas del Cobre</div><div class="sub">15–18 oct · segunda fecha</div></div>
+<div><div class="prog2 warn"><div class="tk" style="--pct:0%;--eq:42%"><i></i><span class="eq"></span></div><div class="fr"><span><b>0</b>/12</span><span>eq. 5</span></div></div></div>
+<div class="money zero">—</div>
+<div class="money zero">—</div>
+<div class="money zero">—</div>
+<div class="money zero">—</div>
+<div class="money money--util zero">$0</div>
+<span class="chev2">▼</span>
+</summary>
+<div class="drawer">
+<a class="btn btn-glass btn-sm" href="https://docs.google.com/spreadsheets/d/1-dBtdp7qTtZgago-f-A6EStT-siDv3D5nvJjjq-IfZM/edit" target="_blank" rel="noopener">Abrir hoja de costeo de Barrancas del Cobre · 2ª fecha <span class="arw">↗</span></a>
+<div class="empty">Sin ventas y sin bloqueo pagado. Todavía no compromete dinero — es la fecha que se puede soltar sin costo.</div>
+</div>
+</details>
+</details>
+
+<div class="row row--total">
+<div class="c-name" style="--depth:0"><div class="tot-lbl">Total · 5 fechas</div><div class="sub">29 personas</div></div>
+<div><div class="prog2 warn"><div class="tk" style="--pct:38%;--eq:55%"><i></i><span class="eq"></span></div><div class="fr"><span><b>29</b>/76</span><span>eq. 42</span></div></div></div>
+<div class="money">$146,600</div>
+<div class="money pos">+$7,648</div>
+<div class="money neg">−$6,200</div>
+<div class="money neg">−$195,845</div>
+<div class="money money--util neg">−$47,797</div>
+<span></span>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- ===== TESORERÍA (colapsable) ===== -->
+<details class="sec card">
+<summary class="card-head">
+<span class="card-lbl">Tesorería <span class="m">· calendario de pago a proveedores</span></span>
+<span class="sum-chips"><span class="chip c-paid chip-sm">pagado · $53,038</span><span class="chip c-sol chip-sm">por pagar · $63,415</span></span>
+<span class="chev2">▼</span>
+<span class="card-desc">Qué le debes a quién y cuándo. Solo Octavio tiene condiciones de pago negociadas; con los demás proveedores todavía no existen y aparecen como <b>por definir</b>. El renglón con fecha límite es dinero que sale aunque no vendas un lugar más.</span>
+</summary>
+<div class="tbl-wrap">
+<table class="tbl">
+<thead><tr><th>Proveedor · fecha</th><th>Etapa</th><th class="right">%</th><th class="right">Sin IVA</th><th class="right">Con IVA</th><th>Cuándo</th><th>Estado</th></tr></thead>
+<tbody>
+<tr class="is-group"><td colspan="7">NANAE · CFDI del 24 jul · 20 personas</td></tr>
+<tr><td class="c">NANAE · 17 personas del 26 jul</td><td class="mut">Pago en una sola exhibición</td><td class="num right">—</td><td class="num right">$32,300</td><td class="num right">$37,468</td><td class="num">24 jul 2026</td><td><span class="chip c-paid">pagado</span></td></tr>
+<tr><td class="c">NANAE · 3 personas anticipadas</td><td class="mut">Abonadas al 23 ago</td><td class="num right">—</td><td class="num right">$5,700</td><td class="num right">$6,612</td><td class="num">24 jul 2026</td><td><span class="chip c-paid">pagado</span></td></tr>
+<tr><td class="c">Gorras · lote de 18</td><td class="mut">Compra única</td><td class="num right">—</td><td class="num right">$2,070</td><td class="num right">$2,401</td><td class="num">jul 2026</td><td><span class="chip c-paid">pagado</span></td></tr>
+<tr class="is-group"><td colspan="7">NANAE · Hongos 23 ago</td></tr>
+<tr><td class="c">NANAE · 2 personas restantes</td><td class="mut">Sin condiciones negociadas</td><td class="num right">—</td><td class="num right">$3,800</td><td class="num right">$4,408</td><td class="num">antes del 23 ago</td><td><span class="chip c-sol">por definir</span></td></tr>
+<tr class="is-group"><td colspan="7">Volcanes · Amecameca · 29 ago</td></tr>
+<tr><td class="c">Hospedaje · 7 compartidas + 1 sencilla</td><td class="mut">Sin condiciones negociadas</td><td class="num right">—</td><td class="num right">$39,450</td><td class="num right">$45,762</td><td class="num">por definir</td><td><span class="chip c-draft">por definir</span></td></tr>
+<tr><td class="c">Caminata guiada · 8 personas</td><td class="mut">Sin condiciones negociadas</td><td class="num right">—</td><td class="num right">$10,000</td><td class="num right">$11,600</td><td class="num">por definir</td><td><span class="chip c-draft">por definir</span></td></tr>
+<tr><td class="c">Van · 3 movimientos</td><td class="mut">Sin condiciones negociadas</td><td class="num right">—</td><td class="num right">$9,000</td><td class="num right">$10,440</td><td class="num">por definir</td><td><span class="chip c-draft">por definir</span></td></tr>
+<tr class="is-group"><td colspan="7">Octavio · Barrancas 8–11 oct · 8 pax · valor $56,520 + IVA</td></tr>
+<tr><td class="c">Octavio</td><td class="mut">Bloqueo de fecha</td><td class="num right">10%</td><td class="num right">$5,652</td><td class="num right">$6,556</td><td class="num">25 jul 2026</td><td><span class="chip c-paid">pagado</span></td></tr>
+<tr><td class="c">Octavio</td><td class="mut">Anticipo</td><td class="num right">20%</td><td class="num right">$11,304</td><td class="num right">$13,113</td><td class="num">por definir</td><td><span class="chip c-sol">pendiente</span></td></tr>
+<tr><td class="c">Octavio</td><td class="mut">Liquidación · 1 semana antes</td><td class="num right">70%</td><td class="num right">$39,564</td><td class="num right">$45,894</td><td class="num">~1 oct 2026</td><td><span class="chip c-full">fecha límite</span></td></tr>
+<tr class="is-group"><td colspan="7">Octavio · Barrancas 15–18 oct · sin cerrar</td></tr>
+<tr><td class="c">Octavio</td><td class="mut">Bloqueo para conservar el 10% de descuento</td><td class="num right">10%</td><td class="num right">$5,652 / $7,403</td><td class="num right">$6,556 / $8,588</td><td class="num">viernes 31 jul</td><td><span class="chip c-full">fecha límite</span></td></tr>
+</tbody>
+</table>
+</div>
+</details>
+
+<footer class="foot">
+<p>FUENTES — Supabase: reservations, experience_slots y payments de la plataforma · API LIVE de Stripe: comisión medida cobro por cobro, no estimada · CFDI de NANAE del 24 jul (UUID 7B55E975-000B-4B0E-8D04-6C4CD5966B33) · Tarifario y condiciones de Octavio (Ecotravel México), verificados contra el depósito de $6,556.32 · Hojas de costeo vivas en Drive.</p>
+<p>NOTA — Ningún número de este tablero está estimado ni interpolado. Donde falta un dato dice «por definir». Las condiciones de pago solo existen negociadas con Octavio. El vuelo redondo CDMX–CUU de los operadores está pendiente de cotizar y aún no entra en el margen de Barrancas. Ensenada de Muertos queda fuera de este corte.</p>
+<p>CAMINANTE · NUMAN HUB S.A. DE C.V. · Documento interno.</p>
+</footer>
+
+</div>
+
+<script>
+const G1='<g class="g1"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+const G2='<g class="g2"><path d="M218.65,2.3c-8.09,0-14.64,6.56-14.64,14.64s6.56,14.64,14.64,14.64,14.64-6.56,14.64-14.64-6.56-14.64-14.64-14.64"/><path d="M276.91,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/><path d="M189.47,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/></g>';
+const G3='<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+document.querySelectorAll('[data-mark]').forEach(el=>el.innerHTML='<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">'+G1+G2+G3+'</svg>');
+</script>
+</body>
+</html>
