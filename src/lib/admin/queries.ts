@@ -1430,7 +1430,7 @@ export type DineroAdmin = {
   porExperiencia: {
     nombre: string;
     monto: number;
-    detalle: { salida: string; personas: number; monto: number; pagos: LedgerLinea[] }[];
+    detalle: { salida: string; personas: number; monto: number }[];
   }[];
   payouts: PayoutOperador[];
   /**
@@ -1529,10 +1529,9 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     porSalida.set(key, acc);
     porExpMap.set(r.experience_id, porSalida);
   }
-  // Los pagos, colgados de su experiencia y su salida. Se incluyen los
-  // reembolsados y los pendientes: la historia del dinero de una salida no se
-  // entiende viendo solo lo que entró.
-  const pagosPorSalida = new Map<string, LedgerLinea[]>();
+  // Los pagos de cada salida viven en `fetchRentabilidad` (SalidaRentabilidad
+  // .pagos), que es donde está el resto de la historia de esa salida. Aquí solo
+  // se buscan los HUÉRFANOS: pagos cuya reserva no aparece.
   const huerfanos: LedgerLinea[] = [];
   const aLinea = (p: (typeof pays)[number]): LedgerLinea => ({
     fecha: formatDiaMes(p.paid_at || p.created_at),
@@ -1551,8 +1550,6 @@ export async function fetchDinero(): Promise<DineroAdmin> {
       huerfanos.push(aLinea(p));
       continue;
     }
-    const key = `${r.experience_id}|${r.slot_id || "singular"}`;
-    pagosPorSalida.set(key, [...(pagosPorSalida.get(key) || []), aLinea(p)]);
   }
 
   const numPorResvSlot = new Map<string, number>();
@@ -1569,7 +1566,6 @@ export async function fetchDinero(): Promise<DineroAdmin> {
         salida: slotKey === "singular" ? "Sin salida asignada" : sById.get(slotKey) || "—",
         personas: numPorResvSlot.get(`${expId}|${slotKey}`) || acc.personas.size,
         monto: acc.monto,
-        pagos: pagosPorSalida.get(`${expId}|${slotKey}`) || [],
       }));
       return {
         nombre: exp ? experienceTitle(exp.data, exp.slug) : "?",

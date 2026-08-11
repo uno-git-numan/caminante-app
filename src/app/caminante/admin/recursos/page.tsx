@@ -19,6 +19,7 @@
 
 import Link from "next/link";
 import { fetchRentabilidad, type SalidaRentabilidad } from "@/lib/admin/rentabilidad";
+import { Fila, cls, firmado, mesLabel, mx } from "./ui";
 import { fetchDinero } from "@/lib/admin/queries";
 import { fetchExperienciasConSalidas } from "@/lib/admin/transferencias";
 import { ADMIN_NAV } from "../ui/nav";
@@ -34,69 +35,6 @@ const G2 =
 const G3 =
   '<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
 const MARK = `<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">${G1}${G2}${G3}</svg>`;
-
-const mx = (n: number) =>
-  "$" + Math.round(Math.abs(n)).toLocaleString("es-MX");
-/** Signo y color separados: el IVA a veces es a favor y a veces a cargo. */
-const firmado = (n: number) => (n < 0 ? "−" : "+") + mx(n);
-const cls = (n: number) => (n < 0 ? "neg" : n > 0 ? "pos" : "");
-
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
-function mesLabel(ym: string) {
-  const [y, m] = ym.split("-");
-  const nm = MESES[Number(m) - 1] || "";
-  return nm ? `${nm[0].toUpperCase()}${nm.slice(1)} ${y}` : ym;
-}
-
-/** Barra de llenado con la marca vertical del punto de equilibrio. */
-function Llenado({ s }: { s: SalidaRentabilidad }) {
-  const cupo = s.cupo || 0;
-  const pct = cupo ? Math.min(100, Math.round((s.vendidos / cupo) * 100)) : 0;
-  const eq = cupo && s.equilibrio ? Math.min(100, Math.round((s.equilibrio / cupo) * 100)) : 0;
-  const cruzado = s.equilibrio != null && s.vendidos >= s.equilibrio;
-  return (
-    <div className="prog2">
-      <div
-        className={"tk" + (cruzado ? "" : " bajo")}
-        style={{ ["--pct" as string]: pct + "%", ["--eq" as string]: eq + "%" }}
-      >
-        <i></i>
-        {eq > 0 ? <span className="eq"></span> : null}
-      </div>
-      <div className="fr">
-        <span>
-          <b>{s.vendidos}</b>/{cupo || "∞"}
-        </span>
-        <span>{s.equilibrio != null ? `eq. ${s.equilibrio}` : "eq. —"}</span>
-      </div>
-    </div>
-  );
-}
-
-function Fila({ s, depth }: { s: SalidaRentabilidad; depth: 0 | 1 }) {
-  return (
-    <>
-      <div className="c-name">
-        <div className={depth ? "sal-lbl" : "mes-lbl"}>{s.experienciaNombre}</div>
-        <div className="sub">{s.salidaLabel}</div>
-      </div>
-      <div>
-        <Llenado s={s} />
-      </div>
-      <div className="money">{mx(s.ingreso)}</div>
-      <div className={"money " + cls(s.ivaNeto)}>{firmado(s.ivaNeto)}</div>
-      <div className="money neg">−{mx(s.stripe)}</div>
-      <div className="money neg">−{mx(s.proveedoresConIva)}</div>
-      <div className={"money money--util " + (s.sinCostos ? "" : cls(s.utilidad))}>
-        {s.sinCostos ? <span className="mut">sin costear</span> : firmado(s.utilidad)}
-      </div>
-      <span className="chev2">▼</span>
-    </>
-  );
-}
 
 function Cascada({ s }: { s: SalidaRentabilidad }) {
   const chip = (t: string) => (
@@ -457,7 +395,7 @@ export default async function RentabilidadPage() {
                     {ss.map((s) => (
                       <details key={s.slotId}>
                         <summary className="row row--sal" style={{ ["--depth" as string]: 1 }}>
-                          <Fila s={s} depth={1} />
+                          <Fila s={s} />
                         </summary>
                         <div className="drawer">
                           <Link className="btn btn-glass btn-sm" href={`/caminante/admin/roster/${s.slotId}`}>
@@ -480,7 +418,7 @@ export default async function RentabilidadPage() {
           </div>
         </section>
 
-        <Ingresos d={dinero} />
+        <Ingresos salidas={salidas} payouts={dinero.payouts} huerfanos={dinero.huerfanos} />
         <Egresos salidas={salidas} />
       </div>
     </>

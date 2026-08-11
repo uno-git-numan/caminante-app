@@ -17,7 +17,13 @@
 //     se cuenta sumando `num_people` de las reservas que apartan.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { experienceTitle, formatFechaCorta } from "@/lib/admin/queries";
+import {
+  experienceTitle,
+  formatDiaMes,
+  formatFechaCorta,
+  metodoLabel,
+  type LedgerLinea,
+} from "@/lib/admin/queries";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -64,6 +70,16 @@ export type SalidaRentabilidad = {
   costosIncompletos: boolean;
   /** No hay ni un costo cargado: no se puede hablar de utilidad. */
   sinCostos: boolean;
+
+  /**
+   * Los pagos de ESTA salida (pagados, reembolsados y pendientes).
+   *
+   * Viven aquí y no en una lista global (Luis, 11 ago): un ledger plano de
+   * cincuenta cobros no dice de quién es cada peso. Se incluyen los
+   * reembolsados porque la historia del dinero de una salida no se entiende
+   * viendo solo lo que entró.
+   */
+  pagos: LedgerLinea[];
 };
 
 export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
@@ -72,15 +88,39 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
     sb.from("experience_slots").select("id, experience_id, label, starts_at, capacity_total, price_mxn"),
     sb.from("experiences").select("id, slug, data"),
     sb.from("reservations").select("id, slot_id, num_people, status, total_amount_mxn"),
-    sb.from("payments").select("reservation_id, amount_mxn, status, stripe_fee_mxn, stripe_fee_tax_mxn, refunded_mxn"),
+    sb
+      .from("payments")
+      .select(
+        "reservation_id, contact_id, amount_mxn, status, method, paid_at, created_at, stripe_fee_mxn, stripe_fee_tax_mxn, refunded_mxn, referencia, comprobante_url",
+      ),
     sb.from("experience_costs").select("slot_id, concepto, tipo, monto_mxn, notas"),
   ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
     { id: string; experience_id: string; label: string | null; starts_at: string | null; capacity_total: number | null; price_mxn: number | null }[],
     { id: string; slug: string; data: Partial<Experience> | null }[],
     { id: string; slot_id: string | null; num_people: number; status: string; total_amount_mxn: number }[],
-    { reservation_id: string; amount_mxn: number; status: string; stripe_fee_mxn: number | null; stripe_fee_tax_mxn: number | null; refunded_mxn: number | null }[],
+    {
+      reservation_id: string;
+      contact_id: string | null;
+      amount_mxn: number;
+      status: string;
+      method: string | null;
+      paid_at: string | null;
+      created_at: string | null;
+      stripe_fee_mxn: number | null;
+      stripe_fee_tax_mxn: number | null;
+      refunded_mxn: number | null;
+      referencia: string | null;
+      comprobante_url: string | null;
+    }[],
     { slot_id: string | null; concepto: string; tipo: string; monto_mxn: number; notas: string | null }[],
   ];
+
+  const { data: contactRows } = await sb.from("contacts").select("id, full_name, email");
+  const cById = new Map(
+    ((contactRows || []) as { id: string; full_name: string | null; email: string | null }[]).map(
+      (c) => [c.id, c.full_name || c.email || "—"],
+    ),
+  );
 
   const eById = new Map(exps.map((e) => [e.id, e]));
   const resvBySlot = new Map<string, typeof resvs>();
@@ -104,6 +144,27 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
     acc.stripe += Number(p.stripe_fee_mxn || 0);
     acc.stripeSinIva += Number(p.stripe_fee_mxn || 0) - Number(p.stripe_fee_tax_mxn || 0);
     dinero.set(slot, acc);
+  }
+
+  // Los pagos de cada salida, del más reciente al más viejo.
+  const pagosBySlot = new Map<string, LedgerLinea[]>();
+  for (const p of [...pays].sort((a, b) =>
+    (b.paid_at || b.created_at || "").localeCompare(a.paid_at || a.created_at || ""),
+  )) {
+    const slot = slotByResv.get(p.reservation_id);
+    if (!slot) continue; // pago sin salida: lo reporta `fetchDinero().huerfanos`
+    pagosBySlot.set(slot, [
+      ...(pagosBySlot.get(slot) || []),
+      {
+        fecha: formatDiaMes(p.paid_at || p.created_at),
+        persona: (p.contact_id && cById.get(p.contact_id)) || "—",
+        metodo: metodoLabel(p.method),
+        monto: Number(p.amount_mxn || 0),
+        estado: p.status,
+        referencia: p.referencia || null,
+        comprobantePath: p.comprobante_url || null,
+      },
+    ]);
   }
 
   const costosBySlot = new Map<string, typeof costos>();
@@ -184,6 +245,7 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
       costosVariables: r2(variables),
       costosIncompletos: lineas.some((l) => l.sinCotizar),
       sinCostos: lineas.length === 0,
+      pagos: pagosBySlot.get(s.id) || [],
     });
   }
 

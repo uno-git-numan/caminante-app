@@ -1,321 +1,439 @@
-// Las dos mitades que le faltaban al tablero: INGRESOS y EGRESOS.
+// INGRESOS y EGRESOS — el MISMO formato visual que «Fechas y equilibrio».
 //
-// Antes vivían en dos páginas distintas — `/admin/dinero` respondía «cuánto
-// entró» y `/admin/rentabilidad` respondía «cuánto es mío» — y para cerrar una
-// cuenta había que saltar entre ellas. Se leía como redundancia porque las dos
-// hablaban de dinero. Aquí es una sola página: la escalera por salida es la
-// espina, y estas dos secciones son el desglose de sus dos extremos.
+// ⚠️ Lección de la primera versión (Luis, 11 ago: «se ve traslapado, se ve
+// sucio, quita las flechitas»): yo había usado `.dtl` como si fuera un
+// desplegable. **No lo es.** En el entregable de Claude Design `.dtl` es el
+// CONTENEDOR de la tabla de detalle que vive DENTRO de un desplegable. Usarlo
+// como envoltura anidada apilaba paddings —de ahí el traslape— y dejaba a la
+// vista el triángulo nativo de <details> encima de la `.chev2` del diseño.
 //
-// El entregable de Claude Design solo cubría la escalera, así que estas dos
-// secciones se arman con SUS MISMAS primitivas (`.card`, `.tbl`, `.chip`,
-// `.money`, `.pos/.neg`, `.empty`) — no con un lenguaje visual nuevo.
+// El patrón correcto es el de la escalera:
+//   .scroller > .ladder
+//     .row.row--head                                        ← rejilla COMPARTIDA
+//     <details><summary class="row row--mes" --depth:0>      ← nivel 1
+//       <details><summary class="row row--sal" --depth:1>    ← nivel 2
+//         <div class="drawer">
+//           .cascade > details > summary.crow → .dtl > table ← nivel 3
+//
+// La rejilla se comparte a propósito: una columna se lee de arriba a abajo
+// aunque cambie la agrupación. Aquí las dos secciones agrupan por EXPERIENCIA
+// (la escalera agrupa por mes), que es lo que pidió Luis.
 
-import type { DineroAdmin, LedgerLinea } from "@/lib/admin/queries";
-import { formatMXN } from "@/lib/admin/queries";
+import Link from "next/link";
+import { formatMXN, type LedgerLinea, type PayoutOperador } from "@/lib/admin/queries";
 import type { SalidaRentabilidad } from "@/lib/admin/rentabilidad";
+import { Fila, mx } from "./ui";
 
-const mx = (n: number) => "$" + Math.round(Math.abs(n)).toLocaleString("es-MX");
+/** Agrupa las salidas por experiencia. */
+function porExperiencia(salidas: SalidaRentabilidad[]) {
+  const m = new Map<string, SalidaRentabilidad[]>();
+  for (const s of salidas) m.set(s.experienciaNombre, [...(m.get(s.experienciaNombre) || []), s]);
+  return [...m.entries()].map(([nombre, ss]) => ({
+    nombre,
+    ss: [...ss].sort((a, b) => (b.startsAt || "").localeCompare(a.startsAt || "")),
+    ingreso: ss.reduce((a, s) => a + s.ingreso, 0),
+    pagos: ss.reduce((a, s) => a + s.pagos.length, 0),
+    costos: ss.reduce((a, s) => a + s.proveedoresConIva, 0),
+    lineas: ss.reduce((a, s) => a + s.costos.length, 0),
+  }));
+}
+
+const Cabeza = () => (
+  <div className="row row--head">
+    <div className="c-name">Experiencia</div>
+    <div>Llenado</div>
+    <div className="r">Ingreso</div>
+    <div className="r">IVA</div>
+    <div className="r">Stripe</div>
+    <div className="r">Proveedores</div>
+    <div className="r">Utilidad</div>
+    <div></div>
+  </div>
+);
+
+const Vacias = ({ n }: { n: number }) => (
+  <>
+    {Array.from({ length: n }, (_, i) => (
+      <div key={i}></div>
+    ))}
+  </>
+);
 
 // ── INGRESOS ─────────────────────────────────────────────────────────────
 
-/** La tabla de pagos de UNA salida. Antes era el ledger global de la página. */
-function Pagos({ pagos }: { pagos: LedgerLinea[] }) {
-  return (
-    <table className="tbl">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Persona</th>
-          <th>Método</th>
-          <th className="num right">Monto</th>
-          <th>Estado</th>
-          <th>Respaldo</th>
-        </tr>
-      </thead>
-      <tbody>
-        {pagos.map((l, i) => (
-          <tr key={i}>
-            <td className="c">{l.fecha}</td>
-            <td>{l.persona}</td>
-            <td className="c">{l.metodo}</td>
-            <td
-              className="num right mono"
-              style={l.estado === "refunded" ? { textDecoration: "line-through" } : undefined}
-            >
-              {formatMXN(l.monto)}
-            </td>
-            <td>
-              {l.estado === "paid" ? (
-                <span className="chip c-paid chip-sm">Pagado</span>
-              ) : l.estado === "refunded" ? (
-                <span className="chip c-draft chip-sm">Reembolsado</span>
-              ) : (
-                <span className="chip c-sol chip-sm">{l.estado}</span>
-              )}
-            </td>
-            <td className="c">
-              {l.referencia ? <span>ref. {l.referencia}</span> : null}
-              {l.comprobantePath ? (
-                <>
-                  {l.referencia ? " · " : null}
-                  {/* URL firmada de 5 min: el bucket es privado. */}
-                  <a
-                    href={`/caminante/api/admin/comprobante?path=${encodeURIComponent(l.comprobantePath)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    comprobante
-                  </a>
-                </>
-              ) : null}
-              {!l.referencia && !l.comprobantePath ? "—" : null}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
+export function Ingresos({
+  salidas,
+  payouts,
+  huerfanos,
+}: {
+  salidas: SalidaRentabilidad[];
+  payouts: PayoutOperador[];
+  huerfanos: LedgerLinea[];
+}) {
+  const grupos = porExperiencia(salidas).sort((a, b) => b.ingreso - a.ingreso);
 
-export function Ingresos({ d }: { d: DineroAdmin }) {
   return (
     <>
-      <section className="sec card" style={{ marginTop: 22 }}>
+      <section className="sec card">
         <div className="card-head">
-          {/* El entregable escribe el subtítulo DENTRO del span, con su punto
-              medio y un espacio antes: «Título <span class="m">· detalle</span>». */}
           <span className="card-lbl">
-            Ingresos <span className="m">· por experiencia y por operador</span>
+            Ingresos <span className="m">· quién pagó, en qué salida</span>
           </span>
         </div>
-
-        <div className="pad grid2">
-          <div>
-            <div className="mes-lbl" style={{ marginBottom: 8 }}>Por experiencia</div>
-            {d.porExperiencia.length ? (
-              d.porExperiencia.map((e) => (
-                <details key={e.nombre} className="dtl">
-                  <summary>
-                    <span className="c-name">{e.nombre}</span>
-                    <span className="money mono">{formatMXN(e.monto)}</span>
-                    <span className="chev2">▾</span>
-                  </summary>
-                  <div className="drawer">
-                    {/* Los pagos viven DENTRO de su salida (Luis, 11 ago): una
-                        lista global de cobros no dice de quién es cada peso.
-                        Tercer nivel de <details>, como el resto de la página. */}
-                    {e.detalle.map((sal, j) => (
-                      <details key={j} className="dtl">
-                        <summary>
-                          <span className="c-name">
-                            {sal.salida} <span className="c">· {sal.personas} pers.</span>
-                          </span>
-                          <span className="money mono">{formatMXN(sal.monto)}</span>
-                          <span className="chev2">▾</span>
-                        </summary>
-                        <div className="drawer">
-                          {sal.pagos.length ? (
-                            <Pagos pagos={sal.pagos} />
-                          ) : (
-                            <div className="empty">Sin pagos capturados en esta salida.</div>
-                          )}
-                        </div>
-                      </details>
-                    ))}
+        <div className="scroller">
+          <div className="ladder">
+            <Cabeza />
+            {grupos.map((g) => (
+              <details key={g.nombre}>
+                <summary className="row row--mes" style={{ ["--depth" as string]: 0 }}>
+                  <div className="c-name">
+                    <div className="mes-lbl">{g.nombre}</div>
+                    <div className="sub">
+                      {g.ss.length} {g.ss.length === 1 ? "salida" : "salidas"} · {g.pagos}{" "}
+                      {g.pagos === 1 ? "pago" : "pagos"}
+                    </div>
                   </div>
-                </details>
-              ))
-            ) : (
-              <div className="empty">Sin ingresos aún.</div>
-            )}
-          </div>
+                  <div></div>
+                  <div className="money">{mx(g.ingreso)}</div>
+                  <Vacias n={4} />
+                  <span className="chev2">▼</span>
+                </summary>
 
-          <div>
-            <div className="mes-lbl" style={{ marginBottom: 8 }}>Payout por operador</div>
-            {d.payouts.length ? (
-              d.payouts.map((p) => (
-                <details key={p.operador} className="dtl">
-                  <summary>
-                    <span className="c-name">{p.operador}</span>
-                    <span className="money mono">
-                      {p.neto != null ? (
-                        formatMXN(p.neto)
-                      ) : (
-                        <span className="neg">
-                          {p.sinAtribuir ? "falta atribuir" : "por definir"}
-                        </span>
-                      )}
-                    </span>
-                    <span className="chev2">▾</span>
-                  </summary>
-                  <div className="drawer">
-                    <table className="tbl">
-                      <tbody>
-                        {p.lineas.map((l, j) => (
-                          <tr key={j}>
-                            <td>{l.concepto}</td>
-                            <td className="c">{l.nota}</td>
-                            <td className="num right mono">{formatMXN(l.monto)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {/* Nunca se inventa un neto: si alguna venta no trae el %
-                        congelado, la página lo dice en vez de proponer un
-                        depósito por el 100% del bruto. */}
-                    {p.sinAtribuir ? (
-                      <p className="notes">
-                        Estas ventas no tienen operador asignado, así que no entran en ningún payout.
-                        Asígnales operador en Eventos.
-                      </p>
-                    ) : p.brutoSinPct ? (
-                      <p className="notes">
-                        No hay neto porque {formatMXN(p.brutoSinPct)} se vendió sin comisión
-                        congelada. Define la comisión del operador para las ventas futuras; las
-                        pasadas se acuerdan a mano.
-                      </p>
-                    ) : null}
-                  </div>
-                </details>
-              ))
-            ) : (
-              <div className="empty">Sin ventas atribuidas a operadores.</div>
-            )}
+                {g.ss.map((s) => (
+                  <details key={s.slotId}>
+                    <summary className="row row--sal" style={{ ["--depth" as string]: 1 }}>
+                      <Fila s={s} />
+                    </summary>
+                    <div className="drawer">
+                      <Link className="btn btn-glass btn-sm" href={`/caminante/admin/roster/${s.slotId}`}>
+                        Ver el roster de esta salida <span className="arw">↗</span>
+                      </Link>
+                      <div className="cascade">
+                        <details>
+                          <summary className="crow">
+                            <div>
+                              <div className="t">Pagos de esta salida</div>
+                              <div className="d">
+                                {s.pagos.length} {s.pagos.length === 1 ? "cobro" : "cobros"}
+                                {s.reembolsado > 0 ? ` · ${mx(s.reembolsado)} reembolsados` : ""}
+                              </div>
+                            </div>
+                            <div className="n">{mx(s.ingreso)}</div>
+                            <span className="chev2">▼</span>
+                          </summary>
+                          <div className="dtl">
+                            <table>
+                              <tbody>
+                                <tr>
+                                  <th>Fecha</th>
+                                  <th>Persona</th>
+                                  <th>Método</th>
+                                  <th className="right">Monto</th>
+                                  <th>Respaldo</th>
+                                </tr>
+                                {s.pagos.map((p, i) => (
+                                  <tr key={i}>
+                                    <td className="c">{p.fecha}</td>
+                                    <td>
+                                      {p.persona}
+                                      {p.estado !== "paid" ? (
+                                        <span className="c">
+                                          {" "}
+                                          · {p.estado === "refunded" ? "reembolsado" : p.estado}
+                                        </span>
+                                      ) : null}
+                                    </td>
+                                    <td className="c">{p.metodo}</td>
+                                    <td
+                                      className="num right"
+                                      style={
+                                        p.estado === "refunded"
+                                          ? { textDecoration: "line-through" }
+                                          : undefined
+                                      }
+                                    >
+                                      {mx(p.monto)}
+                                    </td>
+                                    <td className="c">
+                                      {p.referencia ? <span>ref. {p.referencia}</span> : null}
+                                      {p.comprobantePath ? (
+                                        <>
+                                          {p.referencia ? " · " : null}
+                                          {/* URL firmada de 5 min: el bucket es privado. */}
+                                          <a
+                                            href={`/caminante/api/admin/comprobante?path=${encodeURIComponent(p.comprobantePath)}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                          >
+                                            comprobante
+                                          </a>
+                                        </>
+                                      ) : null}
+                                      {!p.referencia && !p.comprobantePath ? "—" : null}
+                                    </td>
+                                  </tr>
+                                ))}
+                                {!s.pagos.length ? (
+                                  <tr>
+                                    <td className="c" colSpan={5}>
+                                      Sin pagos capturados en esta salida.
+                                    </td>
+                                  </tr>
+                                ) : null}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                  </details>
+                ))}
+              </details>
+            ))}
+            {!grupos.length ? (
+              <div className="row">
+                <div className="c-name">Todavía no hay ingresos.</div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
 
-      {/* Un pago siempre cuelga de una reserva, y una reserva siempre tiene
-          experiencia. Si algo cae aquí es un dato roto y hay que verlo, así que
-          se muestra en vez de esconderse. */}
-      {d.huerfanos.length ? (
-        <section className="sec card" style={{ marginTop: 18 }}>
+      <section className="sec card">
+        <div className="card-head">
+          <span className="card-lbl">
+            Payout por operador <span className="m">· lo que se le deposita a cada quien</span>
+          </span>
+        </div>
+        <div className="scroller">
+          <div className="ladder">
+            {payouts.map((p) => (
+              <details key={p.operador}>
+                <summary className="row row--mes" style={{ ["--depth" as string]: 0 }}>
+                  <div className="c-name">
+                    <div className="mes-lbl">{p.operador}</div>
+                    <div className="sub">{p.email}</div>
+                  </div>
+                  <div></div>
+                  <div className="money">{formatMXN(p.bruto)}</div>
+                  <Vacias n={3} />
+                  {/* Nunca se inventa un neto: sin el % congelado se dice, en
+                      vez de proponer que se deposite el 100% del bruto. */}
+                  <div className="money money--util">
+                    {p.neto != null ? (
+                      formatMXN(p.neto)
+                    ) : (
+                      <span className="neg">{p.sinAtribuir ? "sin atribuir" : "por definir"}</span>
+                    )}
+                  </div>
+                  <span className="chev2">▼</span>
+                </summary>
+                <div className="drawer">
+                  <div className="cascade">
+                    <details>
+                      <summary className="crow">
+                        <div>
+                          <div className="t">Cálculo</div>
+                          <div className="d">bruto, comisión y neto</div>
+                        </div>
+                        <div className="n">{formatMXN(p.bruto)}</div>
+                        <span className="chev2">▼</span>
+                      </summary>
+                      <div className="dtl">
+                        <table>
+                          <tbody>
+                            <tr>
+                              <th>Concepto</th>
+                              <th>Nota</th>
+                              <th className="right">Monto</th>
+                            </tr>
+                            {p.lineas.map((l, j) => (
+                              <tr key={j}>
+                                <td className="c">{l.concepto}</td>
+                                <td className="c">{l.nota}</td>
+                                <td className="num right">{formatMXN(l.monto)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  </div>
+                  {p.sinAtribuir ? (
+                    <p className="notes">
+                      Estas ventas no tienen operador asignado, así que no entran en ningún payout.
+                      Asígnales operador en Eventos.
+                    </p>
+                  ) : p.brutoSinPct ? (
+                    <p className="notes">
+                      No hay neto porque {formatMXN(p.brutoSinPct)} se vendió sin comisión congelada.
+                      Define la comisión del operador para las ventas futuras; las pasadas se
+                      acuerdan a mano.
+                    </p>
+                  ) : null}
+                </div>
+              </details>
+            ))}
+            {!payouts.length ? (
+              <div className="row">
+                <div className="c-name">Sin ventas atribuidas a operadores.</div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {/* Un pago siempre cuelga de una reserva. Si algo cae aquí es un dato
+          roto y hay que verlo, así que se muestra en vez de esconderse. */}
+      {huerfanos.length ? (
+        <section className="sec card">
           <div className="card-head">
             <span className="card-lbl">
-              Pagos sin experiencia <span className="m">· revisar: no deberían existir</span>
+              Pagos sin reserva <span className="m">· revisar: no deberían existir</span>
             </span>
           </div>
-          <div className="tbl-wrap">
-            <Pagos pagos={d.huerfanos} />
+          <div className="dtl">
+            <table>
+              <tbody>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Persona</th>
+                  <th>Método</th>
+                  <th className="right">Monto</th>
+                </tr>
+                {huerfanos.map((p, i) => (
+                  <tr key={i}>
+                    <td className="c">{p.fecha}</td>
+                    <td>{p.persona}</td>
+                    <td className="c">{p.metodo}</td>
+                    <td className="num right">{mx(p.monto)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       ) : null}
-
     </>
   );
 }
 
 // ── EGRESOS ──────────────────────────────────────────────────────────────
 
-type Linea = { concepto: string; tipo: string; sinIva: number; notas: string | null; salida: string };
-
 /**
- * Lo que sale, agrupado por proveedor (el concepto es el proveedor: NANAE, la
- * Hacienda, Octavio, la van…) y con la etiqueta fijo/variable a la vista.
+ * Lo que sale, agrupado POR EXPERIENCIA y luego por salida (Luis, 11 ago).
  *
- * ⚠️ Esa etiqueta NO es decorativa: es lo que permite calcular el equilibrio
- * como `costos_fijos / contribución_por_cliente`. La van de Volcanes y el lote
- * de gorras se pagan completos vayan 5 o 16 personas — ese es justo el riesgo
- * que el tablero tiene que hacer visible.
+ * ⚠️ La etiqueta fijo/variable de cada línea NO es decorativa: es lo que hace
+ * calculable el equilibrio (`costos_fijos / contribución_por_cliente`). La van
+ * de Volcanes y el lote de gorras se pagan completos vayan 5 o 16 personas —
+ * ese es justo el riesgo que el tablero tiene que hacer visible.
  */
 export function Egresos({ salidas }: { salidas: SalidaRentabilidad[] }) {
-  const lineas: Linea[] = salidas.flatMap((s) =>
-    s.costos.map((c) => ({
-      concepto: c.concepto,
-      tipo: c.tipo,
-      sinIva: c.montoSinIva,
-      notas: c.notas,
-      salida: `${s.experienciaNombre} · ${s.salidaLabel}`,
-    })),
+  const grupos = porExperiencia(salidas).sort((a, b) => b.costos - a.costos);
+  const chip = (t: string) => (
+    <span
+      className={"chip chip-sm " + (t === "variable" ? "c-var" : t === "buffer" ? "c-info" : "c-draft")}
+    >
+      {t}
+    </span>
   );
 
-  // Agrupado por proveedor. El nombre del proveedor es la primera parte del
-  // concepto antes del «·» (así se sembraron: "NANAE · recorrido 18 clientes").
-  const porProveedor = new Map<string, Linea[]>();
-  for (const l of lineas) {
-    const prov = l.concepto.split("·")[0].trim() || l.concepto;
-    porProveedor.set(prov, [...(porProveedor.get(prov) || []), l]);
-  }
-  const grupos = [...porProveedor.entries()]
-    .map(([prov, ls]) => ({ prov, ls, total: ls.reduce((a, l) => a + l.sinIva, 0) }))
-    .sort((a, b) => b.total - a.total);
-
-  const totalSinIva = lineas.reduce((a, l) => a + l.sinIva, 0);
-  const fijos = lineas.filter((l) => l.tipo !== "variable").reduce((a, l) => a + l.sinIva, 0);
-  const variables = totalSinIva - fijos;
-  const sinCotizar = lineas.filter((l) => l.sinIva === 0).length;
-
   return (
-    <section className="sec card" style={{ marginTop: 18 }}>
+    <section className="sec card">
       <div className="card-head">
         <span className="card-lbl">
-          Egresos{" "}
-          <span className="m">
-            · por proveedor · sin IVA · fijo {mx(fijos)} · variable {mx(variables)}
-          </span>
+          Egresos <span className="m">· a quién se le paga, en qué salida</span>
         </span>
       </div>
-
-      {grupos.length ? (
-        <div className="pad">
+      <div className="scroller">
+        <div className="ladder">
+          <Cabeza />
           {grupos.map((g) => (
-            <details key={g.prov} className="dtl">
-              <summary>
-                <span className="c-name">{g.prov}</span>
-                <span className="money mono">{mx(g.total)}</span>
-                <span className="chev2">▾</span>
+            <details key={g.nombre}>
+              <summary className="row row--mes" style={{ ["--depth" as string]: 0 }}>
+                <div className="c-name">
+                  <div className="mes-lbl">{g.nombre}</div>
+                  <div className="sub">
+                    {g.ss.length} {g.ss.length === 1 ? "salida" : "salidas"} · {g.lineas}{" "}
+                    {g.lineas === 1 ? "línea de costo" : "líneas de costo"}
+                  </div>
+                </div>
+                <Vacias n={4} />
+                <div className="money neg">−{mx(g.costos)}</div>
+                <div></div>
+                <span className="chev2">▼</span>
               </summary>
-              <div className="drawer">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Concepto</th>
-                      <th>Salida</th>
-                      <th>Tipo</th>
-                      <th className="num right">Sin IVA</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.ls.map((l, i) => (
-                      <tr key={i}>
-                        <td>
-                          {l.concepto}
-                          {l.notas ? <span className="c"> · {l.notas}</span> : null}
-                        </td>
-                        <td className="c">{l.salida}</td>
-                        <td>
-                          <span
-                            className={
-                              "chip chip-sm " + (l.tipo === "variable" ? "c-var" : "c-info")
-                            }
-                          >
-                            {l.tipo}
-                          </span>
-                        </td>
-                        <td className="num right mono">
-                          {l.sinIva === 0 ? <span className="neg">sin cotizar</span> : mx(l.sinIva)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+
+              {g.ss.map((s) => (
+                <details key={s.slotId}>
+                  <summary className="row row--sal" style={{ ["--depth" as string]: 1 }}>
+                    <Fila s={s} />
+                  </summary>
+                  <div className="drawer">
+                    <div className="cascade">
+                      <details>
+                        <summary className="crow">
+                          <div>
+                            <div className="t">Proveedores de esta salida</div>
+                            <div className="d">
+                              {s.costos.length} {s.costos.length === 1 ? "línea" : "líneas"} · fijos{" "}
+                              {mx(s.costosFijos)} · variables {mx(s.costosVariables)}
+                            </div>
+                          </div>
+                          <div className="n">{mx(s.proveedoresConIva)}</div>
+                          <span className="chev2">▼</span>
+                        </summary>
+                        <div className="dtl">
+                          <table>
+                            <tbody>
+                              <tr>
+                                <th>Proveedor</th>
+                                <th>Tipo</th>
+                                <th className="right">Sin IVA</th>
+                                <th className="right">Con IVA</th>
+                              </tr>
+                              {s.costos.map((c, i) => (
+                                <tr key={i}>
+                                  <td className="c">
+                                    {c.concepto}
+                                    {c.notas ? <span className="c"> · {c.notas}</span> : null}
+                                  </td>
+                                  <td>{chip(c.tipo)}</td>
+                                  {/* Un costo en $0 no es un costo conocido: es
+                                      uno sin cotizar, y mientras siga ahí la
+                                      utilidad de esta salida está inflada. */}
+                                  <td className="num right">
+                                    {c.sinCotizar ? <span className="neg">sin cotizar</span> : mx(c.montoSinIva)}
+                                  </td>
+                                  <td className="num right">
+                                    {c.sinCotizar ? "—" : mx(c.montoSinIva * 1.16)}
+                                  </td>
+                                </tr>
+                              ))}
+                              {!s.costos.length ? (
+                                <tr>
+                                  <td className="c" colSpan={4}>
+                                    Sin costos capturados. Sin ellos no hay utilidad que calcular.
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                </details>
+              ))}
             </details>
           ))}
-          {/* Un costo en $0 no es un costo conocido: es uno sin cotizar, y
-              mientras esté ahí la utilidad de esa salida está inflada. */}
-          {sinCotizar ? (
-            <p className="notes">
-              {sinCotizar} {sinCotizar === 1 ? "línea sigue" : "líneas siguen"} en $0 — sin cotizar.
-              La utilidad de esas salidas está inflada hasta que se capturen.
-            </p>
+          {!grupos.length ? (
+            <div className="row">
+              <div className="c-name">Todavía no hay costos capturados.</div>
+            </div>
           ) : null}
         </div>
-      ) : (
-        <div className="empty">
-          Todavía no hay costos capturados. Sin costos no hay utilidad que calcular.
-        </div>
-      )}
+      </div>
     </section>
   );
 }
