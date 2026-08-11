@@ -5,6 +5,8 @@ import AdminShell from "../ui/AdminShell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cleanAdjust, type TeamMember } from "@/lib/operators/public";
 import OperadorForm from "./OperadorForm";
+import ConvenioForm from "./ConvenioForm";
+import type { OperadorLegal } from "@/lib/operators/convenio-actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Operador · Admin" };
@@ -21,13 +23,17 @@ type Row = {
   instagram: string | null;
   team: TeamMember[] | null;
   is_public: boolean;
+  commission_pct: number | null;
+  legal: unknown;
 };
 
 export default async function OperadoresAdminPage() {
   const sb = createSupabaseAdminClient();
   const { data } = await sb
     .from("operators")
-    .select("id, name, slug, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public")
+    .select(
+      "id, name, slug, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public, commission_pct, legal",
+    )
     .eq("active", true)
     .order("created_at");
   const rows = (data ?? []) as Row[];
@@ -48,8 +54,16 @@ export default async function OperadoresAdminPage() {
         <div className="empty">No hay operadores activos.</div>
       ) : (
         rows.map((r) => (
+          <div key={r.id}>
+          {/* Primero el convenio (cobrar y facturar), luego el perfil público
+              (lo que ve el viajero). Son dos momentos distintos del alta. */}
+          <ConvenioForm
+            id={r.id}
+            nombre={r.name}
+            commissionPct={r.commission_pct ?? null}
+            legal={(r.legal as OperadorLegal | null) ?? null}
+          />
           <OperadorForm
-            key={r.id}
             operador={{
               id: r.id,
               name: r.name,
@@ -64,6 +78,7 @@ export default async function OperadoresAdminPage() {
               isPublic: r.is_public,
             }}
           />
+          </div>
         ))
       )}
     </AdminShell>

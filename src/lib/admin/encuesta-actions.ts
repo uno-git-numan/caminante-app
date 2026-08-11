@@ -17,31 +17,49 @@ function volver(msg: { ok?: string; error?: string }): never {
   redirect(`/caminante/admin/encuesta?${q}`);
 }
 
-export async function setTestimonioAction(fd: FormData): Promise<void> {
-  if (!(await isCurrentUserAdmin())) volver({ error: "Solo el admin puede hacer esto." });
+// El núcleo devuelve `{ok, error}` y la acción de formulario lo envuelve con el
+// redirect del panel. La app del teléfono llama el núcleo desde JS: un redirect
+// la sacaría del panel móvil hacia la vista de computadora. La regla que importa
+// —sin consentimiento no se publica— vive una sola vez, aquí.
+export type TestimonioResult = { ok: boolean; error?: string; mensaje?: string };
 
-  const id = typeof fd.get("id") === "string" ? (fd.get("id") as string).trim() : "";
-  const decision = fd.get("decision"); // approved | rejected
-  if (!id || !["approved", "rejected"].includes(String(decision))) {
-    volver({ error: "Decisión inválida." });
+export async function setTestimonio(
+  id: string,
+  decision: "approved" | "rejected",
+): Promise<TestimonioResult> {
+  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo el admin puede hacer esto." };
+
+  const rowId = (id || "").trim();
+  if (!rowId || !["approved", "rejected"].includes(decision)) {
+    return { ok: false, error: "Decisión inválida." };
   }
 
   const sb = createSupabaseAdminClient();
   const { data: row } = await sb
     .from("experience_feedback")
     .select("id, testimonial_consent")
-    .eq("id", id)
+    .eq("id", rowId)
     .maybeSingle();
-  if (!row) volver({ error: "Ese testimonio no existe." });
+  if (!row) return { ok: false, error: "Ese testimonio no existe." };
   if (decision === "approved" && !row.testimonial_consent) {
-    volver({ error: "No hay consentimiento para publicar este testimonio." });
+    return { ok: false, error: "No hay consentimiento para publicar este testimonio." };
   }
 
   const { error } = await sb
     .from("experience_feedback")
     .update({ publish_status: decision })
-    .eq("id", id);
-  if (error) volver({ error: error.message });
+    .eq("id", rowId);
+  if (error) return { ok: false, error: error.message };
 
-  volver({ ok: decision === "approved" ? "Testimonio aprobado." : "Testimonio rechazado." });
+  return {
+    ok: true,
+    mensaje: decision === "approved" ? "Testimonio aprobado." : "Testimonio rechazado.",
+  };
+}
+
+export async function setTestimonioAction(fd: FormData): Promise<void> {
+  const id = typeof fd.get("id") === "string" ? (fd.get("id") as string).trim() : "";
+  const decision = String(fd.get("decision")); // approved | rejected
+  const res = await setTestimonio(id, decision as "approved" | "rejected");
+  volver(res.ok ? { ok: res.mensaje } : { error: res.error });
 }

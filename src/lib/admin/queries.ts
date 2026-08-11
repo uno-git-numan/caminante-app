@@ -653,6 +653,9 @@ export type ParticipanteLinea = { nombre: string; relacion: string };
 
 export type ReservaAdmin = {
   id: string;
+  // El id del contacto, no solo su nombre: la app móvil salta de una reserva a
+  // la ficha de la persona y dos homónimos no pueden compartir expediente.
+  contactoId: string;
   contactoNombre: string;
   contactoEmail: string;
   contactoPhone: string;
@@ -753,6 +756,7 @@ export async function fetchReservas(f: ReservasFiltro = {}): Promise<{
       ).filter((p) => p.nombre !== "—");
       return {
         id: r.id,
+        contactoId: r.contact_id,
         contactoNombre: c?.full_name || "—",
         contactoEmail: c?.email || "",
         contactoPhone: c?.phone || "",
@@ -916,8 +920,16 @@ export async function fetchPersonas(q = ""): Promise<PersonaAdmin[]> {
 // ── Roster por salida (F3) — datos sensibles, SOLO admin ────────────────
 
 export type RosterRow = {
+  // De qué reserva sale esta línea. En el teléfono el guía toca «Recordar
+  // firma» sobre la persona que tiene enfrente, y el recordatorio se manda por
+  // reserva.
+  reservationId: string;
   nombre: string;
   edad: number | null;
+  // Su propio WhatsApp (el del titular; un acompañante no tiene contacto
+  // propio). En campo el roster se usa para LLAMAR — por eso viaja aparte del
+  // contacto de emergencia.
+  telefono: string | null;
   emergencia: string;
   condiciones: string; // alergias / padecimientos / dieta resumidos
   deslinde: boolean;
@@ -1027,14 +1039,19 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
   const contactIds = ((resvs || []) as { contact_id: string }[]).map((r) => r.contact_id);
   const [{ data: contacts }, { data: medicals }] = await Promise.all([
     contactIds.length
-      ? sb.from("contacts").select("id, full_name, birth_date").in("id", contactIds)
+      ? sb.from("contacts").select("id, full_name, birth_date, phone").in("id", contactIds)
       : Promise.resolve({ data: [] as unknown[] } as { data: unknown[] }),
     contactIds.length
       ? sb.from("medical_profiles").select("contact_id, allergies, conditions, dietary_restrictions, emergency_name, emergency_phone").in("contact_id", contactIds)
       : Promise.resolve({ data: [] as unknown[] } as { data: unknown[] }),
   ]);
   const cById = new Map(
-    ((contacts || []) as { id: string; full_name: string | null; birth_date: string | null }[]).map((c) => [c.id, c]),
+    ((contacts || []) as {
+      id: string;
+      full_name: string | null;
+      birth_date: string | null;
+      phone: string | null;
+    }[]).map((c) => [c.id, c]),
   );
   const medByContact = new Map(
     ((medicals || []) as ({ contact_id: string } & Snap)[]).map((m) => [m.contact_id, m]),
@@ -1054,8 +1071,10 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
     const birth = (reg?.identity_snapshot?.birth_date as string | undefined) || c?.birth_date || null;
     const titularNombre = c?.full_name || (reg?.identity_snapshot?.full_name as string) || "—";
     rows.push({
+      reservationId: r.id,
       nombre: titularNombre,
       edad: edadDe(birth, slot.starts_at as string | null),
+      telefono: c?.phone || null,
       emergencia: emergenciaDe(snap),
       condiciones: resumenMedico(snap),
       deslinde: !!reg,
@@ -1065,8 +1084,12 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
     });
     for (const p of reg?.participants || []) {
       rows.push({
+        reservationId: r.id,
         nombre: p.full_name || "—",
         edad: edadDe(p.birth_date || null, slot.starts_at as string | null),
+        // El acompañante no es `contacts`: no tiene teléfono propio. Se llama a
+        // su titular.
+        telefono: null,
         emergencia: emergenciaDe(p.medical_snapshot),
         condiciones: resumenMedico(p.medical_snapshot),
         deslinde: true, // el titular firmó por el grupo
@@ -1085,8 +1108,10 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
     const sinRegistrar = Math.max(0, (r.num_people || 1) - 1 - (reg?.participants?.length || 0));
     for (let i = 0; i < sinRegistrar; i++) {
       rows.push({
+        reservationId: r.id,
         nombre: "Acompañante por registrar",
         edad: null,
+        telefono: null,
         emergencia: "—",
         condiciones: "—",
         deslinde: !!reg,
@@ -1149,6 +1174,10 @@ export type EncuestaExperiencia = {
 
 // Una respuesta de satisfacción, para listar/filtrar por estrellas y fecha.
 export type EncuestaRespuesta = {
+  // Quién la contestó, por id. La ficha de una persona en el teléfono muestra
+  // sus respuestas, y cruzarlas por nombre pondría la reseña de un homónimo en
+  // el expediente equivocado.
+  contactId: string;
   iniciales: string;
   nombre: string;
   stars: number | null; // overall
@@ -1312,6 +1341,7 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
         add(f.expected_gap_text, "Esperaba: ");
         const limpio = (t: string | null) => (t || "").trim() || null;
         return {
+          contactId: f.contact_id,
           loved: limpio(f.loved_text),
           mejorar: limpio(f.improve_text),
           esperaba: limpio(f.expected_gap_text),

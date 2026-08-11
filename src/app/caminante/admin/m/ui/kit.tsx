@@ -139,6 +139,36 @@ export const Fld = ({
   </div>
 );
 
+// Hermano de `Fld` para las listas cerradas (experiencia, salida, visibilidad):
+// mismo bloque `.adm-fld`, que el CSS del entregable ya estila para `select`.
+// El entregable resuelve todo con `Fld`, pero teclear un slug a mano en el
+// teléfono ya costó errores en el cobro de escritorio.
+export const Sel = ({
+  l,
+  val,
+  set,
+  hint,
+  opts,
+}: {
+  l: ReactNode;
+  val: string;
+  set: (v: string) => void;
+  hint?: ReactNode;
+  opts: { v: string; t: string }[];
+}) => (
+  <div className="adm-fld">
+    <label>{l}</label>
+    <select value={val} onChange={(e) => set(e.target.value)}>
+      {opts.map((o) => (
+        <option key={o.v} value={o.v}>
+          {o.t}
+        </option>
+      ))}
+    </select>
+    <span className="hint">{hint}</span>
+  </div>
+);
+
 export const Seg = ({ opts, val, set }: { opts: string[]; val: string; set: (v: string) => void }) => (
   <div className="adm-seg">
     {opts.map((o) => (
@@ -158,6 +188,9 @@ export const CopyBox = ({ v, txt, onCopy }: { v: string; txt?: boolean; onCopy: 
 
 const LIFE: Record<string, string> = {
   "falta insumo": "lf-miss",
+  // Una pieza trabada por FOTOS se dice a la cara (se destraba subiendo fotos,
+  // no completando la ficha) — el tablero de escritorio ya distingue las dos.
+  "faltan fotos": "lf-miss",
   "sin caption": "lf-nocap",
   lista: "lf-ready",
   programada: "lf-sched",

@@ -17,6 +17,12 @@ const SITE = "https://caminante.numanhub.com";
 const PANEL = "/caminante/admin/encuesta";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Cada envío vive como NÚCLEO (devuelve cuántos salieron y cuáles fallaron) más
+// una acción de formulario que redirige con banner. El panel de escritorio
+// necesita el redirect; la app del teléfono llama el núcleo desde JS y un
+// redirect la sacaría del panel móvil. La lógica de envío no se duplica.
+export type EnvioResult = { sent: number; fails: string[] };
+
 // Construye el mensaje de resultado y redirige al panel con banner ok/error.
 function volver(sent: number, fails: string[], noun: string): never {
   const failed = fails.length;
@@ -32,14 +38,20 @@ function volver(sent: number, fails: string[], noun: string): never {
 // ── Encuestas ───────────────────────────────────────────────────────────────
 
 // Reenvía la encuesta de UNA persona pendiente (por feedback id).
-export async function reenviarEncuesta(formData: FormData): Promise<void> {
-  if (!(await isCurrentUserAdmin())) return;
-  const id = String(formData.get("feedbackId") ?? "").trim();
+export async function reenviarEncuestaUna(feedbackId: string): Promise<EnvioResult> {
+  if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
+  const id = (feedbackId || "").trim();
   const ok = id ? await resendSurveyEmail(id) : false;
-  volver(ok ? 1 : 0, ok ? [] : ["ese correo"], "encuesta");
+  return { sent: ok ? 1 : 0, fails: ok ? [] : ["ese correo"] };
 }
 
-async function loteEncuesta(ids: { id: string; email: string | null }[]): Promise<never> {
+export async function reenviarEncuesta(formData: FormData): Promise<void> {
+  if (!(await isCurrentUserAdmin())) return;
+  const r = await reenviarEncuestaUna(String(formData.get("feedbackId") ?? ""));
+  volver(r.sent, r.fails, "encuesta");
+}
+
+async function loteEncuesta(ids: { id: string; email: string | null }[]): Promise<EnvioResult> {
   let sent = 0;
   const fails: string[] = [];
   for (const it of ids) {
@@ -48,40 +60,45 @@ async function loteEncuesta(ids: { id: string; email: string | null }[]): Promis
     else fails.push(it.email || "(sin correo)");
     await sleep(500);
   }
-  volver(sent, fails, "encuesta");
+  return { sent, fails };
+}
+
+// Pendientes de una experiencia; sin `experienceId`, de TODAS.
+async function pendientesEncuesta(experienceId?: string) {
+  const sb = createSupabaseAdminClient();
+  let q = sb.from("experience_feedback").select("id, contacts(email)").neq("status", "submitted");
+  if (experienceId) q = q.eq("experience_id", experienceId);
+  const { data } = await q;
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    email: (r.contacts as unknown as { email?: string } | null)?.email ?? null,
+  }));
 }
 
 // Reenvía la encuesta a TODOS los pendientes de una experiencia.
+export async function reenviarEncuestaDeExperiencia(experienceId: string): Promise<EnvioResult> {
+  if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
+  const id = (experienceId || "").trim();
+  if (!id) return { sent: 0, fails: [] };
+  return loteEncuesta(await pendientesEncuesta(id));
+}
+
 export async function reenviarEncuestaPendientes(formData: FormData): Promise<void> {
   if (!(await isCurrentUserAdmin())) return;
-  const experienceId = String(formData.get("experienceId") ?? "").trim();
-  if (!experienceId) volver(0, [], "encuesta");
-  const sb = createSupabaseAdminClient();
-  const { data } = await sb
-    .from("experience_feedback")
-    .select("id, contacts(email)")
-    .eq("experience_id", experienceId)
-    .neq("status", "submitted");
-  const ids = (data ?? []).map((r) => ({
-    id: r.id as string,
-    email: (r.contacts as unknown as { email?: string } | null)?.email ?? null,
-  }));
-  await loteEncuesta(ids);
+  const r = await reenviarEncuestaDeExperiencia(String(formData.get("experienceId") ?? ""));
+  volver(r.sent, r.fails, "encuesta");
 }
 
 // Reenvía la encuesta a TODOS los pendientes de TODAS las experiencias.
+export async function reenviarEncuestaATodos(): Promise<EnvioResult> {
+  if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
+  return loteEncuesta(await pendientesEncuesta());
+}
+
 export async function reenviarEncuestaTodos(): Promise<void> {
   if (!(await isCurrentUserAdmin())) return;
-  const sb = createSupabaseAdminClient();
-  const { data } = await sb
-    .from("experience_feedback")
-    .select("id, contacts(email)")
-    .neq("status", "submitted");
-  const ids = (data ?? []).map((r) => ({
-    id: r.id as string,
-    email: (r.contacts as unknown as { email?: string } | null)?.email ?? null,
-  }));
-  await loteEncuesta(ids);
+  const r = await reenviarEncuestaATodos();
+  volver(r.sent, r.fails, "encuesta");
 }
 
 // ── Deslindes ─────────────────────────────────────────────────────────────
@@ -97,17 +114,23 @@ async function enviarDeslinde(p: { email: string | null; nombre: string; experie
 }
 
 // Reenvía el recordatorio de deslinde de UNA reserva pendiente.
+export async function recordarDeslindeUno(reservationId: string): Promise<EnvioResult> {
+  if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
+  const id = (reservationId || "").trim();
+  const pend = (await fetchDeslindesPendientes()).find((p) => p.reservationId === id);
+  const ok = pend ? await enviarDeslinde(pend) : false;
+  return { sent: ok ? 1 : 0, fails: ok ? [] : ["ese correo"] };
+}
+
 export async function reenviarDeslinde(formData: FormData): Promise<void> {
   if (!(await isCurrentUserAdmin())) return;
-  const reservationId = String(formData.get("reservationId") ?? "").trim();
-  const pend = (await fetchDeslindesPendientes()).find((p) => p.reservationId === reservationId);
-  const ok = pend ? await enviarDeslinde(pend) : false;
-  volver(ok ? 1 : 0, ok ? [] : ["ese correo"], "recordatorio");
+  const r = await recordarDeslindeUno(String(formData.get("reservationId") ?? ""));
+  volver(r.sent, r.fails, "recordatorio");
 }
 
 // Reenvía el recordatorio a TODOS los deslindes pendientes.
-export async function reenviarDeslindesTodos(): Promise<void> {
-  if (!(await isCurrentUserAdmin())) return;
+export async function recordarDeslindeATodos(): Promise<EnvioResult> {
+  if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
   let sent = 0;
   const fails: string[] = [];
   for (const p of await fetchDeslindesPendientes()) {
@@ -116,5 +139,11 @@ export async function reenviarDeslindesTodos(): Promise<void> {
     else fails.push(p.email || p.nombre || "(sin correo)");
     await sleep(500);
   }
-  volver(sent, fails, "recordatorio");
+  return { sent, fails };
+}
+
+export async function reenviarDeslindesTodos(): Promise<void> {
+  if (!(await isCurrentUserAdmin())) return;
+  const r = await recordarDeslindeATodos();
+  volver(r.sent, r.fails, "recordatorio");
 }
