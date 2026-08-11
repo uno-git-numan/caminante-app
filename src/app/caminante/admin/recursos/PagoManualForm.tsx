@@ -11,6 +11,9 @@
 // La sección vive COLAPSADA tras un botón naranja: es una acción puntual, no
 // algo que se mire todos los días, y desplegada ocupa media pantalla.
 //
+// Vive en «Recursos» y se viste con las primitivas de `.fin` (el tablero de
+// Claude Design); su retícula está en `FIN_EXTRA_CSS`, no aquí.
+//
 // El monto se calcula solo (precio de la salida × lugares) pero queda editable:
 // casi nunca coincide con la lista (descuentos, anticipos, grupos), y el número
 // que manda es el que de verdad entró a la cuenta.
@@ -30,23 +33,8 @@ const hoyISO = () => new Date().toISOString().slice(0, 10);
 const money = (n: number) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n);
 
-// Retícula propia: `.mini-form` del panel es una fila flex para dos controles
-// sueltos, y con once campos se encimaba. Aquí cada campo es un bloque con la
-// etiqueta SIEMPRE en una línea y la pista DEBAJO del control, para que todos
-// los inputs caigan a la misma altura.
-const CSS = `
-.adm .pgf{display:grid;gap:14px 16px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-top:16px;}
-.adm .pgf label{display:block;}
-.adm .pgf .k{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.adm .pgf input,.adm .pgf select{width:100%;font-family:inherit;font-size:13.5px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--charcoal);}
-.adm .pgf input:focus,.adm .pgf select:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15);}
-.adm .pgf input[type=file]{padding:7px 10px;font-size:12px;color:var(--ink-soft);}
-.adm .pgf .h{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:5px;}
-.adm .pgf .ancho{grid-column:1/-1;}
-.adm .pgf-seg{display:flex;gap:8px;}
-`;
 
-export default function TransferenciaForm({ experiencias }: { experiencias: ExperienciaConSalidas[] }) {
+export default function PagoManualForm({ experiencias }: { experiencias: ExperienciaConSalidas[] }) {
   const [abierto, setAbierto] = useState(false);
   const [metodo, setMetodo] = useState<MetodoManual>("transfer");
   const [slug, setSlug] = useState("");
@@ -144,7 +132,6 @@ export default function TransferenciaForm({ experiencias }: { experiencias: Expe
   if (!abierto) {
     return (
       <>
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <button type="button" className="btn btn-orange" onClick={() => setAbierto(true)}>
           + pago por fuera de caminante
         </button>
@@ -154,7 +141,6 @@ export default function TransferenciaForm({ experiencias }: { experiencias: Expe
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <button type="button" className="btn btn-orange" onClick={() => setAbierto(false)}>
         + pago por fuera de caminante
       </button>
@@ -168,12 +154,12 @@ export default function TransferenciaForm({ experiencias }: { experiencias: Expe
         </p>
 
         <form onSubmit={onSubmit}>
-          <div className="pgf-seg" style={{ marginTop: 16 }}>
+          <div className="seg" style={{ marginTop: 16 }}>
             {(["transfer", "cash"] as MetodoManual[]).map((m) => (
               <button
                 key={m}
                 type="button"
-                className={"btn btn-sm " + (metodo === m ? "btn-orange" : "btn-ghost")}
+                className={"btn btn-sm " + (metodo === m ? "btn-orange" : "btn-glass")}
                 onClick={() => setMetodo(m)}
               >
                 {m === "transfer" ? "Transferencia" : "Efectivo"}
@@ -325,11 +311,11 @@ export default function TransferenciaForm({ experiencias }: { experiencias: Expe
             </label>
           </div>
 
-          <div className="act-row">
+          <div className="actrow">
             <button type="submit" className="btn btn-orange" disabled={ocupado}>
               {subiendo ? "Subiendo comprobante…" : guardando ? "Registrando…" : "Registrar y generar enlace"}
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAbierto(false)}>
+            <button type="button" className="btn btn-glass btn-sm" onClick={() => setAbierto(false)}>
               Cancelar
             </button>
           </div>
@@ -352,7 +338,7 @@ export default function TransferenciaForm({ experiencias }: { experiencias: Expe
                   <p style={{ fontSize: 12.5, margin: "8px 0 0", wordBreak: "break-all" }}>
                     {res.deslindeUrl}
                   </p>
-                  <div className="act-row">
+                  <div className="actrow">
                     <button
                       type="button"
                       className="btn btn-orange btn-sm"
@@ -362,7 +348,7 @@ export default function TransferenciaForm({ experiencias }: { experiencias: Expe
                     </button>
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
+                      className="btn btn-glass btn-sm"
                       onClick={() => copiar(res.deslindeUrl!, "link")}
                     >
                       {copiado === "link" ? "Copiado" : "Copiar solo el enlace"}

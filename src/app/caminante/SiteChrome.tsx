@@ -40,7 +40,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/admin/roster") ||
     pathname.startsWith("/caminante/admin/encuesta") ||
     pathname.startsWith("/caminante/admin/dinero") ||
-    pathname.startsWith("/caminante/admin/rentabilidad") || // tablero financiero (CSS .fin propio)
+    pathname.startsWith("/caminante/admin/recursos") || // dinero unificado (CSS .fin propio)
     pathname.startsWith("/caminante/admin/m") || // app de admin en móvil (shell propio)
     pathname === "/caminante/admin" || // dashboard: trae su propio shell (AdminShell)
     pathname === "/caminante/perfil" || // Mi espacio: topbar propio (.mesp)

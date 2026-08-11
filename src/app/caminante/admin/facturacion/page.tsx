@@ -77,7 +77,7 @@ export default async function FacturacionAdminPage() {
   const totalPorEmitir = porEmitir.reduce((n, p) => n + Number(p.amount_mxn || 0), 0);
 
   return (
-    <AdminShell active="dinero">
+    <AdminShell active="recursos">
       <div style={{ marginBottom: 14 }}>
         <a href="/caminante/admin/dinero" className="mut" style={{ fontSize: 13, textDecoration: "none" }}>
           ← Dinero

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
+import { ADMIN_NAV as items, type AdminSection } from "./nav";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_CSS } from "./admin-css";
 
@@ -50,36 +51,7 @@ window.addEventListener('hashchange',abrirHash);
 abrirHash();
 `;
 
-export type AdminSection =
-  | "panorama"
-  | "eventos"
-  | "comunicacion"
-  | "solicitudes"
-  | "reservas"
-  | "personas"
-  | "dinero"
-  | "rentabilidad"
-  | "operador"
-  | "encuesta";
-
-// Al lanzar cada fase, se cambia soon→href. No enlaza el marketplace dormido.
-// Nav principal. "Accesos" se fundió en Solicitudes (solicitud operador +
-// solicitud cliente) y "Facturación" se movió dentro de Dinero. "Operador" se
-// renderiza aparte, a la derecha del nav con ícono de perfil.
-const items: { key: AdminSection; label: string; href?: string; soon?: boolean }[] = [
-  { key: "panorama", label: "Panorama", href: "/caminante/admin" },
-  { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
-  { key: "comunicacion", label: "Comunicación", href: "/caminante/admin/comunicacion" },
-  { key: "solicitudes", label: "Solicitudes", href: "/caminante/admin/solicitudes" },
-  { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
-  { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
-  { key: "dinero", label: "Dinero", href: "/caminante/admin/dinero" },
-  // El tablero de rentabilidad NO estaba en el nav: la página existía y solo se
-  // llegaba desde ella misma. Es la que responde «de lo que entró, cuánto es
-  // mío», así que va junto a Dinero.
-  { key: "rentabilidad", label: "Rentabilidad", href: "/caminante/admin/rentabilidad" },
-  { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
-];
+export type { AdminSection } from "./nav";
 
 // Solicitudes de fecha sin resolver → badge en el nav. Best-effort: si la
 // consulta falla, el nav sale sin badge (jamás rompe una página del admin).
