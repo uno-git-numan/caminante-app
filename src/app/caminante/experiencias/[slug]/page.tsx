@@ -6,9 +6,13 @@ import {
 } from "@/lib/experiences/queries";
 import { cleanGrupoToken, fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import { fetchOperatorChipForExperience } from "@/lib/operators/public";
+import { fetchExperienceRatings } from "@/lib/experiences/ratings";
 import { getCurrentRole } from "@/lib/auth/authorization";
+import PubStyles from "../../ui/pub/PubStyles";
+import PubShell from "../../ui/pub/PubShell";
 import ExperienceTemplate from "./ExperienceTemplate";
 import ExperienceTemplateV2 from "./ExperienceTemplateV2";
+import ExpMovil from "./ExpMovil";
 
 export const dynamic = "force-dynamic";
 
@@ -34,19 +38,37 @@ export default async function ExperiencePage({ params, searchParams }: Params) {
   // para leer sus salidas y pintar las fechas en vivo.
   const row = await fetchPublishedExperienceRow(slug);
   if (row?.experience.design === "v2") {
-    const [slots, sessionRole, operatorChip] = await Promise.all([
+    const [slots, sessionRole, operatorChip, ratings] = await Promise.all([
       fetchOpenSlotsForTemplate(row.id, { grupoToken }),
       getCurrentRole(),
       fetchOperatorChipForExperience(row.id),
+      fetchExperienceRatings(),
     ]);
+    // Se renderizan los DOS marcados y el CSS decide cuál se ve (corte en
+    // 700px, PUB_SWAP_CSS): abajo el teléfono, arriba el escritorio de hoy,
+    // intacto. Ver design/publico-movil/PATRON.md.
     return (
-      <ExperienceTemplateV2
-        experience={row.experience}
-        slots={slots}
-        grupoToken={grupoToken}
-        sessionRole={sessionRole}
-        operatorChip={operatorChip}
-      />
+      <>
+        <PubStyles />
+        <div className="pub-no">
+          <ExperienceTemplateV2
+            experience={row.experience}
+            slots={slots}
+            grupoToken={grupoToken}
+            sessionRole={sessionRole}
+            operatorChip={operatorChip}
+          />
+        </div>
+        <PubShell buypad>
+          <ExpMovil
+            experience={row.experience}
+            slots={slots}
+            grupoToken={grupoToken}
+            operatorChip={operatorChip}
+            rating={ratings.get(row.id) ?? null}
+          />
+        </PubShell>
+      </>
     );
   }
 

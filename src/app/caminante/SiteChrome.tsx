@@ -22,6 +22,8 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/solicitar/") || // solicitar fecha: topbar propio
     pathname.startsWith("/caminante/embajadores") || // programa de embajadores: topbar propio (.emb)
     pathname === "/caminante/nosotros" || // sitio público móvil: shell propio (.pub)
+    pathname === "/caminante/experiencias" || // índice de experiencias: shell propio (.pub)
+    pathname === "/caminante/aprende" || // índice de la ficha científica: shell propio (.pub)
     pathname.startsWith("/caminante/invitar/") || // invitación imprimible (→ PDF)
     pathname.startsWith("/caminante/deslinde/") || // deslinde legal data-driven (imprimible)
     pathname.startsWith("/caminante/admin/experiencias") ||
