@@ -376,17 +376,15 @@ export default async function EncuestaPage({
                         </div>
                       </div>
                     ) : null}
-                    {/* Nace abierto: los comentarios son a lo que se entra. El
-                        plegable existe para poder cerrarlos, no para esconderlos. */}
                     <div className="fold">
-                      <div className="fh xhead open" data-x={rkid}>
+                      <div className="fh xhead" data-x={rkid}>
                         <span className="ft">Por ranking</span>
                         <span className="fs">
                           quién calificó qué · filtra por estrellas
                         </span>
                         <span className="chev2">▾</span>
                       </div>
-                      <div className="xbody on" id={rkid}>
+                      <div className="xbody" id={rkid}>
                         <div className="fpad">
                           <RespuestasExp respuestas={e.respuestas} />
                         </div>
