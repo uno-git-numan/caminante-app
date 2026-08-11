@@ -335,6 +335,98 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
 - GitHub: `uno-git-numan/caminante-app`. Auth de GitHub vía `gh` (en `~/.local/bin/gh`).
 - Vercel: equipo `uno-1425s-projects`, proyecto `caminante-app`.
 
+## TRANSFERENCIAS: la cuarta puerta de venta (11 ago)
+- **El caso.** Hasta hoy solo había tres puertas para que naciera una reserva: checkout web
+  (Stripe), `/admin/cobro` (link de pago) y el deslinde. **Quien pagaba por transferencia
+  simplemente no existía para la plataforma.** Lo destapó Lorena Saravia: transfirió $16,500 para
+  Barrancas 8-oct el 29 de julio y no había contacto, ni reserva, ni ingreso — y **la salida se veía
+  en 4/12 cuando iba en 5/12, justo su punto de equilibrio**, con ella lista para viajar sin firmar
+  deslinde. Es el caso Enyd otra vez, por un camino que no existía.
+- **`0034_transferencias` APLICADA:** `payments.comprobante_url` + `referencia`, con índice único
+  **parcial** sobre `referencia` (los cobros de Stripe no traen referencia bancaria). Es la defensa
+  contra capturar dos veces el mismo movimiento — el error más fácil conciliando a mano.
+- **`registrarTransferencia`** (`src/lib/admin/transferencias.ts`) hace lo mismo que el webhook de
+  Stripe para que la venta quede igual de completa: contacto con dedupe → reserva `paid` atribuida
+  al operador → `payments` con `method='transfer'` → correo de confirmación **con el CTA del
+  deslinde** → aviso al admin. ⚠️ **`stripe_fee_mxn` se queda NULL a propósito**: «no aplica» no es
+  lo mismo que «fue cero», y el tablero de rentabilidad distingue las dos cosas.
+- ⚠️ **`channel = 'admin'`, NO `'transferencia'`**: el CHECK de la 0007 solo admite
+  `web|whatsapp|email|admin`. La forma de pago vive en `payments.method`, que es su lugar. (Se
+  detectó antes de correr: habría sido un 23514 en producción.)
+- **El comprobante va a un bucket PRIVADO nuevo, `comprobantes`** (creado 11 ago; `experiences` es
+  público). Trae nombre, monto y a veces dígitos de cuenta: no puede quedar tras una URL pública y
+  eterna. Se guarda la **RUTA** del objeto en `comprobante_url` (nunca una URL) y se ve por URL
+  firmada de 5 min vía `/caminante/api/admin/comprobante`, gateada a admin. El nombre del archivo se
+  sustituye por bytes aleatorios (el original suele traer el nombre del cliente).
+- **UI:** sección «Registrar una transferencia» en `/caminante/admin/dinero` con desplegable de
+  experiencia y salida (el slug a mano de `/admin/cobro` ya ha costado errores). El ledger suma la
+  columna **Respaldo** con la referencia y el link al comprobante.
+
+## SALIDAS VENCIDAS: se cierran solas (11 ago)
+- **Nada las cerraba.** Quedaban `open` para siempre y las dos consultas públicas
+  (`fetchPublicAvailability`, `fetchOpenSlotsForTemplate`) filtran solo por `status='open'`, sin
+  mirar la fecha. El 11 de agosto había **dos abiertas ya pasadas** (hongos Jun 26-27 y Jul 26): el
+  sitio anunciaba junio como «próxima fecha» y `createCheckout` la habría cobrado.
+- **Cron diario `cerrar-salidas`** (14:00 UTC = 8am CDMX, antes que todos los demás) →
+  `cerrarSalidasVencidas` en `src/lib/experiences/cerrar-vencidas.ts`. Cerrada la salida desaparece
+  del sitio, del checkout, del picker del deslinde y del formulario **de un solo golpe**, sin tocar
+  ninguno de ellos.
+- Decisiones: el corte es por **`starts_at`, no `ends_at`** (una salida de Oct 8-11 no se vende el 9,
+  el grupo ya va en camino); se cierra cuando el **DÍA** de salida pasó en CDMX (la que arranca hoy a
+  las 7am sigue vendible hoy); solo toca `open` y el update repite el filtro para no pisar a quien la
+  reabrió o canceló; **cerrar no borra** (se reabre desde el dashboard).
+- ✅ **Cerrar es seguro para la encuesta**: `runSurveyDispatch` busca por `ends_at` y por las
+  reservas, **nunca** por el status de la salida. Verificado antes de construirlo.
+
+## SITIO PÚBLICO MÓVIL — es la vista móvil, no un sitio nuevo (11 ago)
+- **Encargo de Luis:** *«hoy la página se ve bien en escritorio; solo es integrar para que en
+  teléfono se vea bien, sin tocar escritorio»*. El entregable de Claude Design
+  (`design/publico-movil/`, 25 pantallas) NO es una app nueva ni un rediseño.
+- **Contrato de integración: `design/publico-movil/PATRON.md`** (léelo antes de tocar nada). Mapa
+  pantalla→dato: `design/publico-movil/INTEGRACION.md`. Referencia viva:
+  `src/app/caminante/nosotros/page.tsx`.
+- **CSS** (`src/lib/publico/movil-css.ts`, extracción verbatim con el selector prefijado `.pub`):
+  `PUB_CSS_MOVIL` envuelve TODO en `@media (max-width:699px)` y `PUB_SWAP_CSS` esconde el marcado de
+  escritorio abajo de 700px (`.pub-no`). Se renderizan los dos marcados y el CSS decide — olfatear el
+  user-agent rompería el caché de Vercel. Las rutas NUEVAS usan `PUB_CSS` a secas (`modo="solo"`).
+- ⚠️ **Cuatro desviaciones mecánicas, todas documentadas en el encabezado del módulo.** Las que
+  importan: las 17 variables pasaron de `:root` a `.pub` (en `:root` aplican a TODA página de Next y
+  el `--olive` del entregable, `#776F67`, no es el del sitio, `#637154` → integrarlo tal cual
+  repintaba el panel de admin); y **`.pub` lleva `height:100dvh`, no `min-height`** — con
+  `min-height` el `height:100%` del `.pub-app` no resuelve, `.pub-scroll` deja de scrollear por
+  dentro y se pierde justo el comportamiento de app (cabecera que se vuelve crema, barra de compra,
+  tabbar).
+- **Shell** (`src/app/caminante/ui/pub/`): la demo era una pila de React sin URLs; aquí la pila la
+  lleva el router y cada pantalla conserva su dirección — hay **7 puntos de entrada que llegan por
+  link desde fuera** (regreso de Stripe `?session_id=`, liga mágica, `/feedback/[token]`, deslinde
+  `?reserva=`, grupo `?grupo=`, baja firmada, facturación firmada) y sin URL no tendrían dónde
+  aterrizar. `PubShell` (tabbar, hojas, toast), `atoms.tsx`, `PubStyles.tsx`.
+- **Integradas:** `/nosotros` (era link muerto del nav) · `/experiencias` (ídem; + `fetchDestinos()`
+  nuevo en `lib/destinos/queries.ts`) · `/aprende` · `/experiencias/[slug]` (vista móvil encima del
+  v2 de escritorio, que **no se tocó**; `?grupo=` se propaga a todos los CTA de reserva).
+- **`/aprende`:** `PubAprende` está definida DOS veces en el entregable y la que gana en la demo pide
+  una tabla de cápsulas que **no existe** (barrido 0001–0034: ni `articles`, ni `posts`, ni
+  `capsulas`). Decisión de Luis: poner la pantalla con un estado honesto de «estamos produciendo el
+  contenido» y llenarla con lo que SÍ está poblado — la **ficha científica**, con su fuente siempre a
+  la vista. Cero artículos, minutos de lectura o fechas inventados.
+- **Datos que el mockup inventa y NO se inventan** (lista completa en INTEGRACION.md): el guía
+  estructurado `{nombre, rol, cita}` (la heurística `guias()` del Kit ya retrató variedades de hongo
+  como personas), `e.cat`, `e.nueva`, el punto de encuentro con mapa, los colores de marca del
+  operador, y `hola@numanhub.com` (el real es `uno@numanhub.com`).
+- **«Avísame»** no tenía tabla: se monta sobre **`leads` (0015)**, cuyo `source` ya admite `'web'`.
+  Idempotente, sin migración. Ojo: avísame ≠ `slot_requests` (aquel es PEDIR fecha y genera trabajo
+  para el admin; esto no).
+- **Luis aprobó agregar los campos que al mockup le faltan** (11 ago) en el mismo lenguaje visual:
+  el deslinde sin PDF ni cláusulas reales, la encuesta con 3 secciones fijas, solicitar sin WhatsApp
+  (que el servidor exige → el form fallaría siempre) y embajadores con 3 campos de menos. El diseño
+  no manda sobre las reglas del sistema. **Esas cuatro pantallas siguen pendientes.**
+- **Estrellas en público:** van por EXPERIENCIA con su número de respuestas (decisión de Luis, 11
+  ago: «los ratings no son por salida, son por experiencia»).
+- Gotcha de verificación: `npm run dev` no arranca en el sandbox (EPERM sobre el npm de fnm) y el
+  preview de Vercel pide sesión, así que el Browser pane no lo alcanza. Se verifica con el Chrome
+  conectado, metiendo la página en un **iframe de 390px** (las media queries responden al ancho del
+  iframe) y leyendo el DOM por JS.
+
 ## Pendientes (al retomar)
 1. **Dar de alta las 5 experiencias** desde localhost (`/caminante/admin/experiencias/nueva`). Aparecen en vivo (base compartida).
 2. **Llaves "Needs Attention" en Vercel** (SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) están viejas (marzo). Actualizarlas (las pega el usuario) para que **Stripe y las _escrituras_ de admin en producción** (guardar experiencias, subir fotos vía `createSupabaseAdminClient`) funcionen. **OJO: estas NO afectan el _login_ de admin** — el gate (`isCurrentUserAdmin`) solo usa la publishable key + la tabla `admin_whitelist`.
