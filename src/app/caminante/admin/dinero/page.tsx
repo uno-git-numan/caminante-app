@@ -149,8 +149,13 @@ export default async function DineroPage() {
                         Neto <span className="chev2">▾</span>
                       </dt>
                       <dd style={{ borderTop: "1px solid var(--line)", paddingTop: 8 }}>
-                        {formatMXN(p.neto)}
-                        {p.brutoSinPct ? <span className="mut"> (parcial)</span> : null}
+                        {p.neto != null ? (
+                          formatMXN(p.neto)
+                        ) : (
+                          <span style={{ color: "var(--orange)", fontWeight: 600 }}>
+                            {p.sinAtribuir ? "no se paga · falta atribuir" : "sin definir"}
+                          </span>
+                        )}
                       </dd>
                     </dl>
                   </div>
@@ -168,15 +173,22 @@ export default async function DineroPage() {
                         ))}
                         <div className="wl total">
                           <span>Neto a depositar</span>
-                          <span className="m">{formatMXN(p.neto)}</span>
+                          <span className="m">{p.neto != null ? formatMXN(p.neto) : "—"}</span>
                           <span className="me">{p.email}</span>
                           <span className="d" />
                         </div>
                       </div>
-                      {p.brutoSinPct ? (
-                        <p className="mut" style={{ fontSize: 12, marginTop: 8 }}>
-                          Hay ventas sin % de comisión congelado — define la comisión del operador en
-                          Eventos para las ventas futuras (las pasadas no cambian).
+                      {p.sinAtribuir ? (
+                        <p style={{ fontSize: 12, marginTop: 8, color: "var(--orange)" }}>
+                          Estas ventas no tienen operador asignado, así que no entran en ningún
+                          payout. Asígnales operador en Eventos para que dejen de estar fuera de la
+                          cuenta.
+                        </p>
+                      ) : p.brutoSinPct ? (
+                        <p style={{ fontSize: 12, marginTop: 8, color: "var(--orange)" }}>
+                          No hay neto porque {formatMXN(p.brutoSinPct)} de este bruto se vendió sin
+                          comisión congelada. Define la comisión del operador para las ventas futuras;
+                          las pasadas se acuerdan a mano — el sistema no las va a adivinar.
                         </p>
                       ) : null}
                     </div>

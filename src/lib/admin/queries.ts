@@ -1380,7 +1380,11 @@ export type PayoutOperador = {
   bruto: number;
   comision: number; // solo sobre ventas con % congelado
   brutoSinPct: number; // ventas cuyo % quedó "por definir"
-  neto: number; // bruto - comision (parcial si hay sinPct)
+  // ⚠️ NULL cuando alguna venta no tiene % congelado. NO es cero ni es el bruto:
+  // es "no se puede calcular todavía". Antes se devolvía bruto − 0 y el panel
+  // proponía depositarle al operador el 100% de la venta.
+  neto: number | null;
+  sinAtribuir?: boolean; // fila de ventas sin operator_id — no se paga, se aclara
   lineas: { concepto: string; monto: number; nota: string }[];
 };
 
@@ -1514,11 +1518,16 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     string,
     { bruto: number; comision: number; brutoSinPct: number; lineas: Map<string, { monto: number; personas: number }> }
   >();
+  // Las ventas sin operator_id se AGRUPAN aparte en vez de descartarse: eran
+  // $384,000 que no aparecían ni como cero. Una cifra que no existe no se
+  // puede auditar.
+  const SIN_OP = "__sin_operador__";
   for (const p of paid) {
     const r = rById.get(p.reservation_id);
-    if (!r || !r.operator_id) continue;
+    if (!r) continue;
+    const key = r.operator_id || SIN_OP;
     const acc =
-      porOperador.get(r.operator_id) ||
+      porOperador.get(key) ||
       { bruto: 0, comision: 0, brutoSinPct: 0, lineas: new Map() };
     const monto = Number(p.amount_mxn || 0);
     acc.bruto += monto;
@@ -1529,19 +1538,23 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     const lin = acc.lineas.get(concepto) || { monto: 0, personas: 0 };
     lin.monto += monto;
     acc.lineas.set(concepto, lin);
-    porOperador.set(r.operator_id, acc);
+    porOperador.set(key, acc);
   }
   const opById = new Map(ops.map((o) => [o.id, o]));
   const payouts: PayoutOperador[] = [...porOperador.entries()]
     .map(([opId, acc]) => {
+      const sinAtribuir = opId === SIN_OP;
       const op = opById.get(opId);
       return {
-        operador: op?.name || "Operador",
-        email: op?.email || "",
+        operador: sinAtribuir ? "Sin operador asignado" : op?.name || "Operador",
+        email: sinAtribuir ? "" : op?.email || "",
         bruto: acc.bruto,
         comision: Math.round(acc.comision * 100) / 100,
         brutoSinPct: acc.brutoSinPct,
-        neto: Math.round((acc.bruto - acc.comision) * 100) / 100,
+        // Con una sola venta sin % congelado el neto queda indefinido. Mejor
+        // ningún número que un número que invita a transferir de más.
+        neto: acc.brutoSinPct > 0 || sinAtribuir ? null : Math.round((acc.bruto - acc.comision) * 100) / 100,
+        sinAtribuir,
         lineas: [...acc.lineas.entries()]
           .map(([concepto, l]) => ({ concepto, monto: l.monto, nota: "" }))
           .sort((a, b) => b.monto - a.monto),

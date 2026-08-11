@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { finalizeSucceededPaymentIntent } from "@/lib/payments/finalize";
 import { finalizeReservationCheckout } from "@/lib/payments/finalize-reservation";
 import { finalizeSelfServeCheckout } from "@/lib/payments/finalize-selfserve";
+import { finalizeRefund } from "@/lib/payments/refunds";
 import { getStripeServerClient } from "@/lib/payments/stripe";
 
 export const runtime = "nodejs";
@@ -41,6 +42,10 @@ export async function POST(request: Request) {
       if (!res.handled) {
         await finalizeSelfServeCheckout(session);
       }
+    } else if (event.type === "charge.refunded") {
+      // Marca el pago como reembolsado. Sin esto el cobro devuelto seguía
+      // contando como ingreso y como bruto del operador.
+      await finalizeRefund(event.data.object as Stripe.Charge);
     } else if (event.type === "payment_intent.succeeded") {
       // Camino marketplace DORMIDO (trips/bookings): solo corre si el intent trae trip_id.
       // Los PaymentIntents de los Payment Links no lo traen → se ignoran aquí (su pago se
