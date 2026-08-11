@@ -58,6 +58,7 @@ export type AdminSection =
   | "reservas"
   | "personas"
   | "dinero"
+  | "rentabilidad"
   | "operador"
   | "encuesta";
 
@@ -73,6 +74,10 @@ const items: { key: AdminSection; label: string; href?: string; soon?: boolean }
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
   { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
   { key: "dinero", label: "Dinero", href: "/caminante/admin/dinero" },
+  // El tablero de rentabilidad NO estaba en el nav: la página existía y solo se
+  // llegaba desde ella misma. Es la que responde «de lo que entró, cuánto es
+  // mío», así que va junto a Dinero.
+  { key: "rentabilidad", label: "Rentabilidad", href: "/caminante/admin/rentabilidad" },
   { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
 ];
 

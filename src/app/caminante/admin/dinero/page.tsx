@@ -281,6 +281,23 @@ export default async function DineroPage() {
             </table>
           </div>
         </div>
+        {/* Puente explícito: Dinero responde «cuánto entró», Rentabilidad
+            responde «cuánto es mío». Son dos preguntas distintas y la segunda
+            se estaba perdiendo. */}
+        <div className="card pad" style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div>
+            <span className="subtitle" style={{ margin: 0 }}>Rentabilidad por salida</span>
+            <p className="mut" style={{ fontSize: 12.5, margin: "4px 0 0" }}>
+              Esta página dice cuánto <b>entró</b>. La otra dice cuánto es <b>tuyo</b>: la escalera
+              ingreso → IVA → Stripe → proveedores → utilidad, salida por salida, con su punto de
+              equilibrio.
+            </p>
+          </div>
+          <a href="/caminante/admin/rentabilidad" className="btn btn-glass btn-sm">
+            Ver rentabilidad →
+          </a>
+        </div>
+
         {/* Facturación CFDI: se opera desde aquí (movida del nav a Dinero). */}
         <div className="card pad" style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <div>
