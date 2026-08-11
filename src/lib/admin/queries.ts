@@ -1430,10 +1430,15 @@ export type DineroAdmin = {
   porExperiencia: {
     nombre: string;
     monto: number;
-    detalle: { salida: string; personas: number; monto: number }[];
+    detalle: { salida: string; personas: number; monto: number; pagos: LedgerLinea[] }[];
   }[];
   payouts: PayoutOperador[];
-  ledger: LedgerLinea[];
+  /**
+   * Pagos que no se pudieron colgar de una experiencia (no debería haber: la
+   * reserva es obligatoria y siempre tiene experiencia). Si aparece alguno, es
+   * un dato roto y hay que verlo — por eso se muestra en vez de esconderse.
+   */
+  huerfanos: LedgerLinea[];
 };
 
 export async function fetchDinero(): Promise<DineroAdmin> {
@@ -1524,6 +1529,32 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     porSalida.set(key, acc);
     porExpMap.set(r.experience_id, porSalida);
   }
+  // Los pagos, colgados de su experiencia y su salida. Se incluyen los
+  // reembolsados y los pendientes: la historia del dinero de una salida no se
+  // entiende viendo solo lo que entró.
+  const pagosPorSalida = new Map<string, LedgerLinea[]>();
+  const huerfanos: LedgerLinea[] = [];
+  const aLinea = (p: (typeof pays)[number]): LedgerLinea => ({
+    fecha: formatDiaMes(p.paid_at || p.created_at),
+    persona: (p.contact_id && cById.get(p.contact_id)) || "—",
+    metodo: metodoLabel(p.method),
+    monto: Number(p.amount_mxn || 0),
+    estado: p.status,
+    referencia: p.referencia || null,
+    comprobantePath: p.comprobante_url || null,
+  });
+  for (const p of [...pays].sort((a, b) =>
+    (b.paid_at || b.created_at || "").localeCompare(a.paid_at || a.created_at || ""),
+  )) {
+    const r = rById.get(p.reservation_id);
+    if (!r) {
+      huerfanos.push(aLinea(p));
+      continue;
+    }
+    const key = `${r.experience_id}|${r.slot_id || "singular"}`;
+    pagosPorSalida.set(key, [...(pagosPorSalida.get(key) || []), aLinea(p)]);
+  }
+
   const numPorResvSlot = new Map<string, number>();
   for (const r of resvs) {
     const key = `${r.experience_id}|${r.slot_id || "singular"}`;
@@ -1538,6 +1569,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
         salida: slotKey === "singular" ? "Sin salida asignada" : sById.get(slotKey) || "—",
         personas: numPorResvSlot.get(`${expId}|${slotKey}`) || acc.personas.size,
         monto: acc.monto,
+        pagos: pagosPorSalida.get(`${expId}|${slotKey}`) || [],
       }));
       return {
         nombre: exp ? experienceTitle(exp.data, exp.slug) : "?",
@@ -1596,18 +1628,9 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     })
     .sort((a, b) => b.bruto - a.bruto);
 
-  // Ledger (todos los pagos, más reciente primero)
-  const ledger: LedgerLinea[] = pays
-    .sort((a, b) => (b.paid_at || b.created_at || "").localeCompare(a.paid_at || a.created_at || ""))
-    .map((p) => ({
-      fecha: formatDiaMes(p.paid_at || p.created_at),
-      persona: (p.contact_id && cById.get(p.contact_id)) || "—",
-      metodo: metodoLabel(p.method),
-      monto: Number(p.amount_mxn || 0),
-      estado: p.status,
-      referencia: p.referencia || null,
-      comprobantePath: p.comprobante_url || null,
-    }));
+  // El ledger plano se eliminó: los pagos viven DENTRO de su experiencia y su
+  // salida (Luis, 11 ago). Una lista global de 49 cobros no dice de quién es
+  // cada peso; colgada de la salida, sí.
 
   return {
     mesLabel,
@@ -1620,7 +1643,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     reembolsosN: refMes.length,
     porExperiencia,
     payouts,
-    ledger,
+    huerfanos,
   };
 }
 

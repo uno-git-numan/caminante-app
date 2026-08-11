@@ -10,13 +10,72 @@
 // secciones se arman con SUS MISMAS primitivas (`.card`, `.tbl`, `.chip`,
 // `.money`, `.pos/.neg`, `.empty`) — no con un lenguaje visual nuevo.
 
-import type { DineroAdmin } from "@/lib/admin/queries";
+import type { DineroAdmin, LedgerLinea } from "@/lib/admin/queries";
 import { formatMXN } from "@/lib/admin/queries";
 import type { SalidaRentabilidad } from "@/lib/admin/rentabilidad";
 
 const mx = (n: number) => "$" + Math.round(Math.abs(n)).toLocaleString("es-MX");
 
 // ── INGRESOS ─────────────────────────────────────────────────────────────
+
+/** La tabla de pagos de UNA salida. Antes era el ledger global de la página. */
+function Pagos({ pagos }: { pagos: LedgerLinea[] }) {
+  return (
+    <table className="tbl">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Persona</th>
+          <th>Método</th>
+          <th className="num right">Monto</th>
+          <th>Estado</th>
+          <th>Respaldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {pagos.map((l, i) => (
+          <tr key={i}>
+            <td className="c">{l.fecha}</td>
+            <td>{l.persona}</td>
+            <td className="c">{l.metodo}</td>
+            <td
+              className="num right mono"
+              style={l.estado === "refunded" ? { textDecoration: "line-through" } : undefined}
+            >
+              {formatMXN(l.monto)}
+            </td>
+            <td>
+              {l.estado === "paid" ? (
+                <span className="chip c-paid chip-sm">Pagado</span>
+              ) : l.estado === "refunded" ? (
+                <span className="chip c-draft chip-sm">Reembolsado</span>
+              ) : (
+                <span className="chip c-sol chip-sm">{l.estado}</span>
+              )}
+            </td>
+            <td className="c">
+              {l.referencia ? <span>ref. {l.referencia}</span> : null}
+              {l.comprobantePath ? (
+                <>
+                  {l.referencia ? " · " : null}
+                  {/* URL firmada de 5 min: el bucket es privado. */}
+                  <a
+                    href={`/caminante/api/admin/comprobante?path=${encodeURIComponent(l.comprobantePath)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    comprobante
+                  </a>
+                </>
+              ) : null}
+              {!l.referencia && !l.comprobantePath ? "—" : null}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 export function Ingresos({ d }: { d: DineroAdmin }) {
   return (
@@ -42,17 +101,27 @@ export function Ingresos({ d }: { d: DineroAdmin }) {
                     <span className="chev2">▾</span>
                   </summary>
                   <div className="drawer">
-                    <table className="tbl">
-                      <tbody>
-                        {e.detalle.map((s, j) => (
-                          <tr key={j}>
-                            <td>{s.salida}</td>
-                            <td className="c">{s.personas} pers.</td>
-                            <td className="num right mono">{formatMXN(s.monto)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    {/* Los pagos viven DENTRO de su salida (Luis, 11 ago): una
+                        lista global de cobros no dice de quién es cada peso.
+                        Tercer nivel de <details>, como el resto de la página. */}
+                    {e.detalle.map((sal, j) => (
+                      <details key={j} className="dtl">
+                        <summary>
+                          <span className="c-name">
+                            {sal.salida} <span className="c">· {sal.personas} pers.</span>
+                          </span>
+                          <span className="money mono">{formatMXN(sal.monto)}</span>
+                          <span className="chev2">▾</span>
+                        </summary>
+                        <div className="drawer">
+                          {sal.pagos.length ? (
+                            <Pagos pagos={sal.pagos} />
+                          ) : (
+                            <div className="empty">Sin pagos capturados en esta salida.</div>
+                          )}
+                        </div>
+                      </details>
+                    ))}
                   </div>
                 </details>
               ))
@@ -116,75 +185,22 @@ export function Ingresos({ d }: { d: DineroAdmin }) {
         </div>
       </section>
 
-      <section className="sec card" style={{ marginTop: 18 }}>
-        <div className="card-head">
-          <span className="card-lbl">
-            Ledger de pagos <span className="m">· cada cobro, con su respaldo</span>
-          </span>
-        </div>
-        <div className="tbl-wrap">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Persona</th>
-                <th>Método</th>
-                <th className="num right">Monto</th>
-                <th>Estado</th>
-                <th>Respaldo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.ledger.map((l, i) => (
-                <tr key={i}>
-                  <td className="c">{l.fecha}</td>
-                  <td>{l.persona}</td>
-                  <td className="c">{l.metodo}</td>
-                  <td
-                    className="num right mono"
-                    style={l.estado === "refunded" ? { textDecoration: "line-through" } : undefined}
-                  >
-                    {formatMXN(l.monto)}
-                  </td>
-                  <td>
-                    {l.estado === "paid" ? (
-                      <span className="chip c-paid chip-sm">Pagado</span>
-                    ) : l.estado === "refunded" ? (
-                      <span className="chip c-draft chip-sm">Reembolsado</span>
-                    ) : (
-                      <span className="chip c-sol chip-sm">{l.estado}</span>
-                    )}
-                  </td>
-                  <td className="c">
-                    {l.referencia ? <span>ref. {l.referencia}</span> : null}
-                    {l.comprobantePath ? (
-                      <>
-                        {l.referencia ? " · " : null}
-                        {/* URL firmada de 5 min: el bucket es privado. */}
-                        <a
-                          href={`/caminante/api/admin/comprobante?path=${encodeURIComponent(l.comprobantePath)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          comprobante
-                        </a>
-                      </>
-                    ) : null}
-                    {!l.referencia && !l.comprobantePath ? "—" : null}
-                  </td>
-                </tr>
-              ))}
-              {!d.ledger.length ? (
-                <tr>
-                  <td colSpan={6}>
-                    <div className="empty">Sin pagos registrados.</div>
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* Un pago siempre cuelga de una reserva, y una reserva siempre tiene
+          experiencia. Si algo cae aquí es un dato roto y hay que verlo, así que
+          se muestra en vez de esconderse. */}
+      {d.huerfanos.length ? (
+        <section className="sec card" style={{ marginTop: 18 }}>
+          <div className="card-head">
+            <span className="card-lbl">
+              Pagos sin experiencia <span className="m">· revisar: no deberían existir</span>
+            </span>
+          </div>
+          <div className="tbl-wrap">
+            <Pagos pagos={d.huerfanos} />
+          </div>
+        </section>
+      ) : null}
+
     </>
   );
 }
