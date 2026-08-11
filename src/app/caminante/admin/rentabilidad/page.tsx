@@ -77,7 +77,9 @@ function Fila({ s, depth }: { s: SalidaRentabilidad; depth: 0 | 1 }) {
       <div className={"money " + cls(s.ivaNeto)}>{firmado(s.ivaNeto)}</div>
       <div className="money neg">−{mx(s.stripe)}</div>
       <div className="money neg">−{mx(s.proveedoresConIva)}</div>
-      <div className={"money money--util " + cls(s.utilidad)}>{firmado(s.utilidad)}</div>
+      <div className={"money money--util " + (s.sinCostos ? "" : cls(s.utilidad))}>
+        {s.sinCostos ? <span className="mut">sin costear</span> : firmado(s.utilidad)}
+      </div>
       <span className="chev2">▼</span>
     </>
   );
@@ -252,10 +254,17 @@ export default async function RentabilidadPage() {
     .filter((s) => s.equilibrio != null && s.vendidos < s.equilibrio)
     .sort((a, b) => a.utilidad - b.utilidad)[0];
 
-  const yaGanado = suma(cerradas, "utilidad");
-  const posicion = suma(salidas, "utilidad");
+  // ⚠️ Una salida SIN costos cargados no tiene utilidad de $0: tiene utilidad
+  // DESCONOCIDA. Sumarla a los totales los infla por todo su ingreso — Ensenada
+  // sola metía +$206,897 de "utilidad" que es puro ingreso sin restarle nada.
+  // Los KPI solo suman salidas con costos; las demás se cuentan aparte.
+  const conDatos = salidas.filter((s) => !s.sinCostos);
+  const sinDatos = salidas.filter((s) => s.sinCostos);
+  const yaGanado = suma(cerradas.filter((s) => !s.sinCostos), "utilidad");
+  const posicion = suma(conDatos, "utilidad");
   const conIncompletos = salidas.filter((s) => s.costosIncompletos).length;
-  const sinCostos = salidas.filter((s) => s.sinCostos).length;
+  const sinCostos = sinDatos.length;
+  const ingresoSinCostear = suma(sinDatos, "ingreso");
 
   return (
     <>
@@ -326,13 +335,18 @@ export default async function RentabilidadPage() {
             <div className="k-lbl">Ya cerrado</div>
             <div className={"k-val " + (yaGanado < 0 ? "k-neg" : "k-pos")}>{firmado(yaGanado)}</div>
             <div className="k-sub">
-              {cerradas.length} {cerradas.length === 1 ? "salida" : "salidas"} que ya ocurrieron
+              {cerradas.filter((s) => !s.sinCostos).length} de {cerradas.length} salidas pasadas ·{" "}
+              <b>solo las que tienen costos</b>
             </div>
           </div>
           <div className="card kpi">
-            <div className="k-lbl">Posición de las {salidas.length} fechas</div>
+            <div className="k-lbl">Posición de {conDatos.length} fechas</div>
             <div className={"k-val " + (posicion < 0 ? "k-neg" : "k-pos")}>{firmado(posicion)}</div>
-            <div className="k-sub">si todo se queda como está hoy</div>
+            <div className="k-sub">
+              {sinCostos
+                ? `${sinCostos} fechas fuera: ${mx(ingresoSinCostear)} de ingreso sin costear`
+                : "todas las fechas tienen costos"}
+            </div>
           </div>
           <div className="card kpi">
             <div className="k-lbl">Abiertas por vender</div>
@@ -406,7 +420,9 @@ export default async function RentabilidadPage() {
                       <div className={"money " + cls(suma(ss, "ivaNeto"))}>{firmado(suma(ss, "ivaNeto"))}</div>
                       <div className="money neg">−{mx(suma(ss, "stripe"))}</div>
                       <div className="money neg">−{mx(suma(ss, "proveedoresConIva"))}</div>
-                      <div className={"money money--util " + cls(util)}>{firmado(util)}</div>
+                      <div className={"money money--util " + (ss.some((x) => x.sinCostos) ? "" : cls(util))}>
+                        {ss.some((x) => x.sinCostos) ? <span className="mut">incompleto</span> : firmado(util)}
+                      </div>
                       <span className="chev2">▼</span>
                     </summary>
 
