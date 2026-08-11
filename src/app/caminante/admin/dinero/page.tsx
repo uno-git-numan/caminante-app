@@ -202,17 +202,10 @@ export default async function DineroPage() {
           </div>
         </div>
 
-        {/* Transferencias: la cuarta puerta de venta, la única que se captura a mano. */}
-        <div className="card pad" style={{ marginTop: 20 }}>
-          <span className="subtitle" style={{ margin: 0 }}>
-            Registrar un pago fuera de Stripe
-          </span>
-          <p className="mut" style={{ fontSize: 12.5, margin: "4px 0 0" }}>
-            Transferencia o efectivo: el sistema no se entera solo, y sin esto la venta no existe —
-            sin reserva, sin ingreso y, lo grave, sin deslinde. Captúrala aquí, sube el comprobante y
-            te devuelve el <b>enlace</b> para que la persona complete su alta y firme como cualquier
-            otro cliente. No lleva comisión de Stripe, porque no la tuvo.
-          </p>
+        {/* Pago fuera de Stripe: la cuarta puerta de venta, la única que se
+            captura a mano. Va colapsada tras un botón — es una acción puntual,
+            no algo que se mire todos los días. */}
+        <div style={{ marginTop: 20 }}>
           <TransferenciaForm experiencias={experiencias} />
         </div>
 
