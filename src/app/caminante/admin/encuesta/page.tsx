@@ -382,7 +382,7 @@ export default async function EncuestaPage({
                       <div className="fh xhead open" data-x={rkid}>
                         <span className="ft">Por ranking</span>
                         <span className="fs">
-                          {e.respondidas} {e.respondidas === 1 ? "respuesta" : "respuestas"} · filtra por estrellas
+                          quién calificó qué · filtra por estrellas
                         </span>
                         <span className="chev2">▾</span>
                       </div>
