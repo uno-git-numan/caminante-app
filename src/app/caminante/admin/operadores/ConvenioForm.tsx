@@ -65,6 +65,7 @@ export default function ConvenioForm({
             min={0}
             max={100}
             step="0.5"
+            style={inp}
             value={pct}
             onChange={(e) => setPct(e.target.value)}
             placeholder="10"
@@ -79,6 +80,7 @@ export default function ConvenioForm({
         <label style={lbl}>
           <span>Razón social</span>
           <input
+            style={inp}
             value={razonSocial}
             onChange={(e) => setRazonSocial(e.target.value)}
             placeholder="Kéntro Hospitalidad, S.A. de C.V."
@@ -88,6 +90,7 @@ export default function ConvenioForm({
         <label style={lbl}>
           <span>RFC</span>
           <input
+            style={inp}
             value={rfc}
             onChange={(e) => setRfc(e.target.value.toUpperCase())}
             placeholder="KHO230512AB1"
@@ -101,6 +104,7 @@ export default function ConvenioForm({
         <label style={lbl}>
           <span>Responsable</span>
           <input
+            style={inp}
             value={responsable}
             onChange={(e) => setResponsable(e.target.value)}
             placeholder="Quién firma el convenio"
@@ -110,6 +114,7 @@ export default function ConvenioForm({
         <label style={{ ...lbl, gridColumn: "1 / -1" }}>
           <span>Domicilio fiscal</span>
           <input
+            style={inp}
             value={domicilio}
             onChange={(e) => setDomicilio(e.target.value)}
             placeholder="Calle, número, colonia, municipio, estado, C.P."
@@ -131,5 +136,16 @@ export default function ConvenioForm({
   );
 }
 
-const lbl: React.CSSProperties = { display: "grid", gap: 5, fontSize: 12, color: "var(--ink-soft)" };
+// ⚠️ `alignContent:start`. Sin eso el grid reparte el alto de la fila entre las
+// filas internas de cada label, y como el hint de «Comisión» es largo, la fila
+// crece y los demás campos bajan con ella: los rótulos quedan a cuatro alturas
+// distintas y la tarjeta se ve descuadrada. Arriba todos, y los hints cuelgan.
+const lbl: React.CSSProperties = {
+  display: "grid",
+  alignContent: "start",
+  gap: 5,
+  fontSize: 12,
+  color: "var(--ink-soft)",
+};
+const inp: React.CSSProperties = { width: "100%" };
 const hint: React.CSSProperties = { fontSize: 11.5, lineHeight: 1.45 };
