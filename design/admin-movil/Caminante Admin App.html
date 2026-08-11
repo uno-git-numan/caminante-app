@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Caminante · Admin</title>
+<link rel="stylesheet" href="adm-app.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="adm-core.jsx"></script>
+<script type="text/babel" src="adm-screens-a.jsx"></script>
+<script type="text/babel" src="adm-screens-b.jsx"></script>
+<script type="text/babel" src="adm-screens-c.jsx"></script>
+<script type="text/babel" src="adm-dinero.jsx"></script>
+<script type="text/babel" src="adm-pago.jsx"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+const SCREENS={
+evento:ScrEvento,contenido:ScrContenido,persona:ScrPersona,roster:ScrRoster,encuesta:ScrEncuesta,
+porexp:ScrPorExp,payout:ScrPayout,movs:ScrMovs,meses:ScrMeses,pagosEvento:ScrPagosEvento,salidaGente:ScrSalidaGente,pago:ScrPago,comunicacion:ScrComunicacion,kit:ScrKit,solicitudes:ScrSolicitudes,operador:ScrOperadorWL,cobro:ScrCobro,
+};
+const ROOTS={panorama:ScrPanorama,eventos:ScrEventos,gente:ScrGente,dinero:ScrDineroV2,mas:ScrMas};
+const SHEETS={editarSalida:ShEditarSalida,operador:ShOperador,regPago:ShRegPago,comision:ShComisionG};
+const DIALOGS={rechazoCancelar:DlgRechazoCancelar,confirmCancelarSalida:DlgConfirmCancelarSalida,candado:DlgCandado,eliminarExp:DlgEliminarExp,cancelarReserva:DlgCancelarReserva,confirmLote:DlgConfirmLote,cfdi:DlgCfdi,recordarFirma:DlgRecordarFirma};
+
+function App(){
+const [tab,setTab]=useState("panorama");
+const [stack,setStack]=useState([]);
+const [sheet,setSheet]=useState(null);
+const [dialog,setDialog]=useState(null);
+const [toast,setToast]=useState(null);
+const [S,setS]=useState(INIT);
+const prevRef=useRef(null);
+const toastT=useRef(null);
+
+const toastify=(t,s,undo)=>{clearTimeout(toastT.current);setToast({t,s,undo});toastT.current=setTimeout(()=>setToast(null),4200);};
+const copy=v=>{try{navigator.clipboard&&navigator.clipboard.writeText(v);}catch(e){}toastify("Copiado",v.length>52?v.slice(0,52)+"…":v);};
+const snap=()=>{prevRef.current=S;};
+const undo=()=>{if(prevRef.current){setS(prevRef.current);prevRef.current=null;setToast(null);}};
+
+const A={
+undo,
+regPago:(id,m,metodo,fecha,nota)=>{snap();setS(s=>({...s,
+ reservas:s.reservas.map(r=>r.id===id?{...r,pagado:r.pagado+m,estado:(r.pagado+m>=r.total?"pagada":"anticipo")}:r),
+ ingresosMes:s.ingresosMes+m,
+ ledger:[{id:"LM"+Date.now(),tipo:"manual",t:"Pago manual · "+s.reservas.find(r=>r.id===id).persona,exp:s.reservas.find(r=>r.id===id).expLabel,monto:m,medio:metodo,fecha:fecha+" · ahora",des:[[nota||"Registrado desde el teléfono",m]]},...s.ledger]}));},
+cancelarReserva:id=>{snap();setS(s=>{const r=s.reservas.find(x=>x.id===id);return {...s,
+ reservas:s.reservas.map(x=>x.id===id?{...x,estado:"cancelada",canal:"cancelada hoy"}:x),
+ salidas:s.salidas.map(sa=>sa.id===r.salida?{...sa,ocup:Math.max(0,sa.ocup-r.pax)}:sa)};});},
+toggleVenta:id=>setS(s=>({...s,salidas:s.salidas.map(x=>x.id===id?{...x,venta:x.venta==="abierta"?"cerrada":"abierta"}:x)})),
+saveSalida:(id,patch)=>setS(s=>({...s,salidas:s.salidas.map(x=>x.id===id?{...x,...patch}:x)})),
+cancelarSalida:id=>setS(s=>({...s,salidas:s.salidas.filter(x=>x.id!==id)})),
+togglePublicar:id=>setS(s=>({...s,exps:s.exps.map(e=>e.id===id?{...e,estado:e.estado==="publicada"?"borrador":"publicada"}:e)})),
+resolverCandado:(id,c)=>setS(s=>({...s,exps:s.exps.map(e=>e.id===id?{...e,candado:e.candado.filter(x=>x!==c)}:e)})),
+eliminarExp:id=>setS(s=>({...s,exps:s.exps.filter(e=>e.id!==id),salidas:s.salidas.filter(x=>x.exp!==id)})),
+crearOperador:(nombre,mail,comision)=>{const id="op"+Date.now();setS(s=>({...s,ops:[...s.ops,{id,nombre,comision}]}));return id;},
+setOperador:(expId,opId)=>setS(s=>({...s,exps:s.exps.map(e=>e.id===expId?{...e,op:opId}:e)})),
+setComision:(opId,pct)=>setS(s=>({...s,ops:s.ops.map(o=>o.id===opId?{...o,comision:pct}:o)})),
+marcarEntrada:i=>setS(s=>({...s,roster:s.roster.map((r,j)=>j===i?{...r,in:!r.in}:r)})),
+quitarDeslinde:id=>setS(s=>({...s,deslPend:s.deslPend.filter(d=>d.id!==id)})),
+limpiarDeslindes:()=>setS(s=>({...s,deslPend:[]})),
+quitarEnc:id=>setS(s=>({...s,encPend:s.encPend.filter(e=>e.id!==id)})),
+limpiarEnc:()=>setS(s=>({...s,encPend:[]})),
+testimonio:(id,estado)=>setS(s=>({...s,testimonios:s.testimonios.map(t=>t.id===id?{...t,estado}:t)})),
+aprobarSolicitud:id=>setS(s=>({...s,solicitudes:s.solicitudes.map(q=>{
+ if(q.id!==id)return q;
+ if(q.bandeja==="fecha"){const slug=q.titulo.toLowerCase().split(" ")[0].replace(/[^a-z]/g,"");
+  return {...q,estado:"aprobada",link:`caminante.mx/s/${slug}-6sep-privada`,msg:`Hola — quedó lista su fecha privada de ${q.titulo.split(" ·")[0]} (6 sep). Reservan aquí: caminante.mx/s/${slug}-6sep-privada`};}
+ return {...q,estado:"aprobada"};})})),
+rechazarSolicitud:id=>setS(s=>({...s,solicitudes:s.solicitudes.map(q=>q.id===id?{...q,estado:"rechazada"}:q)})),
+cancelarPieza:id=>setS(s=>({...s,cola:s.cola.map(c=>c.id===id?{...c,estado:"canceladas"}:c).filter(c=>c.estado!=="canceladas"||c.id!==id)})),
+reintentarPieza:id=>setS(s=>({...s,cola:s.cola.map(c=>c.id===id?{...c,estado:"programada",cuando:"mañana · 9:00",sub:c.sub.replace("Instagram rechazó el video (duración)","reintento programado")}:c)})),
+pieza:(id,estado)=>setS(s=>({...s,kit:s.kit.map(p=>p.id===id?{...p,estado}:p)})),
+captionsListos:()=>setS(s=>({...s,kit:s.kit.map(p=>p.estado==="sin caption"?{...p,estado:"lista",cap:p.cap||"«Caption generado con IA — revísalo antes de publicar.»"}:p)})),
+programarCampana:()=>setS(s=>({...s,kit:s.kit.map(p=>p.estado==="lista"?{...p,estado:"programada"}:p)})),
+nuevoCobro:(f,g)=>setS(s=>({...s,cobros:[{f,g},...s.cobros]})),
+};
+
+const nav={
+ tab,setTab:t=>{setTab(t);setStack([]);},
+ push:(id,params)=>setStack(st=>[...st,{id,params:params||{}}]),
+ pop:()=>setStack(st=>st.slice(0,-1)),
+};
+const ui={
+ toastify,copy,
+ openSheet:(id,params)=>setSheet({id,params:params||{}}),closeSheet:()=>setSheet(null),
+ openDialog:(id,params)=>setDialog({id,params:params||{}}),closeDialog:()=>setDialog(null),
+};
+
+const top=stack[stack.length-1];
+const Screen=top?SCREENS[top.id]:ROOTS[tab];
+const Sheet=sheet?SHEETS[sheet.id]:null;
+const Dialog=dialog?DIALOGS[dialog.id]:null;
+const badge=S.solicitudes.filter(q=>q.estado==="pendiente").length;
+const scrollRef=useRef(null);
+useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollTop=0;},[tab,stack.length]);
+
+return <div className="adm-app">
+<Status warnTxt={top&&top.id==="roster"?"SIN SEÑAL":null}/>
+<div className={"adm-scroll"+(top?" nopad":"")} ref={scrollRef} key={tab+"/"+stack.length}>
+<Screen S={S} A={A} nav={nav} ui={ui} params={top?top.params:{}}/>
+</div>
+{!top&&<nav className="adm-tabbar">
+{[["panorama","Panorama"],["eventos","Eventos"],["gente","Gente"],["dinero","Dinero"],["mas","Más"]].map(([id,lbl])=>
+<button key={id} className={"adm-tab"+(tab===id?" on":"")} onClick={()=>nav.setTab(id)}>
+<span style={{color:"inherit"}}>{TabIcon[id]}</span><span>{lbl}</span>
+{id==="mas"&&badge>0&&<span className="bdg">{badge}</span>}
+</button>)}
+</nav>}
+{(sheet||dialog)&&<div className="adm-dim" onClick={()=>{ui.closeSheet();ui.closeDialog();}}></div>}
+{Sheet&&<Sheet S={S} A={A} ui={ui} nav={nav} params={sheet.params}/>}
+{Dialog&&<div className="adm-dlg-wrap"><Dialog S={S} A={A} ui={ui} nav={nav} params={dialog.params}/></div>}
+{toast&&<div className="adm-toast"><span className="ok">✓</span><span className="tx"><b>{toast.t}</b>{toast.s}</span>{toast.undo&&<button onClick={toast.undo}>Deshacer</button>}</div>}
+</div>;}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

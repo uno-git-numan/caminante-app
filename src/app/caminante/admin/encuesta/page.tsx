@@ -99,6 +99,9 @@ export default async function EncuestaPage({
 
   return (
     <AdminShell active="encuesta">
+      {/* El marcador nativo de <details> no se puede quitar desde style inline
+          (es un pseudo-elemento). Mismo patrón que el Kit y el formulario. */}
+      <style dangerouslySetInnerHTML={{ __html: ".adm .secc>summary::-webkit-details-marker{display:none;}.adm .secc[open]>summary .chev2{transform:rotate(180deg);}" }} />
       <section className="sec">
         {ok ? (
           <div className="glass pad" style={{ marginBottom: 18, fontSize: 13.5, color: "var(--olive-d)" }}>{ok}</div>
@@ -280,6 +283,11 @@ export default async function EncuestaPage({
           conRespuestas.map((e: EncuestaExperiencia) => {
             const tasa = e.invitadas ? Math.round((e.respondidas / e.invitadas) * 100) : 0;
             const rid = `res-${e.slug.slice(0, 16)}`;
+            // `secciones` ya viene ordenada de mejor a peor desde queries.ts.
+            // La peor solo se anuncia si de verdad está floja: por debajo de 4
+            // y con al menos 3 respuestas, para no colgar una alarma de un voto.
+            const peor = e.secciones[e.secciones.length - 1];
+            const floja = peor && peor.avg < 4 && peor.n >= 3 ? peor : null;
             return (
               <div className="card" key={e.experienceId} style={{ overflow: "hidden", marginBottom: 10 }}>
                 <div className="pad xhead" data-x={rid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", cursor: "pointer" }}>
@@ -293,6 +301,11 @@ export default async function EncuestaPage({
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12.5 }}>
+                    {floja ? (
+                      <span className="chip c-canc" title="La categoría peor calificada — ábrela para ver el desglose">
+                        {floja.label} {floja.avg}★
+                      </span>
+                    ) : null}
                     <span><Stars v={e.avgStars} /> <b>{e.avgStars ?? "—"}</b></span>
                     <span className="mut">NPS <b style={{ color: "var(--charcoal)" }}>{e.avgNps ?? "—"}</b></span>
                     <span className="mut">tasa <b style={{ color: "var(--charcoal)" }}>{tasa}%</b></span>
@@ -300,6 +313,32 @@ export default async function EncuestaPage({
                 </div>
                 <div className="xbody" id={rid}>
                   <div className="xpad">
+                    {e.secciones.length ? (
+                      <details className="secc" style={{ marginBottom: 18 }}>
+                        <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 8, minHeight: 30 }}>
+                          <span className="eyebrow"><span className="sl">{"//"}</span> Por categoría</span>
+                          <span className="mut" style={{ fontSize: 12 }}>
+                            {e.secciones.length} categorías · de peor a mejor
+                          </span>
+                          <span className="chev2" style={{ marginLeft: "auto" }}>▾</span>
+                        </summary>
+                        <div style={{ paddingTop: 10 }}>
+                          {[...e.secciones].reverse().map((sec) => (
+                            <div className="progrow" key={sec.label}>
+                              <span style={{ color: sec.avg < 4 ? "var(--orange)" : undefined }}>{sec.label}</span>
+                              <div className={"prog" + (sec.avg < 4 ? " warn" : "")}>
+                                <div className="tk2">
+                                  <i style={{ width: `${Math.round((sec.avg / 5) * 100)}%` }} />
+                                </div>
+                                <span className="fr">
+                                  {sec.avg}★ <span style={{ opacity: 0.6 }}>n={sec.n}</span>
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null}
                     <RespuestasExp respuestas={e.respuestas} />
                   </div>
                 </div>
