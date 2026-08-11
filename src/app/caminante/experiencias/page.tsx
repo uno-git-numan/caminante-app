@@ -110,13 +110,9 @@ export default async function ExperienciasPage() {
     .filter((e) => e.rating)
     .sort((a, b) => b.rating!.stars - a.rating!.stars)[0];
   if (mejor && !destacados.some((d) => d.exp.slug === mejor.slug)) {
-    destacados.push({
-      k: "Mejor calificada",
-      v: `${mejor.rating!.stars.toFixed(1).replace(".", ",")} de 5 · ${mejor.rating!.count} ${
-        mejor.rating!.count === 1 ? "respuesta" : "respuestas"
-      }`,
-      exp: mejor,
-    });
+    // Sin `v`: la calificación se pinta abajo de la tarjeta, sobre fondo claro,
+    // no como chip encima de la foto (Luis, 11 ago: en naranja se pierde).
+    destacados.push({ k: "Mejor calificada", v: "", exp: mejor });
   }
 
   return (

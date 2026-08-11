@@ -162,6 +162,38 @@ export const Testi = ({ texto, firma }: { texto: string; firma: string }) => (
   </div>
 );
 
+/**
+ * Calificación de una experiencia.
+ *
+ * ⚠️ Va SIEMPRE sobre fondo claro, **nunca encima de la foto** (Luis, 11 ago:
+ * «en la app el fondo naranja se pierde con la foto»). Es el mismo tratamiento
+ * del sitio de escritorio, que sí se lee: la estrella y el número en naranja
+ * sobre crema, el conteo en olivo al lado.
+ *
+ * Los estilos van en línea, igual que en `public/landing/assets/exp-grid.js`,
+ * para no meter reglas nuevas en la hoja extraída de Claude Design.
+ *
+ * El promedio es POR EXPERIENCIA, no por salida (decisión de Luis).
+ */
+export const Estrellas = ({
+  stars,
+  count,
+  style,
+}: {
+  stars: number;
+  count: number;
+  style?: React.CSSProperties;
+}) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 7, lineHeight: 1, ...style }}>
+    <span style={{ color: "var(--orange)", fontWeight: 600, fontSize: 14 }}>
+      ★ {stars.toFixed(1).replace(".", ",")}
+    </span>
+    <span style={{ color: "var(--olive)", fontSize: 12.5 }}>
+      {count === 1 ? "1 opinión" : `${count} opiniones`}
+    </span>
+  </div>
+);
+
 export const TabIcons: Record<string, ReactNode> = {
   inicio: (
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none">

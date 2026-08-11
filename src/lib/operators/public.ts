@@ -48,7 +48,24 @@ export type OperatorProfile = {
     volveria: number | null; // % rebook_interest entre respondidas
   };
   experiencias: ExperienceCard[]; // publicadas del operador
-  testimonios: { text: string; stars: number | null; initials: string; location: string }[];
+  testimonios: Testimonio[];
+};
+
+/** Un testimonio publicable. La firma va con INICIALES, nunca el nombre. */
+export type Testimonio = {
+  text: string;
+  stars: number | null;
+  initials: string;
+  location: string;
+};
+
+/** Operador en un LISTADO (portada). Lo que la tarjeta pinta y nada más. */
+export type OperadorCard = {
+  slug: string; // → /caminante/operador/<slug>
+  name: string;
+  bio: string | null;
+  photoUrl: string | null;
+  experiencias: number; // publicadas que opera
 };
 
 // Sanea un ajuste de encuadre venido de la BD (o null).
@@ -80,6 +97,103 @@ type FeedbackRow = {
   overall_stars: number | null;
   rebook_interest: boolean | null;
 };
+
+type TestimonioRow = {
+  testimonial_text: string | null;
+  testimonial_stars: number | null;
+  location_label: string | null;
+  contacts: { full_name: string | null } | null;
+};
+
+// Testimonios publicables. UN SOLO filtro para todos los consumidores (perfil de
+// operador y portada): `publish_status='approved'` **y** `testimonial_consent=true`
+// — las dos condiciones, y la firma siempre con iniciales. `expIds = null` = sin
+// acotar por experiencia (los de toda la plataforma).
+async function testimoniosDe(
+  sb: ReturnType<typeof createSupabaseAdminClient>,
+  expIds: string[] | null,
+  limit: number,
+): Promise<Testimonio[]> {
+  let q = sb
+    .from("experience_feedback")
+    .select("testimonial_text, testimonial_stars, location_label, contacts(full_name)")
+    .eq("publish_status", "approved")
+    .eq("testimonial_consent", true)
+    .order("submitted_at", { ascending: false })
+    .limit(limit);
+  if (expIds) q = q.in("experience_id", expIds);
+  const { data } = await q;
+  return ((data ?? []) as unknown as TestimonioRow[])
+    .filter((t) => (t.testimonial_text || "").trim())
+    .map((t) => ({
+      text: (t.testimonial_text as string).trim(),
+      stars: t.testimonial_stars,
+      initials: initialsOf(t.contacts?.full_name),
+      location: t.location_label || "",
+    }));
+}
+
+/**
+ * Testimonios para una pantalla PÚBLICA que no es de un operador (la portada).
+ * Mismo filtro y misma forma que los del perfil de operador — comparten
+ * `testimoniosDe`, así que no pueden divergir. Best-effort: ante cualquier
+ * error devuelve [] y la sección se cae con su estado vacío.
+ */
+export async function fetchTestimoniosPublicos(limit = 3): Promise<Testimonio[]> {
+  try {
+    return await testimoniosDe(createSupabaseAdminClient(), null, limit);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Operadores PÚBLICOS (`is_public`) con lo que pide un listado: nombre, bio y
+ * cuántas experiencias publicadas operan. Hasta ahora solo existían
+ * `fetchOperatorChip` (uno, por id) y `fetchOperatorProfile` (uno, por slug).
+ *
+ * El conteo se cruza contra `experiences.operator_id` (0016) filtrando por
+ * `status='published'` — es el mismo criterio con el que el perfil arma su
+ * grilla, para que la tarjeta no prometa un número que la página desmiente.
+ * Sin slug no hay a dónde enlazar, así que esos quedan fuera.
+ */
+export async function fetchOperadores(): Promise<OperadorCard[]> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const [{ data: ops, error }, { data: exps }] = await Promise.all([
+      sb
+        .from("operators")
+        .select("id, slug, name, bio, photo_url, is_public")
+        .eq("is_public", true)
+        .order("name", { ascending: true }),
+      sb.from("experiences").select("operator_id").eq("status", "published"),
+    ]);
+    if (error || !ops) return [];
+
+    const conteo = new Map<string, number>();
+    for (const e of (exps ?? []) as { operator_id: string | null }[]) {
+      if (e.operator_id) conteo.set(e.operator_id, (conteo.get(e.operator_id) ?? 0) + 1);
+    }
+
+    return (ops as {
+      id: string;
+      slug: string | null;
+      name: string | null;
+      bio: string | null;
+      photo_url: string | null;
+    }[])
+      .filter((o) => o.slug && o.name)
+      .map((o) => ({
+        slug: o.slug as string,
+        name: o.name as string,
+        bio: (o.bio || "").trim() || null,
+        photoUrl: (o.photo_url || "").trim() || null,
+        experiencias: conteo.get(o.id) ?? 0,
+      }));
+  } catch {
+    return []; // migración 0020 sin aplicar u otro error → la sección se esconde
+  }
+}
 
 // IDs de las experiencias que OPERA (dueño = operator_id). Fuente de verdad de
 // la atribución: las reservas viejas (junio, pre-0016) no traen operator_id en
@@ -218,29 +332,7 @@ export async function fetchOperatorProfile(
 
     // Testimonios: SOLO aprobados en el panel de Encuesta (consentimiento + firma
     // con iniciales — jamás el nombre completo).
-    const { data: testis } = expIds.length
-      ? await sb
-      .from("experience_feedback")
-      .select("testimonial_text, testimonial_stars, location_label, contacts(full_name)")
-      .in("experience_id", expIds)
-      .eq("publish_status", "approved")
-      .eq("testimonial_consent", true)
-      .order("submitted_at", { ascending: false })
-      .limit(12)
-      : { data: [] };
-    const testimonios = ((testis ?? []) as unknown as {
-      testimonial_text: string | null;
-      testimonial_stars: number | null;
-      location_label: string | null;
-      contacts: { full_name: string | null } | null;
-    }[])
-      .filter((t) => (t.testimonial_text || "").trim())
-      .map((t) => ({
-        text: (t.testimonial_text as string).trim(),
-        stars: t.testimonial_stars,
-        initials: initialsOf(t.contacts?.full_name),
-        location: t.location_label || "",
-      }));
+    const testimonios = expIds.length ? await testimoniosDe(sb, expIds, 12) : [];
 
     const teamRaw = Array.isArray(op.team) ? (op.team as Partial<TeamMember>[]) : [];
     const team: TeamMember[] = teamRaw

@@ -13,7 +13,7 @@
 
 import Link from "next/link";
 import { pfmt, usePubUI } from "../ui/pub/PubShell";
-import { Eyeb, HeadFloat, Sec } from "../ui/pub/atoms";
+import { Estrellas, Eyeb, HeadFloat, Sec } from "../ui/pub/atoms";
 import type { DestinoCard } from "@/lib/destinos/queries";
 
 export type SalidaVM = {
@@ -79,25 +79,34 @@ export default function ExpsScreen({
           </Sec>
           <div className="pub-rail">
             {destacados.map((d) => (
-              <Link
-                className="pub-expcard rl"
-                key={d.k}
-                href={`/caminante/experiencias/${d.exp.slug}`}
-              >
-                <Foto src={d.exp.imagen} alt={d.exp.imagenAlt} />
-                <div className="veil"></div>
-                <div className="inner">
-                  <span className="date" style={{ color: "var(--orange)" }}>
-                    {d.k}
-                  </span>
-                  <h3 style={{ fontSize: 22 }}>
-                    {d.exp.titulo} {d.exp.acento ? <em>{d.exp.acento}</em> : null}
-                  </h3>
-                  <div className="row">
-                    <span className="pub-chip">{d.v}</span>
+              <div key={d.k}>
+                <Link className="pub-expcard rl" href={`/caminante/experiencias/${d.exp.slug}`}>
+                  <Foto src={d.exp.imagen} alt={d.exp.imagenAlt} />
+                  <div className="veil"></div>
+                  <div className="inner">
+                    <span className="date" style={{ color: "var(--orange)" }}>
+                      {d.k}
+                    </span>
+                    <h3 style={{ fontSize: 22 }}>
+                      {d.exp.titulo} {d.exp.acento ? <em>{d.exp.acento}</em> : null}
+                    </h3>
+                    {d.v ? (
+                      <div className="row">
+                        <span className="pub-chip">{d.v}</span>
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              </Link>
+                </Link>
+                {/* La calificación NUNCA encima de la foto: en naranja se pierde
+                    (Luis, 11 ago). Va abajo, sobre el panel claro. */}
+                {d.exp.rating ? (
+                  <Estrellas
+                    stars={d.exp.rating.stars}
+                    count={d.exp.rating.count}
+                    style={{ marginTop: 10, paddingLeft: 2 }}
+                  />
+                ) : null}
+              </div>
             ))}
           </div>
         </>
@@ -166,7 +175,8 @@ export default function ExpsScreen({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 20px 24px" }}>
           {exps.map((e) => (
-            <Link className="pub-expcard" key={e.slug} href={`/caminante/experiencias/${e.slug}`}>
+            <div key={e.slug}>
+            <Link className="pub-expcard" href={`/caminante/experiencias/${e.slug}`}>
               <Foto src={e.imagen} alt={e.imagenAlt} />
               <div className="veil"></div>
               <div className="inner">
@@ -191,6 +201,14 @@ export default function ExpsScreen({
                 </div>
               </div>
             </Link>
+            {e.rating ? (
+              <Estrellas
+                stars={e.rating.stars}
+                count={e.rating.count}
+                style={{ marginTop: 10, paddingLeft: 2 }}
+              />
+            ) : null}
+            </div>
           ))}
         </div>
       )}

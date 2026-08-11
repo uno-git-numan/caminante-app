@@ -30,7 +30,7 @@
 
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { Eyeb, Sec } from "@/app/caminante/ui/pub/atoms";
+import { Estrellas, Eyeb, Sec } from "@/app/caminante/ui/pub/atoms";
 import { ExpChrome, ExpHead } from "./ExpMovilChrome";
 import type {
   Experience,
@@ -591,24 +591,22 @@ export default function ExpMovil({
             </h1>
             {hero.sub ? <p>{hero.sub}</p> : null}
             {metaHero ? <span className="meta">{metaHero}</span> : null}
-            {operatorChip || rating ? (
+            {operatorChip ? (
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {operatorChip ? (
-                  <Link className="pub-chip" href={`/caminante/operador/${operatorChip.slug}`}>
-                    Operada por {operatorChip.name} →
-                  </Link>
-                ) : null}
-                {rating ? (
-                  <span className="pub-chip">
-                    <span className="pub-mono">
-                      {rating.stars.toFixed(1).replace(".", ",")} de 5
-                    </span>{" "}
-                    · {rating.count === 1 ? "1 respuesta" : `${rating.count} respuestas`}
-                  </span>
-                ) : null}
+                <Link className="pub-chip" href={`/caminante/operador/${operatorChip.slug}`}>
+                  Operada por {operatorChip.name} →
+                </Link>
               </div>
             ) : null}
           </div>
+        </div>
+      ) : null}
+
+      {/* La calificación va FUERA del hero, sobre crema: en naranja encima de la
+          foto se pierde (Luis, 11 ago). Mismo tratamiento que el escritorio. */}
+      {rating ? (
+        <div style={{ padding: "14px 22px 0" }}>
+          <Estrellas stars={rating.stars} count={rating.count} />
         </div>
       ) : null}
 

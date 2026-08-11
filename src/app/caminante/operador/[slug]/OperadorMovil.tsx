@@ -28,7 +28,7 @@
 
 import Link from "next/link";
 import { usePubUI } from "@/app/caminante/ui/pub/PubShell";
-import { Eyeb, HeadFloat, NavCream, Sec, Testi } from "@/app/caminante/ui/pub/atoms";
+import { Estrellas, Eyeb, HeadFloat, NavCream, Sec, Testi } from "@/app/caminante/ui/pub/atoms";
 import { adjustStyle } from "@/lib/operators/photo-style";
 import type { OperatorProfile } from "@/lib/operators/public";
 
@@ -164,10 +164,10 @@ export default function OperadorMovil({
           </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
             {op.experiencias.map((e) => (
+              <div key={e.slug}>
               <Link
                 className="pub-expcard"
                 style={{ minHeight: 200 }}
-                key={e.slug}
                 href={`/caminante/experiencias/${e.slug}`}
               >
                 {e.image ? (
@@ -181,17 +181,21 @@ export default function OperadorMovil({
                   {e.ploc ? <span className="date">{e.ploc}</span> : null}
                   <h3 style={{ fontSize: 22 }}>{e.title}</h3>
                   <div className="row">
-                    <span className="pub-chip">
-                      {e.rating
-                        ? `${e.rating.stars.toFixed(1).replace(".", ",")} de 5 · ${e.rating.count} ${
-                            e.rating.count === 1 ? "respuesta" : "respuestas"
-                          }`
-                        : "Experiencia nueva"}
-                    </span>
+                    {!e.rating ? <span className="pub-chip">Experiencia nueva</span> : null}
                     <span className="pub-chip solid">Ver experiencia →</span>
                   </div>
                 </div>
               </Link>
+              {/* La calificación NUNCA encima de la foto: en naranja se pierde
+                  (Luis, 11 ago). Va abajo, sobre fondo claro. */}
+              {e.rating ? (
+                <Estrellas
+                  stars={e.rating.stars}
+                  count={e.rating.count}
+                  style={{ marginTop: 10, paddingLeft: 2 }}
+                />
+              ) : null}
+              </div>
             ))}
           </div>
         </Sec>
