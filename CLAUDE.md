@@ -362,6 +362,21 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
   experiencia y salida (el slug a mano de `/admin/cobro` ya ha costado errores). El ledger suma la
   columna **Respaldo** con la referencia y el link al comprobante.
 
+## PAGO MANUAL con enlace de alta (transferencia / efectivo) — 11 ago
+- **El flujo lo definió Luis:** el admin captura en Dinero con lo POCO que sabe —evento, salida,
+  nombre, lugares, comprobante— y el sistema devuelve un **ENLACE** para mandarle a la persona,
+  donde ella se da de alta y firma el deslinde **como cualquier otro cliente**. Por eso el correo
+  **no es obligatorio**: basta el WhatsApp, que es por donde va el link. Devuelve además el mensaje
+  de WhatsApp armado (patrón CobroForm, con botón de copiar).
+- El **monto se calcula solo** (precio de la salida × lugares) y queda editable: casi nunca coincide
+  con la lista (descuentos, anticipos, grupos) y manda lo que de verdad entró a la cuenta.
+- Sin correo, el contacto nace por teléfono (`findOrCreateContactByPhone`): `contacts.email` es
+  nullable desde la **0015**, justo para esto.
+- ⚠️ **EMPALME, el bug que este flujo habría causado:** al firmar, `submitRegistration` hacía dedupe
+  contra el correo que ELLA teclea → nacía un contacto **NUEVO** y la reserva se quedaba apuntando
+  al viejo: dos fichas de la misma persona y un roster que no cuadra. Ahora, si el contacto de la
+  reserva todavía no tiene correo, **se completa ese** en vez de crear otro.
+
 ## SALIDAS VENCIDAS: se cierran solas (11 ago)
 - **Nada las cerraba.** Quedaban `open` para siempre y las dos consultas públicas
   (`fetchPublicAvailability`, `fetchOpenSlotsForTemplate`) filtran solo por `status='open'`, sin
@@ -421,7 +436,21 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
   (que el servidor exige → el form fallaría siempre) y embajadores con 3 campos de menos. El diseño
   no manda sobre las reglas del sistema. **Esas cuatro pantallas siguen pendientes.**
 - **Estrellas en público:** van por EXPERIENCIA con su número de respuestas (decisión de Luis, 11
-  ago: «los ratings no son por salida, son por experiencia»).
+  ago: «los ratings no son por salida, son por experiencia») y **NUNCA encima de la foto** — en
+  naranja sobre una imagen se pierden. Átomo `Estrellas` en `ui/pub/atoms.tsx`, con el mismo
+  tratamiento del escritorio (estrella y número en naranja, conteo en olivo, estilos en línea como
+  `exp-grid.js`). La foto se conserva; la calificación baja al fondo claro.
+- **`/caminante` dejó de ser un rewrite.** Un rewrite manda un documento entero o ninguno, así que no
+  puede convivir con el intercambio móvil/escritorio en el mismo documento. La ruta es React y sirve
+  `public/landing/index.html` tal cual para escritorio (ese archivo sigue siendo la única fuente; los
+  3 scripts son IIFE y se re-emiten con `next/script`). ⚠️ En Vercel `public/` no viaja dentro de la
+  función: va `outputFileTracingIncludes` en `next.config.ts`. **Verificado en preview** (grilla en
+  vivo con sus 9 tarjetas y `exp-grid.js` corriendo).
+- **Integradas también:** Inicio, Reservar, Éxito, Deslinde, Destino, Calendario y Operador.
+  ⚠️ `reservar` y `exito` viven bajo el nav compartido: se marcan con `.pub-no` en `SiteChrome` (no
+  en `isImmersive`, que dejaría al escritorio sin nav).
+- Gotcha de verificación: **el guard de admin rebota `/reservar` y `/registro`** («el admin no
+  compra»), así que esas dos vistas móviles no se pueden ver con sesión de admin.
 - Gotcha de verificación: `npm run dev` no arranca en el sandbox (EPERM sobre el npm de fnm) y el
   preview de Vercel pide sesión, así que el Browser pane no lo alcanza. Se verifica con el Chrome
   conectado, metiendo la página en un **iframe de 390px** (las media queries responden al ancho del
