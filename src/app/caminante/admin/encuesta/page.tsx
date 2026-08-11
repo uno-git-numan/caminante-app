@@ -101,7 +101,23 @@ export default async function EncuestaPage({
     <AdminShell active="encuesta">
       {/* .xbody topa en 1600px de alto. Con 12 respuestas + el desglose por
           categoría, la tarjeta ya no cabía y se cortaba por abajo. */}
-      <style dangerouslySetInnerHTML={{ __html: ".adm .card>.xbody.on{max-height:6000px;}" }} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: [
+            // .xbody topa en 1600px: con 12 respuestas la tarjeta se cortaba.
+            ".adm .card>.xbody.on,.adm .fold>.xbody.on{max-height:6000px;}",
+            // Plegables de la tarjeta: caja con borde, para que se lean como
+            // control y no como un encabezado suelto.
+            ".adm .fold{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;margin-bottom:10px;}",
+            ".adm .fold>.fh{display:flex;align-items:center;gap:12px;padding:13px 16px;user-select:none;}",
+            ".adm .fold>.fh:hover{background:rgba(99,113,84,.05);}",
+            ".adm .fold>.fh .ft{font-size:14px;font-weight:600;}",
+            ".adm .fold>.fh .fs{margin-left:auto;font-size:12px;color:var(--ink-soft);text-align:right;}",
+            ".adm .fold>.fh .chev2{margin-left:0;}",
+            ".adm .fold .fpad{padding:2px 16px 16px;}",
+          ].join(""),
+        }}
+      />
       <section className="sec">
         {ok ? (
           <div className="glass pad" style={{ marginBottom: 18, fontSize: 13.5, color: "var(--olive-d)" }}>{ok}</div>
@@ -289,6 +305,7 @@ export default async function EncuestaPage({
             const peor = e.secciones[e.secciones.length - 1];
             const floja = peor && peor.avg < 4 && peor.n >= 3 ? peor : null;
             const sid = `sec-${e.slug.slice(0, 16)}`;
+            const rkid = `rk-${e.slug.slice(0, 16)}`;
             // Si todas las categorías tienen el mismo n, repetirlo siete veces es
             // ruido: se dice una vez arriba.
             const mismoN = e.secciones.every((x) => x.n === e.secciones[0].n);
@@ -305,14 +322,6 @@ export default async function EncuestaPage({
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12.5 }}>
-                    {floja ? (
-                      <span className="mut" title="La categoría peor calificada de esta experiencia">
-                        más flojo{" "}
-                        <b style={{ color: "var(--orange)" }}>
-                          {floja.label.toLowerCase()} {floja.avg}★
-                        </b>
-                      </span>
-                    ) : null}
                     <span><Stars v={e.avgStars} /> <b>{e.avgStars ?? "—"}</b></span>
                     <span className="mut">NPS <b style={{ color: "var(--charcoal)" }}>{e.avgNps ?? "—"}</b></span>
                     <span className="mut">tasa <b style={{ color: "var(--charcoal)" }}>{tasa}%</b></span>
@@ -321,17 +330,28 @@ export default async function EncuestaPage({
                 <div className="xbody" id={rid}>
                   <div className="xpad">
                     {e.secciones.length ? (
-                      <div style={{ marginBottom: 16 }}>
-                        <div className="xh4 xhead" data-x={sid} style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                          <span>
-                            Por categoría <span className="chev2">▾</span>
+                      <div className="fold">
+                        <div className="fh xhead" data-x={sid}>
+                          <span className="ft">Por categoría</span>
+                          <span className="fs">
+                            {floja ? (
+                              <>
+                                la más floja:{" "}
+                                <b style={{ color: "var(--orange)" }}>
+                                  {floja.label.toLowerCase()} {floja.avg}★
+                                </b>
+                              </>
+                            ) : (
+                              `${e.secciones.length} categorías`
+                            )}
                           </span>
-                          <span className="mut" style={{ fontSize: 12, fontWeight: 400 }}>
-                            {e.secciones.length} categorías{mismoN ? ` · ${e.secciones[0].n} respuestas cada una` : ""}
-                          </span>
+                          <span className="chev2">▾</span>
                         </div>
                         <div className="xbody" id={sid}>
-                          <div className="xpad" style={{ paddingTop: 8 }}>
+                          <div className="fpad">
+                            <div className="xh4">
+                              De peor a mejor{mismoN ? ` · ${e.secciones[0].n} respuestas cada una` : ""}
+                            </div>
                             {[...e.secciones].reverse().map((sec, i) => (
                               <div className="progrow" key={sec.label} style={{ gridTemplateColumns: "190px 1fr" }}>
                                 <span style={i === 0 ? { color: "var(--charcoal)", fontWeight: 600 } : undefined}>
@@ -353,7 +373,22 @@ export default async function EncuestaPage({
                         </div>
                       </div>
                     ) : null}
-                    <RespuestasExp respuestas={e.respuestas} />
+                    {/* Nace abierto: los comentarios son a lo que se entra. El
+                        plegable existe para poder cerrarlos, no para esconderlos. */}
+                    <div className="fold">
+                      <div className="fh xhead open" data-x={rkid}>
+                        <span className="ft">Por ranking</span>
+                        <span className="fs">
+                          {e.respondidas} {e.respondidas === 1 ? "respuesta" : "respuestas"} · filtra por estrellas
+                        </span>
+                        <span className="chev2">▾</span>
+                      </div>
+                      <div className="xbody on" id={rkid}>
+                        <div className="fpad">
+                          <RespuestasExp respuestas={e.respuestas} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
