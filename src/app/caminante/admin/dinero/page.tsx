@@ -1,11 +1,13 @@
 import AdminShell from "../ui/AdminShell";
 import { fetchDinero, formatMXN } from "@/lib/admin/queries";
+import { fetchExperienciasConSalidas } from "@/lib/admin/transferencias";
+import TransferenciaForm from "./TransferenciaForm";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dinero · Admin — Caminante" };
 
 export default async function DineroPage() {
-  const d = await fetchDinero();
+  const [d, experiencias] = await Promise.all([fetchDinero(), fetchExperienciasConSalidas()]);
   const maxExp = Math.max(1, ...d.porExperiencia.map((e) => e.monto));
   const maxSpark = Math.max(1, ...d.sparkMeses);
 
@@ -200,6 +202,19 @@ export default async function DineroPage() {
           </div>
         </div>
 
+        {/* Transferencias: la cuarta puerta de venta, la única que se captura a mano. */}
+        <div className="card pad" style={{ marginTop: 20 }}>
+          <span className="subtitle" style={{ margin: 0 }}>
+            Registrar una transferencia
+          </span>
+          <p className="mut" style={{ fontSize: 12.5, margin: "4px 0 0" }}>
+            Quien deposita a la cuenta no pasa por Stripe y el sistema no se entera: sin reserva, sin
+            ingreso y —lo grave— sin deslinde. Captúrala aquí y queda igual de completa que una compra
+            web. No lleva comisión de Stripe, porque no la tuvo.
+          </p>
+          <TransferenciaForm experiencias={experiencias} />
+        </div>
+
         {/* Ledger */}
         <div className="card" style={{ marginTop: 20, overflow: "hidden" }}>
           <div className="pad" style={{ paddingBottom: 6 }}>
@@ -216,6 +231,7 @@ export default async function DineroPage() {
                   <th>Método</th>
                   <th className="right">Monto</th>
                   <th>Estado</th>
+                  <th>Respaldo</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,11 +255,28 @@ export default async function DineroPage() {
                         <span className="chip c-sol">{l.estado}</span>
                       )}
                     </td>
+                    <td className="mut" style={{ fontSize: 12 }}>
+                      {l.referencia ? <span>ref. {l.referencia}</span> : null}
+                      {l.comprobantePath ? (
+                        <>
+                          {l.referencia ? " · " : null}
+                          {/* Liga a una URL FIRMADA de 5 min: el bucket es privado. */}
+                          <a
+                            href={`/caminante/api/admin/comprobante?path=${encodeURIComponent(l.comprobantePath)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            comprobante
+                          </a>
+                        </>
+                      ) : null}
+                      {!l.referencia && !l.comprobantePath ? "—" : null}
+                    </td>
                   </tr>
                 ))}
                 {!d.ledger.length ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <div className="empty" style={{ border: 0 }}>
                         Sin pagos registrados.
                       </div>

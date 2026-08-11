@@ -1398,6 +1398,10 @@ export type LedgerLinea = {
   metodo: string;
   monto: number;
   estado: string; // paid | refunded | pending | failed
+  /** Referencia bancaria: solo en transferencias, es lo que concilia. */
+  referencia: string | null;
+  /** RUTA en el bucket privado `comprobantes` (no una URL). */
+  comprobantePath: string | null;
 };
 
 export type PayoutOperador = {
@@ -1435,7 +1439,11 @@ export type DineroAdmin = {
 export async function fetchDinero(): Promise<DineroAdmin> {
   const sb = createSupabaseAdminClient();
   const [pays, resvs, exps, slots, contacts, ops] = (await Promise.all([
-    sb.from("payments").select("reservation_id, contact_id, amount_mxn, status, method, paid_at, created_at"),
+    sb
+      .from("payments")
+      .select(
+        "reservation_id, contact_id, amount_mxn, status, method, paid_at, created_at, referencia, comprobante_url",
+      ),
     sb
       .from("reservations")
       .select("id, experience_id, slot_id, num_people, total_amount_mxn, status, operator_id, commission_pct"),
@@ -1444,7 +1452,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     sb.from("contacts").select("id, full_name, email"),
     sb.from("operators").select("id, name, email, commission_pct"),
   ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
-    (PayRow & { created_at: string })[],
+    (PayRow & { created_at: string; referencia: string | null; comprobante_url: string | null })[],
     (ResvRow & { operator_id: string | null; commission_pct: number | null })[],
     ExpRow[],
     { id: string; label: string | null }[],
@@ -1597,6 +1605,8 @@ export async function fetchDinero(): Promise<DineroAdmin> {
       metodo: metodoLabel(p.method),
       monto: Number(p.amount_mxn || 0),
       estado: p.status,
+      referencia: p.referencia || null,
+      comprobantePath: p.comprobante_url || null,
     }));
 
   return {
