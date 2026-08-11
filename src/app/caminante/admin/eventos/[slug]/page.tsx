@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminShell from "../../ui/AdminShell";
 import CopyLinkBtn from "./CopyLinkBtn";
+import OperadorSelect from "./OperadorSelect";
 import { fetchEventoDetalle, formatMXN, formatFechaCorta } from "@/lib/admin/queries";
 import {
   setSlotStatusAction,
@@ -264,23 +265,13 @@ export default async function EventoDetallePage({
             <form action={assignOperatorAction} className="mini-form" style={{ marginTop: 0 }}>
               <input type="hidden" name="experienceId" value={ev.id} />
               <input type="hidden" name="slug" value={ev.slug} />
-              <select name="operatorId" defaultValue={ev.operatorId ?? ""} style={{ flex: 1, minWidth: 140 }}>
-                <option value="">Sin asignar</option>
-                {ev.operadores.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                name="commissionPct"
-                type="number"
-                min={0}
-                max={100}
-                step="0.5"
-                defaultValue={operadorActual?.commissionPct ?? ""}
-                placeholder="% comisión"
-                style={{ maxWidth: 110 }}
+              <OperadorSelect
+                operadores={ev.operadores.map((o) => ({
+                  id: o.id,
+                  name: o.name,
+                  commissionPct: o.commissionPct,
+                }))}
+                operadorId={ev.operatorId ?? null}
               />
               <button className="btn btn-ghost btn-sm" type="submit">
                 Guardar
