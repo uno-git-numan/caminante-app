@@ -222,9 +222,23 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
     // («por ahora, hazlo con A») porque no quiere un paso más al cerrar; el día
     // que haya un cierre explícito de salida, esto se reemplaza por el dato.
     const yaSeFue = !!s.starts_at && cdmxDay(s.starts_at) < hoy;
-    const huboGastoDespues = cs.some(
-      (c) => s.starts_at && c.created_at && c.created_at > s.starts_at,
+    // El corte NO puede ser solo la fecha de salida. Los costos de las salidas
+    // viejas se capturaron el 11 de agosto, o sea DESPUÉS del viaje, y con ese
+    // corte toda salida pasada parecía haber tenido un imprevisto. El corte
+    // real es «después del viaje Y después de que esta salida se costeó»: un
+    // gasto sorpresa se anota más tarde que el costeo, una captura retroactiva
+    // llega toda junta.
+    const primeraCaptura = cs.reduce(
+      (min, c) => (c.created_at && (!min || c.created_at < min) ? c.created_at : min),
+      "" as string,
     );
+    const corte =
+      s.starts_at && primeraCaptura
+        ? s.starts_at > primeraCaptura
+          ? s.starts_at
+          : primeraCaptura
+        : s.starts_at || primeraCaptura;
+    const huboGastoDespues = !!corte && cs.some((c) => c.created_at && c.created_at > corte);
     const liberaBuffer = yaSeFue && !huboGastoDespues;
     const bufferLiberado = liberaBuffer
       ? cs.filter((c) => c.tipo === "buffer").reduce((a, c) => a + Number(c.monto_mxn || 0), 0)
