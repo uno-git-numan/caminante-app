@@ -1,7 +1,11 @@
 "use client";
 
-// Lista de respuestas de una experiencia con filtro por estrellas generales
-// (Todas / 5★ / 4★ / ≤3★) y orden por fecha (reciente primero, ya viene así).
+// Quién calificó qué, agrupado por salida y con filtro por estrellas
+// (Todas / 5★ / 4★ / ≤3★). Reciente primero, ya viene ordenado así.
+//
+// ⚠️ Aquí NO van los textos: los comentarios viven en el plegable
+// «Comentarios», agrupados por pregunta. Repetirlos en los dos lugares hacía
+// que ninguno se leyera.
 import { useState } from "react";
 import type { EncuestaRespuesta } from "@/lib/admin/queries";
 
@@ -107,15 +111,6 @@ export default function RespuestasExp({ respuestas }: { respuestas: EncuestaResp
               {r.nps != null ? <span className="mut" style={{ fontSize: 12 }}>NPS {r.nps}</span> : null}
               <span className="mut" style={{ fontSize: 12, marginLeft: "auto" }}>{r.fecha}</span>
             </div>
-            {r.textos.length ? (
-              <div style={{ marginTop: 8, display: "grid", gap: 5 }}>
-                {r.textos.map((t, j) => (
-                  <div key={j} style={{ fontSize: 13.5, color: "var(--charcoal)", lineHeight: 1.5 }}>“{t}”</div>
-                ))}
-              </div>
-            ) : (
-              <div className="mut" style={{ fontSize: 12.5, marginTop: 5 }}>Sin comentarios abiertos.</div>
-            )}
           </div>
         ))}
         </div>
