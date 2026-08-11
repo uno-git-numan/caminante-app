@@ -16,10 +16,30 @@ type Grupo = {
   acento: boolean;
 };
 
+// Los títulos son la pregunta TAL CUAL se le hizo al cliente. Ponerle otro
+// nombre al grupo hace que se lea la respuesta contra una pregunta que nadie
+// contestó.
 const GRUPOS: Grupo[] = [
-  { key: "mejorar", titulo: "Por mejorar", nota: "lo que pidieron cambiar", acento: true },
-  { key: "esperaba", titulo: "Esperaba y no pasó", nota: "la distancia entre lo prometido y lo vivido", acento: true },
-  { key: "loved", titulo: "Lo que más marcó", nota: "de aquí salen los testimonios", acento: false },
+  {
+    key: "mejorar",
+    titulo: "¿Qué nos faltó?",
+    // Verificado en FeedbackForm: esta pregunta SOLO se le hace a quien
+    // calificó bajo. Un conteo chico aquí no es silencio, es el diseño.
+    nota: "solo se pregunta a quien calificó bajo",
+    acento: true,
+  },
+  {
+    key: "esperaba",
+    titulo: "¿Hubo algo que esperabas y no pasó?",
+    nota: "se le pregunta a todos — es donde de verdad piden cosas",
+    acento: true,
+  },
+  {
+    key: "loved",
+    titulo: "¿Qué fue lo que más te marcó?",
+    nota: "de aquí salen los testimonios",
+    acento: false,
+  },
 ];
 
 export default function Comentarios({ respuestas }: { respuestas: EncuestaRespuesta[] }) {
