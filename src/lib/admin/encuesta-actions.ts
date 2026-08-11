@@ -21,12 +21,10 @@ function volver(msg: { ok?: string; error?: string }): never {
 // redirect del panel. La app del teléfono llama el núcleo desde JS: un redirect
 // la sacaría del panel móvil hacia la vista de computadora. La regla que importa
 // —sin consentimiento no se publica— vive una sola vez, aquí.
-export type TestimonioResult = { ok: boolean; error?: string; mensaje?: string };
-
 export async function setTestimonio(
   id: string,
   decision: "approved" | "rejected",
-): Promise<TestimonioResult> {
+): Promise<{ ok: boolean; error?: string; mensaje?: string }> {
   if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo el admin puede hacer esto." };
 
   const rowId = (id || "").trim();

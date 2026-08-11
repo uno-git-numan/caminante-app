@@ -8,6 +8,7 @@
 // el operador, la chapa «Privada» y el candado de publicar (deslinde/encuesta),
 // que sale de listaParaPublicar — la misma regla que bloquea el botón.
 
+import Link from "next/link";
 import type { EventoMovil, EventosMovil } from "@/lib/admin/movil/eventos";
 import type { Nav } from "./AppShell";
 import { Chip, Empty, Head } from "./kit";
@@ -80,12 +81,12 @@ export default function Eventos({ d, nav }: { d: EventosMovil; nav: Nav }) {
               t="Todavía no hay experiencias"
               p="Se dan de alta en el formulario del panel de computadora — aquí se operan."
               btn={
-                <a
+                <Link
                   className="adm-btn adm-btn-ghost adm-btn-sm"
                   href="/caminante/admin/experiencias/nueva"
                 >
                   Abrir el formulario
-                </a>
+                </Link>
               }
             />
           ) : null}

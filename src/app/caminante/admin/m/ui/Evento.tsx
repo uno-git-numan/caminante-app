@@ -335,6 +335,14 @@ function EditarSalida({ e, s, ui }: { e: EventoMovil; s: SalidaMovil; ui: Ui }) 
         />
       </div>
       <Sub>Venta</Sub>
+      {/* Una salida que ya se fue no se reabre desde aquí: el cron diario
+          `cerrar-salidas` la volvería a cerrar a la mañana siguiente. */}
+      {s.pasada ? (
+        <div className="adm-note adm-note-info" style={{ marginTop: 8 }}>
+          <span className="st" style={{ background: "var(--sand)" }}></span>
+          <span>Esta salida ya pasó. Se cerró sola; su historia y sus reservas se conservan.</span>
+        </div>
+      ) : (
       <div className="adm-acts" style={{ paddingTop: 8 }}>
         <button
           className="adm-btn adm-btn-ghost"
@@ -365,6 +373,7 @@ function EditarSalida({ e, s, ui }: { e: EventoMovil; s: SalidaMovil; ui: Ui }) 
           Cancelar salida
         </button>
       </div>
+      )}
       <div
         className="adm-acts"
         style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 14 }}

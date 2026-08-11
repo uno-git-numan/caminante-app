@@ -20,8 +20,6 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 
-export type ReservaActionResult = { ok: boolean; error?: string; mensaje?: string };
-
 const RANK: Record<string, number> = {
   requested: 0,
   confirmed: 1,
@@ -57,7 +55,7 @@ export async function registrarPagoEnReserva(input: {
   monto: number;
   metodo: string; // transfer | cash
   fecha?: string; // YYYY-MM-DD (opcional; default hoy)
-}): Promise<ReservaActionResult> {
+}): Promise<{ ok: boolean; error?: string; mensaje?: string }> {
   if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo el admin puede hacer esto." };
 
   const reservationId = (input.reservationId || "").trim();
@@ -125,7 +123,9 @@ export async function registrarPagoManualAction(fd: FormData): Promise<void> {
 }
 
 /** Cancela una reserva. Solo cambia status: jamás borra. */
-export async function cancelarReserva(reservationId: string): Promise<ReservaActionResult> {
+export async function cancelarReserva(
+  reservationId: string,
+): Promise<{ ok: boolean; error?: string; mensaje?: string }> {
   if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo el admin puede hacer esto." };
 
   const id = (reservationId || "").trim();

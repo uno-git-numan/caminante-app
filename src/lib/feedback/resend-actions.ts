@@ -21,7 +21,6 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // una acción de formulario que redirige con banner. El panel de escritorio
 // necesita el redirect; la app del teléfono llama el núcleo desde JS y un
 // redirect la sacaría del panel móvil. La lógica de envío no se duplica.
-export type EnvioResult = { sent: number; fails: string[] };
 
 // Construye el mensaje de resultado y redirige al panel con banner ok/error.
 function volver(sent: number, fails: string[], noun: string): never {
@@ -38,7 +37,7 @@ function volver(sent: number, fails: string[], noun: string): never {
 // ── Encuestas ───────────────────────────────────────────────────────────────
 
 // Reenvía la encuesta de UNA persona pendiente (por feedback id).
-export async function reenviarEncuestaUna(feedbackId: string): Promise<EnvioResult> {
+export async function reenviarEncuestaUna(feedbackId: string): Promise<{ sent: number; fails: string[] }> {
   if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
   const id = (feedbackId || "").trim();
   const ok = id ? await resendSurveyEmail(id) : false;
@@ -51,7 +50,7 @@ export async function reenviarEncuesta(formData: FormData): Promise<void> {
   volver(r.sent, r.fails, "encuesta");
 }
 
-async function loteEncuesta(ids: { id: string; email: string | null }[]): Promise<EnvioResult> {
+async function loteEncuesta(ids: { id: string; email: string | null }[]): Promise<{ sent: number; fails: string[] }> {
   let sent = 0;
   const fails: string[] = [];
   for (const it of ids) {
@@ -76,7 +75,7 @@ async function pendientesEncuesta(experienceId?: string) {
 }
 
 // Reenvía la encuesta a TODOS los pendientes de una experiencia.
-export async function reenviarEncuestaDeExperiencia(experienceId: string): Promise<EnvioResult> {
+export async function reenviarEncuestaDeExperiencia(experienceId: string): Promise<{ sent: number; fails: string[] }> {
   if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
   const id = (experienceId || "").trim();
   if (!id) return { sent: 0, fails: [] };
@@ -90,7 +89,7 @@ export async function reenviarEncuestaPendientes(formData: FormData): Promise<vo
 }
 
 // Reenvía la encuesta a TODOS los pendientes de TODAS las experiencias.
-export async function reenviarEncuestaATodos(): Promise<EnvioResult> {
+export async function reenviarEncuestaATodos(): Promise<{ sent: number; fails: string[] }> {
   if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
   return loteEncuesta(await pendientesEncuesta());
 }
@@ -114,7 +113,7 @@ async function enviarDeslinde(p: { email: string | null; nombre: string; experie
 }
 
 // Reenvía el recordatorio de deslinde de UNA reserva pendiente.
-export async function recordarDeslindeUno(reservationId: string): Promise<EnvioResult> {
+export async function recordarDeslindeUno(reservationId: string): Promise<{ sent: number; fails: string[] }> {
   if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
   const id = (reservationId || "").trim();
   const pend = (await fetchDeslindesPendientes()).find((p) => p.reservationId === id);
@@ -129,7 +128,7 @@ export async function reenviarDeslinde(formData: FormData): Promise<void> {
 }
 
 // Reenvía el recordatorio a TODOS los deslindes pendientes.
-export async function recordarDeslindeATodos(): Promise<EnvioResult> {
+export async function recordarDeslindeATodos(): Promise<{ sent: number; fails: string[] }> {
   if (!(await isCurrentUserAdmin())) return { sent: 0, fails: ["no autorizado"] };
   let sent = 0;
   const fails: string[] = [];

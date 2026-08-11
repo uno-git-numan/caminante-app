@@ -88,8 +88,8 @@ export default function Contenido({
             </div>
           </details>
           {e.secciones.map((s) => (
-            <a className="adm-li" key={s.id} href={`${form}${s.ancla}`}>
-              <div className="rowbody">
+            <div className="adm-li" key={s.id}>
+              <a className="rowbody" href={`${form}${s.ancla}`}>
                 <div className="r1">
                   <span className="t">
                     {s.titulo}
@@ -97,8 +97,8 @@ export default function Contenido({
                   </span>
                   <Life e={s.estado} />
                 </div>
-              </div>
-            </a>
+              </a>
+            </div>
           ))}
           <div style={{ padding: "10px 16px 16px" }}>
             <a className="adm-btn adm-btn-glass adm-btn-block" href={form}>
