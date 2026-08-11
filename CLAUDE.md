@@ -456,6 +456,56 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
   conectado, metiendo la página en un **iframe de 390px** (las media queries responden al ancho del
   iframe) y leyendo el DOM por JS.
 
+## ONBOARDING DE OPERADOR: recorrido verificado y los tres bugs que destapó (11 ago)
+- **Guía con las pantallas reales** (artifact, para la llamada de alta):
+  https://claude.ai/code/artifact/90a7a826-5172-49c6-918d-d8c0dfebc1aa
+- **Las dos puertas.** `/caminante/embajadores` (vende, Caminante opera, 30% de
+  utilidad neta **en el convenio, no en el sistema**, aprobar NO da acceso al panel) vs
+  `/caminante/signup?tipo=operador` (opera lo suyo, aprobar SÍ abre el panel). Las dos
+  crean la fila en `operators`, que es lo único que hace que sus ventas se atribuyan.
+- ⚠️ **REGLA QUE CUESTA DINERO: asignar el operador ANTES de la primera venta.** La
+  atribución se congela reserva por reserva al cobrar (0016) y **no se rellena hacia
+  atrás**. Prueba viva: los **$103,500** de «Hacienda y hongos» están atribuidos a
+  Numan · Caminante, no a Kéntro. Pendiente de Luis: decidir cómo se salda.
+- ⚠️ **`operators.slug` no lo asignaba NADA.** Numan y Kéntro lo tenían de un update a
+  mano en 0020/0030; toda operadora nacida de una aprobación quedaba sin dirección
+  pública → link a la nada, vista previa muerta y «Publicar» marcándola pública sin ser
+  alcanzable (el chip «Operada por» filtra por slug). Ahora `ensureOperador` lo calcula
+  del nombre (`lib/operators/slug.ts`), `saveOperatorProfile` rescata a los que ya
+  nacieron sin él **la primera vez y nunca después** (renombrar rompe links vivos), y
+  `setOperatorPublic` se niega a publicar sin slug en vez de fingir.
+- ⚠️ **El «%» del detalle de experiencia heredaba la comisión del operador anterior.**
+  Pasar la experiencia de Kéntro (15%) a otra persona y darle Guardar le escribía 15% a
+  la nueva — y `commission_pct` vive en el OPERADOR, así que le aplicaba a todo lo suyo.
+  `OperadorSelect.tsx` (client) hace que el % siga al operador elegido y cada opción
+  muestra su comisión o «% por definir».
+- **Datos de prueba vivos** (namespace `zz-prueba`, sin experiencias ni ventas):
+  aplicación aprobada de «zz-prueba Operadora Demo» (`uno+zzoperadora@numanhub.com`) +
+  su fila en `operators` con comisión 12% y datos fiscales **inventados** (RFC
+  `XAXX010101000`, el genérico del SAT). Su perfil quedó en **borrador** tras verificar
+  que publica y despublica bien.
+- **Lo que NO existe y hay que decirlo en la llamada:** white-label (colores y marca de
+  ella en el funnel — el modelo de datos está, la pantalla no), correos con su marca,
+  dominio propio, Kit/PDF con su marca, Stripe Connect (el dinero llega completo a NUMAN
+  y se le transfiere a mano) y panel recortado para ella.
+
+## PANEL MÓVIL COMPLETO (11 ago)
+- Las cinco pestañas de `/caminante/admin/m` con datos reales: Panorama, Eventos, Gente,
+  Recursos y Más. Nueve pantallas nuevas + sus hojas y diálogos, cableadas en
+  `ui/MovilApp.tsx` y cargadas en paralelo desde `m/page.tsx`.
+- **Cero consultas nuevas para los mismos números**: los adaptadores de
+  `lib/admin/movil/` reusan `queries.ts` y `rentabilidad.ts`. Si el teléfono y la
+  computadora discreparan en una cifra, el bug sería imposible de explicar.
+- **Cero escritura nueva.** Las server actions que `redirect()` al escritorio se
+  partieron en un núcleo `{ok,error}` + la acción de formulario de siempre, para que
+  disparadas desde el teléfono no saquen al usuario del panel.
+- El **Kit** y el **perfil de operador** no se precargan (decenas de consultas y 160+
+  builds de pieza por carga, para algo que casi nunca se mira): piden sus datos al
+  abrirse, con `use()` + `Suspense`.
+- ⚠️ Cada entrada de `roots`/`screens`/`sheets`/`dialogs` es una **función que devuelve
+  `<Pantalla/>`**, nunca la pantalla llamada como función: sus hooks contarían como
+  hooks del shell y al cambiar de pestaña React truena con «rendered fewer hooks».
+
 ## Pendientes (al retomar)
 1. **Dar de alta las 5 experiencias** desde localhost (`/caminante/admin/experiencias/nueva`). Aparecen en vivo (base compartida).
 2. **Llaves "Needs Attention" en Vercel** (SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) están viejas (marzo). Actualizarlas (las pega el usuario) para que **Stripe y las _escrituras_ de admin en producción** (guardar experiencias, subir fotos vía `createSupabaseAdminClient`) funcionen. **OJO: estas NO afectan el _login_ de admin** — el gate (`isCurrentUserAdmin`) solo usa la publishable key + la tabla `admin_whitelist`.
