@@ -1131,6 +1131,12 @@ export type EncuestaRespuesta = {
   fecha: string; // display (día mes)
   fechaIso: string; // orden
   textos: string[]; // respuestas abiertas ya con prefijo ("Por mejorar: …")
+  // Las mismas tres, SIN prefijo y por separado: la vista «Comentarios» las
+  // agrupa por tipo, y leer los «por mejorar» en bloque es donde aparece el
+  // patrón que una respuesta suelta no deja ver.
+  loved: string | null;
+  mejorar: string | null;
+  esperaba: string | null;
   salidaLabel: string; // de QUÉ salida habla — se agrupa por aquí
   via: "correo" | "grupo"; // grupo = acompañante que entró por el link abierto
 };
@@ -1278,7 +1284,11 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
         add(f.loved_text);
         add(f.improve_text, "Por mejorar: ");
         add(f.expected_gap_text, "Esperaba: ");
+        const limpio = (t: string | null) => (t || "").trim() || null;
         return {
+          loved: limpio(f.loved_text),
+          mejorar: limpio(f.improve_text),
+          esperaba: limpio(f.expected_gap_text),
           iniciales: iniciales(nombre),
           nombre,
           stars: f.overall_stars,

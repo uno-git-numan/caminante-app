@@ -15,6 +15,7 @@ import { fetchDeslindesPendientes } from "@/lib/registration/pending";
 import type { DeslindePendiente } from "@/lib/registration/pending";
 import ConfirmSubmit from "../ui/ConfirmSubmit";
 import RespuestasExp from "./RespuestasExp";
+import Comentarios from "./Comentarios";
 
 export const dynamic = "force-dynamic";
 // Envío en lote (reintentos + espaciado anti rate-limit) puede tardar; súbelo del
@@ -306,6 +307,8 @@ export default async function EncuestaPage({
             const floja = peor && peor.avg < 4 && peor.n >= 3 ? peor : null;
             const sid = `sec-${e.slug.slice(0, 16)}`;
             const rkid = `rk-${e.slug.slice(0, 16)}`;
+            const coid = `co-${e.slug.slice(0, 16)}`;
+            const nCom = e.respuestas.filter((r) => r.loved || r.mejorar || r.esperaba).length;
             // Si todas las categorías tienen el mismo n, repetirlo siete veces es
             // ruido: se dice una vez arriba.
             const mismoN = e.secciones.every((x) => x.n === e.secciones[0].n);
@@ -389,6 +392,23 @@ export default async function EncuestaPage({
                         </div>
                       </div>
                     </div>
+                    {nCom ? (
+                      <div className="fold" style={{ marginBottom: 0 }}>
+                        <div className="fh xhead" data-x={coid}>
+                          <span className="ft">Comentarios</span>
+                          <span className="fs">
+                            {nCom} {nCom === 1 ? "persona escribió" : "personas escribieron"} · agrupados por
+                            pregunta
+                          </span>
+                          <span className="chev2">▾</span>
+                        </div>
+                        <div className="xbody" id={coid}>
+                          <div className="fpad">
+                            <Comentarios respuestas={e.respuestas} />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
