@@ -48,10 +48,21 @@ export async function finalizeRefund(
   // sigue siendo ingreso. Se marca 'refunded' solo cuando volvió todo.
   const total = devuelto >= cobrado - 0.01;
 
-  const { error } = await sb
-    .from("payments")
-    .update({ status: total ? "refunded" : "partially_refunded" })
-    .eq("id", pago.id);
+  // ⚠️ `payments.status` tiene un CHECK que solo acepta
+  // pending | paid | failed | refunded (0007_crm_experience_direct.sql:122).
+  // Un reembolso PARCIAL no cabe ahí todavía: escribir otro valor reventaría el
+  // update y el reembolso se perdería sin dejar rastro. Hasta que la migración
+  // agregue `refunded_mxn`, el parcial NO cambia el status —que sería mentira en
+  // los dos sentidos— y se reporta para que un humano lo concilie.
+  if (!total) {
+    console.warn(
+      `finalizeRefund: reembolso PARCIAL de ${devuelto} sobre ${cobrado} (pago ${pago.id}). ` +
+        "No se puede representar todavía: el pago sigue como 'paid'. Concíliese a mano.",
+    );
+    return { handled: true, reembolsoTotal: false, paymentId: pago.id as string };
+  }
+
+  const { error } = await sb.from("payments").update({ status: "refunded" }).eq("id", pago.id);
   if (error) {
     console.error("finalizeRefund:", error.message);
     return { handled: false };
