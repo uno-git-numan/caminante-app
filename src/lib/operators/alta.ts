@@ -20,6 +20,7 @@
 // ya existe — un alta no debe borrar lo que alguien ya configuró.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { slugLibre } from "@/lib/operators/slug";
 
 export type AltaOperadorResult =
   | { ok: true; operatorId: string; creado: boolean }
@@ -45,11 +46,17 @@ export async function ensureOperador(input: {
     .maybeSingle();
   if (existente) return { ok: true, operatorId: (existente as { id: string }).id, creado: false };
 
+  // La dirección de su perfil público, calculada del nombre. Nace con ella: sin
+  // slug el operador no tiene página, no sale en el chip «Operada por» y
+  // «Publicar» lo mandaría a una URL inexistente (ver lib/operators/slug.ts).
+  const slug = await slugLibre(sb, name);
+
   const { data: nuevo, error } = await sb
     .from("operators")
     .insert({
       name,
       email,
+      slug,
       // ⚠️ NULL a propósito, no 0. Esta columna es el % que RETIENE la
       // plataforma por venta, y se pacta en el convenio, uno por uno. En 0
       // significaría «no cobramos comisión», que es una afirmación distinta a

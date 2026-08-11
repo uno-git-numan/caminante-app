@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cleanAdjust, type TeamMember } from "@/lib/operators/public";
+import { slugLibre } from "@/lib/operators/slug";
 
 export type OperadorSaveResult = { ok: boolean; error?: string };
 
@@ -53,9 +54,26 @@ export async function saveOperatorProfile(formData: FormData): Promise<OperadorS
   }
 
   const sb = createSupabaseAdminClient();
+
+  // Rescate de los operadores que nacieron sin dirección pública (todos los
+  // creados al aprobar una aplicación antes del 11 ago: nada asignaba `slug`).
+  // Se le pone una la PRIMERA vez que se guarda su perfil, nunca después: la
+  // URL ya se compartió y renombrarla rompe links vivos. Ver operators/slug.ts.
+  const { data: actual } = await sb.from("operators").select("slug").eq("id", id).maybeSingle();
+  const patch: Record<string, unknown> = {
+    name, bio, instagram,
+    photo_url: photoUrl, photo_adjust: photoAdjust,
+    hero_photo_url: heroPhotoUrl, hero_adjust: heroAdjust,
+    team,
+  };
+  if (!(actual as { slug: string | null } | null)?.slug) {
+    const nuevo = await slugLibre(sb, name);
+    if (nuevo) patch.slug = nuevo;
+  }
+
   const { data, error } = await sb
     .from("operators")
-    .update({ name, bio, instagram, photo_url: photoUrl, photo_adjust: photoAdjust, hero_photo_url: heroPhotoUrl, hero_adjust: heroAdjust, team })
+    .update(patch)
     .eq("id", id)
     .select("slug")
     .single();
@@ -71,6 +89,18 @@ export async function setOperatorPublic(formData: FormData): Promise<OperadorSav
   const publicar = String(formData.get("publicar") ?? "") === "1";
   if (!id) return { ok: false, error: "Falta el operador." };
   const sb = createSupabaseAdminClient();
+
+  // Sin slug no hay página que publicar: el perfil quedaría marcado como
+  // público y aun así invisible (el chip «Operada por» filtra por slug, y
+  // /caminante/operador/ sin nada abajo no existe). Es mejor decirlo que
+  // fingir que se publicó.
+  if (publicar) {
+    const { data: op } = await sb.from("operators").select("slug").eq("id", id).maybeSingle();
+    if (!(op as { slug: string | null } | null)?.slug) {
+      return { ok: false, error: "Guarda el perfil primero: sin eso no tiene dirección pública." };
+    }
+  }
+
   const { data, error } = await sb
     .from("operators")
     .update({ is_public: publicar })
