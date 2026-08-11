@@ -5,7 +5,10 @@ import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availa
 import { deslindeListo } from "@/lib/experiences/flujo-venta";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import type { Experience } from "@/lib/experiences/types";
+import PubStyles from "../../ui/pub/PubStyles";
+import PubShell from "../../ui/pub/PubShell";
 import CheckoutForm, { type ReservarSlot } from "./CheckoutForm";
+import ReservarMovil from "./ReservarMovil";
 
 export const dynamic = "force-dynamic";
 
@@ -94,9 +97,18 @@ export default async function ReservarPage({
     .filter((s) => s.perPerson > 0);
 
   const errMsg = error ? errorMsgs[error] ?? decodeURIComponent(error) : null;
+  const deslindeOk = deslindeListo(experience).ok;
+  // Rótulo del subtítulo de la cabecera móvil: el estado (liga con la página de
+  // destino) y si no, la línea de la tarjeta. Nunca un lugar inventado.
+  const lugar = experience?.estado || experience?.cardPloc || "";
 
+  // Se renderizan los DOS marcados y el CSS decide cuál se ve (corte en 700px,
+  // PUB_SWAP_CSS): abajo el teléfono, arriba el escritorio de hoy, intacto.
+  // Ver design/publico-movil/PATRON.md.
   return (
-    <section className="mx-auto w-full max-w-xl px-6 py-12">
+    <>
+      <PubStyles />
+      <section className="pub-no mx-auto w-full max-w-xl px-6 py-12">
       <p className="text-[10px] uppercase tracking-[0.25em] text-olive">Reserva</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-lagoon">{title}</h1>
       <p className="mt-2 text-sm text-olive">
@@ -130,6 +142,20 @@ export default async function ReservarPage({
           <CheckoutForm slug={slug} slots={slots} tiers={experience?.priceTiers ?? []} grupoToken={grupoToken} />
         )}
       </div>
-    </section>
+      </section>
+
+      <PubShell buypad>
+        <ReservarMovil
+          slug={slug}
+          titulo={title}
+          lugar={lugar}
+          slots={slots}
+          tiers={experience?.priceTiers ?? []}
+          grupoToken={grupoToken}
+          deslindeOk={deslindeOk}
+          errMsg={errMsg}
+        />
+      </PubShell>
+    </>
   );
 }

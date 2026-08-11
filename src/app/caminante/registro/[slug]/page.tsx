@@ -6,7 +6,10 @@ import {
   fetchPrefillForUser,
   fetchReservationLock,
 } from "@/lib/registration/queries";
+import PubStyles from "../../ui/pub/PubStyles";
+import PubShell from "../../ui/pub/PubShell";
 import RegistrationForm from "./RegistrationForm";
+import DeslindeMovil from "./DeslindeMovil";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +58,9 @@ export default async function RegistroPage({
     slots.every((s) => s.seatsAvailable !== null && s.seatsAvailable <= 0);
   if (allFull) {
     return (
-      <div className="mx-auto flex w-full max-w-[560px] flex-col items-center px-4 py-16 text-center sm:px-6">
+      <>
+        <PubStyles />
+        <div className="pub-no mx-auto flex w-full max-w-[560px] flex-col items-center px-4 py-16 text-center sm:px-6">
         <span className="inline-flex items-center gap-2 rounded-full border border-sand bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-olive">
           Registro cerrado
         </span>
@@ -74,26 +79,79 @@ export default async function RegistroPage({
         >
           Avísame de la próxima
         </a>
-      </div>
+        </div>
+
+        <PubShell>
+          <div className="pub-screen" style={{ background: "var(--panel)", minHeight: "100%" }}>
+            <div className="pub-headpad"></div>
+            <div className="pub-state" style={{ paddingTop: 30 }}>
+              <span className="ic">✓</span>
+              <h3>Esta salida está completa</h3>
+              <p>
+                {title} ya no tiene lugares disponibles. Escríbenos y te avisamos de la próxima
+                ventana.
+              </p>
+              <a
+                className="pub-cta pub-cta-orange"
+                style={{ width: "auto", padding: "0 24px" }}
+                href={`https://wa.me/${experience.whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Avísame de la próxima
+              </a>
+            </div>
+          </div>
+        </PubShell>
+      </>
     );
   }
 
   const user = await getCurrentUser();
   const prefill = user ? await fetchPrefillForUser(user.id) : null;
 
+  // Las cláusulas y el documento salen del SERVIDOR y son los mismos para las dos
+  // vistas: quien firma siempre puede leer el documento (`deslindeListo`).
+  const waiverClauses = (experience.registration?.waiverClauses || []).filter(Boolean);
+  const waiverDocUrl =
+    experience.registration?.waiverDocUrl?.trim() || `/caminante/deslinde/${slug}`;
+
+  // Se renderizan los DOS marcados y el CSS decide cuál se ve (corte en 700px,
+  // PUB_SWAP_CSS). Ver design/publico-movil/PATRON.md.
   return (
-    <RegistrationForm
-      slug={slug}
-      title={title}
-      datesBadge={datesBadge}
-      slots={slots}
-      waiverClauses={(experience.registration?.waiverClauses || []).filter(Boolean)}
-      waiverDocUrl={experience.registration?.waiverDocUrl?.trim() || `/caminante/deslinde/${slug}`}
-      hasSession={!!user}
-      sessionEmail={user?.email || ""}
-      prefill={prefill}
-      reservationId={reservationId}
-      lockedSlot={lockedSlot}
-    />
+    <>
+      <PubStyles />
+      <div className="pub-no">
+        <RegistrationForm
+          slug={slug}
+          title={title}
+          datesBadge={datesBadge}
+          slots={slots}
+          waiverClauses={waiverClauses}
+          waiverDocUrl={waiverDocUrl}
+          hasSession={!!user}
+          sessionEmail={user?.email || ""}
+          prefill={prefill}
+          reservationId={reservationId}
+          lockedSlot={lockedSlot}
+        />
+      </div>
+
+      <PubShell>
+        <DeslindeMovil
+          slug={slug}
+          title={title}
+          datesBadge={datesBadge}
+          slots={slots}
+          waiverClauses={waiverClauses}
+          waiverDocUrl={waiverDocUrl}
+          hasSession={!!user}
+          sessionEmail={user?.email || ""}
+          prefill={prefill}
+          reservationId={reservationId}
+          lockedSlot={lockedSlot}
+        />
+      </PubShell>
+    </>
   );
 }

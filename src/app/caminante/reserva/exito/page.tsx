@@ -4,6 +4,9 @@ import { getStripeServerClient } from "@/lib/payments/stripe";
 import { facturacionActiva } from "@/lib/facturacion/facturapi";
 import { firmarPago } from "@/lib/facturacion/token";
 import type { Experience } from "@/lib/experiences/types";
+import PubStyles from "../../ui/pub/PubStyles";
+import PubShell from "../../ui/pub/PubShell";
+import ExitoMovil, { type ExitoResumen } from "./ExitoMovil";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +21,18 @@ export default async function ReservaExitoPage({
   // Solo ofrecemos "firmar deslinde" si la experiencia tiene el registro activo
   // (si no, /registro/[slug] daría 404). Las demás cierran por contacto.
   let deslindeActivo = false;
+  let expTitle = "";
   if (safeSlug) {
     try {
       const sb = createSupabaseAdminClient();
       const { data } = await sb.from("experiences").select("data").eq("slug", safeSlug).maybeSingle();
       const exp = data?.data as Experience | undefined;
       deslindeActivo = !!exp?.registration?.active;
+      expTitle =
+        exp?.cardTitle ||
+        [exp?.title, exp?.titleAccent].filter(Boolean).join(" ").trim() ||
+        exp?.docTitle ||
+        "";
     } catch {
       // si falla la lectura, no ofrecemos el deslinde (evita el 404)
     }
@@ -65,6 +74,42 @@ export default async function ReservaExitoPage({
       // sin pago resuelto → links simples
     }
   }
+  // Resumen de la reserva para la vista móvil (el mockup pinta «experiencia ·
+  // salida» y «N personas · $X pagados»). Sale de la reserva REAL; si el webhook
+  // todavía no aterrizó, se queda en null y la pantalla no pinta esa línea —
+  // jamás un número inventado. Best-effort: nunca rompe el éxito.
+  let resumen: ExitoResumen | null = null;
+  if (reservaId) {
+    try {
+      const sb = createSupabaseAdminClient();
+      const { data: r } = await sb
+        .from("reservations")
+        .select("num_people, total_amount_mxn, slot_id")
+        .eq("id", reservaId)
+        .maybeSingle();
+      if (r) {
+        let salida = "";
+        if (r.slot_id) {
+          const { data: s } = await sb
+            .from("experience_slots")
+            .select("label")
+            .eq("id", r.slot_id as string)
+            .maybeSingle();
+          salida = (s?.label as string | null) || "";
+        }
+        const monto = r.total_amount_mxn != null ? Number(r.total_amount_mxn) : null;
+        resumen = {
+          experiencia: expTitle,
+          salida,
+          personas: (r.num_people as number | null) ?? null,
+          montoMxn: monto && monto > 0 ? monto : null,
+        };
+      }
+    } catch {
+      // sin resumen → la pantalla móvil solo dice que el lugar quedó apartado
+    }
+  }
+
   const facturaHref =
     facturacionActiva() && paymentId
       ? `/caminante/facturacion?p=${paymentId}&t=${firmarPago(paymentId)}`
@@ -78,8 +123,12 @@ export default async function ReservaExitoPage({
         ? `/caminante/registro/${safeSlug}`
         : "/caminante";
 
+  // Se renderizan los DOS marcados y el CSS decide cuál se ve (corte en 700px,
+  // PUB_SWAP_CSS). Ver design/publico-movil/PATRON.md.
   return (
-    <section className="mx-auto w-full max-w-xl px-6 py-16 text-center">
+    <>
+      <PubStyles />
+      <section className="pub-no mx-auto w-full max-w-xl px-6 py-16 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest/15">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M5 13l4 4L19 7" stroke="#5A7A4E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -113,6 +162,16 @@ export default async function ReservaExitoPage({
           Volver a Caminante
         </Link>
       </div>
-    </section>
+      </section>
+
+      <PubShell>
+        <ExitoMovil
+          deslindeActivo={deslindeActivo && !!safeSlug}
+          deslindeHref={deslindeHref}
+          facturaHref={facturaHref}
+          resumen={resumen}
+        />
+      </PubShell>
+    </>
   );
 }

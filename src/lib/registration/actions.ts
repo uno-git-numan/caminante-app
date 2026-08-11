@@ -3,7 +3,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { findOrCreateContact, normalizePhoneMX } from "@/lib/crm/contacts";
+import { findOrCreateContact, normalizePhoneMX, type ContactRow } from "@/lib/crm/contacts";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
 import type { Experience } from "@/lib/experiences/types";
@@ -71,16 +71,18 @@ export async function submitRegistration(
   let slotId: string | null = null;
   let slotLabel = (input.slotLabel || "").trim();
 
+  let reservaContactId: string | null = null;
   if (input.reservationId) {
     const { data: paid } = await sb
       .from("reservations")
-      .select("id, slot_id, status")
+      .select("id, slot_id, status, contact_id")
       .eq("id", input.reservationId)
       .eq("experience_id", experienceId)
       .neq("status", "cancelled")
       .maybeSingle();
     if (paid) {
       reservationId = paid.id as string;
+      reservaContactId = (paid.contact_id as string | null) ?? null;
       slotId = (paid.slot_id as string | null) ?? null;
       if (slotId) {
         const { data: slot } = await sb
@@ -117,19 +119,52 @@ export async function submitRegistration(
   }
 
   // 4 · Contact (dedupe en cascada + enriquecer vacíos)
+  //
+  // ⚠️ Caso del pago capturado a mano (transferencia/efectivo desde Dinero): el
+  // admin creó la reserva con lo poco que sabía —a veces solo nombre y
+  // WhatsApp, SIN correo— y le mandó este link. Si aquí hiciéramos el dedupe
+  // normal contra el correo que ella acaba de teclear, nacería un contacto
+  // NUEVO y la reserva se quedaría apuntando al viejo: dos fichas de la misma
+  // persona y un roster que no cuadra. Cuando el contacto de la reserva todavía
+  // no tiene correo, se COMPLETA ese en vez de crear otro.
   const user = await getCurrentUser();
-  const contactRes = await findOrCreateContact(sb, {
-    email,
-    fullName,
-    phone: input.phone,
-    city: input.city,
-    birthDate: input.birthDate,
-    source: `registro web · ${input.slug}`,
-    newsletterOptIn: input.newsletterOptIn,
-    userId: user?.id ?? null,
-  });
-  if (!contactRes.ok) return { ok: false, error: contactRes.error };
-  const contact = contactRes.contact;
+  let contact: ContactRow;
+  const reservaContact = reservaContactId
+    ? (
+        await sb.from("contacts").select("*").eq("id", reservaContactId).maybeSingle()
+      ).data
+    : null;
+
+  if (reservaContact && !reservaContact.email) {
+    const patch: Record<string, unknown> = { email };
+    if (fullName && !reservaContact.full_name) patch.full_name = fullName;
+    if (input.phone && !reservaContact.phone) patch.phone = input.phone;
+    if (input.city && !reservaContact.city) patch.city = input.city;
+    if (input.birthDate && !reservaContact.birth_date) patch.birth_date = input.birthDate;
+    if (user?.id && !reservaContact.user_id) patch.user_id = user.id;
+    if (input.newsletterOptIn) patch.mailing_opt_in = true;
+    const { data: actualizado, error: upErr } = await sb
+      .from("contacts")
+      .update(patch)
+      .eq("id", reservaContact.id)
+      .select("*")
+      .single();
+    if (upErr) return { ok: false, error: upErr.message };
+    contact = actualizado as ContactRow;
+  } else {
+    const contactRes = await findOrCreateContact(sb, {
+      email,
+      fullName,
+      phone: input.phone,
+      city: input.city,
+      birthDate: input.birthDate,
+      source: `registro web · ${input.slug}`,
+      newsletterOptIn: input.newsletterOptIn,
+      userId: user?.id ?? null,
+    });
+    if (!contactRes.ok) return { ok: false, error: contactRes.error };
+    contact = contactRes.contact;
+  }
 
   // 5 · Perfil médico vivo (lo que la plataforma recuerda)
   const m = input.medical || ({} as MedicalProfileData);

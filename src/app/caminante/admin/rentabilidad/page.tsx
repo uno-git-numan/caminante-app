@@ -297,7 +297,7 @@ export default async function RentabilidadPage() {
         <header className="phead">
           <div>
             <span className="eyebrow">
-              <span className="sl">//</span> Rentabilidad · por salida
+              <span className="sl">{"//"}</span> Rentabilidad · por salida
             </span>
             <h1 className="display">
               Fechas, proveedores, <em className="ac">y equilibrio.</em>

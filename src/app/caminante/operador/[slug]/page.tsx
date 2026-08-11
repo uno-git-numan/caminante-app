@@ -1,13 +1,20 @@
 // Perfil PÚBLICO del operador — diseño Claude Design (`.opf`) sobre datos reales
 // de fetchOperatorProfile. Métricas derivadas en vivo, experiencias con su
-// satisfacción real y testimonios aprobados (firmados con iniciales). La sección
-// "equipo" del diseño se omite: no hay modelo de datos y no se inventa.
+// satisfacción real y testimonios aprobados (firmados con iniciales).
+//
+// La ruta YA tenía escritorio: desde el sitio público móvil se renderizan los
+// DOS marcados y el CSS decide cuál se ve (corte en 700px, modo `swap` de
+// PubStyles). El `.opf` de abajo NO se tocó — solo quedó envuelto en `.pub-no`.
+// Ver design/publico-movil/PATRON.md.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchOperatorProfile } from "@/lib/operators/public";
 import { adjustStyle } from "@/lib/operators/photo-style";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import PubStyles from "../../ui/pub/PubStyles";
+import PubShell from "../../ui/pub/PubShell";
 import { OPF_CSS } from "./opf-css";
+import OperadorMovil from "./OperadorMovil";
 
 // Sello COMPLETO de Caminante en sus colores verdaderos (olive/sand/orange) —
 // regla de marca: el sello jamás se tiñe.
@@ -73,6 +80,9 @@ export default async function OperadorPage({
   const ig = op.instagram ? op.instagram.replace(/^@/, "") : null;
 
   return (
+    <>
+      <PubStyles />
+      <div className="pub-no">
     <div className="opf">
       <style dangerouslySetInnerHTML={{ __html: OPF_CSS }} />
       {esDraft && !op.isPublic ? (
@@ -100,7 +110,7 @@ export default async function OperadorPage({
               )}
             </span>
             <span className="opf-eyebrow">
-              <span className="sl">//</span> Operador
+              <span className="sl">{"//"}</span> Operador
             </span>
             <h1 className="opf-display">{tituloConAcento(op.name)}</h1>
             <div className="opf-meta">
@@ -136,7 +146,7 @@ export default async function OperadorPage({
           <div className="opf-wrap">
             <div className="hd">
               <span className="opf-eyebrow">
-                <span className="sl">//</span> Sus experiencias
+                <span className="sl">{"//"}</span> Sus experiencias
               </span>
               <h2 className="opf-display">
                 Los caminos que <em className="opf-ac">abre.</em>
@@ -154,7 +164,7 @@ export default async function OperadorPage({
                   <div className="bd">
                     {e.ploc ? (
                       <span className="pl">
-                        <span className="sl">//</span> {e.ploc}
+                        <span className="sl">{"//"}</span> {e.ploc}
                       </span>
                     ) : null}
                     <h3>{e.title}</h3>
@@ -182,7 +192,7 @@ export default async function OperadorPage({
           <div className="opf-wrap">
             <div className="hd">
               <span className="opf-eyebrow">
-                <span className="sl">//</span> Su equipo
+                <span className="sl">{"//"}</span> Su equipo
               </span>
               <h2 className="opf-display">
                 Quienes caminan <em className="opf-ac">contigo.</em>
@@ -213,7 +223,7 @@ export default async function OperadorPage({
           <div className="opf-wrap">
             <div className="hd">
               <span className="opf-eyebrow">
-                <span className="sl">//</span> Lo que dicen sus viajeros
+                <span className="sl">{"//"}</span> Lo que dicen sus viajeros
               </span>
               <h2 className="opf-display">
                 Palabras del <em className="opf-ac">camino.</em>
@@ -247,5 +257,10 @@ export default async function OperadorPage({
         </a>
       </footer>
     </div>
+      </div>
+      <PubShell>
+        <OperadorMovil op={op} desde={fmtDesde(op.since)} borrador={esDraft && !op.isPublic} />
+      </PubShell>
+    </>
   );
 }

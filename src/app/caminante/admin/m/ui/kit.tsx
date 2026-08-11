@@ -55,7 +55,7 @@ export const Gap = ({ s }: { s?: boolean }) => <div className={s ? "adm-gap-s" :
 
 export const Eyebrow = ({ children }: { children: ReactNode }) => (
   <span className="adm-eyebrow">
-    <span className="sl">//</span> {children}
+    <span className="sl">{"//"}</span> {children}
   </span>
 );
 

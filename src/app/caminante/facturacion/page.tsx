@@ -179,7 +179,7 @@ export default async function FacturacionPage({
     }
     return (
       <Shell>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-forest">// Factura tu experiencia</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-forest">{"//"} Factura tu experiencia</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-lagoon">Tus datos fiscales</h1>
         <p className="mt-3 text-sm leading-relaxed text-olive">
           Monto a facturar: <span className="font-semibold">${Number(pay.amount_mxn).toLocaleString("es-MX")} MXN</span>{" "}
@@ -198,7 +198,7 @@ export default async function FacturacionPage({
   // ── Estado BÚSQUEDA (correo + monto) ────────────────────────────────────────
   return (
     <Shell>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-forest">// Factura tu experiencia</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-forest">{"//"} Factura tu experiencia</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-lagoon">Factura tu pago</h1>
       <p className="mt-3 text-sm leading-relaxed text-olive">
         Escribe el correo con el que reservaste y el monto exacto que pagaste. Encontramos tu pago y te

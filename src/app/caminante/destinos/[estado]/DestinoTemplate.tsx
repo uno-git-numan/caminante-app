@@ -94,10 +94,10 @@ export default function DestinoTemplate({
       </nav>
 
       <div className="drawer" id="ddrawer">
-        <a href="/caminante"><span className="sl">//</span>Inicio</a>
-        <a href="/caminante#proximos"><span className="sl">//</span>Calendario</a>
-        <a href="/caminante#aprende"><span className="sl">//</span>Aprende</a>
-        <a href="/caminante#quees"><span className="sl">//</span>Nosotros</a>
+        <a href="/caminante"><span className="sl">{"//"}</span>Inicio</a>
+        <a href="/caminante#proximos"><span className="sl">{"//"}</span>Calendario</a>
+        <a href="/caminante#aprende"><span className="sl">{"//"}</span>Aprende</a>
+        <a href="/caminante#quees"><span className="sl">{"//"}</span>Nosotros</a>
         <a href="#reserva" className="btn btn-orange">Reservar</a>
       </div>
 
@@ -107,7 +107,7 @@ export default function DestinoTemplate({
         <div className="veil" />
         <div className="container">
           <div className="hero-top">
-            <span className="eyebrow"><span className="sl">//</span> Destino · {estado}</span>
+            <span className="eyebrow"><span className="sl">{"//"}</span> Destino · {estado}</span>
             {c.heroMeta ? <span className="meta-est">{c.heroMeta}</span> : null}
           </div>
           <h1 className="display">
@@ -126,7 +126,7 @@ export default function DestinoTemplate({
           <div className="container">
             <div className="shead-num">
               <div className="shead-main">
-                <span className="eyebrow"><span className="sl">//</span> El territorio</span>
+                <span className="eyebrow"><span className="sl">{"//"}</span> El territorio</span>
                 <h2 className="display">
                   {c.terrTitle || `${estado},`} {c.terrAccent ? <em className="ac">{c.terrAccent}</em> : null}
                 </h2>
@@ -155,14 +155,14 @@ export default function DestinoTemplate({
             {c.caras?.length ? (
               <>
                 <div className="caras-head">
-                  <span className="eyebrow"><span className="sl">//</span> Las cuatro caras del lugar</span>
+                  <span className="eyebrow"><span className="sl">{"//"}</span> Las cuatro caras del lugar</span>
                   {c.carasCap ? <p className="cap-l">{c.carasCap}</p> : null}
                 </div>
                 <div className="caras-grid">
                   {c.caras.map((cara, i) => (
                     <article className="cara" key={i}>
                       {cara.imageUrl ? <img src={cara.imageUrl} alt={cara.title} /> : null}
-                      <span className="eb"><span className="sl">//</span> {cara.label}</span>
+                      <span className="eb"><span className="sl">{"//"}</span> {cara.label}</span>
                       <h3>{cara.title}</h3>
                       <p>{cara.text}</p>
                     </article>
@@ -183,7 +183,7 @@ export default function DestinoTemplate({
               style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20, flexWrap: "wrap", maxWidth: "none" }}
             >
               <div style={{ maxWidth: 680 }}>
-                <span className="eyebrow"><span className="sl">//</span> Lo que vas a ver</span>
+                <span className="eyebrow"><span className="sl">{"//"}</span> Lo que vas a ver</span>
                 <h2 className="display">
                   {c.galleryTitle || "De"} {c.galleryAccent ? <em className="ac">{c.galleryAccent}</em> : <em className="ac">cerca.</em>}
                 </h2>
@@ -221,7 +221,7 @@ export default function DestinoTemplate({
             <div className="body">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 18 }}>
                 <div>
-                  <span className="eyebrow"><span className="sl">//</span> Experiencia destacada</span>
+                  <span className="eyebrow"><span className="sl">{"//"}</span> Experiencia destacada</span>
                   {feat.meta ? <span className="meta">{feat.meta}</span> : null}
                 </div>
                 <span className="secnum" style={{ color: "var(--olive)" }}>{featuredNum}</span>
@@ -256,7 +256,7 @@ export default function DestinoTemplate({
             style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20, flexWrap: "wrap", maxWidth: "none" }}
           >
             <div style={{ maxWidth: 680 }}>
-              <span className="eyebrow"><span className="sl">//</span> Próximas experiencias</span>
+              <span className="eyebrow"><span className="sl">{"//"}</span> Próximas experiencias</span>
               <h2 className="display">
                 {c.expTitle || "Vivir"} {c.expAccent ? <em className="ac">{c.expAccent}</em> : <em className="ac">{estado}.</em>}
               </h2>
@@ -284,7 +284,7 @@ export default function DestinoTemplate({
         <div className="container">
           <div className="glasscard">
             <span className="eyebrow" style={{ color: "#fff", justifyContent: "center" }}>
-              <span className="sl">//</span> {c.closeEyebrow || `${estado} te espera`}
+              <span className="sl">{"//"}</span> {c.closeEyebrow || `${estado} te espera`}
             </span>
             <h2 className="display">
               {c.closeTitle || "Nos vemos"} {c.closeAccent ? <em className="ac">{c.closeAccent}</em> : <em className="ac">allá.</em>}

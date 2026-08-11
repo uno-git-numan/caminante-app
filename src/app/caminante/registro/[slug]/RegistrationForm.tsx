@@ -234,7 +234,7 @@ function SecHead({ num, eyebrow, title, extra }: { num: string; eyebrow: string;
   return (
     <div className="fsec-head">
       <div>
-        <span className="eyebrow"><span className="sl">//</span> {eyebrow}</span>
+        <span className="eyebrow"><span className="sl">{"//"}</span> {eyebrow}</span>
         <h2>{title}</h2>
       </div>
       <span className="secnum">{num}</span>
@@ -386,10 +386,10 @@ export default function RegistrationForm({
         </div>
       </nav>
       <div className={`drawer${drawerOpen ? " open" : ""}`} onClick={() => setDrawerOpen(false)}>
-        <a href="/caminante"><span className="sl">//</span>Inicio</a>
-        <a href="/caminante#proximos"><span className="sl">//</span>Calendario</a>
-        <a href="/caminante#aprende"><span className="sl">//</span>Aprende</a>
-        <a href="/caminante#quees"><span className="sl">//</span>Nosotros</a>
+        <a href="/caminante"><span className="sl">{"//"}</span>Inicio</a>
+        <a href="/caminante#proximos"><span className="sl">{"//"}</span>Calendario</a>
+        <a href="/caminante#aprende"><span className="sl">{"//"}</span>Aprende</a>
+        <a href="/caminante#quees"><span className="sl">{"//"}</span>Nosotros</a>
         <a href="/caminante#proximos" className="btn btn-orange">Reservar</a>
       </div>
     </>
@@ -438,7 +438,7 @@ export default function RegistrationForm({
 
       <header className="formhero">
         <div className="fwrap">
-          <span className="eyebrow"><span className="sl">//</span> Registro y deslinde</span>
+          <span className="eyebrow"><span className="sl">{"//"}</span> Registro y deslinde</span>
           <h1 className="display">
             Prellenamos tu expediente. <em className="ac">Confírmalo y firma.</em>
           </h1>

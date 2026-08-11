@@ -21,6 +21,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/registro/") ||
     pathname.startsWith("/caminante/solicitar/") || // solicitar fecha: topbar propio
     pathname.startsWith("/caminante/embajadores") || // programa de embajadores: topbar propio (.emb)
+    pathname === "/caminante" || // portada: el landing trae su propia nav (+ shell .pub en móvil)
     pathname === "/caminante/nosotros" || // sitio público móvil: shell propio (.pub)
     pathname === "/caminante/experiencias" || // índice de experiencias: shell propio (.pub)
     pathname === "/caminante/aprende" || // índice de la ficha científica: shell propio (.pub)
@@ -48,6 +49,18 @@ function isImmersive(pathname: string): boolean {
   );
 }
 
+// Rutas en modo SWAP del sitio público móvil: abajo de 700px la pantalla trae su
+// propio shell de app (`.pub`, con cabecera y barra de compra propias), así que
+// el chrome compartido sobra — y encima le robaría la altura al `100dvh` del
+// shell. Arriba de 700px no cambia nada: el escritorio conserva su nav y su pie.
+// El interruptor es la misma clase `.pub-no` del contrato (PUB_SWAP_CSS), que
+// solo existe cuando la página inyecta `PubStyles`.
+function esSwapPub(pathname: string): boolean {
+  return (
+    pathname.startsWith("/caminante/reservar/") || pathname === "/caminante/reserva/exito"
+  );
+}
+
 export default function SiteChrome({
   role,
   children,
@@ -61,9 +74,11 @@ export default function SiteChrome({
     return <>{children}</>;
   }
 
+  const swap = esSwapPub(pathname) ? "pub-no " : "";
+
   return (
     <div className="min-h-screen bg-cream text-lagoon">
-      <header className="sticky top-0 z-50 border-b border-sand/50 bg-cream/90 backdrop-blur-md">
+      <header className={`${swap}sticky top-0 z-50 border-b border-sand/50 bg-cream/90 backdrop-blur-md`}>
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/caminante" className="group flex items-center" aria-label="Caminante · Naturaleza en movimiento">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -134,7 +149,7 @@ export default function SiteChrome({
 
       <main>{children}</main>
 
-      <footer className="border-t border-sand/50 bg-lagoon text-cream">
+      <footer className={`${swap}border-t border-sand/50 bg-lagoon text-cream`}>
         <div className="mx-auto max-w-6xl px-6 py-12">
           <div className="grid gap-8 md:grid-cols-3">
             <div>

@@ -1,6 +1,6 @@
 "use server";
 
-// Alta de una venta pagada por TRANSFERENCIA.
+// Alta de una venta pagada FUERA de Stripe: transferencia o efectivo.
 //
 // Hasta hoy solo había tres puertas para que naciera una reserva: el checkout
 // web (Stripe), `/admin/cobro` (link de pago) y el deslinde. Quien pagaba por
@@ -12,10 +12,14 @@
 // SIN DESLINDE FIRMADO. Es el caso Enyd otra vez, por otro camino.
 //
 // Esta acción hace lo mismo que hace el webhook cuando alguien paga con
-// tarjeta, para que una venta por transferencia quede EXACTAMENTE igual de
-// completa:
-//   contacto (dedupe) → reserva pagada y atribuida → pago con method='transfer'
-//   → correo de confirmación con el CTA del deslinde → aviso al admin.
+// tarjeta, para que la venta quede EXACTAMENTE igual de completa:
+//   contacto (dedupe) → reserva pagada y atribuida → pago → **link del
+//   deslinde** para mandarle → correo si tenemos su correo → aviso al admin.
+//
+// El link es el corazón del flujo (encargo de Luis, 11 ago): el admin captura
+// el pago con lo poco que sabe —nombre, lugares, comprobante— y le manda a la
+// persona un enlace donde ELLA se da de alta y sigue el proceso como cualquier
+// otro cliente. Por eso el correo NO es obligatorio: basta el WhatsApp.
 //
 // Diferencia contra Stripe, a propósito: **no se escribe comisión**. Una
 // transferencia no la tiene, y ponerle 0 no es lo mismo que dejarla nula — el
@@ -25,18 +29,22 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { experienceTitle, formatFechaCorta } from "@/lib/admin/queries";
-import { findOrCreateContact } from "@/lib/crm/contacts";
+import { findOrCreateContact, findOrCreateContactByPhone } from "@/lib/crm/contacts";
 import { notifyConfirmacionCompra } from "@/lib/notifications/notify-customer";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
 import type { Experience } from "@/lib/experiences/types";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://caminante.numanhub.com";
 
+export type MetodoManual = "transfer" | "cash";
+
 export type TransferenciaInput = {
   slug: string;
   slotId: string;
-  email: string;
+  metodo: MetodoManual;
   nombre: string;
+  /** Opcional: si no lo tenemos, el link se manda por WhatsApp. */
+  email?: string;
   telefono?: string;
   personas: number;
   montoMxn: number;
@@ -100,14 +108,31 @@ export async function fetchExperienciasConSalidas(): Promise<ExperienciaConSalid
 }
 
 export type TransferenciaResult =
-  | { ok: true; reservationId: string; deslindeUrl: string | null; correoEnviado: boolean }
+  | {
+      ok: true;
+      reservationId: string;
+      /** El enlace donde la persona se da de alta y firma. Es lo que se le manda. */
+      deslindeUrl: string | null;
+      /** Mensaje listo para pegar en WhatsApp. */
+      mensaje: string;
+      correoEnviado: boolean;
+    }
   | { ok: false; error: string };
 
-export async function registrarTransferencia(input: TransferenciaInput): Promise<TransferenciaResult> {
+export async function registrarPagoManual(input: TransferenciaInput): Promise<TransferenciaResult> {
   if (!(await isCurrentUserAdmin())) return { ok: false, error: "No autorizado." };
 
+  const nombre = (input.nombre || "").trim();
+  if (!nombre) return { ok: false, error: "Escribe el nombre de quien pagó." };
   const email = (input.email || "").trim().toLowerCase();
-  if (!email.includes("@")) return { ok: false, error: "Escribe un correo válido." };
+  const telefono = (input.telefono || "").trim();
+  if (email && !email.includes("@")) return { ok: false, error: "Ese correo no se ve válido." };
+  // Hace falta UN canal: sin correo ni WhatsApp no hay a dónde mandarle el link,
+  // y sin link la persona no se puede dar de alta ni firmar.
+  if (!email && !telefono) {
+    return { ok: false, error: "Pon su correo o su WhatsApp: es por donde le llega el enlace." };
+  }
+  const metodo: MetodoManual = input.metodo === "cash" ? "cash" : "transfer";
   const personas = Math.max(1, Math.floor(input.personas || 1));
   const monto = Number(input.montoMxn);
   if (!(monto > 0)) return { ok: false, error: "El monto tiene que ser mayor a cero." };
@@ -141,12 +166,13 @@ export async function registrarTransferencia(input: TransferenciaInput): Promise
     if (ya) return { ok: false, error: `Esa referencia (${referencia}) ya está registrada.` };
   }
 
-  const contactRes = await findOrCreateContact(sb, {
-    email,
-    fullName: input.nombre,
-    phone: input.telefono,
-    source: `transferencia · ${input.slug}`,
-  });
+  // Con correo, dedupe en cascada (user → correo → teléfono). Sin correo, por
+  // teléfono: `contacts.email` es nullable desde la 0015 justo para esto, y así
+  // el contacto que ELLA complete al firmar se funde con este, no lo duplica.
+  const fuente = `${metodo === "cash" ? "efectivo" : "transferencia"} · ${input.slug}`;
+  const contactRes = email
+    ? await findOrCreateContact(sb, { email, fullName: nombre, phone: telefono, source: fuente })
+    : await findOrCreateContactByPhone(sb, { waPhone: telefono, fullName: nombre, source: fuente });
   if (!contactRes.ok) return { ok: false, error: contactRes.error };
   const contact = contactRes.contact;
 
@@ -179,14 +205,15 @@ export async function registrarTransferencia(input: TransferenciaInput): Promise
     contact_id: contact.id,
     amount_mxn: monto,
     status: "paid",
-    method: "transfer",
+    method: metodo,
     paid_at: paidAt,
     referencia,
     // Guardamos la RUTA del objeto en el bucket privado, no una URL: una URL
     // pública de un comprobante bancario sería una fuga permanente.
     comprobante_url: input.comprobantePath || null,
-    // stripe_fee_mxn se queda NULL a propósito: una transferencia no tuvo
-    // comisión, y NULL ("no aplica") no es lo mismo que 0 ("fue gratis").
+    // stripe_fee_mxn se queda NULL a propósito: ni la transferencia ni el
+    // efectivo tuvieron comisión, y NULL ("no aplica") no es lo mismo que 0
+    // ("fue gratis").
   });
   if (payErr) {
     // La reserva ya existe pero sin pago: mejor decirlo que dejar un fantasma.
@@ -203,30 +230,47 @@ export async function registrarTransferencia(input: TransferenciaInput): Promise
   const nombreExp =
     (data?.page?.blocks?.[0] as { title?: string } | undefined)?.title || exp.slug;
 
-  const correoEnviado = await notifyConfirmacionCompra({
-    email,
-    nombre: input.nombre || contact.full_name || "",
-    experiencia: nombreExp,
-    salida: slot.label || "",
-    personas,
-    montoMxn: monto,
-    deslindeUrl,
-  }).catch(() => false);
+  const metodoTxt = metodo === "cash" ? "Efectivo" : "Transferencia";
+
+  // El correo solo sale si tenemos correo. Si no, el link va por WhatsApp — y
+  // por eso el mensaje se devuelve armado, para copiar y pegar.
+  const correoEnviado = email
+    ? await notifyConfirmacionCompra({
+        email,
+        nombre: nombre || contact.full_name || "",
+        experiencia: nombreExp,
+        salida: slot.label || "",
+        personas,
+        montoMxn: monto,
+        deslindeUrl,
+      }).catch(() => false)
+    : false;
 
   await notifyNuevaReserva({
-    cliente: input.nombre || email,
+    cliente: nombre || email || telefono,
     experiencia: nombreExp,
     salida: slot.label || "",
     personas,
     montoMxn: monto,
-    metodo: "Transferencia (capturada en el panel)",
-    canal: "transferencia",
+    metodo: `${metodoTxt} (capturada en el panel)`,
+    canal: metodo === "cash" ? "efectivo" : "transferencia",
   }).catch(() => undefined);
+
+  const money = (n: number) =>
+    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n);
+  const primerNombre = nombre.split(/\s+/)[0] || "";
+  const mensaje = deslindeUrl
+    ? `Hola${primerNombre ? " " + primerNombre : ""}, ya quedó registrado tu pago de ${money(monto)} ` +
+      `para ${nombreExp}${slot.label ? ` · ${slot.label}` : ""} (${personas} ${personas === 1 ? "lugar" : "lugares"}).\n\n` +
+      `Solo falta que completes tu registro y firmes el deslinde aquí:\n${deslindeUrl}\n\n` +
+      `Ahí capturas tus datos y los de quien te acompañe. Cualquier duda, aquí estoy.`
+    : `Hola${primerNombre ? " " + primerNombre : ""}, ya quedó registrado tu pago de ${money(monto)} ` +
+      `para ${nombreExp}${slot.label ? ` · ${slot.label}` : ""} (${personas} ${personas === 1 ? "lugar" : "lugares"}).`;
 
   revalidatePath("/caminante/admin/reservas");
   revalidatePath("/caminante/admin/dinero");
   revalidatePath("/caminante/admin/rentabilidad");
   revalidatePath(`/caminante/admin/roster/${slot.id}`);
 
-  return { ok: true, reservationId: reserva.id, deslindeUrl, correoEnviado };
+  return { ok: true, reservationId: reserva.id, deslindeUrl, mensaje, correoEnviado };
 }

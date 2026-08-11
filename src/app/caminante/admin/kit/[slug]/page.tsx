@@ -372,7 +372,7 @@ export default async function KitPage({
           <a className="igchip" href="#cuenta"><i className="dot" />IG @{cuentaIg!.username || "conectada"}</a>
         ) : null}
       </div>
-      <div className="eyebrow">// Kit de comunicación</div>
+      <div className="eyebrow">{"//"} Kit de comunicación</div>
       <h1>{nombre}</h1>
       <p className="lead">
         Todo el material de la experiencia en un tablero: cada pieza muestra en qué paso va

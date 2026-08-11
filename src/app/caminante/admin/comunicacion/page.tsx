@@ -163,7 +163,7 @@ export default async function ComunicacionPage({
       <div className="cmx">
         <div className="sec-head">
           <div>
-            <div className="eyebrow"><span className="sl">//</span> Comunicación</div>
+            <div className="eyebrow"><span className="sl">{"//"}</span> Comunicación</div>
             <h1>Comunicación</h1>
           </div>
         </div>

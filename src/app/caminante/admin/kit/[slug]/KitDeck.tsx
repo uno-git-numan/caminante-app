@@ -265,7 +265,7 @@ function Slide({ l, momento, collabs }: { l: Lamina; momento: string; collabs: C
         <div className="slide l-cover">
           <Bg f={l.bg} /><div className="k-veil veil-btm" />{chrome}
           <div className="k-in">
-            <span className="k-eyebrow"><span className="sl">//</span> {l.eyebrow}</span>
+            <span className="k-eyebrow"><span className="sl">{"//"}</span> {l.eyebrow}</span>
             <h1 className="k-title">{l.title} {l.accent ? <em className="ac">{l.accent}</em> : null}</h1>
             {l.tag ? <p className="tag">{l.tag}</p> : null}
           </div>
@@ -299,7 +299,7 @@ function Slide({ l, momento, collabs }: { l: Lamina; momento: string; collabs: C
         <div className="slide l-lista">
           {chrome}
           <div className="k-in">
-            <span className="k-eyebrow"><span className="sl">//</span> {l.eyebrow}</span>
+            <span className="k-eyebrow"><span className="sl">{"//"}</span> {l.eyebrow}</span>
             <h2 className="k-title">{l.title} {l.accent ? <em className="ac">{l.accent}</em> : null}</h2>
             {l.items.map((it, i) => (
               <div className="it" key={i}><span className="mk">{l.mark || "—"}</span>{it}</div>
@@ -312,7 +312,7 @@ function Slide({ l, momento, collabs }: { l: Lamina; momento: string; collabs: C
         <div className="slide l-incluye">
           {chrome}
           <div className="k-in">
-            <span className="k-eyebrow"><span className="sl">//</span> {l.eyebrow}</span>
+            <span className="k-eyebrow"><span className="sl">{"//"}</span> {l.eyebrow}</span>
             <h2 className="k-title">{l.title} {l.accent ? <em className="ac">{l.accent}</em> : null}</h2>
             <div className="cols">
               <div>
@@ -335,7 +335,7 @@ function Slide({ l, momento, collabs }: { l: Lamina; momento: string; collabs: C
           <Bg f={l.bg} /><div className="k-veil veil-mid" />{chrome}
           <div className="k-in">
             <div className="card">
-              <span className="k-eyebrow"><span className="sl">//</span> {l.eyebrow}</span>
+              <span className="k-eyebrow"><span className="sl">{"//"}</span> {l.eyebrow}</span>
               {l.qa.map((x, i) => (
                 <div className="qa" key={i}><div className="q">{x.q}</div><div className="a">{x.a}</div></div>
               ))}
@@ -361,7 +361,7 @@ function Slide({ l, momento, collabs }: { l: Lamina; momento: string; collabs: C
         <div className="slide l-precio">
           <Bg f={l.bg} /><div className="k-veil veil-mid" />{chrome}
           <div className="k-in">
-            <span className="k-eyebrow"><span className="sl">//</span> {l.eyebrow}</span>
+            <span className="k-eyebrow"><span className="sl">{"//"}</span> {l.eyebrow}</span>
             <h2 className="k-title">{l.title} {l.accent ? <em className="ac">{l.accent}</em> : null}</h2>
             <div className="card">
               {l.tier ? <div className="tier">{l.tier}</div> : null}
@@ -381,7 +381,7 @@ function Slide({ l, momento, collabs }: { l: Lamina; momento: string; collabs: C
         <div className="slide l-cupo">
           <Bg f={l.bg} /><div className="k-veil veil-mid" />{chrome}
           <div className="k-in">
-            <span className="k-eyebrow"><span className="sl">//</span> Cupo</span>
+            <span className="k-eyebrow"><span className="sl">{"//"}</span> Cupo</span>
             <div className="big">{l.n}</div>
             <div className="lugares">{l.n === 1 ? "lugar disponible" : "lugares disponibles"}</div>
             <div className="exp">{l.experiencia}</div>
@@ -420,7 +420,7 @@ function Slide({ l, momento, collabs }: { l: Lamina; momento: string; collabs: C
         <div className="slide l-cierre">
           <Bg f={l.bg} /><div className="k-veil veil-btm" />{chrome}
           <div className="k-in">
-            <span className="k-eyebrow"><span className="sl">//</span> {l.eyebrow}</span>
+            <span className="k-eyebrow"><span className="sl">{"//"}</span> {l.eyebrow}</span>
             <h2 className="k-title">{l.title} {l.accent ? <em className="ac">{l.accent}</em> : null}</h2>
             <span className="cta">{l.cta} →</span>
           </div>

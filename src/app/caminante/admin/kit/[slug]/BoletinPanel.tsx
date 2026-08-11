@@ -68,7 +68,7 @@ export default function BoletinPanel({
 
   return (
     <section className="bol" id="boletin">
-      <div className="eyebrow" style={{ marginTop: 44 }}>// Boletín</div>
+      <div className="eyebrow" style={{ marginTop: 44 }}>{"//"} Boletín</div>
       <h2>Correo a los suscriptores</h2>
       <p className="lead">
         Se arma con <b>la misma fuente</b> que el resto del kit: un dato con su fuente de la ficha científica,
