@@ -24,13 +24,14 @@ export async function GET(
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const lineas = [
-    ["Nombre", "Edad", "Contacto de emergencia", "Alergias/condiciones/dieta", "Deslinde", "Viene con"].join(","),
+    ["Nombre", "Edad", "Contacto de emergencia", "Alergias/condiciones/dieta", "Contrató", "Deslinde", "Viene con"].join(","),
     ...roster.rows.map((r) =>
       [
         esc(r.nombre),
         esc(r.edad),
         esc(r.emergencia),
         esc(r.condiciones),
+        esc(r.adicional || ""),
         r.deslinde ? `Firmado ${r.fechaFirma || ""}`.trim() : "PENDIENTE",
         esc(r.titular || ""),
       ].join(","),

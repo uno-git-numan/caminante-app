@@ -923,6 +923,10 @@ export type RosterRow = {
   deslinde: boolean;
   fechaFirma: string | null;
   titular: string | null; // null = es el titular; nombre del titular si es acompañante
+  // Lo que ESA persona contrató: "Habitación sencilla", "Habitación compartida"…
+  // Sale del nivel de precio elegido al pagar. El guía necesita saberlo antes de
+  // llegar, no en la recepción del hotel.
+  adicional: string | null;
 };
 
 export type Roster = {
@@ -970,6 +974,17 @@ function emergenciaDe(s: Snap | null | undefined): string {
   return [n, t].filter(Boolean).join(" · ");
 }
 
+// El nivel de precio se guarda como texto libre en `reservations.notes`
+// ("Nivel: Habitación compartida") — finalize-selfserve lo escribe así y a esa
+// nota se le han ido concatenando otras con " · ". Se extrae SOLO ese segmento;
+// devolver la nota entera filtraría comentarios internos al roster impreso, que
+// va al equipo de guías.
+function adicionalDe(notes: string | null | undefined): string | null {
+  const m = /Nivel:\s*([^·]+)/i.exec(notes || "");
+  const v = m?.[1]?.trim();
+  return v || null;
+}
+
 export async function fetchRoster(slotId: string): Promise<Roster | null> {
   const sb = createSupabaseAdminClient();
   const { data: slot } = await sb
@@ -987,7 +1002,7 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
   const [{ data: resvs }, { data: regs }] = await Promise.all([
     sb
       .from("reservations")
-      .select("id, contact_id, num_people, status")
+      .select("id, contact_id, num_people, status, notes")
       .eq("slot_id", slotId)
       .in("status", HOLDING_STATUSES),
     sb
@@ -1026,7 +1041,13 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
   );
 
   const rows: RosterRow[] = [];
-  for (const r of (resvs || []) as { id: string; contact_id: string; num_people: number }[]) {
+  for (const r of (resvs || []) as {
+    id: string;
+    contact_id: string;
+    num_people: number;
+    notes: string | null;
+  }[]) {
+    const adicional = adicionalDe(r.notes);
     const c = cById.get(r.contact_id);
     const reg = regByResv.get(r.id);
     const snap: Snap | null = reg?.medical_snapshot || medByContact.get(r.contact_id) || null;
@@ -1040,6 +1061,7 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
       deslinde: !!reg,
       fechaFirma: reg ? formatDiaMes(reg.signed_at) : null,
       titular: null,
+      adicional,
     });
     for (const p of reg?.participants || []) {
       rows.push({
@@ -1050,6 +1072,9 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
         deslinde: true, // el titular firmó por el grupo
         fechaFirma: reg ? formatDiaMes(reg.signed_at) : null,
         titular: titularNombre,
+        // El nivel se contrató por RESERVA, así que el acompañante duerme donde
+        // duerme su titular.
+        adicional,
       });
     }
     // Lugares PAGADOS sin acompañante capturado (capturarlos es opcional): el
@@ -1067,6 +1092,7 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
         deslinde: !!reg,
         fechaFirma: reg ? formatDiaMes(reg.signed_at) : null,
         titular: titularNombre,
+        adicional,
       });
     }
   }

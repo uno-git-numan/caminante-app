@@ -65,6 +65,7 @@ export default async function RosterPage({
                   <th className="num">Edad</th>
                   <th>Contacto de emergencia</th>
                   <th>Alergias / condiciones / dieta</th>
+                  <th>Contrató</th>
                   <th>Deslinde</th>
                 </tr>
               </thead>
@@ -83,6 +84,7 @@ export default async function RosterPage({
                     <td className="num">{r.edad ?? "—"}</td>
                     <td>{r.emergencia}</td>
                     <td className={r.condiciones === "Ninguna" ? "mut" : ""}>{r.condiciones}</td>
+                    <td className={r.adicional ? "" : "mut"}>{r.adicional || "—"}</td>
                     <td>
                       {r.deslinde ? (
                         <span className="tick">✓ {r.fechaFirma}</span>
@@ -94,7 +96,7 @@ export default async function RosterPage({
                 ))}
                 {roster.rows.length === 0 ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <div className="empty" style={{ border: 0 }}>
                         Aún no hay personas apuntadas a esta salida.
                       </div>
