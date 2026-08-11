@@ -56,7 +56,17 @@ export default function ConvenioForm({
 
       <div
         className="mini-form"
-        style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(190px,1fr))" }}
+        // ⚠️ `alignItems:"start"` es obligatorio: `.adm .mini-form` trae
+        // `align-items:center` (pensado para una fila de controles sueltos), y
+        // aquí centraba cada label dentro de su celda. Como el hint de
+        // «Comisión» hace esa celda más alta, los otros tres rótulos quedaban
+        // flotando a media altura y la tarjeta se veía descuadrada.
+        style={{
+          display: "grid",
+          alignItems: "start",
+          gap: 12,
+          gridTemplateColumns: "repeat(auto-fit, minmax(190px,1fr))",
+        }}
       >
         <label style={lbl}>
           <span>Comisión de plataforma (%)</span>
