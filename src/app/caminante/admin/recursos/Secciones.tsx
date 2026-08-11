@@ -23,9 +23,10 @@ export function Ingresos({ d }: { d: DineroAdmin }) {
     <>
       <section className="sec card" style={{ marginTop: 22 }}>
         <div className="card-head">
+          {/* El entregable escribe el subtítulo DENTRO del span, con su punto
+              medio y un espacio antes: «Título <span class="m">· detalle</span>». */}
           <span className="card-lbl">
-            Ingresos · por experiencia y por operador
-            <span className="m">lo que entró, antes de restar nada</span>
+            Ingresos <span className="m">· por experiencia y por operador</span>
           </span>
         </div>
 
@@ -118,8 +119,7 @@ export function Ingresos({ d }: { d: DineroAdmin }) {
       <section className="sec card" style={{ marginTop: 18 }}>
         <div className="card-head">
           <span className="card-lbl">
-            Ledger de pagos
-            <span className="m">cada cobro, con su respaldo</span>
+            Ledger de pagos <span className="m">· cada cobro, con su respaldo</span>
           </span>
         </div>
         <div className="tbl-wrap">
@@ -233,9 +233,9 @@ export function Egresos({ salidas }: { salidas: SalidaRentabilidad[] }) {
     <section className="sec card" style={{ marginTop: 18 }}>
       <div className="card-head">
         <span className="card-lbl">
-          Egresos · por proveedor
+          Egresos{" "}
           <span className="m">
-            montos sin IVA · fijo {mx(fijos)} · variable {mx(variables)}
+            · por proveedor · sin IVA · fijo {mx(fijos)} · variable {mx(variables)}
           </span>
         </span>
       </div>
