@@ -38,9 +38,13 @@ export const metadata: Metadata = {
 // La disponibilidad es EN VIVO (cupo y salidas abiertas): nada de caché.
 export const dynamic = "force-dynamic";
 
-/** Una salida ya pasó si su fecha de inicio quedó atrás. Las salidas no se
- *  cierran solas al terminar (el admin las cierra a mano), así que el público
- *  filtra: anunciar «próxima fecha · Jun 26» en agosto sería mentir. */
+/** Una salida ya pasó si su fecha de inicio quedó atrás.
+ *
+ *  El cierre de verdad vive en la fuente: el cron `cerrar-salidas` las pasa a
+ *  `closed` cada mañana (ver `lib/experiences/cerrar-vencidas.ts`), y así
+ *  desaparecen del sitio, del checkout y del deslinde de un solo golpe. Esto es
+ *  el cinturón para las horas entre una corrida y la siguiente: anunciar
+ *  «próxima fecha · Jun 26» en agosto sería mentir. */
 function esFutura(startsAt: string | null): boolean {
   if (!startsAt) return true; // sin fecha capturada → la decide el admin, no se esconde
   const t = Date.parse(startsAt);

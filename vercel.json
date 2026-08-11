@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/caminante/api/cron/cerrar-salidas",
+      "schedule": "0 14 * * *"
+    },
+    {
       "path": "/caminante/api/cron/send-surveys",
       "schedule": "0 17 * * *"
     },
