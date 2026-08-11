@@ -99,9 +99,9 @@ export default async function EncuestaPage({
 
   return (
     <AdminShell active="encuesta">
-      {/* El marcador nativo de <details> no se puede quitar desde style inline
-          (es un pseudo-elemento). Mismo patrón que el Kit y el formulario. */}
-      <style dangerouslySetInnerHTML={{ __html: ".adm .secc>summary::-webkit-details-marker{display:none;}.adm .secc[open]>summary .chev2{transform:rotate(180deg);}" }} />
+      {/* .xbody topa en 1600px de alto. Con 12 respuestas + el desglose por
+          categoría, la tarjeta ya no cabía y se cortaba por abajo. */}
+      <style dangerouslySetInnerHTML={{ __html: ".adm .card>.xbody.on{max-height:6000px;}" }} />
       <section className="sec">
         {ok ? (
           <div className="glass pad" style={{ marginBottom: 18, fontSize: 13.5, color: "var(--olive-d)" }}>{ok}</div>
@@ -288,6 +288,10 @@ export default async function EncuestaPage({
             // y con al menos 3 respuestas, para no colgar una alarma de un voto.
             const peor = e.secciones[e.secciones.length - 1];
             const floja = peor && peor.avg < 4 && peor.n >= 3 ? peor : null;
+            const sid = `sec-${e.slug.slice(0, 16)}`;
+            // Si todas las categorías tienen el mismo n, repetirlo siete veces es
+            // ruido: se dice una vez arriba.
+            const mismoN = e.secciones.every((x) => x.n === e.secciones[0].n);
             return (
               <div className="card" key={e.experienceId} style={{ overflow: "hidden", marginBottom: 10 }}>
                 <div className="pad xhead" data-x={rid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", cursor: "pointer" }}>
@@ -302,8 +306,11 @@ export default async function EncuestaPage({
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12.5 }}>
                     {floja ? (
-                      <span className="chip c-canc" title="La categoría peor calificada — ábrela para ver el desglose">
-                        {floja.label} {floja.avg}★
+                      <span className="mut" title="La categoría peor calificada de esta experiencia">
+                        más flojo{" "}
+                        <b style={{ color: "var(--orange)" }}>
+                          {floja.label.toLowerCase()} {floja.avg}★
+                        </b>
                       </span>
                     ) : null}
                     <span><Stars v={e.avgStars} /> <b>{e.avgStars ?? "—"}</b></span>
@@ -314,30 +321,37 @@ export default async function EncuestaPage({
                 <div className="xbody" id={rid}>
                   <div className="xpad">
                     {e.secciones.length ? (
-                      <details className="secc" style={{ marginBottom: 18 }}>
-                        <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 8, minHeight: 30 }}>
-                          <span className="eyebrow"><span className="sl">{"//"}</span> Por categoría</span>
-                          <span className="mut" style={{ fontSize: 12 }}>
-                            {e.secciones.length} categorías · de peor a mejor
+                      <div style={{ marginBottom: 16 }}>
+                        <div className="xh4 xhead" data-x={sid} style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                          <span>
+                            Por categoría <span className="chev2">▾</span>
                           </span>
-                          <span className="chev2" style={{ marginLeft: "auto" }}>▾</span>
-                        </summary>
-                        <div style={{ paddingTop: 10 }}>
-                          {[...e.secciones].reverse().map((sec) => (
-                            <div className="progrow" key={sec.label}>
-                              <span style={{ color: sec.avg < 4 ? "var(--orange)" : undefined }}>{sec.label}</span>
-                              <div className={"prog" + (sec.avg < 4 ? " warn" : "")}>
-                                <div className="tk2">
-                                  <i style={{ width: `${Math.round((sec.avg / 5) * 100)}%` }} />
-                                </div>
-                                <span className="fr">
-                                  {sec.avg}★ <span style={{ opacity: 0.6 }}>n={sec.n}</span>
-                                </span>
-                              </div>
-                            </div>
-                          ))}
+                          <span className="mut" style={{ fontSize: 12, fontWeight: 400 }}>
+                            {e.secciones.length} categorías{mismoN ? ` · ${e.secciones[0].n} respuestas cada una` : ""}
+                          </span>
                         </div>
-                      </details>
+                        <div className="xbody" id={sid}>
+                          <div className="xpad" style={{ paddingTop: 8 }}>
+                            {[...e.secciones].reverse().map((sec, i) => (
+                              <div className="progrow" key={sec.label} style={{ gridTemplateColumns: "190px 1fr" }}>
+                                <span style={i === 0 ? { color: "var(--charcoal)", fontWeight: 600 } : undefined}>
+                                  {sec.label}
+                                </span>
+                                {/* Solo la peor va en naranja: cinco barras naranjas no
+                                    señalan nada, gritan. */}
+                                <div className={"prog" + (i === 0 && sec.avg < 4 ? " warn" : "")}>
+                                  <div className="tk2">
+                                    <i style={{ width: `${Math.round((sec.avg / 5) * 100)}%` }} />
+                                  </div>
+                                  <span className="fr">
+                                    {sec.avg}★{mismoN ? "" : ` · n=${sec.n}`}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     ) : null}
                     <RespuestasExp respuestas={e.respuestas} />
                   </div>
