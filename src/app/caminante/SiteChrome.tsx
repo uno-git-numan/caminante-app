@@ -128,12 +128,17 @@ export default function SiteChrome({
                 </form>
               </>
             ) : (
-              <Link
-                href="/caminante/entrar"
-                className="ml-1 rounded-full border border-lagoon/25 bg-white/40 px-4 py-2 text-xs font-medium text-lagoon backdrop-blur-sm transition-colors hover:bg-lagoon/5"
-              >
-                Entrar
-              </Link>
+              <>
+                {/* `/caminante/entrar` es un route handler, no una página: con
+                    Link el router le pide su carga RSC, recibe HTML y la
+                    navegación se cuelga. A un handler se va con una etiqueta a. */}
+                <a
+                  href="/caminante/entrar"
+                  className="ml-1 rounded-full border border-lagoon/25 bg-white/40 px-4 py-2 text-xs font-medium text-lagoon backdrop-blur-sm transition-colors hover:bg-lagoon/5"
+                >
+                  Entrar
+                </a>
+              </>
             )}
           </nav>
 

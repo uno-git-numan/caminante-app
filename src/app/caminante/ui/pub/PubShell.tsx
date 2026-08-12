@@ -77,17 +77,32 @@ export default function PubShell({
 
           {tab ? (
             <nav className="pub-tabbar">
-              {TABS.map((t) => (
-                <Link
-                  key={t.id}
-                  href={t.id === "espacio" && sesion ? "/caminante/perfil" : t.href}
-                  className={"pub-tab" + (tab === t.id ? " on" : "")}
-                >
-                  {TabIcons[t.id]}
-                  <span>{t.id === "espacio" && !sesion ? "Entrar" : t.lbl}</span>
-                  {t.id === "espacio" && pendiente ? <span className="dot" /> : null}
-                </Link>
-              ))}
+              {TABS.map((t) => {
+                const href = t.id === "espacio" && sesion ? "/caminante/perfil" : t.href;
+                // ⚠️ `/caminante/entrar` NO es una página: es un route handler
+                // que redirige según el rol. Un <Link> le pide su carga RSC,
+                // recibe HTML y la navegación se queda colgada — le picabas
+                // «Entrar» desde el teléfono y no pasaba nada (11 ago). A un
+                // route handler se va con <a>, que es navegación de documento.
+                const esHandler = href === "/caminante/entrar";
+                const dentro = (
+                  <>
+                    {TabIcons[t.id]}
+                    <span>{t.id === "espacio" && !sesion ? "Entrar" : t.lbl}</span>
+                    {t.id === "espacio" && pendiente ? <span className="dot" /> : null}
+                  </>
+                );
+                const cls = "pub-tab" + (tab === t.id ? " on" : "");
+                return esHandler ? (
+                  <a key={t.id} href={href} className={cls}>
+                    {dentro}
+                  </a>
+                ) : (
+                  <Link key={t.id} href={href} className={cls}>
+                    {dentro}
+                  </Link>
+                );
+              })}
             </nav>
           ) : null}
 

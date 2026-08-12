@@ -102,9 +102,11 @@ export default function ExitoMovil({
           </Link>
         ) : null}
 
-        <Link className="pub-cta pub-cta-ghost" style={{ width: "100%", marginTop: 12 }} href="/caminante/entrar">
+        {/* <a> y no <Link>: /caminante/entrar es un route handler (rutea por
+            rol) y una navegación de router se queda colgada en él. */}
+        <a className="pub-cta pub-cta-ghost" style={{ width: "100%", marginTop: 12 }} href="/caminante/entrar">
           Lo hago después · ir a Mi espacio
-        </Link>
+        </a>
       </div>
     </div>
   );
