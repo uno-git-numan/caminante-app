@@ -517,3 +517,43 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
 - `numanhub.com`: registro en Squarespace, DNS en nameservers de Google, **correo en Google Workspace** (MX → google). El sitio raíz es Squarespace. `caminante.numanhub.com` → CNAME → `cname.vercel-dns.com` (Vercel).
 - ⚠️ El DNS se edita en **Squarespace → Dominios → numanhub.com → DNS** con la cuenta **delarosaluis8@gmail.com** (NO uno@numanhub.com — esa cuenta de Squarespace está vacía). Editar registros pide re-verificación con Google (la hace Luis).
 - Registros de Resend (11 jun, NO tocar los MX raíz de Google): TXT `resend._domainkey` (DKIM), MX `send` → `feedback-smtp.us-east-1.amazonses.com` (prio 10), TXT `send` → `v=spf1 include:amazonses.com ~all`, TXT `_dmarc` → `v=DMARC1; p=none;`. Viven en subdominios — cero conflicto con el correo de Workspace.
+
+## WHITE-LABEL DE OPERADORES — F0 + onboarding nativo + portal (24 jul)
+- **Qué es:** Caminante como backend discreto. El operador externo pone su marca (logo, colores) y
+  la plataforma pone la infraestructura; «powered by NMN Caminante» chico. Camino elegido por Luis:
+  **theming sobre NUESTRAS plantillas** (no headless, no dominio propio en v1) → path-based
+  `/caminante/o/<slug>`. Dominio propio = F3.
+- **`0030_operator_branding` APLICADA (24 jul):** `operators.branding jsonb` (tema) + `operators.legal
+  jsonb` (entidad del deslinde del operador). Solo aditiva, sin policies nuevas.
+- **Contrato + motor del tema** (`src/lib/operators/branding.ts`): el operador da **logo + 2 colores**
+  (primary/accent) y `themeCssFor(scope, branding)` emite el **override de las CSS vars de la casa**
+  (--olive/--orange/--cream/--charcoal/--forest + derivados con `color-mix`). Como TODO el design
+  system ya corre sobre esas vars, vestir una superficie = inyectar ese `<style>` después del CSS
+  base — sin tocar una sola regla. `fetchOperatorTheme` / `BySlug` / `ForExperience` son
+  **best-effort: sin branding (o sin migrar) devuelven null y todo se ve Caminante**.
+- **Onboarding nativo `/caminante/admin/operadores/nuevo`** (botón «+ Onboarding de operador» en
+  Operador): identidad → marca con **preview en vivo** (mini hero + botones pintados con las mismas
+  vars que emitirá themeCssFor) → entidad legal → trato → atribución de experiencias. `?op=<id>`
+  COMPLETA un operador existente (p. ej. un embajador aprobado). `onboardOperator` re-verifica admin,
+  no pisa el slug de otro operador y **solo atribuye las experiencias marcadas** (jamás des-atribuye).
+- **Portal `/caminante/o/[slug]`** (namespace `.opw`, ruta inmersiva): logo + colores del operador,
+  sus experiencias publicadas como tarjetas fotográficas, pie con su razón social y «powered by»
+  discreto. **Sin branding ⇒ 404** (el portal solo existe si el onboarding lo vistió).
+- ⚠️ **Especificidad (segunda vez que muerde, tras el CTA de embajadores):** una regla base tipo
+  `.opw a{color:var(--olive)}` (0-1-1) **le gana a una clase sola** (0-1-0) → el título de la tarjeta
+  salía del color primario del operador (negro sobre pasto claro = invisible). **Todo texto sobre foto
+  va prefijado con el scope** (`.opw .opw-card .t`). Además **el velo es obligatorio**: la foto de un
+  operador puede ser clarísima, así que hero y tarjetas llevan degradado propio (en `.ph::after` /
+  `.bg::after`, dentro de la capa de la imagen, no con z-index negativo suelto).
+- **Piloto Kéntro dado de alta POR EL FLUJO REAL (no seed SQL)**, en la rama: operador `kentro`
+  (#212121 + #9a3b2d, logo del bucket) + `el-bosque-de-los-volcanes` («Hacienda y hongos - Kentro»)
+  atribuida. ⚠️ **Sus datos legales son PROVISIONALES** (marcados así en `legal.responsable` y en
+  `notes`) y el correo es `uno+kentro@numanhub.com` a propósito — nada le llega a un tercero real.
+  `commission_pct` queda NULL (por negociar). **Revertir = regresar `operator_id` a Numan·Caminante.**
+- **Decisiones de Luis pendientes de ejecución externa:** el deslinde de viajes del operador va a
+  **su** nombre (NUMAN cobra y factura como comercializador → el convenio necesita cláusula de
+  indemnización, y **el tratamiento fiscal lo valida el contador antes del primer convenio**).
+- Siguiente (F1): tematizar el FUNNEL (experiencia v2 + reservar + registro/deslinde + éxito) leyendo
+  el tema del operador dueño, con **prueba de no-regresión por hash** de estilos computados para
+  garantizar que las páginas de Caminante no cambian ni un pixel. Luego F2 correos, F3 dominio,
+  F4 kit/PDF, F5 checkout con Stripe Connect.

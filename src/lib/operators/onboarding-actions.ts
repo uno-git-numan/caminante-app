@@ -1,0 +1,105 @@
+"use server";
+
+// ONBOARDING de operador externo (white-label) — el alta canónica desde el
+// panel. Crea (o completa) la fila de `operators` con identidad + branding +
+// legal + trato, y le atribuye sus experiencias (experiences.operator_id).
+// Curado: lo captura Luis en v1. Cada action re-verifica admin.
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { OperatorBranding, OperatorLegal } from "@/lib/operators/branding";
+
+const RUTA = "/caminante/admin/operadores/nuevo";
+
+const clean = (v: FormDataEntryValue | null, max = 300): string =>
+  String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+const slugify = (s: string): string =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+
+export async function onboardOperator(formData: FormData): Promise<void> {
+  if (!(await isCurrentUserAdmin())) redirect(`${RUTA}?error=admin`);
+
+  const opId = clean(formData.get("opId"), 60); // vacío = crear
+  const nombre = clean(formData.get("nombre"), 120);
+  const email = clean(formData.get("email"), 200).toLowerCase();
+  const slug = slugify(clean(formData.get("slug"), 80) || nombre);
+  const instagram = clean(formData.get("instagram"), 120);
+
+  const logoUrl = clean(formData.get("logoUrl"), 500);
+  const logoDarkUrl = clean(formData.get("logoDarkUrl"), 500);
+  const primary = clean(formData.get("primary"), 9);
+  const accent = clean(formData.get("accent"), 9);
+  const poweredBy = clean(formData.get("poweredBy"), 12) === "visible" ? "visible" : "discreto";
+
+  const razonSocial = clean(formData.get("razonSocial"), 200);
+  const rfc = clean(formData.get("rfc"), 20).toUpperCase();
+  const domicilio = clean(formData.get("domicilio"), 300);
+  const responsable = clean(formData.get("responsable"), 200);
+
+  const trato = clean(formData.get("trato"), 400);
+  const expIds = formData.getAll("experiencias").map((v) => clean(v, 60)).filter(Boolean);
+
+  if (!nombre || !email.includes("@") || !slug) redirect(`${RUTA}?error=datos`);
+  if (!logoUrl || !HEX.test(primary) || !HEX.test(accent)) redirect(`${RUTA}?error=marca`);
+
+  const branding: OperatorBranding = {
+    logoUrl,
+    ...(logoDarkUrl ? { logoDarkUrl } : {}),
+    colors: { primary, accent },
+    poweredBy,
+  };
+  const legal: OperatorLegal | null =
+    razonSocial && rfc && domicilio ? { razonSocial, rfc, domicilio, ...(responsable ? { responsable } : {}) } : null;
+
+  const sb = createSupabaseAdminClient();
+
+  // El slug es la URL pública del portal: nunca pisar el de OTRO operador.
+  const { data: dueno } = await sb.from("operators").select("id").eq("slug", slug).maybeSingle();
+  if (dueno && (dueno as { id: string }).id !== opId) redirect(`${RUTA}?error=slug`);
+
+  let operatorId = opId || null;
+  const campos = {
+    name: nombre,
+    email,
+    slug,
+    instagram: instagram || null,
+    branding,
+    legal,
+    notes: trato || null,
+  };
+  if (operatorId) {
+    const { error } = await sb.from("operators").update(campos).eq("id", operatorId);
+    if (error) {
+      console.error("onboardOperator update:", error);
+      redirect(`${RUTA}?error=guardar`);
+    }
+  } else {
+    const { data, error } = await sb.from("operators").insert(campos).select("id").single();
+    if (error || !data) {
+      console.error("onboardOperator insert:", error);
+      redirect(`${RUTA}?error=guardar`);
+    }
+    operatorId = (data as { id: string }).id;
+  }
+
+  // Atribución de experiencias: SOLO las marcadas pasan al operador (las no
+  // marcadas no se tocan — jamás des-atribuimos en silencio).
+  for (const id of expIds) {
+    const { error } = await sb.from("experiences").update({ operator_id: operatorId }).eq("id", id);
+    if (error) console.error("onboardOperator exp:", id, error);
+  }
+
+  revalidatePath("/caminante/admin/operadores");
+  revalidatePath(`/caminante/o/${slug}`);
+  redirect(`${RUTA}?ok=${encodeURIComponent(slug)}`);
+}

@@ -42,6 +42,9 @@ export default async function OperadoresAdminPage() {
     <AdminShell active="operador">
       <div className="sec-head">
         <span className="eyebrow"><span className="sl">{"//"}</span> Operador</span>
+        <a className="btn btn-orange btn-sm" href="/caminante/admin/operadores/nuevo" style={{ marginLeft: "auto" }}>
+          + Onboarding de operador
+        </a>
         <h1 className="display">Perfil público del operador</h1>
         <p className="subtitle">
           Esto es lo que ve la gente al picar <b>“Operada por”</b> en una experiencia. Edítalo como una
