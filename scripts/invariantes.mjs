@@ -78,24 +78,38 @@ const REGLAS = [
     },
   },
   {
-    nombre: "Entrar limpia la sesión vieja antes de canjear el token",
+    nombre: "El callback de OAuth no toca cookies (y confirm sí limpia)",
     comprueba() {
-      const faltan = [
-        "src/app/caminante/auth/confirm/route.ts",
-        "src/app/caminante/auth/callback/route.ts",
-      ].filter((f) => {
-        const s = leer(f);
-        return !s || !s.includes("limpiarSesion");
-      });
-      return faltan.length
-        ? [
-            `Estas rutas de login no limpian la sesión previa: ${faltan.join(", ")}.`,
-            "Si la cookie que trae el navegador está podrida, el cliente intenta",
-            "refrescarla y lanza ANTES de mirar el token nuevo: el usuario queda",
-            "encerrado, porque ni con un enlace recién pedido puede entrar.",
-            "Llama a limpiarSesion() antes de verifyOtp/exchangeCodeForSession.",
-          ].join("\n    ")
-        : null;
+      const cb = leer("src/app/caminante/auth/callback/route.ts");
+      const cf = leer("src/app/caminante/auth/confirm/route.ts");
+      if (!cb || !cf) return "Faltan las rutas de auth.";
+      if (cb.includes("limpiarSesion(")) {
+        return [
+          "auth/callback llama a limpiarSesion(). NO debe.",
+          "El flujo PKCE trae el `code-verifier` en las cookies y exchangeCodeForSession",
+          "lo necesita; manosear el almacén se lo lleva y el login muere con",
+          "«PKCE code verifier not found in storage» (pasó el 11 ago 2026).",
+        ].join("\n    ");
+      }
+      if (!cf.includes("limpiarSesion(")) {
+        return "auth/confirm ya no limpia la sesión previa: una cookie podrida vuelve a poder tumbar una liga mágica nueva.";
+      }
+      return null;
+    },
+  },
+  {
+    nombre: "El middleware no se mete con las rutas de auth",
+    comprueba() {
+      const s = leer("src/middleware.ts");
+      if (!s) return null;
+      return /\/caminante\/auth\//.test(s)
+        ? null
+        : [
+            "src/middleware.ts ya no excluye /caminante/auth/.",
+            "Ahí no hay sesión que refrescar (esas rutas la CREAN), y al intentarlo",
+            "sobre una cookie muerta el cliente limpia su almacenamiento y se lleva el",
+            "code-verifier de PKCE. Google deja de poder entrar.",
+          ].join("\n    ");
     },
   },
   {

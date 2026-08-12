@@ -28,6 +28,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(target, 308);
   }
 
+  // ⚠️ El middleware NO toca las rutas de autenticación. Ahí no hay nada que
+  // refrescar —su trabajo es ESTABLECER una sesión nueva— y meterse es
+  // activamente dañino: al intentar refrescar una cookie muerta, el cliente de
+  // Supabase limpia su almacenamiento, y en el flujo PKCE eso se lleva el
+  // `code-verifier` que `exchangeCodeForSession` necesita un instante después.
+  // Síntoma exacto (11 ago 2026, en cuanto el middleware empezó a correr por
+  // primera vez): «Continuar con Google» iba a Google, volvía, y el callback
+  // moría con «PKCE code verifier not found in storage».
+  if (request.nextUrl.pathname.startsWith("/caminante/auth/")) {
+    return NextResponse.next({ request });
+  }
+
   return updateSession(request);
 }
 
