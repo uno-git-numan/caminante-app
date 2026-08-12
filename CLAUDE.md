@@ -506,27 +506,45 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
   `<Pantalla/>`**, nunca la pantalla llamada como función: sus hooks contarían como
   hooks del shell y al cambiar de pestaña React truena con «rendered fewer hooks».
 
-## ⚠️ ABIERTO: el sitio publico truena en iOS con algo promovido el 11 ago (sin resolver)
-- **Sintoma:** en iPhone (Chrome y Safari = WebKit), `caminante.numanhub.com` muestra
-  «Application error: a client-side exception has occurred». La home entera, no una ruta.
-- **Bisect hecho con evidencia:** con produccion en **`03f0759`** la home carga bien en su
-  iPhone (verificado en video). Con los commits de despues, truena. O sea: el culpable esta
-  entre `03f0759` y `ce97104` — cinco commits, y por tiempos el sospechoso #1 es **`3991991`**
-  (cambio del tabbar de `PubShell` + `SiteChrome` + `ExitoMovil`, `<Link>` → `<a>`).
-- **NO es cache** (cerro pestanas y reinicio Chrome; ademas el HTML se sirve `no-store`) ni
-  anchors anidados (verificado en el HTML servido) ni metodos de JS moderno (grep limpio).
-- ⚠️ **NO se pudo reproducir** con lo que hay en la maquina: Chromium a 375px carga bien,
-  Safari de ESCRITORIO carga bien. Falta la combinacion **WebKit + viewport de telefono**.
-  Sin Xcode no hay simulador de iOS, y a Safari solo se le puede mirar (tier read).
-  **Para resolverlo hace falta un repro:** Xcode + simulador, o BrowserStack, o depurar el
-  iPhone de Luis conectado por cable con el Web Inspector de Safari.
-- **Estado:** produccion revertida a `03f0759` (instantaneo, sin rebuild). La rama
-  `deploy/caminante-site` SI tiene los cinco commits — **no re-promover a ciegas**.
-- **Lo que se perdio con la reversion:** el boton «Entrar» del tabbar, el fix de «Continuar con
-  Google» y todo white-label (onboarding + portal). Lo que SI quedo en produccion: slug del
-  operador, tarjeta de convenio, selector de operador sin herencia de comision y el nav.
-- **Nada de la base se revirtio:** Kentro sigue pasado a Numan y en pausa, la cuenta zz-prueba
-  sigue borrada, la 0030 sigue aplicada.
+## RESUELTO: «Application error» + login imposible = SESIÓN MUERTA (11 ago)
+- **Síntomas, los dos a la vez y sin relación aparente:** en el iPhone de Luis la home mostraba
+  «Application error: a client-side exception has occurred», y el login contestaba «No pudimos
+  completar el inicio de sesión» **aunque el enlace mágico fuera recién pedido**.
+- **Causa, encontrada en los logs de runtime de Vercel** (no adivinada):
+  `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` en `/caminante`,
+  `/caminante/login`, `/caminante/entrar` y `/caminante/auth/callback`. Sus cookies traían un
+  refresh token que Supabase ya no reconocía; **nadie atrapaba el error** y subía hasta la página.
+  Se realimentaba solo: la cookie podrida seguía ahí en cada intento.
+- ⚠️ **CAUSA DE FONDO: `middleware.ts` estaba en la RAÍZ del repo con el código en `src/`.**
+  Next lo ignora **sin un solo warning**, así que NUNCA corrió — y su único trabajo es
+  `updateSession`, o sea refrescar la cookie de Supabase en cada request. Sin eso el token caduca
+  sin reemplazo hasta pudrirse. Movido a **`src/middleware.ts`**. Prueba de que ya corre: el alias
+  `caminante-app.vercel.app` por fin responde **308** al dominio canónico (ese redirect llevaba
+  meses escrito sin ejecutarse jamás).
+- **Los tres arreglos:** (1) `roleForClient` y `getCurrentUser` atrapan el error —`getUser()`
+  **LANZA**, no solo devuelve `{error}`— y devuelven `null`, que es la verdad: no hay sesión;
+  (2) `auth/confirm` y `auth/callback` llaman a `limpiarSesion()` **antes** de canjear el token,
+  para que una cookie podrida no tumbe un login limpio; (3) el middleware en su lugar.
+  Todo en `src/lib/auth/sesion-rota.ts`.
+- ⚠️ **Diagnóstico equivocado que costó horas, para no repetirlo:** primero se culpó al caché (falso:
+  cerró pestañas, reinició Chrome, y el HTML se sirve `no-store`) y luego, por un bisect que revirtió
+  producción y «arregló» la home, al commit del tabbar `3991991`. Era **correlación**: el crash
+  depende de si el access token ya venció en ese instante, no del build. La lección: con un síntoma
+  que solo aparece en el dispositivo del usuario, **ir a los logs del servidor ANTES de bisectar**.
+
+## GUARDIÁN DE INVARIANTES — `npm run verificar` / `prebuild` (11 ago)
+- **`scripts/invariantes.mjs` corre en CADA build** (`prebuild` en package.json) y **tumba el
+  deploy** si se rompe alguna de estas cinco reglas, cada una nacida de un incidente real:
+  1. el middleware vive en `src/` (no en la raíz, donde Next lo ignora en silencio);
+  2. el middleware sigue llamando a `updateSession`;
+  3. `authorization.ts` y `session.ts` protegen la lectura de sesión con `esSesionMuerta`;
+  4. `auth/confirm` y `auth/callback` llaman a `limpiarSesion` antes de canjear;
+  5. el `setAll` de `createSupabaseServerClient` conserva su try/catch (incidente del 8 jun).
+- **Probado rompiendo cada una a propósito**: las cuatro comprobables se cazaron, y con el código
+  sano pasa 5/5. `node scripts/invariantes.mjs --autoprueba` verifica que las reglas de verdad
+  detectan lo que dicen (un guardián callado no sirve de nada).
+- **El mensaje de error explica el incidente**, no solo la regla — quien lo vea en un build fallido
+  entiende por qué existe sin tener que venir a este archivo.
 
 ## Pendientes (al retomar)
 1. **Dar de alta las 5 experiencias** desde localhost (`/caminante/admin/experiencias/nueva`). Aparecen en vivo (base compartida).

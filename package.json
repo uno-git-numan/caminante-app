@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "prebuild": "node scripts/invariantes.mjs",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verificar": "node scripts/invariantes.mjs && node scripts/invariantes.mjs --autoprueba"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^5.6.1",
