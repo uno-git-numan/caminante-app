@@ -147,7 +147,7 @@ export default function OnboardingForm({ experiencias, prefill }: { experiencias
               Botón secundario
             </span>
             <span style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--olive)" }}>
-              // eyebrow del operador
+              {"//"} eyebrow del operador
             </span>
           </div>
         </div>
