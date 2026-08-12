@@ -30,7 +30,20 @@ export function esSesionMuerta(e: unknown): boolean {
  * mitad es tan inservible como dejarlas completas.
  */
 export function cookiesDeSesion(nombres: string[]): string[] {
-  return nombres.filter((n) => n.startsWith("sb-") && n.includes("auth-token"));
+  return nombres.filter(
+    (n) =>
+      n.startsWith("sb-") &&
+      n.includes("auth-token") &&
+      // ⚠️ JAMÁS el verificador de PKCE. Se llama
+      // `sb-<ref>-auth-token-code-verifier`, o sea que CAE en el filtro de
+      // arriba — y es justo lo que `exchangeCodeForSession` necesita para
+      // canjear el código que Google acaba de devolver. Borrarlo un instante
+      // antes deja el login con «No pudimos completar el inicio de sesión»,
+      // que es exactamente el bug que este archivo venía a arreglar: lo
+      // introduje yo el 11 ago al escribir `limpiarSesion` sin esta excepción.
+      // Hay una regla en scripts/invariantes.mjs que impide que vuelva a pasar.
+      !n.includes("code-verifier"),
+  );
 }
 
 /**

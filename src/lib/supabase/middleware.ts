@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getClientSupabaseEnvOrNull } from "@/lib/supabase/env";
+import { cookiesDeSesion, esSesionMuerta } from "@/lib/auth/sesion-rota";
 
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({
@@ -30,7 +31,20 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  // ⚠️ `getUser()` LANZA si el refresh token de la cookie ya no existe. El
+  // middleware corre en CADA request, así que sin este try/catch un usuario con
+  // la sesión podrida llena los logs de «Invalid Refresh Token» y nunca sale del
+  // hoyo. Aquí sí podemos escribir cookies (es lo único que puede), así que este
+  // es EL lugar donde la sesión muerta se cura: se borra y el usuario queda
+  // simplemente deslogueado, que es la verdad.
+  try {
+    await supabase.auth.getUser();
+  } catch (e) {
+    if (!esSesionMuerta(e)) throw e;
+    for (const nombre of cookiesDeSesion(request.cookies.getAll().map((c) => c.name))) {
+      response.cookies.delete(nombre);
+    }
+  }
 
   return response;
 }

@@ -99,6 +99,22 @@ const REGLAS = [
     },
   },
   {
+    nombre: "Limpiar la sesión nunca borra el verificador de PKCE",
+    comprueba() {
+      const s = leer("src/lib/auth/sesion-rota.ts");
+      if (!s) return "Falta src/lib/auth/sesion-rota.ts.";
+      return /code-verifier/.test(s)
+        ? null
+        : [
+            "cookiesDeSesion() ya no excluye la cookie `-code-verifier`.",
+            "Se llama `sb-<ref>-auth-token-code-verifier`, o sea que CAE en el filtro",
+            "de las cookies de sesión — y es lo que exchangeCodeForSession necesita para",
+            "canjear el código que Google acaba de devolver. Borrarla deja el login en",
+            "«No pudimos completar el inicio de sesión» (pasó el 11 ago 2026).",
+          ].join("\n    ");
+    },
+  },
+  {
     nombre: "El cliente de servidor tolera cookies de solo-lectura",
     comprueba() {
       const s = leer("src/lib/supabase/server.ts");
