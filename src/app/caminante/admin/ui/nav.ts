@@ -34,3 +34,19 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { key: "recursos", label: "Recursos", href: "/caminante/admin/recursos" },
   { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
 ];
+
+// «Operador» va aparte porque se dibuja a la DERECHA del nav y con ícono, no en
+// la fila de píldoras. Pero vive aquí, no dentro de un componente: estaba
+// escrito a mano en AdminShell y el tablero de Recursos —que arma su nav desde
+// ADMIN_NAV— se quedaba sin él. O sea, Recursos era la única sección desde la
+// que no se podía llegar al perfil del operador ni a su convenio, que es justo
+// el salto que se hace al liquidarle a alguien. Es la misma deriva que este
+// archivo existe para evitar; si el nav vuelve a tener una excepción, va aquí.
+export const ADMIN_NAV_OPERADOR: AdminNavItem = {
+  key: "operador",
+  label: "Operador",
+  href: "/caminante/admin/operadores",
+};
+
+export const PERSON_ICON =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';

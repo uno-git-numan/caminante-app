@@ -22,7 +22,7 @@ import { fetchRentabilidad, type SalidaRentabilidad } from "@/lib/admin/rentabil
 import { Fila, cls, firmado, mesLabel, mx } from "./ui";
 import { fetchDinero } from "@/lib/admin/queries";
 import { fetchExperienciasConSalidas } from "@/lib/admin/transferencias";
-import { ADMIN_NAV } from "../ui/nav";
+import { ADMIN_NAV, ADMIN_NAV_OPERADOR, PERSON_ICON } from "../ui/nav";
 import PagoManualForm from "./PagoManualForm";
 import { Egresos, Ingresos } from "./Secciones";
 
@@ -254,6 +254,19 @@ export default async function RentabilidadPage() {
               </Link>
             ),
           )}
+          {/* Operador: a la derecha, igual que en AdminShell. Faltaba, y era
+              justo el salto que se hace desde el payout al convenio. */}
+          <Link
+            href={ADMIN_NAV_OPERADOR.href!}
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}
+            title="Perfil del operador"
+          >
+            <span
+              style={{ display: "inline-flex", alignItems: "center" }}
+              dangerouslySetInnerHTML={{ __html: PERSON_ICON }}
+            />
+            {ADMIN_NAV_OPERADOR.label}
+          </Link>
         </nav>
       </header>
 
