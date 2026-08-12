@@ -506,6 +506,29 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
   `<Pantalla/>`**, nunca la pantalla llamada como función: sus hooks contarían como
   hooks del shell y al cambiar de pestaña React truena con «rendered fewer hooks».
 
+## EN TELÉFONO, EL PANEL **ES** EL PANEL-APP (12 ago)
+- **El panel móvil se construyó el 11 ago y NADIE lo enlazaba.** Luis lo reportó dos veces: abría
+  el panel desde el celular y recibía la tabla de escritorio. El primer arreglo (que
+  `/caminante/entrar` rutee por rol Y dispositivo) no bastó porque **el botón «Panel» del nav
+  apuntaba DIRECTO a `/caminante/admin`**, saltándose la única pieza que sabe decidir.
+- **Los tres eslabones, y los tres hacen falta:**
+  1. `SiteChrome` manda a **`/caminante/entrar`** — y con **`<a>`, no `<Link>`**: es un route
+     handler, y el router le pediría su carga RSC.
+  2. El **ÍNDICE** `/caminante/admin` redirige a `/caminante/admin/m` si el UA es un teléfono.
+  3. El panel-app tiene **«Panel de escritorio» (`?escritorio=1`)** en Más, o el teléfono queda
+     encerrado.
+- ⚠️ **Solo se redirige el ÍNDICE, jamás `/admin/*` completo.** Las rutas hijas o rasterizan el DOM
+  de escritorio (`kit`, `print`, `social`, `preview` producen los PNG y PDFs leyendo `.slide` del
+  documento) o son formularios largos que el panel-app no reemplaza (`experiencias`). Además el
+  propio panel-app enlaza a varias como «ver completo» (`recursos`, `operadores`, `encuesta`): un
+  redirect general las rebotaría **a sí mismo**.
+- **`esTelefono` vive en `src/lib/ui/dispositivo.ts`**, con la regla escrita al lado: olfatear el
+  user-agent sigue **PROHIBIDO en las páginas públicas** (el sitio móvil se resuelve con CSS, ver
+  «SITIO PÚBLICO MÓVIL»). Solo es admisible donde la ruta es `force-dynamic` **y** lo único que se
+  decide es a dónde redirigir, no qué HTML emitir. Las tablets van a escritorio a propósito.
+- **Invariante #8** (`scripts/invariantes.mjs`) tumba el build si cualquiera de los tres eslabones
+  se rompe. Esto ya se rompió dos veces en un día; que lo cace el build y no Luis.
+
 ## RESUELTO: «Application error» + login imposible = SESIÓN MUERTA (11 ago)
 - **Síntomas, los dos a la vez y sin relación aparente:** en el iPhone de Luis la home mostraba
   «Application error: a client-side exception has occurred», y el login contestaba «No pudimos
@@ -534,12 +557,16 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
 
 ## GUARDIÁN DE INVARIANTES — `npm run verificar` / `prebuild` (11 ago)
 - **`scripts/invariantes.mjs` corre en CADA build** (`prebuild` en package.json) y **tumba el
-  deploy** si se rompe alguna de estas cinco reglas, cada una nacida de un incidente real:
+  deploy** si se rompe alguna de estas reglas (hoy 8), cada una nacida de un incidente real:
   1. el middleware vive en `src/` (no en la raíz, donde Next lo ignora en silencio);
   2. el middleware sigue llamando a `updateSession`;
   3. `authorization.ts` y `session.ts` protegen la lectura de sesión con `esSesionMuerta`;
   4. `auth/confirm` y `auth/callback` llaman a `limpiarSesion` antes de canjear;
-  5. el `setAll` de `createSupabaseServerClient` conserva su try/catch (incidente del 8 jun).
+  5. el `setAll` de `createSupabaseServerClient` conserva su try/catch (incidente del 8 jun);
+  6. el middleware no se mete con `/caminante/auth/` (se llevaba el verificador de PKCE);
+  7. `cookiesDeSesion` nunca borra la cookie `-code-verifier`;
+  8. el panel móvil sigue siendo alcanzable: nav → `/entrar`, el índice del panel redirige al
+     panel-app en teléfono, y el panel-app conserva su salida `?escritorio=1` (12 ago).
 - **Probado rompiendo cada una a propósito**: las cuatro comprobables se cazaron, y con el código
   sano pasa 5/5. `node scripts/invariantes.mjs --autoprueba` verifica que las reglas de verdad
   detectan lo que dicen (un guardián callado no sirve de nada).
