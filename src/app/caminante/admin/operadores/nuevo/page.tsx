@@ -85,8 +85,13 @@ export default async function OnboardingPage({
         <h1 className="display">Alta de un operador <em className="ac">externo.</em></h1>
         <p className="subtitle">
           El operador pone su marca; caminante pone la infraestructura. Al guardar, su portal queda
-          vivo en <b>/caminante/o/&lt;slug&gt;</b> con sus experiencias vestidas de su marca y un
-          «powered by NMN Caminante» discreto. El deslinde de sus viajes usará SU entidad legal.
+          vivo en <b>/caminante/o/&lt;slug&gt;</b> con su logo, sus colores y sus experiencias, más
+          un «powered by NMN Caminante» discreto. El deslinde de sus viajes usará SU entidad legal.
+          {" "}
+          <b>
+            Hasta aquí llega su marca por ahora: al picar una experiencia, la página de venta, el
+            checkout y el deslinde se ven de Caminante.
+          </b>
         </p>
       </div>
 

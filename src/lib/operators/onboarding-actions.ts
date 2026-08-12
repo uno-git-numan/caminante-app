@@ -76,6 +76,13 @@ export async function onboardOperator(formData: FormData): Promise<void> {
     branding,
     legal,
     notes: trato || null,
+    // ⚠️ El alta PUBLICA al operador. Este formulario es el acto de ponerlo en
+    // el aire —su botón dice «ver su portal»— y `is_public` es lo que abre sus
+    // dos páginas públicas: el portal con su marca (/caminante/o/<slug>) y su
+    // perfil (/caminante/operador/<slug>). Sin esto el portal daría 404 justo
+    // al terminar el alta, enfrente del operador. Para bajarlo está «Pasar a
+    // borrador» en su tarjeta de perfil, que es el control que ya existía.
+    is_public: true,
   };
   if (operatorId) {
     const { error } = await sb.from("operators").update(campos).eq("id", operatorId);
