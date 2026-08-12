@@ -506,6 +506,28 @@ de cada lugar: 🌿 Naturaleza · 🌊 Conservación · 🤝 Comunidades · ⚠�
   `<Pantalla/>`**, nunca la pantalla llamada como función: sus hooks contarían como
   hooks del shell y al cambiar de pestaña React truena con «rendered fewer hooks».
 
+## ⚠️ ABIERTO: el sitio publico truena en iOS con algo promovido el 11 ago (sin resolver)
+- **Sintoma:** en iPhone (Chrome y Safari = WebKit), `caminante.numanhub.com` muestra
+  «Application error: a client-side exception has occurred». La home entera, no una ruta.
+- **Bisect hecho con evidencia:** con produccion en **`03f0759`** la home carga bien en su
+  iPhone (verificado en video). Con los commits de despues, truena. O sea: el culpable esta
+  entre `03f0759` y `ce97104` — cinco commits, y por tiempos el sospechoso #1 es **`3991991`**
+  (cambio del tabbar de `PubShell` + `SiteChrome` + `ExitoMovil`, `<Link>` → `<a>`).
+- **NO es cache** (cerro pestanas y reinicio Chrome; ademas el HTML se sirve `no-store`) ni
+  anchors anidados (verificado en el HTML servido) ni metodos de JS moderno (grep limpio).
+- ⚠️ **NO se pudo reproducir** con lo que hay en la maquina: Chromium a 375px carga bien,
+  Safari de ESCRITORIO carga bien. Falta la combinacion **WebKit + viewport de telefono**.
+  Sin Xcode no hay simulador de iOS, y a Safari solo se le puede mirar (tier read).
+  **Para resolverlo hace falta un repro:** Xcode + simulador, o BrowserStack, o depurar el
+  iPhone de Luis conectado por cable con el Web Inspector de Safari.
+- **Estado:** produccion revertida a `03f0759` (instantaneo, sin rebuild). La rama
+  `deploy/caminante-site` SI tiene los cinco commits — **no re-promover a ciegas**.
+- **Lo que se perdio con la reversion:** el boton «Entrar» del tabbar, el fix de «Continuar con
+  Google» y todo white-label (onboarding + portal). Lo que SI quedo en produccion: slug del
+  operador, tarjeta de convenio, selector de operador sin herencia de comision y el nav.
+- **Nada de la base se revirtio:** Kentro sigue pasado a Numan y en pausa, la cuenta zz-prueba
+  sigue borrada, la 0030 sigue aplicada.
+
 ## Pendientes (al retomar)
 1. **Dar de alta las 5 experiencias** desde localhost (`/caminante/admin/experiencias/nueva`). Aparecen en vivo (base compartida).
 2. **Llaves "Needs Attention" en Vercel** (SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) están viejas (marzo). Actualizarlas (las pega el usuario) para que **Stripe y las _escrituras_ de admin en producción** (guardar experiencias, subir fotos vía `createSupabaseAdminClient`) funcionen. **OJO: estas NO afectan el _login_ de admin** — el gate (`isCurrentUserAdmin`) solo usa la publishable key + la tabla `admin_whitelist`.
