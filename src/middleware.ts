@@ -9,6 +9,14 @@ const CANONICAL_HOST = "caminante.numanhub.com";
 // gate on process.env.VERCEL_ENV; it isn't reliably populated in Edge middleware.
 const PRODUCTION_VERCEL_ALIAS = "caminante-app.vercel.app";
 
+// ⚠️ ESTE ARCHIVO VIVE EN src/ A PROPÓSITO. Estuvo en la RAÍZ del repo desde
+// siempre y, con el código en `src/`, Next lo ignora **sin un solo warning**:
+// nunca corrió. Su único trabajo es `updateSession`, o sea refrescar la cookie de
+// Supabase en cada request; sin eso el refresh token de un usuario acaba
+// caducando sin reemplazo y todo empieza a lanzar «Invalid Refresh Token:
+// Refresh Token Not Found» — que fue exactamente lo que le pasó a Luis desde su
+// iPhone el 11 de agosto: la home tronaba y el login no podía completarse.
+// (Es el mismo gotcha que CLAUDE.md ya documentaba para OTRO middleware.)
 export async function middleware(request: NextRequest) {
   const host =
     request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";

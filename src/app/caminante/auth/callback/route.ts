@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureContactLink } from "@/lib/crm/contacts";
 import { roleForClient } from "@/lib/auth/authorization";
+import { limpiarSesion } from "@/lib/auth/sesion-rota";
 
 // Callback del flujo OAuth (PKCE) — p.ej. "Iniciar con Google". El proveedor
 // regresa con ?code=…; lo intercambiamos por sesión con el cliente SSR (que tiene
@@ -38,6 +39,10 @@ export async function GET(request: NextRequest) {
   if (!code) {
     return NextResponse.redirect(new URL("/caminante/login?error=missing_code", request.url));
   }
+
+  // Igual que en confirm: la sesión vieja no sirve y, si está podrida, tumba el
+  // canje del código nuevo. Ver auth/sesion-rota.ts.
+  await limpiarSesion();
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);

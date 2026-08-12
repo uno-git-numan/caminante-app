@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { esSesionMuerta } from "@/lib/auth/sesion-rota";
 
 // Dos perfiles claramente separados:
 //   admin     → crea/edita experiencias, cobra, gestiona. NO compra.
@@ -14,9 +15,20 @@ export type Role = "admin" | "caminante";
 export async function roleForClient(
   supabase: SupabaseClient,
 ): Promise<Role | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // ⚠️ `getUser()` LANZA cuando el refresh token de la cookie ya no existe
+  // («Invalid Refresh Token: Refresh Token Not Found»). Aquí nadie lo atrapaba y
+  // el error subía hasta la página: la home tronaba con «Application error» y el
+  // login contestaba «No pudimos completar el inicio de sesión» aunque el enlace
+  // fuera nuevo. Una sesión que ya no se puede refrescar es simplemente NO HAY
+  // SESIÓN — que es exactamente lo que devuelve `null`. Ver auth/sesion-rota.ts.
+  let user: { email?: string | null } | null = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (e) {
+    if (!esSesionMuerta(e)) throw e;
+    return null;
+  }
 
   if (!user?.email) {
     return null;
