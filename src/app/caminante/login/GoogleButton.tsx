@@ -1,15 +1,49 @@
+"use client";
+
+// "Continuar con Google".
+//
+// ⚠️ Por qué es un componente de cliente y no un `<form action={serverAction}>`:
+// la acción arranca el OAuth en el servidor (para que el code_verifier PKCE
+// quede en una cookie que el callback sí ve) pero **la navegación a Google la
+// hace el navegador**. Cuando la acción terminaba en `redirect(urlDeGoogle)`,
+// Next le pasaba ese redirect al router del cliente, que no puede seguir una URL
+// de otro origen: el POST respondía 303, el navegador lo abortaba y la página se
+// quedaba idéntica. Reportado desde un iPhone el 11 ago: «le pico al botón, algo
+// carga, y ahí queda» — nunca llegaba a Google. `location.assign` sí es una
+// navegación dura del documento, que es lo que un OAuth necesita.
+
+import { useState } from "react";
 import { signInWithGoogle } from "@/lib/auth/actions";
 
-// "Continuar con Google" — inicia el OAuth en una server action (signInWithGoogle), que
-// guarda el code_verifier PKCE como cookie del lado servidor; el callback lo lee al hacer
-// exchangeCodeForSession. (Iniciarlo en el browser rompía con "PKCE verifier not found".)
 export default function GoogleButton({ next = "/caminante" }: { next?: string }) {
+  const [yendo, setYendo] = useState(false);
+  const [error, setError] = useState("");
+
+  async function ir() {
+    setYendo(true);
+    setError("");
+    const fd = new FormData();
+    fd.set("next", next);
+    try {
+      const r = await signInWithGoogle(fd);
+      if ("url" in r) {
+        window.location.assign(r.url);
+        return; // nos vamos del sitio: el botón se queda en «Abriendo Google…»
+      }
+      setError(r.error);
+    } catch {
+      setError("No se pudo abrir Google. Intenta con tu correo.");
+    }
+    setYendo(false);
+  }
+
   return (
-    <form action={signInWithGoogle}>
-      <input type="hidden" name="next" value={next} />
+    <div>
       <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-3 rounded-xl border border-sand bg-white px-4 py-3 text-sm font-semibold text-lagoon transition hover:border-dune"
+        type="button"
+        onClick={ir}
+        disabled={yendo}
+        className="flex w-full items-center justify-center gap-3 rounded-xl border border-sand bg-white px-4 py-3 text-sm font-semibold text-lagoon transition hover:border-dune disabled:opacity-70"
       >
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
           <path
@@ -29,8 +63,13 @@ export default function GoogleButton({ next = "/caminante" }: { next?: string })
             d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
           />
         </svg>
-        Continuar con Google
+        {yendo ? "Abriendo Google…" : "Continuar con Google"}
       </button>
-    </form>
+      {error ? (
+        <p className="mt-2 text-center text-xs text-orange" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }

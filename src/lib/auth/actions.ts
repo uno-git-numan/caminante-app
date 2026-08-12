@@ -153,27 +153,38 @@ export async function signUpWithPassword(formData: FormData) {
   redirect(`/caminante/signup?sent=1&email=${encodeURIComponent(email)}`);
 }
 
-export async function signInWithGoogle(formData: FormData) {
+export type GoogleOAuthInicio = { url: string } | { error: string };
+
+/**
+ * Arranca el OAuth de Google y DEVUELVE la URL de Google; no navega.
+ *
+ * ⚠️ Antes esto terminaba en `redirect(data.url)`. Un `redirect()` a una URL de
+ * OTRO origen desde una server action no hace navegación dura: Next se la manda
+ * al router del cliente, que intenta seguirla y no puede (es cross-origin). El
+ * POST respondía 303, el navegador lo abortaba (`net::ERR_ABORTED`) y la página
+ * se quedaba exactamente igual. Síntoma reportado desde un iPhone: «le pico al
+ * botón, algo carga, y ahí queda». Nunca llegaba a Google.
+ *
+ * Devolver la URL y dejar que el botón haga `location.assign()` sí es una
+ * navegación dura del documento, que es lo que un flujo OAuth necesita.
+ *
+ * Lo que NO cambia: el OAuth se sigue iniciando EN EL SERVIDOR, para que el
+ * code_verifier (PKCE) quede como cookie del adaptador SSR y el callback lo
+ * encuentre al hacer exchangeCodeForSession. Iniciarlo en el navegador lo
+ * guardaba donde el servidor no lo veía («PKCE code verifier not found»).
+ */
+export async function signInWithGoogle(formData: FormData): Promise<GoogleOAuthInicio> {
   const next = parseNext(formData);
   const origin = await getOrigin();
   const supabase = await createSupabaseServerClient();
 
-  // Iniciamos el OAuth EN EL SERVIDOR: así el code_verifier (PKCE) se guarda como
-  // cookie vía el adaptador SSR, y el callback (también server) lo encuentra al hacer
-  // exchangeCodeForSession. Iniciarlo en el browser lo guardaba donde el server no lo veía
-  // ("PKCE code verifier not found in storage").
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: `${origin}/caminante/auth/callback?next=${encodeURIComponent(next)}` },
   });
 
-  if (error || !data?.url) {
-    redirect(
-      `/caminante/login?error=${encodeURIComponent(error?.message ?? "oauth_error")}&next=${encodeURIComponent(next)}`,
-    );
-  }
-
-  redirect(data.url);
+  if (error || !data?.url) return { error: error?.message ?? "No se pudo abrir Google." };
+  return { url: data.url };
 }
 
 export async function signOut() {
