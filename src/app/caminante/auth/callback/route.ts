@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAuthClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureContactLink } from "@/lib/crm/contacts";
 import { roleForClient } from "@/lib/auth/authorization";
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   // navegación anterior. En `confirm` (liga mágica) sí se limpia: ese flujo no
   // usa verificador.
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseAuthClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {

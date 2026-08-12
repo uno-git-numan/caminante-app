@@ -1,10 +1,9 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAuthClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureContactLink } from "@/lib/crm/contacts";
 import { roleForClient } from "@/lib/auth/authorization";
-import { limpiarSesion } from "@/lib/auth/sesion-rota";
 
 // `next` puede venir como ruta interna ("/caminante/perfil") o como URL absoluta
 // del MISMO origen (el template del correo pasa {{ .RedirectTo }} absoluto).
@@ -37,14 +36,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/caminante/login?error=missing_token", request.url));
   }
 
-  // ⚠️ Fuera la sesión vieja ANTES de canjear el token. Vamos a establecer una
-  // nueva de todos modos, y si la que hay trae un refresh token muerto, el
-  // cliente intenta refrescarla y LANZA antes de siquiera mirar el token nuevo:
-  // un enlace mágico recién pedido contestaba «No pudimos completar el inicio de
-  // sesión», sin forma de salir del hoyo. Ver auth/sesion-rota.ts.
-  await limpiarSesion();
+  // La sesión vieja NO se borra: se IGNORA. `createSupabaseAuthClient` no la lee,
+  // así que no hay refresh que pueda fallar y tumbar este canje. Borrarla no
+  // servía —`cookies().delete()` afecta la respuesta, no lo que `getAll()`
+  // devuelve— y encima arriesgaba llevarse el `code-verifier`.
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseAuthClient();
 
   const { error } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,

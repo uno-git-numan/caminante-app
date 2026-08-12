@@ -78,23 +78,24 @@ const REGLAS = [
     },
   },
   {
-    nombre: "El callback de OAuth no toca cookies (y confirm sí limpia)",
+    nombre: "Las rutas de auth ignoran la sesión que llega",
     comprueba() {
-      const cb = leer("src/app/caminante/auth/callback/route.ts");
-      const cf = leer("src/app/caminante/auth/confirm/route.ts");
-      if (!cb || !cf) return "Faltan las rutas de auth.";
-      if (cb.includes("limpiarSesion(")) {
-        return [
-          "auth/callback llama a limpiarSesion(). NO debe.",
-          "El flujo PKCE trae el `code-verifier` en las cookies y exchangeCodeForSession",
-          "lo necesita; manosear el almacén se lo lleva y el login muere con",
-          "«PKCE code verifier not found in storage» (pasó el 11 ago 2026).",
-        ].join("\n    ");
-      }
-      if (!cf.includes("limpiarSesion(")) {
-        return "auth/confirm ya no limpia la sesión previa: una cookie podrida vuelve a poder tumbar una liga mágica nueva.";
-      }
-      return null;
+      const malos = [
+        "src/app/caminante/auth/callback/route.ts",
+        "src/app/caminante/auth/confirm/route.ts",
+      ].filter((f) => {
+        const s = leer(f);
+        return !s || !s.includes("createSupabaseAuthClient") || s.includes("limpiarSesion(");
+      });
+      return malos.length
+        ? [
+            `Estas rutas no usan createSupabaseAuthClient (o volvieron a borrar cookies): ${malos.join(", ")}.`,
+            "Deben IGNORAR la sesión entrante, no borrarla. Si el cliente lee una cookie con",
+            "refresh token muerto, intenta refrescarla y verifyOtp/exchangeCodeForSession",
+            "LANZAN: el usuario queda encerrado, ni con liga nueva entra (12 ago 2026).",
+            "Borrarla no sirve: cookies().delete() afecta la respuesta, no lo que getAll() ve.",
+          ].join("\n    ")
+        : null;
     },
   },
   {
