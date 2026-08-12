@@ -78,7 +78,12 @@ export default function PubShell({
           {tab ? (
             <nav className="pub-tabbar">
               {TABS.map((t) => {
-                const href = t.id === "espacio" && sesion ? "/caminante/perfil" : t.href;
+                // ⚠️ La cuarta pestaña SIEMPRE pasa por `/caminante/entrar`,
+                // también con sesión. Antes atajaba a `/caminante/perfil`, y eso
+                // dejaba al admin fuera de la decisión: aterrizaba en el perfil,
+                // rebotaba al panel de ESCRITORIO y se perdía el panel-app. Un
+                // solo botón, y quién decide a dónde va es el route handler.
+                const href = t.href;
                 // ⚠️ `/caminante/entrar` NO es una página: es un route handler
                 // que redirige según el rol. Un <Link> le pide su carga RSC,
                 // recibe HTML y la navegación se queda colgada — le picabas
