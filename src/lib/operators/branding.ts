@@ -108,6 +108,14 @@ export async function fetchOperatorThemeBySlug(slug: string): Promise<OperatorTh
       .from("operators")
       .select("id")
       .eq("slug", slug)
+      // ⚠️ `is_public` es OBLIGATORIO aquí. El portal /caminante/o/<slug> es una
+      // página pública sobre el operador, igual que su perfil — y el perfil sí
+      // lo exigía (public.ts). Sin este filtro bastaba tener branding para
+      // quedar publicado: al poner a Kéntro en pausa el 11 de agosto, su perfil
+      // desapareció pero su portal siguió en el aire respondiendo 200. Dos
+      // superficies públicas del mismo operador no pueden tener reglas
+      // distintas, y menos que la permisiva sea la nueva.
+      .eq("is_public", true)
       .maybeSingle();
     if (error || !data) return null;
     return fetchOperatorTheme((data as { id: string }).id);
