@@ -112,12 +112,20 @@ export default function SiteChrome({
 
             {role ? (
               <>
-                <Link
-                  href={role === "admin" ? "/caminante/admin" : "/caminante/perfil"}
+                {/*
+                  ⚠️ Va a `/caminante/entrar`, NO directo al panel. Este botón
+                  atajaba a `/caminante/admin` y por eso el admin desde el
+                  teléfono SIEMPRE caía en el panel de escritorio: se saltaba la
+                  única pieza que sabe decidir por rol y por dispositivo.
+                  Y con <a>, no <Link>: es un route handler, y el router le
+                  pediría su carga RSC, recibiría un redirect y se colgaría.
+                */}
+                <a
+                  href="/caminante/entrar"
                   className="ml-1 rounded-full px-3 py-2 text-xs font-medium text-olive hover:text-lagoon"
                 >
                   {role === "admin" ? "Panel" : "Mi espacio"}
-                </Link>
+                </a>
                 <form action={signOut}>
                   <button
                     type="submit"

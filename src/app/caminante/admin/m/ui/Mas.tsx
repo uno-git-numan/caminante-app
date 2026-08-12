@@ -50,6 +50,21 @@ export default function Mas({ d, nav }: { d: MasMovil; nav: Nav }) {
             </span>
             <span className="go">›</span>
           </button>
+          {/*
+            La puerta de vuelta al panel completo. Sin esto el teléfono sería un
+            callejón: la entrada al panel redirige aquí, y las secciones que el
+            panel-app no cubre (el formulario de experiencia, el Kit, los PDFs)
+            solo viven en escritorio. `?escritorio=1` es lo que salta ese
+            redirect — con navegación de documento, no <Link>, para que la
+            query no se pierda al volver del router.
+          */}
+          <a className="mrow" href="/caminante/admin?escritorio=1">
+            <span className="mi">ES</span>
+            <span className="grow">
+              Panel de escritorio<small>la vista completa, tal cual</small>
+            </span>
+            <span className="go">›</span>
+          </a>
           <form action={signOut}>
             <button className="mrow out" type="submit">
               <span className="mi" style={{ background: "rgba(255,93,54,.1)", color: "var(--orange)" }}>

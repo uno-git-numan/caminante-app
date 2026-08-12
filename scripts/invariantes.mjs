@@ -130,6 +130,36 @@ const REGLAS = [
     },
   },
   {
+    nombre: "El panel móvil es alcanzable desde el teléfono",
+    comprueba() {
+      const chrome = leer("src/app/caminante/SiteChrome.tsx");
+      const panel = leer("src/app/caminante/admin/page.tsx");
+      const mas = leer("src/app/caminante/admin/m/ui/Mas.tsx");
+      if (!chrome || !panel || !mas) return null;
+      const problemas = [];
+      // El botón del nav debe pasar por /caminante/entrar, que es lo ÚNICO que
+      // sabe decidir por rol y por dispositivo.
+      if (!/href="\/caminante\/entrar"/.test(chrome)) {
+        problemas.push('SiteChrome ya no manda a "/caminante/entrar": si atajas al panel, el admin en teléfono cae en la tabla de escritorio.');
+      }
+      // El índice del panel redirige al panel-app en teléfono.
+      if (!/esTelefono/.test(panel) || !/\/caminante\/admin\/m/.test(panel)) {
+        problemas.push("admin/page.tsx ya no redirige al panel-app en teléfono: el panel móvil vuelve a ser inalcanzable.");
+      }
+      // …y el panel-app conserva la puerta de vuelta, o el teléfono queda encerrado.
+      if (!/escritorio=1/.test(mas)) {
+        problemas.push("El panel-app perdió su enlace «Panel de escritorio» (?escritorio=1): desde el teléfono ya no habría forma de llegar a las secciones que solo existen en escritorio.");
+      }
+      return problemas.length
+        ? [
+            ...problemas,
+            "Contexto (12 ago 2026): el panel móvil se construyó el 11 ago y NADIE lo enlazaba.",
+            "Abrir el panel desde el celular daba la tabla de escritorio; Luis lo reportó dos veces.",
+          ].join("\n    ")
+        : null;
+    },
+  },
+  {
     nombre: "El cliente de servidor tolera cookies de solo-lectura",
     comprueba() {
       const s = leer("src/lib/supabase/server.ts");

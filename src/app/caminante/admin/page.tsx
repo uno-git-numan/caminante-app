@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { esTelefono } from "@/lib/ui/dispositivo";
 import AdminShell from "./ui/AdminShell";
 import {
   fetchAdminOverview,
@@ -189,9 +192,23 @@ function SalidaRow({ s, pasada = false }: { s: UpcomingSlot; pasada?: boolean })
 export default async function AdminHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ notice?: string }>;
+  searchParams: Promise<{ notice?: string; escritorio?: string }>;
 }) {
-  const { notice } = await searchParams;
+  const { notice, escritorio } = await searchParams;
+
+  // ⚠️ En TELÉFONO, la entrada al panel es el panel-app. El panel móvil existía
+  // desde el 11 ago pero ningún camino llevaba a él: quien abría el panel desde
+  // el celular recibía esta tabla de escritorio. Se redirige SOLO este índice —
+  // las rutas hijas (kit, print, social, preview, el formulario de experiencia)
+  // se quedan como están a propósito: rasterizan láminas del DOM de escritorio
+  // o son formularios largos que el panel-app no reemplaza, y el propio
+  // panel-app enlaza a varias de ellas como «ver completo». Redirigir todo
+  // /admin/* rebotaría esos enlaces de vuelta a sí mismo.
+  if (!escritorio) {
+    const ua = (await headers()).get("user-agent") ?? "";
+    if (esTelefono(ua)) redirect("/caminante/admin/m");
+  }
+
   const noticeText = notice ? notices[notice] : null;
   const { kpis, proximas, pasadas } = await fetchAdminOverview();
   const sat = kpis.satisfaccion;
