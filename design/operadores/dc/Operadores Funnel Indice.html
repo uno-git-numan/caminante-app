@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funnel de operadores · Índice</title>
+<link rel="stylesheet" href="opa.css">
+<style>
+body.ix{background:#e9e6df}
+.ix-wrap{max-width:1240px;margin:0 auto;padding:40px 24px 80px}
+.ix-hd h1{font-weight:200;font-size:clamp(30px,5.6vw,52px);line-height:1.04;letter-spacing:-.025em;margin:12px 0 12px}
+.ix-hd h1 em{font-style:italic;color:var(--opa-orange);font-weight:250}
+.ix-row{margin-top:44px;border-top:1px solid rgba(28,28,26,.16);padding-top:18px}
+.ix-row>.hd{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.ix-row>.hd b{font-size:19px;font-weight:600}
+.ix-row>.hd .n{font-family:var(--opa-mono);font-size:12px;letter-spacing:.16em;color:var(--opa-orange);font-weight:700}
+.ix-row>.hd p{flex:1 1 260px;font-size:14px;color:var(--opa-ink2);line-height:1.5}
+.ix-pair{display:grid;gap:20px;grid-template-columns:1fr}
+.ix-fr{background:#fff;border:1px solid rgba(28,28,26,.14);border-radius:20px;overflow:hidden;box-shadow:0 20px 50px -34px rgba(28,28,26,.6)}
+.ix-fr>.cap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 14px;border-bottom:1px solid var(--opa-line);font-family:var(--opa-mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--opa-ink2)}
+.ix-fr>.cap a{font-weight:700;color:var(--opa-olive-d)}
+.ix-vp{position:relative;overflow:hidden;background:var(--opa-cream)}
+.ix-vp iframe{border:0;position:absolute;top:0;left:0;transform-origin:0 0}
+.ix-mob iframe{width:390px;height:844px}
+.ix-desk iframe{width:1440px;height:1800px}
+@media(min-width:1000px){.ix-pair{grid-template-columns:300px 1fr}}
+</style>
+</head>
+<body class="opa ix">
+<div class="ix-wrap">
+<div class="ix-hd">
+<span class="opa-eyb"><i>//</i> Caminante · funnel de operadores</span>
+<h1>Seis pantallas, <em>móvil y escritorio.</em></h1>
+<p class="opa-lead">Cada pantalla es un solo archivo responsivo: el mismo código sirve a las dos vistas. El CSS vive en <span class="opa-mono">opa.css</span>, todo bajo el prefijo <span class="opa-mono">.opa-</span>. Las comisiones van como <span class="opa-mono">{{TRAMO_1}}</span>, <span class="opa-mono">{{TRAMO_2}}</span> y <span class="opa-mono">{{TRAMO_3}}</span>.</p>
+</div>
+<div id="rows"></div>
+<p class="opa-fine" style="margin-top:44px">Contacto único en todas las pantallas: <a href="mailto:uno@numanhub.com">uno@numanhub.com</a></p>
+</div>
+<script>
+const S=[
+["E0","Landing pública","Operadores 1 Landing.html","/caminante/operadores · hero, reparto, ocho funciones, portal propio, comisión, requisitos, proceso y cierre."],
+["E1","Aplicación · 4 pasos","Operadores 2 Aplicacion.html","Un paso por vista, regreso siempre visible, envío bloqueado hasta las tres casillas. El panel de abajo a la derecha muestra los estados: error, enviando y ya en revisión."],
+["E1","Confirmación","Operadores 3 Confirmacion.html","Qué sigue y cuándo, sin acuse automático y silencio."],
+["E3","Expediente · link privado","Operadores 4 Expediente.html","Nueve renglones con estado, zona de subida y vigencias. El estado vencido manda: regla naranja, fondo teñido y bloqueo explicado."],
+["Pie","Bloque de dos puertas","Operadores 5 Bloque de pie.html","Va al final de todas las páginas públicas, encima del pie legal."],
+["Admin","Tarjeta de revisión","Operadores 6 Revision admin.html","Solicitud agrupada por los cuatro pasos, con el paso 3 arriba y en naranja. Acciones y historial."]
+];
+document.getElementById("rows").innerHTML=S.map(([k,t,f,d],i)=>`<section class="ix-row"><div class="hd"><span class="n">${k}</span><b>${t}</b><p>${d}</p></div><div class="ix-pair">
+<div class="ix-fr ix-mob"><div class="cap"><span>Móvil · 390</span><a href="${f}" target="_blank">Abrir ↗</a></div><div class="ix-vp"><iframe src="${f}" loading="lazy" title="${t} móvil"></iframe></div></div>
+<div class="ix-fr ix-desk"><div class="cap"><span>Escritorio · 1440</span><a href="${f}" target="_blank">Abrir ↗</a></div><div class="ix-vp"><iframe src="${f}" loading="lazy" title="${t} escritorio"></iframe></div></div>
+</div></section>`).join("");
+const fit=()=>document.querySelectorAll(".ix-fr").forEach(fr=>{const vp=fr.querySelector(".ix-vp"),f=fr.querySelector("iframe"),w=parseFloat(getComputedStyle(f).width),h=parseFloat(getComputedStyle(f).height),mob=fr.classList.contains("ix-mob"),s=mob?Math.min(1,vp.clientWidth/w):vp.clientWidth/w;f.style.transform="scale("+s+")";f.style.left=mob?"50%":"0";f.style.marginLeft=mob?-(w*s/2)+"px":"0";vp.style.height=Math.min(Math.round(h*s),mob?760:720)+"px"});
+addEventListener("resize",fit);addEventListener("load",fit);fit();
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caminante · Tu expediente</title>
+<link rel="stylesheet" href="opa.css">
+<style>
+.opa-exp{max-width:860px;margin:0 auto;padding:24px 20px calc(120px + env(safe-area-inset-bottom,0px))}
+.opa-exp h1{font-weight:200;font-size:clamp(28px,6.4vw,42px);line-height:1.06;letter-spacing:-.02em;margin:10px 0 10px}
+.opa-exp h1 em{font-style:italic;color:var(--opa-orange);font-weight:250}
+.opa-grp{margin-top:30px}
+.opa-grp>.hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.opa-mini{display:grid;gap:0}
+.opa-mini .opa-fld{padding:8px 0}
+.opa-mini input{min-height:46px;font-size:15px}
+.opa-token{display:flex;align-items:center;gap:10px;font-family:var(--opa-mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--opa-ink2);background:var(--opa-panel);border-radius:999px;padding:8px 14px;width:max-content;max-width:100%}
+@media(min-width:900px){.opa-exp{padding:44px 40px 80px}.opa-mini.two{grid-template-columns:1fr 1fr;gap:0 20px;display:grid}}
+</style>
+</head>
+<body class="opa">
+<div class="opa-app" data-screen-label="4 Expediente">
+<div class="opa-appbar">
+<div class="in">
+<button class="back" onclick="history.back()">‹ Salir</button>
+<img src="assets/logos/caminante-logo-color.png" alt="Caminante" style="height:18px">
+<span class="ct">Expediente · link privado</span>
+</div>
+<div class="opa-prog"><i style="width:44%"></i></div>
+</div>
+<div class="opa-exp">
+<span class="opa-eyb"><i>//</i> Tras la llamada</span>
+<h1>Los papeles <em>duros.</em></h1>
+<p class="opa-lead">Este link es tuyo y no se comparte. Hasta que el expediente esté completo y vigente, no hay alta en la plataforma.</p>
+<p class="opa-token" style="margin-top:16px"><span>Link privado · vence en 14 días</span></p>
+
+<div class="opa-bar" style="margin-top:22px">
+<div class="hd"><span class="opa-eyb"><i>//</i> Avance</span><b>4 de 9 completos</b></div>
+<div class="tk"><i style="width:44%"></i></div>
+<p class="opa-fine" style="margin-top:10px">Falta lo que más pesa: la póliza venció y el protocolo de emergencia no está.</p>
+</div>
+
+<div class="opa-grp">
+<div class="hd"><span class="opa-eyb"><i>//</i> Obligatorios</span><span class="opa-fine">Sin excepción</span></div>
+
+<article class="opa-doc venc">
+<div class="hd"><div class="g"><b>Póliza de responsabilidad civil</b><p class="why">El turismo de aventura suele venir excluido en pólizas genéricas. Es el documento que más se finge.</p></div><span class="opa-st venc"><span class="d"></span>Vencida</span></div>
+<div class="opa-warn" style="margin-top:13px"><s>//</s><span><b>Venció el 31 de mayo de 2026.</b> Con la póliza vencida no puedes recibir reservas ni salir con clientes nuestros. Sube la renovación para reactivar tu alta.</span></div>
+<div class="opa-mini two">
+<div class="opa-fld"><label>Aseguradora</label><input type="text" value="—"></div>
+<div class="opa-fld"><label>Número de póliza</label><input type="text" value="—"></div>
+<div class="opa-fld"><label>Suma asegurada</label><input type="text" placeholder="MXN"></div>
+<div class="opa-fld err"><label>Vigencia</label><input type="text" value="31/05/2026"><p class="errmsg">// Fecha ya pasada</p></div>
+</div>
+<button type="button" class="opa-rc opa-sqr" style="margin-top:6px"><span class="bx"></span><span><b>Cubre la actividad que opero</b><small>Marca solo si la póliza nombra tu actividad. Si dice «turismo» a secas, no cuenta.</small></span></button>
+<button type="button" class="opa-drop venc"><span><b>Sube la póliza renovada</b><small>PDF · hasta 10 MB</small></span></button>
+</article>
+
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Constancia de situación fiscal</b><p class="why">La factura la emite NUMAN como comercializador; tu entidad tiene que existir.</p></div><span class="opa-st apr"><span class="d"></span>Aprobado</span></div>
+<div class="opa-file"><div class="g"><b>csf-operadora.pdf</b><small>REVISADO EL 02/07/2026</small></div><button class="opa-btn quiet" type="button">Reemplazar</button></div>
+</article>
+
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Identificación del responsable</b><p class="why">Quién firma y quién responde. INE o pasaporte.</p></div><span class="opa-st apr"><span class="d"></span>Aprobado</span></div>
+<div class="opa-file"><div class="g"><b>ine-responsable.jpg</b><small>REVISADO EL 02/07/2026</small></div><button class="opa-btn quiet" type="button">Reemplazar</button></div>
+</article>
+
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Acta constitutiva y poder</b><p class="why">Solo si eres persona moral. Si operas como persona física, márcalo y este renglón se cierra.</p></div><span class="opa-st rev"><span class="d"></span>En revisión</span></div>
+<div class="opa-file"><div class="g"><b>acta-poder.pdf</b><small>SUBIDO HACE 2 DÍAS</small></div><span class="opa-fine">Lo estamos leyendo</span></div>
+<button type="button" class="opa-rc opa-sqr" style="margin-top:12px"><span class="bx"></span><span><b>Opero como persona física</b><small>No aplica acta ni poder.</small></span></button>
+</article>
+
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Certificados de primeros auxilios de los guías</b><p class="why">De cada guía que salga con nuestros clientes, con vigencia visible.</p></div><span class="opa-st apr"><span class="d"></span>Aprobado</span></div>
+<div class="opa-file"><div class="g"><b>pa-tres-guias.pdf</b><small>VIGENTE HASTA 03/2027</small></div><button class="opa-btn quiet" type="button">Agregar guía</button></div>
+</article>
+
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Protocolo de emergencia por experiencia</b><p class="why">Evacuación, comunicación sin señal, hospital más cercano y quién decide abortar la salida.</p></div><span class="opa-st pend"><span class="d"></span>Pendiente</span></div>
+<button type="button" class="opa-drop"><span><b>Arrastra el documento o toca para subirlo</b><small>Uno por experiencia · PDF o DOCX</small></span></button>
+</article>
+</div>
+
+<details class="opa-sub">
+<summary><div class="g"><b>Según la actividad</b><small>Cuatro renglones aplican a lo que operas. Ábrelo para revisar.</small></div><span class="x">+</span></summary>
+<div>
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>RNT · Registro Nacional de Turismo</b><p class="why">En trámite se acepta declarado: Caminante mismo lo trae así.</p></div><span class="opa-st rev"><span class="d"></span>En revisión</span></div>
+<div class="opa-mini two">
+<div class="opa-fld"><label>Número de registro o folio</label><input type="text" value="En trámite · folio 2026-…"></div>
+<div class="opa-fld"><label>Fecha del trámite</label><input type="text" placeholder="dd/mm/aaaa"></div>
+</div>
+</article>
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Registro del guía ante SECTUR</b><p class="why">NOM-09-TUR-2002. Guías generales y especializados.</p></div><span class="opa-st pend"><span class="d"></span>Pendiente</span></div>
+<button type="button" class="opa-drop"><span><b>Sube el registro de cada guía</b><small>PDF · uno por guía</small></span></button>
+</article>
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Cumplimiento de NOM-011-TUR-2001</b><p class="why">Seguridad e higiene en turismo de aventura: montaña, buceo, cañonismo, espeleología, rafting.</p></div><span class="opa-st pend"><span class="d"></span>Pendiente</span></div>
+<button type="button" class="opa-drop"><span><b>Sube tu carta o evidencia de cumplimiento</b><small>PDF</small></span></button>
+</article>
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Certificación técnica por actividad</b><p class="why">Buceo (PADI, NAUI, SSI), alta montaña, cuerdas, espeleo.</p></div><span class="opa-st apr"><span class="d"></span>Aprobado</span></div>
+<div class="opa-file"><div class="g"><b>ssi-divemaster.pdf</b><small>VIGENTE HASTA 11/2027</small></div><button class="opa-btn quiet" type="button">Reemplazar</button></div>
+</article>
+<article class="opa-doc">
+<div class="hd"><div class="g"><b>Permiso del área</b><p class="why">ANP → CONANP. Ejido o comunidad → acta de acuerdo. Predio privado → autorización. En México esto es lo que más se salta y lo que más problema da.</p></div><span class="opa-st pend"><span class="d"></span>Pendiente</span></div>
+<div class="opa-fld"><span class="opa-lbl">De qué tipo es el área</span>
+<div class="opa-cards g3" data-radio="area">
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Área natural protegida</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Ejido o comunidad</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Predio privado</b></span></button>
+</div>
+</div>
+<button type="button" class="opa-drop"><span><b>Sube el permiso o acta de acuerdo</b><small>PDF o foto legible</small></span></button>
+</article>
+</div>
+</details>
+
+<div class="opa-soon" style="margin-top:30px">
+<span class="opa-eyb"><i>//</i> El estándar Caminante</span>
+<p class="opa-p" style="margin-top:8px">No es un papel. Se evalúa en la llamada y en la primera salida: las cuatro caras del lugar, beneficio local real, no dejar rastro y cupo con criterio.</p>
+</div>
+<p class="opa-fine" style="margin-top:26px">Dudas con un renglón: <a href="mailto:uno@numanhub.com">uno@numanhub.com</a></p>
+</div>
+<div class="opa-nav"><div class="in"><p class="hint">Se guarda solo. Puedes cerrar y volver con el mismo link.</p><button class="opa-btn accent" style="max-width:320px">Enviar a revisión · faltan 5</button></div></div>
+</div>
+<script>
+document.querySelectorAll("[data-radio] .opa-rc").forEach(b=>b.onclick=()=>{b.parentElement.querySelectorAll(".opa-rc").forEach(o=>o.classList.remove("on"));b.classList.add("on")});
+document.querySelectorAll(".opa-sqr").forEach(b=>b.onclick=()=>b.classList.toggle("on"));
+</script>
+</body>
+</html>

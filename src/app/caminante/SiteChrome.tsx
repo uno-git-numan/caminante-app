@@ -21,6 +21,7 @@ function isImmersive(pathname: string): boolean {
     pathname.startsWith("/caminante/registro/") ||
     pathname.startsWith("/caminante/solicitar/") || // solicitar fecha: topbar propio
     pathname.startsWith("/caminante/embajadores") || // programa de embajadores: topbar propio (.emb)
+    pathname.startsWith("/caminante/operadores") || // programa de operadores: topbar propio (.opa)
     pathname === "/caminante" || // portada: el landing trae su propia nav (+ shell .pub en móvil)
     pathname === "/caminante/nosotros" || // sitio público móvil: shell propio (.pub)
     pathname === "/caminante/experiencias" || // índice de experiencias: shell propio (.pub)

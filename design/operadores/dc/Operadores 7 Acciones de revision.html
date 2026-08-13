@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · Acciones de la tarjeta de revisión</title>
+<style>
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-Italic-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:italic;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/GeistMono-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-display:swap}
+:root{--olive:#637154;--olive-d:#4f5d44;--orange:#ff5d36;--cream:#f7f4ee;--ink:#1c1c1a;--forest:#2f4033;--arena:#b6ada5;--salvia:#d6d8c7;--panel:#efebe3;--line:rgba(28,28,26,.13);--ink2:rgba(28,28,26,.62);--mono:"Geist Mono",ui-monospace,monospace;--sh:0 14px 40px -26px rgba(28,28,26,.5)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Geist",system-ui,sans-serif;color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+:where(body) button{font-family:inherit;color:inherit;background:transparent;border:0;cursor:pointer}
+a{color:var(--olive-d);text-decoration:none}a:hover{color:var(--orange)}
+input,textarea{font-family:inherit}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyb{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;color:var(--olive);display:inline-flex;gap:.55em}
+.eyb i{font-style:normal;font-weight:700;color:var(--orange)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.55em;min-height:48px;padding:0 20px;border-radius:999px;font-size:15px;font-weight:600;border:1px solid transparent;transition:transform .16s ease-out,background .2s ease-out,opacity .2s ease-out;text-align:center}
+.btn:active{transform:translateY(1px)}
+.btn.accent{background:var(--orange);color:#fff}.btn.accent:hover{background:#ef4f28}
+.btn.forest{background:var(--forest);color:#fff}
+.btn.ghost{background:#fff;border-color:var(--line)}.btn.ghost:hover{border-color:var(--olive);color:var(--olive-d)}
+.btn.quiet{background:#fff;border-color:var(--line);color:var(--ink2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sm{min-height:38px;font-size:13.5px;padding:0 14px}
+/* barra superior */
+.bar{position:sticky;top:0;z-index:40;background:rgba(247,244,238,.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 20px}
+.bar .back{display:inline-flex;align-items:center;gap:.5em;min-height:44px;padding:0 8px 0 2px;font-size:15px;font-weight:600;color:var(--olive-d)}
+.bar .lg{height:18px;width:auto}
+.bar .ct{flex:1;text-align:right;font-family:var(--mono);font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2)}
+.wrap{max-width:1200px;margin:0 auto;padding:20px 20px calc(200px + env(safe-area-inset-bottom,0px))}
+h1{font-weight:300;font-size:clamp(24px,5.4vw,34px);line-height:1.1;letter-spacing:-.02em;margin-top:10px}
+.meta{font-family:var(--mono);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);margin-top:8px;line-height:1.7}
+.idhd{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.idhd .g{flex:1;min-width:220px}
+/* píldora de estado */
+.st{display:inline-flex;align-items:center;gap:.5em;font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;padding:6px 11px;border-radius:999px;white-space:nowrap}
+.st .d{flex:0 0 auto;width:7px;height:7px;border-radius:999px;background:currentColor}
+.st.pend{color:var(--ink2);background:var(--panel)}
+.st.rev{color:var(--olive-d);background:rgba(99,113,84,.14)}
+.st.apr{color:#fff;background:var(--forest)}
+.st.venc{color:#fff;background:var(--orange)}
+.st.no{color:#fff;background:#6b625c}
+/* riel de avance · informativo, no pulsable */
+.rail{display:flex;align-items:flex-start;gap:18px;margin:20px 0 4px;flex-wrap:wrap}
+.rail .track{flex:1 1 420px;min-width:0;display:flex;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;cursor:default;-webkit-overflow-scrolling:touch}
+.rail .track::-webkit-scrollbar{display:none}
+.rail .stp{flex:1 0 auto;min-width:96px;position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;padding:6px 8px 0;cursor:default}
+.rail .stp::before,.rail .stp::after{content:"";position:absolute;top:11px;height:1px;background:var(--line)}
+.rail .stp::before{left:0;right:50%}
+.rail .stp::after{left:50%;right:0}
+.rail .stp:first-child::before,.rail .stp:last-child::after{display:none}
+.rail .stp i{width:9px;height:9px;border-radius:999px;background:var(--cream);box-shadow:0 0 0 1.5px var(--arena) inset;position:relative;z-index:1}
+.rail .stp span{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--arena);white-space:nowrap;line-height:1.2}
+.rail .stp.done i{background:var(--olive);box-shadow:none}
+.rail .stp.done span{color:var(--ink)}
+.rail .stp.now i{width:13px;height:13px;background:var(--orange);box-shadow:none;margin:-2px 0}
+.rail .stp.now span{color:var(--ink);font-weight:500}
+.rail.off .track{opacity:.3}
+.rail .out{flex:0 0 auto;display:flex;flex-direction:column;gap:3px;padding-top:4px;border-left:1px solid var(--line);padding-left:18px}
+.rail .out b{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--orange);font-weight:700}
+.rail .out small{font-family:var(--mono);font-size:11px;color:var(--ink2)}
+/* hojas de contenido */
+.cols{display:grid;gap:14px;margin-top:16px}
+.cols>*{min-width:0}
+@media(max-width:899px){.cols #colR{order:-1}}
+.sheet{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--sh)}
+.sheet+.sheet{margin-top:14px}
+.sheet>.hd{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.sheet>.hd .t{flex:1;font-size:11.5px;letter-spacing:.17em;text-transform:uppercase;font-weight:600;color:var(--olive)}
+.sheet>.bd{padding:6px 18px 16px}
+.sheet.hi{border-color:rgba(255,93,54,.34)}
+.kv{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15.5px;line-height:1.5}
+.kv:last-child{border-bottom:0}
+.kv .k{flex:0 0 38%;max-width:210px;font-size:13px;color:var(--ink2);line-height:1.4}
+.kv .v{flex:1;min-width:0;text-wrap:pretty}
+.risk{border:1px solid rgba(255,93,54,.3);background:rgba(255,93,54,.05);border-radius:16px;padding:4px 14px;margin:10px 0}
+.risk .kv{border-bottom-color:rgba(255,93,54,.2)}
+.risk .v{font-weight:600}
+.flag{display:inline-flex;gap:.45em;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--orange);margin-left:8px}
+.fine{font-size:13.5px;line-height:1.5;color:var(--ink2)}
+.p{font-size:15px;line-height:1.6;color:var(--ink2);text-wrap:pretty}
+.hist .h{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.hist .h:last-child{border-bottom:0}
+.hist .h time{font-family:var(--mono);font-size:12px;color:var(--ink2);flex:0 0 88px;padding-top:2px}
+.hist .h b{font-weight:600;display:block}
+.hist .h small{color:var(--ink2);font-size:13.5px;line-height:1.45;display:block;margin-top:1px}
+/* bloques de estado */
+.blk{min-width:0;border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin:12px 0;background:var(--panel)}
+.blk.wait{background:rgba(214,216,199,.4)}
+.blk.ok{background:rgba(99,113,84,.1);border-color:rgba(99,113,84,.3)}
+.blk.bad{background:rgba(255,93,54,.06);border-color:rgba(255,93,54,.3)}
+.blk .lb{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--olive);font-weight:600}
+.blk b.big{display:block;font-size:16.5px;font-weight:600;margin-top:6px}
+.copy{display:flex;align-items:center;gap:10px;margin-top:10px;min-width:0;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 10px 9px 13px}
+.copy span{flex:1;min-width:0;font-family:var(--mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk{height:6px;border-radius:999px;background:#fff;overflow:hidden;margin-top:10px;border:1px solid var(--line)}
+.tk i{display:block;height:100%;background:var(--olive)}
+.doc{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.doc:last-child{border-bottom:0}
+.doc .g{flex:1;min-width:150px}
+.doc b{font-size:14.5px;font-weight:600;display:block}
+.doc small{font-size:12.5px;color:var(--ink2);display:block;margin-top:2px;line-height:1.4}
+.doc .acts{display:flex;gap:6px;flex-wrap:wrap}
+.doc.venc{background:rgba(255,93,54,.06);border-radius:12px;padding:12px;box-shadow:inset 3px 0 0 var(--orange);margin:6px 0;border-bottom:0}
+.doc.venc small{color:var(--orange);font-weight:600}
+/* barra de acciones */
+.acts{position:fixed;left:0;right:0;bottom:0;z-index:45;background:rgba(247,244,238,.95);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.acts .in{max-width:1200px;margin:0 auto}
+.acts .why{font-size:12.5px;color:var(--ink2);line-height:1.4;margin-bottom:8px;display:flex;gap:.5em}
+.acts .why s{text-decoration:none;color:var(--orange);font-family:var(--mono);font-weight:700}
+.acts .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.acts .btn{min-height:46px;font-size:14.5px;padding:0 12px}
+/* hoja modal */
+.veil{position:fixed;inset:0;z-index:50;background:rgba(28,28,26,.5);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .24s ease-out}
+.veil.on{opacity:1;pointer-events:auto}
+.mod{position:fixed;left:0;right:0;bottom:0;z-index:55;background:var(--cream);border-radius:24px 24px 0 0;max-height:92vh;display:flex;flex-direction:column;transform:translateY(102%);transition:transform .3s ease-out;box-shadow:0 -20px 60px -30px rgba(28,28,26,.6)}
+.mod.on{transform:none}
+.mod>.hd{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 14px;border-bottom:1px solid var(--line)}
+.mod>.hd .g{flex:1}
+.mod>.hd h2{font-weight:300;font-size:23px;line-height:1.15;letter-spacing:-.015em;margin-top:8px}
+.mod>.hd h2 em{font-style:italic;color:var(--orange);font-weight:400}
+.mod>.hd .x{font-family:var(--mono);font-size:22px;line-height:1;color:var(--ink2);min-height:44px;min-width:44px;border-radius:999px}
+.mod>.bd{overflow-y:auto;padding:16px 20px 20px;-webkit-overflow-scrolling:touch}
+.mod>.ft{border-top:1px solid var(--line);padding:12px 20px calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;background:rgba(247,244,238,.96)}
+.mod>.ft .btn{flex:1}
+.mod .grab{width:38px;height:4px;border-radius:999px;background:var(--arena);margin:8px auto -6px}
+/* piezas de hoja */
+.fld{padding:10px 0}
+.fld>label,.lbl{display:block;font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:600;color:var(--olive);margin-bottom:7px}
+.fld textarea,.fld input{width:100%;min-height:48px;border:1.5px solid var(--line);border-radius:14px;background:#fff;padding:12px 14px;font-size:15.5px;color:var(--ink)}
+.fld textarea{min-height:104px;line-height:1.55;resize:vertical}
+.fld input:focus,.fld textarea:focus{outline:2px solid var(--olive);outline-offset:1px;border-color:var(--olive)}
+.fld .help{font-size:13px;color:var(--ink2);margin-top:6px;line-height:1.45}
+.rc{display:flex;align-items:flex-start;gap:11px;border:1.5px solid var(--line);border-radius:14px;background:#fff;padding:13px 14px;min-height:52px;text-align:left;width:100%}
+.rc .bx{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--arena);flex:0 0 auto;margin-top:1px;display:grid;place-items:center}
+.rc .bx::after{content:"";width:9px;height:9px;border-radius:2px;background:var(--orange);opacity:0;transition:opacity .16s}
+.rc.rad .bx,.rc.rad .bx::after{border-radius:999px}
+.rc.on{border-color:var(--olive);background:rgba(99,113,84,.07)}
+.rc.on .bx{border-color:var(--orange)}.rc.on .bx::after{opacity:1}
+.rc.lock{opacity:.85;cursor:default;background:rgba(99,113,84,.07);border-color:rgba(99,113,84,.3)}
+.rc.lock .bx{border-color:var(--olive)}.rc.lock .bx::after{opacity:1;background:var(--olive)}
+.rc b{font-size:14.5px;font-weight:600;display:block}
+.rc small{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px;line-height:1.4}
+.stack{display:grid;gap:8px}
+.warn{background:rgba(255,93,54,.07);border:1px solid rgba(255,93,54,.28);border-radius:16px;padding:14px 15px;font-size:14.5px;line-height:1.55;display:flex;gap:11px;margin:12px 0}
+.warn s{text-decoration:none;color:var(--orange);font-family:var(--mono);font-weight:700}
+.note{border-left:2px solid var(--orange);padding:2px 0 2px 14px;margin:12px 0;font-size:15.5px;line-height:1.5}
+.sum{background:#fff;border:1px solid var(--line);border-radius:16px;padding:4px 14px}
+.count{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.count b{font-family:var(--mono);font-size:17px;font-weight:400}
+details.prev{border:1px solid var(--line);border-radius:16px;background:#fff;margin-top:12px}
+details.prev>summary{display:flex;align-items:center;gap:10px;padding:14px;cursor:pointer;list-style:none;min-height:48px}
+details.prev>summary::-webkit-details-marker{display:none}
+details.prev>summary .g{flex:1;font-size:14.5px;font-weight:600}
+details.prev>summary .x{font-family:var(--mono);font-size:19px;color:var(--olive)}
+details.prev[open]>summary .x{transform:rotate(45deg)}
+.mail{border-top:1px solid var(--line);padding:16px;background:var(--panel);border-radius:0 0 15px 15px}
+.mail .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;max-width:420px;margin:0 auto}
+.mail .lg{height:15px;width:auto;margin-bottom:14px}
+.mail p{font-size:13.5px;line-height:1.6;margin-bottom:9px}
+.mail .cta{display:inline-block;background:var(--orange);color:#fff;font-size:13px;font-weight:600;border-radius:999px;padding:11px 20px;margin:6px 0 10px}
+.mail .ft{font-size:11px;color:var(--ink2);border-top:1px solid var(--line);padding-top:10px;margin-top:12px;line-height:1.5}
+.chk{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px;line-height:1.45}
+.chk:last-child{border-bottom:0}
+.chk .m{font-family:var(--mono);font-weight:700;flex:0 0 18px;text-align:center}
+.chk.ok .m{color:var(--olive)}
+.chk.no .m{color:var(--orange)}
+.chk .g{flex:1}
+.chk small{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+/* toast */
+.toast{position:fixed;left:16px;right:16px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:#fff;border-radius:16px;padding:14px 16px;font-size:14.5px;line-height:1.45;box-shadow:0 20px 50px -24px rgba(0,0,0,.7);transform:translateY(20px);opacity:0;pointer-events:none;transition:transform .26s ease-out,opacity .26s ease-out;display:flex;gap:10px}
+.toast.on{transform:none;opacity:1}
+.toast s{text-decoration:none;color:var(--orange);font-family:var(--mono);font-weight:700}
+/* control de demo */
+.demo{border:1px dashed rgba(28,28,26,.3);border-radius:16px;padding:12px 14px;margin-top:16px;background:rgba(214,216,199,.3)}
+.demo .lb{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.demo .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.demo .sw{display:flex;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px}
+.demo .sw button{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 12px;border-radius:999px;color:var(--ink2);min-height:36px}
+.demo .sw button.on{background:var(--forest);color:#fff;font-weight:700}
+.demo.off{display:none}
+.colL.reposo{opacity:.5;filter:saturate(.55)}
+.colL.reposo .sheet.hi{border-color:var(--line)}
+@media(min-width:900px){
+.wrap{padding:28px 40px 120px}
+.bar .in{padding:12px 40px}
+.cols{grid-template-columns:1.55fr 1fr;gap:20px;align-items:start}
+.acts .in{display:flex;align-items:center;gap:16px;justify-content:flex-end}
+.acts .why{margin-bottom:0;flex:1;max-width:420px}
+.acts .row{display:flex;gap:10px}
+.acts .row .btn{min-width:150px}
+.veil{background:rgba(28,28,26,.55)}
+.mod{left:50%;right:auto;bottom:auto;top:50%;width:min(620px,92vw);max-height:86vh;border-radius:24px;transform:translate(-50%,-46%) scale(.98);opacity:0;transition:transform .26s ease-out,opacity .2s ease-out}
+.mod.on{transform:translate(-50%,-50%);opacity:1}
+.mod .grab{display:none}
+.mod>.ft{border-radius:0 0 23px 23px;padding-bottom:16px}
+.mod>.ft .btn{flex:0 1 auto;min-width:150px}
+.mod>.ft .btn:first-child{margin-right:auto;flex:0 0 auto}
+.toast{left:auto;right:32px;bottom:96px;max-width:420px}
+.stack.g2{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="bar">
+<div class="in">
+<button class="back" onclick="toast('Volver a la bandeja de solicitudes')">‹ Solicitudes</button>
+<img class="lg" src="assets/logos/caminante-logo-color.png" alt="Caminante">
+<span class="ct">Operadores · 1 de 3 pendientes</span>
+</div>
+</div>
+
+<div class="wrap" data-screen-label="Tarjeta de revisión">
+<div class="idhd">
+<div class="g">
+<span class="eyb"><i>//</i> Solicitud de operador</span>
+<h1>Sierra Alta Expediciones</h1>
+<p class="meta">Recibida el 09/08/2026 · Marisol Aguirre · Valle de Bravo, Estado de México</p>
+</div>
+<span class="st rev" id="pill" style="margin-top:6px"><span class="d"></span>Pendiente</span>
+</div>
+<div class="rail" id="flow" aria-label="Avance de la solicitud"></div>
+
+<div class="demo">
+<span class="lb">Controles del prototipo</span>
+<div class="row">
+<div class="sw" id="swAgenda"><button data-v="a" class="on">Agenda conectada</button><button data-v="b">Sin agenda</button></div>
+<button class="btn ghost sm" id="btnReset">Reiniciar</button>
+</div>
+<p class="fine" style="margin-top:10px">El interruptor cambia la variante de la hoja «Agendar llamada». Los atajos para simular respuestas de la operadora aparecen dentro de cada bloque de estado.</p>
+</div>
+
+<div class="cols">
+<div id="colL">
+<div class="sheet hi" style="margin-top:16px">
+<div class="hd"><span class="t">Paso 3 · Cómo cuidas a la gente — se lee primero</span><span class="flag">3 señales</span></div>
+<div class="bd">
+<div class="risk">
+<div class="kv"><span class="k">Seguro de responsabilidad civil</span><span class="v">Sí, pero vence pronto<span class="flag">// Pedir vigencia en la llamada</span></span></div>
+<div class="kv"><span class="k">Primeros auxilios de los guías</span><span class="v">Algunos<span class="flag">// Cuántos y de quién</span></span></div>
+<div class="kv"><span class="k">Guías por participantes</span><span class="v">2 guías por cada 12</span></div>
+<div class="kv"><span class="k">Incidentes en 3 años</span><span class="v">«Un participante se torció el tobillo bajando de la cumbre en 2024. Bajamos con él en camilla improvisada, lo llevamos a la clínica de Valle y avisamos a su familia el mismo día. Desde entonces no bajamos por esa ruta con grupos de más de ocho.»</span></div>
+</div>
+<p class="fine">El incidente está declarado y manejado. La póliza y la certificación parcial son los dos temas de la llamada.</p>
+</div>
+</div>
+<div class="sheet">
+<div class="hd"><span class="t">Paso 1 · Quién eres</span></div>
+<div class="bd">
+<div class="kv"><span class="k">Operadora o marca</span><span class="v">Sierra Alta Expediciones</span></div>
+<div class="kv"><span class="k">Responsable</span><span class="v">Marisol Aguirre Téllez</span></div>
+<div class="kv"><span class="k">Correo</span><span class="v"><a href="mailto:contacto@sierraalta.mx">contacto@sierraalta.mx</a></span></div>
+<div class="kv"><span class="k">WhatsApp</span><span class="v mono">+52 726 000 0000</span></div>
+<div class="kv"><span class="k">Ciudad y estado base</span><span class="v">Valle de Bravo, Estado de México</span></div>
+</div>
+</div>
+<div class="sheet">
+<div class="hd"><span class="t">Paso 2 · Qué operas</span></div>
+<div class="bd">
+<div class="kv"><span class="k">Tipo de operación</span><span class="v">Montaña y senderismo</span></div>
+<div class="kv"><span class="k">Desde cuándo opera</span><span class="v">3–10 años</span></div>
+<div class="kv"><span class="k">Salidas al año</span><span class="v mono">25 a 52</span></div>
+<div class="kv"><span class="k">Personas por salida</span><span class="v mono">8 típico · 14 máximo</span></div>
+<div class="kv"><span class="k">Rango de precio por persona</span><span class="v">$5,001 a $15,000 MXN <span class="fine">· escalón {{TRAMO_2}}</span></span></div>
+</div>
+</div>
+<div class="sheet">
+<div class="hd"><span class="t">Paso 4 · Por qué Caminante</span></div>
+<div class="bd">
+<div class="kv"><span class="k">Qué le hace clic</span><span class="v">«Ya no quiero cobrar por transferencia y perseguir comprobantes. Y el deslinde lo hago en Word cada vez.»</span></div>
+<div class="kv"><span class="k">Compromisos</span><span class="v">Las tres aceptadas <span class="fine">· cobro por plataforma, deslinde firmado, encuesta</span></span></div>
+</div>
+</div>
+</div>
+
+<div id="colR">
+<div class="sheet" id="estadoSheet" style="margin-top:16px">
+<div class="hd"><span class="t" id="estadoT">Estado</span></div>
+<div class="bd" id="estadoBd"></div>
+</div>
+<div class="sheet">
+<div class="hd"><span class="t">Historial de decisiones</span></div>
+<div class="bd"><div class="hist" id="hist"></div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="acts">
+<div class="in">
+<p class="why" id="why"></p>
+<div class="row" id="actRow"></div>
+</div>
+</div>
+
+<div class="veil" id="veil"></div>
+<div class="mod" id="mod" role="dialog" aria-modal="true">
+<div class="grab"></div>
+<div class="hd"><div class="g"><span class="eyb"><i>//</i> <span id="modEyb"></span></span><h2 id="modH"></h2></div><button class="x" id="modX" aria-label="Cerrar">×</button></div>
+<div class="bd" id="modBd"></div>
+<div class="ft" id="modFt"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const OBLIG=["Póliza de responsabilidad civil","Constancia de situación fiscal","Identificación del responsable","Certificados de primeros auxilios","Protocolo de emergencia por experiencia"];
+const OPC=[["acta","Acta constitutiva y poder","Solo si es persona moral"],["rnt","RNT · Registro Nacional de Turismo","Se acepta declarado en trámite"],["sectur","Registro del guía ante SECTUR","NOM-09-TUR-2002"],["nom11","Cumplimiento de NOM-011-TUR-2001","Turismo de aventura"],["tec","Certificación técnica por actividad","Buceo, alta montaña, cuerdas, espeleo"],["area","Permiso del área","ANP, ejido o comunidad, predio privado"]];
+const HIST0=[["09/08 · 11:04","Solicitud recibida","Formulario público · status pending"],["09/08 · 11:04","Correo de confirmación enviado","A contacto@sierraalta.mx"],["09/08 · 11:05","Aviso interno","A uno@numanhub.com"]];
+const DOC7=[["Póliza de responsabilidad civil","venc","Venció el 31/05/2026. Con la póliza caducada no puede recibir reservas ni salir con clientes nuestros."],["Constancia de situación fiscal","apr","Revisada el 12/08"],["Identificación del responsable","rev","Subida el 12/08 · la estamos leyendo"],["Certificados de primeros auxilios","apr","Vigentes hasta 03/2027"],["Protocolo de emergencia por experiencia","pend",""],["RNT · Registro Nacional de Turismo","pend",""],["Permiso del área","pend",""]];
+const docs=(full)=>DOC7.map(([n,st,nota])=>full?{n,st:"apr",nota:"Aprobado y vigente"}:{n,st,nota});
+const LINK="caminante.numanhub.com/o/expediente/sa-7f2c91";
+let S,agenda="a",modOpen=null;
+const reset=()=>{S={estado:"pendiente",agenda:null,meet:null,pedido:null,docs:null,rechazo:null,fecha:null,nota:null,pct:"{{TRAMO_2}}",hist:HIST0.map(h=>h.slice())};render()};
+const now=()=>{const d=new Date();return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+" · "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
+const log=(t,s)=>S.hist.push([now(),t,s]);
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+/* ————— toast ————— */
+let tT;const toast=m=>{const t=document.getElementById("toast");t.innerHTML='<s>//</s><span>'+m+'</span>';t.classList.add("on");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("on"),3600)};
+/* ————— hoja modal ————— */
+const veil=document.getElementById("veil"),mod=document.getElementById("mod");
+const openSheet=(eyb,h,bd,ft)=>{document.getElementById("modEyb").textContent=eyb;document.getElementById("modH").innerHTML=h;document.getElementById("modBd").innerHTML=bd;document.getElementById("modFt").innerHTML=ft;veil.classList.add("on");mod.classList.add("on");document.getElementById("modBd").scrollTop=0;modOpen=true;wire()};
+const closeSheet=()=>{veil.classList.remove("on");mod.classList.remove("on");modOpen=null};
+veil.onclick=closeSheet;document.getElementById("modX").onclick=closeSheet;
+addEventListener("keydown",e=>{if(e.key==="Escape"&&modOpen)closeSheet()});
+const wire=()=>{
+document.querySelectorAll("#modBd .rc:not(.lock)").forEach(b=>b.onclick=()=>{if("rad" in b.dataset){b.parentElement.querySelectorAll(".rc").forEach(o=>o.classList.remove("on"))}b.classList.toggle("on");if("count" in b.dataset)countDocs();if("gate" in b.dataset)gate()});
+const g=document.getElementById("modGo");if(g&&document.querySelector("#modBd [data-gate]"))gate()};
+const countDocs=()=>{const n=5+document.querySelectorAll('#modBd [data-count].on').length;const el=document.getElementById("docCount");if(el)el.textContent="Le pedirás "+n+" documento"+(n===1?"":"s")};
+const gate=()=>{const g=document.getElementById("modGo");if(!g)return;const need=document.querySelector("#modBd [data-gate]");g.disabled=!(need&&need.classList.contains("on"))};
+const copyTxt=t=>{navigator.clipboard&&navigator.clipboard.writeText(t);toast("Copiado al portapapeles")};
+const mailPrev=(sal,cuerpo,cta,liga)=>'<details class="prev"><summary><span class="g">Vista previa del correo</span><span class="x">+</span></summary><div class="mail"><div class="card"><img class="lg" src="assets/logos/caminante-logo-color.png" alt="Caminante"><p><b>'+sal+'</b></p>'+cuerpo.split("\n").filter(Boolean).map(p=>"<p>"+esc(p)+"</p>").join("")+(cta?'<a class="cta">'+cta+'</a><p style="font-size:11.5px;color:var(--ink2)">Si el botón no carga: <span class="mono">'+liga+'</span></p>':'')+'<p class="ft">Caminante · una expresión de numan<br>uno@numanhub.com</p></div></div></details>';
+/* ————— hoja 1 · agendar llamada ————— */
+const MSG1="Marisol, leímos tu solicitud completa y nos interesó. Nos gustaría conocerte en una llamada de 30 minutos: nos cuentas cómo operas y cerramos números y condiciones.\nElige el horario que te acomode con el botón de abajo. La llamada es por Google Meet.";
+const hojaLlamada=()=>{
+const a='<div class="sum"><div class="kv"><span class="k">Se le manda a</span><span class="v">Marisol Aguirre Téllez<br><span class="fine">contacto@sierraalta.mx</span></span></div><div class="kv"><span class="k">Duración</span><span class="v mono">30 minutos · Google Meet</span></div><div class="kv"><span class="k">Agenda conectada</span><span class="v">Caminante · Operadores <span class="fine">(uno@numanhub.com)</span></span></div></div><p class="fine" style="margin-top:10px">No eliges la hora: ella escoge su hueco en tu agenda de Google, que crea el evento con su Meet y los invita a los dos.</p>';
+const b='<div class="warn"><s>//</s><div><b style="font-weight:600">Falta conectar la agenda de Google</b><p class="fine" style="margin-top:4px;color:inherit">Sin agenda conectada no podemos mandarle un link para que elija su horario. Se conecta una vez y sirve para todas las solicitudes. <a href="#" onclick="toast(\'Ajustes · integraciones\');return false"><b>Configurar</b></a></p></div></div><button class="btn ghost" style="width:100%" onclick="toast(\'Google Calendar abierto con los datos prellenados\')">Abrir Google Calendar</button><p class="fine" style="margin-top:8px">Salida de emergencia: crea el evento a mano con el correo, la duración y el asunto ya puestos, y avísale por WhatsApp.</p>';
+const cuerpo=agenda==="a"?a:b;
+openSheet("Agendar llamada",'Una llamada de <em>30 minutos.</em>',cuerpo+'<div class="fld"><label>Mensaje del correo</label><textarea id="f1msg">'+MSG1+'</textarea><p class="help">Editable. Va tal cual en el correo de invitación.</p></div>'+mailPrev("Hola, Marisol:",MSG1,agenda==="a"?"Elegir mi horario":"","calendar.app.google/caminante-operadores"),
+'<button class="btn quiet" onclick="closeSheet()">Cancelar</button>'+(agenda==="a"?'<button class="btn accent" onclick="doLlamada()">Enviar invitación</button>':'<button class="btn accent" disabled>Enviar invitación</button>'))};
+const doLlamada=()=>{S.estado="llamada";S.agenda={enviada:"09/08",agendada:false};log("Invitación a llamada enviada","Link de agenda de Google · 30 min · a contacto@sierraalta.mx");closeSheet();render();toast("Invitación enviada. Esperando que agende.")};
+const simAgendo=()=>{S.agenda.agendada=true;S.meet="meet.google.com/kzt-9x4m-pqd";log("Llamada agendada por la operadora","14/08 · 11:00 · Google Meet");render();toast("Agendó el 14/08 a las 11:00")};
+/* ————— hoja 2 · pedir expediente ————— */
+const MSG2="Marisol, gracias por la llamada. Para dar de alta a Sierra Alta necesitamos los documentos de la lista.\nSúbelos en tu link privado; se guarda solo y puedes volver cuando quieras. Si algo te falta o está en trámite, dilo ahí mismo: varios se resuelven.";
+const hojaExpediente=()=>{
+const ob='<div class="stack">'+OBLIG.map(o=>'<div class="rc lock"><span class="bx"></span><span><b>'+o+'</b><small>Obligatorio, no se puede quitar</small></span></div>').join("")+'</div>';
+const op='<div class="stack">'+OPC.map(([k,t,s])=>'<button class="rc'+(k==="rnt"||k==="area"?" on":"")+'" data-count data-k="'+k+'"><span class="bx"></span><span><b>'+t+'</b><small>'+s+'</small></span></button>').join("")+'</div>';
+openSheet("Pedir expediente",'Elige <em>qué se le pide.</em>',
+'<p class="p">A una operadora de montaña no se le pide certificación de buceo. Los cinco de arriba van siempre; los de abajo, a criterio.</p><span class="lbl" style="margin-top:16px">Siempre obligatorios</span>'+ob+'<span class="lbl" style="margin-top:18px">Según la actividad</span>'+op+
+'<div class="count"><span class="fine">Contador</span><b id="docCount">Le pedirás 7 documentos</b></div>'+
+'<div class="blk" style="margin-top:16px"><span class="lb">Link privado generado</span><div class="copy"><span>'+LINK+'</span><button class="btn ghost sm" onclick="copyTxt(\''+LINK+'\')">Copiar</button></div><p class="fine" style="margin-top:8px">Vence en 30 días. Solo ella lo tiene y se puede reenviar.</p></div>'+
+'<div class="fld"><label>Mensaje del correo</label><textarea>'+MSG2+'</textarea></div>'+mailPrev("Hola, Marisol:",MSG2,"Abrir mi expediente",LINK),
+'<button class="btn quiet" onclick="closeSheet()">Cancelar</button><button class="btn accent" onclick="doExpediente()">Enviar link</button>')};
+const doExpediente=()=>{
+const sel=[...document.querySelectorAll("#modBd [data-count].on")].map(b=>b.dataset.k);
+const lista=OBLIG.map(n=>({n,st:"pend"})).concat(OPC.filter(o=>sel.includes(o[0])).map(o=>({n:o[1],st:"pend"})));
+lista[0].st="venc";lista[0].nota="Venció el 31/05/2026. Con la póliza caducada no puede recibir reservas.";
+lista[1].st="apr";lista[1].nota="Revisada el 12/08";
+S.docs=lista;S.estado="expediente";S.pedido="09/08";
+log("Expediente solicitado","Le pedimos "+lista.length+" documentos · link vence en 30 días");
+closeSheet();render();toast("Link privado enviado. Le pediste "+lista.length+" documentos.")};
+const simDocs=()=>{S.docs.forEach(d=>{d.st="apr";d.nota="Revisado el 13/08"});log("Expediente completo","9 de 9 aprobados · póliza renovada al 31/05/2027");render();toast("Expediente completo y vigente")};
+const docAct=(i,st)=>{S.docs[i].st=st;S.docs[i].nota=st==="apr"?"Aprobado el "+now().split(" · ")[0]:"Rechazado · se le pidió de nuevo";log((st==="apr"?"Documento aprobado":"Documento rechazado"),S.docs[i].n);render();toast(st==="apr"?"Documento aprobado":"Documento rechazado, se le avisó")};
+/* ————— hoja 3 · aprobar ————— */
+const completo=()=>S.docs&&S.docs.every(d=>d.st==="apr");
+const hojaAprobar=()=>{
+const ck=[["Expediente completo y vigente",completo(),completo()?"9 de 9 aprobados":"Faltan documentos o hay uno vencido"],["Convenio firmado",true,"Firmado el 13/08/2026"]];
+openSheet("Aprobar operador",'Esto <em>da llaves.</em>',
+'<p class="p">Aprobar crea al operador y le abre el panel, donde verá reservas, datos médicos de sus clientes y dinero.</p><span class="lbl" style="margin-top:16px">Verificación previa</span><div>'+
+ck.map(([t,ok,s])=>'<div class="chk '+(ok?"ok":"no")+'"><span class="m">'+(ok?"✓":"✕")+'</span><span class="g"><b style="font-weight:600">'+t+'</b><small>'+s+'</small></span></div>').join("")+
+'<div class="chk ok"><span class="m">✓</span><span class="g"><b style="font-weight:600">Comisión pactada</b><small>Se congela en cada venta</small><input class="mono" id="pct" value="'+S.pct+'" style="margin-top:8px;min-height:44px" aria-label="Comisión pactada"></span></div></div>'+
+'<div class="note">Al aprobar se crea el operador y se le da acceso al panel. <b>Asígnalo a sus experiencias antes de la primera venta</b>: la atribución se congela reserva por reserva y no se rellena hacia atrás.</div>'+
+(completo()?'':'<div class="warn"><s>//</s><span>Falta el expediente completo y vigente. Mientras la póliza esté vencida, aprobar queda apagado.</span></div>')+
+'<button class="rc" data-gate style="margin-top:6px"><span class="bx"></span><span><b>Entiendo lo que se abre al aprobar</b><small>Panel, datos médicos y dinero de sus clientes.</small></span></button>',
+'<button class="btn quiet" onclick="closeSheet()">Cancelar</button><button class="btn accent" id="modGo" disabled onclick="doAprobar()">Aprobar operador</button>')};
+const doAprobar=()=>{const p=document.getElementById("pct");S.pct=p?p.value:S.pct;S.estado="aprobado";log("Operador aprobado","Marisol Aguirre · comisión "+S.pct+" · alta creada");closeSheet();render();toast("Operador creado. Falta asignarlo a sus experiencias.")};
+/* ————— hoja 4 · rechazar ————— */
+const MOT=["No cumple el estándar de seguridad","Sin seguro ni intención de contratarlo","Fuera de nuestra geografía","No hay encaje por ahora","Otro"];
+const MSG4="Marisol, gracias por tomarte el tiempo de contarnos cómo opera Sierra Alta.\nPor ahora no vamos a avanzar con su alta. No es un cierre definitivo: cuando el seguro cubra la actividad y todos los guías tengan primeros auxilios vigentes, vuelve a aplicar y lo revisamos con gusto.";
+const hojaRechazar=()=>{
+openSheet("Rechazar solicitud",'Dos textos <em>distintos.</em>',
+'<span class="lbl">Motivo interno</span><p class="fine" style="margin:-2px 0 10px">No lo ve quien aplicó. Queda en el historial.</p><div class="stack">'+
+MOT.map(m=>'<button class="rc rad" data-rad data-mot="'+m+'"><span class="bx"></span><span><b>'+m+'</b></span></button>').join("")+'</div>'+
+'<div class="fld"><label>Nota interna</label><textarea id="f4nota" placeholder="Lo que necesita saber quien lea esto en seis meses"></textarea></div>'+
+'<div class="fld" style="border-top:1px solid var(--line);padding-top:16px"><label>El correo que sí ve</label><textarea>'+MSG4+'</textarea><p class="help">Amable y sin causar daño, con la puerta abierta a volver a aplicar.</p></div>'+mailPrev("Hola, Marisol:",MSG4,"",""),
+'<button class="btn quiet" onclick="closeSheet()">Cancelar</button><button class="btn forest" onclick="doRechazar()">Rechazar y enviar correo</button>')};
+const doRechazar=()=>{const m=document.querySelector("#modBd .rc.on"),n=document.getElementById("f4nota");S.rechazo=m?m.dataset.mot:"Sin motivo capturado";S.nota=n&&n.value.trim()?n.value.trim():"";S.fecha=now().split(" · ")[0];S.estado="rechazado";log("Solicitud rechazada","Motivo: "+S.rechazo+(S.nota?" · «"+S.nota+"»":"")+" · decidió uno@numanhub.com");closeSheet();render();toast("Rechazada. Se le envió el correo.")};
+/* ————— render ————— */
+const PILL={pendiente:["rev","Pendiente"],llamada:["rev","En llamada"],expediente:["rev","Expediente"],aprobado:["apr","Aprobado"],rechazado:["no","Rechazado"]};
+const ORD=["pendiente","llamada","expediente","aprobado"];
+function render(){
+const p=document.getElementById("pill");p.className="st "+PILL[S.estado][0];p.innerHTML='<span class="d"></span>'+PILL[S.estado][1];
+const i=ORD.indexOf(S.estado),rail=document.getElementById("flow"),fuera=S.estado==="rechazado";
+rail.className="rail"+(fuera?" off":"");
+rail.innerHTML='<div class="track" id="track">'+ORD.map((k,n)=>'<div class="stp '+(fuera?"":(S.estado==="aprobado"?"done":(S.estado===k?"now":(i>n?"done":""))))+'"><i></i><span>'+PILL[k][1]+'</span></div>').join("")+'</div>'+(fuera?'<div class="out"><b>Rechazado</b><small>'+(S.fecha||now().split(" · ")[0])+'</small></div>':"");
+if(!fuera){const tr=document.getElementById("track"),cur=tr.querySelector(".stp.now");if(cur)tr.scrollLeft=Math.max(0,cur.offsetLeft+cur.offsetWidth/2-tr.clientWidth/2)}
+/* bloque de estado */
+let t="Antes de aprobar",b="";
+if(S.estado==="pendiente"){b='<div class="blk"><span class="lb">Sin decisión todavía</span><b class="big">La llamada es el siguiente paso</b><p class="fine" style="margin-top:6px">Dos temas para esa llamada: la vigencia de la póliza y cuántos guías están certificados.</p></div><div class="kv"><span class="k">Expediente</span><span class="v"><span class="st pend"><span class="d"></span>No solicitado</span></span></div><div class="kv"><span class="k">Comisión</span><span class="v mono">{{TRAMO_2}} · se cierra en la llamada</span></div>'}
+if(S.estado==="llamada"){t="Llamada";
+b=S.agenda.agendada
+?'<div class="blk ok"><span class="lb">Llamada agendada</span><b class="big">14/08 · 11:00 · Google Meet</b><div class="copy"><span>'+S.meet+'</span><button class="btn ghost sm" onclick="copyTxt(\''+S.meet+'\')">Copiar</button></div><p class="fine" style="margin-top:8px">Evento creado por Google. Están invitados los dos.</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn ghost sm" onclick="toast(\'Se le mandó el link para reagendar\')">Reagendar</button></div></div>'
+:'<div class="blk wait"><span class="lb">Invitación enviada el '+S.agenda.enviada+'</span><b class="big">Esperando que agende</b><p class="fine" style="margin-top:6px">Le mandamos el link de tu agenda de Google. Cuando elija su hueco, el evento y su Meet aparecen aquí.</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn ghost sm" onclick="toast(\'Invitación reenviada a contacto@sierraalta.mx\')">Reenviar invitación</button><button class="btn ghost sm" onclick="simAgendo()">Simular que agendó</button></div></div>';
+b+='<div class="kv"><span class="k">Expediente</span><span class="v"><span class="st pend"><span class="d"></span>No solicitado</span></span></div>'}
+if(S.estado==="expediente"||S.estado==="aprobado"){
+const rec=S.docs.filter(d=>d.st!=="pend").length,apr=S.docs.filter(d=>d.st==="apr").length;
+t=S.estado==="aprobado"?"Alta del operador":"Expediente";
+if(S.estado==="aprobado"){b='<div class="blk ok"><span class="lb">Operador creado</span><b class="big">Sierra Alta Expediciones</b><div class="copy"><span>caminante.numanhub.com/caminante/o/sierra-alta</span><button class="btn ghost sm" onclick="copyTxt(\'caminante.numanhub.com/caminante/o/sierra-alta\')">Copiar</button></div><p class="fine" style="margin-top:8px">Comisión pactada <span class="mono">'+S.pct+'</span> · ya tiene acceso al panel.</p></div><div class="blk bad"><span class="lb">Siguiente paso urgente</span><b class="big">Asignar experiencias</b><p class="fine" style="margin-top:6px">La atribución se congela reserva por reserva y no se rellena hacia atrás. Hazlo antes de su primera venta.</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn accent sm" onclick="toast(\'Asignar experiencias a Sierra Alta\')">Asignar experiencias</button><button class="btn ghost sm" onclick="toast(\'Onboarding de marca y colores\')">Completar alta</button></div></div>'}
+else{b='<div class="blk"><span class="lb">Expediente solicitado el '+S.pedido+'</span><b class="big">'+(apr===S.docs.length?S.docs.length+" de "+S.docs.length+" · vigentes":rec+" de "+S.docs.length+" recibidos")+'</b><div class="tk"><i style="width:'+Math.round(apr/S.docs.length*100)+'%"></i></div><p class="fine" style="margin-top:8px">'+(apr===S.docs.length?"Todo aprobado y vigente. Puedes aprobar el alta.":apr+" aprobado"+(apr===1?"":"s")+" · el link vence en 30 días.")+'</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn ghost sm" onclick="toast(\'Link reenviado a contacto@sierraalta.mx\')">Reenviar link</button>'+(apr===S.docs.length?'':'<button class="btn ghost sm" onclick="simDocs()">Simular expediente completo</button>')+'</div></div>'+
+S.docs.map((d,n)=>{const ST={pend:["pend","Pendiente"],rev:["rev","En revisión"],apr:["apr","Aprobado"],venc:["venc","Vencida"]}[d.st];
+return '<div class="doc'+(d.st==="venc"?" venc":"")+'"><div class="g"><b>'+d.n+'</b>'+(d.nota?'<small>'+d.nota+'</small>':'')+'</div><span class="st '+ST[0]+'"><span class="d"></span>'+ST[1]+'</span>'+(d.st!=="pend"&&d.st!=="apr"?'<div class="acts"><button class="btn ghost sm" onclick="toast(\'Abrir documento\')">Ver</button><button class="btn ghost sm" onclick="docAct('+n+',\'apr\')">Aprobar</button><button class="btn quiet sm" onclick="docAct('+n+',\'no\')">Rechazar</button></div>':(d.st==="apr"?'<div class="acts"><button class="btn ghost sm" onclick="toast(\'Abrir documento\')">Ver</button></div>':''))+'</div>'}).join("")}}
+if(S.estado==="rechazado"){t="Decisión";b='<div class="blk bad"><span class="lb">Rechazada el '+(S.fecha||now().split(" · ")[0])+'</span><b class="big">'+S.rechazo+'</b>'+(S.nota?'<p class="fine" style="margin-top:6px">«'+S.nota+'»</p>':'')+'<p class="fine" style="margin-top:8px">Motivo interno. No lo vio quien aplicó.</p></div><div class="kv"><span class="k">Decidió</span><span class="v">uno@numanhub.com</span></div><div class="kv"><span class="k">Correo enviado</span><span class="v">Sí, con la puerta abierta a volver a aplicar</span></div><p class="fine" style="margin-top:12px">La solicitud sigue legible para consulta. Si cambia lo que faltaba, entra una solicitud nueva.</p>'}
+document.getElementById("colL").className="colL"+(S.estado==="rechazado"?" reposo":"");
+document.getElementById("estadoT").textContent=t;document.getElementById("estadoBd").innerHTML=b;
+/* historial */
+document.getElementById("hist").innerHTML=S.hist.map(([w,a,c])=>'<div class="h"><time>'+w+'</time><div><b>'+a+'</b><small>'+c+'</small></div></div>').join("");
+/* acciones */
+const fin=S.estado==="aprobado"||S.estado==="rechazado";
+const puedeAprobar=S.estado==="expediente"&&completo();
+let why="";
+if(S.estado==="pendiente"||S.estado==="llamada")why="Aprobar apagado: falta el expediente.";
+if(S.estado==="expediente"&&!completo()){const sub=S.docs.filter(d=>d.st==="pend").length,rv=S.docs.filter(d=>d.st==="rev").length,v=S.docs.some(d=>d.st==="venc");why="Aprobar apagado: "+[sub?"faltan "+sub+" por subir":"",rv?rv+" en revisión":"",v?"la póliza está vencida":""].filter(Boolean).join(", ")+"."}
+if(S.estado==="expediente"&&completo())why="Expediente completo y vigente. Aprobar disponible.";
+if(S.estado==="aprobado")why="Alta creada. Falta asignarlo a sus experiencias antes de la primera venta.";
+if(S.estado==="rechazado")why="Rechazada el "+(S.fecha||"09/08")+" · sin acciones disponibles.";
+document.getElementById("why").innerHTML=why?'<s>//</s><span>'+why+'</span>':"";
+const B=[];
+if(S.estado==="aprobado"){B.push(['ghost',"Completar alta","toast('Onboarding de marca y colores')",false],['accent',"Asignar experiencias","toast('Asignar experiencias a Sierra Alta')",false])}
+else if(S.estado==="rechazado"){B.push(['ghost',"Volver a solicitudes","toast('Volver a la bandeja de solicitudes')",false])}
+else{
+B.push(S.estado==="pendiente"?['accent',"Agendar llamada",'hojaLlamada()',false]:['quiet',S.agenda&&S.agenda.agendada?"Llamada agendada":"Invitación enviada",'',true]);
+B.push(S.estado==="expediente"?['ghost',"Reenviar link",'hojaExpediente()',false]:[S.estado==="llamada"?'accent':'ghost',"Pedir expediente",'hojaExpediente()',false]);
+B.push([puedeAprobar?'accent':'quiet',"Aprobar",'hojaAprobar()',!puedeAprobar]);
+B.push(['quiet',"Rechazar",'hojaRechazar()',false]);
+}
+document.getElementById("actRow").innerHTML=B.map(([c,t,f,d])=>'<button class="btn '+c+'"'+(d?" disabled":' onclick="'+f+'"')+'>'+t+'</button>').join("");
+}
+document.getElementById("btnReset").onclick=()=>{reset();toast("Prototipo reiniciado en Pendiente")};
+document.querySelectorAll("#swAgenda button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#swAgenda button").forEach(o=>o.classList.remove("on"));b.classList.add("on");agenda=b.dataset.v;toast(agenda==="a"?"Variante A · agenda de Google conectada":"Variante B · sin agenda conectada")});
+/* ————— estados por URL, para las láminas ————— */
+const PRESET={
+"pendiente":()=>{},
+"llamada-enviada":()=>{S.estado="llamada";S.agenda={enviada:"09/08",agendada:false};S.hist.push(["09/08 · 11:26","Invitación a llamada enviada","Link de agenda de Google · 30 min · a contacto@sierraalta.mx"])},
+"llamada-agendada":()=>{PRESET["llamada-enviada"]();S.agenda.agendada=true;S.meet="meet.google.com/kzt-9x4m-pqd";S.hist.push(["10/08 · 09:12","Llamada agendada por la operadora","14/08 · 11:00 · Google Meet"])},
+"expediente-incompleto":()=>{PRESET["llamada-agendada"]();S.estado="expediente";S.pedido="14/08";S.docs=docs(false);S.hist.push(["14/08 · 12:40","Expediente solicitado","Le pedimos 7 documentos · link vence en 30 días"],["16/08 · 18:03","Documentos recibidos","4 de 7 · la póliza llegó vencida"])},
+"expediente-completo":()=>{PRESET["expediente-incompleto"]();S.docs=docs(true);S.hist.push(["19/08 · 10:15","Expediente completo","7 de 7 aprobados · póliza renovada al 31/05/2027"])},
+"aprobado":()=>{PRESET["expediente-completo"]();S.estado="aprobado";S.hist.push(["19/08 · 11:02","Convenio firmado","Comisión {{TRAMO_2}}"],["19/08 · 11:04","Operador aprobado","Marisol Aguirre · alta creada · decidió uno@numanhub.com"])},
+"rechazado":()=>{S.estado="rechazado";S.rechazo="No cumple el estándar de seguridad";S.fecha="09/08";S.nota="La póliza no cubre la actividad y solo dos de cinco guías traen primeros auxilios. Puede volver cuando ambas cosas cambien.";S.hist.push(["09/08 · 17:40","Solicitud rechazada","Motivo: no cumple el estándar de seguridad · decidió uno@numanhub.com"])}};
+const H=location.hash.slice(1).split("&"),key=H[0];
+if(H.includes("plain"))document.querySelector(".demo").classList.add("off");
+reset();
+if(PRESET[key]){PRESET[key]();render()}
+</script>
+</body>
+</html>

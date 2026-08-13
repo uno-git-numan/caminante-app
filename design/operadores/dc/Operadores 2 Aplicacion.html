@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caminante · Aplica como operador</title>
+<link rel="stylesheet" href="opa.css">
+<style>
+.opa-stephd{margin-bottom:6px}
+.opa-stephd h1{font-weight:200;font-size:clamp(28px,6.6vw,42px);line-height:1.06;letter-spacing:-.02em;margin:10px 0 8px}
+.opa-stephd h1 em{font-style:italic;color:var(--opa-orange);font-weight:250}
+.opa-stephd p{font-size:15.5px;line-height:1.55;color:var(--opa-ink2);max-width:54ch}
+.opa-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.opa-dev{position:fixed;right:12px;bottom:88px;z-index:80;background:rgba(28,28,26,.9);color:#fff;border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px)}
+.opa-dev b{font-family:var(--opa-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.opa-dev button{font-family:var(--opa-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.72);text-align:left;min-height:26px;padding:0}
+.opa-dev button.on{color:var(--opa-orange);font-weight:700}
+.opa-pending{max-width:560px;margin:0 auto;padding:60px 20px}
+.opa-pending .bx{background:#fff;border:1px solid var(--opa-line);border-radius:24px;padding:24px;box-shadow:var(--opa-sh)}
+@media(min-width:900px){.opa-dev{bottom:96px;right:24px}}
+</style>
+</head>
+<body class="opa">
+<div class="opa-app" data-screen-label="2 Aplicación">
+<div class="opa-appbar">
+<div class="in">
+<button class="back" id="back">‹ <span id="backl">Volver al sitio</span></button>
+<img src="assets/logos/caminante-logo-color.png" alt="Caminante" style="height:18px">
+<span class="ct" id="ct">Paso 1 de 4</span>
+</div>
+<div class="opa-prog"><i id="prog" style="width:25%"></i></div>
+</div>
+
+<form class="opa-form" id="form" novalidate>
+<label class="opa-hp">Sitio web<input type="text" name="web" tabindex="-1" autocomplete="off"></label>
+
+<!-- Paso 1 -->
+<section class="opa-st1" data-step="1">
+<div class="opa-stephd"><span class="opa-eyb"><i>//</i> Paso 1 · Quién eres</span><h1>Empecemos por <em>quién opera.</em></h1><p>Sin cuenta y sin documentos. Quince campos para saber si vale la llamada.</p></div>
+<div class="opa-two f">
+<div class="opa-fld"><label>Nombre de la operadora o marca <span class="req">*</span></label><input type="text" data-req placeholder="Como te conoce tu gente"><p class="errmsg">// Este campo es obligatorio</p></div>
+<div class="opa-fld"><label>Nombre del responsable <span class="req">*</span></label><input type="text" data-req placeholder="Quién firma y quién responde"><p class="errmsg">// Este campo es obligatorio</p></div>
+<div class="opa-fld"><label>Correo <span class="req">*</span></label><input type="email" data-req data-mail placeholder="tu@correo.com"><p class="errmsg">// Escribe un correo válido</p></div>
+<div class="opa-fld"><label>WhatsApp <span class="req">*</span></label><input type="tel" data-req placeholder="Con lada"><p class="errmsg">// Este campo es obligatorio</p></div>
+<div class="opa-fld"><label>Instagram o sitio web</label><input type="text" placeholder="@tuoperadora"></div>
+<div class="opa-fld"><label>Ciudad y estado base <span class="req">*</span></label><input type="text" data-req placeholder="Dónde operas desde"><p class="errmsg">// Este campo es obligatorio</p></div>
+</div>
+</section>
+
+<!-- Paso 2 -->
+<section class="opa-st2 opa-hidden" data-step="2">
+<div class="opa-stephd"><span class="opa-eyb"><i>//</i> Paso 2 · Qué operas</span><h1>A dónde llevas <em>a la gente.</em></h1></div>
+<div class="opa-fld"><span class="opa-lbl">Tipo de operación <span class="req">*</span></span>
+<div class="opa-cards g3" data-radio="tipo">
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Montaña y senderismo</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Mar y buceo</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Cuevas y cañones</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Naturaleza y observación</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Cultura y comunidades</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Mixta</b></span></button>
+</div>
+<p class="errmsg">// Elige una opción</p>
+</div>
+<div class="opa-fld"><label>Describe tus experiencias <span class="req">*</span></label><textarea data-req placeholder="A dónde llevas gente y qué hacen ahí"></textarea><p class="help">Si operas varias, descríbelas todas. No hace falta que suene a folleto.</p><p class="errmsg">// Este campo es obligatorio</p></div>
+<div class="opa-fld"><span class="opa-lbl">¿Desde cuándo operas? <span class="req">*</span></span>
+<div class="opa-cards g2" data-radio="antig">
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Menos de 1 año</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>1–3 años</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>3–10 años</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Más de 10</b></span></button>
+</div>
+<p class="errmsg">// Elige una opción</p>
+</div>
+<div class="opa-two f">
+<div class="opa-fld"><label>Salidas al año <span class="req">*</span></label><select data-req><option value="">Elige un rango</option><option>1 a 5</option><option>6 a 12</option><option>13 a 24</option><option>25 a 52</option><option>Más de 52</option></select><p class="errmsg">// Elige un rango</p></div>
+<div class="opa-fld"><label>Personas por salida <span class="req">*</span></label><div style="display:flex;gap:10px"><input type="number" min="1" data-req placeholder="Típico"><input type="number" min="1" data-req placeholder="Máximo"></div><p class="help">Típico y máximo. El cupo con criterio es parte del estándar.</p><p class="errmsg">// Faltan estos dos números</p></div>
+</div>
+<div class="opa-fld"><label>Rango de precio por persona <span class="req">*</span></label><select data-req><option value="">Elige un rango</option><option>Hasta $5,000 MXN</option><option>$5,001 a $15,000 MXN</option><option>Más de $15,000 MXN</option></select><p class="help">Este dato define tu escalón de comisión: entre más cara la experiencia, más baja.</p><p class="errmsg">// Elige un rango</p></div>
+</section>
+
+<!-- Paso 3 -->
+<section class="opa-st3 opa-hidden" data-step="3">
+<div class="opa-stephd"><span class="opa-eyb"><i>//</i> Paso 3 · Cómo cuidas a la gente</span><h1>El paso que <em>de verdad decide.</em></h1></div>
+<p class="opa-stepnote">«Aquí es donde de verdad decidimos. Contesta con la verdad: varias de estas se resuelven, esconderlas no.»</p>
+<div class="opa-fld"><span class="opa-lbl">¿Tienes seguro de responsabilidad civil vigente? <span class="req">*</span></span>
+<div class="opa-cards g2" data-radio="seguro">
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Sí, vigente</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Sí, pero vence pronto</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>En trámite</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>No</b></span></button>
+</div>
+<p class="help">En el expediente pedimos que la póliza cubra la actividad concreta que operas.</p>
+<p class="errmsg">// Elige una opción</p>
+</div>
+<div class="opa-fld"><span class="opa-lbl">¿Tus guías tienen primeros auxilios o atención en zonas remotas? <span class="req">*</span></span>
+<div class="opa-cards g2" data-radio="pa">
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Todos certificados</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>Algunos</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>No, pero llevamos botiquín</b></span></button>
+<button type="button" class="opa-rc"><span class="bx"></span><span><b>No</b></span></button>
+</div>
+<p class="errmsg">// Elige una opción</p>
+</div>
+<div class="opa-fld"><label>¿Cuántos guías por cada cuántos participantes? <span class="req">*</span></label><input type="text" data-req placeholder="Por ejemplo: 2 guías por cada 10"><p class="errmsg">// Este campo es obligatorio</p></div>
+<div class="opa-fld"><label>¿Han tenido algún incidente en los últimos 3 años? <span class="req">*</span></label><textarea data-req placeholder="Qué pasó, cómo se manejó y qué cambió después. Si no ha habido, escríbelo también."></textarea><p class="errmsg">// Contesta esta pregunta para continuar</p>
+<div class="opa-warn" style="margin-top:12px"><s>//</s><span>Un incidente bien manejado suma. Uno escondido descalifica.</span></div>
+</div>
+</section>
+
+<!-- Paso 4 -->
+<section class="opa-st4 opa-hidden" data-step="4">
+<div class="opa-stephd"><span class="opa-eyb"><i>//</i> Paso 4 · Por qué Caminante</span><h1>Y las tres reglas <em>que no se negocian.</em></h1></div>
+<div class="opa-fld"><label>¿Qué te hace clic de Caminante?</label><textarea placeholder="Lo que te interesa y lo que te choca. Las dos cosas sirven."></textarea></div>
+<div class="opa-fld"><label>¿Cómo nos conociste?</label><input type="text" placeholder="Quién o qué te trajo aquí"></div>
+<div class="opa-fld"><span class="opa-lbl">Compromisos <span class="req">*</span></span>
+<p class="help" style="margin:0 0 12px">Las tres son reglas duras del sistema. Aceptarlas antes de la llamada nos ahorra la conversación entera si no estás dispuesto.</p>
+<div class="opa-cards" id="checks">
+<button type="button" class="opa-rc opa-check"><span class="bx"></span><span><b>Todo cobro pasa por la plataforma</b></span></button>
+<button type="button" class="opa-rc opa-check"><span class="bx"></span><span><b>Nadie sube a una salida sin deslinde firmado</b></span></button>
+<button type="button" class="opa-rc opa-check"><span class="bx"></span><span><b>Toda salida se mide con la encuesta</b></span></button>
+</div>
+</div>
+<p class="opa-fine" style="margin-top:18px">Al enviar, tu solicitud entra en revisión. Te escribimos al correo del paso 1 para agendar 30 minutos.</p>
+</section>
+</form>
+
+<div class="opa-nav" id="nav">
+<div class="in">
+<p class="hint" id="hint">Puedes regresar a cualquier paso sin perder lo escrito.</p>
+<button class="opa-btn ghost" id="prev" style="flex:0 0 auto;display:none">Atrás</button>
+<button class="opa-btn accent" id="next" style="max-width:280px">Continuar</button>
+</div>
+</div>
+
+<div class="opa-pending opa-hidden" id="pending">
+<div class="bx">
+<span class="opa-eyb"><i>//</i> Ya en revisión</span>
+<h1 class="opa-h2" style="font-size:clamp(24px,5.4vw,34px);margin:12px 0 12px">Ya tienes una solicitud <em>en revisión.</em></h1>
+<p class="opa-p">Recibimos una solicitud con este correo. Estamos leyéndola; no hace falta mandarla otra vez, y mandarla de nuevo no la adelanta.</p>
+<div class="opa-file" style="margin-top:18px"><div class="g"><b>Solicitud recibida</b><small>ENVIADA HACE 3 DÍAS</small></div><span class="opa-st rev"><span class="d"></span>En revisión</span></div>
+<div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+<a class="opa-btn ghost wide" href="Operadores 1 Landing.html">Volver al sitio</a>
+<a class="opa-btn quiet" href="mailto:uno@numanhub.com">Agregar algo por correo: uno@numanhub.com</a>
+</div>
+</div>
+</div>
+</div>
+
+<div class="opa-dev">
+<b>Vista de estados</b>
+<button data-state="ok" class="on">Normal</button>
+<button data-state="err">Con error</button>
+<button data-state="send">Enviando</button>
+<button data-state="dup">Ya en revisión</button>
+</div>
+
+<script>
+const form=document.getElementById("form"),nav=document.getElementById("nav"),next=document.getElementById("next"),prev=document.getElementById("prev"),ct=document.getElementById("ct"),prog=document.getElementById("prog"),back=document.getElementById("back"),backl=document.getElementById("backl"),pending=document.getElementById("pending"),secs=[...form.querySelectorAll("[data-step]")];
+let step=1;
+const paint=()=>{secs.forEach(s=>s.classList.toggle("opa-hidden",+s.dataset.step!==step));ct.textContent="Paso "+step+" de 4";prog.style.width=step*25+"%";prev.style.display=step>1?"inline-flex":"none";backl.textContent=step>1?"Paso "+(step-1):"Volver al sitio";next.textContent=step<4?"Continuar":"Enviar solicitud";gate();scrollTo({top:0,behavior:"smooth"})};
+const gate=()=>{if(step<4){next.disabled=false;return}next.disabled=[...document.querySelectorAll("#checks .opa-rc")].filter(b=>b.classList.contains("on")).length<3};
+document.querySelectorAll("[data-radio] .opa-rc").forEach(b=>b.onclick=()=>{b.parentElement.querySelectorAll(".opa-rc").forEach(o=>o.classList.remove("on"));b.classList.add("on");b.closest(".opa-fld").classList.remove("err")});
+document.querySelectorAll("#checks .opa-rc").forEach(b=>b.onclick=()=>{b.classList.toggle("on");gate()});
+const validate=()=>{const s=secs[step-1];let bad=null;s.querySelectorAll(".opa-fld").forEach(f=>{const rq=[...f.querySelectorAll("[data-req]")],rad=f.querySelector("[data-radio]");let miss=rq.some(i=>!i.value.trim()||(i.dataset.mail&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(i.value)));if(rad)miss=!rad.querySelector(".on");f.classList.toggle("err",miss);if(miss&&!bad)bad=f});if(bad)scrollTo({top:Math.max(bad.offsetTop-120,0),behavior:"smooth"});return !bad};
+next.onclick=()=>{if(!validate())return;if(step<4){step++;paint();return}next.innerHTML='<span class="opa-spin"></span> Enviando…';next.disabled=true;setTimeout(()=>location.href="Operadores 3 Confirmacion.html",1400)};
+prev.onclick=()=>{if(step>1){step--;paint()}};
+back.onclick=()=>{if(step>1){step--;paint()}else location.href="Operadores 1 Landing.html"};
+document.querySelectorAll(".opa-dev button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".opa-dev button").forEach(o=>o.classList.remove("on"));b.classList.add("on");const s=b.dataset.state;pending.classList.add("opa-hidden");form.classList.remove("opa-hidden");nav.style.display="";next.disabled=false;next.textContent=step<4?"Continuar":"Enviar solicitud";
+if(s==="err"){secs[step-1].querySelectorAll(".opa-fld").forEach(f=>{if(f.querySelector("[data-req],[data-radio]"))f.classList.add("err")})}
+else document.querySelectorAll(".opa-fld").forEach(f=>f.classList.remove("err"));
+if(s==="send"){next.innerHTML='<span class="opa-spin"></span> Enviando…';next.disabled=true}
+if(s==="dup"){form.classList.add("opa-hidden");nav.style.display="none";pending.classList.remove("opa-hidden")}
+gate()});
+paint();
+</script>
+</body>
+</html>
