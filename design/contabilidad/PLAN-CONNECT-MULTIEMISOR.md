@@ -39,25 +39,71 @@ de Caminante.
 
 ---
 
-# FASE 0 · Cimientos (sin dependencias)
+# ⚠️ ESTADO REAL DE LA BASE — verificado el 13 ago 2026
+
+Otra sesión ya tocó `operators`. **Verificado contra la base, no contra los
+archivos de migración** (los archivos ≠ el estado real; es la regla de la casa):
+
+| Ya EXISTE | Comentario |
+|---|---|
+| `operators.stripe_account_id` | Puesta por otra sesión, junto con `platform_fee_pct`, `profit_share_pct`, `profit_share_slugs`, `stripe_fee_bearer` |
+| `payments`: `stripe_fee_mxn`, `stripe_fee_tax_mxn`, `stripe_net_mxn`, `balance_transaction_id`, `payout_id`, `payout_arrival_date`, `platform_fee_mxn`, `platform_fee_pct_frozen` | **Toda la plomería del dinero ya está.** No hacen falta columnas nuevas: con cargo directo, lo del operador = `amount_mxn − platform_fee_mxn` |
+| `operator_payables` | Existe (vacía). Registra lo que Numan DEBE al operador — el modelo manual |
+
+| NO existe | Consecuencia |
+|---|---|
+| `operator_applications` (0035 escrita, **sin aplicar**) | **El funnel de operadores no puede recibir una sola aplicación.** Aplicar junto con la 0036 |
+| `operator_payouts` | Ver la decisión de abajo |
+
+## ⚠️ MINA: dos columnas para la misma comisión
+
+`commission_pct` **la lee todo el código** (checkout, finalize-selfserve, queries,
+el panel, alta, convenio-actions). `platform_fee_pct` **no la lee nadie** — igual
+que `stripe_fee_bearer`. Son columnas huérfanas.
+
+**Regla: la comisión sale de `commission_pct` y de ningún otro lado.** Si Connect
+leyera `platform_fee_pct`, el checkout cobraría un porcentaje y el reporte de
+payout mostraría otro — un bug de dinero silencioso. Antes de usar cualquiera de
+las huérfanas hay que decidir si se migran a `commission_pct` o se borran; no
+pueden quedar vivas y sin dueño.
+
+`stripe_fee_bearer` **sí codifica una decisión ya tomada** (la comisión de Stripe
+la absorbe el operador). O se cablea, o se borra.
+
+## Decisión · `operator_payables` vs `operator_payouts`
+
+**Se queda UNA sola tabla: `operator_payables`, con una columna `origen`
+(`manual` | `connect`).** No se crea `operator_payouts`.
+
+Por qué: las dos épocas van a convivir meses —unos operadores en Connect, otros
+cobrando por transferencia— y en dos tablas cada reporte tendría que unirlas.
+
+⚠️ **Con una condición, o la tabla miente:** `estado` significa cosas distintas
+según el origen. En `manual` es una deuda viva; en `connect` el dinero **ya se
+pagó solo** y Numan no debe nada. Toda consulta que responda «¿cuánto debo?»
+**tiene que filtrar `origen='manual'`**. Una suma sin ese filtro reportaría como
+deuda algo que Stripe ya depositó.
+
+---
+
+# FASE 0 · Cimientos
 
 ### 0.1 Migración `0036_connect_operadores`
 
-Sobre `operators`, todo aditivo:
+Sobre `operators`, aditiva, con `if not exists` (varias ya existen):
 
 | Columna | Para qué |
 |---|---|
-| `stripe_account_id` | La cuenta conectada |
 | `stripe_charges_enabled` · `stripe_payouts_enabled` | Lo que Stripe dice que ya puede hacer |
-| `stripe_requirements` jsonb | Qué le falta a Stripe (se muestra al operador tal cual) |
+| `stripe_requirements` jsonb | Qué le falta a Stripe (se muestra al operador **tal cual**) |
 | `stripe_onboarded_at` | Cuándo completó |
 | `rfc` · `razon_social` · `regimen_fiscal` · `cp_fiscal` | Datos de emisor |
 | `tipo_persona` (`fisica` \| `moral`) | **Define si hay retención** |
 | `facturapi_org_id` | Su organización en Facturapi |
-| `csd_subido_at` · `csd_vence_at` | El CSD caduca a los 4 años: hay que avisar |
+| `csd_path` · `csd_subido_at` · `csd_vence_at` | RUTA del objeto, nunca URL |
+| `convenio_path` · `convenio_firmado_at` | Lo que lee el gate, en vez de una casilla |
 
-Y una tabla `operator_payouts` para el corte por operador (aunque con cargo directo
-Stripe paga solo, hay que poder auditarlo).
+Más `origen` en `operator_payables`. **Ninguna tabla nueva.**
 
 ### 0.2 Bucket privado `csd`
 
