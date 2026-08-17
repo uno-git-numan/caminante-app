@@ -21,7 +21,7 @@ nombre y facture con su propio CSD. Backend y frontend.
   la plataforma.
 - Numan le factura al operador **únicamente la comisión**.
 
-⚠️ Dos piezas esperan respuesta de Eduardo: **el tipo de cargo** (asumimos directo)
+⚠️ Dos piezas esperan respuesta de Jorge: **el tipo de cargo** (asumimos directo)
 y **las retenciones**. Todo lo demás se puede construir sin esas respuestas.
 
 ---

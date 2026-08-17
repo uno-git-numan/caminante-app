@@ -4,6 +4,13 @@ Para el chat del sistema de finanzas de Caminante. Escrito el 13 ago 2026 tras l
 junta con los asesores (Jorge Zubarán, legal · Eduardo, fiscal-contable) del 22 jul
 y su lista de seguimiento del 29 jul.
 
+> ⚠️ **Quién es quién, para no confundirse.** En la minuta, las observaciones
+> fiscales las hace **Eduardo** y las legales **Jorge** — por eso este documento
+> cita a Eduardo al atribuir cada hallazgo. **Pero las dos preguntas que bloquean
+> el carril B (tipo de cargo y retenciones) se las mandó Luis a JORGE** el 13 ago.
+> **Es la respuesta de Jorge la que desbloquea.** Si alguien duda, se le pregunta
+> a Luis; no se asume.
+
 ---
 
 ## 1 · El estado real, sin adornos
