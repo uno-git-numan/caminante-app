@@ -129,10 +129,10 @@ Los eventos de cuentas conectadas llegan con el identificador de la cuenta. Hay 
 comisión. Con cargo directo no es automático. Es una decisión de política, no
 técnica — pendiente de Luis.
 
-### 1.5 Retenciones (esperando a Eduardo)
+### 1.5 Retenciones (esperando respuesta de los asesores)
 Si aplica: calcular ISR e IVA retenidos sobre el monto del operador, guardarlos en
 `payments`, restarlos de lo que se le entera, y generar la constancia. **No se
-construye a ciegas**: hasta que Eduardo confirme tasas y supuestos, queda el
+construye a ciegas**: hasta que los asesores confirmen tasas y supuestos, queda el
 espacio en el modelo de datos y nada más.
 
 ---
@@ -154,8 +154,7 @@ Hoy `lib/facturacion/` asume **un solo emisor**: NUMAN. Esto lo abre.
 2. **Numan → operador**, por la comisión. Automática al confirmarse el cobro.
 
 ⚠️ **La clave de producto y el uso de CFDI pueden diferir** entre una y otra
-(servicio turístico vs. comisión por intermediación). Las claves las confirma
-Eduardo; el catálogo ya vive en `catalogos.ts`.
+(servicio turístico vs. comisión por intermediación). Las claves las confirman los asesores; el catálogo ya vive en `catalogos.ts`.
 
 ### 2.3 Autofactura del cliente
 `/caminante/facturacion` ya existe. Cambia en que debe resolver **de quién es la
