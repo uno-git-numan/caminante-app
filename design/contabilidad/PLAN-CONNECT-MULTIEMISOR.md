@@ -171,12 +171,36 @@ Arriba, un semáforo: **«Listo para vender»** o qué falta. Es la misma lógic
 expediente del funnel de operadores.
 
 ### 3.2 Panel del operador
-- **Sus ventas** — solo las suyas. ⚠️ Requiere que el panel deje de ser
-  todo-o-nada: hoy quien entra ve todo. **Eso es alcance real** y hay que decidir
-  si el operador entra al panel de Numan recortado o a uno propio.
-- **Su dinero** — cobrado, comisión de la plataforma, retenciones si aplican, y qué
-  le depositó Stripe.
-- **Sus facturas** — las que emitió a clientes y las que Numan le emitió por comisión.
+
+**Criterio de Luis (13 ago): «todo menos lo que no deben de saber».** No es un panel
+mínimo: es la misma amplitud de funciones que el de Numan, con el alcance recortado
+a lo suyo.
+
+⚠️ Aun así vive en una **superficie aparte**, no como filtro sobre el panel actual.
+La amplitud es decisión de producto; el aislamiento es lo que hace que una consulta
+sin filtrar no pueda enseñar la operación completa. Todas las consultas del panel
+del operador nacen con su `operator_id` en la firma — no como parámetro opcional.
+
+| Va | No va |
+|---|---|
+| Panorama de **sus** salidas | Cualquier cosa de otro operador |
+| Eventos y ocupación | Los márgenes y costos de Caminante |
+| Reservas y roster de sus salidas | El CRM completo de contactos |
+| Su dinero: vendido, comisión, retenciones, depósitos | Recursos global |
+| Sus facturas (las que emitió y la de comisión) | Solicitudes, accesos, cobro manual |
+| Su encuesta y sus testimonios | El Kit y el calendario de redes de Caminante |
+| Su marca y su expediente | |
+
+**Datos médicos — decisión tomada.** El operador ve **solo el bloque de seguridad
+en campo** (alergias, padecimientos, contacto de emergencia) de quien sube a SU
+salida. No ve CURP, beneficiario ni aseguradora. Cada consulta queda registrada.
+Es dato sensible bajo LFPDPPP: se peca de estrecho a propósito.
+
+### 3.2b En el panel de Numan — información de operadores
+- Columna de estado por operador: **Stripe · CSD · Convenio · Listo**.
+- Ventas y comisión generada por operador; lo que se le debe y lo que se le pagó.
+- Sus documentos con vigencias (póliza, CSD, certificaciones).
+- Historial de cancelaciones y penalizaciones.
 
 ### 3.3 Admin
 - En Operadores, columna de estado: Stripe · CSD · Convenio · **Listo**.
@@ -191,27 +215,122 @@ expediente del funnel de operadores.
 
 ---
 
-# Orden de construcción
+# FASE 4 · Cancelaciones y reembolsos
 
-| | Qué | Depende de |
-|---|---|---|
-| **1** | Migración 0036 + bucket CSD + gate | nada |
-| **2** | Onboarding de Stripe (backend + las 3 pantallas) | 1 |
-| **3** | Multi-emisor en Facturapi + subida de CSD | 1, y que Facturapi admita multi-org |
-| **4** | El cobro con cargo directo | **confirmación de Eduardo** |
-| **5** | Webhook, separación de ingreso, panel del operador | 4 |
-| **6** | Retenciones | **respuesta de Eduardo** |
-| **7** | Recursos separando propio vs. comisión | 5 |
+⚠️ **Hoy NO existe política de cancelación en ninguna parte.** Ni en el modelo de
+datos, ni en la página pública, ni en el deslinde. Se vende sin decirle al cliente
+bajo qué condiciones le devuelven su dinero — y eso es justo lo que Jorge señaló
+que debe estar en los términos y condiciones.
 
-Del 1 al 3 se puede arrancar hoy. El 4 es la línea que no se cruza sin Eduardo.
+### 4.1 La política, por experiencia
+`Experience.cancelacion`: ventanas en días antes de la salida y qué porcentaje se
+devuelve en cada una. Ejemplo: 30+ días → 100% · 15-29 → 50% · menos de 15 → 0%.
+Se captura en el formulario y **se publica en la página de la experiencia**.
+
+Por congruencia con la regla de la casa, entra a `listaParaPublicar`: sin política
+de cancelación no se publica, igual que sin deslinde y sin encuesta.
+
+### 4.2 El evaluador
+`lib/cancelaciones/evaluar.ts` — **función pura, sin efectos**, misma forma que
+`deslindeListo`:
+
+```
+evaluarCancelacion(reserva, quienCancela, fecha) → {
+  dentroDePolitica, porcentajeCliente, montoCliente,
+  comisionSeDevuelve, penalizacionOperador, motivo
+}
+```
+
+Aplica la matriz acordada:
+
+| Quién cancela | Cliente | Comisión Numan | Penalización |
+|---|---|---|---|
+| Cliente, dentro de política | Según ventana | Se devuelve | — |
+| Cliente, fuera de política | Según ventana | Se retiene | — |
+| Operador, fuerza mayor | 100% | Se devuelve | No |
+| Operador, sin causa | 100% | Se devuelve | **Sí** |
+
+⚠️ **La comisión de Stripe la absorbe el operador** (decisión de Luis: por eso se le
+descuenta). Única excepción: si la cancelación es por falla de Numan, la absorbe
+Numan. Va escrito en el convenio.
+
+### 4.3 La pantalla de reembolso (admin)
+El reembolso lo dispara **una persona**, nunca el sistema solo. La pantalla muestra
+todo lo necesario para decidir sin salir a buscarlo:
+
+- **Cliente**: nombre, correo, WhatsApp.
+- **La venta**: experiencia, salida, personas, nivel de cabaña, cuánto pagó, cuándo,
+  con qué método, y la referencia del cobro (`pi_…` de Stripe o la referencia
+  bancaria si fue transferencia).
+- **El reloj**: días que faltan para la salida y **en qué ventana cae**.
+- **El veredicto del evaluador**: cuánto corresponde devolver y por qué.
+- **Monto editable**, como en transferencias: casi siempre hay una razón para
+  desviarse, y manda lo que de verdad se devuelve.
+- Campo de **motivo**, obligatorio.
+
+### 4.4 Lo que el reembolso tiene que disparar
+Un reembolso no es solo mover dinero. En orden, y todo o nada:
+
+1. Refund en Stripe (con la comisión de plataforma devuelta o no, según la matriz).
+2. Reserva a `cancelled` y **liberar el cupo** (`seats_taken`) — si no, la salida
+   se queda viéndose llena.
+3. ⚠️ **El CFDI ya timbrado**: cancelar ante el SAT o emitir nota de crédito. Es
+   paso fiscal obligatorio, no opcional. **Cuál de los dos lo confirma Jorge.**
+4. Correo al cliente con el comprobante de lo devuelto.
+5. Aviso al operador, con la penalización si aplica.
+6. Registro en el ledger para que Recursos cuadre.
+
+⚠️ **Los pagos por transferencia no se reembolsan por Stripe.** Ahí la devolución
+la hace Luis desde el banco y el sistema solo la registra, con su comprobante —
+mismo patrón que `registrarTransferencia` (0034), a la inversa.
 
 ---
 
-# Lo que hay que decidir (no es técnico)
+# Orden de construcción
 
-1. **Reembolsos**: ¿se devuelve la comisión de Numan?
-2. **¿Quién absorbe la comisión de Stripe?** Con cargo directo la paga el operador
-   por default. Si Numan la absorbe, cambia el cálculo del fee.
-3. **Panel del operador**: ¿el de Numan recortado, o uno propio?
-4. **Convenio firmado**: hoy `operadorListo` lo exige. ¿Quién marca esa casilla y
-   contra qué documento?
+## Carril A — se construye YA, sin esperar a Jorge
+
+| | Qué |
+|---|---|
+| **A1** | Migración 0036 + bucket privado del CSD + gate `operadorListo` |
+| **A2** | Onboarding de Stripe: alta de cuenta, Account Links, webhook `account.updated` y sus 3 pantallas. **No depende del tipo de cargo.** |
+| **A3** | Multi-emisor en Facturapi + subida del CSD |
+| **A4** | Política de cancelación por experiencia + el evaluador (función pura) |
+| **A5** | Panel del operador (superficie nueva, consultas nacidas con `operator_id`) |
+| **A6** | Información de operadores en el panel de Numan |
+| **A7** | Borrador del convenio, para que Jorge lo revise en vez de escribirlo |
+
+## Carril B — espera respuesta de Jorge
+
+| | Qué | Qué se necesita |
+|---|---|---|
+| **B1** | El cobro | Confirmar **cargo directo** vs. destino |
+| **B2** | Webhook de cuentas conectadas + separación de ingreso propio vs. comisión | B1 |
+| **B3** | Retenciones (cálculo, constancias, entero) | Tasas y supuestos |
+| **B4** | Ejecución del reembolso en Stripe | B1 (con cargo directo cambia cómo se devuelve la comisión) |
+| **B5** | Cancelación de CFDI vs. nota de crédito | Cuál procede |
+| **B6** | Recursos separando propio de comisión | B2 |
+
+**La pantalla de reembolso (4.3) se puede construir completa en el carril A** — el
+evaluador, la información y el registro. Lo único que espera es el botón que
+ejecuta el refund contra Stripe.
+
+---
+
+# Decisiones ya tomadas (13 ago)
+
+1. ✅ **Reembolsos** — matriz de 4.2, con penalización al operador que cancela sin
+   causa (tomado del precedente de GetYourGuide).
+2. ✅ **Comisión de Stripe** — la absorbe el operador; por eso se le descuenta.
+   Excepción: falla de Numan.
+3. ✅ **Panel del operador** — «todo menos lo que no deben saber», en superficie
+   aparte. Datos médicos: solo el bloque de seguridad en campo, con registro.
+4. ✅ **Convenio** — se genera. Claude redacta el borrador, Jorge lo vuelve
+   exigible, y el gate lee el documento firmado del expediente, no una casilla.
+
+# Sigue abierto
+
+- **Penalización al operador**: ¿cuánto? ¿Un porcentaje de la comisión perdida, un
+  monto fijo, o escalonado por reincidencia? — decisión de Luis.
+- **Ventanas de cancelación por default**: qué días y qué porcentajes propone
+  Caminante como estándar de la casa.
