@@ -1,5 +1,16 @@
 # PLAN — Stripe Connect + facturación multi-emisor
 
+> **Este documento es el punto de partida de una sesión nueva.** Trae todo lo
+> acordado con Luis el 13 ago 2026. Antes de tocar código, lee también:
+> `CLAUDE.md` (reglas del proyecto), `design/contabilidad/HANDOFF-FINANZAS.md`
+> (el estado contable y lo que pidieron los asesores) y
+> `design/operadores/FUNNEL.md` (el funnel de alta de operadores, ya construido).
+>
+> **Reglas de la casa que aplican aquí, sin excepción:** nunca se inventa un
+> número · las migraciones son aditivas y las aplica Luis a mano · Luis teclea los
+> secretos, Claude no los toca · nada de parches ni ajustes temporales · el panel
+> se viste con el HTML de Claude Design, no se rediseña.
+
 Qué hace falta para que un operador externo venda por la plataforma, cobre a su
 nombre y facture con su propio CSD. Backend y frontend.
 
@@ -328,9 +339,76 @@ ejecuta el refund contra Stripe.
 4. ✅ **Convenio** — se genera. Claude redacta el borrador, Jorge lo vuelve
    exigible, y el gate lee el documento firmado del expediente, no una casilla.
 
+# Política de cancelación · propuesta con base en la industria
+
+Investigado en Airbnb (rehízo su sistema en oct 2025) y GetYourGuide. Los tres
+patrones que comparten y que aquí se copian:
+
+1. La penalización al operador **escala con la cercanía a la salida**.
+2. **Se descuenta de pagos futuros**, no se cobra aparte.
+3. **Se exenta por fuerza mayor** documentada.
+
+Referencia: Airbnb cobra al anfitrión entre **USD $50 y $1,000** por cancelación
+evitable, como porcentaje del total de la reserva, descontado de su siguiente
+depósito. (Antes el tope era $100; lo subieron para desincentivar.) GetYourGuide
+solo considera justificable la cancelación del proveedor por fuerza mayor.
+
+## A · Ventanas para el CLIENTE — dos políticas, se elige por experiencia
+
+**Estándar** (salidas de 1–2 días, tipo Amanalco):
+
+| Cuándo cancela | Devolución |
+|---|---|
+| 30+ días antes | 100% |
+| 15–29 días | 50% |
+| Menos de 15 días | 0% |
+
+**Expedición** (viajes largos o con anticipos altos, tipo Ensenada o Barrancas):
+
+| Cuándo cancela | Devolución |
+|---|---|
+| 60+ días antes | 100% |
+| 30–59 días | 50% |
+| Menos de 30 días | 0% |
+
+⚠️ **Por qué dos y no una:** los proveedores piden anticipo. Lobo Glamp exige **50%
+para apartar**. Si Caminante devolviera 100% a 15 días cuando el hospedaje ya está
+comprometido, la pérdida la come Caminante. Las ventanas tienen que ser al menos
+tan estrictas como las del proveedor de esa experiencia — **es una regla, no una
+preferencia**, y conviene verificarla contra cada cotización.
+
+**Más una ventana universal de arrepentimiento**, copiada de Airbnb: **24 horas
+para cancelar con reembolso completo** si la reserva se hizo con 7+ días de
+anticipación. Cuesta poco, evita casi todas las disputas por compra impulsiva y
+juega a favor en cualquier queja ante PROFECO.
+
+## B · Penalización al OPERADOR que cancela sin causa
+
+Sobre el valor de las reservas canceladas:
+
+| Cuándo cancela | Penalización |
+|---|---|
+| Más de 30 días antes | 0% — hay tiempo de recolocar |
+| 15–30 días | 10% |
+| 3–14 días | 20% |
+| Menos de 72 h, o no se presenta | 30% |
+
+- **Mínimo $500 · tope $15,000** por salida.
+- **Se descuenta de pagos futuros** (patrón Airbnb), no se factura aparte.
+- **Se exenta por fuerza mayor documentada**: clima que impide operar con
+  seguridad, cierre del área, emergencia médica del guía. La documenta el operador
+  y la aprueba Luis — queda registrada en su historial.
+- El cliente siempre recibe **100%**, cancele quien cancele, si la cancelación es
+  del operador.
+
+⚠️ Va al convenio y a los términos y condiciones. Sin eso escrito y aceptado, no es
+exigible.
+
+---
+
 # Sigue abierto
 
-- **Penalización al operador**: ¿cuánto? ¿Un porcentaje de la comisión perdida, un
-  monto fijo, o escalonado por reincidencia? — decisión de Luis.
-- **Ventanas de cancelación por default**: qué días y qué porcentajes propone
-  Caminante como estándar de la casa.
+- Que Luis confirme o ajuste los porcentajes de arriba.
+- Verificar las ventanas de cada proveedor vigente (Lobo Glamp 50% de anticipo;
+  faltan Ensenada, Barrancas y volcanes) para que ninguna política de cliente sea
+  más laxa que la del proveedor.
