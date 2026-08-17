@@ -64,13 +64,45 @@ que decidir con Eduardo si se timbran retroactivamente.
   calcula. La tasa depende del tipo de servicio (aventura ≠ hospedaje) — es pregunta
   para él, **no se estima**.
 
-### Stripe Connect — detrás de un gate
-- Cuentas conectadas por operador + su onboarding/KYC.
-- `application_fee_amount` = la comisión de la plataforma; el resto va al operador.
-- ⚠️ **Retenciones**: Numan es corresponsable solidaria. Hay que resolverlas con
-  Eduardo ANTES del primer cobro con Connect, no después.
-- El modelo de datos ya existe (`operators`, `commission_pct` congelada por venta
-  desde la 0016). Falta la plomería de Stripe.
+### Stripe Connect — PRIORIDAD (13 ago)
+
+⚠️ **Corrección de criterio.** Se había recomendado esperar «a que exista un
+operador con convenio». Es un razonamiento circular: **no hay operadores dados de
+alta porque los rieles no existen**, no al revés. Luis ya tiene operadores que
+quieren usar la plataforma. Connect es camino crítico.
+
+**Dos decisiones que definen el código y las confirma EDUARDO, no nosotros:**
+
+1. **Tipo de cargo.**
+   - *Direct charges* — el cobro nace en la cuenta del operador; él es el
+     comerciante de registro y Numan cobra `application_fee`. **Es el que embona
+     con lo que pidió Eduardo** («Numan solo reconoce como ingreso la comisión»).
+   - *Destination charges* — el cobro nace en la cuenta de Numan y se transfiere.
+     Todo el monto toca a Numan, que es justo lo que hay que evitar.
+
+   Recomendación: **direct charges**. Confirmar antes de escribir la plomería,
+   porque cambiarlo después es rehacer el webhook y la conciliación.
+
+2. **Retenciones de plataforma.** Si los operadores son **personas físicas**, la
+   plataforma está obligada a retener ISR e IVA y enterarlos. Ahí es donde Numan es
+   **corresponsable solidaria**. Es un subsistema completo (cálculo, constancias de
+   retención, entero mensual) y hoy no existe ni en el modelo de datos.
+
+   Pregunta para Eduardo: ¿qué tasas aplican, y cambia si el operador es persona
+   moral?
+
+**Alcance técnico:**
+- Onboarding de Stripe por operador (KYC: RFC, CLABE, identificación). No es
+  instantáneo — el operador tiene que completarlo con Stripe.
+- `application_fee_amount` = la comisión, con `commission_pct` congelada por venta
+  (la 0016 ya lo hace).
+- Conciliación: los cobros ya no caen todos en la cuenta de Numan.
+
+⚠️ **El motor de facturación tiene que volverse MULTI-EMISOR.** Hoy `0019` y
+`lib/facturacion/` asumen un solo emisor (NUMAN). En el modelo de operadores, el
+operador factura al cliente **con su propio CSD** y Numan le factura solo el fee.
+Eso es una expansión real del módulo, no un ajuste — y es lo que Luis pidió cuando
+dijo «que facture también a nombre de Numan».
 
 ### Contratos (Claude redacta, ellos revisan)
 - **Términos y condiciones**, diferenciando experiencias propias vs. de terceros.
