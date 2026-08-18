@@ -18,10 +18,11 @@
 // plan — el camino que hoy cobra dinero real no se toca.
 
 // ⚠️ LA COMISIÓN SALE DE `commission_pct` Y DE NINGÚN OTRO LADO.
-// `platform_fee_pct` existe en la base pero no la lee nadie. Si Connect leyera
-// una y el reporte de payout la otra, el checkout cobraría un porcentaje y el
-// corte mostraría otro: un bug de dinero silencioso, del que nadie se entera
-// hasta que un operador reclama. Este archivo no la menciona a propósito.
+// `platform_fee_pct` duplicaba ese dato sin que nadie la leyera; la 0037 la borra
+// justo para que no pueda usarse por error. Si Connect leyera una y el reporte de
+// payout la otra, el checkout cobraría un porcentaje y el corte mostraría otro:
+// un bug de dinero silencioso, del que nadie se entera hasta que un operador
+// reclama. Y `commission_pct` en NULL bloquea la venta (condición 5, abajo).
 
 export type OperadorFlujo = {
   ok: boolean;
@@ -42,6 +43,7 @@ export type OperadorParaGate = {
   cp_fiscal?: string | null;
   tipo_persona?: string | null;
   convenio_firmado_at?: string | null;
+  commission_pct?: number | null;
 };
 
 // Las columnas que hay que pedirle a PostgREST para poder evaluar el gate.
@@ -49,7 +51,7 @@ export type OperadorParaGate = {
 // fuera una columna: un campo ausente llega como `undefined` y el gate lo
 // reportaría como faltante aunque en la base estuviera lleno.
 export const COLUMNAS_GATE =
-  "stripe_account_id,stripe_charges_enabled,csd_path,csd_vence_at,rfc,razon_social,regimen_fiscal,cp_fiscal,tipo_persona,convenio_firmado_at";
+  "stripe_account_id,stripe_charges_enabled,csd_path,csd_vence_at,rfc,razon_social,regimen_fiscal,cp_fiscal,tipo_persona,convenio_firmado_at,commission_pct";
 
 // Un operador solo entra al camino nuevo cuando tiene cuenta conectada. Sin
 // ella opera por el flujo de siempre (Numan cobra y le transfiere a mano), y
@@ -141,6 +143,23 @@ export function operadorListo(
   // casilla que alguien marcó de buena fe.
   if (!op?.convenio_firmado_at?.trim()) {
     faltantes.push("El convenio con el operador no está firmado. Sin él la comisión y las responsabilidades no son exigibles.");
+  }
+
+  // 5 · Comisión pactada. ⚠️ ESTE ES EL CANDADO QUE MÁS DINERO CUIDA.
+  //
+  // Con cargo directo el dinero entra a la cuenta del operador y lo ÚNICO que se
+  // queda Numan es el `application_fee`, que sale de `commission_pct`. En NULL no
+  // hay nada que retener: la venta se cobraría perfecta, el cliente viajaría
+  // contento y Numan ganaría CERO, sin un solo error en pantalla. Y como la
+  // atribución se congela en la venta (0016), tampoco se puede cobrar después.
+  //
+  // Por eso NULL bloquea aquí y no se trata como 0. Comprobado el 18 ago: los dos
+  // operadores de la base (Kéntro y Numan · Caminante) tienen `commission_pct` en
+  // NULL — sin este candado, el primero que conectara Stripe vendería gratis.
+  if (op?.commission_pct === null || op?.commission_pct === undefined) {
+    faltantes.push(
+      "El operador no tiene comisión pactada (“% por definir”). Con cargo directo el cobro entra a su cuenta y Numan no retendría nada: hay que capturarla en el convenio antes de vender.",
+    );
   }
 
   return { ok: faltantes.length === 0, faltantes };

@@ -5,6 +5,7 @@ import { finalizeReservationCheckout } from "@/lib/payments/finalize-reservation
 import { finalizeSelfServeCheckout } from "@/lib/payments/finalize-selfserve";
 import { finalizeRefund } from "@/lib/payments/refunds";
 import { getStripeServerClient } from "@/lib/payments/stripe";
+import { guardarEstado, operadorDeCuenta } from "@/lib/payments/connect";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,32 @@ export async function POST(request: Request) {
       // Marca el pago como reembolsado. Sin esto el cobro devuelto seguía
       // contando como ingreso y como bruto del operador.
       await finalizeRefund(event.data.object as Stripe.Charge);
+    } else if (event.type === "account.updated") {
+      // Cuenta CONECTADA de un operador. `event.account` solo viene en eventos de
+      // cuenta conectada; sin él es la cuenta de NUMAN HUB y aquí no se toca.
+      //
+      // ⚠️ Esto es lo que hace que la pantalla del operador diga la verdad sin que
+      // nadie la refresque a mano: Stripe puede APAGAR los cobros días después
+      // (un documento que vence, una revisión), y sin este evento seguiríamos
+      // creyendo que puede vender.
+      //
+      // Requiere que el endpoint esté suscrito a eventos de cuentas conectadas en
+      // el dashboard de Stripe — sin esa casilla el evento nunca llega.
+      const account = event.data.object as Stripe.Account;
+      const accountId = event.account ?? account.id;
+      const operadorId = await operadorDeCuenta(accountId);
+      // Una cuenta que no reconocemos no es un error del webhook: puede ser de
+      // otra integración. Se ignora en silencio en vez de devolver 500 y
+      // provocar que Stripe reintente para siempre.
+      if (operadorId) {
+        await guardarEstado(operadorId, {
+          id: accountId,
+          charges_enabled: account.charges_enabled,
+          payouts_enabled: account.payouts_enabled,
+          details_submitted: account.details_submitted,
+          requirements: account.requirements,
+        });
+      }
     } else if (event.type === "payment_intent.succeeded") {
       // Camino marketplace DORMIDO (trips/bookings): solo corre si el intent trae trip_id.
       // Los PaymentIntents de los Payment Links no lo traen → se ignoran aquí (su pago se
