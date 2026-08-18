@@ -58,8 +58,13 @@ export async function onboardOperator(formData: FormData): Promise<void> {
     colors: { primary, accent },
     poweredBy,
   };
-  const legal: OperatorLegal | null =
-    razonSocial && rfc && domicilio ? { razonSocial, rfc, domicilio, ...(responsable ? { responsable } : {}) } : null;
+  // ⚠️ 0038: `legal` es la entidad que RESPONDE por el viaje (deslinde). El RFC y
+  // la razón social son del EMISOR del CFDI y van a sus columnas planas. Antes
+  // iban los cuatro aquí, y como el jsonb exigía los tres juntos para guardarse,
+  // capturar solo el domicilio se perdía en silencio.
+  const legal: OperatorLegal | null = domicilio
+    ? { domicilio, ...(responsable ? { responsable } : {}) }
+    : null;
 
   const sb = createSupabaseAdminClient();
 
@@ -75,6 +80,8 @@ export async function onboardOperator(formData: FormData): Promise<void> {
     instagram: instagram || null,
     branding,
     legal,
+    rfc: rfc || null,
+    razon_social: razonSocial || null,
     notes: trato || null,
     // ⚠️ El alta PUBLICA al operador. Este formulario es el acto de ponerlo en
     // el aire —su botón dice «ver su portal»— y `is_public` es lo que abre sus

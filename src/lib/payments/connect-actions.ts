@@ -52,6 +52,46 @@ export async function refrescarConexion(operadorId: string): Promise<ConnectActi
 }
 
 /**
+ * Guarda las rutas del CSD ya subido y su vigencia.
+ *
+ * ⚠️ Los DOS archivos o ninguno. El SAT entrega `.cer` y `.key` y timbrar necesita
+ * ambos; guardar uno solo dejaría el expediente viéndose completo y fallando en
+ * producción. Por eso esta acción los exige juntos en vez de aceptar el que
+ * llegue (0038 les dio una columna a cada uno).
+ *
+ * ⚠️ AQUÍ NO PASA NI SE GUARDA LA CONTRASEÑA DEL CSD. Va directo a Facturapi al
+ * crear la organización del operador. Si algún día llegara una en este FormData,
+ * sería un bug, no una funcionalidad.
+ */
+export async function guardarCsd(formData: FormData): Promise<ConnectActionResult> {
+  if (!(await isCurrentUserAdmin())) return { ok: false, error: "No autorizado." };
+  const id = String(formData.get("id") ?? "").trim();
+  const cer = String(formData.get("cerPath") ?? "").trim();
+  const key = String(formData.get("keyPath") ?? "").trim();
+  const vence = String(formData.get("vence") ?? "").trim();
+  if (!id) return { ok: false, error: "Falta el operador." };
+  if (!cer || !key) return { ok: false, error: "Faltan los dos archivos: el .cer y el .key." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(vence)) {
+    return { ok: false, error: "Falta la fecha de vigencia del CSD (la trae el acuse del SAT)." };
+  }
+
+  const sb = createSupabaseAdminClient();
+  const { error } = await sb
+    .from("operators")
+    .update({
+      csd_cer_path: cer,
+      csd_key_path: key,
+      csd_vence_at: vence,
+      csd_subido_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(RUTA);
+  return { ok: true };
+}
+
+/**
  * Datos fiscales del EMISOR del CFDI.
  *
  * ⚠️ Escribe las columnas PLANAS (`rfc`, `razon_social`, …), que son las que lee

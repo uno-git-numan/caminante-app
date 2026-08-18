@@ -138,7 +138,15 @@ export default async function PortalOperadorPage({ params }: Params) {
       </div>
 
       <footer className="opw-foot">
-        {theme.legal ? <div className="legal">{theme.legal.razonSocial} · {theme.legal.domicilio}</div> : null}
+        {/* La razón social sale de la columna plana y el domicilio de `legal`
+            (0038: quien EMITE vs quien RESPONDE). Se arma con lo que haya: si
+            solo hay uno de los dos, se muestra ese en vez de dejar un " · "
+            colgando o esconder el pie entero. */}
+        {[theme.razonSocial, theme.legal?.domicilio].filter(Boolean).length > 0 ? (
+          <div className="legal">
+            {[theme.razonSocial, theme.legal?.domicilio].filter(Boolean).join(" · ")}
+          </div>
+        ) : null}
         {b.footerLine ? <div className="legal">{b.footerLine}</div> : null}
         <a className="opw-powered" href="/caminante" aria-label="Powered by NMN Caminante">
           powered by

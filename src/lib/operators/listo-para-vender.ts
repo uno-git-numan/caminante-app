@@ -35,7 +35,8 @@ export type OperadorFlujo = {
 export type OperadorParaGate = {
   stripe_account_id?: string | null;
   stripe_charges_enabled?: boolean | null;
-  csd_path?: string | null;
+  csd_cer_path?: string | null;
+  csd_key_path?: string | null;
   csd_vence_at?: string | null; // date (YYYY-MM-DD)
   rfc?: string | null;
   razon_social?: string | null;
@@ -51,7 +52,7 @@ export type OperadorParaGate = {
 // fuera una columna: un campo ausente llega como `undefined` y el gate lo
 // reportaría como faltante aunque en la base estuviera lleno.
 export const COLUMNAS_GATE =
-  "stripe_account_id,stripe_charges_enabled,csd_path,csd_vence_at,rfc,razon_social,regimen_fiscal,cp_fiscal,tipo_persona,convenio_firmado_at,commission_pct";
+  "stripe_account_id,stripe_charges_enabled,csd_cer_path,csd_key_path,csd_vence_at,rfc,razon_social,regimen_fiscal,cp_fiscal,tipo_persona,convenio_firmado_at,commission_pct";
 
 // Un operador solo entra al camino nuevo cuando tiene cuenta conectada. Sin
 // ella opera por el flujo de siempre (Numan cobra y le transfiere a mano), y
@@ -106,8 +107,17 @@ export function operadorListo(
 
   // 2 · CSD cargado y vigente. Sin él no se puede timbrar a su nombre, que es
   // justo lo que distingue a un operador de un embajador.
-  if (!op?.csd_path?.trim()) {
-    faltantes.push("Falta subir el CSD del operador (sección “Sube tu CSD”). Sin él no puede facturar a su nombre.");
+  // ⚠️ Los DOS archivos, no uno. El SAT entrega `.cer` (certificado) y `.key`
+  // (llave privada) y timbrar necesita ambos: con solo uno el expediente se ve
+  // completo en pantalla y falla en producción, que es la peor forma de fallar.
+  const faltanArchivos = [
+    !op?.csd_cer_path?.trim() ? ".cer" : null,
+    !op?.csd_key_path?.trim() ? ".key" : null,
+  ].filter(Boolean);
+  if (faltanArchivos.length) {
+    faltantes.push(
+      `Falta subir el ${faltanArchivos.join(" y el ")} del CSD del operador (sección “Sube tu CSD”). Sin los dos archivos no puede facturar a su nombre.`,
+    );
   } else if (!csdVigente(op?.csd_vence_at, hoy)) {
     const dias = diasParaVencerCsd(op?.csd_vence_at, hoy);
     faltantes.push(

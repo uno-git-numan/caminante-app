@@ -48,14 +48,16 @@ export default async function OnboardingPage({
   if (op) {
     const { data } = await sb
       .from("operators")
-      .select("id, name, email, slug, instagram, branding, legal, notes")
+      .select("id, name, email, slug, instagram, branding, legal, notes, rfc, razon_social")
       .eq("id", op)
       .maybeSingle();
     if (data) {
       const r = data as {
         id: string; name: string; email: string | null; slug: string | null; instagram: string | null;
         branding: { logoUrl?: string; logoDarkUrl?: string; colors?: { primary?: string; accent?: string }; poweredBy?: string } | null;
-        legal: { razonSocial?: string; rfc?: string; domicilio?: string; responsable?: string } | null;
+        legal: { domicilio?: string; responsable?: string } | null;
+        rfc: string | null;
+        razon_social: string | null;
         notes: string | null;
       };
       prefill = {
@@ -69,8 +71,9 @@ export default async function OnboardingPage({
         primary: r.branding?.colors?.primary ?? "#20211c",
         accent: r.branding?.colors?.accent ?? "#ff5d36",
         poweredBy: r.branding?.poweredBy === "visible" ? "visible" : "discreto",
-        razonSocial: r.legal?.razonSocial ?? "",
-        rfc: r.legal?.rfc ?? "",
+        // 0038: emisor del CFDI en columnas planas; `legal` solo el deslinde.
+        razonSocial: r.razon_social ?? "",
+        rfc: r.rfc ?? "",
         domicilio: r.legal?.domicilio ?? "",
         responsable: r.legal?.responsable ?? "",
         trato: r.notes ?? "",

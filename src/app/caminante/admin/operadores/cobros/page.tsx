@@ -13,17 +13,14 @@
 //
 // Cuando la F3.2 aterrice, esto se mueve tal cual a la superficie del operador.
 //
-// ⚠️ El paso «Sube tu CSD» NO está aquí todavía, y no es un olvido: `csd_path`
-// es UNA columna y el SAT entrega DOS archivos (.cer y .key), los dos
-// necesarios para timbrar. Guardar solo uno dejaría el expediente inservible y
-// resolverlo con una convención de nombres sería justo el parche que no se hace.
-// Necesita una migración chica y va con A3, que es donde Facturapi lo consume.
-// El semáforo de abajo ya lo reporta como faltante — no se puede vender sin él.
+// El paso del CSD guarda los DOS archivos que entrega el SAT (.cer y .key), cada
+// uno en su columna desde la 0038. Lo que NO pasa por aquí es su contraseña: va
+// directo a Facturapi al crear la organización del operador (A3) y no se
+// persiste de nuestro lado.
 
 import AdminShell from "../../ui/AdminShell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { COLUMNAS_GATE, operadorListo, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
-import type { OperadorLegal } from "@/lib/operators/convenio-actions";
 import CobrosPanel from "./CobrosPanel";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +33,6 @@ type Row = OperadorParaGate & {
   stripe_payouts_enabled: boolean | null;
   stripe_requirements: unknown;
   stripe_onboarded_at: string | null;
-  legal: unknown;
 };
 
 export default async function CobrosPage() {
@@ -44,7 +40,7 @@ export default async function CobrosPage() {
   const { data } = await sb
     .from("operators")
     .select(
-      `id,name,email,legal,stripe_payouts_enabled,stripe_requirements,stripe_onboarded_at,${COLUMNAS_GATE}`,
+      `id,name,email,stripe_payouts_enabled,stripe_requirements,stripe_onboarded_at,csd_subido_at,${COLUMNAS_GATE}`,
     )
     .eq("active", true)
     .order("created_at");
@@ -67,7 +63,6 @@ export default async function CobrosPage() {
         <div className="empty">No hay operadores activos.</div>
       ) : (
         rows.map((r) => {
-          const legal = (r.legal as OperadorLegal | null) ?? null;
           return (
             <CobrosPanel
               key={r.id}
@@ -88,10 +83,9 @@ export default async function CobrosPage() {
                 regimenFiscal: r.regimen_fiscal ?? "",
                 cpFiscal: r.cp_fiscal ?? "",
                 tipoPersona: r.tipo_persona ?? "",
-                // Pre-llenado desde el jsonb del convenio para no teclear dos
-                // veces lo mismo (ver el comentario en `guardarFiscales`).
-                rfcConvenio: legal?.rfc ?? "",
-                razonSocialConvenio: legal?.razonSocial ?? "",
+                csdCerPath: r.csd_cer_path ?? null,
+                csdKeyPath: r.csd_key_path ?? null,
+                csdVenceAt: r.csd_vence_at ?? null,
               }}
               faltantes={operadorListo(r).faltantes}
             />

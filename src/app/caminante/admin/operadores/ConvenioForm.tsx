@@ -14,15 +14,22 @@ export default function ConvenioForm({
   nombre,
   commissionPct,
   legal,
+  rfcActual,
+  razonSocialActual,
 }: {
   id: string;
   nombre: string;
   commissionPct: number | null;
   legal: OperadorLegal | null;
+  // ⚠️ Llegan por separado de `legal` desde la 0038: el RFC y la razón social
+  // son del EMISOR del CFDI y viven en columnas planas. La pantalla no cambia —
+  // se siguen capturando aquí— pero ya no tienen dos casas donde divergir.
+  rfcActual: string;
+  razonSocialActual: string;
 }) {
   const [pct, setPct] = useState(commissionPct == null ? "" : String(commissionPct));
-  const [razonSocial, setRazonSocial] = useState(legal?.razonSocial ?? "");
-  const [rfc, setRfc] = useState(legal?.rfc ?? "");
+  const [razonSocial, setRazonSocial] = useState(razonSocialActual);
+  const [rfc, setRfc] = useState(rfcActual);
   const [domicilio, setDomicilio] = useState(legal?.domicilio ?? "");
   const [responsable, setResponsable] = useState(legal?.responsable ?? "");
   const [guardando, setGuardando] = useState(false);

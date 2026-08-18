@@ -25,6 +25,8 @@ type Row = {
   is_public: boolean;
   commission_pct: number | null;
   legal: unknown;
+  rfc: string | null;
+  razon_social: string | null;
 };
 
 export default async function OperadoresAdminPage() {
@@ -32,7 +34,7 @@ export default async function OperadoresAdminPage() {
   const { data } = await sb
     .from("operators")
     .select(
-      "id, name, slug, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public, commission_pct, legal",
+      "id, name, slug, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public, commission_pct, legal, rfc, razon_social",
     )
     .eq("active", true)
     .order("created_at");
@@ -65,6 +67,8 @@ export default async function OperadoresAdminPage() {
             nombre={r.name}
             commissionPct={r.commission_pct ?? null}
             legal={(r.legal as OperadorLegal | null) ?? null}
+            rfcActual={r.rfc ?? ""}
+            razonSocialActual={r.razon_social ?? ""}
           />
           <OperadorForm
             operador={{

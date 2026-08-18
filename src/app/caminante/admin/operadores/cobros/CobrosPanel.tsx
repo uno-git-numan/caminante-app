@@ -1,10 +1,10 @@
 "use client";
 
 // Los pasos del onboarding de Connect para UN operador, con su semáforo arriba.
-// El orden es el del plan: conectar Stripe → CSD (llega con A3) → datos fiscales.
+// El orden es el del plan: conectar Stripe → subir su CSD → datos fiscales.
 
 import { useState } from "react";
-import { pedirLinkStripe, refrescarConexion, guardarFiscales } from "@/lib/payments/connect-actions";
+import { pedirLinkStripe, refrescarConexion, guardarFiscales, guardarCsd } from "@/lib/payments/connect-actions";
 
 export type OperadorCobros = {
   id: string;
@@ -21,8 +21,9 @@ export type OperadorCobros = {
   regimenFiscal: string;
   cpFiscal: string;
   tipoPersona: string;
-  rfcConvenio: string;
-  razonSocialConvenio: string;
+  csdCerPath: string | null;
+  csdKeyPath: string | null;
+  csdVenceAt: string | null;
 };
 
 export default function CobrosPanel({
@@ -35,17 +36,12 @@ export default function CobrosPanel({
   const [ocupado, setOcupado] = useState("");
   const [estado, setEstado] = useState("");
 
-  // Pre-llenado: si la columna plana está vacía pero el convenio ya tiene el
-  // dato, se muestra el del convenio para que se guarde con un clic en vez de
-  // volver a teclearlo.
-  const [rfc, setRfc] = useState(o.rfc || o.rfcConvenio);
-  const [razonSocial, setRazonSocial] = useState(o.razonSocial || o.razonSocialConvenio);
+  const [rfc, setRfc] = useState(o.rfc);
+  const [razonSocial, setRazonSocial] = useState(o.razonSocial);
   const [regimenFiscal, setRegimenFiscal] = useState(o.regimenFiscal);
   const [cpFiscal, setCpFiscal] = useState(o.cpFiscal);
   const [tipoPersona, setTipoPersona] = useState(o.tipoPersona);
-
-  const heredado =
-    (!o.rfc && !!o.rfcConvenio) || (!o.razonSocial && !!o.razonSocialConvenio);
+  const [vence, setVence] = useState(o.csdVenceAt ?? "");
 
   async function conectar() {
     setOcupado("stripe");
@@ -67,6 +63,46 @@ export default function CobrosPanel({
     setOcupado("");
     setEstado(r.ok ? "✓ Estado actualizado desde Stripe" : `Error: ${r.error}`);
     if (r.ok) window.location.reload();
+  }
+
+  // Sube los dos archivos por la ruta gateada y guarda las DOS rutas juntas.
+  // Si el .key falla después de que el .cer subió, no se escribe nada: mejor
+  // repetir la subida que dejar medio expediente en la base.
+  async function subirCsd(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const cer = (form.elements.namedItem("cer") as HTMLInputElement).files?.[0];
+    const key = (form.elements.namedItem("key") as HTMLInputElement).files?.[0];
+    if (!cer || !key) {
+      setEstado("Error: hacen falta los dos archivos, el .cer y el .key.");
+      return;
+    }
+    setOcupado("csd");
+    setEstado("");
+    try {
+      const rutas: string[] = [];
+      for (const f of [cer, key]) {
+        const fd = new FormData();
+        fd.set("file", f);
+        fd.set("operadorId", o.id);
+        const res = await fetch("/caminante/api/admin/csd", { method: "POST", body: fd });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j?.error || "No se pudo subir.");
+        rutas.push(j.path as string);
+      }
+      const fd = new FormData();
+      fd.set("id", o.id);
+      fd.set("cerPath", rutas[0]);
+      fd.set("keyPath", rutas[1]);
+      fd.set("vence", vence);
+      const r = await guardarCsd(fd);
+      setOcupado("");
+      setEstado(r.ok ? "✓ CSD guardado" : `Error: ${r.error}`);
+      if (r.ok) window.location.reload();
+    } catch (err) {
+      setOcupado("");
+      setEstado(`Error: ${(err as Error).message}`);
+    }
   }
 
   async function guardar(e: React.FormEvent) {
@@ -173,18 +209,43 @@ export default function CobrosPanel({
 
       {/* ── Paso 2 · CSD ───────────────────────────────────────────── */}
       <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>2 · Sube su CSD</h3>
-      <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
-        Pendiente: llega con la facturación multi-emisor. El SAT entrega <b>dos</b> archivos
-        (<code>.cer</code> y <code>.key</code>) y hoy el expediente guarda una sola ruta; se resuelve
-        con una migración chica antes de conectarlo a Facturapi. La contraseña del CSD no se
-        guardará nunca en nuestra base: va directo a Facturapi al crear su organización.
+      <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
+        Los <b>dos</b> archivos que le dio el SAT: el <code>.cer</code> y el <code>.key</code>. Van a
+        un bucket privado y solo se ven por liga firmada de 5 minutos.{" "}
+        <b>Su contraseña no se pide aquí y no se guarda en nuestra base</b> — va directo a Facturapi
+        al crear su organización.
       </p>
+      {o.csdCerPath && o.csdKeyPath ? (
+        <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
+          CSD cargado{o.csdVenceAt ? `, vigente hasta ${o.csdVenceAt}` : ""}. Subir otro lo
+          reemplaza.
+        </p>
+      ) : null}
+      <form onSubmit={subirCsd}>
+        <div className="mini-form" style={{ alignItems: "start" }}>
+          <label>
+            Certificado (.cer)
+            <input type="file" name="cer" accept=".cer" />
+          </label>
+          <label>
+            Llave privada (.key)
+            <input type="file" name="key" accept=".key" />
+          </label>
+          <label>
+            Vigente hasta
+            <input type="date" value={vence} onChange={(ev) => setVence(ev.target.value)} />
+          </label>
+        </div>
+        <button type="submit" className="btn btn-sm" style={{ marginTop: 10 }} disabled={ocupado !== ""}>
+          {ocupado === "csd" ? "Subiendo…" : "Subir CSD"}
+        </button>
+      </form>
 
       {/* ── Paso 3 · Datos fiscales ────────────────────────────────── */}
       <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>3 · Sus datos fiscales</h3>
       <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
-        Son los del <b>emisor</b> del CFDI que recibirá su cliente.
-        {heredado ? " Pre-llenados desde el convenio: revísalos y guarda." : ""}
+        Son los del <b>emisor</b> del CFDI que recibirá su cliente. También se editan desde su
+        convenio: es el mismo dato, no dos.
       </p>
       <form onSubmit={guardar}>
         <div className="mini-form" style={{ alignItems: "start" }}>

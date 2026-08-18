@@ -27,9 +27,12 @@ export type OperatorBranding = {
   poweredBy?: "discreto" | "visible"; // default discreto (mono 11px)
 };
 
+// ⚠️ SIN `rfc` ni `razonSocial` desde la 0038. Esto describe a quien RESPONDE por
+// el viaje en el deslinde; quien EMITE la factura vive en las columnas planas
+// (`rfc`, `razon_social`, `regimen_fiscal`, `cp_fiscal`). Hoy suelen ser la misma
+// entidad, pero tenerlo en dos lugares ya causó que el gate reportara como
+// faltante un RFC que sí estaba capturado.
 export type OperatorLegal = {
-  razonSocial: string;
-  rfc: string;
   domicilio: string;
   responsable?: string;
 };
@@ -40,6 +43,8 @@ export type OperatorTheme = {
   name: string;
   branding: OperatorBranding;
   legal: OperatorLegal | null;
+  /** Razón social del emisor (columna plana). El pie del portal la muestra. */
+  razonSocial: string | null;
 };
 
 // ── Generador del override ────────────────────────────────────────────────────
@@ -80,6 +85,7 @@ type Row = {
   name: string;
   branding: OperatorBranding | null;
   legal: OperatorLegal | null;
+  razon_social: string | null;
 };
 
 export async function fetchOperatorTheme(operatorId: string | null): Promise<OperatorTheme | null> {
@@ -88,13 +94,20 @@ export async function fetchOperatorTheme(operatorId: string | null): Promise<Ope
     const sb = createSupabaseAdminClient();
     const { data, error } = await sb
       .from("operators")
-      .select("id, slug, name, branding, legal")
+      .select("id, slug, name, branding, legal, razon_social")
       .eq("id", operatorId)
       .maybeSingle();
     if (error || !data) return null; // columna sin migrar o fila ausente ⇒ sin tema
     const r = data as Row;
     if (!r.branding?.logoUrl || !r.branding?.colors?.primary || !r.branding?.colors?.accent) return null;
-    return { operatorId: r.id, slug: r.slug, name: r.name, branding: r.branding, legal: r.legal ?? null };
+    return {
+      operatorId: r.id,
+      slug: r.slug,
+      name: r.name,
+      branding: r.branding,
+      legal: r.legal ?? null,
+      razonSocial: r.razon_social ?? null,
+    };
   } catch {
     return null;
   }
