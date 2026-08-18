@@ -11,9 +11,25 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!signature || !webhookSecret) {
+  // ⚠️ DOS SECRETOS, no uno. En Stripe el alcance de un endpoint es O «tu
+  // cuenta» O «cuentas conectadas» — nunca los dos (parámetro `connect`, que
+  // además solo se puede fijar al crearlo). Así que los eventos de las cuentas
+  // de los operadores llegan por un endpoint APARTE, con su propia firma.
+  //
+  // Ambos apuntan a esta misma URL, así que aquí se prueban los dos secretos: si
+  // solo se verificara contra el primero, TODO evento de cuenta conectada
+  // rebotaría con 400 y `account.updated` no llegaría nunca — el gate seguiría
+  // creyendo que un operador puede cobrar cuando Stripe ya lo apagó.
+  //
+  // `STRIPE_WEBHOOK_SECRET_CONNECT` es opcional: mientras no exista el segundo
+  // endpoint, esto se comporta exactamente como antes.
+  const secretos = [
+    process.env.STRIPE_WEBHOOK_SECRET,
+    process.env.STRIPE_WEBHOOK_SECRET_CONNECT,
+  ].filter((s): s is string => Boolean(s));
+
+  if (!signature || secretos.length === 0) {
     return NextResponse.json(
       { error: "Missing stripe-signature or STRIPE_WEBHOOK_SECRET" },
       { status: 400 },
@@ -23,12 +39,19 @@ export async function POST(request: Request) {
   const payload = await request.text();
   const stripe = getStripeServerClient();
 
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-  } catch (error) {
+  let event: Stripe.Event | null = null;
+  let ultimoError = "";
+  for (const secreto of secretos) {
+    try {
+      event = stripe.webhooks.constructEvent(payload, signature, secreto);
+      break;
+    } catch (error) {
+      ultimoError = (error as Error).message;
+    }
+  }
+  if (!event) {
     return NextResponse.json(
-      { error: `Webhook signature verification failed: ${(error as Error).message}` },
+      { error: `Webhook signature verification failed: ${ultimoError}` },
       { status: 400 },
     );
   }
