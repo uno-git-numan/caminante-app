@@ -16,7 +16,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { OPA_CSS } from "@/lib/operadores/opa-css";
-import { TRAMOS, HAY_TRAMOS, pctTexto } from "@/lib/operadores/comision";
+import { tramosPara, comisionPara, type Escala } from "@/lib/operadores/comision";
 
 export const metadata: Metadata = {
   title: "Caminante · Para operadores",
@@ -186,21 +186,50 @@ export default function OperadoresPage() {
             <p className="opa-lead neg">
               La escala es inversa al precio por persona. Tres escalones, sin letra chica escondida.
             </p>
-            <div className="opa-glass" style={{ marginTop: 24, padding: "6px 20px" }}>
-              <div className="opa-tramos neg">
-                {TRAMOS.map((t) => (
-                  <div className="opa-tramo" key={t.rango}>
-                    <span className="rng"><small>Precio por persona</small>{t.rango}</span>
-                    <span className="pct">{pctTexto(t)}</span>
+            {/*
+              DOS escalas, no una. Se muestran las dos porque la diferencia es
+              la palanca más grande que tiene el operador, y esconderla haría
+              que la llamada empezara con una sorpresa.
+              Los porcentajes salen de `lib/operadores/comision.ts` — jamás se
+              escriben a mano aquí.
+            */}
+            {(["venta", "plataforma"] as Escala[]).map((escala) => (
+              <div key={escala} className="opa-glass" style={{ marginTop: 24, padding: "6px 20px" }}>
+                <div className="opa-tramos neg">
+                  <div className="opa-tramo" style={{ borderBottom: "none" }}>
+                    <span className="rng">
+                      <small>{escala === "venta" ? "Nosotros vendemos" : "Tú traes a tu cliente"}</small>
+                      {escala === "venta"
+                        ? "Te llenamos la salida"
+                        : "Solo usas la plataforma"}
+                    </span>
                   </div>
-                ))}
+                  {tramosPara(escala).map((t) => (
+                    <div className="opa-tramo" key={t.desde}>
+                      <span className="rng">
+                        <small>Precio por persona</small>
+                        {t.hasta === null
+                          ? `Más de $${t.desde.toLocaleString("es-MX")} MXN`
+                          : t.desde === 0
+                            ? `Hasta $${t.hasta.toLocaleString("es-MX")} MXN`
+                            : `$${(t.desde + 1).toLocaleString("es-MX")} – $${t.hasta.toLocaleString("es-MX")} MXN`}
+                      </span>
+                      <span className="pct">{Math.round(t.pct * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            ))}
             <div className="opa-notes neg">
-              {/* Mientras no haya cifras, la primera nota lo dice en vez de fingirlas. */}
-              {HAY_TRAMOS ? null : (
-                <div><s>{"//"}</s><span>Los porcentajes de cada escalón se comparten en la llamada.</span></div>
-              )}
+              <div>
+                <s>{"//"}</s>
+                <span>
+                  La tasa aplica por tramo, no al total — como el ISR. Un viaje de{" "}
+                  ${(16_500).toLocaleString("es-MX")} paga{" "}
+                  {Math.round(comisionPara(16_500, "plataforma").pctEfectivo * 100)}% si tú
+                  traes al cliente.
+                </span>
+              </div>
               <div><s>{"//"}</s><span>La comisión se congela en cada venta: lo ya vendido nunca cambia.</span></div>
               <div><s>{"//"}</s><span>Te pagamos a los 7 días del regreso.</span></div>
               <div><s>{"//"}</s><span>El porcentaje exacto se cierra en el convenio.</span></div>

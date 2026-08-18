@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import {
+  ATRIB_COOKIE,
+  OPCIONES_ATRIB,
+  armarAtribucion,
+} from "@/lib/operadores/atribucion";
 
 const CANONICAL_HOST = "caminante.numanhub.com";
 // The stable *.vercel.app alias that always points to production. We redirect it
@@ -40,7 +45,38 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // ── ATRIBUCIÓN DE PRIMER TOQUE ──────────────────────────────────────────────
+  // El portal del operador es un Server Component y en Next 15 esos NO pueden
+  // escribir cookies. El middleware es el único lugar que puede, así que la
+  // marca se pone aquí.
+  //
+  // PRIMER toque: si la cookie ya existe NO se toca. Quien trajo al cliente
+  // primero se queda con el crédito (decisión de Luis, 13 ago) y por eso
+  // tampoco se le renueva la vigencia — 60 días desde el primer contacto, no
+  // desde el último.
+  //
+  // ⚠️ Se guarda el SLUG del operador, no su id: el middleware corre en el Edge
+  // y no consulta la base. La traducción slug→id la hace quien cobra.
+  const atrib = atribucionDeLaRuta(request.nextUrl.pathname);
+  if (atrib && !request.cookies.get(ATRIB_COOKIE)) {
+    const res = await updateSession(request);
+    res.cookies.set(ATRIB_COOKIE, armarAtribucion(atrib), OPCIONES_ATRIB);
+    return res;
+  }
+
   return updateSession(request);
+}
+
+/**
+ * ¿Esta ruta pertenece a un operador? Devuelve su slug, o null.
+ *
+ * Hoy solo el portal `/caminante/o/<slug>`. Cuando existan más superficies del
+ * operador (dominio propio, links con `?op=`), se agregan aquí — es el único
+ * lugar que decide qué cuenta como "primer toque".
+ */
+function atribucionDeLaRuta(pathname: string): string | null {
+  const m = /^\/caminante\/o\/([a-z0-9-]{1,60})(?:\/|$)/.exec(pathname);
+  return m ? m[1] : null;
 }
 
 export const config = {
