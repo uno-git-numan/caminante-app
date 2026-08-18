@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
   const atrib = atribucionDeLaRuta(request.nextUrl.pathname);
   if (atrib && !request.cookies.get(ATRIB_COOKIE)) {
     const res = await updateSession(request);
-    res.cookies.set(ATRIB_COOKIE, armarAtribucion(atrib), OPCIONES_ATRIB);
+    res.cookies.set(ATRIB_COOKIE, await armarAtribucion(atrib), OPCIONES_ATRIB);
     return res;
   }
 

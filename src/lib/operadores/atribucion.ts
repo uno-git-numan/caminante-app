@@ -21,45 +21,82 @@
 //   · sigue sin meterse con `/caminante/auth/` (ahí se pierde el PKCE).
 //
 // ── Sobre la firma ───────────────────────────────────────────────────────────
-// La cookie va HttpOnly y firmada con HMAC, mismo patrón que la baja del
-// boletín. Sin firma, alguien con la consola abierta podría escribirla; el daño
-// sería que Caminante se cobre MENOS a sí misma en esa venta (nunca un dato
-// expuesto ni un perjuicio al cliente), pero cerrar el hueco cuesta cuatro
-// líneas y no hay razón para dejarlo abierto.
+// La cookie va HttpOnly y firmada con HMAC. Sin firma, alguien con la consola
+// abierta podría escribirla; el daño sería que Caminante se cobre MENOS a sí
+// misma en esa venta (nunca un dato expuesto ni un perjuicio al cliente), pero
+// cerrar el hueco cuesta poco y no hay razón para dejarlo abierto.
+//
+// ⚠️ SE FIRMA CON WEB CRYPTO, NO CON `node:crypto`. La primera versión usaba
+// `createHmac` como el resto de la casa (`lib/email/unsubscribe`) y ESO HABRÍA
+// TRONADO EN PRODUCCIÓN: quien pone la cookie es el middleware, el middleware
+// corre en el **Edge runtime**, y ahí `node:crypto` no existe. Habría fallado
+// con el primer visitante del portal de un operador.
+//
+// Se descartaron las otras dos salidas:
+//   · Ponerle `runtime = "nodejs"` al middleware — ese archivo es el que refresca
+//     la sesión de Supabase (invariantes #1 y #2) y su ausencia causó el
+//     incidente de sesiones muertas del 11 ago. No se le cambia el runtime por
+//     una cookie de atribución.
+//   · Sacar la firma del middleware — no se puede: firmar es justo lo que hace
+//     al ponerla.
+//
+// `crypto.subtle` existe en Edge **y** en Node 18+, así que una sola
+// implementación corre en los dos lados. El costo es que firmar y verificar se
+// vuelven async — que aquí no molesta: los dos llamadores ya lo son.
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { ATRIB_COOKIE as _C } from "@/lib/operadores/atribucion-cookie";
 import { ATRIB_COOKIE, ATRIB_DIAS } from "@/lib/operadores/atribucion-cookie";
 import type { Escala } from "@/lib/operadores/comision";
 
 const secreto = (): string =>
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.RESEND_API_KEY || "caminante";
 
-const firma = (cuerpo: string): string =>
-  createHmac("sha256", secreto()).update(cuerpo).digest("hex").slice(0, 24);
+async function firma(cuerpo: string): Promise<string> {
+  const enc = new TextEncoder();
+  const llave = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secreto()),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", llave, enc.encode(cuerpo));
+  return [...new Uint8Array(sig)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 24);
+}
+
+/** Comparación en tiempo constante. `timingSafeEqual` es de node:crypto y aquí
+ *  no existe, así que se hace a mano: se recorre TODO sin cortar al primer
+ *  byte distinto. */
+function igualesEnTiempoConstante(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let dif = 0;
+  for (let i = 0; i < a.length; i++) dif |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return dif === 0;
+}
 
 /** Día epoch (UTC). Basta el día: la ventana es de 60. */
 const hoy = (): number => Math.floor(Date.now() / 86_400_000);
 
 /** El valor que va en la cookie: `<operador>.<día>.<firma>` */
-export function armarAtribucion(operatorId: string): string {
+export async function armarAtribucion(operatorId: string): Promise<string> {
   const cuerpo = `${operatorId}.${hoy()}`;
-  return `${cuerpo}.${firma(cuerpo)}`;
+  return `${cuerpo}.${await firma(cuerpo)}`;
 }
 
 /**
  * Lee la cookie y devuelve el operador que trajo al cliente, o null.
  * Devuelve null también si la firma no cuadra o si ya venció.
  */
-export function leerAtribucion(valor: string | undefined | null): string | null {
+export async function leerAtribucion(valor: string | undefined | null): Promise<string | null> {
   if (!valor) return null;
   const partes = valor.split(".");
   if (partes.length !== 3) return null;
   const [operatorId, diaStr, sig] = partes;
-  const cuerpo = `${operatorId}.${diaStr}`;
-  const esperada = firma(cuerpo);
-  // Comparación en tiempo constante: es una firma, no un string cualquiera.
-  if (sig.length !== esperada.length) return null;
-  if (!timingSafeEqual(Buffer.from(sig), Buffer.from(esperada))) return null;
+  const esperada = await firma(`${operatorId}.${diaStr}`);
+  if (!igualesEnTiempoConstante(sig, esperada)) return null;
   const dia = Number(diaStr);
   if (!Number.isFinite(dia)) return null;
   if (hoy() - dia > ATRIB_DIAS) return null; // venció
