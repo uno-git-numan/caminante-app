@@ -1,36 +1,93 @@
-// Los tramos de comisión de la página pública de operadores.
+// LA COMISIÓN DE LA PLATAFORMA — motor único.
 //
-// ⚠️ ESTE ES EL ÚNICO LUGAR DONDE VIVEN LOS PORCENTAJES. El diseño de Claude
-// Design los dejó como `{{TRAMO_1..3}}` a propósito, y aquí nacen en `null`
-// porque **Luis todavía no los ha definido**. Un número inventado en esta
-// página no es un detalle de copy: es una oferta pública sobre la que alguien
-// decide si trae su operación, y después habría que desdecirla en la llamada.
+// Nada más en el sistema decide cuánto cobra Caminante. Si algún día un
+// porcentaje aparece en otro archivo, es un bug: se congela por venta y tiene
+// que salir de aquí.
 //
-// Mientras sean `null`, la sección se sigue publicando y se sigue entendiendo:
-// muestra los tres rangos de precio, la regla (a mayor precio, menor comisión)
-// y remite al convenio. En cuanto Luis dé los números, se escriben aquí y
-// aparecen solos — sin tocar el marcado.
+// ── Dos escalas, según QUIÉN trajo al cliente ────────────────────────────────
+// El research de mercado (13 ago 2026) encontró dos lógicas opuestas y las dos
+// son ciertas:
+//   · Los OTA (Viator, GetYourGuide, Klook) cobran 20-30% PLANO porque su valor
+//     es la demanda: una venta es una venta.
+//   · En viajes caros las comisiones SUBEN (Lindblad, Hurtigruten pagan >15%)
+//     porque vender $100,000 es más difícil, no menos.
+// Pero ninguna aplica cuando el operador trae a su propio cliente y solo usa
+// los rieles: ahí el trabajo de la plataforma es el mismo con $3,000 que con
+// $100,000, y cobrar plano no se defiende.
 //
-// Los RANGOS sí son estructura acordada (hasta $5,000 / $5,001–$15,000 / más de
-// $15,000 por persona), no cifras de dinero nuestro.
+// De ahí las dos escalas. VENTA cuando Caminante entrega el cliente;
+// PLATAFORMA cuando el operador lo trae y solo usa la infraestructura.
+//
+// ── Tramos MARGINALES, como el ISR ───────────────────────────────────────────
+// La tasa aplica a cada pedazo del precio, no al total. Con escalones duros
+// habría un acantilado: a $8,000 pagar 17% ($1,360) y a $8,100 pagar 14%
+// ($1,134) premiaría INFLAR el precio. Con tramos marginales la comisión es
+// monótona creciente — subir el precio nunca baja lo que cobra la casa. Eso NO
+// necesita prueba: con tramos marginales y tasas positivas está garantizado por
+// construcción. Lo que sí hay que cuidar al editar los tramos es que las tasas
+// vayan de mayor a menor; si una subiera, la tasa efectiva dejaría de bajar y el
+// discurso «entre más cara, más baja» se volvería mentira.
 
-export type Tramo = {
-  /** El rango de precio por persona, tal como se lee en la página. */
-  rango: string;
-  /** El porcentaje que retiene la plataforma. `null` = todavía sin definir. */
-  pct: number | null;
-};
+export type Escala = "venta" | "plataforma";
 
-export const TRAMOS: Tramo[] = [
-  { rango: "Hasta $5,000 MXN", pct: null },
-  { rango: "$5,001 – $15,000 MXN", pct: null },
-  { rango: "Más de $15,000 MXN", pct: null },
+/** [hasta_este_precio, tasa]. El último tramo va al infinito. */
+type Tramo = readonly [number, number];
+
+/** Caminante entregó el cliente: su audiencia, su contenido, su canal. */
+const VENTA: readonly Tramo[] = [
+  [3_000, 0.25],
+  [8_000, 0.22],
+  [15_000, 0.20],
+  [Infinity, 0.18],
 ];
 
-/** ¿Ya podemos mostrar cifras? Si falta una sola, no se muestra ninguna. */
-export const HAY_TRAMOS = TRAMOS.every((t) => typeof t.pct === "number");
+/** El operador trajo a su cliente y solo usa los rieles. */
+const PLATAFORMA: readonly Tramo[] = [
+  [3_000, 0.20],
+  [8_000, 0.17],
+  [15_000, 0.14],
+  [40_000, 0.11],
+  [Infinity, 0.08],
+];
 
-/** Lo que se imprime en la columna del porcentaje. */
-export function pctTexto(t: Tramo): string {
-  return typeof t.pct === "number" ? `${t.pct}%` : "—";
+const TRAMOS: Record<Escala, readonly Tramo[]> = { venta: VENTA, plataforma: PLATAFORMA };
+
+export type Comision = {
+  /** Lo que retiene la plataforma, en pesos. Es lo que se congela en la venta. */
+  monto: number;
+  /** La tasa EFECTIVA sobre el precio. Varía con el precio: es informativa. */
+  pctEfectivo: number;
+  escala: Escala;
+};
+
+/**
+ * Cuánto retiene la plataforma de UNA venta.
+ *
+ * ⚠️ `precio` es el precio por persona CON IVA, tal como se le cobra al
+ * cliente y como vive en `experience_slots.price_mxn`.
+ */
+export function comisionPara(precio: number, escala: Escala): Comision {
+  if (!(precio > 0)) return { monto: 0, pctEfectivo: 0, escala };
+  let monto = 0;
+  let piso = 0;
+  for (const [tope, tasa] of TRAMOS[escala]) {
+    if (precio <= piso) break;
+    monto += (Math.min(precio, tope) - piso) * tasa;
+    piso = tope;
+  }
+  monto = Math.round(monto * 100) / 100;
+  return { monto, pctEfectivo: monto / precio, escala };
 }
+
+/** Para la página pública: los tramos tal como se comunican. */
+export function tramosPara(escala: Escala): { desde: number; hasta: number | null; pct: number }[] {
+  let piso = 0;
+  return TRAMOS[escala].map(([tope, tasa]) => {
+    const fila = { desde: piso, hasta: Number.isFinite(tope) ? tope : null, pct: tasa };
+    piso = tope;
+    return fila;
+  });
+}
+
+export const pesos = (n: number): string =>
+  "$" + Math.round(n).toLocaleString("es-MX") + " MXN";
