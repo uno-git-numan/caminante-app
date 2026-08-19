@@ -60,6 +60,18 @@ padecimientos, contacto de emergencia). Está publicado en
 Es un **candado del sistema, no una buena intención**: una experiencia sin
 deslinde activo no se puede publicar ni cobrar. El código lo impide.
 
+⚠️ **Cómo se redactan hoy, y qué les pedimos.** Cada deslinde se genera **con
+inteligencia artificial** a partir de la ficha de la experiencia, y luego se
+revisa a ojo. Eso significa que el contenido depende de qué tan buen prompt se
+escribió ese día: no hay garantía de que dos deslindes cubran lo mismo.
+
+Lo que necesitamos de ustedes es una **rúbrica**: la lista de lo que un deslinde
+de esta naturaleza **siempre** debe decir —y lo que **nunca** debe decir, porque
+lo invalida o nos expone. Con esa rúbrica convertimos el generador en algo
+auditable: el sistema puede verificar que cada deslinde nuevo toque todos los
+puntos obligatorios antes de dejar publicar la experiencia, igual que hoy
+verifica que exista. Sin ella, cada salida nueva es una redacción distinta.
+
 **Portal de facturación** — `/caminante/facturacion`, donde el cliente pide su
 CFDI. Construido; se enciende cuando esté el sello digital.
 
@@ -98,8 +110,13 @@ gustaría saber si conviene registrarlo.
 
 | Marca | En uso | Registro |
 |---|---|---|
-| **NUMAN** | Sí | **Por confirmar con Luis** |
-| **Caminante** | Sí, es la marca de cara al cliente | **Por confirmar con Luis** |
+| **NUMAN** | Sí | **Registrada — pero a nombre de Luis de la Rosa, persona física, no de NUMAN HUB S.A. de C.V.** |
+| **Caminante** | Sí, es la marca de cara al cliente | **En trámite ante el IMPI**, por un gestor externo |
+
+⚠️ **La marca NUMAN no es de la sociedad.** Está a nombre personal de Luis. La
+empresa la usa todos los días sin licencia escrita de por medio. Nos gustaría su
+lectura sobre si conviene cederla o licenciarla a la sociedad, y qué implica
+fiscalmente cada camino.
 
 ## Dominios
 
