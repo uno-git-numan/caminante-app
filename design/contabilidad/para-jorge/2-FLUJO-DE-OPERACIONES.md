@@ -38,11 +38,16 @@ estamos por habilitar y que sometemos a su revisión **antes** de encenderlo.
    cliente su comprobante por correo.
 5. Numan paga a sus proveedores por separado, contra factura.
 
-### Otras dos formas de cobrar, menores pero reales
-- **Link de pago por WhatsApp**: para quien pregunta por mensaje. Mismo Stripe,
-  mismo registro.
+### La otra forma de cobrar
 - **Transferencia bancaria**: el cliente deposita a la cuenta de NUMAN HUB y el
   comprobante se captura en el sistema. Es el camino de menor volumen.
+
+**Todo lo demás pasa por la página web.** No existen links de pago automáticos
+por WhatsApp: cuando alguien pregunta por mensaje, se le manda la liga de su
+experiencia y paga en el sitio, por el mismo camino que cualquier otro cliente.
+Es decir, hay **un solo canal de cobro con tarjeta** —el checkout del sitio— más
+la transferencia. Lo aclaramos porque en la reunión pudo entenderse que ya
+operábamos un cobro asistido por mensajería.
 
 ### Facturación al cliente
 Hoy Numan **no emite CFDI automáticamente**. El motor de facturación está
