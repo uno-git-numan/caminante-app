@@ -205,7 +205,19 @@ function poolFor(
   opts: { exclude?: (string | undefined)[]; categorias?: BankKey[] } = {},
 ): Foto[] {
   const ex = new Set((opts.exclude ?? []).filter(has).map((u) => fileKey(u!)));
-  const seed = `${ctx.exp.slug || "x"}·${salt}`;
+  // ── LA TANDA (18 ago 2026) ──────────────────────────────────────────────────
+  // BUG que corrige: la semilla era `slug·pieza`, sin la salida. Dos campañas de
+  // la MISMA experiencia (hongos 26 jul y hongos 23 ago) producían semilla
+  // idéntica sobre el mismo banco → `P2` de agosto salía con LAS MISMAS fotos que
+  // `P2` de julio. El reparto se diseñó para no repetir DENTRO de un kit; nadie
+  // contempló dos campañas seguidas de la misma experiencia. Lo cazó Luis viendo
+  // el feed.
+  //
+  // La salida abierta más próxima identifica la tanda. Re-barajar no afecta a las
+  // piezas ya programadas o publicadas: esas se rasterizan y se suben al
+  // programarlas, así que su imagen ya está congelada del lado de Instagram.
+  const tanda = ctx.slots[0]?.label ?? "";
+  const seed = `${ctx.exp.slug || "x"}·${tanda}·${salt}`;
   const cats = opts.categorias ?? [];
   const prioridad = shuffle(bankPhotos(ctx, cats), seed);
   const resto = shuffle(bankPhotos(ctx, BANK_KEYS.filter((k) => !cats.includes(k))), `${seed}·resto`);
