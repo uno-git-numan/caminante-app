@@ -8,6 +8,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import SolicitudCard, { type SolicitudView } from "./SolicitudCard";
 import AccesoCard from "./AccesoCard";
 import EmbajadorCard, { type EmbAppView } from "./EmbajadorCard";
+import OperadorAppCard, { type OpAppView } from "./OperadorAppCard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Solicitudes · Admin" };
@@ -58,6 +59,37 @@ async function fetchEmbApps(): Promise<{ rows: EmbRow[]; tablaLista: boolean }> 
   }
 }
 
+
+// ── Solicitudes de OPERADOR ───────────────────────────────────────────────────
+// Best-effort igual que embajadores: si la 0041 aún no está aplicada, la sección
+// avisa en vez de tumbar toda la bandeja.
+type OpRow = {
+  id: string; nombre_operadora: string; responsable: string; email: string; whatsapp: string;
+  instagram: string | null; ciudad_estado: string; tipo_operacion: string; descripcion: string;
+  antiguedad: string; salidas_ano: string | null; personas_salida: string | null;
+  rango_precio: string | null; seguro_rc: string; primeros_auxilios: string; ratio_guias: string;
+  incidentes: string; porque: string | null; conociste: string | null; status: string;
+  llamada_meet_url: string | null; llamada_at: string | null; expediente: unknown;
+  branding: unknown; branding_despues: boolean | null; created_at: string;
+};
+
+async function cargarOperadores(): Promise<{ rows: OpRow[]; tablaLista: boolean }> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const { data, error } = await sb
+      .from("operator_applications")
+      .select(
+        "id, nombre_operadora, responsable, email, whatsapp, instagram, ciudad_estado, tipo_operacion, descripcion, antiguedad, salidas_ano, personas_salida, rango_precio, seguro_rc, primeros_auxilios, ratio_guias, incidentes, porque, conociste, status, llamada_meet_url, llamada_at, expediente, branding, branding_despues, created_at",
+      )
+      .in("status", ["pending", "calling", "docs"])
+      .order("created_at", { ascending: false });
+    if (error) return { rows: [], tablaLista: false };
+    return { rows: (data ?? []) as OpRow[], tablaLista: true };
+  } catch {
+    return { rows: [], tablaLista: false };
+  }
+}
+
 const TZ = "America/Mexico_City";
 function fmtFecha(iso: string): string {
   return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short", timeZone: TZ });
@@ -77,7 +109,7 @@ function nombreDeNota(note: string | null): string {
 
 export default async function SolicitudesPage() {
   const sb = createSupabaseAdminClient();
-  const [{ data: reqData }, { data: wlData }, emb] = await Promise.all([
+  const [{ data: reqData }, { data: wlData }, emb, ops] = await Promise.all([
     sb
       .from("slot_requests")
       .select(
@@ -89,6 +121,7 @@ export default async function SolicitudesPage() {
       .select("email, is_active, note, created_at")
       .order("created_at", { ascending: false }),
     fetchEmbApps(),
+    cargarOperadores(),
   ]);
 
   const rows = (reqData ?? []) as unknown as Row[];
@@ -126,6 +159,63 @@ export default async function SolicitudesPage() {
           <b>operadores</b> que quieren acceso al panel y <b>clientes</b> que piden una nueva fecha.
         </p>
       </div>
+
+      {/* ── Solicitud de OPERADOR ── */}
+      <div className="sec-head" style={{ marginTop: 8 }}>
+        <span className="eyebrow"><span className="sl">{"//"}</span> Solicitud de operador</span>
+        <p className="subtitle">
+          Quien quiere <b>operar sus propias experiencias</b> sobre la plataforma. El recorrido es
+          solicitud → <b>videollamada</b> → <b>expediente</b> de documentos → aprobación. A
+          diferencia de un embajador, aprobar aquí <b>le abre el panel completo</b>: reservas, datos
+          médicos de clientes y dinero.
+        </p>
+      </div>
+
+      {!ops.tablaLista ? (
+        <div className="empty">
+          Falta aplicar <b>0041_operator_application_branding</b> en el SQL Editor (o la 0035, si es la primera vez).
+        </div>
+      ) : ops.rows.length === 0 ? (
+        <div className="empty">Sin solicitudes de operador abiertas.</div>
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {ops.rows.map((r) => (
+            <OperadorAppCard
+              key={r.id}
+              app={{
+                id: r.id,
+                nombreOperadora: r.nombre_operadora,
+                responsable: r.responsable,
+                email: r.email,
+                whatsapp: r.whatsapp,
+                instagram: r.instagram,
+                ciudadEstado: r.ciudad_estado,
+                tipo: r.tipo_operacion,
+                descripcion: r.descripcion,
+                antiguedad: r.antiguedad,
+                salidasAno: r.salidas_ano,
+                personasSalida: r.personas_salida,
+                rangoPrecio: r.rango_precio,
+                seguro: r.seguro_rc,
+                primerosAuxilios: r.primeros_auxilios,
+                ratioGuias: r.ratio_guias,
+                incidentes: r.incidentes,
+                porque: r.porque,
+                conociste: r.conociste,
+                status: r.status,
+                meetUrl: r.llamada_meet_url,
+                llamadaAt: r.llamada_at,
+                expediente: Array.isArray(r.expediente)
+                  ? (r.expediente as OpAppView["expediente"])
+                  : [],
+                marca: (r.branding as OpAppView["marca"]) ?? null,
+                marcaDespues: r.branding_despues === true,
+                fecha: fmtFecha(r.created_at),
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* ── Solicitud embajador (programa curado) ── */}
       <div className="sec-head" style={{ marginTop: 8 }}>

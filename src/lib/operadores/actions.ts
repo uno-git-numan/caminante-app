@@ -13,6 +13,7 @@
 
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { marcaDeFormData } from "@/lib/operators/marca";
 import {
   emailConfirmacionOperador,
   emailAvisoAdminOperador,
@@ -63,6 +64,18 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
   const aceptaDeslinde = formData.get("aceptaDeslinde") === "on";
   const aceptaEncuesta = formData.get("aceptaEncuesta") === "on";
 
+  // Paso 5 · Su marca (OPCIONAL a propósito)
+  //
+  // Se pregunta AQUÍ, no después, porque quien aplica ya tiene logo y colores a
+  // la mano; perseguirlos por WhatsApp tres semanas después es trabajo que no
+  // hace falta. Pero no puede ser obligatorio: hay operadoras serias que todavía
+  // no tienen identidad resuelta y no queremos perderlas en el último paso.
+  //
+  // `branding_despues` guarda que ELIGIÓ dejarlo para luego, que no es lo mismo
+  // que no habérselo preguntado: con eso el panel sabe si perseguir o no.
+  const marca = marcaDeFormData(formData);
+  const marcaDespues = formData.get("marcaDespues") === "on" || !marca;
+
   if (!nombreOperadora || !responsable || !email.includes("@") || !whatsapp || !ciudadEstado) {
     back("error=datos");
   }
@@ -97,6 +110,8 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
     acepta_cobro: aceptaCobro,
     acepta_deslinde: aceptaDeslinde,
     acepta_encuesta: aceptaEncuesta,
+    branding: marca,
+    branding_despues: marcaDespues,
   });
 
   if (error) {
