@@ -100,6 +100,12 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
   const [primerosAuxilios, setPrimerosAuxilios] = useState("");
   const [ratioGuias, setRatioGuias] = useState("");
   const [incidentes, setIncidentes] = useState("");
+  // Paso 5 · Su marca (opcional)
+  const [mkPrimary, setMkPrimary] = useState("");
+  const [mkAccent, setMkAccent] = useState("");
+  const [mkLogo, setMkLogo] = useState("");
+  const [mkDespues, setMkDespues] = useState(false);
+
   // Paso 4
   const [porque, setPorque] = useState("");
   const [conociste, setConociste] = useState("");
@@ -143,7 +149,7 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
       document.querySelector(".opa-fld.err")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    if (paso < 4) {
+    if (paso < 5) {
       setPaso(paso + 1);
       window.scrollTo({ top: 0 });
     }
@@ -186,9 +192,9 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
             ‹ <span>{paso > 1 ? "Atrás" : "Volver al sitio"}</span>
           </button>
           <img src="/landing/assets/logos/caminante-logo.svg" alt="Caminante" style={{ height: 18 }} />
-          <span className="ct">Paso {paso} de 4</span>
+          <span className="ct">Paso {paso} de 5</span>
         </div>
-        <div className="opa-prog"><i style={{ width: `${paso * 25}%` }} /></div>
+        <div className="opa-prog"><i style={{ width: `${paso * 20}%` }} /></div>
       </div>
 
       <form className="opa-form" action={submitOperatorApplication} onSubmit={() => setEnviando(true)}>
@@ -391,6 +397,69 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
           </p>
         </section>
 
+
+        {/* ── Paso 5 · Tu marca (OPCIONAL) ────────────────────────────────────
+            Se pregunta aquí porque quien aplica ya tiene su identidad a la mano;
+            perseguirla por WhatsApp tres semanas después es trabajo que no hace
+            falta. Pero NUNCA bloquea: hay operadoras buenas sin marca resuelta y
+            perderlas en el último paso por un color sería absurdo.
+
+            Sin subida de archivos en esta pantalla A PROPÓSITO: un endpoint de
+            carga sin sesión es una puerta abierta a que cualquiera nos llene el
+            bucket. Aquí se pega la liga del logo; el archivo se sube después, ya
+            en superficies con sesión (el expediente con token, o el panel). */}
+        <section className={"opa-st5" + (paso === 5 ? "" : " opa-hidden")}>
+          <div className="opa-stephd">
+            <span className="opa-eyb"><i>{"//"}</i> Paso 5 · Tu marca</span>
+            <h1>Cómo se va a ver <em>lo tuyo.</em></h1>
+            <p>
+              La plataforma se viste con tu marca: tu página, tus correos y tu material salen con
+              tus colores, no con los nuestros. Si todavía no la tienes resuelta, sáltalo — se
+              configura después y mientras tanto se ve Caminante.
+            </p>
+          </div>
+
+          <div className="opa-fld">
+            <label>
+              <input type="checkbox" name="marcaDespues" checked={mkDespues}
+                onChange={(e) => setMkDespues(e.target.checked)} />{" "}
+              La configuro después
+            </label>
+          </div>
+
+          {!mkDespues ? (
+            <div className="opa-two f">
+              <div className="opa-fld">
+                <label>Color principal</label>
+                <input name="marcaPrimary" value={mkPrimary} onChange={(e) => setMkPrimary(e.target.value)} placeholder="#2E4A32" />
+                <p className="errmsg">{"//"} Escribe un color hexadecimal</p>
+              </div>
+              <div className="opa-fld">
+                <label>Color de acento</label>
+                <input name="marcaAccent" value={mkAccent} onChange={(e) => setMkAccent(e.target.value)} placeholder="#C2622D" />
+                <p className="errmsg">{"//"} Escribe un color hexadecimal</p>
+              </div>
+              <div className="opa-fld" style={{ gridColumn: "1 / -1" }}>
+                <label>Liga de tu logo</label>
+                <input name="marcaLogo" value={mkLogo} onChange={(e) => setMkLogo(e.target.value)} placeholder="https://tusitio.com/logo.png" />
+                <p className="errmsg">{"//"} PNG, JPG, SVG o WEBP con https</p>
+              </div>
+              {mkPrimary && mkAccent ? (
+                <div className="opa-fld" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span>Así se verían:</span>
+                  <i style={{ width: 26, height: 26, borderRadius: 4, background: mkPrimary, display: "inline-block", border: "1px solid rgba(0,0,0,.15)" }} />
+                  <i style={{ width: 26, height: 26, borderRadius: 4, background: mkAccent, display: "inline-block", border: "1px solid rgba(0,0,0,.15)" }} />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <p className="opa-fine" style={{ marginTop: 18 }}>
+            Al enviar, tu solicitud entra en revisión. Te escribimos al correo del paso 1 para
+            agendar 30 minutos.
+          </p>
+        </section>
+
         <div className="opa-nav">
           <div className="in">
             <p className="hint">Puedes regresar a cualquier paso sin perder lo escrito.</p>
@@ -399,7 +468,7 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
                 Atrás
               </button>
             ) : null}
-            {paso < 4 ? (
+            {paso < 5 ? (
               <button className="opa-btn accent" type="button" style={{ maxWidth: 280 }} onClick={avanzar}>
                 Continuar
               </button>
