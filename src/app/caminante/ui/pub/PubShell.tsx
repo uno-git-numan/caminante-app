@@ -143,8 +143,11 @@ function HojaMenu({ cerrar }: { cerrar: () => void }) {
         <Link href="/caminante/nosotros" onClick={cerrar}>
           Nosotros · por qué caminamos<span className="go">›</span>
         </Link>
+        <Link href="/caminante/operadores" onClick={cerrar}>
+          Opera con nosotros<span className="go">›</span>
+        </Link>
         <Link href="/caminante/embajadores" onClick={cerrar}>
-          Embajadores<span className="go">›</span>
+          Sé embajador<span className="go">›</span>
         </Link>
         <Link href="/caminante/facturacion" onClick={cerrar}>
           Facturación<span className="go">›</span>
