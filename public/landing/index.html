@@ -103,6 +103,13 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
 }
 .btn-glass:hover{background:rgba(255,255,255,.22);}
+/* Vidrio con acento NARANJA: el tercer CTA del hero, para quien no viene a
+   comprar un viaje. Se distingue de los otros dos sin competirles — el naranja
+   aqui es borde y flecha, no relleno. El relleno naranja solido (.btn-orange)
+   sigue reservado para la accion principal, que es Reservar. */
+.btn-glass.acc{border-color:rgba(255,93,54,.72);}
+.btn-glass.acc:hover{background:rgba(255,93,54,.18);border-color:var(--orange);}
+.btn-glass.acc::after{color:var(--orange);}
 .btn-outline{background:transparent;color:var(--olive);border-color:var(--olive);}
 .btn-outline:hover{background:var(--olive);color:#fff;}
 .btn-arrow::after{content:"→";font-size:1.05em;}
@@ -422,6 +429,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
     <div class="actions">
       <a href="#destinos" class="btn btn-green btn-arrow">Ver dónde caminamos</a>
       <a href="#proximos" class="btn btn-glass btn-arrow">Ver próximas experiencias</a>
+      <a href="#trabaja" class="btn btn-glass acc btn-arrow">Trabaja con nosotros</a>
     </div>
   </div>
 </header>
@@ -661,7 +669,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 
 <!-- ============================== FOOTER =========================== -->
 <!-- ======================= TRABAJA CON NOSOTROS ==================== -->
-  <section class="section trabaja">
+  <section class="section trabaja" id="trabaja">
   <div class="container">
   <div class="shead" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;max-width:none;">
   <div style="max-width:680px;">
