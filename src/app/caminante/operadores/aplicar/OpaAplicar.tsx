@@ -14,7 +14,7 @@
 //   · Los campos del mockup no tenían `name`. Cada uno lleva el suyo, y el
 //     nombre coincide con lo que lee `submitOperatorApplication`.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { submitOperatorApplication } from "@/lib/operadores/actions";
 
 type Radio = { v: string; t: string };
@@ -74,6 +74,27 @@ function Cards({
     </div>
   );
 }
+
+
+// Nombre humano de cada campo, para poder DECIR qué falta en vez de solo
+// pintarlo de rojo abajo. Las claves son las que devuelve `faltantes()`.
+const ETIQUETA: Record<string, string> = {
+  nombreOperadora: "Nombre de la operadora",
+  responsable: "Nombre del responsable",
+  correo: "Correo",
+  whatsapp: "WhatsApp",
+  ciudadEstado: "Dónde operas",
+  tipo: "Qué tipo de experiencias operas",
+  descripcion: "Qué operas",
+  antiguedad: "Antigüedad",
+  salidasAno: "Salidas al año",
+  personas: "Personas por salida",
+  rangoPrecio: "Rango de precio por persona",
+  seguro: "Seguro de responsabilidad civil",
+  primerosAuxilios: "Primeros auxilios",
+  ratioGuias: "Guías por persona",
+  incidentes: "Un incidente que hayas manejado",
+};
 
 export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
   const [paso, setPaso] = useState(1);
@@ -142,13 +163,25 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
     return f;
   }
 
+
+  // ⚠️ EL SCROLL VA EN UN EFECTO, NO DENTRO DE `avanzar()`.
+  //
+  // Antes se hacía `setMalos(...)` y en la línea siguiente
+  // `querySelector(".opa-fld.err")`. Ese estado es asíncrono: cuando corría la
+  // consulta, React todavía no había pintado la clase `.err`, así que en el
+  // PRIMER fallo no encontraba nada y no movía la pantalla. Resultado: el
+  // usuario oprimía «Continuar», no pasaba nada visible, y el campo en rojo
+  // quedaba fuera de vista. Es la trampa que atoró la prueba de alta.
+  useEffect(() => {
+    if (!malos.size) return;
+    const el = document.querySelector(".opa-fld.err");
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [malos]);
+
   function avanzar() {
     const f = faltantes(paso);
     setMalos(new Set(f));
-    if (f.length) {
-      document.querySelector(".opa-fld.err")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
+    if (f.length) return; // el scroll lo hace el efecto de abajo, ya con el DOM pintado
     if (paso < 5) {
       setPaso(paso + 1);
       window.scrollTo({ top: 0 });
@@ -283,7 +316,8 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
                 <option>25 a 52</option>
                 <option>Más de 52</option>
               </select>
-              <p className="errmsg">{"//"} Elige un rango</p>
+              <p className="help">Elige el rango de la lista — un aproximado basta.</p>
+              <p className="errmsg">{"//"} Elige un rango de la lista</p>
             </div>
             <div className={"opa-fld" + err("personas")}>
               <label>Personas por salida <span className="req">*</span></label>
@@ -304,7 +338,7 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
               <option>Más de $15,000 MXN</option>
             </select>
             <p className="help">Este dato define tu escalón de comisión: entre más cara la experiencia, más baja.</p>
-            <p className="errmsg">{"//"} Elige un rango</p>
+            <p className="errmsg">{"//"} Elige un rango de la lista</p>
           </div>
         </section>
 
@@ -459,6 +493,19 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
             agendar 30 minutos.
           </p>
         </section>
+
+        {malos.size ? (
+          <div className="opa-warn" style={{ margin: "0 20px 14px" }}>
+            <s>{"//"}</s>
+            <span>
+              Falta{malos.size > 1 ? "n" : ""}{" "}
+              <b>
+                {[...malos].map((k) => ETIQUETA[k] ?? k).join(", ")}
+              </b>
+              . {malos.size > 1 ? "Están" : "Está"} marcado{malos.size > 1 ? "s" : ""} en rojo arriba.
+            </span>
+          </div>
+        ) : null}
 
         <div className="opa-nav">
           <div className="in">
