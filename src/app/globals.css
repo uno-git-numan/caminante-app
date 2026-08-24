@@ -41,18 +41,18 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-lagoon: #3E4836;
-  --color-lagoon-light: #637154;
-  --color-dune: #FF5D36;
-  --color-dune-light: #E84620;
-  --color-cream: #FBFBF7;
-  --color-sand: #D4CEC6;
-  --color-olive: #776F67;
-  --color-sage: #A7AB8B;
-  --color-forest: #5A7A4E;
-  --color-clay: #C43D2A;
-  --color-charcoal: #20211C;
-  --color-white: #FFFFFF;
+  --color-lagoon: var(--lagoon);
+  --color-lagoon-light: var(--lagoon-light);
+  --color-dune: var(--dune);
+  --color-dune-light: var(--dune-light);
+  --color-cream: var(--cream);
+  --color-sand: var(--sand);
+  --color-olive: var(--olive);
+  --color-sage: var(--sage);
+  --color-forest: var(--forest);
+  --color-clay: var(--clay);
+  --color-charcoal: var(--charcoal);
+  --color-white: var(--white);
 }
 
 /* Geist (local, variable) — la tipografía de la marca en TODO el sitio.
