@@ -97,30 +97,36 @@ export function themeCssFor(scope: string, b: OperatorBranding): string {
 //
 // Por eso hay dos emisores. Cada superficie usa el que le corresponde.
 //
-// Requiere que `@theme inline` de globals.css enrute los colores por variable
-// (`--color-lagoon: var(--lagoon)`) y no por hex literal. Con hex literal las
-// utilidades de Tailwind ignoran la cascada y este override no hace nada.
+// El enchufe en globals.css NO es `var(--lagoon)` sino un namespace propio,
+// `--color-lagoon: var(--app-lagoon, #3E4836)`. Por eso esta funcion emite
+// `--app-*` y no los nombres pelones: media docena de hojas inyectadas por
+// pagina (template-v2, destinos, deck, kit, tablero) redefinen `:root{--lagoon}`
+// con otro vocabulario, y enrutar a `var(--lagoon)` les habria cambiado el color
+// a paginas de Caminante que nada tienen que ver con ningun operador.
+//
+// Consecuencia util: sin white-label la utilidad cae al hex literal de siempre,
+// asi que las paginas de la casa quedan intactas POR CONSTRUCCION.
 export function themeCssAppFor(scope: string, b: OperatorBranding): string {
   const c = b.colors;
   const bg = c.bg || "#fbfbf7";
   const ink = c.ink || "#20211c";
   const vars = [
     // primario del operador → el verde de la app
-    `--lagoon:${c.primary}`,
-    `--lagoon-light:color-mix(in srgb, ${c.primary} 78%, #fff)`,
+    `--app-lagoon:${c.primary}`,
+    `--app-lagoon-light:color-mix(in srgb, ${c.primary} 78%, #fff)`,
     // acento del operador → el naranja de la app
-    `--dune:${c.accent}`,
-    `--dune-light:color-mix(in srgb, ${c.accent} 84%, #000)`,
+    `--app-dune:${c.accent}`,
+    `--app-dune-light:color-mix(in srgb, ${c.accent} 84%, #000)`,
     // superficie y tinta
-    `--cream:${bg}`,
-    `--charcoal:${ink}`,
+    `--app-cream:${bg}`,
+    `--app-charcoal:${ink}`,
     // derivados, atados al operador para que no queden desentonando
-    `--sand:color-mix(in srgb, ${ink} 22%, ${bg})`,
-    `--sage:color-mix(in srgb, ${c.primary} 42%, ${bg})`,
-    // ⚠️ --olive NO se toca: aqui es el gris de texto secundario, no la marca.
-    //    Pintarlo del color del operador haria ilegible medio parrafo.
-    // ⚠️ --forest y --clay tampoco: son SEMANTICOS (exito y peligro). Un
-    //    operador con marca roja no debe volver rojo el "incluye".
+    `--app-sand:color-mix(in srgb, ${ink} 22%, ${bg})`,
+    `--app-sage:color-mix(in srgb, ${c.primary} 42%, ${bg})`,
+    // ⚠️ --app-olive NO se toca: aqui es el gris de texto secundario, no la
+    //    marca. Pintarlo del color del operador haria ilegible medio parrafo.
+    // ⚠️ --app-forest y --app-clay tampoco: son SEMANTICOS (exito y peligro).
+    //    Un operador con marca roja no debe volver rojo el "incluye".
   ].join(";");
   const font = b.font?.family
     ? `${scope} h1,${scope} h2,${scope} h3{font-family:"${b.font.family}","Geist",system-ui,sans-serif;}`
@@ -189,6 +195,12 @@ export async function fetchOperatorThemeBySlug(slug: string): Promise<OperatorTh
 
 // Tema del operador DUEÑO de una experiencia (el funnel se viste solo).
 // Los viajes de la casa (operador Numan · Caminante, sin branding) ⇒ null.
+//
+// ⚠️ A propósito NO filtra por `is_public`, al revés que el portal por slug.
+// `is_public` decide si el operador tiene PERFIL público (una página sobre él);
+// esto decide de quién es el viaje que se está vendiendo. Kéntro está en pausa
+// como perfil y aun así su experiencia debe verse suya: quien compra tiene que
+// ver la misma marca que va a firmar en el deslinde y a recibir en la factura.
 export async function fetchThemeForExperience(experienceSlug: string): Promise<OperatorTheme | null> {
   try {
     const sb = createSupabaseAdminClient();
@@ -196,6 +208,28 @@ export async function fetchThemeForExperience(experienceSlug: string): Promise<O
       .from("experiences")
       .select("operator_id")
       .eq("slug", experienceSlug)
+      .maybeSingle();
+    if (error || !data) return null;
+    return fetchOperatorTheme((data as { operator_id: string | null }).operator_id);
+  } catch {
+    return null;
+  }
+}
+
+// Tema del operador ATRIBUIDO a una reserva ya pagada. Lo usa la pantalla de
+// éxito, que no siempre trae slug.
+//
+// ⚠️ Se lee `reservations.operator_id`, no el de la experiencia. La 0016
+// CONGELA el operador al momento de la venta: si mañana la experiencia cambia
+// de dueño, quien compró hoy debe seguir viendo la marca de quien le vendió —
+// es la misma que dice su deslinde y la que va a facturarle.
+export async function fetchThemeForReservation(reservationId: string): Promise<OperatorTheme | null> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const { data, error } = await sb
+      .from("reservations")
+      .select("operator_id")
+      .eq("id", reservationId)
       .maybeSingle();
     if (error || !data) return null;
     return fetchOperatorTheme((data as { operator_id: string | null }).operator_id);

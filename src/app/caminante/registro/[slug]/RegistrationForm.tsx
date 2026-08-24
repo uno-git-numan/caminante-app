@@ -255,6 +255,8 @@ export default function RegistrationForm({
   prefill,
   reservationId,
   lockedSlot,
+  /** White-label F1: clase de marca del operador sobre `.reg-page`. */
+  scope,
 }: {
   slug: string;
   title: string;
@@ -267,6 +269,7 @@ export default function RegistrationForm({
   prefill: RegistrationPrefill | null;
   reservationId?: string;
   lockedSlot?: { slotId: string; slotLabel: string } | null;
+  scope?: string;
 }) {
   const [fullName, setFullName] = useState(prefill?.fullName || "");
   const [birthDate, setBirthDate] = useState(prefill?.birthDate || "");
@@ -403,7 +406,7 @@ export default function RegistrationForm({
       year: "numeric",
     });
     return (
-      <div className="reg-page solid-nav">
+      <div className={scope ? `reg-page solid-nav ${scope}` : "reg-page solid-nav"}>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {Nav}
         <section className="success">
@@ -432,7 +435,7 @@ export default function RegistrationForm({
 
   // ── FORMULARIO ────────────────────────────────────────────────────
   return (
-    <div className="reg-page solid-nav">
+    <div className={scope ? `reg-page solid-nav ${scope}` : "reg-page solid-nav"}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       {Nav}
 

@@ -4,9 +4,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
 import { deslindeListo } from "@/lib/experiences/flujo-venta";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
+import { fetchThemeForExperience } from "@/lib/operators/branding";
 import type { Experience } from "@/lib/experiences/types";
 import PubStyles from "../../ui/pub/PubStyles";
 import PubShell from "../../ui/pub/PubShell";
+import WhiteLabelStyles, { wlApp, wlDoc } from "../../ui/wl/WhiteLabelStyles";
 import CheckoutForm, { type ReservarSlot } from "./CheckoutForm";
 import ReservarMovil from "./ReservarMovil";
 
@@ -96,6 +98,10 @@ export default async function ReservarPage({
     })
     .filter((s) => s.perPerson > 0);
 
+  // White-label F1: la marca del operador dueño del viaje. Sin operador con
+  // marca ⇒ null y la pantalla se ve Caminante, igual que siempre.
+  const tema = await fetchThemeForExperience(slug);
+
   const errMsg = error ? errorMsgs[error] ?? decodeURIComponent(error) : null;
   const deslindeOk = deslindeListo(experience).ok;
   // Rótulo del subtítulo de la cabecera móvil: el estado (liga con la página de
@@ -108,7 +114,8 @@ export default async function ReservarPage({
   return (
     <>
       <PubStyles />
-      <section className="pub-no mx-auto w-full max-w-xl px-6 py-12">
+      <WhiteLabelStyles theme={tema} />
+      <section className={`pub-no${wlApp(tema)} mx-auto w-full max-w-xl px-6 py-12`}>
       <p className="text-[10px] uppercase tracking-[0.25em] text-olive">Reserva</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-lagoon">{title}</h1>
       <p className="mt-2 text-sm text-olive">
@@ -144,7 +151,7 @@ export default async function ReservarPage({
       </div>
       </section>
 
-      <PubShell buypad>
+      <PubShell buypad scope={wlDoc(tema)}>
         <ReservarMovil
           slug={slug}
           titulo={title}

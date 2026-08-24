@@ -6,8 +6,10 @@ import {
   fetchPrefillForUser,
   fetchReservationLock,
 } from "@/lib/registration/queries";
+import { fetchThemeForExperience } from "@/lib/operators/branding";
 import PubStyles from "../../ui/pub/PubStyles";
 import PubShell from "../../ui/pub/PubShell";
+import WhiteLabelStyles, { wlApp, wlDoc } from "../../ui/wl/WhiteLabelStyles";
 import RegistrationForm from "./RegistrationForm";
 import DeslindeMovil from "./DeslindeMovil";
 
@@ -37,6 +39,10 @@ export default async function RegistroPage({
   const ctx = await fetchRegistrationContext(slug);
   if (!ctx) notFound();
 
+  // White-label F1: el deslinde es la pantalla donde MÁS importa que se vea del
+  // operador — es el documento que el caminante firma con él, no con Caminante.
+  const tema = await fetchThemeForExperience(slug);
+
   const { experience, slots } = ctx;
   const title = `${experience.title} ${experience.titleAccent}`.trim();
   const datesBadge = experience.datesBadge?.big
@@ -60,7 +66,8 @@ export default async function RegistroPage({
     return (
       <>
         <PubStyles />
-        <div className="pub-no mx-auto flex w-full max-w-[560px] flex-col items-center px-4 py-16 text-center sm:px-6">
+        <WhiteLabelStyles theme={tema} />
+        <div className={`pub-no${wlApp(tema)} mx-auto flex w-full max-w-[560px] flex-col items-center px-4 py-16 text-center sm:px-6`}>
         <span className="inline-flex items-center gap-2 rounded-full border border-sand bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-olive">
           Registro cerrado
         </span>
@@ -81,7 +88,7 @@ export default async function RegistroPage({
         </a>
         </div>
 
-        <PubShell>
+        <PubShell scope={wlDoc(tema)}>
           <div className="pub-screen" style={{ background: "var(--panel)", minHeight: "100%" }}>
             <div className="pub-headpad"></div>
             <div className="pub-state" style={{ paddingTop: 30 }}>
@@ -121,8 +128,15 @@ export default async function RegistroPage({
   return (
     <>
       <PubStyles />
+      <WhiteLabelStyles theme={tema} />
       <div className="pub-no">
+        {/* El escritorio del deslinde lo pinta el CSS propio de RegistrationForm
+            (scope `.reg-page`), que habla el vocabulario de marca — de ahí
+            `wl-doc` y no `wl-app`. Va SOBRE `.reg-page`, no sobre este div:
+            `.reg-page{--olive:…}` declara las variables en su propio elemento y
+            una herencia desde el padre no le gana. */}
         <RegistrationForm
+          scope={wlDoc(tema)}
           slug={slug}
           title={title}
           datesBadge={datesBadge}
@@ -137,7 +151,7 @@ export default async function RegistroPage({
         />
       </div>
 
-      <PubShell>
+      <PubShell scope={wlDoc(tema)}>
         <DeslindeMovil
           slug={slug}
           title={title}

@@ -48,12 +48,19 @@ export default function PubShell({
   pendiente = false,
   /** Deja aire abajo para la barra de compra fija (pantallas de experiencia y reservar). */
   buypad = false,
+  /**
+   * Clase extra sobre `.pub` para vestir el shell con la marca de un operador
+   * (white-label F1). La pone `wlPub(theme)`; sin operador con marca llega
+   * `undefined` y el marcado queda exactamente como estaba.
+   */
+  scope,
 }: {
   children: ReactNode;
   tab?: PubTab | null;
   sesion?: boolean;
   pendiente?: boolean;
   buypad?: boolean;
+  scope?: string;
 }) {
   const [hoja, setHoja] = useState<Hoja | null>(null);
   const [toast, setToast] = useState<{ t: string; s?: string } | null>(null);
@@ -71,7 +78,7 @@ export default function PubShell({
 
   return (
     <Ctx.Provider value={ui}>
-      <div className="pub">
+      <div className={scope ? `pub ${scope}` : "pub"}>
         <div className="pub-app">
           <div className={"pub-scroll" + (buypad ? " buypad" : "")}>{children}</div>
 
