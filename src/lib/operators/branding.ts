@@ -78,6 +78,56 @@ export function themeCssFor(scope: string, b: OperatorBranding): string {
   return `${scope}{${vars};}${font}`;
 }
 
+
+// ── El OTRO vocabulario: el de la app (Tailwind) ─────────────────────────────
+//
+// ⚠️ ESTO NO ES DUPLICADO. El sitio tiene DOS juegos de variables con los MISMOS
+// nombres significando cosas distintas, y confundirlos pinta mal sin fallar:
+//
+//                    landing / .pub / kit        globals.css (Tailwind)
+//   --olive          el VERDE de marca           un GRIS calido de texto
+//   --dune           tinte claro del acento      el NARANJA de acento
+//   --lagoon         (no existe)                 el VERDE primario
+//
+// `themeCssFor` emite el primero y viste el portal del operador. Si se inyectara
+// tal cual sobre las pantallas de Tailwind (experiencia, reservar, deslinde,
+// exito) pondria el verde del operador en el TEXTO SECUNDARIO y su acento en un
+// tinte palido: un resultado equivocado y dificil de diagnosticar, porque nada
+// falla.
+//
+// Por eso hay dos emisores. Cada superficie usa el que le corresponde.
+//
+// Requiere que `@theme inline` de globals.css enrute los colores por variable
+// (`--color-lagoon: var(--lagoon)`) y no por hex literal. Con hex literal las
+// utilidades de Tailwind ignoran la cascada y este override no hace nada.
+export function themeCssAppFor(scope: string, b: OperatorBranding): string {
+  const c = b.colors;
+  const bg = c.bg || "#fbfbf7";
+  const ink = c.ink || "#20211c";
+  const vars = [
+    // primario del operador → el verde de la app
+    `--lagoon:${c.primary}`,
+    `--lagoon-light:color-mix(in srgb, ${c.primary} 78%, #fff)`,
+    // acento del operador → el naranja de la app
+    `--dune:${c.accent}`,
+    `--dune-light:color-mix(in srgb, ${c.accent} 84%, #000)`,
+    // superficie y tinta
+    `--cream:${bg}`,
+    `--charcoal:${ink}`,
+    // derivados, atados al operador para que no queden desentonando
+    `--sand:color-mix(in srgb, ${ink} 22%, ${bg})`,
+    `--sage:color-mix(in srgb, ${c.primary} 42%, ${bg})`,
+    // ⚠️ --olive NO se toca: aqui es el gris de texto secundario, no la marca.
+    //    Pintarlo del color del operador haria ilegible medio parrafo.
+    // ⚠️ --forest y --clay tampoco: son SEMANTICOS (exito y peligro). Un
+    //    operador con marca roja no debe volver rojo el "incluye".
+  ].join(";");
+  const font = b.font?.family
+    ? `${scope} h1,${scope} h2,${scope} h3{font-family:"${b.font.family}","Geist",system-ui,sans-serif;}`
+    : "";
+  return `${scope}{${vars};}${font}`;
+}
+
 // ── Carga (best-effort: sin migrar / sin tema ⇒ null, jamás rompe) ───────────
 type Row = {
   id: string;
