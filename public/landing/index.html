@@ -356,6 +356,22 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
   .footer .fbottom{margin-top:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,.12);font-size:13px;color:rgba(255,255,255,.5);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none!important;}}
+
+  /* ── Trabaja con nosotros (Claude Design, 24 ago 2026) ── */
+  */
+  .section.trabaja{padding-top:128px;padding-bottom:128px;border-top:1px solid var(--line)}
+  .trabaja-lead{max-width:52ch;font-size:16.5px;line-height:1.6;color:var(--ink-soft);margin-top:18px}
+  .trabaja-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;margin-top:64px}
+  .trabaja-via .ph{aspect-ratio:5/4}
+  .trabaja-via h3{max-width:22ch}
+  .trabaja-via p{max-width:44ch}
+  .trabaja-meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);display:grid;gap:14px}
+  .trabaja-meta div{display:grid;gap:4px}
+  .trabaja-meta dt{font-size:11px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;color:var(--olive)}
+  .trabaja-meta dd{font-size:14.5px;line-height:1.5;color:#3a3c33}
+  .trabaja-meta dd .sl{color:var(--orange);font-weight:600;padding:0 .25em}
+  .trabaja-go{margin-top:28px}
+  @media(max-width:899px){.trabaja-grid{grid-template-columns:1fr;gap:64px}.section.trabaja{padding-top:96px;padding-bottom:96px}}
 </style>
 </head>
 <body>
@@ -644,19 +660,52 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 </section>
 
 <!-- ============================== FOOTER =========================== -->
+<!-- ======================= TRABAJA CON NOSOTROS ==================== -->
+  <section class="section trabaja">
+  <div class="container">
+  <div class="shead" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;max-width:none;">
+  <div style="max-width:680px;">
+  <span class="eyebrow"><span class="sl">//</span> Trabaja con nosotros</span>
+  <h2 class="display">Dos maneras de trabajar el campo. <em class="ac">Ninguna es escalón de la otra.</em></h2>
+  <p class="trabaja-lead">Una trae su propia operación. La otra trae a su gente. Reconócete en la que ya eres.</p>
+  </div>
+  <span class="pager">04 / 06</span>
+  </div>
+
+  <div class="trabaja-grid">
+  <article class="srv trabaja-via">
+  <div class="ph"><img src="/landing/assets/img/boat-crew.jpg" alt="Capitán y guías preparando la panga antes de una salida al mar"></div>
+  <div class="n">01 · Operador</div>
+  <h3>Ya operas.</h3>
+  <p>Tienes guías, transporte y clientes. Caminante es el software: la página sale con tu marca, el cobro y los papeles corren por nuestra cuenta y tu operación no se toca.</p>
+  <dl class="trabaja-meta">
+  <div><dt>Proceso</dt><dd>Solicitud <span class="sl">//</span> videollamada de 30 minutos <span class="sl">//</span> expediente <span class="sl">//</span> acceso al panel</dd></div>
+  <div><dt>Requisitos</dt><dd>Seguro de responsabilidad civil vigente y guías con primeros auxilios.</dd></div>
+  </dl>
+  <div class="trabaja-go"><a class="btn btn-orange btn-arrow" href="/caminante/operadores">Aplica como operador</a></div>
+  </article>
+
+  <article class="srv trabaja-via">
+  <div class="ph"><img src="/landing/assets/img/group-dune.jpg" alt="Grupo reunido sobre una duna al final de una caminata"></div>
+  <div class="n">02 · Embajador</div>
+  <h3>No operas nada.</h3>
+  <p>Tienes audiencia o comunidad. Vendes nuestras experiencias y la operación completa es nuestra: guías, permisos, logística y el día en campo.</p>
+  <dl class="trabaja-meta">
+  <div><dt>Reparto</dt><dd>30% de la utilidad neta de cada venta.</dd></div>
+  <div><dt>Requisitos</dt><dd>Gente que te escucha. Nada de infraestructura.</dd></div>
+  </dl>
+  <div class="trabaja-go"><a class="btn btn-outline btn-arrow" href="/caminante/embajadores">Aplica como embajador</a></div>
+  </article>
+  </div>
+  </div>
+  </section>
+
 <footer class="footer">
   <div class="container">
     <div class="word" data-word aria-label="Caminante"></div>
     <div class="tagline">Caminante · Naturaleza en movimiento</div>
     <div class="sub">Una expansión de NUMAN al mundo natural</div>
     <p class="desc">Caminante lleva la educación encarnada de NUMAN a paisajes reales. Una parte de cada experiencia se destina a la conservación del lugar que la hace posible.</p>
-    <div class="trabaja">
-      <div class="k">Trabaja con nosotros</div>
-      <div class="links">
-        <a href="/caminante/operadores">Opera con Caminante <em>· usa la plataforma para tus propias salidas</em></a>
-        <a href="/caminante/embajadores">Sé embajador <em>· vende nuestras experiencias a tu comunidad</em></a>
-      </div>
-    </div>
     <div class="fbottom">
       <span>© 2026 Caminante</span>
       <span>uno@numanhub.com · @somos.caminante</span>
