@@ -234,7 +234,7 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
             </div>
             <div className={"opa-fld" + err("whatsapp")}>
               <label>WhatsApp <span className="req">*</span></label>
-              <input type="tel" name="whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="Con lada" />
+              <input type="tel" name="whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+52 55 1234 5678" />
               <p className="errmsg">{"//"} Este campo es obligatorio</p>
             </div>
             <div className="opa-fld">

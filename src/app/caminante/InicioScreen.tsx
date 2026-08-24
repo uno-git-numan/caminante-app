@@ -306,12 +306,95 @@ export default function InicioScreen({
                 <span style={{ color: "var(--sand)", fontSize: 17 }}>›</span>
               </Link>
             ))}
-            <Link className="pub-cta pub-cta-ghost pub-cta-sm" href="/caminante/embajadores">
-              ¿Operas experiencias? Camina con nosotros →
-            </Link>
           </div>
         </>
       ) : null}
+
+      {/* 4b · Trabaja con nosotros — las dos puertas, bien separadas.
+          Transcripcion del entregable movil de Claude Design (24 ago 2026).
+          Sustituye al boton suelto que preguntaba "¿Operas experiencias?" y
+          mandaba a /embajadores: quien opera es OPERADOR, y ese CTA llevaba a
+          la pagina equivocada desde que se escribio. */}
+      <section className="pub-sec">
+        <span className="trabaja-eyb">
+          <span className="sl">{"//"}</span> Trabaja con nosotros
+        </span>
+        <h2 className="trabaja-h2">
+          Dos oficios<em>.</em>
+        </h2>
+        <p className="trabaja-lead">
+          Ninguno es escalón del otro. Reconócete en el que ya eres.
+        </p>
+      </section>
+
+      <div className="trabaja-via">
+        <article className="pub-expcard trabaja-card">
+          <div className="trabaja-ph">
+            <img
+              src="/landing/assets/img/boat-crew.jpg"
+              alt="Capitán y guías preparando la panga antes de una salida al mar"
+            />
+          </div>
+          <div className="trabaja-in">
+            <span className="pub-chip">01 · Operador</span>
+            <h3>Ya operas.</h3>
+            <p>
+              Tienes guías, transporte y clientes. Caminante es el software: la página sale con tu
+              marca y tu operación no se toca.
+            </p>
+            <Link className="pub-cta pub-cta-glass" href="/caminante/operadores">
+              Aplica como operador →
+            </Link>
+          </div>
+        </article>
+        <dl className="trabaja-meta">
+          <div>
+            <dt>Proceso</dt>
+            <dd>
+              Solicitud <span className="sl">{"//"}</span> videollamada de 30 minutos{" "}
+              <span className="sl">{"//"}</span> expediente <span className="sl">{"//"}</span> panel
+            </dd>
+          </div>
+          <div>
+            <dt>Requisitos</dt>
+            <dd>Seguro de responsabilidad civil vigente y guías con primeros auxilios.</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="trabaja-via">
+        <article className="pub-expcard trabaja-card">
+          <div className="trabaja-ph">
+            <img
+              src="/landing/assets/img/group-dune.jpg"
+              alt="Grupo reunido sobre una duna al final de una caminata"
+            />
+          </div>
+          <div className="trabaja-in">
+            <span className="pub-chip">02 · Embajador</span>
+            <h3>No operas nada.</h3>
+            <p>
+              Tienes audiencia o comunidad. Vendes nuestras experiencias y la operación completa es
+              nuestra.
+            </p>
+            <Link className="pub-cta pub-cta-glass" href="/caminante/embajadores">
+              Aplica como embajador →
+            </Link>
+          </div>
+        </article>
+        <dl className="trabaja-meta">
+          <div>
+            <dt>Reparto</dt>
+            <dd>30% de la utilidad neta de cada venta.</dd>
+          </div>
+          <div>
+            <dt>Requisitos</dt>
+            <dd>Gente que te escucha. Nada de infraestructura.</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="pub-secd" style={{ marginTop: 32 }} />
 
       {/* 5 · Testimonios — textuales, con la calificación real */}
       <Sec>
