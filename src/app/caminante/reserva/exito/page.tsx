@@ -3,9 +3,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripeServerClient } from "@/lib/payments/stripe";
 import { facturacionActiva } from "@/lib/facturacion/facturapi";
 import { firmarPago } from "@/lib/facturacion/token";
+import { fetchThemeForExperience, fetchThemeForReservation } from "@/lib/operators/branding";
 import type { Experience } from "@/lib/experiences/types";
 import PubStyles from "../../ui/pub/PubStyles";
 import PubShell from "../../ui/pub/PubShell";
+import WhiteLabelStyles, { wlApp, wlDoc } from "../../ui/wl/WhiteLabelStyles";
 import ExitoMovil, { type ExitoResumen } from "./ExitoMovil";
 
 export const dynamic = "force-dynamic";
@@ -110,6 +112,14 @@ export default async function ReservaExitoPage({
     }
   }
 
+  // White-label F1. Primero la RESERVA (la 0016 congela ahí el operador de esa
+  // venta: si mañana la experiencia cambia de dueño, quien compró hoy debe
+  // seguir viendo la marca de quien le vendió). Si el webhook todavía no
+  // aterrizó y no hay reserva, se cae al dueño actual de la experiencia.
+  const tema =
+    (reservaId ? await fetchThemeForReservation(reservaId) : null) ??
+    (safeSlug ? await fetchThemeForExperience(safeSlug) : null);
+
   const facturaHref =
     facturacionActiva() && paymentId
       ? `/caminante/facturacion?p=${paymentId}&t=${firmarPago(paymentId)}`
@@ -128,7 +138,8 @@ export default async function ReservaExitoPage({
   return (
     <>
       <PubStyles />
-      <section className="pub-no mx-auto w-full max-w-xl px-6 py-16 text-center">
+      <WhiteLabelStyles theme={tema} />
+      <section className={`pub-no${wlApp(tema)} mx-auto w-full max-w-xl px-6 py-16 text-center`}>
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest/15">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M5 13l4 4L19 7" stroke="#5A7A4E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -164,7 +175,7 @@ export default async function ReservaExitoPage({
       </div>
       </section>
 
-      <PubShell>
+      <PubShell scope={wlDoc(tema)}>
         <ExitoMovil
           deslindeActivo={deslindeActivo && !!safeSlug}
           deslindeHref={deslindeHref}

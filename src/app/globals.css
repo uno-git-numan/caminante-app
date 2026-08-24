@@ -38,21 +38,44 @@
   --border: var(--sand);
 }
 
+/* ==========================================================================
+   @theme inline · el ENCHUFE del white-label, y por qué NO es `var(--lagoon)`
+   --------------------------------------------------------------------------
+   Las utilidades de Tailwind (text-lagoon, bg-dune…) resuelven lo que diga este
+   bloque. Con hex literal quedaban CONGELADAS: el tema de un operador no podía
+   tocarlas, y sin eso el white-label del funnel es imposible.
+
+   Pero enrutarlas a `var(--lagoon)` a secas abre de más. Media docena de hojas
+   inyectadas por página redefinen `:root{--lagoon…}` con OTRO vocabulario y
+   OTROS valores — template-v2-css, destino-css, deck-css, kit-css, tablero-css,
+   admin/movil-css. Ahí `--lagoon` es un turquesa (#1c6f6a), `--olive` el verde
+   de marca y `--dune` un arena. Enrutar a `var(--lagoon)` le entrega esas
+   páginas de Caminante a un vocabulario ajeno y les cambia el color sin que
+   nada falle.
+
+   Por eso el enchufe es un namespace PROPIO, `--app-*`, que NADIE define en
+   :root. Sin white-label la utilidad cae al hex de siempre — el mismo byte que
+   antes de abrir la cascada, por construcción y no por revisión. Con
+   white-label, `themeCssAppFor` define `--app-*` DENTRO de su scope y solo ahí.
+
+   ⚠️ Si agregas un color, va con su fallback al hex literal. Un `var(--app-x)`
+   pelón deja la utilidad sin valor fuera del scope.
+   ========================================================================== */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-lagoon: var(--lagoon);
-  --color-lagoon-light: var(--lagoon-light);
-  --color-dune: var(--dune);
-  --color-dune-light: var(--dune-light);
-  --color-cream: var(--cream);
-  --color-sand: var(--sand);
-  --color-olive: var(--olive);
-  --color-sage: var(--sage);
-  --color-forest: var(--forest);
-  --color-clay: var(--clay);
-  --color-charcoal: var(--charcoal);
-  --color-white: var(--white);
+  --color-background: var(--app-cream, var(--background));
+  --color-foreground: var(--app-charcoal, var(--foreground));
+  --color-lagoon: var(--app-lagoon, #3E4836);
+  --color-lagoon-light: var(--app-lagoon-light, #637154);
+  --color-dune: var(--app-dune, #FF5D36);
+  --color-dune-light: var(--app-dune-light, #E84620);
+  --color-cream: var(--app-cream, #FBFBF7);
+  --color-sand: var(--app-sand, #D4CEC6);
+  --color-olive: var(--app-olive, #776F67);
+  --color-sage: var(--app-sage, #A7AB8B);
+  --color-forest: var(--app-forest, #5A7A4E);
+  --color-clay: var(--app-clay, #C43D2A);
+  --color-charcoal: var(--app-charcoal, #20211C);
+  --color-white: var(--app-white, #FFFFFF);
 }
 
 /* Geist (local, variable) — la tipografía de la marca en TODO el sitio.
