@@ -15,6 +15,11 @@ import {
 export const dynamic = "force-dynamic";
 
 const notices: Record<string, string> = {
+  // El layout manda aquí al operador que pide una pantalla de la casa. Sin este
+  // texto el rebote es MUDO: aterriza en Panorama sin saber por qué, que se
+  // siente como un clic que se perdió y no como un permiso.
+  solo_casa:
+    "Esa sección es de la administración de Caminante (dinero de la plataforma, solicitudes, convenios). Tu panel te muestra tus experiencias, tus reservas y tu gente. Si necesitas algo de ahí, pídeselo a Luis.",
   admin_no_registro:
     "Estás en modo admin. El registro y la reserva de experiencias son para viajeros — usa una cuenta de caminante si quieres probar ese flujo.",
 };
@@ -193,9 +198,9 @@ function SalidaRow({ s, pasada = false }: { s: UpcomingSlot; pasada?: boolean })
 export default async function AdminHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ notice?: string; escritorio?: string }>;
+  searchParams: Promise<{ notice?: string; aviso?: string; escritorio?: string }>;
 }) {
-  const { notice, escritorio } = await searchParams;
+  const { notice, aviso, escritorio } = await searchParams;
 
   // ⚠️ En TELÉFONO, la entrada al panel es el panel-app. El panel móvil existía
   // desde el 11 ago pero ningún camino llevaba a él: quien abría el panel desde
@@ -216,7 +221,9 @@ export default async function AdminHomePage({
     if (esTelefono(ua)) redirect("/caminante/admin/m");
   }
 
-  const noticeText = notice ? notices[notice] : null;
+  // `aviso` lo pone el layout; `notice` venía de antes. Los dos leen el mismo mapa.
+  const clave = notice || aviso;
+  const noticeText = clave ? notices[clave] : null;
   const { kpis, proximas, pasadas } = await fetchAdminOverview();
   const sat = kpis.satisfaccion;
 
