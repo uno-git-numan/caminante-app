@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esSesionMuerta } from "@/lib/auth/sesion-rota";
 
 // TRES perfiles, no dos:
@@ -63,10 +64,17 @@ export async function roleForClient(
   // panel filtrado a sí mismo.
   if (data) return "admin";
 
-  // ¿Operador vivo? Se pregunta con el MISMO cliente que trae la sesión, no con
-  // el de servicio: este camino corre justo después del login, cuando las
-  // cookies nuevas todavía no están en la request.
-  const { data: op, error: opErr } = await supabase
+  // ⚠️ ESTA CONSULTA VA CON EL CLIENTE DE SERVICIO, NO CON EL DE LA SESIÓN, y no
+  // es una comodidad: `operators` tiene RLS que solo expone las filas
+  // `is_public = true` (son los perfiles públicos de operador). Kéntro está en
+  // pausa como perfil, así que con el cliente del usuario la fila NO APARECE y
+  // el rol caía a «caminante» — el operador se quedaba fuera de su propio panel
+  // sin un solo error, solo un `?error=not_admin` en la home. Medido en el
+  // preview el 24 ago 2026.
+  //
+  // Es seguro: el correo NO viene del cliente, sale de `getUser()`, que ya
+  // validó el token. Aquí solo se pregunta si ese correo tiene panel.
+  const { data: op, error: opErr } = await createSupabaseAdminClient()
     .from("operators")
     .select("id")
     .eq("email", email)
