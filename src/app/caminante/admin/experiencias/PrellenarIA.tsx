@@ -11,7 +11,10 @@ type Props = {
   onResult: (data: Record<string, unknown>, slots: SlotIA[], notas: string) => void;
 };
 
-const MAX_MB = 4;
+// ⚠️ 4.4 y no más: Vercel corta el cuerpo de la petición en ~4.5 MB antes de que
+// el endpoint lo vea. Subir este número solo cambiaría un mensaje claro por un
+// 413 crudo de la plataforma. Ver el comentario en api/admin/prellenar.
+const MAX_MB = 4.4;
 
 export default function PrellenarIA({ onResult }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -60,7 +63,8 @@ export default function PrellenarIA({ onResult }: Props) {
       <p className="sd-hint" style={{ marginTop: 6 }}>
         Sube el itinerario del operador (PDF, imágenes) <b>o pega el texto</b> abajo. La IA pre-llena
         el formulario en voz Caminante — tú revisas, subes las fotos y guardas. No inventa precios ni
-        horarios: lo que no esté en el material queda vacío. Word → exportar a PDF. Máx {MAX_MB} MB.
+        horarios: lo que no esté en el material queda vacío. Word → exportar a PDF.
+        {" "}<b>Si el PDF pesa más de {MAX_MB} MB, pega el texto</b> — funciona igual de bien y es más rápido.
       </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
@@ -102,7 +106,9 @@ export default function PrellenarIA({ onResult }: Props) {
       </div>
       {pasado ? (
         <p className="sd-hint" style={{ color: "#b33517", marginTop: 8 }}>
-          {totalMB.toFixed(1)} MB — el límite es {MAX_MB} MB. Quita archivos o comprime el PDF.
+          {totalMB.toFixed(1)} MB — el servidor corta en {MAX_MB} MB y no se puede subir más.
+          {" "}<b>Lo más rápido: abre el PDF, copia el texto y pégalo aquí abajo.</b> Funciona sin
+          subir nada y la IA lee mejor el texto que las fotos del documento.
         </p>
       ) : null}
 

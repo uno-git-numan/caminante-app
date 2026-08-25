@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 // Vercel rechaza bodies de ~4.5 MB — límite propio con mensaje claro.
-const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
+// Mismo techo de Vercel (~4.5 MB) que en prellenar: 4.4 es pegarse a él.
+const MAX_TOTAL_BYTES = Math.floor(4.4 * 1024 * 1024);
 
 const TIPOS_BASE64 = new Set(["application/pdf", "image/png", "image/jpeg", "image/webp", "image/gif"]);
 
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     total += f.size;
     if (total > MAX_TOTAL_BYTES) {
       return NextResponse.json(
-        { ok: false, error: "Los archivos pesan más de 4 MB en total. Comprime el PDF o divide en tandas." },
+        { ok: false, error: "Los archivos pasan de 4.4 MB y ahí corta el servidor. Copia el texto del PDF y pégalo, o divide en tandas." },
         { status: 413 },
       );
     }

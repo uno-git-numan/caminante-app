@@ -11,8 +11,17 @@ export const dynamic = "force-dynamic";
 // Con 60s Vercel cortaba la función a la mitad ("No hubo respuesta").
 export const maxDuration = 300;
 
-// Vercel rechaza bodies de ~4.5 MB — límite propio con mensaje claro.
-const MAX_TOTAL_BYTES = 4 * 1024 * 1024;
+// ⚠️ ESTE LÍMITE NO ES NUESTRO: Vercel corta el cuerpo de la petición en ~4.5 MB
+// antes de que el código lo vea. Subirlo más alto no sirve de nada — el archivo
+// se rechazaría igual, pero con un 413 crudo de la plataforma en vez de un
+// mensaje que explique qué hacer. 4.4 MB es pegarse al techo dejando margen
+// para los límites del multipart.
+//
+// La salida de verdad es no mandar el archivo por aquí: subirlo directo a
+// Storage desde el navegador y pasarle la ruta a este endpoint. Mientras tanto,
+// PEGAR EL TEXTO funciona sin tocar el límite y da mejor resultado — un
+// itinerario en texto pesa kilobytes y la IA no tiene que leer fotos.
+const MAX_TOTAL_BYTES = Math.floor(4.4 * 1024 * 1024);
 
 const TIPOS_BASE64 = new Set([
   "application/pdf",
@@ -70,7 +79,10 @@ export async function POST(request: Request) {
         {
           ok: false,
           error:
-            "Los archivos pesan más de 4 MB en total. Quita fotos del PDF o comprímelo (los itinerarios en texto pesan poco).",
+            "El archivo pesa más de 4.4 MB y ahí corta el servidor — no es algo que puedas rodear subiéndolo otra vez. " +
+            "Lo más rápido: abre el PDF, copia el texto y pégalo abajo en «Indicaciones». " +
+            "Funciona sin subir nada y la IA lee mejor el texto que las fotos del PDF. " +
+            "Si prefieres el archivo, expórtalo comprimido (en Vista Previa del Mac: Archivo → Exportar → Cuarzo «Reducir tamaño»).",
         },
         { status: 413 },
       );

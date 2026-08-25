@@ -897,7 +897,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               <button type="button" className="btn btn-ghost btn-sm" disabled={fichaIaBusy} onClick={() => fichaFileRef.current?.click()}>
                 {fichaIaBusy ? "Extrayendo… (1–2 min)" : "✨ Extraer con IA de mis PDFs"}
               </button>
-              <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>Guías de campo, papers, folletos (≤4 MB). La IA solo extrae lo que trae fuente — tú revisas y guardas.</span>
+              <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>Guías de campo, papers, folletos (≤4.4 MB — si pesa más, pega el texto). La IA solo extrae lo que trae fuente — tú revisas y guardas.</span>
             </div>
             {fichaIaMsg ? <p className="desc" style={{ marginTop: 4 }}>{fichaIaMsg}</p> : null}
 
