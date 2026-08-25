@@ -189,6 +189,31 @@ const REGLAS = [
       return null;
     },
   },
+  {
+    nombre: "El destino por rol vive en un solo lugar",
+    comprueba() {
+      if (!hay("src/lib/auth/destino.ts"))
+        return "Falta src/lib/auth/destino.ts: es el único lugar donde se decide a dónde va cada rol después de autenticarse.";
+      // El patrón que causó el incidente: ramificar el destino a mano, con solo
+      // dos roles en mente. Se busca en las cinco puertas que lo tenían copiado.
+      const puertas = [
+        "src/app/caminante/entrar/route.ts",
+        "src/app/caminante/login/page.tsx",
+        "src/app/caminante/auth/callback/route.ts",
+        "src/app/caminante/auth/confirm/route.ts",
+        "src/lib/auth/actions.ts",
+      ];
+      for (const f of puertas) {
+        const s = leer(f);
+        if (!s) continue;
+        if (/role\s*===\s*"admin"\s*\?/.test(s) || /rol\s*===\s*"admin"\s*\?/.test(s))
+          return `${f} volvió a decidir el destino a mano con un ternario de dos roles. Eso dejó a una operadora real dando vueltas entre Google y la pantalla de login el 25 ago 2026: no entraba en ningún caso y caía al login, una y otra vez, sin un solo error. Usa destinoPorRol() de lib/auth/destino.ts.`;
+        if (!/destinoPorRol/.test(s))
+          return `${f} decide a dónde mandar a alguien recién autenticado y ya no llama a destinoPorRol(). Si esa puerta se olvida de un rol, ese rol se queda fuera en silencio.`;
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

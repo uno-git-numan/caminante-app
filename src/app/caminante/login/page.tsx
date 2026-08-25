@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { sendMagicLink, signInWithPassword } from "@/lib/auth/actions";
 import { getCurrentRole } from "@/lib/auth/authorization";
+import { destinoPorRol } from "@/lib/auth/destino";
 import GoogleButton from "./GoogleButton";
 
 interface LoginPageProps {
@@ -51,8 +52,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   // Con sesión activa el login no tiene nada que ofrecer: directo a tu página.
   const role = await getCurrentRole();
-  if (role === "admin") redirect("/caminante/admin");
-  if (role === "caminante") redirect("/caminante/perfil");
+  // Cualquier rol con sesión sale de aquí. Antes solo salían dos, y el operador
+  // se quedaba mirando el formulario de login ya estando autenticado.
+  if (role) redirect(destinoPorRol(role));
 
   return (
     <section className="mx-auto max-w-md px-6 py-12">

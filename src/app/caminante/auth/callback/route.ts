@@ -3,6 +3,7 @@ import { createSupabaseAuthClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureContactLink } from "@/lib/crm/contacts";
 import { roleForClient } from "@/lib/auth/authorization";
+import { destinoPorRol } from "@/lib/auth/destino";
 
 // Callback del flujo OAuth (PKCE) — p.ej. "Iniciar con Google". El proveedor
 // regresa con ?code=…; lo intercambiamos por sesión con el cliente SSR (que tiene
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
   let dest = next;
   if (next === "/caminante") {
     const role = await roleForClient(supabase);
-    dest = role === "admin" ? "/caminante/admin" : "/caminante/perfil";
+    dest = destinoPorRol(role);
   }
 
   return NextResponse.redirect(new URL(dest, request.url));

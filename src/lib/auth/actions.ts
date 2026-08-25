@@ -1,6 +1,7 @@
 "use server";
 
 import { headers, cookies } from "next/headers";
+import { destinoPorRol } from "@/lib/auth/destino";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -44,14 +45,14 @@ function parseNext(formData: FormData): string {
 
 // Destino tras autenticar: si `next` es un destino EXPLÍCITO, se respeta (la página
 // destino guarda por rol si aplica — p.ej. /registro rebota a un admin). Si `next` es
-// el genérico "/caminante", ramificamos por rol: admin → panel admin, caminante → perfil.
+// el genérico "/caminante", ramificamos por rol (lib/auth/destino.ts).
 export async function postAuthDestination(
   supabase: SupabaseClient,
   next: string,
 ): Promise<string> {
   if (next && next !== "/caminante") return next;
   const role = await roleForClient(supabase);
-  return role === "admin" ? "/caminante/admin" : "/caminante/perfil";
+  return destinoPorRol(role);
 }
 
 function parseEmail(formData: FormData) {

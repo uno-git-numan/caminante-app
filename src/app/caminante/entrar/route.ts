@@ -10,17 +10,17 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentRole } from "@/lib/auth/authorization";
+import { destinoPorRol } from "@/lib/auth/destino";
 import { esTelefono } from "@/lib/ui/dispositivo";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const role = await getCurrentRole();
-
-  if (role === "admin") {
-    const ua = (await headers()).get("user-agent") ?? "";
-    redirect(esTelefono(ua) ? "/caminante/admin/m" : "/caminante/admin");
-  }
-  if (role === "caminante") redirect("/caminante/perfil");
-  redirect("/caminante/login?next=/caminante/entrar");
+  const ua = (await headers()).get("user-agent") ?? "";
+  // ⚠️ UN SOLO destino, calculado en lib/auth/destino.ts. Aquí había dos `if` y
+  // un redirect al login de último renglón: el operador no entraba en ninguno de
+  // los dos y caía al login — el bucle del 25 ago. Un `switch` exhaustivo en un
+  // solo archivo hace imposible repetirlo.
+  redirect(destinoPorRol(role, { telefono: esTelefono(ua) }));
 }
