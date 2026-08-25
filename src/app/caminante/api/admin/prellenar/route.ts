@@ -2,7 +2,7 @@
 // operador y devuelve la experiencia pre-llenada (ver src/lib/ai/prellenar.ts).
 // Gate re-verificado adentro — el layout del admin NO cubre route handlers.
 import { NextResponse } from "next/server";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { prellenarExperiencia, type ArchivoEntrada } from "@/lib/ai/prellenar";
 
 export const runtime = "nodejs";
@@ -36,7 +36,16 @@ function esTexto(tipo: string, nombre: string): boolean {
 }
 
 export async function POST(request: Request) {
-  if (!(await isCurrentUserAdmin())) {
+// ⚠️ EL GATE ES «PUEDE ENTRAR AL PANEL», NO «ES LA CASA».
+// `isCurrentUserAdmin()` significa la casa, y cuando se agregó el rol
+// «operador» estos endpoints se quedaron con el gate viejo. Resultado, con una
+// operadora real en llamada el 25 ago: pegaba el texto de su itinerario, picaba
+// «Pre-llenar con IA» y le salía «No autorizado.» — en su propia experiencia,
+// en el formulario que existe para que ella la dé de alta.
+//
+// Abrirlo no expone nada de nadie: aquí no se lee ni se escribe la base. Entra
+// un documento suyo y sale texto para el formulario que tiene enfrente.
+  if (!(await puedeEntrarAlPanel())) {
     return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
   }
 

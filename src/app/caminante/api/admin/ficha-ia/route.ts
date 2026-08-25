@@ -3,7 +3,7 @@
 // de api/admin/prellenar. Gate re-verificado adentro — el layout del admin NO
 // cubre route handlers.
 import { NextResponse } from "next/server";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import type { ArchivoEntrada } from "@/lib/ai/prellenar";
 import { extraerFicha } from "@/lib/ai/ficha-ia";
 
@@ -23,7 +23,10 @@ function esTexto(tipo: string, nombre: string): boolean {
 }
 
 export async function POST(request: Request) {
-  if (!(await isCurrentUserAdmin())) {
+  // Mismo caso que `prellenar`: el gate era «la casa» y dejaba fuera al operador
+  // de su propia ficha. Aquí no se lee ni se escribe la base — entra un
+  // documento suyo, sale texto para el formulario que tiene enfrente.
+  if (!(await puedeEntrarAlPanel())) {
     return NextResponse.json({ ok: false, error: "No autorizado." }, { status: 401 });
   }
 

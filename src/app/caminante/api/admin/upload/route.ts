@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -7,7 +7,11 @@ export const runtime = "nodejs";
 const BUCKET = "experiences";
 
 export async function POST(request: Request) {
-  if (!(await isCurrentUserAdmin())) {
+  // ⚠️ También «puede entrar al panel», no «es la casa». Sin esto un operador no
+  // puede subir NI UNA foto a su experiencia: el formulario existe para que él
+  // la arme, y armarla sin fotos no es armarla. El bucket es el mismo y los
+  // archivos quedan bajo su experiencia, que solo él y la casa pueden editar.
+  if (!(await puedeEntrarAlPanel())) {
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   }
 
