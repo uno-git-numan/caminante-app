@@ -44,7 +44,9 @@ import {
 const PANEL = "/caminante/admin/solicitudes";
 const SITIO = "https://caminante.numanhub.com";
 
-export type Res = { ok: boolean; error?: string };
+// `operatorId` solo lo llena la aprobación: la tarjeta lo necesita para
+// ofrecer «Completar su expediente» sin esperar a que la página recargue.
+export type Res = { ok: boolean; error?: string; operatorId?: string };
 
 type App = {
   id: string;
@@ -169,6 +171,26 @@ export async function aprobarOperadorApp(id: string): Promise<Res> {
 
   const sb = createSupabaseAdminClient();
 
+  // ⚠️ ESTO ES LO QUE HACE QUE EL EMBUDO PÚBLICO TERMINE EN ALGÚN LADO.
+  // Aprobar YA NO reparte llaves de la casa (ese upsert a `admin_whitelist` se
+  // quitó, ver el encabezado), pero al quitarlo el camino se quedó sin salida:
+  // el operador aplicaba, se le hacía la llamada, se le pedían papeles, se
+  // aprobaba, le llegaba un correo que dice «Entrar a la plataforma»… y no
+  // podía entrar, porque `panel_activo` seguía en false. Nada fallaba: la
+  // puerta simplemente no existía.
+  //
+  // Aprobar a un operador ES la decisión de darle su panel — el podado a sus
+  // experiencias. Va aquí y no en `ensureOperador` porque esa función también
+  // la usa la aprobación de EMBAJADORES, y un embajador vende, no opera.
+  const { error: panelErr } = await sb
+    .from("operators")
+    .update({ panel_activo: true })
+    .eq("id", alta.operatorId);
+  if (panelErr) {
+    console.error("aprobarOperadorApp panel:", panelErr);
+    return { ok: false, error: "Se creó el operador pero no se pudo abrir su panel." };
+  }
+
   // La marca declarada al aplicar se copia al operador — pero NUNCA pisa una
   // que ya exista: si alguien ya la configuró desde el panel, esa manda.
   if (marcaLista(app.branding)) {
@@ -207,7 +229,7 @@ export async function aprobarOperadorApp(id: string): Promise<Res> {
 
   await emailBienvenidaOperador(app.email, app.responsable).catch((e) => console.error("bienvenida:", e));
   revalidatePath(PANEL);
-  return { ok: true };
+  return { ok: true, operatorId: alta.operatorId };
 }
 
 // ── 4 · Rechazar ─────────────────────────────────────────────────────────────

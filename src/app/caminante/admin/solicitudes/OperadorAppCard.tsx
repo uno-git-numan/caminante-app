@@ -4,8 +4,8 @@
 // clases, pero con los cuatro escalones que pidió Luis: llegó → se agenda la
 // llamada → se le pide el expediente → se aprueba y entra al panel.
 //
-// ⚠️ Aprobar aquí NO es lo mismo que aprobar a un embajador: abre el panel
-// completo (reservas, datos médicos, dinero). Por eso la confirmación lo dice
+// ⚠️ Aprobar aquí NO es lo mismo que aprobar a un embajador: le abre SU panel
+// (`operators.panel_activo`, podado a sus experiencias). Por eso la confirmación lo dice
 // con todas sus letras en vez de un «¿seguro?» genérico.
 import { useState } from "react";
 import {
@@ -77,6 +77,7 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<"ok" | "no" | null>(null);
+  const [opId, setOpId] = useState<string | null>(null);
   const [panel, setPanel] = useState<"llamada" | "docs" | null>(null);
   const [meet, setMeet] = useState(app.meetUrl ?? "");
   const [cuando, setCuando] = useState(app.llamadaAt?.slice(0, 16) ?? "");
@@ -84,12 +85,12 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
   const [docs, setDocs] = useState<string[]>(DOCS_SUGERIDOS.slice(0, 3));
   const est = ESTADO[app.status] ?? { txt: app.status, cls: "c-sol" };
 
-  async function correr(tag: string, fn: () => Promise<{ ok: boolean; error?: string }>) {
+  async function correr(tag: string, fn: () => Promise<{ ok: boolean; error?: string; operatorId?: string }>) {
     setBusy(tag); setErr(null);
     try {
       const r = await fn();
       if (!r.ok) setErr(r.error || "No se pudo.");
-      else if (tag === "ok") setDone("ok");
+      else if (tag === "ok") { setDone("ok"); setOpId(r.operatorId ?? null); }
       else if (tag === "no") setDone("no");
       else setPanel(null);
     } catch { setErr("No se pudo. Inténtalo de nuevo."); }
@@ -224,7 +225,16 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
 
       <div className="act-row">
         {done === "ok" ? (
-          <span className="chip c-paid">Aprobado — ya es operador y tiene acceso al panel</span>
+          <>
+            <span className="chip c-paid">Aprobado — ya entra a su panel</span>
+            {/* La solicitud NO captura entidad legal, trato ni experiencias, y sin
+                eso su deslinde sale a nombre de Caminante y su panel se ve vacío.
+                Esta liga es el único puente entre el embudo público y el alta
+                completa; sin ella hay que armar la URL a mano. */}
+            <a className="btn btn-orange btn-sm" href={opId ? `/caminante/admin/operadores/nuevo?op=${opId}` : "/caminante/admin/operadores"}>
+              Completar su expediente →
+            </a>
+          </>
         ) : done === "no" ? (
           <span className="chip c-canc">Rechazado (correo enviado)</span>
         ) : (
@@ -237,7 +247,7 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
             </button>
             <button className="btn btn-orange btn-sm" disabled={busy !== null}
               onClick={() => {
-                if (!confirm(`Aprobar a ${app.nombreOperadora} le da ACCESO AL PANEL: reservas, datos médicos de clientes y dinero. ¿Seguro?`)) return;
+                if (!confirm(`Aprobar a ${app.nombreOperadora} lo da de alta como operador y le abre SU panel: sus experiencias, sus reservas y su gente. No ve el dinero de la plataforma ni los clientes de otros. ¿Seguro?`)) return;
                 correr("ok", () => aprobarOperadorApp(app.id));
               }}>
               {busy === "ok" ? "Aprobando…" : "Aprobar operador"}
