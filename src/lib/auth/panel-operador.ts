@@ -38,6 +38,14 @@ const EXACTAS = new Set<string>([
 //     entra por el panel de escritorio. Ojo: el índice del panel redirige al
 //     panel-app en teléfono, y ese redirect quedó condicionado a la casa — si no,
 //     sería un bucle.
+//
+//     ⚠️ Y OJO CON EL PREFIJO. `/caminante/admin/m/` estuvo un rato en la lista
+//     de PREFIJOS de abajo mientras la ruta exacta estaba bloqueada: el resultado
+//     era que `/admin/m` rebotaba pero `/admin/m/loquesea` pasaba. Hoy no filtró
+//     nada porque el panel-app es UNA sola ruta (todo lo demás da 404), pero es
+//     justo la forma en que una lista blanca deja de serlo. Si algún día el
+//     panel-app crece en sub-rutas, el prefijo se agrega DESPUÉS de podarlas, no
+//     antes.
 //   · solicitudes · operadores · payouts · facturación · proveedores · listings ·
 //     soporte · cobro · accesos · social-cola — administración de la plataforma.
 
@@ -50,7 +58,6 @@ const PREFIJOS = [
   "/caminante/admin/social/",
   "/caminante/admin/preview/",
   "/caminante/admin/print/",
-  "/caminante/admin/m/",
 ];
 
 /**
