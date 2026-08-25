@@ -48,7 +48,7 @@ export default async function OnboardingPage({
   if (op) {
     const { data } = await sb
       .from("operators")
-      .select("id, name, email, slug, instagram, branding, legal, notes, rfc, razon_social")
+      .select("id, name, email, slug, instagram, branding, legal, notes, rfc, razon_social, panel_activo")
       .eq("id", op)
       .maybeSingle();
     if (data) {
@@ -59,6 +59,7 @@ export default async function OnboardingPage({
         rfc: string | null;
         razon_social: string | null;
         notes: string | null;
+        panel_activo: boolean | null;
       };
       prefill = {
         id: r.id,
@@ -77,6 +78,7 @@ export default async function OnboardingPage({
         domicilio: r.legal?.domicilio ?? "",
         responsable: r.legal?.responsable ?? "",
         trato: r.notes ?? "",
+        panelActivo: !!r.panel_activo,
       };
     }
   }

@@ -47,6 +47,11 @@ export async function onboardOperator(formData: FormData): Promise<void> {
   const responsable = clean(formData.get("responsable"), 200);
 
   const trato = clean(formData.get("trato"), 400);
+  // 0042 · el interruptor del panel del operador. Va en el formulario y no en un
+  // UPDATE a mano porque el momento de decidirlo es el alta, con la persona
+  // enfrente — pedirle a Luis que abra el SQL Editor a media junta es la forma
+  // segura de que el operador se vaya sin acceso.
+  const panelActivo = formData.get("panelActivo") === "on";
   const expIds = formData.getAll("experiencias").map((v) => clean(v, 60)).filter(Boolean);
 
   if (!nombre || !email.includes("@") || !slug) redirect(`${RUTA}?error=datos`);
@@ -85,6 +90,7 @@ export async function onboardOperator(formData: FormData): Promise<void> {
     rfc: rfc || null,
     razon_social: razonSocial || null,
     notes: trato || null,
+    panel_activo: panelActivo,
     // ⚠️ El alta PUBLICA al operador. Este formulario es el acto de ponerlo en
     // el aire —su botón dice «ver su portal»— y `is_public` es lo que abre sus
     // dos páginas públicas: el portal con su marca (/caminante/o/<slug>) y su

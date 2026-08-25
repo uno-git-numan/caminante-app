@@ -11,6 +11,7 @@ export type ExpOpcion = { id: string; slug: string; titulo: string; status: stri
 export type OperadorPrefill = {
   id: string; nombre: string; email: string; slug: string; instagram: string;
   logoUrl: string; logoDarkUrl: string; primary: string; accent: string; poweredBy: "discreto" | "visible";
+  panelActivo: boolean;
   razonSocial: string; rfc: string; domicilio: string; responsable: string; trato: string;
 };
 
@@ -192,6 +193,30 @@ export default function OnboardingForm({ experiencias, prefill }: { experiencias
           placeholder="p. ej. Operador white-label · comisión de plataforma 12% · convenio firmado …"
           style={{ width: "100%", fontSize: 13.5, padding: "11px 13px", border: "1px solid var(--line)", borderRadius: 10, background: "#fff" }}
         />
+      </div>
+
+      {/* ── 4b · Acceso a su panel ── */}
+      <div className="card pad" style={{ marginBottom: 16 }}>
+        <span className="subtitle">4b · Acceso a su panel</span>
+        <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 10, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            name="panelActivo"
+            defaultChecked={prefill?.panelActivo ?? false}
+            style={{ marginTop: 3, width: 16, height: 16 }}
+          />
+          <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+            <b>Dale entrada al panel</b> con el correo de arriba. Va a ver el mismo tablero
+            que tú pero <b>solo con sus experiencias</b>: su Panorama, sus salidas, sus
+            reservas, su gente, su roster, su encuesta y su Kit.
+            <br />
+            <span className="mut" style={{ fontSize: 12.5 }}>
+              NO ve el dinero de la plataforma, la rentabilidad, los proveedores, los payouts
+              de otros operadores, las solicitudes ni el CRM completo. Desmarcar aquí le quita
+              el acceso sin borrar nada de lo suyo.
+            </span>
+          </span>
+        </label>
       </div>
 
       {/* ── 5 · Sus experiencias ── */}
