@@ -1,16 +1,14 @@
 # White-label F1 · el funnel del cliente con la marca del operador
 
-Estado al cerrar la sesión del 24 ago 2026. Los **cimientos están puestos,
-verificados y commiteados** (`deb2514`). Falta el cableado y su prueba.
+**ENTREGADO Y VERIFICADO** el 24 ago 2026. Esta nota deja de ser un pendiente y
+pasa a ser el mapa de cómo funciona. Lo que sigue después es F2 (correos), F3
+(dominio propio) y F4 (Kit/PDF), que **no** son parte de esto.
 
-## Qué es F1 y por qué importa
+## Qué hace
 
-Hoy el tema del operador **solo viste su portal** `/caminante/o/<slug>`. En cuanto
-alguien pica «Reservar», ve Caminante: logo, colores, todo. Eso contradice lo que
-se le promete al operador en la llamada de alta —«va a parecer que tienes una
-app»— así que F1 es lo que hace verdadera esa frase.
-
-Las cuatro pantallas por las que pasa quien compra:
+Las cuatro pantallas por las que pasa quien compra se visten con la marca del
+operador **dueño del viaje**. Sin operador con marca no se pinta nada: ni un
+`<style>`, ni una clase de más.
 
 | Ruta | Archivo |
 |---|---|
@@ -19,98 +17,140 @@ Las cuatro pantallas por las que pasa quien compra:
 | `/caminante/registro/[slug]` | `src/app/caminante/registro/[slug]/page.tsx` |
 | `/caminante/reserva/exito` | `src/app/caminante/reserva/exito/page.tsx` |
 
-## Lo que YA está hecho (commit deb2514)
+El interruptor único es `src/app/caminante/ui/wl/WhiteLabelStyles.tsx`. Cada
+página resuelve el tema y lo pasa; el componente decide si hay algo que pintar.
 
-### 1 · Se abrió la cascada de Tailwind
+## Las tres cosas que no son obvias
 
-`src/app/globals.css` → `@theme inline` tenía los colores en **hex literal**:
+### 1 · El enchufe de Tailwind es `--app-*`, NO `var(--lagoon)`
 
-    --color-lagoon: #3E4836;      /* antes */
-    --color-lagoon: var(--lagoon); /* ahora */
+`globals.css` dice `--color-lagoon: var(--app-lagoon, #3E4836)`.
 
-Con hex literal, `text-lagoon` resolvía a un valor fijo y **sobreescribir
-`--lagoon` no hacía nada**. Sin este cambio F1 es imposible.
+Enrutarlo a `var(--lagoon)` a secas —que fue el primer intento— abre de más:
+**seis hojas que se inyectan por página redefinen `:root{--lagoon…}` con otro
+vocabulario y otros valores** (`template-v2-css`, `destino-css`, `deck-css`,
+`kit-css`, `tablero-css`, `admin/movil-css`). Ahí `--lagoon` es un turquesa
+`#1c6f6a`, `--olive` el verde de marca y `--dune` un arena. Con la cascada
+abierta a los nombres pelones, la página de experiencia, los destinos, el Kit y
+el tablero le entregaban sus utilidades de Tailwind a un vocabulario ajeno.
 
-Los 12 colores se enrutaron por variable. Se verificó uno por uno que resuelvan
-al MISMO hex que antes: cero cambio visual, solo se abrió la cascada.
+Nadie define `--app-*` en `:root`. Sin white-label la utilidad cae al hex de
+siempre — el mismo byte que antes, **por construcción y no por revisión**.
 
-### 2 · Se agregó `themeCssAppFor` en `src/lib/operators/branding.ts`
+⚠️ Si agregas un color al `@theme inline`, va con su respaldo al hex literal.
 
-⚠️ **Hay DOS vocabularios de variables con los mismos nombres.** Es el hallazgo
-que más fácil se olvida y el que produce un resultado equivocado sin fallar:
+### 2 · Dos clases, porque en el funnel conviven los DOS vocabularios
 
-| Variable | landing · `.pub` · kit | `globals.css` (Tailwind) |
+Y dos de las cuatro pantallas **no son Tailwind en escritorio**, aunque desde la
+página lo parezcan: las pinta el CSS propio de su componente.
+
+| superficie | vocabulario | clase |
 |---|---|---|
-| `--olive` | el **verde** de marca | un **gris cálido** de texto |
-| `--dune` | tinte claro del acento | el **naranja** de acento |
-| `--lagoon` | no existe | el **verde** primario |
+| escritorio de reservar / éxito / «salida completa» | Tailwind | `wl-app` |
+| escritorio de la experiencia (`TEMPLATE_V2_CSS`) | el de marca | `wl-doc` |
+| escritorio del deslinde (`.reg-page`) | el de marca | `wl-doc` |
+| shell móvil (`.pub`) | el de marca | `wl-doc` |
 
-`themeCssFor` emite el primero (viste el portal, ya funciona).
-`themeCssAppFor` emite el segundo. **Cada superficie usa el suyo.**
+Poner `wl-app` donde va `wl-doc` no falla: simplemente no pinta.
 
-Decisiones tomadas dentro de `themeCssAppFor`, no las deshagas sin razón:
-- `--olive` NO se toca: aquí es texto secundario. Pintarlo del color del
-  operador haría ilegible medio párrafo.
-- `--forest` y `--clay` tampoco: son **semánticos** (éxito y peligro). Un
+Los dos juegos de variables son **disjuntos** (`--app-*` contra los nombres de
+marca), así que pueden convivir hasta en el mismo elemento sin pisarse.
+
+### 3 · El selector va DOBLE: `.wl-doc.wl-doc`
+
+El CSS base declara sus variables **sobre el propio elemento** (`.pub{--olive:…}`,
+`.reg-page{…}`) y varias de esas hojas se inyectan DENTRO del componente — o sea,
+después de este `<style>` en el documento. Con la misma especificidad ganaba la
+última y el deslinde se quedaba sin marca. Duplicar la clase sube a (0,2,0) y el
+override deja de depender del orden.
+
+## Decisiones que no conviene deshacer
+
+- **`--olive` no se toca** en el vocabulario de la app: aquí es el gris de texto
+  secundario. Pintarlo del color del operador haría ilegible medio párrafo.
+- **`--forest` y `--clay` tampoco**: son semánticos (éxito y peligro). Un
   operador con marca roja no debe volver rojo el «qué incluye».
+- **La pantalla de éxito resuelve el tema desde `reservations.operator_id`**, no
+  desde la experiencia. La 0016 congela el operador al vender: quien compró hoy
+  debe seguir viendo la marca de quien le vendió — la misma que dice su deslinde
+  y la que va a facturarle. Si el webhook no ha aterrizado, cae al dueño actual.
+- **`fetchThemeForExperience` NO filtra por `is_public`**, al revés que el portal
+  por slug. `is_public` decide si el operador tiene PERFIL público; esto decide
+  de quién es el viaje que se está vendiendo.
 
-## Lo que FALTA
+## Lo que quedó fuera, a propósito
 
-### A · Cablear las cuatro pantallas
+- **El template legacy de experiencia** (`ExperienceTemplate`) no se viste: no
+  hay ninguna experiencia publicada con ese diseño y su CSS es otro vocabulario
+  más. Si alguna vez vuelve a publicarse una legacy de un operador, hay que darle
+  su propio scope.
+- **El logo del operador no se usa en el funnel.** F1 es color. El logo entra en
+  F2/F4.
 
-En cada una: resolver el operador dueño de la experiencia, y si tiene marca
-completa, envolver el contenido en un scope e inyectar el `<style>` DESPUÉS del
-CSS base.
+## ⚠️ Trampa abierta: marca sin logo = sin white-label
 
-- `fetchThemeForExperience(slug)` ya existe en `branding.ts` — es best-effort:
-  sin tema devuelve `null` y todo se ve Caminante. **Compat total.**
-- `marcaLista(branding)` en `src/lib/operators/marca.ts` dice si la marca
-  alcanza para vestir (exige los dos colores).
-- Ojo con `/caminante/reserva/exito`: no recibe slug. Resuelve la reserva desde
-  `session_id` (ya lo hace para el CTA del deslinde) y de ahí el operador.
+`fetchOperatorTheme` exige `branding.logoUrl` además de los dos colores, pero
+`marcaLista` (y el comentario de `armarMarca`) dicen que **el logo es opcional**
+porque «hay operadores que solo tienen paleta al arrancar». Resultado: un
+operador con los dos colores y sin logo **no recibe tema y nadie se entera** — ni
+la pantalla falla ni el panel avisa. Hoy no muerde porque los operadores dados de
+alta traen logo. Vale arreglarlo antes del segundo onboarding, decidiendo cuál de
+los dos contratos manda.
 
-### B · La prueba de no-regresión por hash
+## Cómo se verifica (y por qué así)
 
-**Requisito de Luis, no opcional.** Las páginas de Caminante no pueden cambiar
-ni un pixel. El patrón ya se usó en el rediseño de la serie E:
+`scripts/verificacion/` tiene las dos herramientas. En esta máquina **no hay
+node**: el único compilador es el build de Vercel, así que lo que se pueda
+validar antes, se valida antes.
 
-1. En una experiencia de Caminante (sin operador con marca), capturar la huella
-   de estilos computados de los nodos clave.
-2. Aplicar el cambio.
-3. La huella debe ser IDÉNTICA.
+- **`estructura.py`** — delimitadores, template literals sin cerrar, imports
+  inexistentes e imports sin usar. Un backtick suelto dentro de un `String.raw`
+  ya tumbó un build.
+- **`huella.js`** — la huella de estilos computados de **todos** los nodos de una
+  página. Se corre sobre la MISMA URL en dos despliegues y se comparan los hashes.
 
-Gotcha ya conocido: el Kit y las páginas pesadas no son fiables por screenshot
-en el Browser pane (el scroll va al twin, ~1Hz). **Verificar por JS sobre el
-DOM**, con `getComputedStyle`.
+⚠️ Cuatro cosas cambian entre dos despliegues sin que se haya movido un pixel, y
+las cuatro hacen fallar la prueba por la razón equivocada. Están resueltas dentro
+de `huella.js`, con su comentario:
 
-### C · Probar con un operador real
+1. `<vercel-live-feedback>` aparece en unos previews y no en otros.
+2. `background-image` serializa con el host del despliegue.
+3. **Los decimales del color.** Con hex literal, Tailwind resuelve `bg-cream/90`
+   en el BUILD y hornea `oklab(0.986983 …)`. Detrás de un `var()` ya no puede y
+   emite un `color-mix()` que resuelve el navegador: `oklab(0.986977 …)`. Misma
+   tinta, otros decimales, **mismo byte de sRGB**. Por eso el color se compara
+   RASTERIZÁNDOLO en un canvas de 1×1. Abrir la cascada obliga a ese cambio: no
+   hay forma de tener white-label y conservar la constante horneada.
+4. **Transiciones congeladas.** `.pub .pub-cta{transition:background .18s}` y en
+   el Browser pane el reloj de animación del gemelo va parado: el botón se queda
+   pintado del color VIEJO y `getComputedStyle` devuelve ese. La huella apaga
+   transiciones antes de medir.
 
-`Kéntro` (slug `kentro`) ya tiene branding en la base: `#212121` + `#9a3b2d`.
-Su experiencia atribuida es `el-bosque-de-los-volcanes`.
+### Resultado de la no-regresión (24 ago 2026)
 
-Para comparar, `recoleccion-de-hongos` está atribuida a Numan · Caminante, que
-NO tiene branding — o sea, debe verse exactamente igual que hoy.
+Preview del tip de deploy (`6679c25`, lo mismo que corría en producción) contra
+el preview de `whitelabel-f1`, anónimo en los dos lados, sobre
+`recoleccion-de-hongos` — que es de la casa:
 
-## Reglas de esta casa que aplican aquí
+| pantalla | 1280 px | 390 px |
+|---|---|---|
+| experiencias | `72eef35d9ce0cdab` | `69a665acf7d41830` |
+| reservar | `c18bfd4efa9780df` | `b102224eb6e7f408` |
+| registro | `e0410341b679f377` | `4110c5a34faa0e69` |
+| éxito | `24f7f2f3bd8cb0a9` | `a2695109e88ab01f` |
 
-- **Migraciones**: solo aditivas, se aplican a mano en el SQL Editor y se
-  comparan por SHA-256 antes de Run. F1 no debería necesitar ninguna.
-- **Nunca `git add -A`**: rutas explícitas. Hay varias sesiones en el repo.
-- **Antes de empujar**: chequeo estructural. En esta sesión un backtick dentro
-  de un `String.raw` tumbó el build. No hay `node` local para `tsc`; el
-  verificador es el build de Vercel, así que lo que se pueda validar con grep o
-  Python se valida ANTES.
-- **Rama compartida**: `deploy/caminante-site`. Hacer `fetch` antes de empujar y
-  **verificar el contenido del tip**, no solo que el push haya devuelto 0.
-- **Promover**: si la lista de deployments de Vercel se atora en esqueletos, la
-  ruta alterna es **Overview → enlace directo al deployment → su menú de tres
-  puntos**. Ahí «Promote to Production» sí aparece.
+Idénticas las ocho. Ni un pixel.
 
-## Contexto de negocio
+### Cómo probar que SÍ pinta
 
-Luis tiene su **primer onboarding de operador**. El alta completa ya está en
-producción y probada de punta a punta. F1 es lo que hace que, cuando le enseñe
-la pantalla, se vea suyo.
+Hace falta un operador con marca que **posea una experiencia publicada**. Al
+cerrar esta sesión ninguno la tenía: Kéntro tiene marca cargada pero sus
+experiencias siguen atribuidas a Numan · Caminante (ver la regla que cuesta
+dinero en `.claude/rules/operadores-connect.md`).
 
-**F2 (correos), F3 (dominio propio) y F4 (Kit/PDF) NO son parte de esto.** F3 en
-particular depende de que el operador apunte su DNS y de tiempos de propagación.
+Se verificó con un operador ficticio, **Bruma Expediciones** (`#1f4d46` +
+`#e0a458`), dueño de una experiencia `zz-demo-bruma` clonada de hongos. Las
+cuatro pantallas tomaron la marca; `text-olive` se quedó gris y el «incluye»
+verde, como debe ser. El fixture se borró al terminar: una experiencia publicada
+de demo se ve en `/caminante/experiencias`, y eso es dato demo en superficie
+pública.
