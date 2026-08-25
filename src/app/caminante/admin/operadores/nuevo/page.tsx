@@ -14,7 +14,7 @@ export const metadata = { title: "Onboarding de operador · Admin" };
 
 const ERRORES: Record<string, string> = {
   datos: "Falta nombre, correo o slug.",
-  marca: "La marca necesita logo y dos colores hex válidos (#rrggbb).",
+  marca: "La marca necesita los dos colores hex válidos (#rrggbb). El logo es opcional.",
   slug: "Ese slug ya es de otro operador — elige otro.",
   admin: "Solo admin.",
   guardar: "No se pudo guardar. Revisa que la migración 0030 esté aplicada e inténtalo de nuevo.",
@@ -92,9 +92,10 @@ export default async function OnboardingPage({
           un «powered by NMN Caminante» discreto. El deslinde de sus viajes usará SU entidad legal.
           {" "}
           <b>
-            Hasta aquí llega su marca por ahora: al picar una experiencia, la página de venta, el
-            checkout y el deslinde se ven de Caminante.
-          </b>
+            Desde F1 su marca ya no se queda en el portal: la página de venta, el checkout, el
+            deslinde y la pantalla de éxito de SUS experiencias también toman sus colores.
+          </b>{" "}
+          Los correos y el kit de contenido siguen saliendo de Caminante (F2 y F4).
         </p>
       </div>
 

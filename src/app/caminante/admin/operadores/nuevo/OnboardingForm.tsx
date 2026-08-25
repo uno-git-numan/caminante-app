@@ -93,8 +93,8 @@ export default function OnboardingForm({ experiencias, prefill }: { experiencias
         <span className="subtitle">2 · Marca</span>
         <div className="mini-form" style={{ gap: 12, alignItems: "flex-end" }}>
           <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 320px", fontSize: 12, fontWeight: 600 }}>
-            Logo (URL del bucket, o súbelo)
-            <input name="logoUrl" required value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://…/logo.png" />
+            Logo (opcional — URL del bucket, o súbelo)
+            <input name="logoUrl" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://…/logo.png" />
           </label>
           <label className="btn btn-glass btn-sm" style={{ cursor: "pointer" }}>
             {subiendo ? "Subiendo…" : "Subir logo"}
@@ -133,7 +133,11 @@ export default function OnboardingForm({ experiencias, prefill }: { experiencias
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={logoUrl} alt="" style={{ height: 26, width: "auto", filter: "brightness(0) invert(1)" }} />
             ) : (
-              <span style={{ color: "#fff", fontWeight: 300, letterSpacing: ".14em" }}>LOGO</span>
+              /* Sin logo el portal escribe el NOMBRE, no la palabra «LOGO».
+                 El preview tiene que mostrar lo que de verdad va a salir. */
+              <span style={{ color: "#fff", fontWeight: 300, letterSpacing: ".14em", textTransform: "uppercase", fontSize: 15 }}>
+                {nombre || "Nombre del operador"}
+              </span>
             )}
             <span style={{ color: "#fff", fontWeight: 200, fontSize: 22 }}>
               Así se ve su hero. <em style={{ color: "var(--orange)", fontStyle: "italic" }}>Con su acento.</em>

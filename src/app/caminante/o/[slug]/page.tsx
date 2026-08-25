@@ -30,6 +30,7 @@ const OPW_CSS = `
 .opw-hero .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(12,14,11,.62),rgba(12,14,11,.34) 45%,rgba(12,14,11,.72));}
 .opw-topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:center;padding:26px 22px;}
 .opw-logo{height:30px;width:auto;filter:brightness(0) invert(1);}
+.opw-marca{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:#fff;}
 .opw-hero h1{font-weight:200;letter-spacing:-.02em;line-height:1.06;font-size:clamp(34px,6.6vw,58px);max-width:22ch;margin:0 auto;}
 .opw-hero h1 em{font-style:italic;font-weight:300;color:var(--orange);}
 .opw-hero .sub{font-weight:300;font-size:clamp(14.5px,2vw,17px);color:rgba(255,255,255,.85);margin:16px auto 0;max-width:46ch;}
@@ -104,8 +105,15 @@ export default async function PortalOperadorPage({ params }: Params) {
           </div>
         ) : null}
         <div className="opw-topbar">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="opw-logo" src={b.logoDarkUrl || b.logoUrl} alt={theme.name} />
+          {b.logoDarkUrl || b.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="opw-logo" src={b.logoDarkUrl || b.logoUrl} alt={theme.name} />
+          ) : (
+            // ⚠️ El logo es OPCIONAL (ver marca.ts). Sin condicional esto era
+            // `src=""`, que el navegador resuelve como la URL de la página: se
+            // la vuelve a pedir y deja el ícono de imagen rota en el encabezado.
+            <span className="opw-marca">{theme.name}</span>
+          )}
         </div>
         <h1>
           Experiencias de <em>{theme.name}.</em>

@@ -155,7 +155,14 @@ export async function fetchOperatorTheme(operatorId: string | null): Promise<Ope
       .maybeSingle();
     if (error || !data) return null; // columna sin migrar o fila ausente ⇒ sin tema
     const r = data as Row;
-    if (!r.branding?.logoUrl || !r.branding?.colors?.primary || !r.branding?.colors?.accent) return null;
+    // ⚠️ EL MÍNIMO SON LOS DOS COLORES, NO EL LOGO — igual que `marcaLista` en
+    // marca.ts, que es la fuente única del contrato. Este candado SÍ exigía
+    // logo, y como aquí no falla nada visible, un operador con paleta y sin
+    // logo se quedaba sin tema en silencio: ni la pantalla truena ni el panel
+    // avisa. Exigirlo aquí además tapaba desde arriba un bug de la superficie
+    // (el portal pintaba `src=""`, que el navegador resuelve como la propia
+    // página); ese hoyo se cerró donde vive, en /caminante/o/[slug].
+    if (!r.branding?.colors?.primary || !r.branding?.colors?.accent) return null;
     return {
       operatorId: r.id,
       slug: r.slug,

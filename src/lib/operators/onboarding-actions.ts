@@ -50,10 +50,12 @@ export async function onboardOperator(formData: FormData): Promise<void> {
   const expIds = formData.getAll("experiencias").map((v) => clean(v, 60)).filter(Boolean);
 
   if (!nombre || !email.includes("@") || !slug) redirect(`${RUTA}?error=datos`);
-  if (!logoUrl || !HEX.test(primary) || !HEX.test(accent)) redirect(`${RUTA}?error=marca`);
+  // El logo NO se exige: el mínimo son los dos colores (marca.ts). Un operador
+  // que llega con paleta y sin logo se viste igual; su nombre va en texto.
+  if (!HEX.test(primary) || !HEX.test(accent)) redirect(`${RUTA}?error=marca`);
 
   const branding: OperatorBranding = {
-    logoUrl,
+    logoUrl, // puede ir vacío: opcional
     ...(logoDarkUrl ? { logoDarkUrl } : {}),
     colors: { primary, accent },
     poweredBy,
