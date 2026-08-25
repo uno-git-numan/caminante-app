@@ -54,12 +54,42 @@ salida `?escritorio=1`. Se rompió dos veces en un día.
 
 ## Reglas del dominio
 
-**Nadie se auto-nombra admin.** El alta de «operador» crea cuenta normal + una
-solicitud (`admin_whitelist` con `is_active=FALSE`). El rol es **derivado**, no hay
-columna: admin = whitelist activo; caminante = autenticado que no es admin.
+**Nadie se auto-nombra admin.** El rol es **derivado**, y desde el 24 ago son TRES:
 
-**Cada server action re-verifica `isCurrentUserAdmin()`.** El gate del layout NO
-cubre actions invocadas directo.
+| rol | de dónde sale |
+|---|---|
+| `admin` (la casa) | `admin_whitelist.is_active` |
+| `operador` | `operators.panel_activo` (0042) |
+| `caminante` | sesión que no es ninguno de los dos |
+
+**La casa manda**: la whitelist gana sobre `operators`. La fila «Numan ·
+Caminante» trae el correo de Luis y sin esa precedencia entraría a su propio
+panel filtrado a sí mismo.
+
+⚠️ **`operators` tiene RLS que solo expone las filas `is_public = true`.** Por eso
+la consulta que resuelve el rol va con el cliente de SERVICIO, no con el de la
+sesión: un operador en pausa como perfil (Kéntro) no aparecía y el rol caía a
+«caminante» — quedaba fuera de su propio panel sin un solo error, solo un
+`?error=not_admin` en la home.
+
+**El panel del operador tiene DOS cerrojos** (ver `design/panel-operador/`):
+la lista blanca de rutas (`lib/auth/panel-operador.ts`, evaluada en el layout
+contra la cabecera `x-ruta` del middleware) y el alcance de cada consulta
+(`lib/auth/alcance.ts`). El alcance de un operador son **sus experiencias**, y de
+ahí cuelga todo. La poda se aplica justo después de traer las filas y antes de la
+primera agregación.
+
+**Cada server action re-verifica.** El gate del layout NO cubre actions invocadas
+directo. `isCurrentUserAdmin()` significa **«la casa»** y eso no se toca: lo
+llaman dos docenas de actions, y hacerle significar «puede entrar al panel» las
+abriría todas de golpe. Para lo que un operador SÍ puede tocar están
+`puedeEditarSlug` / `puedeEditarExperiencia` / `puedeEditarSlot`, que resuelven
+contra la BASE con el id que llega — nunca contra un campo del formulario, porque
+esos ids viajan en `<input hidden>` y cambiarlos es abrir el inspector.
+
+⚠️ **Podar la consulta principal de una pantalla NO basta**: hay que recorrer
+todas las que dispara, y también lo que puede disparar. La Encuesta hace tres
+consultas; con dos podadas seguía enseñando el correo de un cliente de la casa.
 
 **El admin no compra**: `/reservar` y `/registro` lo rebotan. (Ojo al verificar:
 por eso esas vistas no se pueden ver con sesión de admin.)

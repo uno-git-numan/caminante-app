@@ -71,6 +71,7 @@ handover.
 | Operadores externos y Stripe Connect | `.claude/rules/operadores-connect.md` |
 | Migraciones y base | `.claude/rules/migraciones.md` |
 | Sesión, auth, middleware, invariantes | `.claude/rules/auth-sesion.md` |
+| Panel del operador externo (alcance) | `design/panel-operador/README.md` |
 | Experiencias, deslinde, salidas | `.claude/rules/experiencias.md` |
 | Kit, redes, captions, boletín | `.claude/rules/kit-comunicacion.md` |
 | Móvil y diseño | `.claude/rules/movil-y-diseno.md` |
@@ -130,13 +131,15 @@ tu worktree > el Browser pane, que en páginas pesadas va a un twin poco fiable.
 
 ---
 
-## Estado (18 ago 2026)
+## Estado (24 ago 2026)
 
 **En producción:** experiencias v2 data-driven · registro y deslinde nativos ·
 cobro web con Stripe LIVE · transferencias y pago manual · panel de admin completo
 (escritorio y móvil) · Kit de comunicación con publicador nativo a Instagram ·
 boletín · programa de embajadores · portales de operador white-label ·
-**Stripe Connect A1 y A2** (cimientos, onboarding y webhook `account.updated`).
+**white-label F1** (el funnel del cliente se viste del operador) ·
+**rol «operador»**: el mismo panel, podado a sus experiencias
+(`design/panel-operador/`) · **Stripe Connect A1 y A2**.
 
 **El cobro sigue corriendo por `createCheckout` sin cambios.** La bifurcación a
 cargo directo es lo último que se toca, a propósito.
