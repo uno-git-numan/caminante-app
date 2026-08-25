@@ -2,6 +2,7 @@ import AdminShell from "../ui/AdminShell";
 import { fetchReservas, formatMXN, formatDiaMes, metodoLabel } from "@/lib/admin/queries";
 import type { ReservaAdmin } from "@/lib/admin/queries";
 import { registrarPagoManualAction, cancelarReservaAction } from "@/lib/admin/reservas-actions";
+import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Reservas · Admin — Caminante" };
@@ -15,7 +16,7 @@ const estadoChip: Record<string, { clase: string; label: string }> = {
   cancelled: { clase: "c-canc", label: "Cancelada" },
 };
 
-function Row({ r }: { r: ReservaAdmin }) {
+function Row({ r, esCasa }: { r: ReservaAdmin; esCasa: boolean }) {
   const xid = `rv-${r.id.slice(0, 8)}`;
   const chip = estadoChip[r.estado] || { clase: "c-sol", label: r.estado };
   return (
@@ -109,7 +110,12 @@ function Row({ r }: { r: ReservaAdmin }) {
                     </div>
                   </div>
 
-                  {r.estado !== "cancelled" && r.estado !== "completed" ? (
+                  {/* Registrar un pago y cancelar una reserva son acciones de
+                      DINERO: siguen siendo de la casa (sus actions exigen
+                      isCurrentUserAdmin). Se esconden para el operador porque un
+                      botón que rebota se lee como un panel roto, no como un
+                      permiso. Si necesita cancelar, lo pide. */}
+                  {esCasa && r.estado !== "cancelled" && r.estado !== "completed" ? (
                     <>
                       <div className="xh4">Registrar pago manual</div>
                       <form action={registrarPagoManualAction} className="mini-form">
@@ -156,7 +162,10 @@ export default async function ReservasPage({
   searchParams: Promise<{ exp?: string; estado?: string; q?: string; ok?: string; error?: string }>;
 }) {
   const { exp, estado, q, ok, error } = await searchParams;
-  const { reservas, experiencias } = await fetchReservas({ slug: exp, estado, q });
+  const [{ reservas, experiencias }, esCasa] = await Promise.all([
+    fetchReservas({ slug: exp, estado, q }),
+    isCurrentUserAdmin(),
+  ]);
 
   return (
     <AdminShell active="reservas">
@@ -235,7 +244,7 @@ export default async function ReservasPage({
               </thead>
               <tbody>
                 {reservas.map((r) => (
-                  <Row key={r.id} r={r} />
+                  <Row key={r.id} r={r} esCasa={esCasa} />
                 ))}
                 {reservas.length === 0 ? (
                   <tr>

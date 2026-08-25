@@ -1879,7 +1879,7 @@ export async function fetchSalidasParaLinkAbierto(): Promise<SalidaLinkAbierto[]
     const [{ data: slots }, { data: fbs }] = await Promise.all([
       sb
         .from("experience_slots")
-        .select("id, label, ends_at, feedback_token, experiences(slug, data)")
+        .select("id, experience_id, label, ends_at, feedback_token, experiences(slug, data)")
         .not("ends_at", "is", null)
         .lte("ends_at", ahora)
         .order("ends_at", { ascending: false })
@@ -1888,6 +1888,23 @@ export async function fetchSalidasParaLinkAbierto(): Promise<SalidaLinkAbierto[]
     ]);
     if (!slots) return [];
 
+    // ⚠️ ESTA SE ME FUE EN LA PRIMERA PASADA y la cazó la prueba en el preview:
+    // la pantalla de Encuesta le enseñaba a Kéntro «Domingo 23 ago · Recolección
+    // de hongos» con su `feedback_token` en un input — o sea, el link para
+    // recoger respuestas de un viaje de la casa. Es el recordatorio de que podar
+    // la consulta principal de una pantalla no basta: hay que recorrer TODAS las
+    // que esa pantalla dispara.
+    const operatorId = await operadorDelAlcance();
+    let visibles = slots as unknown as { experience_id: string }[];
+    if (operatorId) {
+      const { data: mias } = await sb
+        .from("experiences")
+        .select("id")
+        .eq("operator_id", operatorId);
+      const ids = new Set(((mias ?? []) as { id: string }[]).map((e) => e.id));
+      visibles = visibles.filter((sl) => ids.has(sl.experience_id));
+    }
+
     const respondidas = new Map<string, number>();
     for (const f of (fbs ?? []) as { slot_id: string | null; status: string }[]) {
       if (f.slot_id && f.status === "submitted") {
@@ -1895,7 +1912,7 @@ export async function fetchSalidasParaLinkAbierto(): Promise<SalidaLinkAbierto[]
       }
     }
 
-    return (slots as unknown as {
+    return (visibles as unknown as {
       id: string;
       label: string;
       feedback_token: string | null;
