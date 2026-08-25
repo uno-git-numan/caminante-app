@@ -50,3 +50,28 @@ export const ADMIN_NAV_OPERADOR: AdminNavItem = {
 
 export const PERSON_ICON =
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
+
+
+// ── El nav que ve un OPERADOR externo ────────────────────────────────────
+//
+// Se deriva de ADMIN_NAV en vez de escribirse aparte, por la misma razón que
+// este archivo existe: dos listas siempre divergen. Aquí solo se dice qué
+// SOBRA, y una sección nueva aparece automáticamente en los dos navs — lo que
+// obliga a decidir a conciencia si el operador debe verla.
+//
+// ⚠️ Esconder la píldora NO es el candado. El candado es la lista blanca de
+// `lib/auth/panel-operador.ts`, que se aplica en el layout aunque alguien
+// escriba la URL a mano. Esto es cortesía visual: enseñar un botón que rebota
+// se siente roto.
+const FUERA_DEL_OPERADOR: AdminSection[] = [
+  "solicitudes", // aprobar operadores y embajadores es de la casa
+  "recursos", // rentabilidad, proveedores, egresos, payouts
+];
+
+export const ADMIN_NAV_DE_OPERADOR: AdminNavItem[] = ADMIN_NAV.filter(
+  (i) => !FUERA_DEL_OPERADOR.includes(i.key),
+);
+
+export function navPara(rol: "admin" | "operador"): AdminNavItem[] {
+  return rol === "operador" ? ADMIN_NAV_DE_OPERADOR : ADMIN_NAV;
+}

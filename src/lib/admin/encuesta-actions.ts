@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarExperiencia } from "@/lib/auth/alcance";
 
 function volver(msg: { ok?: string; error?: string }): never {
   const q = msg.ok
@@ -25,8 +26,6 @@ export async function setTestimonio(
   id: string,
   decision: "approved" | "rejected",
 ): Promise<{ ok: boolean; error?: string; mensaje?: string }> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo el admin puede hacer esto." };
-
   const rowId = (id || "").trim();
   if (!rowId || !["approved", "rejected"].includes(decision)) {
     return { ok: false, error: "Decisión inválida." };
@@ -35,10 +34,18 @@ export async function setTestimonio(
   const sb = createSupabaseAdminClient();
   const { data: row } = await sb
     .from("experience_feedback")
-    .select("id, testimonial_consent")
+    .select("id, testimonial_consent, experience_id")
     .eq("id", rowId)
     .maybeSingle();
   if (!row) return { ok: false, error: "Ese testimonio no existe." };
+
+  // El permiso cuelga de la EXPERIENCIA de esa respuesta: el operador publica
+  // los testimonios de sus viajes, no los de los ajenos. Va después de leer la
+  // fila porque el id de la respuesta, por sí solo, no dice de quién es.
+  if (!(await puedeEditarExperiencia((row as { experience_id: string }).experience_id))) {
+    return { ok: false, error: "Ese testimonio no es de una experiencia tuya." };
+  }
+
   if (decision === "approved" && !row.testimonial_consent) {
     return { ok: false, error: "No hay consentimiento para publicar este testimonio." };
   }

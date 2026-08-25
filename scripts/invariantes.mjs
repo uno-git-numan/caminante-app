@@ -171,6 +171,24 @@ const REGLAS = [
         : "El setAll de createSupabaseServerClient perdió su try/catch. En un Server Component las cookies son de solo lectura: sin él, TODO usuario con sesión recibe 500 (pasó el 8 jun 2026).";
     },
   },
+  {
+    nombre: "El panel del operador no se cae abierto",
+    comprueba() {
+      const layout = leer("src/app/caminante/admin/layout.tsx");
+      const lista = leer("src/lib/auth/panel-operador.ts");
+      const mw = leer("src/middleware.ts");
+      const aprobar = leer("src/lib/admin/operadores-app-actions.ts");
+
+      if (!lista) return "Falta src/lib/auth/panel-operador.ts: es la lista blanca de las pantallas que ve un operador externo. Sin ella no hay quien niegue por omisión.";
+      if (!layout || !/rutaDeOperador/.test(layout))
+        return "El layout de /caminante/admin dejó de consultar rutaDeOperador(). Sin esa comprobación, un operador externo entra a TODAS las pantallas del panel: el ledger, el CRM y la columna «Alergias / condiciones / dieta» de todos los caminantes.";
+      if (!mw || !/x-ruta/.test(mw))
+        return "El middleware dejó de poner la cabecera `x-ruta`. Los layouts no reciben el pathname, así que sin ella la lista blanca del panel no puede evaluarse y toda pantalla nueva nacería abierta al operador.";
+      if (aprobar && /admin_whitelist/.test(aprobar.replace(/\/\/[^\n]*/g, "")))
+        return "aprobarOperadorApp volvió a tocar `admin_whitelist`. Esa tabla no tiene niveles: quien está ahí es LA CASA. Ese upsert era exactamente el agujero que abría las 31 pantallas a un operador externo (24 ago 2026).";
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

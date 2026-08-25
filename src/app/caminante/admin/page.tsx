@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { esTelefono } from "@/lib/ui/dispositivo";
+import { isCurrentUserAdmin as esCasa } from "@/lib/auth/authorization";
 import AdminShell from "./ui/AdminShell";
 import {
   fetchAdminOverview,
@@ -204,7 +205,13 @@ export default async function AdminHomePage({
   // o son formularios largos que el panel-app no reemplaza, y el propio
   // panel-app enlaza a varias de ellas como «ver completo». Redirigir todo
   // /admin/* rebotaría esos enlaces de vuelta a sí mismo.
-  if (!escritorio) {
+  // ⚠️ SOLO PARA LA CASA. El panel-app (/admin/m) todavía no está podado al
+  // alcance —su pestaña «Más» trae solicitudes, el catálogo de operadores y el
+  // cobro manual—, así que un operador externo no puede entrar ahí. Y si el
+  // índice lo redirigiera igual, el resultado sería un BUCLE: índice → /m → el
+  // layout lo rebota al índice → /m otra vez. Un operador desde el teléfono usa
+  // el panel de escritorio, que responde bien aunque no esté optimizado.
+  if (!escritorio && (await esCasa())) {
     const ua = (await headers()).get("user-agent") ?? "";
     if (esTelefono(ua)) redirect("/caminante/admin/m");
   }

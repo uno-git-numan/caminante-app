@@ -67,7 +67,7 @@ export default function SiteChrome({
   role,
   children,
 }: {
-  role: "admin" | "caminante" | null;
+  role: "admin" | "operador" | "caminante" | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -125,7 +125,8 @@ export default function SiteChrome({
                   href="/caminante/entrar"
                   className="ml-1 rounded-full px-3 py-2 text-xs font-medium text-olive hover:text-lagoon"
                 >
-                  {role === "admin" ? "Panel" : "Mi espacio"}
+                  {/* El operador también tiene panel — el suyo, filtrado. */}
+                  {role === "admin" || role === "operador" ? "Panel" : "Mi espacio"}
                 </a>
                 <form action={signOut}>
                   <button

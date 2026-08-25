@@ -6,6 +6,7 @@
 // Si algo pasa de ~500 filas, mover esa agregación a una vista/RPC en Postgres.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -124,7 +125,16 @@ export type AdminOverview = {
 
 // ── Filas crudas (privadas) ──────────────────────────────────────────────
 
-type ExpRow = { id: string; slug: string; status: string; data: Partial<Experience> | null };
+type ExpRow = {
+  id: string;
+  slug: string;
+  status: string;
+  data: Partial<Experience> | null;
+  // ⚠️ `operator_id` se selecciona SIEMPRE aunque la pantalla no lo pinte: es la
+  // llave con la que se poda al alcance. Quitarlo de un select no rompe nada
+  // visible — solo deja de filtrar, que es la peor forma de fallar.
+  operator_id?: string | null;
+};
 type SlotRow = {
   id: string;
   experience_id: string;
@@ -152,6 +162,7 @@ type PayRow = {
 };
 type RegRow = { reservation_id: string; contact_id: string; signed_at: string | null };
 type FbRow = {
+  experience_id?: string | null;
   status: string;
   overall_stars: number | null;
   nps: number | null;
@@ -160,12 +171,64 @@ type FbRow = {
 };
 type ContactRow = { id: string; full_name: string | null; email: string };
 
+// ── El alcance, aplicado ─────────────────────────────────────────────────
+//
+// REGLA v1, una sola y a propósito: **el alcance de un operador son SUS
+// EXPERIENCIAS** (`experiences.operator_id`). De ahí cuelga todo lo demás —
+// salidas, reservas, pagos, registros, encuesta, personas—, así que hay un solo
+// lugar donde equivocarse y un solo lugar donde verificar.
+//
+// La alternativa era mezclar dos criterios: experiencias para lo operativo y
+// `reservations.operator_id` (que la 0016 congela al vender) para el dinero. Es
+// más fino y es más frágil: dos reglas conviviendo terminan divergiendo, y aquí
+// divergir significa enseñarle a alguien datos que no son suyos.
+//
+// ⚠️ Consecuencia conocida: si una experiencia cambia de dueño, su historial se
+// va con ella. Cuando eso pase de verdad se decide qué queremos; hoy no hay ni
+// un caso y adivinarlo sería inventar una regla sin dueño.
+//
+// `null` = sin límite (la casa). NO es lo mismo que una lista vacía, que
+// significa «no ve nada»: confundirlas es la forma clásica de que un filtro se
+// caiga abierto.
+export type Podadera = {
+  expIds: Set<string>;
+  slotIds: Set<string>;
+  resvIds: Set<string>;
+  contactIds: Set<string>;
+} | null;
+
+export function armarPodadera(
+  operatorId: string | null,
+  exps: ExpRow[],
+  slots: { id: string; experience_id: string }[],
+  resvs: { id: string; experience_id: string; slot_id: string | null; contact_id: string }[],
+): Podadera {
+  if (!operatorId) return null;
+  const expIds = new Set(exps.filter((e) => e.operator_id === operatorId).map((e) => e.id));
+  const slotIds = new Set(slots.filter((s) => expIds.has(s.experience_id)).map((s) => s.id));
+  const mias = resvs.filter((r) => expIds.has(r.experience_id));
+  return {
+    expIds,
+    slotIds,
+    resvIds: new Set(mias.map((r) => r.id)),
+    // Solo las personas que vienen a SUS salidas. El CRM completo no es suyo.
+    contactIds: new Set(mias.map((r) => r.contact_id)),
+  };
+}
+
+/** El id de operador del alcance actual, o null si es la casa (o no hay sesión). */
+export async function operadorDelAlcance(): Promise<string | null> {
+  const a = await alcanceActual();
+  return esOperador(a) ? a.operatorId : null;
+}
+
 // ── Panorama ─────────────────────────────────────────────────────────────
 
 export async function fetchAdminOverview(): Promise<AdminOverview> {
   const sb = createSupabaseAdminClient();
-  const [exps, slots, resvs, pays, regs, fbs, contacts] = (await Promise.all([
-    sb.from("experiences").select("id, slug, status, data"),
+  const operatorId = await operadorDelAlcance();
+  let [exps, slots, resvs, pays, regs, fbs, contacts] = (await Promise.all([
+    sb.from("experiences").select("id, slug, status, data, operator_id"),
     sb
       .from("experience_slots")
       .select("id, experience_id, label, starts_at, capacity_total, status"),
@@ -174,7 +237,9 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
       .select("id, experience_id, slot_id, contact_id, num_people, total_amount_mxn, status"),
     sb.from("payments").select("reservation_id, contact_id, amount_mxn, status, method, paid_at"),
     sb.from("registrations").select("reservation_id, contact_id, signed_at"),
-    sb.from("experience_feedback").select("status, overall_stars, nps, loved_text, submitted_at"),
+    sb
+      .from("experience_feedback")
+      .select("experience_id, status, overall_stars, nps, loved_text, submitted_at"),
     sb.from("contacts").select("id, full_name, email"),
   ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
     ExpRow[],
@@ -185,6 +250,24 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
     FbRow[],
     ContactRow[],
   ];
+
+  // ── PODA AL ALCANCE ────────────────────────────────────────────────────
+  // Se hace AQUÍ, justo después de traer las filas y ANTES de la primera
+  // agregación, y por eso ninguno de los ~200 renglones de cálculo que siguen
+  // necesitó tocarse: cuentan lo que haya en estos arreglos. Si mañana alguien
+  // agrega un KPI nuevo, sale filtrado sin enterarse de que el filtro existe.
+  const podadera = armarPodadera(operatorId, exps, slots, resvs);
+  if (podadera) {
+    const { expIds, slotIds, resvIds, contactIds } = podadera;
+    exps = exps.filter((e) => expIds.has(e.id));
+    slots = slots.filter((sl) => expIds.has(sl.experience_id));
+    resvs = resvs.filter((r) => expIds.has(r.experience_id));
+    pays = pays.filter((pg) => resvIds.has(pg.reservation_id));
+    regs = regs.filter((g) => resvIds.has(g.reservation_id));
+    fbs = fbs.filter((f) => !!f.experience_id && expIds.has(f.experience_id));
+    contacts = contacts.filter((c) => contactIds.has(c.id));
+    void slotIds; // las salidas ya se filtraron por experiencia
+  }
 
   // Índices
   const expById = new Map(exps.map((e) => [e.id, e]));
@@ -469,7 +552,7 @@ function cdmxInput(iso: string | null): string {
 
 export async function fetchEventos(): Promise<EventoResumen[]> {
   const sb = createSupabaseAdminClient();
-  const [exps, slots, resvs, pays, ops] = (await Promise.all([
+  const [todasLasExps, slots, resvs, pays, ops] = (await Promise.all([
     sb.from("experiences").select("id, slug, status, data, operator_id"),
     sb.from("experience_slots").select("id, experience_id, label, starts_at, status"),
     sb.from("reservations").select("id, experience_id, num_people, status"),
@@ -482,6 +565,13 @@ export async function fetchEventos(): Promise<EventoResumen[]> {
     PayRow[],
     { id: string; name: string }[],
   ];
+
+  // Poda: un operador solo lista SUS experiencias. Todo lo que sigue (salidas,
+  // ingresos, personas) se calcula recorriendo `exps`, así que basta con esto.
+  const operatorId = await operadorDelAlcance();
+  const exps = operatorId
+    ? todasLasExps.filter((e) => e.operator_id === operatorId)
+    : todasLasExps;
 
   const opName = new Map(ops.map((o) => [o.id, o.name]));
   const resvExp = new Map(resvs.map((r) => [r.id, r.experience_id]));
@@ -523,9 +613,17 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
     .eq("slug", slug)
     .maybeSingle();
   if (!exp) return null;
+
+  // Poda: la ficha de una experiencia que no es suya NO EXISTE para un operador.
+  // Devolver null (y no una versión recortada) es lo correcto: la página ya sabe
+  // tratar el null como «no encontrada», y así el slug ajeno ni siquiera
+  // confirma que existe.
+  const operatorId = await operadorDelAlcance();
+  if (operatorId && (exp.operator_id as string | null) !== operatorId) return null;
+
   const data = (exp.data as Partial<Experience> | null) ?? null;
 
-  const [{ data: slotRows }, { data: ops }] = await Promise.all([
+  const [{ data: slotRows }, { data: opsTodos }] = await Promise.all([
     sb
       .from("experience_slots")
       .select("id, label, starts_at, capacity_total, price_mxn, status, visibility, access_token")
@@ -533,6 +631,11 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
       .order("starts_at", { ascending: true }),
     sb.from("operators").select("id, name, email, commission_pct").order("name"),
   ]);
+
+  // El catálogo de operadores es para que LA CASA reasigne la experiencia. Un
+  // operador no reasigna nada, y de paso no tiene por qué saber quiénes son los
+  // demás ni con qué comisión trabajan.
+  const ops = operatorId ? [] : opsTodos;
 
   const avail = await fetchSlotOccupancy(exp.id as string);
   const enc = await fetchSlotFeedbackStats(exp.id as string);
@@ -691,7 +794,7 @@ export async function fetchReservas(f: ReservasFiltro = {}): Promise<{
       )
       .order("created_at", { ascending: false }),
     sb.from("contacts").select("id, full_name, email, phone, city"),
-    sb.from("experiences").select("id, slug, data"),
+    sb.from("experiences").select("id, slug, data, operator_id"),
     sb.from("experience_slots").select("id, label, starts_at"),
     sb.from("payments").select("reservation_id, contact_id, amount_mxn, status, method, paid_at"),
     sb.from("registrations").select("reservation_id, signed_at, participants, minors"),
@@ -719,8 +822,19 @@ export async function fetchReservas(f: ReservasFiltro = {}): Promise<{
     }[],
   ];
 
+  // Poda: reservas de SUS experiencias. Se recorta la lista de reservas y
+  // también el catálogo de experiencias del filtro de arriba — si no, el selector
+  // seguiría ofreciendo viajes ajenos que luego no devuelven nada, que es la
+  // forma más rápida de que alguien piense que el panel está roto.
+  const operatorId = await operadorDelAlcance();
+  const misExpIds = operatorId
+    ? new Set(exps.filter((e) => e.operator_id === operatorId).map((e) => e.id))
+    : null;
+  const resvsVisibles = misExpIds ? resvs.filter((r) => misExpIds.has(r.experience_id)) : resvs;
+  const expsVisibles = misExpIds ? exps.filter((e) => misExpIds.has(e.id)) : exps;
+
   const cById = new Map(contacts.map((c) => [c.id, c]));
-  const eById = new Map(exps.map((e) => [e.id, e]));
+  const eById = new Map(expsVisibles.map((e) => [e.id, e]));
   const sById = new Map(slots.map((s) => [s.id, s]));
   const regByResv = new Map(regs.map((g) => [g.reservation_id, g]));
   const paysByResv = new Map<string, (PayRow & { method: string | null })[]>();
@@ -730,13 +844,13 @@ export async function fetchReservas(f: ReservasFiltro = {}): Promise<{
     paysByResv.set(p.reservation_id, arr);
   }
 
-  const experiencias = exps
+  const experiencias = expsVisibles
     .map((e) => ({ slug: e.slug, nombre: experienceTitle(e.data, e.slug) }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   const q = (f.q || "").trim().toLowerCase();
 
-  const reservas = resvs
+  const reservas = resvsVisibles
     .map((r): ReservaAdmin => {
       const c = cById.get(r.contact_id);
       const e = eById.get(r.experience_id);
@@ -827,7 +941,7 @@ export async function fetchPersonas(q = ""): Promise<PersonaAdmin[]> {
     sb
       .from("reservations")
       .select("id, contact_id, experience_id, slot_id, num_people, total_amount_mxn, status"),
-    sb.from("experiences").select("id, slug, data"),
+    sb.from("experiences").select("id, slug, data, operator_id"),
     sb.from("experience_slots").select("id, label, starts_at"),
     sb.from("payments").select("reservation_id, amount_mxn, status"),
     sb.from("registrations").select("contact_id"),
@@ -859,10 +973,26 @@ export async function fetchPersonas(q = ""): Promise<PersonaAdmin[]> {
     { guardian_contact_id: string; full_name: string; relationship: string | null }[],
   ];
 
+  // Poda: el CRM de la casa NO es del operador. Solo ve a quien viene (o vino) a
+  // una de sus salidas — y se filtra la lista de CONTACTOS, no nada más las
+  // reservas: si solo filtras las reservas, la persona sigue apareciendo con su
+  // teléfono y su correo, en cero, y eso ya es el directorio completo de Luis.
+  const operatorId = await operadorDelAlcance();
+  let contactsVisibles = contacts;
+  let resvsVisibles = resvs;
+  if (operatorId) {
+    const misExpIds = new Set(
+      exps.filter((e) => e.operator_id === operatorId).map((e) => e.id),
+    );
+    resvsVisibles = resvs.filter((r) => misExpIds.has(r.experience_id));
+    const mios = new Set(resvsVisibles.map((r) => r.contact_id));
+    contactsVisibles = contacts.filter((c) => mios.has(c.id));
+  }
+
   const eById = new Map(exps.map((e) => [e.id, e]));
   const sById = new Map(slots.map((s) => [s.id, s]));
   const resvByContact = new Map<string, typeof resvs>();
-  for (const r of resvs) {
+  for (const r of resvsVisibles) {
     const arr = resvByContact.get(r.contact_id) || [];
     arr.push(r);
     resvByContact.set(r.contact_id, arr);
@@ -873,8 +1003,14 @@ export async function fetchPersonas(q = ""): Promise<PersonaAdmin[]> {
       paidByResv.set(p.reservation_id, (paidByResv.get(p.reservation_id) || 0) + Number(p.amount_mxn || 0));
     }
   }
+  // ⚠️ El conteo de deslindes es HISTÓRICO del contacto. Sin podarlo, un operador
+  // vería «5 deslindes» de alguien que solo fue una vez con él — o sea, cuántas
+  // veces esa persona viajó con la competencia. Solo cuenta los de sus salidas.
+  const regsVisibles = operatorId
+    ? regs.filter((g) => resvByContact.has(g.contact_id))
+    : regs;
   const regCount = new Map<string, number>();
-  for (const g of regs) regCount.set(g.contact_id, (regCount.get(g.contact_id) || 0) + 1);
+  for (const g of regsVisibles) regCount.set(g.contact_id, (regCount.get(g.contact_id) || 0) + 1);
   const depsByGuardian = new Map<string, { nombre: string; relacion: string }[]>();
   for (const d of deps) {
     const arr = depsByGuardian.get(d.guardian_contact_id) || [];
@@ -883,7 +1019,7 @@ export async function fetchPersonas(q = ""): Promise<PersonaAdmin[]> {
   }
 
   const qq = q.trim().toLowerCase();
-  return contacts
+  return contactsVisibles
     .map((c): PersonaAdmin => {
       const mias = resvByContact.get(c.id) || [];
       const totalPagado = mias.reduce((n, r) => n + (paidByResv.get(r.id) || 0), 0);
@@ -1004,6 +1140,24 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
     .select("id, label, starts_at, experience_id")
     .eq("id", slotId)
     .maybeSingle();
+
+  // ⚠️ LA PANTALLA MÁS SENSIBLE DEL PANEL. Aquí viven alergias, padecimientos y
+  // dieta de gente real, y el id de la salida va en la URL: sin esta comprobación
+  // un operador cambia el UUID a mano y lee el roster de un viaje ajeno. Se
+  // verifica el DUEÑO DE LA EXPERIENCIA, no quién vendió: quien sube al cerro con
+  // el grupo necesita la lista completa de su grupo, incluidas las plazas que
+  // vendió la casa.
+  if (slot) {
+    const operatorId = await operadorDelAlcance();
+    if (operatorId) {
+      const { data: exp } = await sb
+        .from("experiences")
+        .select("operator_id")
+        .eq("id", (slot as { experience_id: string }).experience_id)
+        .maybeSingle();
+      if (!exp || (exp as { operator_id: string | null }).operator_id !== operatorId) return null;
+    }
+  }
   if (!slot) return null;
   const { data: exp } = await sb
     .from("experiences")
@@ -1243,7 +1397,7 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
       .select(
         "id, experience_id, reservation_id, slot_id, contact_id, location_label, token, status, overall_stars, nps, section_ratings, loved_text, improve_text, expected_gap_text, testimonial_text, testimonial_stars, testimonial_consent, publish_status, invited_at, submitted_at",
       ),
-    sb.from("experiences").select("id, slug, data"),
+    sb.from("experiences").select("id, slug, data, operator_id"),
     sb.from("contacts").select("id, full_name, email"),
     sb.from("reservations").select("id, slot_id"),
     sb.from("experience_slots").select("id, label, starts_at"),
@@ -1255,6 +1409,14 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
     { id: string; label: string | null; starts_at: string | null }[],
   ];
 
+  // Poda: las respuestas de SUS experiencias. Los testimonios llevan nombre y
+  // texto libre de la persona, así que esto no es solo una métrica ajena.
+  const operatorId = await operadorDelAlcance();
+  const misExpIds = operatorId
+    ? new Set(exps.filter((e) => e.operator_id === operatorId).map((e) => e.id))
+    : null;
+  const fbsVisibles = misExpIds ? fbs.filter((f) => misExpIds.has(f.experience_id)) : fbs;
+
   const eById = new Map(exps.map((e) => [e.id, e]));
   const cById = new Map(contacts.map((c) => [c.id, c]));
   const slotByResv = new Map(resvs.map((r) => [r.id, r.slot_id]));
@@ -1262,7 +1424,7 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
   const labelBySlot = new Map(slots.map((s) => [s.id, s.label || formatFechaCorta(s.starts_at)]));
 
   const porExp = new Map<string, FbFullRow[]>();
-  for (const f of fbs) {
+  for (const f of fbsVisibles) {
     const arr = porExp.get(f.experience_id) || [];
     arr.push(f);
     porExp.set(f.experience_id, arr);
@@ -1402,7 +1564,8 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
   }
   experiencias.sort((a, b) => b.respondidas - a.respondidas);
 
-  const testimoniosPendientes: TestimonioPendiente[] = fbs
+  // También podado: un testimonio trae nombre y texto de la persona.
+  const testimoniosPendientes: TestimonioPendiente[] = fbsVisibles
     .filter((f) => (f.testimonial_text || "").trim() && f.publish_status === "pending")
     .map((f) => {
       const quien = cById.get(f.contact_id);
@@ -1482,7 +1645,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     sb
       .from("reservations")
       .select("id, experience_id, slot_id, num_people, total_amount_mxn, status, operator_id, commission_pct"),
-    sb.from("experiences").select("id, slug, data"),
+    sb.from("experiences").select("id, slug, data, operator_id"),
     sb.from("experience_slots").select("id, label"),
     sb.from("contacts").select("id, full_name, email"),
     sb.from("operators").select("id, name, email, commission_pct"),
@@ -1495,12 +1658,35 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     { id: string; name: string; email: string; commission_pct: number | null }[],
   ];
 
-  const rById = new Map(resvs.map((r) => [r.id, r]));
-  const eById = new Map(exps.map((e) => [e.id, e]));
+  // ── PODA AL ALCANCE — la pantalla del dinero ──────────────────────────
+  // Un operador ve el dinero de SUS viajes: lo que entró, cómo entró y qué le
+  // toca. NO ve el ledger de la plataforma, ni las ventas de otros operadores,
+  // ni con qué comisión trabaja cada quien. Se poda pagos, reservas, experiencias
+  // y —esto importa— el catálogo de `operators`, que trae el `commission_pct` de
+  // todos: dejarlo pasar entero le enseñaría a Kéntro el trato de Kéntro y el de
+  // los demás en la misma pantalla.
+  const operatorId = await operadorDelAlcance();
+  let paysVisibles = pays;
+  let resvsVisibles = resvs;
+  let expsVisibles = exps;
+  let opsVisibles = ops;
+  if (operatorId) {
+    const misExpIds = new Set(
+      exps.filter((e) => e.operator_id === operatorId).map((e) => e.id),
+    );
+    resvsVisibles = resvs.filter((r) => misExpIds.has(r.experience_id));
+    const misResvIds = new Set(resvsVisibles.map((r) => r.id));
+    paysVisibles = pays.filter((pg) => misResvIds.has(pg.reservation_id));
+    expsVisibles = exps.filter((e) => misExpIds.has(e.id));
+    opsVisibles = ops.filter((o) => o.id === operatorId);
+  }
+
+  const rById = new Map(resvsVisibles.map((r) => [r.id, r]));
+  const eById = new Map(expsVisibles.map((e) => [e.id, e]));
   const sById = new Map(slots.map((s) => [s.id, s.label || ""]));
   const cById = new Map(contacts.map((c) => [c.id, c.full_name || c.email]));
 
-  const paid = pays.filter((p) => p.status === "paid");
+  const paid = paysVisibles.filter((p) => p.status === "paid");
   const hoyMes = cdmxDay(new Date()).slice(0, 7);
   const ingresosTotal = paid.reduce((s, p) => s + Number(p.amount_mxn || 0), 0);
   const ingresosMes = paid
@@ -1530,7 +1716,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
   }
   let pendiente = 0;
   let pendienteN = 0;
-  for (const r of resvs) {
+  for (const r of resvsVisibles) {
     if (["cancelled", "completed"].includes(r.status)) continue;
     const debe = Math.max(0, Number(r.total_amount_mxn || 0) - (pagadoPorResv.get(r.id) || 0));
     if (debe > 0) {
@@ -1540,7 +1726,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
   }
 
   // Reembolsos del mes
-  const refunded = pays.filter((p) => p.status === "refunded");
+  const refunded = paysVisibles.filter((p) => p.status === "refunded");
   const refMes = refunded.filter(
     (p) => (p.paid_at || p.created_at) && cdmxDay(p.paid_at || p.created_at).slice(0, 7) === hoyMes,
   );
@@ -1572,7 +1758,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     referencia: p.referencia || null,
     comprobantePath: p.comprobante_url || null,
   });
-  for (const p of [...pays].sort((a, b) =>
+  for (const p of [...paysVisibles].sort((a, b) =>
     (b.paid_at || b.created_at || "").localeCompare(a.paid_at || a.created_at || ""),
   )) {
     const r = rById.get(p.reservation_id);
@@ -1583,7 +1769,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
   }
 
   const numPorResvSlot = new Map<string, number>();
-  for (const r of resvs) {
+  for (const r of resvsVisibles) {
     const key = `${r.experience_id}|${r.slot_id || "singular"}`;
     if (pagadoPorResv.get(r.id)) {
       numPorResvSlot.set(key, (numPorResvSlot.get(key) || 0) + (r.num_people || 0));
@@ -1632,7 +1818,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
     acc.lineas.set(concepto, lin);
     porOperador.set(key, acc);
   }
-  const opById = new Map(ops.map((o) => [o.id, o]));
+  const opById = new Map(opsVisibles.map((o) => [o.id, o]));
   const payouts: PayoutOperador[] = [...porOperador.entries()]
     .map(([opId, acc]) => {
       const sinAtribuir = opId === SIN_OP;

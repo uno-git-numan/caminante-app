@@ -3,9 +3,20 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getClientSupabaseEnvOrNull } from "@/lib/supabase/env";
 import { cookiesDeSesion, esSesionMuerta } from "@/lib/auth/sesion-rota";
 
-export async function updateSession(request: NextRequest) {
+// `cabecerasExtra` deja que el middleware inyecte cabeceras en la REQUEST que
+// llega a los Server Components. Se usa para `x-ruta`: los layouts no reciben el
+// pathname y el del panel lo necesita para negar por omisión las pantallas que
+// un operador externo no debe ver. Es solo eso — no toca cookies ni sesión, que
+// es lo delicado de este archivo.
+export async function updateSession(
+  request: NextRequest,
+  cabecerasExtra?: Record<string, string>,
+) {
+  const headers = new Headers(request.headers);
+  for (const [k, v] of Object.entries(cabecerasExtra ?? {})) headers.set(k, v);
+
   const response = NextResponse.next({
-    request,
+    request: { headers },
   });
 
   const env = getClientSupabaseEnvOrNull();

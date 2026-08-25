@@ -12,14 +12,18 @@
 //   pending  → llega la solicitud
 //   calling  → se agenda la videollamada (Meet)
 //   docs     → se le pide el expediente por link privado con token
-//   approved → alta en `operators` + ACCESO AL PANEL
+//   approved → alta en `operators`, y con eso su panel
 //
-// ⚠️ LA DIFERENCIA QUE CUESTA SI SE CLONA MAL. `approveEmbajador` crea la fila
-// en `operators` y NADA MÁS: un embajador vende, no opera, y a propósito no
-// entra al panel. Aprobar a un OPERADOR tiene que hacer las DOS cosas —crear el
-// operador y activar su `admin_whitelist`—, porque sin lo segundo queda
-// «aprobado» y sin poder entrar. Si algún día alguien copia este archivo desde
-// el de embajadores, esto es lo que se le va a olvidar.
+// ⚠️ APROBAR YA NO REPARTE LLAVES DE LA CASA. Antes este paso también prendía
+// `admin_whitelist`, que no tiene niveles: el operador externo acababa viendo
+// las 31 pantallas, el ledger y los datos médicos de todos. Hoy el acceso se
+// DERIVA de existir en `operators` con `active = true`, y lo que ve está podado
+// a sus experiencias. Crear la fila es todo lo que hay que hacer; si alguien
+// vuelve a agregar aquí un upsert a `admin_whitelist`, está reabriendo el hoyo.
+//
+// (Un embajador vende y no opera: `approveEmbajador` crea la fila con
+// `active` en su valor por omisión y ese sí es el mismo camino. La diferencia
+// entre los dos ya no está en el acceso sino en el convenio.)
 //
 // Cada action re-verifica admin: el gate del layout no cubre invocación directa.
 
@@ -178,15 +182,18 @@ export async function aprobarOperadorApp(id: string): Promise<Res> {
     }
   }
 
-  // ⚠️ EL PASO QUE NO ESTÁ EN EL FLUJO DE EMBAJADORES: sin esta fila activa,
-  // queda aprobado y no puede entrar al panel.
-  const { error: wlErr } = await sb
-    .from("admin_whitelist")
-    .upsert({ email: app.email, is_active: true }, { onConflict: "email" });
-  if (wlErr) {
-    console.error("aprobarOperadorApp whitelist:", wlErr);
-    return { ok: false, error: "Se creó el operador pero no se pudo abrir su acceso al panel." };
-  }
+  // ⚠️ AQUÍ ESTABA EL AGUJERO. Este paso hacía `upsert` en `admin_whitelist`, y
+  // esa tabla no tiene niveles: quien está ahí es LA CASA. O sea que aprobar a un
+  // operador externo le abría las 31 pantallas del panel — el ledger completo, el
+  // CRM, los payouts de los demás operadores y la columna «Alergias / condiciones
+  // / dieta» de todos los caminantes de todas las salidas.
+  //
+  // Ya no hace falta y NO debe volver: desde el rol «operador», el acceso al
+  // panel se deriva de tener una fila viva en `operators` con ese correo, que es
+  // justo lo que acaba de hacer `ensureOperador` arriba. El panel que ve está
+  // podado a lo suyo (ver `lib/auth/alcance.ts` y `lib/auth/panel-operador.ts`).
+  //
+  // El interruptor para quitarle el acceso es `operators.active = false`.
 
   const { error } = await sb
     .from("operator_applications")

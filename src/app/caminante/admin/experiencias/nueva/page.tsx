@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import ExperienceForm from "../ExperienceForm";
 
 export const metadata = { title: "Crear experiencia · Admin" };
 
 export default async function NuevaExperienciaPage() {
-  if (!(await isCurrentUserAdmin())) {
+  // Crear está abierto a la casa Y al operador: `saveExperience` atribuye la
+  // experiencia nueva a quien la crea, así que nace suya.
+  if (!(await puedeEntrarAlPanel())) {
     redirect("/caminante/login?next=/caminante/admin/experiencias/nueva");
   }
 

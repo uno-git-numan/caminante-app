@@ -16,6 +16,7 @@
 // - SIN EMOJIS en todo el Kit (decisión de Luis, 20 jul): jerarquía por
 //   tipografía, peso y color; estados = puntos de color.
 import { notFound } from "next/navigation";
+import { puedeEditarSlug } from "@/lib/auth/alcance";
 import { fetchKitContext } from "@/lib/kit/queries";
 import { PIEZAS, PIEZAS_E, expName, type Lamina, type PieceDef, type PieceState, type Momento } from "@/lib/kit/kit";
 import { fetchEstadoPiezas, fechaPill, type PiezaEnCola } from "@/lib/kit/pieza-estado";
@@ -215,6 +216,10 @@ export default async function KitPage({
   const { slug } = await params;
   const { f, ok, error, redes, msg, u, confirmar, n } = await searchParams;
   const orient: "post" | "story" = f === "story" ? "story" : "post";
+
+  // El Kit es por experiencia y el slug va en la URL: sin esta guarda, un
+  // operador escribe el slug de un viaje ajeno y le genera (y publica) piezas.
+  if (!(await puedeEditarSlug(slug))) notFound();
 
   const ctx = await fetchKitContext(slug);
   if (!ctx) notFound();

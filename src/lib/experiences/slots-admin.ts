@@ -1,6 +1,6 @@
 "use server";
 
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 // Alta/edición de las salidas (fechas + cupo) de una experiencia DESDE EL FORM,
@@ -40,7 +40,8 @@ async function experienceIdBySlug(
 
 // Salidas existentes de una experiencia (para precargar la sección "Fechas & cupo").
 export async function fetchSlotsForAdmin(slug: string): Promise<AdminSlot[]> {
-  if (!(await isCurrentUserAdmin())) return [];
+  // La casa, o el operador dueño de ESA experiencia.
+  if (!(await puedeEditarSlug(slug))) return [];
   const sb = createSupabaseAdminClient();
   const expId = await experienceIdBySlug(sb, slug);
   if (!expId) return [];
@@ -71,8 +72,10 @@ export async function saveExperienceSlots(
   slug: string,
   slots: AdminSlotInput[],
 ): Promise<SlotsResult> {
-  if (!(await isCurrentUserAdmin())) {
-    return { ok: false, error: "No autorizado. Inicia sesión como admin." };
+  // El permiso va por SLUG y contra la base, no contra lo que llegue del form:
+  // este action escribe las salidas de la experiencia que le nombren.
+  if (!(await puedeEditarSlug(slug))) {
+    return { ok: false, error: "No autorizado sobre esa experiencia." };
   }
   const sb = createSupabaseAdminClient();
   const expId = await experienceIdBySlug(sb, slug);

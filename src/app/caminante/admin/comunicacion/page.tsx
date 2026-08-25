@@ -141,11 +141,22 @@ export default async function ComunicacionPage({
   const inicioMes = new Date(Date.UTC(yy, mm - 1, 1)).toISOString();
   const inicioSig = new Date(Date.UTC(yy, mm, 1)).toISOString();
 
-  const [eventos, recientes, mesPosts] = await Promise.all([
+  const [eventos, recientesTodos, mesTodos] = await Promise.all([
     fetchEventos(),
     listRecentPosts(300),
     esLista ? Promise.resolve<SocialPost[]>([]) : fetchPostsBetween(inicioMes, inicioSig),
   ]);
+
+  // `fetchEventos` ya viene podado al alcance, pero los POSTS no: se consultan
+  // por fecha, no por experiencia. Sin este filtro el calendario del mes le
+  // enseñaría a un operador toda la programación de Caminante. Se recortan
+  // contra los slugs que sí puede ver — y un post sin slug (los sueltos) queda
+  // fuera, que es lo correcto: no es de nadie en particular.
+  const slugsVisibles = new Set(eventos.map((e) => e.slug));
+  const soloMios = (ps: SocialPost[]) =>
+    ps.filter((p) => !!p.experienceSlug && slugsVisibles.has(p.experienceSlug));
+  const recientes = soloMios(recientesTodos);
+  const mesPosts = soloMios(mesTodos);
 
   const porEvento = new Map<string, SocialPost[]>();
   for (const p of recientes) {

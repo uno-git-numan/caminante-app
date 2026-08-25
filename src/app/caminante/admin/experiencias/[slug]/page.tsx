@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchSlotsForAdmin } from "@/lib/experiences/slots-admin";
 import type { Experience } from "@/lib/experiences/types";
@@ -17,7 +17,9 @@ export default async function EditarExperienciaPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  if (!(await isCurrentUserAdmin())) {
+  // Editar la ficha de una experiencia ajena: no. `puedeEditarSlug` dice que sí
+  // a la casa siempre y al operador solo sobre lo suyo.
+  if (!(await puedeEditarSlug(slug))) {
     redirect(`/caminante/login?next=/caminante/admin/experiencias/${slug}`);
   }
 

@@ -4,7 +4,7 @@
 // además del gate del layout, se re-verifica admin aquí (regla del proyecto).
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Experience } from "@/lib/experiences/types";
 import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
@@ -18,7 +18,8 @@ export default async function PreviewPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  if (!(await isCurrentUserAdmin())) redirect("/caminante/entrar");
+  // Solo sobre SU experiencia (la casa, sobre cualquiera).
+  if (!(await puedeEditarSlug((await params).slug))) redirect("/caminante/entrar");
 
   const { slug } = await params;
   const sb = createSupabaseAdminClient();

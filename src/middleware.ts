@@ -57,14 +57,21 @@ export async function middleware(request: NextRequest) {
   //
   // ⚠️ Se guarda el SLUG del operador, no su id: el middleware corre en el Edge
   // y no consulta la base. La traducción slug→id la hace quien cobra.
+  // ⚠️ `x-ruta` NO es decorativo: es lo único que le dice al layout del panel en
+  // qué pantalla está. Los Server Components no reciben el pathname, y sin él la
+  // lista blanca del panel no puede negar por omisión — o sea, cada pantalla
+  // nueva que alguien agregue mañana nacería abierta al operador externo. Con
+  // esto nace cerrada.
+  const cabeceras = { "x-ruta": request.nextUrl.pathname };
+
   const atrib = atribucionDeLaRuta(request.nextUrl.pathname);
   if (atrib && !request.cookies.get(ATRIB_COOKIE)) {
-    const res = await updateSession(request);
+    const res = await updateSession(request, cabeceras);
     res.cookies.set(ATRIB_COOKIE, await armarAtribucion(atrib), OPCIONES_ATRIB);
     return res;
   }
 
-  return updateSession(request);
+  return updateSession(request, cabeceras);
 }
 
 /**

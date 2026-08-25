@@ -4,7 +4,7 @@
 //   story           → 9:16 = 1080×1920 (Stories/Reels) · deck vertical completo.
 // Solo-admin.
 import { notFound, redirect } from "next/navigation";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Experience } from "@/lib/experiences/types";
 import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
@@ -22,7 +22,8 @@ export default async function SocialPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ f?: string }>;
 }) {
-  if (!(await isCurrentUserAdmin())) redirect("/caminante/entrar");
+  // Solo sobre SU experiencia (la casa, sobre cualquiera).
+  if (!(await puedeEditarSlug((await params).slug))) redirect("/caminante/entrar");
   const { slug } = await params;
   const formato = (await searchParams).f === "story" ? "story" : "post";
   const social = formato === "post"; // post = 4:5 (social); story = 9:16 (vertical completo)

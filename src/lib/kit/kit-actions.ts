@@ -21,7 +21,7 @@
 // de salida) y además SE INVENTÓ una especie que no estaba en el resumen
 // («Amanita basii»), justo lo que el sistema prohíbe. Opus se queda.
 import { revalidatePath } from "next/cache";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchKitContext } from "@/lib/kit/queries";
 import { PIEZAS, PIEZAS_E } from "@/lib/kit/kit";
@@ -34,7 +34,7 @@ export type LoteResult = { ok: true; ids: string[] } | { ok: false; error: strin
 // Ids de las piezas que HOY tienen sus insumos listos (las pendientes no se
 // mandan a la IA: no hay nada que redactar).
 export async function listarPiezasListas(slug: string): Promise<string[]> {
-  if (!(await isCurrentUserAdmin())) return [];
+  if (!(await puedeEditarSlug(slug))) return [];
   const ctx = await fetchKitContext(slug);
   if (!ctx) return [];
   return [...PIEZAS, ...PIEZAS_E].filter((p) => p.build(ctx).estado === "lista").map((p) => p.id);
@@ -43,7 +43,8 @@ export async function listarPiezasListas(slug: string): Promise<string[]> {
 // Genera UN lote y lo FUSIONA en data.kitCaptions (nunca reemplaza: si esto
 // pisara el objeto entero, cada lote borraría los anteriores).
 export async function generarLoteCaptions(slug: string, ids: string[]): Promise<LoteResult> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Sin permiso." };
+  // El Kit genera piezas DE una experiencia: el permiso va por esa experiencia.
+  if (!(await puedeEditarSlug(slug))) return { ok: false, error: "Sin permiso." };
   if (!slug || !ids.length) return { ok: false, error: "Lote vacío." };
 
   const ctx = await fetchKitContext(slug);

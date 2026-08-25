@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarSlot } from "@/lib/auth/alcance";
 import { fetchRoster } from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";
@@ -9,10 +9,13 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ slotId: string }> },
 ) {
-  if (!(await isCurrentUserAdmin())) {
+  // ⚠️ Esta ruta EXPORTA el roster —alergias, padecimientos, teléfonos— en CSV.
+  // Tiene que llevar exactamente la misma guarda que la pantalla, o sería la
+  // puerta de atrás de la pantalla más sensible del panel.
+  const { slotId } = await params;
+  if (!(await puedeEditarSlot(slotId))) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
-  const { slotId } = await params;
   if (!/^[0-9a-fA-F-]{36}$/.test(slotId)) {
     return NextResponse.json({ error: "Salida inválida" }, { status: 400 });
   }

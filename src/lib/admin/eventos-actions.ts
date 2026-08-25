@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarExperiencia, puedeEditarSlot } from "@/lib/auth/alcance";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 
@@ -25,6 +26,19 @@ const fail = (error: string): AdminActionResult => ({ ok: false, error });
 
 async function requireAdmin(): Promise<AdminActionResult | null> {
   if (!(await isCurrentUserAdmin())) return fail("Solo el admin puede hacer esto.");
+  return null;
+}
+
+// Las dos guardas del OPERADOR: dicen que sí a la casa siempre, y al operador
+// solo sobre lo suyo. Se resuelven contra la BASE con el id que llega, nunca
+// contra un campo del formulario — el id viaja en un `<input hidden>` y
+// cambiarlo es abrir el inspector.
+async function requireExperiencia(experienceId: string): Promise<AdminActionResult | null> {
+  if (!(await puedeEditarExperiencia(experienceId))) return fail("Esa experiencia no es tuya.");
+  return null;
+}
+async function requireSalida(slotId: string): Promise<AdminActionResult | null> {
+  if (!(await puedeEditarSlot(slotId))) return fail("Esa salida no es tuya.");
   return null;
 }
 
@@ -49,7 +63,7 @@ export async function updateSlot(input: {
   priceMxn?: number | null;
   status?: "open" | "closed" | "cancelled";
 }): Promise<AdminActionResult> {
-  const guard = await requireAdmin();
+  const guard = await requireSalida(input.slotId);
   if (guard) return guard;
 
   const sb = createSupabaseAdminClient();
@@ -205,7 +219,7 @@ export async function setExperienceStatus(input: {
   slug: string;
   status: "draft" | "published";
 }): Promise<AdminActionResult> {
-  const guard = await requireAdmin();
+  const guard = await requireExperiencia(input.experienceId);
   if (guard) return guard;
   if (!["draft", "published"].includes(input.status)) return fail("Estado inválido.");
 
@@ -249,7 +263,7 @@ export async function setExperienceStatus(input: {
 export async function deleteExperience(input: {
   experienceId: string;
 }): Promise<AdminActionResult> {
-  const guard = await requireAdmin();
+  const guard = await requireExperiencia(input.experienceId);
   if (guard) return guard;
 
   const sb = createSupabaseAdminClient();

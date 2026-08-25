@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
-import { ADMIN_NAV as items, ADMIN_NAV_OPERADOR, PERSON_ICON, type AdminSection } from "./nav";
+import { navPara, ADMIN_NAV_OPERADOR, PERSON_ICON, type AdminSection } from "./nav";
+import { getCurrentRole } from "@/lib/auth/authorization";
+import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_CSS } from "./admin-css";
 
@@ -101,11 +103,20 @@ export default async function AdminShell({
   active: AdminSection;
   children: React.ReactNode;
 }) {
-  const [pendientes, accesos, embajadores] = await Promise.all([
-    pendientesSolicitudes(),
-    pendientesAccesos(),
-    pendientesEmbajadores(),
-  ]);
+  const rol = (await getCurrentRole()) === "operador" ? "operador" : "admin";
+  const alcance = await alcanceActual();
+  const items = navPara(rol);
+
+  // Los badges cuentan solicitudes de la PLATAFORMA. Un operador ni ve esa
+  // sección, así que ni se consultan — tres consultas menos por pantalla.
+  const [pendientes, accesos, embajadores] =
+    rol === "operador"
+      ? [0, 0, 0]
+      : await Promise.all([
+          pendientesSolicitudes(),
+          pendientesAccesos(),
+          pendientesEmbajadores(),
+        ]);
   // Solicitudes agrupa operador (accesos) + cliente (fechas) + embajador → un solo badge.
   const badgeDe = (key: AdminSection): number =>
     key === "solicitudes" ? pendientes + accesos + embajadores : 0;
@@ -121,12 +132,18 @@ export default async function AdminShell({
               aria-label="Caminante — inicio"
               dangerouslySetInnerHTML={{ __html: MARK }}
             />
-            <span className="mode">Modo admin</span>
+            {/* Que la etiqueta diga de QUIÉN es el panel. Un operador tiene que
+                saber de un vistazo que está viendo lo suyo y no todo. */}
+            <span className="mode">
+              {esOperador(alcance) ? alcance.nombre : "Modo admin"}
+            </span>
           </div>
           <div className="qa">
-            <Link href="/caminante/admin/cobro" className="btn btn-glass btn-sm">
-              Generar cobro
-            </Link>
+            {rol === "admin" ? (
+              <Link href="/caminante/admin/cobro" className="btn btn-glass btn-sm">
+                Generar cobro
+              </Link>
+            ) : null}
             <Link href="/caminante/admin/experiencias/nueva" className="btn btn-orange btn-sm">
               + Experiencia
             </Link>
@@ -170,7 +187,12 @@ export default async function AdminShell({
           <Link
             href={ADMIN_NAV_OPERADOR.href!}
             className={active === ADMIN_NAV_OPERADOR.key ? "on" : ""}
-            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}
+            style={{
+              marginLeft: "auto",
+              display: rol === "operador" ? "none" : "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
             title="Perfil del operador"
           >
             <span

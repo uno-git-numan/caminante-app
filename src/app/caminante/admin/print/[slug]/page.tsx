@@ -4,7 +4,7 @@
 // página exacta (@page + page-break) → sin cortes ni componentes perdidos.
 // Auto-dispara el diálogo de impresión al cargar → el admin elige "Guardar como PDF".
 import { notFound, redirect } from "next/navigation";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Experience } from "@/lib/experiences/types";
 import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
@@ -65,7 +65,8 @@ export default async function PrintPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ o?: string }>;
 }) {
-  if (!(await isCurrentUserAdmin())) redirect("/caminante/entrar");
+  // Solo sobre SU experiencia (la casa, sobre cualquiera).
+  if (!(await puedeEditarSlug((await params).slug))) redirect("/caminante/entrar");
 
   const { slug } = await params;
   const { o } = await searchParams;

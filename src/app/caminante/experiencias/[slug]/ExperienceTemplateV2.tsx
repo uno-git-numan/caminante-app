@@ -731,21 +731,20 @@ export default function ExperienceTemplateV2({
   // para que el flujo completo (página → checkout) siga viendo la salida privada.
   grupoToken?: string | null;
   // Rol de la sesión (server-side): entrada a "Mi espacio"/"Panel" en el nav.
-  sessionRole?: "admin" | "caminante" | null;
+  sessionRole?: "admin" | "operador" | "caminante" | null;
   // Chip "Operada por" del hero (null = operador sin perfil público o sin 0020).
   operatorChip?: OperatorChip | null;
 }) {
   const slug = experience.slug;
   // Entrada por rol en el nav de la experiencia (misma lógica que SiteChrome):
-  // sin sesión → "Entrar" (rutea a login); caminante → "Mi espacio"; admin → "Panel".
-  const cuentaHref =
-    sessionRole === "admin"
-      ? "/caminante/admin"
-      : sessionRole === "caminante"
-        ? "/caminante/perfil"
-        : "/caminante/entrar";
-  const cuentaLabel =
-    sessionRole === "admin" ? "Panel" : sessionRole === "caminante" ? "Mi espacio" : "Entrar";
+  // sin sesión → "Entrar"; caminante → "Mi espacio"; casa y operador → "Panel".
+  const conPanel = sessionRole === "admin" || sessionRole === "operador";
+  const cuentaHref = conPanel
+    ? "/caminante/admin"
+    : sessionRole === "caminante"
+      ? "/caminante/perfil"
+      : "/caminante/entrar";
+  const cuentaLabel = conPanel ? "Panel" : sessionRole === "caminante" ? "Mi espacio" : "Entrar";
   const blocks = experience.page?.blocks ?? [];
   const collabs = (experience.page?.collaborators ?? []).filter((c) => c.logoUrl?.trim());
   // La banda de logos va después del último bloque "split" (guías/aliados); si no
