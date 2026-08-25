@@ -3,7 +3,7 @@
 // (registrations). Alimenta el recordatorio por correo desde el panel.
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
-import { experienceTitle } from "@/lib/admin/queries";
+import { experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
 import type { Experience } from "@/lib/experiences/types";
 
 export type DeslindePendiente = {
@@ -19,15 +19,23 @@ export async function fetchDeslindesPendientes(): Promise<DeslindePendiente[]> {
   try {
     const sb = createSupabaseAdminClient();
     const [exps, resvs, regs, contacts, slots] = await Promise.all([
-      sb.from("experiences").select("id, slug, data"),
+      sb.from("experiences").select("id, slug, data, operator_id"),
       sb.from("reservations").select("id, contact_id, experience_id, status, slot_id"),
       sb.from("registrations").select("reservation_id"),
       sb.from("contacts").select("id, full_name, email"),
       sb.from("experience_slots").select("id, label"),
     ]);
 
+    // ⚠️ PODA AL ALCANCE. Esta lista trae NOMBRE Y CORREO de clientes reales
+    // («Recordar deslinde a …»), y es la TERCERA consulta de la pantalla de
+    // Encuesta — las otras dos ya estaban podadas y esta se coló igual. Se poda
+    // por experiencia, que es donde cuelga todo lo demás.
+    const operatorId = await operadorDelAlcance();
     const activo = new Map<string, { slug: string; nombre: string }>();
-    for (const e of (exps.data ?? []) as { id: string; slug: string; data: Experience }[]) {
+    for (const e of (exps.data ?? []) as {
+      id: string; slug: string; data: Experience; operator_id: string | null;
+    }[]) {
+      if (operatorId && e.operator_id !== operatorId) continue;
       if (e.data?.registration?.active) {
         activo.set(e.id, { slug: e.slug, nombre: experienceTitle(e.data, e.slug) });
       }

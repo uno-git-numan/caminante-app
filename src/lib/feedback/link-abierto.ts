@@ -6,7 +6,7 @@
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeEditarSlot } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const SITE = "https://caminante.numanhub.com";
@@ -18,9 +18,12 @@ export const linkAbierto = async (token: string): Promise<string> =>
 // Idempotente: si la salida ya tiene token, devuelve el mismo link (así el que
 // ya se mandó al grupo nunca se invalida por volver a picar el botón).
 export async function generarLinkEncuestaSalida(formData: FormData): Promise<void> {
-  if (!(await isCurrentUserAdmin())) return;
   const slotId = String(formData.get("slotId") ?? "").trim();
   if (!slotId) return;
+  // El slotId llega en un input oculto: el permiso se resuelve contra la base.
+  // Este link recoge respuestas de una salida; generar el de un viaje ajeno
+  // sería quedarse con la voz de sus clientes.
+  if (!(await puedeEditarSlot(slotId))) return;
 
   const sb = createSupabaseAdminClient();
   const { data: slot } = await sb
