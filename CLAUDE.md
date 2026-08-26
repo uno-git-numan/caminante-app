@@ -144,10 +144,30 @@ boletín · programa de embajadores · portales de operador white-label ·
 **El cobro sigue corriendo por `createCheckout` sin cambios.** La bifurcación a
 cargo directo es lo último que se toca, a propósito.
 
-**Siguiente:** A3, facturación multi-emisor con Facturapi. Bloqueada por dos cosas
-de Luis: contratar Facturapi **con plan multi-organización** (requisito, no
-detalle) y **definir la comisión de Kéntro** — hoy `commission_pct` está en NULL y
-el gate no deja vender por Connect sin ella.
+**Siguiente:** A3, facturación multi-emisor con Facturapi.
+
+⚠️ **Corrección (25 ago 2026):** aquí decía que el plan multi-organización era «un
+requisito, no un detalle», como si fuera caro y aparte. **No lo es.** El plan base
+—«API de Facturación CFDI», $299 MXN/mes + $0.60 por timbre— YA es multi-RFC y no
+cobra por emisor adicional. Los planes que amarran a un solo RFC son los otros
+(Facturación Web, E-Receipts y Autofactura, Facturapi para Stripe): NO contratar
+ésos aunque el nombre suene a lo nuestro.
+
+**Estado real:** la 0019 está APLICADA y verificada; el código de facturación vive
+en la rama y está apagado por `FACTURAPI_SECRET_KEY`. Los datos fiscales de NUMAN ya
+están en `operators` (RFC NHU250826CS8 · razón social **NUMAN HUB**, exacta y SIN
+«S.A. de C.V.» · régimen 601 · CP 11000), leídos de la CSF.
+
+**Bloqueado por Luis:** la cuenta de Facturapi, la llave, el CSD, y —lo importante—
+que el SAT registre la actividad de turismo: las 15 actividades de la CSF son de
+medios y software, y el CFDI timbraría con clave 90121500 (organización de viajes).
+Ver `.claude/rules/dinero.md` y la memoria `caminante-facturacion-cfdi`.
+
+**Y antes de facturar:** hay **49 pagos cobrados sin CFDI** según la base contra 31
+en el ledger de contabilidad. Esa diferencia se cuadra ANTES de emitir.
+
+**También pendiente:** definir la comisión de Kéntro — hoy `commission_pct` está en
+NULL y el gate no deja vender por Connect sin ella.
 
 **Pendiente conocido:** ningún operador tiene `convenio_firmado_at`; independizar
 el DNS de Squarespace.
