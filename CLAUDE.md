@@ -144,6 +144,12 @@ boletín · programa de embajadores · portales de operador white-label ·
 **El cobro sigue corriendo por `createCheckout` sin cambios.** La bifurcación a
 cargo directo es lo último que se toca, a propósito.
 
+**Desde el 26 ago:** el **deslinde del operador se FUSIONA** con el nuestro en vez
+de reemplazarlo (regla e invariante #11 en `.claude/rules/experiencias.md`), las
+cláusulas saben si son obligatorias y de quién son, el formulario avisa cuando el
+precio que se muestra no es el que se cobra, y una experiencia nueva hereda el
+contacto de SU dueño. Migración **0043** aplicada.
+
 **Siguiente:** A3, facturación multi-emisor con Facturapi.
 
 ⚠️ **Corrección (25 ago 2026):** aquí decía que el plan multi-organización era «un

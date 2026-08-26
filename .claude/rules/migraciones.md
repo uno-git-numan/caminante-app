@@ -72,4 +72,31 @@ Supabase pide su propia confirmación cuando detecta operaciones destructivas.
 atribución congelada · `0017` participantes · `0018` salidas privadas ·
 `0028` boletín · `0030` branding de operador · `0034` transferencias ·
 `0035` aplicaciones de operador · `0036` Connect · `0037` borra la comisión
-duplicada · `0038` un solo hogar fiscal + CSD de dos archivos.
+duplicada · `0038` un solo hogar fiscal + CSD de dos archivos ·
+`0042` panel del operador · `0043` contacto del operador (whatsapp, documentos) +
+domicilio del participante.
+
+## Aplicarlas cuando el SQL Editor no coopera
+
+El editor **no hidrata en pestaña de fondo** y el botón Run manda el estado de
+React, no lo que hay en Monaco. Cuando eso bloquee, la salida es la **API de
+administración** con el token de sesión del dashboard (`localStorage`
+→ `supabase.dashboard.auth.token`):
+
+```
+POST https://api.supabase.com/v1/projects/<ref>/database/query
+Authorization: Bearer <access_token>     ← se usa DENTRO de la página, nunca se imprime
+body: { "query": "<el SQL>" }
+```
+
+Es **mejor** para la regla del hash: se hashea exactamente la cadena que se manda,
+en la misma llamada que la manda, y se aborta si no empata. Leer el editor de vuelta
+siempre fue el eslabón débil. Ojo: `/dashboard/api/pg-meta/…` responde «Endpoint not
+supported on hosted» y `/platform/pg-meta/…` pide una cadena de conexión cifrada;
+el bueno es `/v1/projects/<ref>/database/query`.
+
+**Y se verifica contra PostgREST**, no contra la pantalla:
+```
+curl -s "$URL/rest/v1/<tabla>?select=<columna>&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
+```
+Un `42703 column … does not exist` es la prueba de que NO corrió.
