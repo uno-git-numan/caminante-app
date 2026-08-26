@@ -97,22 +97,56 @@ sin señal; tiene que haber alguien afuera con el itinerario y la lista de
 participantes. Sale como **sección propia** del deslinde generado (no como una
 viñeta más): quien lo busca está en una emergencia y no va a leer la lista entera.
 
-## El contacto de una experiencia se siembra de SU DUEÑO
+## El contacto de una experiencia es el de QUIEN LA OPERA
 
-`emptyExperience(dueno)`. Los datos de Caminante siguen siendo el respaldo para las
-experiencias de la casa, pero cuando crea un operador se siembran los suyos
-(`operators.email` / `instagram` / `whatsapp`). Sin esto la página de Nomádika salió
-a producción invitando a escribirle a `uno@numanhub.com` y a seguir a
-`@somos.caminante`.
+Dos capas, y hacen falta las dos:
 
-## El bloque «Para tu seguro» NO existe en el formulario público
+- **Al crear**: `emptyExperience(dueno)` siembra `email`/`instagram`/`whatsapp` del
+  operador que está dando de alta.
+- **Al renderizar**: `fetchOperatorContactoForExperience` resuelve el bloque de
+  cierre contra la ficha del operador dueño (`contactosDe` en el template).
 
-El registro real tiene **seis** secciones: datos, perfil médico, contacto de
-emergencia, participantes, deslinde y firma. Los campos de aseguradora (sexo, CURP,
-identificación, ocupación, beneficiario, y `address` desde la 0043) existen en el
-tipo y en `medical_profiles`, pero **nadie los captura**. La vista previa del admin
-los anunciaba: eso ya se corrigió, es espejo de las seis reales. Si se construye el
-bloque, se construye arriba y en la vista previa **en el mismo cambio**.
+Sembrar no bastaba: las páginas ya guardadas —la de Nomádika, en producción—
+seguían invitando a escribir a `uno@numanhub.com` y a seguir a `@somos.caminante`,
+porque el contacto se había copiado como texto dentro de la página. Resolviendo al
+renderizar se corrigen solas en cuanto el operador captura sus datos, sin volver a
+editar experiencia por experiencia.
+
+Solo se sustituyen las tres etiquetas que el sistema conoce (WhatsApp · Email o
+Correo · Instagram) y solo si el operador tiene ese dato; lo demás queda como está,
+porque alguien lo escribió a mano.
+
+## «Para tu seguro» es OPCIONAL y por experiencia
+
+`registration.insurance`, y **nace apagado**. Prendido, el registro pide el
+expediente que la aseguradora necesita: sexo, nacionalidad, CURP, identificación,
+**domicilio** (`medical_profiles.address`, 0043), ocupación y beneficiario.
+
+Apagado no se pide nada de eso, y esa es la razón de que exista el interruptor: son
+ocho campos de datos personales y pedírselos a alguien que va a caminar cuatro
+horas a un bosque, sin póliza detrás que los use, es recolectar datos sensibles sin
+motivo. Donde sí hay póliza, sin el expediente no se puede dar de alta al
+participante.
+
+⚠️ Este bloque se anunciaba en la vista previa del admin **sin existir en el
+formulario público**. Las tres superficies —vista previa, escritorio y teléfono—
+se renumeran solas según el interruptor; si se toca una, se tocan las tres.
+
+## El roster abre FICHA por persona
+
+`RosterTabla.tsx`. La tabla resume para poder barrerla; la ficha es para cuando hay
+que ACTUAR: llamar, escribir, o leerle a un médico lo que esa persona declaró. El
+teléfono ya venía en la consulta y no se dibujaba en ningún lado, y alergias,
+padecimientos y dieta se concatenaban en una sola celda.
+
+⚠️ **La fila de detalle se renderiza SIEMPRE y se esconde con CSS**, nunca con un
+`&&` de React. Es lo que hace que al **imprimir** salgan todas las fichas abiertas:
+el guía se lleva la hoja al cerro, donde no hay a quién darle clic. Con render
+condicional, imprimir daría una hoja con los datos que de verdad hacen falta
+escondidos.
+
+Un acompañante no es `contacts`: no tiene teléfono ni correo propios y la ficha lo
+dice con todas sus letras en vez de quedarse en blanco.
 
 **De dónde salieron las dos reglas:** Enyd pagó 2 lugares de una experiencia
 publicada **sin deslinde activo**, y la pantalla de éxito prometía un correo que no
