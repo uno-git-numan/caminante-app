@@ -214,6 +214,27 @@ const REGLAS = [
       return null;
     },
   },
+  {
+    nombre: "Fusionar un deslinde nunca quita cobertura",
+    comprueba() {
+      const f = "src/lib/ai/fusionar-deslinde.ts";
+      const s = leer(f);
+      if (!s) return `Falta ${f}: es donde vive la regla de fusión del deslinde del operador.`;
+      // La regla del negocio es que la fusión es una UNIÓN: el documento
+      // resultante no puede cubrir menos que ninguno de los dos que entraron.
+      // Un modelo que "consolida" viñetas para acortar la lista produce un
+      // deslinde más corto —y más débil— sin que nadie lo note, porque el
+      // resultado se ve perfectamente razonable. El candado numérico es la
+      // única parte que no depende de que el modelo se porte bien.
+      if (!/clausulas\.length\s*<\s*args\.clausulasActuales\.length/.test(s))
+        return `${f} perdió el candado que rechaza una fusión con MENOS cláusulas de las que entraron. Sin él, un deslinde puede salir más débil que el que ya estaba y nadie se entera: la lista sigue leyéndose bien.`;
+      // Y el lector único: si alguien vuelve a tratar las cláusulas como
+      // cadenas sueltas, se pierde qué es obligatorio y de quién es cada una.
+      if (!hay("src/lib/legal/clausulas.ts"))
+        return "Falta src/lib/legal/clausulas.ts: es el único lector de las cláusulas (cadenas legadas y objetos). Con dos normalizadores las dos formas se separan.";
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

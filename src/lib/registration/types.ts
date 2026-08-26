@@ -60,6 +60,8 @@ export type MedicalProfileData = {
   curp: string;
   nationality: string;
   governmentId: string;
+  /** Domicilio: lo pide la aseguradora para el expediente (0043). */
+  address: string;
   occupation: string;
   beneficiaryName: string;
   beneficiaryRelationship: string;

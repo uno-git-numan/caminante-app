@@ -9,7 +9,8 @@ import { onboardOperator } from "@/lib/operators/onboarding-actions";
 
 export type ExpOpcion = { id: string; slug: string; titulo: string; status: string; operatorId: string | null };
 export type OperadorPrefill = {
-  id: string; nombre: string; email: string; slug: string; instagram: string;
+  id: string; nombre: string; email: string; slug: string; instagram: string; whatsapp: string;
+  deslindeUrl: string; deslindeNombre: string; encuestaUrl: string; encuestaNombre: string;
   logoUrl: string; logoDarkUrl: string; primary: string; accent: string; poweredBy: "discreto" | "visible";
   panelActivo: boolean;
   razonSocial: string; rfc: string; domicilio: string; responsable: string; trato: string;
@@ -26,6 +27,11 @@ export default function OnboardingForm({ experiencias, prefill }: { experiencias
   const [primary, setPrimary] = useState(prefill?.primary ?? "#20211c");
   const [accent, setAccent] = useState(prefill?.accent ?? "#ff5d36");
   const [subiendo, setSubiendo] = useState(false);
+  const [deslindeUrl, setDeslindeUrl] = useState(prefill?.deslindeUrl ?? "");
+  const [deslindeNombre, setDeslindeNombre] = useState(prefill?.deslindeNombre ?? "");
+  const [encuestaUrl, setEncuestaUrl] = useState(prefill?.encuestaUrl ?? "");
+  const [encuestaNombre, setEncuestaNombre] = useState(prefill?.encuestaNombre ?? "");
+  const [subiendoDoc, setSubiendoDoc] = useState<"deslinde" | "encuesta" | null>(null);
   const [sending, setSending] = useState(false);
 
   async function subirLogo(file: File) {
@@ -41,6 +47,23 @@ export default function OnboardingForm({ experiencias, prefill }: { experiencias
       alert("No se pudo subir el logo.");
     } finally {
       setSubiendo(false);
+    }
+  }
+
+  async function subirDoc(file: File, cual: "deslinde" | "encuesta") {
+    setSubiendoDoc(cual);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await fetch("/caminante/api/admin/upload", { method: "POST", body: fd });
+      const j = (await r.json()) as { url?: string; error?: string };
+      if (!j.url) { alert(j.error || "No se pudo subir el documento."); return; }
+      if (cual === "deslinde") { setDeslindeUrl(j.url); setDeslindeNombre(file.name); }
+      else { setEncuestaUrl(j.url); setEncuestaNombre(file.name); }
+    } catch {
+      alert("No se pudo subir el documento.");
+    } finally {
+      setSubiendoDoc(null);
     }
   }
 
@@ -85,6 +108,47 @@ export default function OnboardingForm({ experiencias, prefill }: { experiencias
           <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 180px", fontSize: 12, fontWeight: 600 }}>
             Instagram (opcional)
             <input name="instagram" defaultValue={prefill?.instagram ?? ""} placeholder="@operador" />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 180px", fontSize: 12, fontWeight: 600 }}>
+            WhatsApp
+            <input name="whatsapp" defaultValue={prefill?.whatsapp ?? ""} placeholder="+52 55 …" />
+          </label>
+        </div>
+        <p className="mut" style={{ fontSize: 12.5, marginTop: 10 }}>
+          Correo, Instagram y WhatsApp <b>siembran el bloque de contacto de sus experiencias</b>. Si
+          faltan, la página que él dé de alta va a invitar a escribirle a Caminante.
+        </p>
+      </div>
+
+      {/* ── 1b · Documentos que ya trae ── */}
+      <div className="card pad" style={{ marginBottom: 16 }}>
+        <span className="subtitle">1b · Sus documentos (si ya tiene)</span>
+        <p className="mut" style={{ fontSize: 12.5, margin: "8px 0 12px" }}>
+          Si ya tiene su <b>carta de deslinde</b> o la <b>encuesta</b> que aplica, súbelas aquí una vez
+          y sirven para todas sus experiencias. No reemplazan a las nuestras: al dar de alta cada
+          experiencia se <b>fusionan</b> — donde su cláusula y la nuestra digan lo mismo se queda la
+          suya, lo que solo tenga él se agrega, y lo que solo tengamos nosotros se conserva.
+        </p>
+        <div className="mini-form" style={{ gap: 12, alignItems: "flex-end" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 300px", fontSize: 12, fontWeight: 600 }}>
+            Su carta de deslinde
+            <input name="deslindeUrl" value={deslindeUrl} onChange={(e) => setDeslindeUrl(e.target.value)} placeholder="https://…/deslinde.pdf" />
+          </label>
+          <input type="hidden" name="deslindeNombre" value={deslindeNombre} />
+          <label className="btn btn-glass btn-sm" style={{ cursor: "pointer" }}>
+            {subiendoDoc === "deslinde" ? "Subiendo…" : "Subir deslinde"}
+            <input type="file" accept=".pdf,image/*,.txt,.md" style={{ display: "none" }}
+              onChange={(e) => e.target.files?.[0] && subirDoc(e.target.files[0], "deslinde")} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 300px", fontSize: 12, fontWeight: 600 }}>
+            Su encuesta
+            <input name="encuestaUrl" value={encuestaUrl} onChange={(e) => setEncuestaUrl(e.target.value)} placeholder="https://…/encuesta.pdf" />
+          </label>
+          <input type="hidden" name="encuestaNombre" value={encuestaNombre} />
+          <label className="btn btn-glass btn-sm" style={{ cursor: "pointer" }}>
+            {subiendoDoc === "encuesta" ? "Subiendo…" : "Subir encuesta"}
+            <input type="file" accept=".pdf,image/*,.txt,.md" style={{ display: "none" }}
+              onChange={(e) => e.target.files?.[0] && subirDoc(e.target.files[0], "encuesta")} />
           </label>
         </div>
       </div>
@@ -238,7 +302,7 @@ export default function OnboardingForm({ experiencias, prefill }: { experiencias
         </p>
       </div>
 
-      <button type="submit" className="btn btn-orange" disabled={sending || subiendo}>
+      <button type="submit" className="btn btn-orange" disabled={sending || subiendo || subiendoDoc !== null}>
         {sending ? "Guardando…" : "Guardar operador y ver su portal"}
       </button>
     </form>

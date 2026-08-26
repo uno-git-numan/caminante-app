@@ -65,6 +65,7 @@ export async function guardarMedicoAction(fd: FormData): Promise<void> {
     curp: (cur?.curp as string) || "",
     nationality: (cur?.nationality as string) || "",
     governmentId: (cur?.government_id as string) || "",
+    address: (cur?.address as string) || "",
     occupation: (cur?.occupation as string) || "",
     beneficiaryName: (cur?.beneficiary_name as string) || "",
     beneficiaryRelationship: (cur?.beneficiary_relationship as string) || "",

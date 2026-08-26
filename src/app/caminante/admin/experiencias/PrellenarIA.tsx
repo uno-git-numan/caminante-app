@@ -66,6 +66,12 @@ export default function PrellenarIA({ onResult }: Props) {
         horarios: lo que no esté en el material queda vacío. Word → exportar a PDF.
         {" "}<b>Si el PDF pesa más de {MAX_MB} MB, pega el texto</b> — funciona igual de bien y es más rápido.
       </p>
+      <p className="sd-hint" style={{ marginTop: 8 }}>
+        <b>También, si ya tienes tu carta de deslinde o la encuesta que aplicas, agrégalas aquí.</b> No
+        reemplazan a las nuestras: se fusionan. Donde tu cláusula y la nuestra digan lo mismo, se queda
+        la tuya; lo que solo tengas tú se agrega; lo que solo tengamos nosotros se conserva. Puedes
+        subirlas también más abajo, en «Registro &amp; deslinde» y «Encuesta de satisfacción».
+      </p>
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => inputRef.current?.click()}>

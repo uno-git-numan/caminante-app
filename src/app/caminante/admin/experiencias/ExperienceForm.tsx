@@ -14,6 +14,8 @@ import { emptyExperience, slugify } from "@/lib/experiences/empty";
 import PrellenarIA from "./PrellenarIA";
 import ChecklistComunicacion from "./ChecklistComunicacion";
 import { aplicarPrellenadoV2, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
+import { leerClausulas, etiquetaOrigen, type Clausula } from "@/lib/legal/clausulas";
+import type { ContactoDueno } from "@/lib/experiences/empty";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
@@ -434,10 +436,12 @@ function SecToggle({ checked, onChange }: { checked: boolean; onChange: (v: bool
 }
 
 /* ---------- main ---------- */
-export default function ExperienceForm({ initial, initialSlots }: { initial?: Experience; initialSlots?: InitialSlot[] }) {
-  const [exp, setExp] = useState<Experience>(initial ?? emptyExperience());
+export default function ExperienceForm({ initial, initialSlots, dueno }: { initial?: Experience; initialSlots?: InitialSlot[]; dueno?: ContactoDueno }) {
+  // `dueno` = el operador que está creando. Siembra el contacto del cierre con
+  // el SUYO; sin él la página nueva nacía invitando a escribirle a Caminante.
+  const [exp, setExp] = useState<Experience>(initial ?? emptyExperience(dueno));
   const [v2, setV2] = useState<V2Draft>(() =>
-    initial ? draftFromBlocks(initial.page, initial) : emptyV2Draft(emptyExperience()),
+    initial ? draftFromBlocks(initial.page, initial) : emptyV2Draft(emptyExperience(dueno)),
   );
   const [slots, setSlots] = useState<SlotRow[]>(
     (initialSlots ?? []).map((s) => ({ id: s.id, label: s.label, start: (s.startsAt || "").slice(0, 10), end: (s.endsAt || "").slice(0, 10), cupo: s.capacity != null ? String(s.capacity) : "" })),
@@ -474,7 +478,10 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   const setTiers = (v: { label: string; amount: string }[]) => set("priceTiers", v);
 
   const gallery = exp.gallery ?? [];
-  const clausulas = reg.waiverClauses ?? [];
+  // ⚠️ SIEMPRE por el lector único: lo guardado puede ser cadenas legadas u
+  // objetos. Leerlo a mano aquí es como vuelve el bug de las dos formas.
+  const clausulas = leerClausulas(reg.waiverClauses);
+  const setClausulas = (v: Clausula[]) => setReg({ waiverClauses: v });
   const cats = fb.sections ?? [];
 
   // Banco de fotos tipificado + ficha científica (serie E del kit).
@@ -489,6 +496,43 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   const temporada = ficha.temporada ?? [];
   const setFicha = (patch: Partial<NonNullable<Experience["ficha"]>>) =>
     setExp((p) => ({ ...p, ficha: { ...(p.ficha ?? {}), ...patch } }));
+
+  // ⚠️ EL PRECIO QUE SE MUESTRA Y EL QUE SE COBRA SON DOS CAMPOS DISTINTOS.
+  //
+  // `v2.tariff.price` es texto de portada ("$2,550") y `price.amount` es el
+  // número que Stripe cobra. Nada los ataba, así que se podía subir uno y
+  // olvidar el otro: la página anuncia un precio y el checkout cobra otro. Con
+  // Stripe en LIVE eso es dinero real y una discusión con el cliente que la
+  // plataforma pierde siempre. No se sincronizan solos a propósito —cuál de los
+  // dos está bien es una decisión de quien vende— pero no pueden diverger en
+  // silencio.
+  const montoCobrado = priceTiers.length
+    ? Math.min(...priceTiers.map((x) => Number((x.amount || "").replace(/[^\d.]/g, "")) || Infinity))
+    : Number((price.amount || "").replace(/[^\d.]/g, ""));
+  const montoMostrado = Number((v2.tariff.price || "").replace(/[^\d.]/g, ""));
+  const precioDiscrepa =
+    Number.isFinite(montoCobrado) && montoCobrado > 0 && montoMostrado > 0 && montoCobrado !== montoMostrado;
+  const fmtMoneda = (n: number) => "$" + n.toLocaleString("es-MX");
+  const AvisoPrecio = () =>
+    precioDiscrepa ? (
+      <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 12, fontSize: 13, border: "1px solid rgba(179,53,23,.35)", background: "rgba(179,53,23,.07)" }}>
+        <strong style={{ color: "#b33517" }}>El precio que se muestra y el que se cobra no son el mismo.</strong>
+        <div style={{ marginTop: 4, opacity: 0.9 }}>
+          La página anuncia <b>{fmtMoneda(montoMostrado)}</b> y el checkout cobra <b>{fmtMoneda(montoCobrado)}</b>
+          {priceTiers.length ? " (el tipo más barato)" : ""}. Deja los dos iguales antes de publicar.
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => upd("tariff", { price: fmtMoneda(montoCobrado) })}>
+            Mostrar {fmtMoneda(montoCobrado)} (el que se cobra)
+          </button>
+          {!priceTiers.length ? (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPrice({ amount: String(montoMostrado) })}>
+              Cobrar {fmtMoneda(montoMostrado)} (el que se muestra)
+            </button>
+          ) : null}
+        </div>
+      </div>
+    ) : null;
 
   const heroCompleto = `${v2.hero.title} ${v2.hero.titleAccent}`.trim();
   const suggestedSlug = useMemo(() => slugify(heroCompleto), [heroCompleto]);
@@ -567,6 +611,69 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
     } finally {
       setFichaIaBusy(false);
       if (fichaFileRef.current) fichaFileRef.current.value = "";
+    }
+  }
+
+  // ── FUSIÓN del deslinde / la encuesta que el operador YA tiene ──────────
+  //
+  // Casi todo operador con oficio trae su propia carta, escrita por alguien que
+  // conoce su terreno. La regla (y por qué es una unión que nunca resta) vive en
+  // lib/ai/fusionar-deslinde.ts. Aquí solo se manda y se aplica el resultado.
+  const [fusBusy, setFusBusy] = useState(false);
+  const [fusMsg, setFusMsg] = useState<string | null>(null);
+  const [fusErr, setFusErr] = useState<string | null>(null);
+  const [fusTexto, setFusTexto] = useState("");
+  const fusFileRef = useRef<HTMLInputElement>(null);
+  const [fusFiles, setFusFiles] = useState<File[]>([]);
+  // La encuesta propia entra por su propia sección pero al MISMO endpoint: el
+  // documento que suban puede traer las dos cosas, y la IA fusiona lo que
+  // reconozca dejando intacto lo demás. Dos motores para lo mismo divergirían.
+  const [encTexto, setEncTexto] = useState("");
+  const encFileRef = useRef<HTMLInputElement>(null);
+  const [encFiles, setEncFiles] = useState<File[]>([]);
+
+  async function fusionarDoc(fusFiles: File[], fusTexto: string, docUrl?: string) {
+    if (fusBusy || (!fusFiles.length && !fusTexto.trim() && !docUrl)) return;
+    setFusBusy(true);
+    setFusErr(null);
+    setFusMsg(null);
+    try {
+      const fd = new FormData();
+      fusFiles.forEach((f) => fd.append("files", f));
+      fd.append("texto", fusTexto);
+      if (docUrl) fd.append("docUrl", docUrl);
+      fd.append("clausulas", JSON.stringify(clausulas));
+      fd.append("secciones", JSON.stringify(cats));
+      fd.append(
+        "contexto",
+        [exp.cardTitle, exp.cardHook, v2.experiencia.points.filter(Boolean).join(" · ")]
+          .filter(Boolean)
+          .join(" — "),
+      );
+      const res = await fetch("/caminante/api/admin/fusionar-deslinde", { method: "POST", body: fd });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || "No se pudo fusionar el documento.");
+      setExp((prev) => {
+        const r = prev.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [] };
+        const f = prev.feedback ?? { active: false, version: "v1", locationLabel: "", npsEnabled: true, sections: [], testimonialPrompt: "" };
+        return {
+          ...prev,
+          registration: {
+            ...r,
+            waiverClauses: j.clausulas,
+            waiverOperadorNombre: fusFiles[0]?.name || dueno?.deslindeNombre || (fusTexto.trim() ? "Texto pegado" : r.waiverOperadorNombre),
+            waiverConflictos: j.conflictos ?? [],
+          },
+          feedback: { ...f, sections: j.secciones?.length ? j.secciones : f.sections },
+        };
+      });
+      setStatusOk(false);
+      setStatus("Deslinde fusionado — revisa las cláusulas y guarda");
+      setFusMsg(j.notas || "Listo. Revisa las cláusulas abajo antes de guardar.");
+    } catch (e) {
+      setFusErr((e as Error).message);
+    } finally {
+      setFusBusy(false);
     }
   }
 
@@ -1162,6 +1269,8 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               <Field label="Dato — valor"><input type="text" value={v2.tariff.availV} placeholder="17 personas" onChange={(e) => upd("tariff", { availV: e.target.value })} /></Field>
             </div>
 
+            <AvisoPrecio />
+
             <div className="subhead">Tipos de precio <span className="optflag">opcional</span></div>
             <p className="desc" style={{ marginTop: -4, marginBottom: 12 }}>
               Para experiencias con varios precios (ej. <b>Habitación compartida</b> / <b>Habitación individual</b>). Cada tipo se muestra en la tarjeta de la página (&quot;Desde $…&quot; + la lista) y el cliente elige y <b>paga</b> ese tipo en el checkout. Si agregas tipos, el precio de arriba se ignora en la página. Déjalo vacío si solo hay un precio.
@@ -1262,6 +1371,7 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               <Field label="Moneda" auto><input type="text" value={price.currency} onChange={(e) => setPrice({ currency: e.target.value })} /></Field>
               <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
             </div>
+            <AvisoPrecio />
           </section>
 
           {/* 14 · FECHAS & CUPO */}
@@ -1315,37 +1425,139 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               <Field label="Versión" auto><input type="text" value={reg.waiverVersion} placeholder="v1" onChange={(e) => setReg({ waiverVersion: e.target.value })} /></Field>
               <Field label="URL del documento (opcional)"><input type="url" value={reg.waiverDocUrl} placeholder="Se genera solo — pega un PDF externo solo para reemplazarlo" onChange={(e) => setReg({ waiverDocUrl: e.target.value })} /></Field>
             </div>
-            {exp.slug && reg.active && clausulas.filter((c) => c && c.trim()).length > 0 ? (
+            {exp.slug && reg.active && clausulas.length > 0 ? (
               <p className="desc" style={{ marginTop: -4 }}>✅ El deslinde ya se genera solo. <a href={`/caminante/deslinde/${exp.slug}`} target="_blank" rel="noreferrer" style={{ color: "#c23c1c", fontWeight: 600 }}>Ver deslinde generado ↗</a></p>
             ) : null}
+            <div className="subhead">¿Ya tienes tu propia carta de deslinde? <span className="chip-auto">IA</span></div>
+            <p className="desc" style={{ marginTop: -4, marginBottom: 10 }}>
+              Súbela y se <b>fusiona</b> con la nuestra en vez de reemplazarla. La regla: si una cláusula
+              está en las dos, <b>se queda la tuya</b> — tú conoces tu terreno. Si la tenemos nosotros y
+              tú no, se conserva. Si la tienes tú y nosotros no, <b>se agrega</b>. Nunca se pierde
+              cobertura al fusionar. Si algo de tu carta <b>contradice</b> la nuestra, no se decide solo:
+              te lo mostramos aquí abajo para que lo resuelva una persona.
+            </p>
+            {dueno?.deslindeUrl ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+                <button type="button" className="btn btn-orange btn-sm" disabled={fusBusy} onClick={() => fusionarDoc([], "", dueno.deslindeUrl)}>
+                  {fusBusy ? "Leyendo…" : "Usar el deslinde que ya subiste"}
+                </button>
+                <span className="desc" style={{ margin: 0 }}>{dueno.deslindeNombre || "tu carta"} · de tu alta de operador</span>
+              </div>
+            ) : null}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => fusFileRef.current?.click()}>+ Subir mi deslinde</button>
+              <input
+                ref={fusFileRef}
+                type="file"
+                multiple
+                accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,application/pdf,image/*,text/plain"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  if (e.target.files) setFusFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                  e.target.value = "";
+                  setFusErr(null);
+                }}
+              />
+              {fusFiles.map((f, i) => (
+                <span key={`${f.name}-${i}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, padding: "5px 10px", borderRadius: 999, border: "1px solid rgba(32,33,28,.15)", background: "rgba(99,113,84,.06)" }}>
+                  {f.name}
+                  <button type="button" aria-label={`Quitar ${f.name}`} onClick={() => setFusFiles((prev) => prev.filter((_, j) => j !== i))} style={{ border: 0, background: "none", cursor: "pointer", opacity: 0.6 }}>×</button>
+                </span>
+              ))}
+            </div>
+            <textarea
+              value={fusTexto}
+              onChange={(e) => setFusTexto(e.target.value)}
+              placeholder="…o pega aquí el texto de tu carta de deslinde. Funciona igual de bien que el PDF y no tiene límite de peso."
+              style={{ width: "100%", marginTop: 10 }}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
+              <button type="button" className="btn btn-orange btn-sm" disabled={fusBusy || (!fusFiles.length && !fusTexto.trim())} onClick={() => fusionarDoc(fusFiles, fusTexto)}>
+                {fusBusy ? "Leyendo tu deslinde…" : "Fusionar con el nuestro"}
+              </button>
+              {fusBusy ? <span className="desc" style={{ margin: 0 }}>Toma ~1 minuto. No cierres la página.</span> : null}
+            </div>
+            {fusErr ? <p className="desc" style={{ color: "#b33517", marginTop: 8 }}>{fusErr}</p> : null}
+            {fusMsg ? (
+              <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 12, fontSize: 13, border: "1px solid rgba(99,113,84,.3)", background: "rgba(99,113,84,.08)" }}>
+                <strong>Fusionado ✓</strong> <span style={{ opacity: 0.8 }}>{fusMsg}</span>
+              </div>
+            ) : null}
+            {reg.waiverConflictos?.length ? (
+              <div style={{ marginTop: 10, padding: "12px 14px", borderRadius: 12, fontSize: 13, border: "1px solid rgba(179,53,23,.35)", background: "rgba(179,53,23,.07)" }}>
+                <strong style={{ color: "#b33517" }}>Hay que decidir ({reg.waiverConflictos.length})</strong>
+                <p style={{ margin: "4px 0 8px", opacity: 0.85 }}>
+                  Tu carta y la nuestra se contradicen en esto. No se resolvió solo — corrige las cláusulas
+                  de abajo o escríbenos antes de publicar.
+                </p>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  {reg.waiverConflictos.map((c, i) => <li key={i} style={{ marginBottom: 4 }}>{c}</li>)}
+                </ul>
+              </div>
+            ) : null}
+
             <div className="subhead">Cláusulas-resumen <span className="chip-auto">auto</span></div>
+            <p className="desc" style={{ marginTop: -4, marginBottom: 10 }}>
+              Lo que el viajero lee justo antes de firmar. Marca como <b>opcional</b> solo lo que de
+              verdad puede rechazar sin dejar de participar (el uso de su imagen, el boletín); todo lo
+              demás es obligatorio y así se le muestra.
+            </p>
             <div className="rep-items">
               {clausulas.map((c, i) => (
-                <div key={i} className="rep-row">
-                  <textarea className="grow" placeholder="Resumen de la cláusula" value={c} onChange={(e) => setReg({ waiverClauses: clausulas.map((x, j) => (j === i ? e.target.value : x)) })} />
-                  <button type="button" className="rm" onClick={() => setReg({ waiverClauses: clausulas.filter((_, j) => j !== i) })}>Quitar</button>
+                <div key={i} className="rep-card">
+                  <button type="button" className="rm" onClick={() => setClausulas(clausulas.filter((_, j) => j !== i))}>Quitar</button>
+                  <textarea className="grow" style={{ width: "100%" }} placeholder="Resumen de la cláusula" value={c.texto} onChange={(e) => setClausulas(clausulas.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 8 }}>
+                    <label className="toggle" style={{ margin: 0 }}>
+                      <input type="checkbox" checked={c.obligatoria} onChange={(e) => setClausulas(clausulas.map((x, j) => (j === i ? { ...x, obligatoria: e.target.checked } : x)))} />
+                      <span className="tk"></span>
+                      <span className="tlabel">{c.obligatoria ? "Obligatoria" : "Opcional — el viajero elige"}</span>
+                    </label>
+                    <span className="chip-auto">{etiquetaOrigen(c.origen)}</span>
+                  </div>
                 </div>
               ))}
             </div>
-            <button type="button" className="add" onClick={() => setReg({ waiverClauses: [...clausulas, ""] })}>+ Agregar cláusula</button>
+            <button type="button" className="add" onClick={() => setClausulas([...clausulas, { texto: "", obligatoria: true, origen: "casa" }])}>+ Agregar cláusula</button>
+
+            <div className="subhead">Contacto base <span className="optflag">recomendado</span></div>
+            <p className="desc" style={{ marginTop: -4, marginBottom: 10 }}>
+              La persona a la que se puede llamar y que <b>no va en la salida</b>. Quien guía está donde
+              pasa el problema, y muchas veces sin señal; tiene que haber alguien afuera con el
+              itinerario y la lista de participantes. Sale impreso en el deslinde, que es donde la
+              familia de alguien lo va a buscar.
+            </p>
+            <div className="row c3">
+              <Field label="Nombre"><input type="text" value={exp.baseContact?.nombre ?? ""} placeholder="Quién contesta" onChange={(e) => set("baseContact", { nombre: e.target.value, rol: exp.baseContact?.rol ?? "", telefono: exp.baseContact?.telefono ?? "" })} /></Field>
+              <Field label="Rol" hint="p.ej. coordinación en oficina"><input type="text" value={exp.baseContact?.rol ?? ""} placeholder="Coordinación" onChange={(e) => set("baseContact", { nombre: exp.baseContact?.nombre ?? "", rol: e.target.value, telefono: exp.baseContact?.telefono ?? "" })} /></Field>
+              <Field label="Teléfono"><input type="tel" value={exp.baseContact?.telefono ?? ""} placeholder="+52 55 …" onChange={(e) => set("baseContact", { nombre: exp.baseContact?.nombre ?? "", rol: exp.baseContact?.rol ?? "", telefono: e.target.value })} /></Field>
+            </div>
 
             <details className="preview">
               <summary><span className="pv-l"><span className="pv-tag">Vista previa</span> Así lo verá el viajero</span><span className="chev">▾</span></summary>
               <div className="pv-body">
                 <p className="pv-ro">Vista de solo lectura — el formulario que cada viajero llena antes del viaje.</p>
+                {/* ⚠️ Esta lista tiene que ser el ESPEJO de las secciones reales de
+                    RegistrationForm/DeslindeMovil. Estuvo desalineada: anunciaba un
+                    bloque «5 · Para tu seguro» (sexo, CURP, ocupación, beneficiario)
+                    que nunca se construyó en el formulario público, y llamaba
+                    «Acompañantes menores» a lo que en vivo es «Participantes». Una
+                    vista previa que promete lo que no existe es peor que no tenerla:
+                    se revisa aquí y se descubre el hueco frente al cliente.
+                    Si algún día se agrega el bloque de seguro, se agrega ARRIBA y
+                    aquí, en el mismo cambio. */}
                 <PrevBlock t="1 · Datos personales" fields={["Nombre completo", "Fecha de nacimiento", "Ciudad", "Correo", "WhatsApp", "Elegir fecha de salida"]} />
                 <PrevBlock t="2 · Perfil médico" fields={["Tipo de sangre", "Nivel de nado / condición física", "Padecimientos actuales", "Medicamentos de uso periódico", "Alergias", "Restricciones alimentarias"]} />
                 <PrevBlock t="3 · Contacto de emergencia" fields={["Nombre", "Parentesco", "Teléfono"]} />
-                <PrevBlock t="4 · Acompañantes menores (opcional)" fields={["Nombre", "Edad", "Parentesco"]} />
-                <PrevBlock t="5 · Para tu seguro" fields={["Sexo", "Nacionalidad", "CURP", "Pasaporte / INE", "Ocupación", "Beneficiario — Nombre", "Beneficiario — Parentesco", "Beneficiario — Teléfono"]} />
+                <PrevBlock t="4 · Participantes (opcional)" fields={["Nombre", "Fecha de nacimiento", "Parentesco", "Su propio perfil médico"]} />
                 <div className="cv-block">
-                  <div className="cvh">6 · El deslinde</div>
+                  <div className="cvh">5 · El deslinde</div>
                   <div className="cv-list">
-                    {clausulas.filter((c) => c.trim()).length ? clausulas.filter((c) => c.trim()).map((c, i) => <div key={i} className="ci">{c}</div>) : <div className="cv-empty">Aún sin cláusulas — agrégalas arriba.</div>}
+                    {clausulas.length ? clausulas.map((c, i) => <div key={i} className="ci">{c.texto}{!c.obligatoria ? <em style={{ opacity: 0.6 }}> — opcional</em> : null}</div>) : <div className="cv-empty">Aún sin cláusulas — agrégalas arriba.</div>}
                   </div>
                   {["He leído y acepto el deslinde", "Acepto el aviso de privacidad", "Autorizo uso de imagen (opcional)", "Quiero recibir noticias (opcional)"].map((c) => <div key={c} className="cv-check"><span className="bx"></span>{c}</div>)}
                 </div>
-                <PrevBlock t="7 · Tu firma" fields={["Escribe tu nombre completo como firma"]} />
+                <PrevBlock t="6 · Tu firma" fields={["Escribe tu nombre completo como firma"]} />
               </div>
             </details>
           </section>
@@ -1359,6 +1571,53 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
               <Field label="Etiqueta de locación"><input type="text" value={fb.locationLabel} placeholder="Ensenada de Muertos" onChange={(e) => setFb({ locationLabel: e.target.value })} /></Field>
             </div>
             <div className="field"><label className="toggle"><input type="checkbox" checked={fb.npsEnabled} onChange={(e) => setFb({ npsEnabled: e.target.checked })} /><span className="tk"></span><span className="tlabel">Incluir NPS (0–10)</span></label></div>
+            <div className="subhead">¿Ya tienes tu propia encuesta? <span className="chip-auto">IA</span></div>
+            <p className="desc" style={{ marginTop: -4, marginBottom: 10 }}>
+              Súbela y sus categorías se fusionan con las nuestras, con la misma regla que el deslinde:
+              si la categoría está en las dos, se queda la tuya; lo que solo tienes tú, se agrega; lo que
+              solo tenemos nosotros, se conserva.
+            </p>
+            {dueno?.encuestaUrl ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+                <button type="button" className="btn btn-orange btn-sm" disabled={fusBusy} onClick={() => fusionarDoc([], "", dueno.encuestaUrl)}>
+                  {fusBusy ? "Leyendo…" : "Usar la encuesta que ya subiste"}
+                </button>
+                <span className="desc" style={{ margin: 0 }}>{dueno.encuestaNombre || "tu encuesta"} · de tu alta de operador</span>
+              </div>
+            ) : null}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => encFileRef.current?.click()}>+ Subir mi encuesta</button>
+              <input
+                ref={encFileRef}
+                type="file"
+                multiple
+                accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,application/pdf,image/*,text/plain"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  if (e.target.files) setEncFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                  e.target.value = "";
+                  setFusErr(null);
+                }}
+              />
+              {encFiles.map((f, i) => (
+                <span key={`${f.name}-${i}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, padding: "5px 10px", borderRadius: 999, border: "1px solid rgba(32,33,28,.15)", background: "rgba(99,113,84,.06)" }}>
+                  {f.name}
+                  <button type="button" aria-label={`Quitar ${f.name}`} onClick={() => setEncFiles((prev) => prev.filter((_, j) => j !== i))} style={{ border: 0, background: "none", cursor: "pointer", opacity: 0.6 }}>×</button>
+                </span>
+              ))}
+            </div>
+            <textarea
+              value={encTexto}
+              onChange={(e) => setEncTexto(e.target.value)}
+              placeholder="…o pega aquí las preguntas de tu encuesta."
+              style={{ width: "100%", marginTop: 10 }}
+            />
+            <div style={{ marginTop: 10 }}>
+              <button type="button" className="btn btn-orange btn-sm" disabled={fusBusy || (!encFiles.length && !encTexto.trim())} onClick={() => fusionarDoc(encFiles, encTexto)}>
+                {fusBusy ? "Leyendo tu encuesta…" : "Fusionar con la nuestra"}
+              </button>
+            </div>
+
             <div className="subhead">Categorías a calificar <span className="chip-auto">auto</span></div>
             <div className="rep-items">
               {cats.map((c, i) => (

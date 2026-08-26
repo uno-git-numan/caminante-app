@@ -183,6 +183,7 @@ export async function submitRegistration(
     curp: m.curp?.trim() || null,
     nationality: m.nationality?.trim() || null,
     government_id: m.governmentId?.trim() || null,
+    address: m.address?.trim() || null,
     occupation: m.occupation?.trim() || null,
     beneficiary_name: m.beneficiaryName?.trim() || null,
     beneficiary_relationship: m.beneficiaryRelationship?.trim() || null,

@@ -48,12 +48,14 @@ export default async function OnboardingPage({
   if (op) {
     const { data } = await sb
       .from("operators")
-      .select("id, name, email, slug, instagram, branding, legal, notes, rfc, razon_social, panel_activo")
+      .select("id, name, email, slug, instagram, whatsapp, documentos, branding, legal, notes, rfc, razon_social, panel_activo")
       .eq("id", op)
       .maybeSingle();
     if (data) {
       const r = data as {
         id: string; name: string; email: string | null; slug: string | null; instagram: string | null;
+        whatsapp: string | null;
+        documentos: { deslindeUrl?: string; deslindeNombre?: string; encuestaUrl?: string; encuestaNombre?: string } | null;
         branding: { logoUrl?: string; logoDarkUrl?: string; colors?: { primary?: string; accent?: string }; poweredBy?: string } | null;
         legal: { domicilio?: string; responsable?: string } | null;
         rfc: string | null;
@@ -67,6 +69,11 @@ export default async function OnboardingPage({
         email: r.email ?? "",
         slug: r.slug ?? "",
         instagram: r.instagram ?? "",
+        whatsapp: r.whatsapp ?? "",
+        deslindeUrl: r.documentos?.deslindeUrl ?? "",
+        deslindeNombre: r.documentos?.deslindeNombre ?? "",
+        encuestaUrl: r.documentos?.encuestaUrl ?? "",
+        encuestaNombre: r.documentos?.encuestaNombre ?? "",
         logoUrl: r.branding?.logoUrl ?? "",
         logoDarkUrl: r.branding?.logoDarkUrl ?? "",
         primary: r.branding?.colors?.primary ?? "#20211c",

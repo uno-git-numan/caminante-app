@@ -12,6 +12,7 @@
 // override OPCIONAL (subir un PDF externo) — ya no se exige.
 
 import type { Experience } from "@/lib/experiences/types";
+import { textosDeClausulas } from "@/lib/legal/clausulas";
 
 export type FlujoVenta = {
   ok: boolean;
@@ -20,7 +21,7 @@ export type FlujoVenta = {
 
 export function deslindeListo(exp: Pick<Experience, "registration"> | null | undefined): FlujoVenta {
   const reg = exp?.registration;
-  const clauses = (reg?.waiverClauses ?? []).filter((c) => c && c.trim());
+  const clauses = textosDeClausulas(reg?.waiverClauses);
   const faltantes: string[] = [];
 
   if (!reg?.active) {

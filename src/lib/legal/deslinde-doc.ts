@@ -4,6 +4,7 @@
 // que el admin cura en la experiencia (declaraciones, riesgos, compromisos). Así
 // el deslinde se genera SOLO al activar el registro — sin PDF manual ni URLs.
 import type { Experience, V2Hero } from "@/lib/experiences/types";
+import { textosDeClausulas } from "@/lib/legal/clausulas";
 
 export const ENTIDAD = {
   razonSocial: "NUMAN HUB, S.A. de C.V.",
@@ -80,15 +81,32 @@ export type DeslindeDoc = {
 // activo o no tiene cláusulas (entonces no hay deslinde que mostrar).
 export function buildDeslinde(exp: Experience | null | undefined): DeslindeDoc | null {
   const reg = exp?.registration;
-  const clausulas = (reg?.waiverClauses ?? []).map((c) => (c || "").trim()).filter(Boolean);
+  const clausulas = textosDeClausulas(reg?.waiverClauses);
   if (!exp || !reg?.active || clausulas.length === 0) return null;
   const ubic = (exp.cardPloc || (exp as unknown as { estado?: string }).estado || "").toString().trim();
+  // El CONTACTO BASE va como sección propia del documento, no como una viñeta
+  // más: es lo que alguien busca cuando algo salió mal, y en ese momento no va a
+  // leer la lista entera. Solo aparece si está capturado — un teléfono a medias
+  // en un deslinde es peor que ninguno.
+  const base = exp.baseContact;
+  const contactoBase =
+    base && (base.nombre?.trim() || base.telefono?.trim())
+      ? [
+          {
+            titulo: "Contacto durante la experiencia",
+            paras: [
+              `Durante la salida, la persona de contacto que NO participa en ella y permanece localizable es ${[base.nombre?.trim(), base.rol?.trim() ? `(${base.rol.trim()})` : ""].filter(Boolean).join(" ")}${base.telefono?.trim() ? `, teléfono ${base.telefono.trim()}` : ""}. Tiene el itinerario y la lista de participantes, y es a quien pueden llamar los familiares del participante en caso de emergencia.`,
+            ],
+          },
+        ]
+      : [];
+
   return {
     titulo: "Carta de Responsabilidad Compartida y Deslinde de Responsabilidad",
     experiencia: nombreExp(exp),
     ubicacion: ubic,
     version: reg.waiverVersion?.trim() || "v1",
     clausulas,
-    secciones: SECCIONES_GENERICAS,
+    secciones: [...contactoBase, ...SECCIONES_GENERICAS],
   };
 }

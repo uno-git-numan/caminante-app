@@ -101,7 +101,7 @@ export function aplicarPrellenadoV2(
     faq?: { q?: string; a?: string }[];
     packing?: { cap?: string; items?: string[] };
     dates?: { title?: string; titleAccent?: string; cap?: string; priceLine?: string };
-    waiverClauses?: string[];
+    waiverClauses?: { texto?: string; obligatoria?: boolean }[];
     feedbackLocationLabel?: string;
     feedbackSections?: { key: string; label: string; icon?: string; prompt?: string }[];
   };
@@ -136,7 +136,16 @@ export function aplicarPrellenadoV2(
   // Deslinde: solo el resumen de cláusulas. active/versión/doc los decide Luis.
   if (lleno(d.waiverClauses)) {
     const reg = prevExp.registration ?? { active: false, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: [] };
-    exp.registration = { ...reg, waiverClauses: strs(d.waiverClauses) };
+    // Origen "casa": estas salen del documento maestro de Caminante. Cuando el
+    // operador suba la suya, la fusión reescribe las que correspondan.
+    const clausulas = d
+      .waiverClauses!.map((c) => ({
+        texto: (c?.texto || "").trim(),
+        obligatoria: c?.obligatoria !== false,
+        origen: "casa" as const,
+      }))
+      .filter((c) => c.texto);
+    if (clausulas.length) exp.registration = { ...reg, waiverClauses: clausulas };
   }
   // Encuesta: locación + secciones. active la decide Luis.
   if (lleno(d.feedbackLocationLabel) || lleno(d.feedbackSections)) {

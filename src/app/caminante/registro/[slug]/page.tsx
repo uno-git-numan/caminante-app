@@ -12,6 +12,7 @@ import PubShell from "../../ui/pub/PubShell";
 import WhiteLabelStyles, { wlApp, wlDoc } from "../../ui/wl/WhiteLabelStyles";
 import RegistrationForm from "./RegistrationForm";
 import DeslindeMovil from "./DeslindeMovil";
+import { leerClausulas } from "@/lib/legal/clausulas";
 
 export const dynamic = "force-dynamic";
 
@@ -119,7 +120,7 @@ export default async function RegistroPage({
 
   // Las cláusulas y el documento salen del SERVIDOR y son los mismos para las dos
   // vistas: quien firma siempre puede leer el documento (`deslindeListo`).
-  const waiverClauses = (experience.registration?.waiverClauses || []).filter(Boolean);
+  const waiverClauses = leerClausulas(experience.registration?.waiverClauses);
   const waiverDocUrl =
     experience.registration?.waiverDocUrl?.trim() || `/caminante/deslinde/${slug}`;
 

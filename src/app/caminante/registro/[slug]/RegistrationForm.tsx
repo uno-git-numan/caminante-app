@@ -17,6 +17,7 @@ import type {
   RegistrationPrefill,
   SlotOption,
 } from "@/lib/registration/types";
+import type { Clausula } from "@/lib/legal/clausulas";
 
 // Fila del formulario de participantes (strings controlados; se mapea a
 // ParticipantInput al enviar). Espeja los campos de un dependiente guardado.
@@ -215,6 +216,7 @@ const emptyMedical: MedicalProfileData = {
   curp: "",
   nationality: "",
   governmentId: "",
+  address: "",
   occupation: "",
   beneficiaryName: "",
   beneficiaryRelationship: "",
@@ -262,7 +264,7 @@ export default function RegistrationForm({
   title: string;
   datesBadge: string;
   slots: SlotOption[];
-  waiverClauses: string[];
+  waiverClauses: Clausula[];
   waiverDocUrl: string;
   hasSession: boolean;
   sessionEmail: string;
@@ -686,8 +688,18 @@ export default function RegistrationForm({
             <SecHead num="05" eyebrow="Sección cinco" title="El deslinde" />
             <p className="fnote">La naturaleza es real y la expedición tiene riesgos reales. Lee con calma el resumen de cláusulas; esto es lo que aceptas al firmar.</p>
             <ul className="legal">
-              {waiverClauses.map((clause, i) => (
-                <li key={i}>{clause}</li>
+              {/* Solo se marca lo OPCIONAL. Marcar también lo obligatorio —que es
+                  casi todo— convierte la lista en un tablero de etiquetas y la
+                  distinción deja de verse, que era justo el punto. */}
+              {waiverClauses.map((c, i) => (
+                <li key={i}>
+                  {c.texto}
+                  {!c.obligatoria ? (
+                    <span style={{ marginLeft: 6, fontSize: "0.82em", fontStyle: "italic", opacity: 0.62 }}>
+                      — opcional, tú eliges
+                    </span>
+                  ) : null}
+                </li>
               ))}
               <li className="ver" style={{ paddingLeft: 0 }}>Documento de deslinde — se completa por experiencia.</li>
             </ul>

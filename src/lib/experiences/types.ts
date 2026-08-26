@@ -2,6 +2,8 @@
 // This single shape drives: the dynamic page template, the Supabase row (content JSONB),
 // and the "Crear experiencia" admin form. Add a field here → it flows everywhere.
 
+import type { ClausulaGuardada } from "@/lib/legal/clausulas";
+
 export type LensKey = "naturaleza" | "conservacion" | "comunidades" | "problemas";
 
 export type Fact = { n: string; l: string };
@@ -267,6 +269,18 @@ export type Experience = {
   minPeople?: number;
   stripeLink?: string | null; // generated later
 
+  // CONTACTO BASE — la persona localizable que NO va en la salida.
+  //
+  // No es un dato administrativo: en una experiencia de montaña o de mar, quien
+  // guía está donde ocurre el problema y muchas veces sin señal. Tiene que haber
+  // alguien fuera —con el itinerario, la lista de participantes y la capacidad
+  // de llamar— a quien la familia de un participante pueda marcarle. Por eso el
+  // campo dice explícitamente «que no va en la salida»: poner al guía aquí es
+  // exactamente el error que este campo evita.
+  //
+  // Sale impreso en el deslinde generado, que es donde alguien lo va a buscar.
+  baseContact?: { nombre: string; rol: string; telefono: string };
+
   // registro nativo (deslinde + firma en /caminante/registro/[slug])
   // El texto legal vive en el Google Doc del sistema legal (Drive); aquí solo
   // la versión vigente, el link y el resumen de cláusulas que el form muestra.
@@ -274,7 +288,19 @@ export type Experience = {
     active: boolean;
     waiverVersion: string; // "v1" — sube cuando el deslinde cambia (re-firma)
     waiverDocUrl: string;
-    waiverClauses: string[]; // resumen que se lista antes del checkbox
+    // Resumen que se lista antes del checkbox. Cada cláusula sabe si es
+    // obligatoria y de quién es (nuestra, del operador, o fusionada). Las
+    // cadenas sueltas de antes siguen valiendo: `leerClausulas` las normaliza.
+    // ⚠️ NO leer este arreglo a mano — pasa por `lib/legal/clausulas.ts`.
+    waiverClauses: ClausulaGuardada[];
+    // La carta de deslinde PROPIA del operador, tal como la subió. Se conserva
+    // aunque ya esté fusionada: es el documento del que salieron sus cláusulas
+    // y sin él la fusión no se puede auditar ni rehacer.
+    waiverOperadorUrl?: string;
+    waiverOperadorNombre?: string;
+    // Lo que la IA no pudo conciliar entre su carta y la nuestra. No se resuelve
+    // solo a propósito: una contradicción legal la decide una persona.
+    waiverConflictos?: string[];
   };
 
   // encuesta de satisfacción (post-experiencia, /caminante/feedback/[token]).

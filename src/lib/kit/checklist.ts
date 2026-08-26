@@ -6,6 +6,7 @@
 // "pendiente de insumo": ¿qué me falta para que la comunicación esté lista?
 // Aquí se responde ANTES, en el lugar donde se arregla.
 import type { Experience } from "@/lib/experiences/types";
+import { textosDeClausulas } from "@/lib/legal/clausulas";
 
 export type ItemEstado = "ok" | "parcial" | "falta";
 
@@ -96,7 +97,7 @@ export function evaluarChecklist(e: ChecklistEntrada): ChecklistItem[] {
 
   // 4 · DESLINDE (la regla dura: sin esto no se vende) ─────────────────────────
   const r = e.registration;
-  const clausulas = (r?.waiverClauses ?? []).filter(has).length;
+  const clausulas = textosDeClausulas(r?.waiverClauses).length;
   const okDeslinde = !!r?.active && clausulas > 0 && has(r?.waiverDocUrl);
   items.push({
     id: "deslinde",

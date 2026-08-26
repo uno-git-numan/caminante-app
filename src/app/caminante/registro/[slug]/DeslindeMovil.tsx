@@ -51,6 +51,7 @@ import type {
   RegistrationPrefill,
   SlotOption,
 } from "@/lib/registration/types";
+import type { Clausula } from "@/lib/legal/clausulas";
 
 type ParticipantRow = {
   dependentId?: string;
@@ -109,6 +110,7 @@ const emptyMedical: MedicalProfileData = {
   curp: "",
   nationality: "",
   governmentId: "",
+  address: "",
   occupation: "",
   beneficiaryName: "",
   beneficiaryRelationship: "",
@@ -174,7 +176,7 @@ export default function DeslindeMovil({
   title: string;
   datesBadge: string;
   slots: SlotOption[];
-  waiverClauses: string[];
+  waiverClauses: Clausula[];
   waiverDocUrl: string;
   hasSession: boolean;
   sessionEmail: string;
@@ -716,7 +718,14 @@ export default function DeslindeMovil({
               {waiverClauses.map((c, i) => (
                 <div className="row" key={i}>
                   <span className="sl">{"//"}</span>
-                  <span>{c}</span>
+                  <span>
+                    {c.texto}
+                    {!c.obligatoria ? (
+                      <span style={{ marginLeft: 6, fontSize: "0.82em", fontStyle: "italic", opacity: 0.62 }}>
+                        — opcional, tú eliges
+                      </span>
+                    ) : null}
+                  </span>
                 </div>
               ))}
             </div>

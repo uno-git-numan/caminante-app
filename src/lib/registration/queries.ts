@@ -93,6 +93,7 @@ function mapMedical(row: Record<string, unknown> | null): MedicalProfileData | n
     curp: s("curp"),
     nationality: s("nationality"),
     governmentId: s("government_id"),
+    address: s("address"),
     occupation: s("occupation"),
     beneficiaryName: s("beneficiary_name"),
     beneficiaryRelationship: s("beneficiary_relationship"),

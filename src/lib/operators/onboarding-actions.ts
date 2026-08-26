@@ -34,6 +34,24 @@ export async function onboardOperator(formData: FormData): Promise<void> {
   const email = clean(formData.get("email"), 200).toLowerCase();
   const slug = slugify(clean(formData.get("slug"), 80) || nombre);
   const instagram = clean(formData.get("instagram"), 120);
+  // 0043 · Su WhatsApp. Siembra el bloque de contacto de cada experiencia suya;
+  // sin él la página nacía invitando a escribirle a Caminante.
+  const whatsapp = clean(formData.get("whatsapp"), 40);
+
+  // 0043 · Los documentos que el operador YA trae: su carta de deslinde y su
+  // encuesta. Se capturan aquí, una vez, y alimentan la fusión de TODAS sus
+  // experiencias (lib/ai/fusionar-deslinde.ts) en vez de pedírselos cada vez.
+  const deslindeUrl = clean(formData.get("deslindeUrl"), 500);
+  const deslindeNombre = clean(formData.get("deslindeNombre"), 200);
+  const encuestaUrl = clean(formData.get("encuestaUrl"), 500);
+  const encuestaNombre = clean(formData.get("encuestaNombre"), 200);
+  const documentos =
+    deslindeUrl || encuestaUrl
+      ? {
+          ...(deslindeUrl ? { deslindeUrl, deslindeNombre } : {}),
+          ...(encuestaUrl ? { encuestaUrl, encuestaNombre } : {}),
+        }
+      : null;
 
   const logoUrl = clean(formData.get("logoUrl"), 500);
   const logoDarkUrl = clean(formData.get("logoDarkUrl"), 500);
@@ -85,6 +103,8 @@ export async function onboardOperator(formData: FormData): Promise<void> {
     email,
     slug,
     instagram: instagram || null,
+    whatsapp: whatsapp || null,
+    documentos,
     branding,
     legal,
     rfc: rfc || null,

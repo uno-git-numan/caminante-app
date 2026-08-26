@@ -16,9 +16,34 @@ const LENS_LABEL: Record<LensKey, string> = {
   problemas: "Problemas",
 };
 
+/** Contacto de quien va a ser DUEÑO de la experiencia (un operador externo). */
+export type ContactoDueno = {
+  whatsapp?: string;
+  email?: string;
+  instagram?: string;
+  /** Documentos que ya subió en su onboarding (0043) — alimentan la fusión. */
+  deslindeUrl?: string;
+  deslindeNombre?: string;
+  encuestaUrl?: string;
+  encuestaNombre?: string;
+};
+
 // A blank experience with the fixed scaffolding pre-filled (chapter tags, the four
 // fixed lenses, standard boilerplate) so the form only asks for the specific content.
-export function emptyExperience(): Experience {
+//
+// ⚠️ EL CONTACTO SE SIEMBRA DE QUIEN LA CREA, no de la casa.
+//
+// Estos tres campos alimentan el bloque de contacto del cierre de la página
+// pública (`defaultContacts` en page-v2.ts). Estaban fijos en los datos de
+// Caminante, y con eso bastaba mientras todas las experiencias fueran nuestras.
+// Con operadores externos deja de ser un default y pasa a ser un dato falso: la
+// página de Nomádika salió a producción invitando a escribirle a
+// `uno@numanhub.com` y a seguir a `@somos.caminante`. El cliente que quería
+// preguntar por SU cañón nos escribía a nosotros.
+//
+// Sin dueño (la casa crea la experiencia) los valores de Caminante siguen siendo
+// los correctos, y por eso siguen ahí como respaldo.
+export function emptyExperience(dueno?: ContactoDueno): Experience {
   const lensKeys: LensKey[] = ["naturaleza", "conservacion", "comunidades", "problemas"];
   return {
     slug: "",
@@ -43,9 +68,9 @@ export function emptyExperience(): Experience {
       { k: "Cupo limitado", v: "" },
     ],
 
-    whatsapp: "525512020565",
-    email: "uno@numanhub.com",
-    instagram: "somos.caminante",
+    whatsapp: dueno?.whatsapp?.replace(/[^\d]/g, "") || "525512020565",
+    email: dueno?.email || "uno@numanhub.com",
+    instagram: (dueno?.instagram || "somos.caminante").replace(/^@/, ""),
     price: { amount: "", currency: "MXN · por persona", desc: "" },
     stripeLink: null,
 

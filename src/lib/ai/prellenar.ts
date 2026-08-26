@@ -149,7 +149,10 @@ const ESQUEMA = obj({
     // ── deslinde + encuesta ──
     // El resumen del deslinde se genera del DOCUMENTO MAESTRO (ver system): fiel
     // a lo que dice el PDF legal, con los riesgos adaptados a esta experiencia.
-    waiverClauses: arr(s("Resumen del deslinde en 6–9 viñetas cortas y claras, FIEL al documento maestro del deslinde (ver instrucciones del system): riesgos específicos de ESTA experiencia + las cláusulas estándar (declaraciones bajo protesta, seguro propio, liberación/deslinde de responsabilidad limitada al monto pagado, uso de imagen, datos personales LFPDPPP, aceptación electrónica)")),
+    waiverClauses: arr(obj({
+      texto: s("Una cláusula-resumen del deslinde, corta y clara, FIEL al documento maestro (ver system)"),
+      obligatoria: { type: "boolean", description: "true si el participante DEBE aceptarla para participar; false SOLO para lo que es una elección real suya (uso de imagen, boletín)" },
+    })),
     feedbackLocationLabel: s("'Lugar, Estado' para la encuesta"),
     feedbackSections: arr(obj({ key: s("kebab-case"), label: s(), icon: s("UN emoji que represente la sección, p.ej. '🍄', '🥾', '🍳'"), prompt: s() })),
   }),
@@ -183,6 +186,13 @@ DESLINDE — genera "waiverClauses" como un RESUMEN legible y honesto del deslin
 - Las viñetas de RIESGOS (sección B del maestro) adáptalas a ESTA experiencia según sus actividades reales (agua/mar, montaña/altura, fauna, clima, ubicación remota, lo que aplique); si la experiencia no tiene actividad acuática, no menciones ahogamiento, etc.
 - Las cláusulas ESTÁNDAR (secciones C–J: declaraciones bajo protesta, seguro propio a cargo del participante, liberación de responsabilidad limitada al monto pagado salvo dolo/negligencia grave, uso de imagen, datos personales conforme a la LFPDPPP, y que la aceptación electrónica tiene plenos efectos) son iguales para toda experiencia — resúmelas SIEMPRE.
 - Este resumen es lo que el participante ve antes de firmar; el PDF completo se enlaza aparte. No pongas el nombre fiscal ni RFC en las viñetas.
+- OBLIGATORIA vs OPCIONAL: marca "obligatoria": true en todo lo que el participante DEBE aceptar para poder participar (declaraciones, riesgos, compromisos, seguro propio a su cargo, liberación de responsabilidad, datos personales necesarios para operar, aceptación electrónica). Marca "obligatoria": false SOLO donde el documento maestro plantea una ELECCIÓN real y decir que no NO le impide participar: el uso de imagen (sección G) y recibir comunicaciones. Si dudas, va como obligatoria.
+
+SI ENTRE LOS DOCUMENTOS VIENE LA CARTA DE DESLINDE PROPIA DEL OPERADOR (o su encuesta de satisfacción), no la ignores y no la reemplaces: FUSIÓNALA con la nuestra, en este orden:
+1. Cláusula que está en los dos documentos (cubre el mismo riesgo u obligación, aunque esté redactada distinto): conserva LA DEL OPERADOR, con su redacción.
+2. Cláusula que solo está en nuestro documento maestro: consérvala.
+3. Cláusula que solo está en la del operador: agrégala.
+La lista final es una UNIÓN: nunca cubre menos que cualquiera de los dos documentos. Lo mismo para las categorías de la encuesta (feedbackSections). Si algo de su carta CONTRADICE la nuestra —por ejemplo, que ellos sí proveen seguro de gastos médicos, o un límite de responsabilidad distinto—, no elijas ganador: conserva la nuestra y explica la contradicción en "notas" para que una persona la resuelva.
 
 === DOCUMENTO MAESTRO DEL DESLINDE (referencia; A y B son de ejemplo de otra experiencia, C–J son el marco legal estándar) ===
 ${DESLINDE_MAESTRO}
