@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminShell from "../../ui/AdminShell";
 import { fetchRoster, formatFechaCorta } from "@/lib/admin/queries";
+import RosterTabla from "./RosterTabla";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Roster de salida · Admin — Caminante" };
@@ -57,57 +58,12 @@ export default async function RosterPage({
         </div>
 
         <div className="card" style={{ overflow: "hidden" }}>
-          <div className="tbl-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th className="num">Edad</th>
-                  <th>Contacto de emergencia</th>
-                  <th>Alergias / condiciones / dieta</th>
-                  <th>Contrató</th>
-                  <th>Deslinde</th>
-                </tr>
-              </thead>
-              <tbody>
-                {roster.rows.map((r, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 500 }}>
-                      {r.nombre}
-                      {r.titular ? (
-                        <span className="mut" style={{ fontWeight: 400 }}>
-                          {" "}
-                          · viene con {r.titular}
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="num">{r.edad ?? "—"}</td>
-                    <td>{r.emergencia}</td>
-                    <td className={r.condiciones === "Ninguna" ? "mut" : ""}>{r.condiciones}</td>
-                    <td className={r.adicional ? "" : "mut"}>{r.adicional || "—"}</td>
-                    <td>
-                      {r.deslinde ? (
-                        <span className="tick">✓ {r.fechaFirma}</span>
-                      ) : (
-                        <span style={{ color: "var(--orange)", fontWeight: 600 }}>Pendiente</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {roster.rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={6}>
-                      <div className="empty" style={{ border: 0 }}>
-                        Aún no hay personas apuntadas a esta salida.
-                      </div>
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+          <RosterTabla rows={roster.rows} />
         </div>
         <p className="mut no-print" style={{ fontSize: 12, marginTop: 10 }}>
+          Toca un nombre para abrir su ficha: teléfono, correo, contacto de emergencia y todo lo
+          que declaró de salud. Al imprimir salen todas abiertas.
+          <br />
           Datos sensibles (LFPDPPP): solo para el equipo de guías. Los acompañantes heredan el
           deslinde firmado por su titular.
         </p>

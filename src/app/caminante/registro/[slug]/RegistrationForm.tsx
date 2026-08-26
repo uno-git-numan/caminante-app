@@ -251,6 +251,7 @@ export default function RegistrationForm({
   datesBadge,
   slots,
   waiverClauses,
+  conSeguro,
   waiverDocUrl,
   hasSession,
   sessionEmail,
@@ -265,6 +266,7 @@ export default function RegistrationForm({
   datesBadge: string;
   slots: SlotOption[];
   waiverClauses: Clausula[];
+  conSeguro: boolean;
   waiverDocUrl: string;
   hasSession: boolean;
   sessionEmail: string;
@@ -684,8 +686,70 @@ export default function RegistrationForm({
           </section>
 
           {/* 5 · EL DESLINDE + CONSENTIMIENTOS */}
+          {/* 5 · PARA TU SEGURO — solo si la experiencia lleva póliza.
+              Nace apagado: son ocho campos de datos personales (CURP y
+              beneficiario incluidos) y pedírselos a alguien que va a caminar
+              cuatro horas a un bosque, sin póliza que los use, es recolectar
+              datos sensibles sin motivo. Donde sí hay seguro, en cambio, sin
+              este expediente no se puede dar de alta al participante. */}
+          {conSeguro ? (
+            <section className="fsec">
+              <SecHead num="05" eyebrow="Sección cinco" title="Para tu seguro" />
+              <p className="fnote">
+                Esta experiencia incluye seguro. La aseguradora pide estos datos para poder darte de
+                alta en la póliza; si algo no lo tienes a la mano, déjalo en blanco y lo completamos
+                antes de la salida.
+              </p>
+              <div className="frow two">
+                <div className="field">
+                  <label htmlFor="sg-sexo">Sexo</label>
+                  <input id="sg-sexo" type="text" placeholder="Como aparece en tu identificación" value={m.gender} onChange={(e) => setMed("gender")(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="sg-nac">Nacionalidad</label>
+                  <input id="sg-nac" type="text" placeholder="Mexicana" value={m.nationality} onChange={(e) => setMed("nationality")(e.target.value)} />
+                </div>
+              </div>
+              <div className="frow two">
+                <div className="field">
+                  <label htmlFor="sg-curp">CURP</label>
+                  <input id="sg-curp" type="text" placeholder="18 caracteres" value={m.curp} onChange={(e) => setMed("curp")(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="sg-id">Identificación (INE o pasaporte)</label>
+                  <input id="sg-id" type="text" placeholder="Número del documento" value={m.governmentId} onChange={(e) => setMed("governmentId")(e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <label htmlFor="sg-dom">Domicilio</label>
+                <input id="sg-dom" type="text" placeholder="Calle, número, colonia, C.P., ciudad" value={m.address} onChange={(e) => setMed("address")(e.target.value)} />
+              </div>
+              <div className="field">
+                <label htmlFor="sg-ocu">Ocupación</label>
+                <input id="sg-ocu" type="text" placeholder="A qué te dedicas" value={m.occupation} onChange={(e) => setMed("occupation")(e.target.value)} />
+              </div>
+              <p className="fnote" style={{ marginTop: 18 }}>
+                <b>Beneficiario</b> — a quién designas en la póliza.
+              </p>
+              <div className="field">
+                <label htmlFor="sg-ben">Nombre</label>
+                <input id="sg-ben" type="text" placeholder="Nombre completo" value={m.beneficiaryName} onChange={(e) => setMed("beneficiaryName")(e.target.value)} />
+              </div>
+              <div className="frow two">
+                <div className="field">
+                  <label htmlFor="sg-ben-p">Parentesco</label>
+                  <input id="sg-ben-p" type="text" placeholder="Madre, pareja…" value={m.beneficiaryRelationship} onChange={(e) => setMed("beneficiaryRelationship")(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label htmlFor="sg-ben-t">Teléfono</label>
+                  <input id="sg-ben-t" type="tel" placeholder="+52 55 0000 0000" value={m.beneficiaryPhone} onChange={(e) => setMed("beneficiaryPhone")(e.target.value)} />
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="fsec">
-            <SecHead num="05" eyebrow="Sección cinco" title="El deslinde" />
+            <SecHead num={conSeguro ? "06" : "05"} eyebrow={conSeguro ? "Sección seis" : "Sección cinco"} title="El deslinde" />
             <p className="fnote">La naturaleza es real y la expedición tiene riesgos reales. Lee con calma el resumen de cláusulas; esto es lo que aceptas al firmar.</p>
             <ul className="legal">
               {/* Solo se marca lo OPCIONAL. Marcar también lo obligatorio —que es
@@ -737,7 +801,7 @@ export default function RegistrationForm({
 
           {/* 6 · TU FIRMA */}
           <section className="fsec">
-            <SecHead num="06" eyebrow="Sección seis" title="Tu firma" />
+            <SecHead num={conSeguro ? "07" : "06"} eyebrow={conSeguro ? "Sección siete" : "Sección seis"} title="Tu firma" />
             <div className="field sign">
               <label htmlFor="firma">Escribe tu nombre completo como firma</label>
               <input id="firma" type="text" placeholder="Tu nombre completo" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} />

@@ -165,6 +165,7 @@ export default function DeslindeMovil({
   datesBadge,
   slots,
   waiverClauses,
+  conSeguro,
   waiverDocUrl,
   hasSession,
   sessionEmail,
@@ -177,6 +178,7 @@ export default function DeslindeMovil({
   datesBadge: string;
   slots: SlotOption[];
   waiverClauses: Clausula[];
+  conSeguro: boolean;
   waiverDocUrl: string;
   hasSession: boolean;
   sessionEmail: string;
@@ -706,9 +708,61 @@ export default function DeslindeMovil({
           </div>
         </div>
 
-        {/* 5 · EL DESLINDE — cláusulas reales + el documento, siempre legible */}
+        {/* 5 · PARA TU SEGURO — solo si la experiencia lleva póliza. Nace
+            apagado: sin póliza detrás, pedir CURP y beneficiario es recolectar
+            datos sensibles sin motivo. Ver el comentario en types.ts. */}
+        {conSeguro ? (
         <div className="pub-blk">
-          <span className="pub-lbl">5 · El deslinde</span>
+          <span className="pub-lbl">5 · Para tu seguro</span>
+          <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.5 }}>
+            Esta experiencia incluye seguro. La aseguradora pide estos datos para darte de alta en
+            la póliza. Lo que no tengas a la mano, déjalo en blanco.
+          </p>
+          <div className="pub-fld">
+            <label htmlFor="s-sexo">Sexo</label>
+            <input id="s-sexo" type="text" placeholder="Como aparece en tu identificación" value={m.gender} onChange={(e) => setMed("gender")(e.target.value)} />
+          </div>
+          <div className="pub-fld">
+            <label htmlFor="s-nac">Nacionalidad</label>
+            <input id="s-nac" type="text" placeholder="Mexicana" value={m.nationality} onChange={(e) => setMed("nationality")(e.target.value)} />
+          </div>
+          <div className="pub-fld">
+            <label htmlFor="s-curp">CURP</label>
+            <input id="s-curp" type="text" placeholder="18 caracteres" value={m.curp} onChange={(e) => setMed("curp")(e.target.value)} />
+          </div>
+          <div className="pub-fld">
+            <label htmlFor="s-id">Identificación (INE o pasaporte)</label>
+            <input id="s-id" type="text" placeholder="Número del documento" value={m.governmentId} onChange={(e) => setMed("governmentId")(e.target.value)} />
+          </div>
+          <div className="pub-fld">
+            <label htmlFor="s-dom">Domicilio</label>
+            <input id="s-dom" type="text" placeholder="Calle, número, colonia, C.P., ciudad" value={m.address} onChange={(e) => setMed("address")(e.target.value)} />
+          </div>
+          <div className="pub-fld">
+            <label htmlFor="s-ocu">Ocupación</label>
+            <input id="s-ocu" type="text" placeholder="A qué te dedicas" value={m.occupation} onChange={(e) => setMed("occupation")(e.target.value)} />
+          </div>
+          <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginTop: 14 }}>
+            <b>Beneficiario</b> — a quién designas en la póliza.
+          </p>
+          <div className="pub-fld">
+            <label htmlFor="s-ben">Nombre</label>
+            <input id="s-ben" type="text" placeholder="Nombre completo" value={m.beneficiaryName} onChange={(e) => setMed("beneficiaryName")(e.target.value)} />
+          </div>
+          <div className="pub-fld">
+            <label htmlFor="s-ben-p">Parentesco</label>
+            <input id="s-ben-p" type="text" placeholder="Madre, pareja…" value={m.beneficiaryRelationship} onChange={(e) => setMed("beneficiaryRelationship")(e.target.value)} />
+          </div>
+          <div className="pub-fld">
+            <label htmlFor="s-ben-t">Teléfono</label>
+            <input id="s-ben-t" type="tel" placeholder="+52 55 0000 0000" value={m.beneficiaryPhone} onChange={(e) => setMed("beneficiaryPhone")(e.target.value)} />
+          </div>
+        </div>
+        ) : null}
+
+        {/* EL DESLINDE — cláusulas reales + el documento, siempre legible */}
+        <div className="pub-blk">
+          <span className="pub-lbl">{conSeguro ? "6" : "5"} · El deslinde</span>
           <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.5 }}>
             La naturaleza es real y la expedición tiene riesgos reales. Esto es lo que aceptas al
             firmar.
@@ -761,7 +815,7 @@ export default function DeslindeMovil({
 
         {/* 6 · TU FIRMA */}
         <div className="pub-blk">
-          <span className="pub-lbl">6 · Tu firma</span>
+          <span className="pub-lbl">{conSeguro ? "7" : "6"} · Tu firma</span>
           <div className="pub-fld">
             <label htmlFor="d-firma">Escribe tu nombre completo como firma</label>
             <input

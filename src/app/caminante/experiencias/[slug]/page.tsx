@@ -5,7 +5,7 @@ import {
   fetchPublishedExperienceRow,
 } from "@/lib/experiences/queries";
 import { cleanGrupoToken, fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
-import { fetchOperatorChipForExperience } from "@/lib/operators/public";
+import { fetchOperatorChipForExperience, fetchOperatorContactoForExperience } from "@/lib/operators/public";
 import { fetchThemeForExperience } from "@/lib/operators/branding";
 import { fetchExperienceRatings } from "@/lib/experiences/ratings";
 import { getCurrentRole } from "@/lib/auth/authorization";
@@ -40,10 +40,14 @@ export default async function ExperiencePage({ params, searchParams }: Params) {
   // para leer sus salidas y pintar las fechas en vivo.
   const row = await fetchPublishedExperienceRow(slug);
   if (row?.experience.design === "v2") {
-    const [slots, sessionRole, operatorChip, ratings, tema] = await Promise.all([
+    const [slots, sessionRole, operatorChip, contactoOperador, ratings, tema] = await Promise.all([
       fetchOpenSlotsForTemplate(row.id, { grupoToken }),
       getCurrentRole(),
       fetchOperatorChipForExperience(row.id),
+      // El bloque de cierre publica el contacto de QUIEN OPERA, no el de la
+      // casa. Se resuelve aquí para que las páginas ya guardadas se corrijan
+      // solas en cuanto el operador captura sus datos.
+      fetchOperatorContactoForExperience(row.id),
       fetchExperienceRatings(),
       // White-label F1: si el viaje es de un operador con marca, el funnel se
       // viste con la suya desde aquí. Best-effort — sin marca devuelve null.
@@ -66,9 +70,13 @@ export default async function ExperiencePage({ params, searchParams }: Params) {
             grupoToken={grupoToken}
             sessionRole={sessionRole}
             operatorChip={operatorChip}
+            contactoOperador={contactoOperador}
           />
         </div>
         <PubShell buypad scope={wlDoc(tema)}>
+          {/* La vista de teléfono no dibuja el bloque de contacto del cierre, y
+              por eso no recibe `contactoOperador`. Si algún día lo dibuja se le
+              pasa aquí — el dato no se copia a mano en ningún lado. */}
           <ExpMovil
             experience={row.experience}
             slots={slots}

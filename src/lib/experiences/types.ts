@@ -301,6 +301,16 @@ export type Experience = {
     // Lo que la IA no pudo conciliar entre su carta y la nuestra. No se resuelve
     // solo a propósito: una contradicción legal la decide una persona.
     waiverConflictos?: string[];
+    // ¿Esta experiencia lleva SEGURO? Cuando sí, el registro pide además el
+    // expediente que la aseguradora necesita (sexo, nacionalidad, CURP,
+    // identificación, ocupación, domicilio y beneficiario).
+    //
+    // Es por experiencia y nace APAGADO a propósito. Son ocho campos de datos
+    // personales —CURP y beneficiario incluidos— y pedírselos a alguien que va
+    // a caminar cuatro horas a un bosque, sin póliza detrás que los use, es
+    // recolectar datos sensibles sin motivo. Donde sí hay póliza, en cambio,
+    // sin ese expediente no se puede dar de alta al participante.
+    insurance?: boolean;
   };
 
   // encuesta de satisfacción (post-experiencia, /caminante/feedback/[token]).

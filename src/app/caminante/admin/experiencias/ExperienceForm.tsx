@@ -1421,6 +1421,13 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
           <section className="card" id="s15">
             <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Registro &amp; deslinde</span><h2>Registro &amp; deslinde</h2><p className="desc">Es el formulario que cada viajero llena antes del viaje: sus datos, su contacto de emergencia, su información médica y la aceptación del deslinde (la carta de responsabilidad) con su firma. Aquí lo <b>prendes</b> y escribes las <b>cláusulas</b> del deslinde — con eso el <b>documento legal se genera y publica solo</b> (datos de NUMAN HUB + marco legal + tus cláusulas), y el viajero siempre lo puede leer. La &quot;URL del documento&quot; es <b>opcional</b>: solo si quieres reemplazarlo por un PDF externo propio. La &quot;versión&quot; déjala en v1; súbela solo si cambias el texto.</p></div>
             <div className="field"><label className="toggle"><input type="checkbox" checked={reg.active} onChange={(e) => setReg({ active: e.target.checked })} /><span className="tk"></span><span className="tlabel">Registro activo</span></label></div>
+            <div className="field"><label className="toggle"><input type="checkbox" checked={reg.insurance === true} onChange={(e) => setReg({ insurance: e.target.checked })} /><span className="tk"></span><span className="tlabel">Esta experiencia incluye seguro</span></label></div>
+            <p className="desc" style={{ marginTop: -6, marginBottom: 10 }}>
+              Préndelo <b>solo si hay póliza</b>. Cuando está prendido, el registro pide además el
+              expediente que la aseguradora necesita: sexo, nacionalidad, CURP, identificación,
+              domicilio, ocupación y beneficiario. Apagado, esos campos no se piden ni aparecen —
+              son datos personales y no tiene caso recogerlos sin una póliza que los use.
+            </p>
             <div className="row c2">
               <Field label="Versión" auto><input type="text" value={reg.waiverVersion} placeholder="v1" onChange={(e) => setReg({ waiverVersion: e.target.value })} /></Field>
               <Field label="URL del documento (opcional)"><input type="url" value={reg.waiverDocUrl} placeholder="Se genera solo — pega un PDF externo solo para reemplazarlo" onChange={(e) => setReg({ waiverDocUrl: e.target.value })} /></Field>
@@ -1550,14 +1557,17 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
                 <PrevBlock t="2 · Perfil médico" fields={["Tipo de sangre", "Nivel de nado / condición física", "Padecimientos actuales", "Medicamentos de uso periódico", "Alergias", "Restricciones alimentarias"]} />
                 <PrevBlock t="3 · Contacto de emergencia" fields={["Nombre", "Parentesco", "Teléfono"]} />
                 <PrevBlock t="4 · Participantes (opcional)" fields={["Nombre", "Fecha de nacimiento", "Parentesco", "Su propio perfil médico"]} />
+                {reg.insurance ? (
+                  <PrevBlock t="5 · Para tu seguro" fields={["Sexo", "Nacionalidad", "CURP", "Identificación (INE o pasaporte)", "Domicilio", "Ocupación", "Beneficiario — Nombre", "Beneficiario — Parentesco", "Beneficiario — Teléfono"]} />
+                ) : null}
                 <div className="cv-block">
-                  <div className="cvh">5 · El deslinde</div>
+                  <div className="cvh">{reg.insurance ? "6" : "5"} · El deslinde</div>
                   <div className="cv-list">
                     {clausulas.length ? clausulas.map((c, i) => <div key={i} className="ci">{c.texto}{!c.obligatoria ? <em style={{ opacity: 0.6 }}> — opcional</em> : null}</div>) : <div className="cv-empty">Aún sin cláusulas — agrégalas arriba.</div>}
                   </div>
                   {["He leído y acepto el deslinde", "Acepto el aviso de privacidad", "Autorizo uso de imagen (opcional)", "Quiero recibir noticias (opcional)"].map((c) => <div key={c} className="cv-check"><span className="bx"></span>{c}</div>)}
                 </div>
-                <PrevBlock t="6 · Tu firma" fields={["Escribe tu nombre completo como firma"]} />
+                <PrevBlock t={`${reg.insurance ? "7" : "6"} · Tu firma`} fields={["Escribe tu nombre completo como firma"]} />
               </div>
             </details>
           </section>

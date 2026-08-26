@@ -1071,6 +1071,26 @@ export type RosterRow = {
   deslinde: boolean;
   fechaFirma: string | null;
   titular: string | null; // null = es el titular; nombre del titular si es acompañante
+  // ── LA FICHA, lo que se abre al tocar el renglón ────────────────────────
+  //
+  // La tabla resume; la ficha es para cuando hay que ACTUAR: llamar, escribir,
+  // o leerle a un médico lo que esta persona declaró. Por eso aquí los campos
+  // van SEPARADOS y sin abreviar, al revés que en `condiciones`, que los junta
+  // en una línea para que la tabla se pueda barrer de un vistazo.
+  //
+  // Un acompañante no es `contacts`: no tiene correo ni teléfono propios, y en
+  // campo se le llama a su titular. Sus campos de contacto quedan en null a
+  // propósito, y la ficha lo dice con todas sus letras.
+  email: string | null;
+  emergenciaNombre: string | null;
+  emergenciaParentesco: string | null;
+  emergenciaTelefono: string | null;
+  alergias: string | null;
+  padecimientos: string | null;
+  medicamentos: string | null;
+  dieta: string | null;
+  tipoSangre: string | null;
+  nivelFisico: string | null;
   // Lo que ESA persona contrató: "Habitación sencilla", "Habitación compartida"…
   // Sale del nivel de precio elegido al pagar. El guía necesita saberlo antes de
   // llegar, no en la recepción del hotel.
@@ -1114,6 +1134,23 @@ function resumenMedico(s: Snap | null | undefined): string {
   if (dieta) partes.push(`Dieta: ${dieta}`);
   return partes.length ? partes.join(" · ") : "Ninguna";
 }
+// La ficha desglosada. `señal()` filtra los "No"/"Ninguna"/"N/A" aquí también:
+// un campo vacío se lee más rápido que uno que dice "Nada", y en la ficha el
+// ruido cuesta más porque son diez campos, no una línea.
+function fichaDe(s: Snap | null | undefined) {
+  return {
+    emergenciaNombre: señal(s?.emergency_name) || null,
+    emergenciaParentesco: señal(s?.emergency_relationship) || null,
+    emergenciaTelefono: señal(s?.emergency_phone) || null,
+    alergias: señal(s?.allergies) || null,
+    padecimientos: señal(s?.conditions) || null,
+    medicamentos: señal(s?.medications) || null,
+    dieta: señal(s?.dietary_restrictions) || null,
+    tipoSangre: señal(s?.blood_type) || null,
+    nivelFisico: señal(s?.fitness_notes) || null,
+  };
+}
+
 function emergenciaDe(s: Snap | null | undefined): string {
   if (!s) return "—";
   const n = s.emergency_name?.toString().trim();
@@ -1193,10 +1230,10 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
   const contactIds = ((resvs || []) as { contact_id: string }[]).map((r) => r.contact_id);
   const [{ data: contacts }, { data: medicals }] = await Promise.all([
     contactIds.length
-      ? sb.from("contacts").select("id, full_name, birth_date, phone").in("id", contactIds)
+      ? sb.from("contacts").select("id, full_name, birth_date, phone, email").in("id", contactIds)
       : Promise.resolve({ data: [] as unknown[] } as { data: unknown[] }),
     contactIds.length
-      ? sb.from("medical_profiles").select("contact_id, allergies, conditions, dietary_restrictions, emergency_name, emergency_phone").in("contact_id", contactIds)
+      ? sb.from("medical_profiles").select("contact_id, allergies, conditions, medications, dietary_restrictions, blood_type, fitness_notes, emergency_name, emergency_relationship, emergency_phone").in("contact_id", contactIds)
       : Promise.resolve({ data: [] as unknown[] } as { data: unknown[] }),
   ]);
   const cById = new Map(
@@ -1205,6 +1242,7 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
       full_name: string | null;
       birth_date: string | null;
       phone: string | null;
+      email: string | null;
     }[]).map((c) => [c.id, c]),
   );
   const medByContact = new Map(
@@ -1235,6 +1273,8 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
       fechaFirma: reg ? formatDiaMes(reg.signed_at) : null,
       titular: null,
       adicional,
+      email: c?.email || null,
+      ...fichaDe(snap),
     });
     for (const p of reg?.participants || []) {
       rows.push({
@@ -1252,6 +1292,8 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
         // El nivel se contrató por RESERVA, así que el acompañante duerme donde
         // duerme su titular.
         adicional,
+        email: null,
+        ...fichaDe(p.medical_snapshot),
       });
     }
     // Lugares PAGADOS sin acompañante capturado (capturarlos es opcional): el
@@ -1272,6 +1314,8 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
         fechaFirma: reg ? formatDiaMes(reg.signed_at) : null,
         titular: titularNombre,
         adicional,
+        email: null,
+        ...fichaDe(null),
       });
     }
   }

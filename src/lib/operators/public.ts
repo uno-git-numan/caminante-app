@@ -251,6 +251,53 @@ export async function fetchOperatorChip(operatorId: string | null): Promise<Oper
   }
 }
 
+/** Contacto público del operador dueño. `null` = la experiencia es de la casa. */
+export type ContactoOperador = { email: string | null; instagram: string | null; whatsapp: string | null };
+
+// EL CONTACTO DE UNA EXPERIENCIA ES EL DE QUIEN LA OPERA.
+//
+// El bloque de cierre («Nos vemos en el bosque» + WhatsApp / Email / Instagram)
+// se sembraba con los datos de Caminante fijos en el código y se guardaba como
+// texto dentro de la página. Mientras todas las experiencias fueron nuestras
+// eso era un default correcto. Con operadores externos pasó a ser un dato
+// FALSO: la página de Nomádika salió a producción invitando a escribirle a
+// uno@numanhub.com y a seguir a @somos.caminante — el cliente que quería
+// preguntar por su cañón nos escribía a nosotros.
+//
+// Se resuelve al RENDERIZAR y no solo al crear, a propósito: así las páginas ya
+// guardadas se corrigen solas en cuanto el operador captura sus datos, sin que
+// nadie tenga que volver a entrar a editar cada experiencia. Si el operador no
+// tiene un dato, se respeta lo que la página traiga guardado.
+export async function fetchOperatorContactoForExperience(
+  experienceId: string,
+): Promise<ContactoOperador | null> {
+  try {
+    const sb = createSupabaseAdminClient();
+    const { data: exp } = await sb
+      .from("experiences")
+      .select("operator_id")
+      .eq("id", experienceId)
+      .maybeSingle();
+    const operatorId = (exp?.operator_id as string | null) ?? null;
+    if (!operatorId) return null;
+    // Cliente de SERVICIO: la RLS de `operators` solo expone `is_public = true`,
+    // y un operador puede estar en pausa como perfil y seguir vendiendo.
+    const { data: op } = await sb
+      .from("operators")
+      .select("email, instagram, whatsapp")
+      .eq("id", operatorId)
+      .maybeSingle();
+    if (!op) return null;
+    return {
+      email: (op.email as string | null) || null,
+      instagram: (op.instagram as string | null) || null,
+      whatsapp: (op.whatsapp as string | null) || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Chip a partir de la EXPERIENCIA (el template no conoce operator_id).
 export async function fetchOperatorChipForExperience(
   experienceId: string,

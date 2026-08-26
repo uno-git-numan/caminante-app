@@ -189,6 +189,24 @@ export const ADMIN_CSS = `
 .adm .subtitle{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;margin-bottom:12px;display:block;}
 .adm .roster-head{display:none;}
 
+/* ── Roster: la ficha desplegable por persona ─────────────────────────────
+   El renglón resume; la ficha es para actuar (llamar, escribir, leerle a un
+   médico lo declarado). La fila de detalle SIEMPRE se renderiza y se esconde
+   aquí — así al imprimir salen todas abiertas sin tocar nada. */
+.adm .r-name{display:inline-flex;align-items:baseline;gap:8px;background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer;}
+.adm .r-name:hover .r-chev{color:var(--orange);}
+.adm .r-chev{display:inline-block;font-size:15px;line-height:1;color:var(--ink-soft);transition:transform .15s ease;transform:translateY(1px);}
+.adm .r-name.abierto .r-chev{transform:translateY(1px) rotate(90deg);color:var(--orange);}
+.adm tr.r-det{display:none;}
+.adm tr.r-det.abierta{display:table-row;}
+.adm tr.r-det > td{background:var(--panel);padding:16px 15px 18px;}
+.adm .r-ficha{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:18px 26px;}
+.adm .r-tit{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-bottom:7px;}
+.adm .r-dato{display:flex;gap:8px;font-size:13px;line-height:1.5;margin-bottom:3px;}
+.adm .r-k{color:var(--ink-soft);flex:0 0 auto;min-width:96px;}
+.adm .r-v{font-weight:500;}
+.adm .r-vacio{font-size:12.5px;color:var(--ink-soft);font-style:italic;line-height:1.5;}
+
 @media print{
   .adm .ahead,.adm .nav,.adm .qa,.adm .no-print,.adm .btn{display:none !important;}
   .adm{background:#fff;color:#000;}
@@ -201,5 +219,14 @@ export const ADMIN_CSS = `
   .adm thead th{color:#000;border-color:#000;}
   .adm tbody td{border-color:#999;}
   .adm .tick{color:#000;}
+  /* La hoja se la lleva el guía al cerro, donde no hay a quién darle clic:
+     todas las fichas salen abiertas. */
+  .adm tr.r-det{display:table-row !important;}
+  .adm tr.r-det > td{background:#fff;padding:8px 15px 12px;}
+  .adm .r-chev{display:none;}
+  .adm .r-ficha{gap:8px 20px;}
+  .adm .r-dato{font-size:10.5px;margin-bottom:1px;}
+  .adm .r-tit{font-size:9px;margin-bottom:3px;}
+  .adm .r-v a{text-decoration:none;color:#000;}
 }
 `;

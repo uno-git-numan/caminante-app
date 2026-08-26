@@ -121,6 +121,8 @@ export default async function RegistroPage({
   // Las cláusulas y el documento salen del SERVIDOR y son los mismos para las dos
   // vistas: quien firma siempre puede leer el documento (`deslindeListo`).
   const waiverClauses = leerClausulas(experience.registration?.waiverClauses);
+  // El bloque «Para tu seguro» solo aparece si ESTA experiencia lleva póliza.
+  const conSeguro = experience.registration?.insurance === true;
   const waiverDocUrl =
     experience.registration?.waiverDocUrl?.trim() || `/caminante/deslinde/${slug}`;
 
@@ -143,6 +145,7 @@ export default async function RegistroPage({
           datesBadge={datesBadge}
           slots={slots}
           waiverClauses={waiverClauses}
+          conSeguro={conSeguro}
           waiverDocUrl={waiverDocUrl}
           hasSession={!!user}
           sessionEmail={user?.email || ""}
@@ -159,6 +162,7 @@ export default async function RegistroPage({
           datesBadge={datesBadge}
           slots={slots}
           waiverClauses={waiverClauses}
+          conSeguro={conSeguro}
           waiverDocUrl={waiverDocUrl}
           hasSession={!!user}
           sessionEmail={user?.email || ""}

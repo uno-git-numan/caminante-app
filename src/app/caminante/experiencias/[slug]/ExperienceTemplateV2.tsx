@@ -23,7 +23,7 @@ import type {
   V2Image,
 } from "@/lib/experiences/types";
 import type { SlotAvailabilityPublic } from "@/lib/experiences/availability";
-import type { OperatorChip } from "@/lib/operators/public";
+import type { OperatorChip, ContactoOperador } from "@/lib/operators/public";
 import Script from "next/script";
 import { TEMPLATE_V2_CSS } from "@/lib/experiences/template-v2-css";
 import { MOVIL_FIXES_CSS } from "@/lib/experiences/movil-fixes-css";
@@ -639,7 +639,37 @@ function DatesBlock({
   );
 }
 
-function ClosingBlock({ b, slug }: { b: V2Closing; slug: string }) {
+// Las tres filas de contacto que el sistema conoce por su etiqueta. Cuando la
+// experiencia es de un operador, su valor sale de la ficha del operador; lo que
+// esté guardado en la página queda como respaldo (y cualquier fila con otra
+// etiqueta se respeta tal cual: es algo que alguien escribió a mano).
+function contactosDe(
+  guardados: { lbl: string; val: string }[],
+  op: ContactoOperador | null,
+): { lbl: string; val: string }[] {
+  if (!op) return guardados;
+  const wa = op.whatsapp
+    ? "+" + op.whatsapp.replace(/[^\d]/g, "").replace(/^(\d{2})(\d{2})(\d{4})(\d{4})$/, "$1 $2 $3 $4")
+    : null;
+  const ig = op.instagram ? "@" + op.instagram.replace(/^@/, "") : null;
+  return guardados.map((c) => {
+    const k = c.lbl.trim().toLowerCase();
+    if (k === "whatsapp" && wa) return { ...c, val: wa };
+    if ((k === "email" || k === "correo") && op.email) return { ...c, val: op.email };
+    if (k === "instagram" && ig) return { ...c, val: ig };
+    return c;
+  });
+}
+
+function ClosingBlock({
+  b,
+  slug,
+  contactoOperador,
+}: {
+  b: V2Closing;
+  slug: string;
+  contactoOperador: ContactoOperador | null;
+}) {
   const actions =
     b.actions ??
     ([
@@ -669,7 +699,7 @@ function ClosingBlock({ b, slug }: { b: V2Closing; slug: string }) {
             ) : null}
           </h2>
           <div className="contact">
-            {b.contacts.map((c, i) => (
+            {contactosDe(b.contacts, contactoOperador).map((c, i) => (
               <div className="crow" key={i}>
                 <span className="lbl">{c.lbl}</span>
                 <span className="val">{c.val}</span>
@@ -724,6 +754,7 @@ export default function ExperienceTemplateV2({
   grupoToken,
   sessionRole,
   operatorChip,
+  contactoOperador,
 }: {
   experience: Experience;
   slots: SlotAvailabilityPublic[];
@@ -734,6 +765,9 @@ export default function ExperienceTemplateV2({
   sessionRole?: "admin" | "operador" | "caminante" | null;
   // Chip "Operada por" del hero (null = operador sin perfil público o sin 0020).
   operatorChip?: OperatorChip | null;
+  // Contacto del operador dueño. null = la experiencia es de la casa y el
+  // bloque de cierre usa lo que trae guardado.
+  contactoOperador?: ContactoOperador | null;
 }) {
   const slug = experience.slug;
   // Entrada por rol en el nav de la experiencia (misma lógica que SiteChrome):
@@ -854,7 +888,7 @@ export default function ExperienceTemplateV2({
             el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} grupoToken={grupoToken} />;
             break;
           case "closing":
-            el = <ClosingBlock b={b} slug={slug} />;
+            el = <ClosingBlock b={b} slug={slug} contactoOperador={contactoOperador ?? null} />;
             break;
           default:
             el = null;
