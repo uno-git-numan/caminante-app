@@ -10,6 +10,9 @@ export type DeslindePendiente = {
   reservationId: string;
   nombre: string;
   email: string | null;
+  // Su WhatsApp. Cuando el correo no llega —y no llega más seguido de lo que
+  // uno quisiera— el link se le manda por aquí, a mano.
+  telefono: string | null;
   slug: string;
   experiencia: string;
   salidaLabel: string;
@@ -22,7 +25,7 @@ export async function fetchDeslindesPendientes(): Promise<DeslindePendiente[]> {
       sb.from("experiences").select("id, slug, data, operator_id"),
       sb.from("reservations").select("id, contact_id, experience_id, status, slot_id"),
       sb.from("registrations").select("reservation_id"),
-      sb.from("contacts").select("id, full_name, email"),
+      sb.from("contacts").select("id, full_name, email, phone"),
       sb.from("experience_slots").select("id, label"),
     ]);
 
@@ -42,7 +45,7 @@ export async function fetchDeslindesPendientes(): Promise<DeslindePendiente[]> {
     }
     const firmados = new Set((regs.data ?? []).map((r) => (r as { reservation_id: string }).reservation_id));
     const cById = new Map(
-      ((contacts.data ?? []) as { id: string; full_name: string | null; email: string | null }[]).map((c) => [c.id, c]),
+      ((contacts.data ?? []) as { id: string; full_name: string | null; email: string | null; phone: string | null }[]).map((c) => [c.id, c]),
     );
     const labelBySlot = new Map(
       ((slots.data ?? []) as { id: string; label: string | null }[]).map((s) => [s.id, s.label || ""]),
@@ -59,6 +62,7 @@ export async function fetchDeslindesPendientes(): Promise<DeslindePendiente[]> {
         reservationId: r.id,
         nombre: c?.full_name || c?.email || "—",
         email: c?.email ?? null,
+        telefono: c?.phone ?? null,
         slug: exp.slug,
         experiencia: exp.nombre,
         salidaLabel: (r.slot_id && labelBySlot.get(r.slot_id)) || "",

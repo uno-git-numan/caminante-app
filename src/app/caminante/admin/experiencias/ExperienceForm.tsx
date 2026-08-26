@@ -15,6 +15,7 @@ import PrellenarIA from "./PrellenarIA";
 import ChecklistComunicacion from "./ChecklistComunicacion";
 import { aplicarPrellenadoV2, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
 import { leerClausulas, etiquetaOrigen, type Clausula } from "@/lib/legal/clausulas";
+import { seccionesVisibles, CASILLAS_DESLINDE } from "@/lib/registration/estructura";
 import type { ContactoDueno } from "@/lib/experiences/empty";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
@@ -1544,30 +1545,32 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
               <summary><span className="pv-l"><span className="pv-tag">Vista previa</span> Así lo verá el viajero</span><span className="chev">▾</span></summary>
               <div className="pv-body">
                 <p className="pv-ro">Vista de solo lectura — el formulario que cada viajero llena antes del viaje.</p>
-                {/* ⚠️ Esta lista tiene que ser el ESPEJO de las secciones reales de
-                    RegistrationForm/DeslindeMovil. Estuvo desalineada: anunciaba un
-                    bloque «5 · Para tu seguro» (sexo, CURP, ocupación, beneficiario)
-                    que nunca se construyó en el formulario público, y llamaba
-                    «Acompañantes menores» a lo que en vivo es «Participantes». Una
-                    vista previa que promete lo que no existe es peor que no tenerla:
-                    se revisa aquí y se descubre el hueco frente al cliente.
-                    Si algún día se agrega el bloque de seguro, se agrega ARRIBA y
-                    aquí, en el mismo cambio. */}
-                <PrevBlock t="1 · Datos personales" fields={["Nombre completo", "Fecha de nacimiento", "Ciudad", "Correo", "WhatsApp", "Elegir fecha de salida"]} />
-                <PrevBlock t="2 · Perfil médico" fields={["Tipo de sangre", "Nivel de nado / condición física", "Padecimientos actuales", "Medicamentos de uso periódico", "Alergias", "Restricciones alimentarias"]} />
-                <PrevBlock t="3 · Contacto de emergencia" fields={["Nombre", "Parentesco", "Teléfono"]} />
-                <PrevBlock t="4 · Participantes (opcional)" fields={["Nombre", "Fecha de nacimiento", "Parentesco", "Su propio perfil médico"]} />
-                {reg.insurance ? (
-                  <PrevBlock t="5 · Para tu seguro" fields={["Sexo", "Nacionalidad", "CURP", "Identificación (INE o pasaporte)", "Domicilio", "Ocupación", "Beneficiario — Nombre", "Beneficiario — Parentesco", "Beneficiario — Teléfono"]} />
-                ) : null}
-                <div className="cv-block">
-                  <div className="cvh">{reg.insurance ? "6" : "5"} · El deslinde</div>
-                  <div className="cv-list">
-                    {clausulas.length ? clausulas.map((c, i) => <div key={i} className="ci">{c.texto}{!c.obligatoria ? <em style={{ opacity: 0.6 }}> — opcional</em> : null}</div>) : <div className="cv-empty">Aún sin cláusulas — agrégalas arriba.</div>}
-                  </div>
-                  {["He leído y acepto el deslinde", "Acepto el aviso de privacidad", "Autorizo uso de imagen (opcional)", "Quiero recibir noticias (opcional)"].map((c) => <div key={c} className="cv-check"><span className="bx"></span>{c}</div>)}
-                </div>
-                <PrevBlock t={`${reg.insurance ? "7" : "6"} · Tu firma`} fields={["Escribe tu nombre completo como firma"]} />
+                {/* ⚠️ NO escribas aquí la lista de campos. Se DIBUJA de
+                    lib/registration/estructura.ts, que es la misma fuente de la
+                    que el formulario real toma sus títulos y sus números, y que
+                    el invariante #12 compara contra los inputs de verdad.
+
+                    Esta vista previa estuvo desalineada: anunciaba un bloque
+                    «Para tu seguro» que no existía y llamaba «menores» a lo que
+                    en vivo son «participantes». Alguien la revisaba, la daba por
+                    buena, y descubría el hueco enfrente del cliente. */}
+                {seccionesVisibles(reg.insurance === true).map((s) =>
+                  s.especial === "deslinde" ? (
+                    <div className="cv-block" key={s.id}>
+                      <div className="cvh">{s.num} · {s.titulo}</div>
+                      <div className="cv-list">
+                        {clausulas.length ? clausulas.map((c, i) => <div key={i} className="ci">{c.texto}{!c.obligatoria ? <em style={{ opacity: 0.6 }}> — opcional</em> : null}</div>) : <div className="cv-empty">Aún sin cláusulas — agrégalas arriba.</div>}
+                      </div>
+                      {CASILLAS_DESLINDE.map((c) => (
+                        <div key={c.label} className="cv-check">
+                          <span className="bx"></span>{c.label}{c.obligatoria ? null : " (opcional)"}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <PrevBlock key={s.id} t={`${s.num} · ${s.titulo}`} fields={s.campos.map((c) => c.label)} />
+                  ),
+                )}
               </div>
             </details>
           </section>

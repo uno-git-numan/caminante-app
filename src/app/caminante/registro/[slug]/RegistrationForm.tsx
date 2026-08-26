@@ -18,6 +18,7 @@ import type {
   SlotOption,
 } from "@/lib/registration/types";
 import type { Clausula } from "@/lib/legal/clausulas";
+import { seccion } from "@/lib/registration/estructura";
 
 // Fila del formulario de participantes (strings controlados; se mapea a
 // ParticipantInput al enviar). Espeja los campos de un dependiente guardado.
@@ -285,6 +286,10 @@ export default function RegistrationForm({
   const [m, setM] = useState<MedicalProfileData>(prefill?.medical || emptyMedical);
   const savedDependents = prefill?.dependents || [];
   const [participants, setParticipants] = useState<ParticipantRow[]>([]);
+  // Números y títulos salen de lib/registration/estructura.ts — la misma
+  // fuente que dibuja la vista previa del panel. Ver el comentario de ahí.
+  const sec = (id: string) => seccion(conSeguro, id);
+
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [imageConsent, setImageConsent] = useState(false);
@@ -482,7 +487,7 @@ export default function RegistrationForm({
 
           {/* 1 · DATOS PERSONALES (+ salida) */}
           <section className="fsec">
-            <SecHead num="01" eyebrow="Sección uno" title="Datos personales" />
+            <SecHead num={sec("datos").num} eyebrow={`Sección ${sec("datos").ordinal}`} title={sec("datos").titulo} />
             <div className="field">
               <label htmlFor="nombre">Nombre completo</label>
               <input id="nombre" type="text" placeholder="Como aparece en tu identificación" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
@@ -544,7 +549,7 @@ export default function RegistrationForm({
 
           {/* 2 · PERFIL MÉDICO */}
           <section className="fsec">
-            <SecHead num="02" eyebrow="Sección dos" title="Perfil médico" />
+            <SecHead num={sec("medico").num} eyebrow={`Sección ${sec("medico").ordinal}`} title={sec("medico").titulo} />
             <p className="fnote">Solo lo ve el equipo de guías para cuidarte en campo; nunca se comparte.</p>
             <div className="frow two">
               <div className="field">
@@ -576,7 +581,7 @@ export default function RegistrationForm({
 
           {/* 3 · CONTACTO DE EMERGENCIA */}
           <section className="fsec">
-            <SecHead num="03" eyebrow="Sección tres" title="Contacto de emergencia" />
+            <SecHead num={sec("emergencia").num} eyebrow={`Sección ${sec("emergencia").ordinal}`} title={sec("emergencia").titulo} />
             <div className="field">
               <label htmlFor="em-nombre">Nombre</label>
               <input id="em-nombre" type="text" placeholder="Nombre completo" value={m.emergencyName} onChange={(e) => setMed("emergencyName")(e.target.value)} />
@@ -595,7 +600,7 @@ export default function RegistrationForm({
 
           {/* 4 · PARTICIPANTES (opcional) */}
           <section className="fsec">
-            <SecHead num="04" eyebrow="Sección cuatro" title={<>Participantes <span style={{ color: "var(--ink-soft)", fontWeight: 300 }}>(opcional)</span></>} />
+            <SecHead num={sec("participantes").num} eyebrow={`Sección ${sec("participantes").ordinal}`} title={<>Participantes <span style={{ color: "var(--ink-soft)", fontWeight: 300 }}>(opcional)</span></>} />
             <p className="fnote">
               ¿Reservaste para más personas (por ejemplo tus hijos)? Agrega su perfil aquí. Es
               opcional —puedes hacerlo ahora o después— y queda guardado para tus próximas
@@ -694,7 +699,7 @@ export default function RegistrationForm({
               este expediente no se puede dar de alta al participante. */}
           {conSeguro ? (
             <section className="fsec">
-              <SecHead num="05" eyebrow="Sección cinco" title="Para tu seguro" />
+              <SecHead num={sec("seguro").num} eyebrow={`Sección ${sec("seguro").ordinal}`} title={sec("seguro").titulo} />
               <p className="fnote">
                 Esta experiencia incluye seguro. La aseguradora pide estos datos para poder darte de
                 alta en la póliza; si algo no lo tienes a la mano, déjalo en blanco y lo completamos
@@ -749,7 +754,7 @@ export default function RegistrationForm({
           ) : null}
 
           <section className="fsec">
-            <SecHead num={conSeguro ? "06" : "05"} eyebrow={conSeguro ? "Sección seis" : "Sección cinco"} title="El deslinde" />
+            <SecHead num={sec("deslinde").num} eyebrow={`Sección ${sec("deslinde").ordinal}`} title={sec("deslinde").titulo} />
             <p className="fnote">La naturaleza es real y la expedición tiene riesgos reales. Lee con calma el resumen de cláusulas; esto es lo que aceptas al firmar.</p>
             <ul className="legal">
               {/* Solo se marca lo OPCIONAL. Marcar también lo obligatorio —que es
@@ -801,7 +806,7 @@ export default function RegistrationForm({
 
           {/* 6 · TU FIRMA */}
           <section className="fsec">
-            <SecHead num={conSeguro ? "07" : "06"} eyebrow={conSeguro ? "Sección siete" : "Sección seis"} title="Tu firma" />
+            <SecHead num={sec("firma").num} eyebrow={`Sección ${sec("firma").ordinal}`} title={sec("firma").titulo} />
             <div className="field sign">
               <label htmlFor="firma">Escribe tu nombre completo como firma</label>
               <input id="firma" type="text" placeholder="Tu nombre completo" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} />

@@ -12,6 +12,11 @@ import {
 import { generarLinkEncuestaSalida, linkAbierto } from "@/lib/feedback/link-abierto";
 import { fetchSalidasParaLinkAbierto } from "@/lib/admin/queries";
 import { fetchDeslindesPendientes } from "@/lib/registration/pending";
+import LinkDeslinde from "./LinkDeslinde";
+
+// Los links se copian para pegarlos FUERA de la app (WhatsApp), así que van
+// absolutos. Un "/caminante/registro/…" pegado en un chat no es clicable.
+const SITIO = (process.env.NEXT_PUBLIC_SITE_URL || "https://caminante.numanhub.com").replace(/\/$/, "");
 import type { DeslindePendiente } from "@/lib/registration/pending";
 import ConfirmSubmit from "../ui/ConfirmSubmit";
 import RespuestasExp from "./RespuestasExp";
@@ -172,7 +177,10 @@ export default async function EncuestaPage({
                     <td className="mono">{sl.respuestas}</td>
                     <td style={{ textAlign: "right" }}>
                       {sl.token ? (
-                        <code className="mono" style={{ fontSize: 12, wordBreak: "break-all" }}>{`/caminante/feedback/salida/${sl.token}`}</code>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                          <code className="mono" style={{ fontSize: 12, wordBreak: "break-all" }}>{`/caminante/feedback/salida/${sl.token}`}</code>
+                          <LinkDeslinde link={`${SITIO}/caminante/feedback/salida/${sl.token}`} telefono={null} nombre="" experiencia={sl.experiencia} />
+                        </span>
                       ) : (
                         <form action={generarLinkEncuestaSalida}>
                           <input type="hidden" name="slotId" value={sl.id} />
@@ -216,14 +224,23 @@ export default async function EncuestaPage({
                     <span className="av">{iniciales(d.nombre)}</span>
                     {d.nombre}
                     {d.salidaLabel ? <span className="dt">{d.salidaLabel}</span> : null}
+                    {/* El correo sigue siendo el camino principal, pero YA NO
+                        es el único: el link se copia o se manda por WhatsApp
+                        siempre, tenga correo o no. Antes «Abrir link» aparecía
+                        solo cuando faltaba el correo, y cuando el correo existía
+                        pero no llegaba no había de dónde agarrarse. */}
                     {d.email ? (
                       <form action={reenviarDeslinde} style={{ display: "inline" }}>
                         <input type="hidden" name="reservationId" value={d.reservationId} />
                         <button type="submit" className="btn btn-glass btn-sm" title={`Recordar deslinde a ${d.email}`} style={{ padding: "3px 9px", fontSize: 11.5 }}>✉ Recordar</button>
                       </form>
-                    ) : (
-                      <a href={`/caminante/registro/${d.slug}?reserva=${d.reservationId}`} target="_blank" rel="noopener noreferrer" className="btn btn-glass btn-sm" style={{ padding: "3px 9px", fontSize: 11.5 }}>Abrir link</a>
-                    )}
+                    ) : null}
+                    <LinkDeslinde
+                      link={`${SITIO}/caminante/registro/${d.slug}?reserva=${d.reservationId}`}
+                      telefono={d.telefono}
+                      nombre={d.nombre}
+                      experiencia={g.nombre}
+                    />
                   </span>
                 ))}
               </div>

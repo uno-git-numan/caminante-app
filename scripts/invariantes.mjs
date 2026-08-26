@@ -235,6 +235,36 @@ const REGLAS = [
       return null;
     },
   },
+  {
+    nombre: "La vista previa del registro dice lo que el formulario pide",
+    comprueba() {
+      const est = leer("src/lib/registration/estructura.ts");
+      const form = leer("src/app/caminante/registro/[slug]/RegistrationForm.tsx");
+      if (!est) return "Falta src/lib/registration/estructura.ts: es la única definición del formulario de registro, y de ahí se dibuja la vista previa del panel.";
+      if (!form) return "No encuentro RegistrationForm.tsx para comparar contra la estructura del registro.";
+
+      // Los campos declarados (menos los que no son <input> con label propio).
+      const declarados = new Set();
+      for (const m of est.matchAll(/\{\s*id:\s*"([^"]+)"\s*,\s*label:\s*"[^"]*"\s*(,\s*sinInput:\s*true\s*)?\}/g)) {
+        if (!m[2]) declarados.add(m[1]);
+      }
+      // Los que el formulario REALMENTE pide.
+      const reales = new Set([...form.matchAll(/htmlFor="([^"]+)"/g)].map((m) => m[1]));
+
+      const faltanEnEstructura = [...reales].filter((id) => !declarados.has(id));
+      if (faltanEnEstructura.length)
+        return `El formulario de registro pide campos que la estructura no declara: ${faltanEnEstructura.join(", ")}. La vista previa del panel se dibuja de la estructura, así que ese campo existiría en vivo sin aparecer en la revisión — que es exactamente cómo se anunció un bloque «Para tu seguro» que no existía. Agrégalos en src/lib/registration/estructura.ts.`;
+
+      const faltanEnForm = [...declarados].filter((id) => !reales.has(id));
+      if (faltanEnForm.length)
+        return `La estructura del registro declara campos que el formulario ya no pide: ${faltanEnForm.join(", ")}. La vista previa los estaría prometiendo al viajero. Quítalos de src/lib/registration/estructura.ts o vuelve a ponerlos en el formulario.`;
+
+      // Y que nadie vuelva a escribir los números a mano.
+      if (/<SecHead num="\d/.test(form))
+        return "RegistrationForm.tsx volvió a numerar una sección a mano. Con el bloque de seguro prendido o apagado la numeración cambia, y tres superficies dependen de ella: usa seccion(conSeguro, id) de lib/registration/estructura.ts.";
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────
