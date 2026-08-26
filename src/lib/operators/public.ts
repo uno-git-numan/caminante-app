@@ -288,8 +288,36 @@ export async function fetchOperatorContactoForExperience(
       .eq("id", operatorId)
       .maybeSingle();
     if (!op) return null;
+
+    // ⚠️ LA CASA MANDA, también aquí.
+    //
+    // Nuestras propias experiencias están atribuidas a la fila «Numan ·
+    // Caminante» de `operators`, que existe para el reparto de ventas. Su
+    // `instagram` es el de NUMAN (`numanhub`), no el de la marca Caminante
+    // (`somos.caminante`) — son dos cuentas distintas y ambas correctas en su
+    // lugar. Resolver contra esa fila cambió el pie de las seis páginas de la
+    // casa de @somos.caminante a @numanhub, en producción, sin que nadie lo
+    // pidiera. Se detectó comparando la página en vivo, no leyendo el código.
+    //
+    // Este resolvedor existe para arreglar las páginas de operadores EXTERNOS.
+    // Las de la casa ya traen guardado el contacto correcto de la marca.
+    //
+    // «Casa» se decide con la MISMA regla que el resto del sistema —el correo
+    // está en `admin_whitelist` activo (ver lib/auth/alcance.ts)— para que las
+    // dos definiciones no puedan divergir.
+    const correo = (op.email as string | null) || null;
+    if (correo) {
+      const { data: casa } = await sb
+        .from("admin_whitelist")
+        .select("email")
+        .eq("email", correo.toLowerCase())
+        .eq("is_active", true)
+        .maybeSingle();
+      if (casa) return null;
+    }
+
     return {
-      email: (op.email as string | null) || null,
+      email: correo,
       instagram: (op.instagram as string | null) || null,
       whatsapp: (op.whatsapp as string | null) || null,
     };
