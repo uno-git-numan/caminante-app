@@ -575,7 +575,20 @@ export default function ExperienceForm({ initial, initialSlots }: { initial?: Ex
   async function guardar(filled: Experience, st: Experience["status"], allowOverwrite: boolean) {
     setSaving(true);
     const res = await saveExperience(filled, {
-      expectedSlug: initial?.slug ?? null,
+      // ⚠️ `savedSlug` NO es un detalle: es lo que hace que el formulario deje de
+      // creerse «nuevo» después del primer guardado.
+      //
+      // `initial` solo existe al EDITAR. En /experiencias/nueva es null para
+      // siempre, así que sin esto el segundo guardado mandaba expectedSlug=null,
+      // la guarda anti-sobrescritura veía que el slug ya existía —lo había
+      // creado el guardado anterior, en esta misma sesión— y se negaba. La
+      // persona picaba «Guardar borrador», veía el aviso pasar, y NADA se
+      // guardaba. Le pasó a la primera operadora en vivo el 26 ago: subió las
+      // fotos de siete secciones y ninguna aterrizó.
+      //
+      // Quien acaba de crear una experiencia es su dueño: guardar otra vez es
+      // editarla, no sobrescribir la de alguien más.
+      expectedSlug: initial?.slug ?? savedSlug ?? null,
       allowOverwrite,
     });
     const t = new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
