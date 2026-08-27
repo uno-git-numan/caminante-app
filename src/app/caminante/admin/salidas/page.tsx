@@ -147,12 +147,24 @@ export default async function SalidasPage() {
 
       {/* ── PRÓXIMAS ── */}
       <section className="sec">
-        <div className="salgrp">
-          <span className="t">Próximas</span>
-          <span className="n">
-            {d.proximas.length} {d.proximas.length === 1 ? "salida con gente" : "salidas con gente"}
-          </span>
-          <span className="r">La más cercana arriba</span>
+        {/* Los dos grupos llevan el MISMO peso que el título de la pantalla: son
+            las dos mitades del trabajo, no subtítulos de una lista. Mismo patrón
+            que .sec-head — eyebrow con las diagonales, display con remate en
+            itálica naranja, y una línea que dice qué se hace ahí. */}
+        <div className="sec-head">
+          <div>
+            <span className="eyebrow">
+              <span className="sl">{"//"}</span> Próximas · {d.proximas.length}{" "}
+              {d.proximas.length === 1 ? "salida" : "salidas"}
+            </span>
+            <h2 className="display" style={{ fontSize: 30 }}>
+              Lo que <em className="ac">todavía puede arreglarse.</em>
+            </h2>
+            <div className="desc">
+              La más cercana arriba. Aquí se persiguen las firmas del deslinde: sin ellas, esa persona
+              no debería subir.
+            </div>
+          </div>
         </div>
 
         {d.proximas.length === 0 && d.vacias.length === 0 ? (
@@ -200,12 +212,20 @@ export default async function SalidasPage() {
 
       {/* ── PASADAS ── */}
       <section className="sec">
-        <div className="salgrp">
-          <span className="t">Pasadas</span>
-          <span className="n">
-            {d.pasadas.length} {d.pasadas.length === 1 ? "salida" : "salidas"}
-          </span>
-          <span className="r">Ningún promedio se muestra sin su denominador</span>
+        <div className="sec-head">
+          <div>
+            <span className="eyebrow">
+              <span className="sl">{"//"}</span> Pasadas · {d.pasadas.length}{" "}
+              {d.pasadas.length === 1 ? "salida" : "salidas"}
+            </span>
+            <h2 className="display" style={{ fontSize: 30 }}>
+              Lo que ya <em className="ac">nos dijeron.</em>
+            </h2>
+            <div className="desc">
+              La más reciente arriba. Ningún promedio se muestra sin su denominador: 4,6 de nueve
+              respuestas sobre dieciocho personas no es lo mismo que 4,6 de diecisiete.
+            </div>
+          </div>
         </div>
         {d.pasadas.length === 0 ? (
           <div className="empty">Todavía no ha viajado ningún grupo.</div>

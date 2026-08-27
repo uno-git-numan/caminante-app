@@ -180,9 +180,7 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
               ) : null}
               {s.respondieron.length ? (
                 <>
-                  <div className="xh4">
-                    {s.respondieron.length === 1 ? "Una contestó" : `${s.respondieron.length} contestaron`}
-                  </div>
+                  <div className="xh4">Respondieron · {s.respondieron.length}</div>
                   {s.respondieron.map((r, i) => (
                     <div className="salper" key={i}>
                       <span className="av">{iniciales(r.nombre)}</span>
@@ -214,11 +212,7 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
                   siempre llega y una encuesta sin respuestas no mide nada. */}
               {s.sinResponder.length ? (
                 <>
-                  <div className="xh4">
-                    {s.sinResponder.length === 1
-                      ? "Falta de responder"
-                      : `Faltan de responder (${s.sinResponder.length})`}
-                  </div>
+                  <div className="xh4">Faltan por responder · {s.sinResponder.length}</div>
                   {s.sinResponder.map((p) => (
                     <div className="salper" key={p.feedbackId}>
                       <span className="av">{iniciales(p.nombre)}</span>
@@ -283,9 +277,7 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
             <>
               {s.pendientes.length ? (
                 <>
-                  <div className="xh4">
-                    {s.pendientes.length === 1 ? "Falta una firma" : `Faltan ${s.pendientes.length} firmas`}
-                  </div>
+                  <div className="xh4">Faltan por firmar · {s.pendientes.length}</div>
                   {s.pendientes.map((p) => (
                     <div className="salper" key={p.reservationId}>
                       <span className="av">{iniciales(p.nombre)}</span>
@@ -308,7 +300,7 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
               ) : null}
               {s.firmadosLista.length ? (
                 <>
-                  <div className="xh4">Ya firmaron</div>
+                  <div className="xh4">Firmaron · {s.firmadosLista.length}</div>
                   <div className="pchips">
                     {s.firmadosLista.map((f, i) => (
                       <span className="pchip ok" key={i}>

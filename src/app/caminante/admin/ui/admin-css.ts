@@ -68,8 +68,15 @@ export const ADMIN_CSS = `
 .adm .xhead{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .adm .chev2{display:inline-block;color:var(--sand);font-size:10px;transition:transform .25s ease;margin-left:6px;flex:0 0 auto;}
 .adm .xhead.open .chev2,.adm .xhead.open + tr .chev2{transform:rotate(180deg);}
-.adm .xbody{max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .28s ease;}
-.adm .xbody.on{max-height:1600px;opacity:1;}
+/* ⚠️ El acordeón animaba con max-height:1600px, y eso NO es un detalle de
+   estilo: es un techo. Una cápsula de Salidas con nueve que respondieron y
+   nueve que faltan pasa de 1600px y el contenido se CORTA — sin scroll, sin
+   aviso, simplemente no está. Justo la gente a la que había que escribirle.
+   grid-template-rows de 0fr a 1fr anima igual y no tiene techo: la altura la
+   pone el contenido. El hijo necesita min-height:0 para poder encogerse. */
+.adm .xbody{display:grid;grid-template-rows:0fr;opacity:0;overflow:hidden;transition:grid-template-rows .35s ease,opacity .28s ease;}
+.adm .xbody>*{min-height:0;}
+.adm .xbody.on{grid-template-rows:1fr;opacity:1;}
 .adm .xpad{padding:16px 2px 8px;}
 .adm tr.xdetail td{padding:0 15px;border-bottom:0;}
 .adm tr.xdetail .xbody.on{border-bottom:1px solid var(--line);}
