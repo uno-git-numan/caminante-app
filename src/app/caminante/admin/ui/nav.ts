@@ -23,7 +23,11 @@ export type AdminNavItem = { key: AdminSection; label: string; href?: string; so
 // «Operador» se renderiza aparte, a la derecha, con ícono de perfil.
 export const ADMIN_NAV: AdminNavItem[] = [
   { key: "panorama", label: "Panorama", href: "/caminante/admin" },
-  { key: "eventos", label: "Eventos", href: "/caminante/admin/eventos" },
+  // «Eventos» significaba EXPERIENCIAS, y una salida es mucho más un evento que
+  // una experiencia: esa colisión de nombres era buena parte de por qué las dos
+  // pantallas se sentían duplicadas. La clave interna se conserva para no tocar
+  // las 20 llamadas a AdminShell; lo que cambia es lo que lee quien la usa.
+  { key: "eventos", label: "Experiencias", href: "/caminante/admin/eventos" },
   { key: "comunicacion", label: "Comunicación", href: "/caminante/admin/comunicacion" },
   { key: "solicitudes", label: "Solicitudes", href: "/caminante/admin/solicitudes" },
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
