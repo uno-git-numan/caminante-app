@@ -175,6 +175,13 @@ si no, quedan dos lugares que se parecen.
 que las vacías se colapsen en una línea («3 salidas próximas sin reservas») en
 vez de gastar una cápsula cada una.
 
+**c-bis · Una experiencia SIN salidas no es un pendiente.** DECIDIDO: una
+experiencia puede vivir publicada sin ninguna fecha planeada, con «solicitar
+grupo» siempre abierto — siempre está disponible para venderse. Así que ni esta
+pantalla ni la de Experiencias deben empujar a «agregarle fechas»: lo que
+corresponde mostrar es que su canal abierto es la solicitud de grupo, y cuántas
+solicitudes tiene esperando.
+
 **d · Qué NO va aquí.** Dinero. Esta pantalla la ve el operador externo con su
 alcance podado, y su ingreso vive en Panorama. Meter monto por salida obligaría a
 podar una superficie más, sin ganar nada para el trabajo que esta pantalla hace.

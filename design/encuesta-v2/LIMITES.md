@@ -61,8 +61,46 @@ La prueba de una frase, que sirve para cualquier campo nuevo:
    grupo. Se llega desde la cápsula.
 3. **«Ocupación» como 6/8** pasa a leerse como oferta: «quedan 2 lugares».
 
-Lo que queda en la ficha de la experiencia es su **calendario de venta**:
-Salida · Fecha · Cupo · Precio · Estado · [cerrar/reabrir] · «Abrir salida →».
+## DECIDIDO: las fechas SALEN del formulario de la experiencia
+
+La versión anterior de este documento dejaba las fechas viviendo en la
+experiencia, «su calendario de venta». Eso conservaba el traslape. La decisión
+es más limpia:
+
+> **La experiencia es la PLANTILLA atemporal. La salida es la INSTANCIA que se
+> vende.** Crear una salida es un camino propio: eliges experiencia → fecha →
+> cupo → publicas.
+
+⚠️ **Por qué no es opcional sacarlas del formulario.** `saveExperienceSlots` trata
+hoy la lista del formulario como la verdad completa:
+
+```
+// Cerrar (no borrar) las salidas ABIERTAS PÚBLICAS que el form ya no incluye.
+```
+
+Con las dos puertas abiertas pasaría esto: creas una salida desde Salidas →
+alguien entra a esa experiencia a corregir una foto y guarda → la salida nueva no
+estaba en la lista del formulario → **se cierra sola y deja de venderse, en
+silencio**. Un solo dueño lo evita sin candados nuevos.
+
+Y de paso muere un cuidado que solo existía por esto: hoy el modo edición «solo
+carga salidas ABIERTAS, porque si entraran las cerradas cada guardado las
+re-abriría». El formulario deja de tocarlas y el problema desaparece.
+
+Dentro de la ficha de la experiencia, sus salidas quedan como **reflejo de solo
+lectura** —«estas son sus fechas publicadas»— con enlace a la salida. Sin editar,
+sin cerrar, sin crear.
+
+## Una experiencia publicada NO necesita salidas
+
+Decisión de producto: una experiencia puede estar **publicada para siempre sin
+ninguna fecha planeada**, con **«solicitar grupo» siempre abierto**. Siempre está
+disponible para venderse.
+
+Esto cambia cómo se lee el vacío en las dos pantallas: una experiencia sin
+salidas **no es un pendiente ni un error**, es un modo de operar. La pantalla no
+debe empujar a «agregarle fechas»; debe mostrar que su canal abierto es la
+solicitud de grupo, y cuántas solicitudes tiene esperando.
 
 ## El único traslape que sí se queda
 
