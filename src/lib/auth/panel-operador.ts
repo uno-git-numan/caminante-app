@@ -21,6 +21,7 @@ const EXACTAS = new Set<string>([
   "/caminante/admin/reservas",
   "/caminante/admin/personas",
   "/caminante/admin/encuesta",
+  "/caminante/admin/salidas", // la línea de tiempo de SUS salidas, ya podada
   "/caminante/admin/comunicacion",
   "/caminante/admin/experiencias/nueva",
 ]);

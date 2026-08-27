@@ -32,7 +32,11 @@ export const ADMIN_NAV: AdminNavItem[] = [
   // Dos páginas que hablan de lo mismo se leen como redundancia y obligan a
   // saltar entre ellas para cerrar una cuenta. Ahora es una sola.
   { key: "recursos", label: "Recursos", href: "/caminante/admin/recursos" },
-  { key: "encuesta", label: "Encuesta", href: "/caminante/admin/encuesta" },
+  // «Encuesta» pasó a llamarse «Salidas» y cambió de eje: ya no es un tipo de
+  // trabajo, es el OBJETO. Una salida tiene un antes (perseguir firmas) y un
+  // después (leer la encuesta), y las dos cosas viven ahí. La clave interna se
+  // conserva para no tocar las 20 llamadas a AdminShell.
+  { key: "encuesta", label: "Salidas", href: "/caminante/admin/salidas" },
 ];
 
 // «Operador» va aparte porque se dibuja a la DERECHA del nav y con ícono, no en

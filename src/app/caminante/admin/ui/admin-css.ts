@@ -207,6 +207,82 @@ export const ADMIN_CSS = `
 .adm .r-v{font-weight:500;}
 .adm .r-vacio{font-size:12.5px;color:var(--ink-soft);font-style:italic;line-height:1.5;}
 
+/* ── SALIDAS · transcrito VERBATIM del entregable de Claude Design
+   (design/encuesta-v2/dc/salidas.dc.html), prefijado con .adm como
+   el resto del panel. Si el diseño cambia, RE-EXTRAER del HTML — no
+   editar a mano. ── */
+.adm .saltop{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.adm .saltop .g{flex:1;min-width:200px}
+.adm .saltop h3{font-size:19px;font-weight:400;letter-spacing:-.01em;line-height:1.25}
+.adm .saltop .meta{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.5}
+.adm .salwhen{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--olive-d);white-space:nowrap;padding-top:3px}
+.adm .salwhen.cerca{color:var(--orange);font-weight:700}
+.adm .salbars{display:grid;gap:2px;margin-top:14px;max-width:520px}
+.adm .salsig{display:flex;flex-wrap:wrap;gap:7px 16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);align-items:center}
+.adm .salsig span{display:inline-flex;align-items:baseline;gap:.45em;font-size:12.5px;color:var(--ink-soft);line-height:1.45}
+.adm .salsig s{text-decoration:none;font-family:var(--mono);font-weight:700;flex:0 0 auto}
+.adm .salsig .ok s{color:var(--olive)}
+.adm .salsig .pend{color:var(--charcoal)}
+.adm .salsig .pend s{color:var(--orange)}
+.adm .salsig .crit{color:var(--charcoal);font-weight:600;background:rgba(255,93,54,.13);border-radius:999px;padding:5px 12px}
+.adm .salsig .crit s{color:var(--orange)}
+.adm .salmtr{display:flex;flex-wrap:wrap;gap:14px 32px;margin-top:14px}
+.adm .salmtr>div{min-width:118px}
+.adm .salmtr .v{font-family:var(--mono);font-weight:300;font-size:26px;letter-spacing:-.02em;line-height:1.1}
+.adm .salmtr .v .u{font-size:13px;color:var(--ink-soft)}
+.adm .salmtr .v .st{font-family:"Geist",system-ui,sans-serif;font-size:17px;color:var(--orange);letter-spacing:1px}
+.adm .salmtr .d{font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.4}
+.adm .salmtr .d b{color:var(--charcoal);font-weight:600;font-family:var(--mono)}
+.adm .salper{display:grid;grid-template-columns:26px 1fr auto;gap:11px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.adm .salper:last-child{border-bottom:0}
+.adm .salper .av{width:26px;height:26px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:700}
+.adm .salper .nm{min-width:0;line-height:1.35}
+.adm .salper .nm small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+.adm .salper .rt{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.adm .salper .st{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--orange);white-space:nowrap}
+.adm .salper .qz{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.adm .salper .qz .s{font-family:"Geist",system-ui,sans-serif;font-size:15px;color:var(--orange);letter-spacing:1px}
+.adm .salper .tx{display:block;font-size:12.5px;font-style:italic;color:var(--ink-soft);line-height:1.45;max-width:44ch;margin-top:3px}
+.adm .salsay{border-left:2px solid var(--orange);padding:2px 0 2px 13px;margin:14px 0 2px;font-size:13.5px;line-height:1.55;font-style:italic}
+.adm .salsay small{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-top:5px}
+.adm .salfoot{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.adm .sallk{flex:1 1 210px;min-width:0;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 6px 5px 12px}
+.adm .sallk span{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm .salgrp{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.adm .salgrp .t{font-size:11px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;color:var(--olive)}
+.adm .salgrp .n{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.adm .salgrp .r{flex:1;text-align:right;font-size:12.5px;color:var(--ink-soft);min-width:170px}
+.adm .salcard{margin-bottom:12px}
+.adm .salcard.alerta{border-color:rgba(255,93,54,.32)}
+.adm .salcard.grave{border-color:rgba(255,93,54,.5);box-shadow:inset 3px 0 0 var(--orange),var(--shadow)}
+.adm .salvac summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;min-height:52px}
+.adm .salvac summary::-webkit-details-marker{display:none}
+.adm .salvac summary .g{flex:1;font-size:13.5px;color:var(--ink-soft)}
+.adm .salvac summary .g b{color:var(--charcoal);font-weight:600}
+.adm .salvac[open] .chev2{transform:rotate(180deg)}
+.adm .salvac .in{padding:0 20px 14px}
+.adm .salvl{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.adm .salvl .nm{flex:1 1 190px}
+.adm .salvl .dt{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.adm .salvl a{color:var(--olive);font-weight:500}
+.adm .salnew{display:grid;gap:0}
+.adm .salstep{display:grid;grid-template-columns:24px 1fr;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.adm .salstep:last-child{border-bottom:0}
+.adm .salstep .no{font-family:var(--mono);font-size:12px;color:var(--orange);font-weight:700;padding-top:9px}
+.adm .salstep .h{font-size:14.5px;font-weight:500;margin-bottom:3px}
+.adm .salstep .h small{display:block;font-size:12.5px;font-weight:400;color:var(--ink-soft);margin-top:2px;line-height:1.45}
+.adm .salpick{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.adm .salpick button{font-size:12.5px;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);min-height:38px}
+.adm .salpick button.on{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d);font-weight:600}
+.adm .salper{grid-template-columns:26px 1fr;row-gap:8px}
+.adm .salper .rt{grid-column:1/-1;justify-content:flex-start}
+.adm .salmtr{gap:14px 24px}
+@media(max-width:760px){
+  .adm .salper{grid-template-columns:26px 1fr;row-gap:8px}
+  .adm .salper .rt{grid-column:1/-1;justify-content:flex-start}
+  .adm .salmtr{gap:14px 24px}
+}
+
 @media print{
   .adm .ahead,.adm .nav,.adm .qa,.adm .no-print,.adm .btn{display:none !important;}
   .adm{background:#fff;color:#000;}
