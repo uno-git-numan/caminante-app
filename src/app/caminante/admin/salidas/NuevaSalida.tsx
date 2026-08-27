@@ -10,9 +10,11 @@
 // que ya está a la venta; ponerle fecha a un borrador crearía algo que el
 // público no puede ver y que después nadie entiende por qué no aparece.
 //
-// El alta también vive en la ficha de la experiencia mientras esta pantalla
-// no existía. Ahora que existe, allá se queda como atajo desde el contexto de
-// UNA experiencia — misma acción, mismo servidor, sin lógica duplicada.
+// El alta vivió un rato en la ficha de la experiencia, como puente mientras
+// esta pantalla no existía. Ya no: la ficha muestra sus fechas en SOLO LECTURA
+// y todo lo que le pasa a una salida —crearla, cerrarla, reabrirla— pasa aquí.
+// Dos puertas sobre el mismo dato terminan discrepando, y eso es justo lo que
+// hubo que desarmar cuando las fechas vivían también en el formulario.
 
 import { useState } from "react";
 import { crearSalidaAction } from "@/lib/admin/eventos-actions";
@@ -36,7 +38,6 @@ export default function NuevaSalida({ experiencias }: { experiencias: Exp[] }) {
         <div className="card pad">
           <span className="subtitle">Nueva salida</span>
           <form action={crearSalidaAction}>
-            <input type="hidden" name="volverA" value="salidas" />
             <input type="hidden" name="experienceId" value={elegida?.id ?? ""} />
             <input type="hidden" name="slug" value={elegida?.slug ?? ""} />
 

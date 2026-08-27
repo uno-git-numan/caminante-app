@@ -96,6 +96,8 @@ export type Salida = {
   queFalto: { texto: string; autor: string } | null;
   respondieron: Respuesta[];
   sinResponder: SinResponder[];
+  /** `open` = a la venta · `closed` = ya no se vende (la fecha sigue viva). */
+  estado: string;
   tokenGrupo: string | null;
 };
 
@@ -377,6 +379,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
         : null,
       respondieron,
       sinResponder,
+      estado: s.status,
       tokenGrupo: s.feedback_token,
     });
   }

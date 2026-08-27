@@ -17,7 +17,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import { cdmxDay, experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
-import { evaluarChecklist, DIMENSIONES_DEL_PRODUCTO, type ItemEstado } from "@/lib/kit/checklist";
+import { CORE, evaluarChecklist, DIMENSIONES_DEL_PRODUCTO, type ItemEstado } from "@/lib/kit/checklist";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -198,4 +198,105 @@ export async function fetchCatalogo(): Promise<Catalogo> {
   });
 
   return { productos, esOperador: !!operatorId };
+}
+
+// ── LA FICHA de una experiencia ──────────────────────────────────────────
+//
+// El catálogo contesta «¿cómo va?»; la ficha contesta «¿qué hago con ella?».
+// Por eso se NAVEGA y no se expande: es un destino donde se pasa rato, y al
+// que se llega desde otras pantallas y desde links que uno se manda a sí mismo.
+// Un acordeón no se puede enlazar.
+
+export type FotoSlot = { k: string; label: string; n: number; muestra: string | null };
+
+export type Ficha = {
+  producto: Producto;
+  /** El banco de fotos por tipo: la materia prima de la página, el Kit y el correo. */
+  fotos: FotoSlot[];
+  /** Sus fechas publicadas, SOLO LECTURA. Se crean y se cierran en Salidas. */
+  fechas: { id: string; label: string; cupo: number | null; tomados: number; pasada: boolean }[];
+  testimonios: { texto: string; autor: string; stars: number | null }[];
+};
+
+export async function fetchFicha(slug: string): Promise<Ficha | null> {
+  const { productos } = await fetchCatalogo();
+  const producto = productos.find((p) => p.slug === slug);
+  // Si no está en el catálogo del alcance, no es suya. No se distingue entre
+  // «no existe» y «no es tuya»: quien pregunta por una ajena no debe aprender
+  // que existe.
+  if (!producto) return null;
+
+  const sb = createSupabaseAdminClient();
+  const { data: exp } = await sb
+    .from("experiences")
+    .select("id, data")
+    .eq("slug", slug)
+    .maybeSingle();
+  const data = (exp?.data ?? null) as Partial<Experience> | null;
+
+  const pb = data?.photoBank ?? {};
+  const fotos: FotoSlot[] = CORE.map((c) => {
+    const urls = ((pb as Record<string, string[] | undefined>)[c.k] ?? []).filter((u) => u && u.trim());
+    return { k: c.k, label: c.label, n: urls.length, muestra: urls[0] ?? null };
+  });
+
+  const [{ data: slotsRaw }, { data: resvsRaw }, { data: fbsRaw }] = await Promise.all([
+    sb
+      .from("experience_slots")
+      .select("id, label, starts_at, capacity_total, status, visibility")
+      .eq("experience_id", producto.id)
+      .order("starts_at", { ascending: false }),
+    sb.from("reservations").select("id, slot_id, num_people, status").eq("experience_id", producto.id),
+    sb
+      .from("experience_feedback")
+      .select("slot_id, contact_id, status, overall_stars, testimonial_text, testimonial_consent, publish_status")
+      .eq("experience_id", producto.id),
+  ]);
+
+  const hoy = cdmxDay(new Date());
+  const resvs = ((resvsRaw ?? []) as { slot_id: string | null; num_people: number | null; status: string }[]).filter(
+    (r) => HOLDING_STATUSES.includes(r.status),
+  );
+  const fechas = ((slotsRaw ?? []) as {
+    id: string;
+    label: string | null;
+    starts_at: string | null;
+    capacity_total: number | null;
+    status: string;
+    visibility: string | null;
+  }[])
+    .filter((s) => (s.visibility ?? "public") === "public" && s.status !== "cancelled")
+    .map((s) => ({
+      id: s.id,
+      label: s.label || "",
+      cupo: s.capacity_total,
+      tomados: resvs.filter((r) => r.slot_id === s.id).reduce((n, r) => n + (r.num_people || 1), 0),
+      pasada: !!s.starts_at && cdmxDay(s.starts_at) < hoy,
+    }));
+
+  // Solo los que dieron permiso Y están aprobados. Publicar un testimonio sin
+  // las dos cosas es usar la voz de alguien sin que lo haya autorizado.
+  const contactIds = [...new Set(((fbsRaw ?? []) as { contact_id: string }[]).map((f) => f.contact_id))];
+  const { data: cs } = contactIds.length
+    ? await sb.from("contacts").select("id, full_name").in("id", contactIds)
+    : { data: [] as unknown[] };
+  const nombre = new Map(((cs ?? []) as { id: string; full_name: string | null }[]).map((c) => [c.id, c.full_name]));
+
+  const testimonios = ((fbsRaw ?? []) as {
+    contact_id: string;
+    status: string;
+    overall_stars: number | null;
+    testimonial_text: string | null;
+    testimonial_consent: boolean;
+    publish_status: string;
+  }[])
+    .filter((f) => f.status === "submitted" && f.testimonial_consent && f.publish_status === "approved")
+    .filter((f) => (f.testimonial_text ?? "").trim())
+    .map((f) => ({
+      texto: (f.testimonial_text ?? "").trim(),
+      autor: nombre.get(f.contact_id) || "—",
+      stars: Number.isFinite(Number(f.overall_stars)) ? Number(f.overall_stars) : null,
+    }));
+
+  return { producto, fotos, fechas, testimonios };
 }

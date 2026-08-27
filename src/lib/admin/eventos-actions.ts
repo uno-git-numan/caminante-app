@@ -401,27 +401,22 @@ function volver(slug: string, r: AdminActionResult, okMsg: string): never {
 }
 
 /**
- * Alta de una salida desde la ficha de la experiencia.
+ * Alta de una salida, desde la pantalla de Salidas.
  *
- * ⚠️ Esta acción existe porque el formulario de la experiencia DEJÓ de capturar
- * fechas: la experiencia es la plantilla y la salida es la instancia. Sin este
- * camino, quitar la sección del formulario habría dejado a la plataforma sin
- * ninguna forma de dar de alta una fecha hasta que exista la pantalla «Salidas».
- * Cuando esa pantalla exista, este bloque se mueve allá — no se duplica.
+ * Nació en la ficha de la experiencia, como puente: el formulario había dejado
+ * de capturar fechas y sin ese camino la plataforma se quedaba sin ninguna
+ * forma de dar de alta una. Ya existe la pantalla que manda sobre las salidas,
+ * así que el alta vive allá y aquí no quedó rama muerta: todo lo que le pasa a
+ * una salida pasa en un solo lugar.
  */
 export async function crearSalidaAction(fd: FormData): Promise<void> {
   const slug = str(fd, "slug");
-  // De dónde vino: la ficha de la experiencia o la pantalla de Salidas. Sin
-  // esto, dar de alta una fecha desde Salidas te dejaba en otra pantalla.
-  const volverA = str(fd, "volverA") === "salidas" ? "/caminante/admin/salidas" : null;
   const fecha = str(fd, "fecha"); // YYYY-MM-DD
   const fin = str(fd, "fin");
   const cupo = str(fd, "cupo");
   const etiqueta = str(fd, "etiqueta");
   if (!fecha) {
-    if (volverA) redirect(`${volverA}?error=${encodeURIComponent("La salida necesita una fecha.")}`);
-    volver(slug, { ok: false, error: "La salida necesita una fecha." }, "");
-    return;
+    redirect(`/caminante/admin/salidas?error=${encodeURIComponent("La salida necesita una fecha.")}`);
   }
   const r = await crearSalida({
     experienceId: str(fd, "experienceId"),
@@ -435,18 +430,17 @@ export async function crearSalidaAction(fd: FormData): Promise<void> {
     endsAt: fin ? `${fin}T23:00:00Z` : null,
     capacityTotal: cupo ? Number(cupo) : null,
   });
-  if (volverA) {
-    const q = r.ok ? `ok=${encodeURIComponent("Salida creada.")}` : `error=${encodeURIComponent(r.error)}`;
-    redirect(`${volverA}?${q}`);
-  }
-  volver(slug, r.ok ? { ok: true } : { ok: false, error: r.error }, "Salida creada.");
+  const q = r.ok ? `ok=${encodeURIComponent("Salida creada.")}` : `error=${encodeURIComponent(r.error)}`;
+  redirect(`/caminante/admin/salidas?${q}`);
 }
 
 export async function setSlotStatusAction(fd: FormData): Promise<void> {
   const slug = str(fd, "slug");
   const status = str(fd, "status") as "open" | "closed" | "cancelled";
   const r = await updateSlot({ slotId: str(fd, "slotId"), slug, status });
-  volver(slug, r, status === "open" ? "Salida reabierta." : "Salida cerrada.");
+  const msg = status === "open" ? "Salida reabierta." : "Salida cerrada.";
+  const q = r.ok ? `ok=${encodeURIComponent(msg)}` : `error=${encodeURIComponent(r.error)}`;
+  redirect(`/caminante/admin/salidas?${q}`);
 }
 
 export async function assignOperatorAction(fd: FormData): Promise<void> {

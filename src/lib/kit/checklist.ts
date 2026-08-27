@@ -20,7 +20,9 @@ export type ChecklistItem = {
 };
 
 // Los 5 slots NÚCLEO del banco (los 3 extra son opcionales y no cuentan al semáforo).
-const CORE: { k: keyof NonNullable<Experience["photoBank"]>; label: string }[] = [
+/** Los cinco tipos NÚCLEO del banco de fotos. Los lee también la ficha de la
+ *  experiencia, para dibujar el mosaico — misma lista, un solo lugar. */
+export const CORE: { k: keyof NonNullable<Experience["photoBank"]>; label: string }[] = [
   { k: "flora", label: "Flora / fauna" },
   { k: "paisaje", label: "Paisaje" },
   { k: "comunidad", label: "Comunidad" },

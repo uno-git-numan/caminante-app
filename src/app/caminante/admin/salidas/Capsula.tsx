@@ -14,6 +14,7 @@ import { useState } from "react";
 import type { Salida } from "@/lib/admin/salidas";
 import LinkDeslinde from "@/app/caminante/admin/encuesta/LinkDeslinde";
 import { reenviarEncuesta } from "@/lib/feedback/resend-actions";
+import { setSlotStatusAction } from "@/lib/admin/eventos-actions";
 
 // ⚠️ Vive aquí y no en lib/admin/salidas.ts a propósito: ese módulo llega hasta
 // next/headers por la cadena del alcance, y un componente CLIENTE que lo
@@ -316,6 +317,23 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
                 <a href={`/caminante/admin/roster/${s.id}`} className="btn btn-ghost">
                   Ver roster
                 </a>
+                {/* Cerrar deja de VENDER, no borra: la fecha, sus reservas y su
+                    roster siguen enteros. Vive aquí y ya no en la ficha de la
+                    experiencia, para que todo lo que le pasa a una salida pase
+                    en un solo lugar. */}
+                <form action={setSlotStatusAction} style={{ display: "inline" }}>
+                  <input type="hidden" name="slotId" value={s.id} />
+                  <input type="hidden" name="slug" value={s.slug} />
+                  <input type="hidden" name="status" value={s.estado === "open" ? "closed" : "open"} />
+                        <button type="submit" className="btn btn-ghost">
+                    {s.estado === "open" ? "Cerrar ventas" : "Reabrir ventas"}
+                  </button>
+                </form>
+                {s.estado !== "open" ? (
+                  <span className="mut" style={{ fontSize: 12.5 }}>
+                    Ya no se vende. La fecha y su gente siguen aquí.
+                  </span>
+                ) : null}
               </div>
             </>
           )}
