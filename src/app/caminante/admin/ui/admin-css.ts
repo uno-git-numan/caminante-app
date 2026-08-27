@@ -437,6 +437,492 @@ export const ADMIN_CSS = `
   .adm .exro .rt{justify-content:flex-start}
 }
 
+/* ── COMUNIDAD · transcrito del entregable de Claude Design
+   (design/comunidad/dc/comunidad.dc.html), prefijado con .adm.
+   Si el diseño cambia, RE-EXTRAER con design/comunidad/transcribir-css.py —
+   no editar a mano. Ese script cuenta llaves en vez de usar regex sobre el
+   archivo entero: la versión con regex se detenía en la primera at-rule
+   inesperada y perdía TODO lo que venía después, en silencio.
+   Falla ruidosamente si pierde una sola regla. ── */
+/* fases y etapas · el tablero baja, no se va de lado */
+.adm .cmphase{display:flex;align-items:baseline;gap:14px;margin:34px 0 4px}
+.adm .cmphase .t{font-size:11px;letter-spacing:var(--eb);text-transform:uppercase;color:var(--olive);font-weight:700;flex:0 0 auto}
+.adm .cmphase .l{flex:1;height:1px;background:var(--line)}
+.adm .cmphase .n{font-size:12px;color:var(--ink-soft);flex:0 0 auto}
+.adm .cmstage{border-top:1px solid var(--line);padding:16px 0 20px}
+.adm .cmstage-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.adm .cmstage-hd .no{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--sand)}
+.adm .cmstage-hd h3{font-size:16px;font-weight:400;letter-spacing:-.01em}
+.adm .cmstage-hd .ct{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.adm .cmstage-hd .how{margin-left:auto;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft);background:#fff}
+.adm .cmstage-hd .how.auto{color:var(--olive-d);border-color:rgba(99,113,84,.3);background:rgba(99,113,84,.08)}
+.adm .cmstage .gl{font-size:12.5px;color:var(--ink-soft);line-height:1.55;margin:-6px 0 13px;max-width:66ch}
+.adm .cmcards{display:grid;gap:14px;grid-template-columns:1fr;align-items:start}
+@media(min-width:780px){
+  .adm .cmcards{grid-template-columns:1fr 1fr}
+}
+.adm .cmcards.one{grid-template-columns:1fr}
+/* la tarjeta persona × salida */
+.adm .cmc{border:1px solid var(--line);border-radius:var(--r);background:var(--cream);padding:15px 17px;box-shadow:var(--shadow)}
+.adm .cmc .hd{display:flex;align-items:flex-start;gap:12px}
+.adm .cmc .av{width:34px;height:34px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;flex:0 0 auto}
+.adm .cmc .nm{flex:1;min-width:0}
+.adm .cmc .nm b{display:block;font-size:15.5px;font-weight:500;letter-spacing:-.01em;line-height:1.25}
+.adm .cmc .nm small{display:block;font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.4}
+.adm .cmc .nm small .sal{color:var(--olive-d);font-weight:500}
+.adm .cmc .age{font-family:var(--mono);font-size:11px;color:var(--ink-soft);white-space:nowrap;flex:0 0 auto;padding-top:3px}
+.adm .cmc .met{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.adm .cmtag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;line-height:1;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);white-space:nowrap}
+.adm .cmtag .k{font-family:var(--mono);color:var(--charcoal);font-weight:700}
+/* LA SIGUIENTE ACCIÓN · lo único que de verdad importa */
+.adm .cmnext{display:flex;align-items:baseline;gap:.55em;margin-top:12px;padding:9px 12px;border-radius:10px;background:rgba(99,113,84,.1);font-size:13px;line-height:1.45;color:var(--olive-d)}
+.adm .cmnext s{text-decoration:none;font-family:var(--mono);font-weight:700;flex:0 0 auto;color:var(--olive)}
+.adm .cmnext b{font-family:var(--mono);font-weight:700;color:var(--charcoal)}
+/* fría · tiene que verse mal */
+.adm .cmc.cold{border-color:rgba(255,93,54,.5);background:linear-gradient(180deg,rgba(255,93,54,.07),rgba(255,93,54,0) 90px),var(--cream)}
+.adm .cmc.cold .cmnext{background:rgba(255,93,54,.13);color:var(--charcoal);font-weight:500}
+.adm .cmc.cold .cmnext s,.adm .cmc.cold .cmnext b{color:var(--orange)}
+.adm .cmc.cold .age{color:var(--orange);font-weight:700}
+/* caída · perder es un dato */
+.adm .cmc.lost{background:var(--panel);box-shadow:none;border-style:dashed}
+.adm .cmc.lost .av,.adm .cmc.lost .nm b{color:var(--ink-soft)}
+.adm .cmc.lost .av{background:#fff}
+.adm .cmc.lost .cmnext{background:#fff;border:1px solid var(--line);color:var(--ink-soft);font-style:italic}
+.adm .cmc.lost .cmnext s{color:var(--sand)}
+.adm .cmxp{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+/* mensaje · canal y ventana */
+.adm .cmch{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.adm .cmch button{font-size:12.5px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);min-height:38px;font-family:inherit;cursor:pointer}
+.adm .cmch button.on{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d);font-weight:600}
+.adm .cmwin{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+.adm .cmwin+.cmwin{margin-top:12px}
+.adm .cmwin .wh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px}
+.adm .cmwin .wh .lb{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--olive)}
+.adm .cmwin .wh .cd{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+.adm .cmwin .wb{padding:14px}
+.adm .cmwin .why{font-size:12px;color:var(--ink-soft);line-height:1.55;padding:0 14px 13px}
+.adm .cmwin.open{border-color:rgba(99,113,84,.4)}
+.adm .cmwin.open .wh{background:rgba(99,113,84,.08)}
+.adm .cmwin.open .wh .cd{color:var(--olive-d);font-weight:700}
+.adm .cmwin.locked .wh{background:var(--panel)}
+.adm .cmwin.locked .wh .lb{color:var(--ink-soft)}
+.adm .cmwin input,.adm .cmwin textarea{font-family:inherit;font-size:13px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--charcoal);line-height:1.5;resize:vertical}
+.adm .cmwin textarea{min-height:88px}
+.adm .cmwin input+input,.adm .cmwin input+textarea{margin-top:9px}
+.adm .cmwin textarea[disabled]{background:var(--panel);color:var(--sand);font-style:italic;cursor:not-allowed;min-height:52px}
+/* la plantilla: se llenan huecos, no se redacta */
+.adm .cmtpl{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:13px 14px;font-size:13.5px;line-height:2.05;color:var(--charcoal)}
+.adm .cmslot{display:inline-flex;align-items:center;min-width:96px;padding:2px 10px;margin:0 2px;border-radius:7px;border:1px dashed rgba(255,93,54,.55);background:rgba(255,93,54,.08);font-family:var(--mono);font-size:12.5px;color:var(--charcoal)}
+.adm .cmslot.empty{color:var(--orange);font-style:italic}
+.adm .cmtpl .fx{color:var(--ink-soft)}
+/* el reparto de la liga · un trabajo, tres destinos */
+.adm .cmfan{display:grid;gap:0;margin-top:14px;border-top:1px solid var(--line);padding-top:4px}
+.adm .cmfan .r{display:grid;grid-template-columns:22px 1fr;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.45}
+.adm .cmfan .r:last-child{border-bottom:0}
+.adm .cmfan .r .no{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--orange);padding-top:2px}
+.adm .cmfan .r small{display:block;font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.5}
+.adm .cmfan .r .two{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+/* agenda propia */
+.adm .cmag{display:grid;grid-template-columns:74px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}
+.adm .cmag:last-child{border-bottom:0}
+.adm .cmag .dy{font-family:var(--mono);font-size:12px;line-height:1.35}
+.adm .cmag .dy b{display:block;font-size:19px;font-weight:300;letter-spacing:-.02em;color:var(--charcoal)}
+.adm .cmag .g{min-width:0;line-height:1.4}
+.adm .cmag .g small{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px}
+.adm .cmag .rt{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+/* mensajes programados · por día */
+.adm .cmt{display:grid;grid-template-columns:96px 1fr auto;gap:14px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+.adm .cmt:last-child{border-bottom:0}
+.adm .cmt .wn{font-family:var(--mono);font-size:12px;color:var(--ink-soft);line-height:1.35}
+.adm .cmt .g small{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.45}
+.adm .cmt.sent{color:var(--ink-soft)}
+.adm .cmt.sent .g b{font-weight:400}
+.adm .cmt .sg{font-family:var(--mono);font-size:11.5px;white-space:nowrap;font-weight:700}
+.adm .cmt.sent .sg{color:var(--olive)}
+.adm .cmt.wait .sg{color:var(--sand)}
+/* la gente · grupos como deuda, no como estadística */
+.adm .cmgrp{border:1px solid var(--line);border-radius:var(--r);background:var(--cream);box-shadow:var(--shadow);overflow:hidden}
+.adm .cmgrp+.cmgrp{margin-top:14px}
+.adm .cmgrp>.hd{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 18px}
+.adm .cmgrp>.hd .g{flex:1;min-width:220px}
+.adm .cmgrp>.hd .ph{font-size:17px;font-weight:400;letter-spacing:-.01em;line-height:1.3}
+.adm .cmgrp>.hd .ph b{font-family:var(--mono);font-weight:700;color:var(--orange)}
+.adm .cmgrp>.hd .ph .cool{color:var(--olive-d)}
+.adm .cmgrp>.hd small{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.5;max-width:62ch}
+.adm .cmgrp>.hd .rt{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+.adm .cmgrp>.hd .chev2{color:var(--olive);font-size:14px;margin-left:0}
+.adm .cmgrp.owe{border-color:rgba(255,93,54,.42)}
+.adm .cmgrp.owe>.hd{background:rgba(255,93,54,.06)}
+.adm .cmgrp .bd{padding:0 18px}
+.adm .cmgrp .bd .in{padding:15px 0 18px;border-top:1px solid var(--line)}
+/* la meta · no es un dato */
+.adm .cmgoal{border:1px solid rgba(99,113,84,.32);border-radius:var(--r);background:rgba(99,113,84,.07);padding:18px}
+.adm .cmgoal .ph{font-size:17px;font-weight:400;line-height:1.3}
+.adm .cmgoal .ph b{font-family:var(--mono);font-weight:700;color:var(--olive)}
+.adm .cmgoal .prog{margin-top:14px}
+.adm .cmgoal small{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:11px;line-height:1.55;max-width:60ch}
+/* ficha de persona */
+.adm .cmficha{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px 18px;margin-top:12px}
+.adm .cmficha .top{display:flex;align-items:flex-start;gap:13px;flex-wrap:wrap}
+.adm .cmficha .av{width:40px;height:40px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12.5px;font-weight:700;flex:0 0 auto}
+.adm .cmficha .top .g{flex:1;min-width:170px}
+.adm .cmficha .top .g b{display:block;font-size:18px;font-weight:400;letter-spacing:-.01em}
+.adm .cmficha .top .g small{display:block;font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6}
+.adm .cmtrip{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.adm .cmtrip:last-child{border-bottom:0}
+.adm .cmtrip .dt{font-family:var(--mono);font-size:12px;color:var(--ink-soft);display:block;margin-top:2px}
+.adm .cmtrip .mn{font-family:var(--mono);font-size:13.5px}
+.adm .hole{display:inline-block;min-width:52px;border-bottom:1px dashed var(--sand);color:var(--sand);font-family:var(--mono);font-size:12px}
+@media(max-width:620px){
+  .adm .cmag,.adm .cmt{grid-template-columns:1fr;row-gap:7px}
+  .adm .cmag .rt{justify-content:flex-start}
+}
+/* la cabecera de la pantalla se queda fija */
+.adm .cmstick{position:sticky;top:var(--ahead-h);z-index:30;background:var(--bg);padding:18px 0 12px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.adm .cmstick .sec-head{margin-bottom:0}
+.adm .cmseg{display:inline-flex;gap:0;margin-top:14px;padding:3px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}
+.adm .cmseg button{font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:9px 22px;border-radius:999px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer;min-height:40px}
+.adm .cmseg button.on{background:var(--charcoal);color:#fff}
+.adm .cmseg .ct{font-family:var(--mono);font-weight:400;letter-spacing:0;text-transform:none;margin-left:7px;opacity:.6}
+/* tablero + panel · el scroll vive adentro */
+.adm .cmwrap{display:flex;gap:0;align-items:stretch}
+.adm .cmboard{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:14px;scrollbar-width:thin}
+.adm .cmboard::-webkit-scrollbar{height:9px}
+.adm .cmboard::-webkit-scrollbar-track{background:var(--panel);border-radius:999px}
+.adm .cmboard::-webkit-scrollbar-thumb{background:var(--sand);border-radius:999px}
+.adm .cmtrack{display:flex;gap:14px;align-items:flex-start;min-width:max-content;padding:2px}
+.adm .cmcol{flex:0 0 280px;display:flex;flex-direction:column;border-radius:14px;border:1px solid var(--line);background:rgba(251,251,247,.55);padding:13px 12px 14px}
+.adm .cmcol-hd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.adm .cmcol-hd .no{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--sand)}
+.adm .cmcol-hd h3{font-size:13.5px;font-weight:500;letter-spacing:-.005em}
+.adm .cmcol-hd .ct{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-left:auto}
+.adm .cmcol-hd .how{flex:1 0 100%;font-size:10px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);margin-top:5px}
+.adm .cmcol-hd .how.auto{color:var(--olive)}
+.adm .cmcol-bd{display:flex;flex-direction:column;gap:11px;min-height:76px}
+/* columnas que sólo reciben */
+.adm .cmcol.recv{background:var(--panel)}
+.adm .cmcol.recv .cmcol-hd{border-bottom-style:dashed}
+.adm .cmcol .src{font-size:11.5px;color:var(--ink-soft);line-height:1.5;margin-top:11px;padding-top:10px;border-top:1px dashed var(--line)}
+.adm .cmcol .src s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand);margin-right:.45em}
+/* estados de arrastre */
+.adm .cmcol.can{border-color:var(--olive);border-style:dashed;background:rgba(99,113,84,.1)}
+.adm .cmcol.can .cmcol-hd h3{color:var(--olive-d)}
+.adm .cmcol.cant{background:var(--panel)}
+.adm .cmcol.cant .cmcol-hd{opacity:.5}
+.adm .cmcol.cant .cmcol-bd{opacity:.4}
+.adm .cmcol .nodrop{display:flex;align-items:baseline;gap:.5em;font-size:11.5px;line-height:1.5;color:var(--ink-soft);margin-bottom:11px;padding:9px 11px;border-radius:10px;background:#fff;border:1px solid var(--line)}
+.adm .cmcol .nodrop s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand)}
+.adm .cmghost{border:1px dashed var(--sand);border-radius:var(--r);background:rgba(182,173,165,.1);min-height:104px;display:flex;align-items:center;justify-content:center;font-size:11.5px;color:var(--sand);font-family:var(--mono)}
+.adm .cmghost.tgt{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d)}
+/* la tarjeta dentro de la columna */
+.adm .cmcol .cmc{padding:12px 13px;box-shadow:none;cursor:pointer}
+.adm .cmcol .cmc:hover{border-color:rgba(99,113,84,.4)}
+.adm .cmcol .cmc .av{width:28px;height:28px;font-size:10px}
+.adm .cmcol .cmc .nm b{font-size:14px}
+.adm .cmcol .cmc .nm small{font-size:11.5px}
+.adm .cmcol .cmc .age{font-size:10.5px;padding-top:2px}
+.adm .cmcol .cmc .met{margin-top:9px;gap:5px}
+.adm .cmcol .cmc .cmtag{font-size:11px;padding:4px 9px}
+.adm .cmcol .cmc .cmnext{margin-top:10px;padding:8px 10px;font-size:12px}
+.adm .cmcol.recv .cmc{cursor:default}
+.adm .cmcol.recv .cmc:hover{border-color:rgba(99,113,84,.4)}
+/* asa de arrastre · sólo en las tres primeras */
+.adm .cmgrip{display:flex;flex-direction:column;gap:3px;padding:4px 2px;flex:0 0 auto;cursor:grab}
+.adm .cmgrip i{display:block;width:11px;height:1.5px;border-radius:999px;background:var(--sand)}
+.adm .cmc:hover .cmgrip i{background:var(--olive)}
+/* siendo arrastrada */
+.adm .cmc.drag{transform:rotate(-1.6deg) scale(1.015);box-shadow:0 26px 50px -20px rgba(32,33,28,.55);border-color:var(--olive);cursor:grabbing;position:relative;z-index:5}
+.adm .cmc.drag .cmgrip{cursor:grabbing}
+.adm .cmc.drag .cmgrip i{background:var(--olive)}
+/* abierta en el panel */
+.adm .cmc.picked{border-color:var(--charcoal);box-shadow:0 0 0 1px var(--charcoal)}
+.adm .cmc.picked .nm b{color:var(--charcoal)}
+/* la séptima columna · colapsada */
+.adm .cmcol.lost{flex:0 0 60px;padding:13px 8px;align-items:center;background:var(--panel)}
+.adm .cmcol.lost .vt{writing-mode:vertical-rl;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);white-space:nowrap;margin-top:8px}
+.adm .cmcol.lost .n{font-family:var(--mono);font-size:12px;color:var(--sand)}
+.adm .cmcol.lost .cv{font-size:12px;color:var(--sand);margin-bottom:8px}
+.adm .cmcol.lost.open{flex:0 0 280px;padding:13px 12px;align-items:stretch}
+.adm .cmcol.lost.open .vt{writing-mode:horizontal-tb;margin-top:0}
+/* el panel lateral */
+.adm .cmpanel{flex:0 0 420px;align-self:flex-start;position:sticky;top:calc(var(--ahead-h) + var(--stick-h) + 12px);max-height:calc(100vh - var(--ahead-h) - var(--stick-h) - 30px);display:flex;flex-direction:column;border:1.5px solid rgba(32,33,28,.22);border-radius:var(--r);background:#fff;margin-left:-22px;z-index:6;box-shadow:-20px 0 44px -24px rgba(32,33,28,.5),0 34px 70px -26px rgba(32,33,28,.45);overflow:hidden}
+.adm .cmpanel-hd{display:flex;align-items:flex-start;gap:12px;padding:16px 17px;border-bottom:1px solid var(--line);background:#fff}
+.adm .cmpanel-hd .av{width:36px;height:36px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11.5px;font-weight:700;flex:0 0 auto}
+.adm .cmpanel-hd .g{flex:1;min-width:0}
+.adm .cmpanel-hd .g b{display:block;font-size:16.5px;font-weight:500;letter-spacing:-.01em;line-height:1.25}
+.adm .cmpanel-hd .g small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:3px;line-height:1.45}
+.adm .cmpanel-hd .g small .sal{color:var(--olive-d);font-weight:500}
+.adm .cmpanel-hd .x{font-family:inherit;font-size:16px;line-height:1;color:var(--ink-soft);background:transparent;border:1px solid var(--line);border-radius:999px;width:30px;height:30px;cursor:pointer;flex:0 0 auto}
+.adm .cmpanel-st{display:flex;align-items:center;gap:9px;padding:10px 17px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--olive)}
+.adm .cmpanel-st .n{font-family:var(--mono);color:var(--sand)}
+.adm .cmpanel-st .mv{margin-left:auto;font-size:10px;letter-spacing:.08em;color:var(--ink-soft);font-weight:600}
+.adm .cmpanel-bd{padding:16px 17px 20px;overflow-y:auto;flex:1}
+.adm .cmpanel-bd .xh4:first-child{margin-top:0}
+.adm .cmpanel .cmwin input,.adm .cmpanel .cmwin textarea{font-size:12.5px}
+.adm .cmpanel .cmtpl{font-size:12.5px;line-height:1.95}
+.adm .cmpanel .dl{font-size:12.5px}
+.adm .lam{margin:52px 0 0;padding-top:22px;border-top:1px solid rgba(32,33,28,.2)}
+@media(max-width:1180px){
+  .adm .cmpanel{flex:0 0 380px}
+}
+@media(max-width:980px){
+  .adm .cmwrap{flex-direction:column;gap:18px}
+  .adm .cmpanel{margin-left:0}
+  .adm .cmpanel{flex:1 1 auto;width:100%;position:static;max-height:none}
+}
+/* ══ NUEVO EN v3 · los textos que salen ══ */
+.adm .cmpanel.wide{flex:1 1 auto;position:static;max-height:none;max-width:820px;margin-left:0;box-shadow:var(--shadow)}
+.adm .cmtx{font-size:13px;line-height:2;color:var(--charcoal)}
+.adm .cmdb{background:rgba(99,113,84,.13);border-bottom:1px solid rgba(99,113,84,.45);padding:1px 6px;border-radius:5px}
+.adm .cmdb.va{color:var(--olive-d);font-style:italic;background:rgba(99,113,84,.07)}
+.adm .cmsrc{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);font-size:11px;color:var(--ink-soft)}
+.adm .cmsrc s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--olive)}
+.adm .cmsrc .p{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:999px;background:rgba(99,113,84,.1);color:var(--olive-d)}
+.adm .cmmact{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.adm .cmstop{display:flex;gap:.6em;align-items:baseline;margin-top:13px;padding:11px 13px;border-radius:10px;background:rgba(255,93,54,.1);border:1px solid rgba(255,93,54,.4);font-size:12.5px;line-height:1.6}
+.adm .cmstop s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.adm .cmstop b{font-weight:600}
+.adm .cmfill{margin-top:12px;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.adm .cmfill .lb{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--olive);display:block;margin-bottom:7px}
+.adm .cmfill p{font-size:12px;color:var(--ink-soft);line-height:1.55}
+/* el calendario · dos estados */
+.adm .cmconn{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:13px 14px;border:1px solid rgba(99,113,84,.32);border-radius:12px;background:rgba(99,113,84,.07);font-size:12.5px;line-height:1.55;color:var(--olive-d)}
+.adm .cmconn .g{flex:1 1 210px}
+.adm .cmconn b{color:var(--charcoal);font-weight:600}
+.adm .cmauto{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 12px;border:1px solid rgba(99,113,84,.3);border-radius:10px;background:rgba(99,113,84,.07);font-family:var(--mono);font-size:11.5px;color:var(--olive-d)}
+.adm .cmauto .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ══ NUEVO EN v3 · GENTE, la biblioteca ══ */
+.adm .gnf.on{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d);font-weight:600}
+.adm .gnf.on .n,.adm .gnf.on .cv{color:var(--olive)}
+.adm .gntags{display:flex;gap:6px;flex-wrap:wrap}
+.adm .gntag{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;padding:4px 11px;border-radius:999px;background:rgba(28,111,106,.1);color:var(--lagoon);border:1px solid rgba(28,111,106,.22)}
+.adm .gntag .x{color:rgba(28,111,106,.5);font-size:12px;line-height:1;cursor:pointer}
+.adm .gntag.add{background:transparent;border-style:dashed;border-color:var(--sand);color:var(--ink-soft);cursor:pointer}
+.adm .gnfalta{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--sand);font-style:italic}
+.adm .gnnew{display:flex;gap:.55em;align-items:baseline;margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:12.5px;line-height:1.55;color:var(--ink-soft)}
+.adm .gnnew s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand);flex:0 0 auto}
+.adm .gnnew b{color:var(--charcoal);font-weight:600}
+.adm .gnmeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink-soft)}
+.adm .gnficha{background:#fff}
+.adm .gnficha .top .g small{font-family:var(--mono)}
+.adm .gnhint{font-size:12px;color:var(--ink-soft);line-height:1.55;margin-top:8px;max-width:52ch}
+/* ══ v3.1 · EL PANEL COMO CAPA ══ */
+.adm .cmstage{position:relative;margin:0 -26px;height:660px;overflow:hidden;background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.adm .cmstage>.cmboard{position:absolute;inset:0;padding:18px 0 18px 26px;overflow-x:auto;overflow-y:hidden}
+.adm .cmstage>.cmboard>.cmtrack{align-items:flex-start}
+.adm .cmveil{position:absolute;inset:0;z-index:4;background:rgba(32,33,28,.34);cursor:pointer;transition:background .2s}
+.adm .cmveil:hover{background:rgba(32,33,28,.4)}
+.adm .cmveil span{position:absolute;left:26px;bottom:16px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.82)}
+.adm .cmstage .cmc.picked{position:relative;z-index:6;background:#fff;box-shadow:0 0 0 1px var(--charcoal),0 0 0 10px rgba(251,251,247,.5),0 18px 34px -20px rgba(32,33,28,.5)}
+/* el panel: pegado al borde derecho, de alto completo, opaco */
+.adm .cmpanel.layer{position:absolute;top:0;right:0;bottom:0;left:auto;z-index:8;flex:none;width:min(580px,52%);height:100%;max-height:none;margin:0;background:#fff;border:1px solid rgba(32,33,28,.2);border-right:0;border-radius:20px 0 0 20px;box-shadow:-34px 0 70px -22px rgba(32,33,28,.55),-3px 0 0 rgba(32,33,28,.06);overflow:hidden}
+.adm .cmpanel.layer .cmpanel-hd{flex:0 0 auto;position:relative;z-index:2;background:#fff;border-bottom:1px solid rgba(32,33,28,.18);padding:17px 20px}
+.adm .cmpanel.layer .cmpanel-st{flex:0 0 auto;position:relative;z-index:2;background:rgba(99,113,84,.07);padding:11px 20px}
+.adm .cmpanel.layer .cmpanel-bd{padding:18px 20px 46px;scrollbar-width:thin}
+.adm .cmpanel.layer .cmpanel-bd::-webkit-scrollbar{width:9px}
+.adm .cmpanel.layer .cmpanel-bd::-webkit-scrollbar-track{background:var(--panel)}
+.adm .cmpanel.layer .cmpanel-bd::-webkit-scrollbar-thumb{background:var(--sand);border-radius:999px}
+.adm .cmpanel .fade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(180deg,rgba(255,255,255,0),#fff 78%);pointer-events:none;z-index:3}
+.adm .cmpanel-hd .esc{align-self:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--sand);border:1px solid var(--line);border-radius:6px;padding:3px 6px;flex:0 0 auto}
+.adm .cmstage.shut .cmpanel,.adm .cmstage.shut .cmveil{display:none}
+.adm .cmreopen{position:absolute;right:26px;bottom:18px;z-index:9;display:none}
+.adm .cmstage.shut .cmreopen{display:inline-flex}
+@media(max-width:980px){
+  .adm .cmpanel.layer{width:86%}
+}
+/* v3.2 · el mensaje se despliega en su renglón */
+.adm .cmmi{border-bottom:1px solid var(--line)}
+.adm .cmmi:last-of-type{border-bottom:0}
+.adm .cmmi .cmt{border-bottom:0;cursor:pointer;align-items:center}
+.adm .cmmi .cmt:hover .g b{color:var(--olive-d)}
+.adm .cmmi.open .cmt{padding-bottom:4px}
+.adm .cmmi.mio .cmt{background:rgba(201,183,156,.16);border-radius:9px;padding-left:9px;padding-right:9px;margin:4px 0}
+.adm .cmmi.off .cmt .g,.adm .cmmi.off .cmt .wn{opacity:.55}
+.adm .cmmi.off .cmt .sg{color:var(--sand)}
+.adm .cmmi.falta .cmt .sg{color:var(--orange)}
+.adm .cmmi.falta .cmt .g b{color:var(--charcoal)}
+.adm .cmpen{border:0;background:transparent;padding:3px;color:var(--sand);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;line-height:0}
+.adm .cmpen svg{width:13px;height:13px;display:block}
+.adm .cmpen:hover{color:var(--olive)}
+.adm .cmmi.edit .cmpen{color:var(--olive)}
+.adm .cmmi.open{background:var(--bg);border:1px solid rgba(32,33,28,.18);border-radius:12px;margin:7px 0;padding:0 11px}
+.adm .cmmi.open .cmt{background:transparent}
+.adm .cmmi.open .cmfill,.adm .cmmi.open .cmtx{background:#fff}
+.adm .cmmi.open .cmfill{border-color:rgba(32,33,28,.16)}
+.adm .cmmi.open.mio{background:rgba(201,183,156,.3);border-color:rgba(201,183,156,.85)}
+.adm .cmmi.open.mio .cmt{background:transparent;margin:0;padding-left:0;padding-right:0}
+.adm .cmdrop{display:none;padding:2px 0 14px}
+.adm .cmmi.open .cmdrop{display:block}
+.adm .cmmi.edit .cmtx{background:var(--panel);border:1px solid var(--olive);border-radius:9px;padding:11px 12px;outline:none}
+.adm .cmedit{display:none;gap:7px;flex-wrap:wrap;margin-top:11px}
+.adm .cmmi.edit .cmedit{display:flex}
+.adm .cmmi.edit .cmsrc,.adm .cmmi.edit .cmmact{opacity:.45}
+/* v3.4 · la lista: cuatro columnas, encabezados que ordenan */
+.adm .gnhead{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.adm .gnpills{display:flex;gap:2px;flex-wrap:wrap;align-items:center}
+.adm .gnp{display:inline-flex;align-items:center;gap:7px;height:38px;font-family:inherit;font-size:12.5px;padding:0 14px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--ink-soft);cursor:pointer}
+.adm .gnp .n{font-family:var(--mono);font-size:11px;color:var(--sand)}
+.adm .gnp:hover{background:rgba(32,33,28,.045)}
+.adm .gnp.on{background:rgba(99,113,84,.13);border-color:rgba(99,113,84,.3);color:var(--olive-d);font-weight:600}
+.adm .gnp.on .n{color:var(--olive)}
+.adm .gntools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.adm .gntools input[type=search]{font-family:inherit;font-size:13px;height:38px;padding:0 15px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--charcoal);min-width:210px}
+.adm .gntools input[type=search]:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15)}
+.adm .gntools .mas{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;font-family:inherit;font-size:12.5px;color:var(--ink-soft);background:#fff;border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.adm .gntools .mas:hover{border-color:var(--olive);color:var(--olive-d)}
+.adm .gntools .mas s{text-decoration:none;font-size:9px;color:var(--sand)}
+/* la línea que convierte el dato sucio en tarea */
+.adm .gnfix{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:10px 16px;border:1px dashed rgba(99,113,84,.45);border-radius:12px;background:rgba(99,113,84,.06);font-size:12.5px;color:var(--olive-d);line-height:1.5}
+.adm .gnfix s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.adm .gnfix .g{flex:1 1 220px}
+.adm .gnfix b{color:var(--charcoal);font-weight:600}
+.adm .gnuv{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}
+.adm .gnuv:last-of-type{border-bottom:0}
+.adm .gnuv .rd{width:14px;height:14px;border-radius:999px;border:1px solid var(--sand);flex:0 0 auto}
+.adm .gnuv.on .rd{background:var(--olive);border-color:var(--olive);box-shadow:inset 0 0 0 2.5px #fff}
+.adm .gnuv.on{font-weight:500}
+.adm .gnuv .n{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+.adm .gnuv .wr{color:var(--ink-soft)}
+/* la lista */
+.adm .gnlist{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden}
+.adm .gnlist .gnhd,.adm .gnlist .gnr{display:grid;grid-template-columns:32px minmax(150px,1.15fr) minmax(0,1.4fr) 64px;gap:14px;align-items:center}
+.adm .gnlist.contags .gnhd,.adm .gnlist.contags .gnr{grid-template-columns:32px minmax(140px,1fr) minmax(0,.92fr) minmax(0,1.12fr) 64px}
+.adm .gnhd{padding:10px 15px;border-bottom:1px solid var(--line);background:rgba(251,251,247,.75)}
+.adm .gnhd span,.adm .gnsort{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--sand);line-height:1}
+.adm .gnhd .r{text-align:right}
+.adm .gnsort{display:inline-flex;align-items:center;gap:6px;font-family:inherit;background:transparent;border:0;padding:0;cursor:pointer}
+.adm .gnsort:hover{color:var(--olive)}
+.adm .gnsort.on{color:var(--olive-d)}
+.adm .gnsort s{text-decoration:none;font-size:10px;opacity:0;transition:opacity .15s}
+.adm .gnsort.on s,.adm .gnsort:hover s{opacity:1}
+.adm .gnr{padding:5px 15px;min-height:46px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .12s}
+.adm .gnr:last-child{border-bottom:0}
+.adm .gnr:hover{background:rgba(99,113,84,.05)}
+.adm .gnr .av{width:32px;height:32px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;font-weight:700}
+.adm .gnr .who{min-width:0}
+.adm .gnr .who b{display:block;font-size:14px;font-weight:500;letter-spacing:-.01em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm .gnr .who small{display:block;font-size:11px;color:var(--ink-soft);line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm .gnr .tags{display:flex;gap:5px;min-width:0;flex-wrap:nowrap;align-items:center}
+.adm .gnr .tags .gntag{font-size:10.5px;padding:2px 9px;white-space:nowrap;display:block;flex:0 0 auto}
+.adm .gnr .tags .gntag.mas{position:relative;background:transparent;border-color:var(--sand);color:var(--ink-soft);font-family:var(--mono);font-size:10px;overflow:visible}
+.adm .gnr .tags .gntag.mas .tip{display:none;position:absolute;left:0;top:calc(100% + 7px);white-space:nowrap;background:var(--charcoal);color:#fff;font-family:"Geist",system-ui,sans-serif;font-size:11px;letter-spacing:0;padding:6px 10px;border-radius:8px;z-index:20}
+.adm .gnr .tags .gntag.mas:hover .tip{display:block}
+.adm .gnr .hist{font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm .gnr .hist b{font-family:var(--mono);font-weight:700}
+.adm .gnr .hist i{font-style:normal;color:var(--ink-soft)}
+.adm .gnr .hist u{text-decoration:none;font-family:var(--mono);font-size:11px;color:var(--sand)}
+.adm .gnr .hist.no em{font-style:italic;color:var(--charcoal);font-weight:400}
+.adm .gnr .ic{display:flex;gap:14px;justify-content:flex-end;color:var(--olive-d)}
+.adm .gnr .ic span{position:relative;display:block}
+.adm .gnr .ic svg{width:17px;height:17px;display:block}
+.adm .gnr .ic .off{color:var(--sand)}
+.adm .gnr .ic .off::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:1.25px;background:var(--sand);transform:rotate(-40deg)}
+.adm .gnr.picked{position:relative;z-index:6;background:#fff;box-shadow:0 0 0 1px var(--charcoal),0 14px 30px -22px rgba(32,33,28,.5)}
+.adm .gnmore{padding:12px 15px;font-family:var(--mono);font-size:11.5px;color:var(--sand);border-top:1px solid var(--line);background:rgba(251,251,247,.6);cursor:pointer}
+.adm .gnmore:hover{color:var(--olive)}
+.adm .cmstage>.gnstack{position:absolute;inset:0;padding:18px 26px;overflow:hidden}
+@media(max-width:1040px){
+  .adm .gnlist .gnhd,.adm .gnlist .gnr{grid-template-columns:32px minmax(130px,1fr) minmax(0,1.3fr) 64px}
+  .adm .gnlist.contags .gnhd,.adm .gnlist.contags .gnr{grid-template-columns:32px minmax(120px,1fr) minmax(0,.9fr) minmax(0,1.1fr) 64px}
+}
+/* v3.5 · el presente del CRM en el renglón, y los cumpleaños */
+.adm .gnr .who .nmline{display:flex;align-items:center;gap:8px;min-width:0}
+.adm .gnr .who .nmline b{min-width:0}
+.adm .gnst{position:relative;display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(99,113,84,.14);color:var(--olive-d);white-space:nowrap}
+.adm .gnst .d{width:5px;height:5px;border-radius:999px;background:var(--olive);flex:0 0 auto}
+.adm .gnst .s{font-size:10px;font-weight:400;letter-spacing:.01em;text-transform:none;opacity:.8}
+.adm .gnst.caida{background:rgba(32,33,28,.07);color:var(--ink-soft)}
+.adm .gnst.caida .d{background:var(--sand)}
+.adm .gnr .gnst .tip{display:none;position:absolute;left:0;top:calc(100% + 7px);white-space:nowrap;background:var(--charcoal);color:#fff;font-family:"Geist",system-ui,sans-serif;font-size:11px;font-weight:400;letter-spacing:0;text-transform:none;padding:6px 10px;border-radius:8px;z-index:20}
+.adm .gnr .gnst:hover .tip{display:block}
+.adm .gnlist.conest .gnhd,.adm .gnlist.conest .gnr{grid-template-columns:32px minmax(210px,1.5fr) minmax(0,1.12fr) 64px}
+.adm .gnlist.conest.contags .gnhd,.adm .gnlist.conest.contags .gnr{grid-template-columns:32px minmax(200px,1.4fr) minmax(0,.82fr) minmax(0,1fr) 64px}
+/* la banda de cumpleaños · buena noticia, no alerta */
+.adm .gncum{border:1.5px solid rgba(255,93,54,.6);border-radius:14px;background:linear-gradient(180deg,rgba(201,183,156,.2),rgba(201,183,156,.07));padding:14px 17px;margin-bottom:14px}
+.adm .gncum .lb{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:#8a6d1f;display:flex;align-items:center;gap:.5em}
+.adm .gncum .lb s{text-decoration:none;font-family:var(--mono);color:var(--orange)}
+.adm .gncum .hoy,.adm .gnpa .hoy{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-top:11px}
+.adm .gncum .hoy .av,.adm .gnpa .hoy .av{width:40px;height:40px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;flex:0 0 auto}
+.adm .gncum .hoy .g,.adm .gnpa .hoy .g{min-width:0;flex:1 1 180px}
+.adm .gncum .hoy .g b,.adm .gnpa .hoy .g b{display:block;font-size:16px;font-weight:500;letter-spacing:-.01em}
+.adm .gncum .hoy .g small,.adm .gnpa .hoy .g small{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px}
+.adm .gncum .hoy .rt,.adm .gnpa .hoy .rt{display:flex;gap:8px;flex-wrap:wrap}
+.adm .gncum .nx{display:flex;gap:26px;flex-wrap:wrap;margin-top:13px;padding-top:12px;border-top:1px solid rgba(32,33,28,.13)}
+.adm .gncum .nx .grp{min-width:160px}
+.adm .gncum .nx .t{font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:var(--olive);display:block;margin-bottom:6px}
+.adm .gncum .nx .p{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;margin:0 14px 4px 0}
+.adm .gncum .nx .p .dt{font-family:var(--mono);font-size:11px;color:var(--sand)}
+.adm .gncum.solo{background:rgba(201,183,156,.1);border-color:rgba(255,93,54,.45)}
+.adm .gncum.solo .nx{margin-top:9px;padding-top:0;border-top:0}
+/* capturar el cumpleaños desde la ficha */
+.adm .gncap{display:inline-flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft)}
+.adm .gncap input{font-family:var(--mono);font-size:11.5px;padding:5px 9px;border:1px dashed var(--sand);border-radius:8px;background:#fff;color:var(--charcoal)}
+.adm .gncap input:focus{outline:none;border-style:solid;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15)}
+.adm .gncap small{font-size:11px;color:var(--sand)}
+/* v3.6 · el regalo de cumpleaños */
+.adm .gngift{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(99,113,84,.15);color:var(--olive-d);white-space:nowrap}
+.adm .gngift .d{width:5px;height:5px;border-radius:999px;background:var(--olive)}
+.adm .gnopt{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.adm .gnopt button{font-family:inherit;font-size:12.5px;min-height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer}
+.adm .gnopt button.on{border-color:var(--olive);background:rgba(99,113,84,.12);color:var(--olive-d);font-weight:600}
+.adm .gnopt input{font-family:var(--mono);font-size:12px;width:86px;padding:0 11px;height:34px;border:1px dashed var(--sand);border-radius:999px;background:#fff;color:var(--charcoal)}
+.adm .gnefe{padding:11px 13px;border-radius:10px;background:rgba(99,113,84,.1);font-size:13px;line-height:1.55;color:var(--olive-d)}
+.adm .gnefe b{font-family:var(--mono);color:var(--charcoal);font-weight:700}
+.adm .gncost{display:flex;gap:.6em;align-items:baseline;margin-top:10px;font-size:12px;line-height:1.6;color:var(--ink-soft)}
+.adm .gncost s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.adm .gncost b{font-family:var(--mono);color:var(--charcoal);font-weight:700}
+.adm .gnlink{display:flex;align-items:center;gap:9px;padding:7px 8px 7px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.adm .gnlink .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+.adm .gnlink .u{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--olive)}
+.adm .gnprev{border:1px solid var(--line);border-radius:12px;background:#fff;padding:13px 14px}
+.adm .gnprev .hd{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sand);font-weight:700;margin-bottom:9px}
+.adm .gnprev .bd{font-size:13px;line-height:1.85}
+/* el regalo, después de mandarlo */
+.adm .gnrg{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.adm .gnrg:last-child{border-bottom:0}
+.adm .gnrg .st{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:4px 9px;border-radius:5px;white-space:nowrap}
+.adm .gnrg .g{min-width:0;line-height:1.4}
+.adm .gnrg .g small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:3px}
+.adm .gnrg .mn{font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.adm .gnrg.env .st{background:rgba(99,113,84,.15);color:var(--olive-d)}
+.adm .gnrg.abi .st{background:rgba(255,93,54,.14);color:#c23c1c}
+.adm .gnrg.abi .mn{color:var(--orange);font-weight:700}
+.adm .gnrg.uso .st{background:rgba(28,111,106,.14);color:var(--lagoon)}
+.adm .gnrg.ven .st{background:transparent;border:1px dashed var(--sand);color:var(--sand)}
+.adm .gnrg.ven .g b{font-weight:400;color:var(--ink-soft)}
+.adm .gnrg.ven .g,.adm .gnrg.ven .mn{color:var(--sand)}
+/* v3.7 · el regalo se arma DENTRO de la pastilla, y las variantes se separan del producto */
+.adm .gncum .hoy,.adm .gnpa .hoy{margin-top:0}
+.adm .gnpa{border:1px solid rgba(32,33,28,.12);border-radius:12px;background:rgba(255,255,255,.72);padding:11px 13px;margin-top:11px;transition:background .18s,border-color .18s}
+.adm .gnpa+.gnpa{margin-top:9px}
+.adm .gnpa.open{background:#fff;border-color:rgba(255,93,54,.45)}
+.adm .gnpa>.hoy{cursor:pointer}
+.adm .gnpa .cv{font-family:var(--mono);font-size:11px;color:var(--sand);flex:0 0 auto;transition:transform .18s}
+.adm .gnpa.open .cv{transform:rotate(180deg);color:var(--orange)}
+.adm .gnbody{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(32,33,28,.12);max-height:360px;overflow-y:auto;scrollbar-width:thin}
+.adm .gnpa.open .gnbody{display:block}
+.adm .gnbody::-webkit-scrollbar{width:8px}
+.adm .gnbody::-webkit-scrollbar-thumb{background:var(--sand);border-radius:999px}
+.adm .gnstep{display:flex;align-items:baseline;gap:9px;margin:0 0 10px}
+.adm .gnstep s{text-decoration:none;font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--orange)}
+.adm .gnstep b{font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:var(--olive)}
+.adm .gnstep span{font-size:12px;color:var(--ink-soft)}
+.adm .gnfila{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px 18px;align-items:start}
+.adm .gnfila .cel>.lb{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--sand);margin-bottom:7px}
+.adm .gnfila .gnopt,.adm .gnfila .cmch{margin-bottom:0}
+.adm .gnfila .gnuv{padding:6px 0;font-size:12.5px}
+.adm .gnmsg2{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px;align-items:start}
+/* galería de variantes · nunca es la pantalla */
+.adm .varset{margin:22px 0 0;padding:0 0 0 15px;border-left:2px dashed var(--sand)}
+.adm .varset>.hd{display:flex;align-items:baseline;gap:9px;margin-bottom:4px}
+.adm .varset>.hd s{text-decoration:none;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--orange)}
+.adm .varset>.hd b{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--sand)}
+.adm .varset>.note{font-size:12px;color:var(--ink-soft);line-height:1.55;max-width:62ch;margin-bottom:14px}
+.adm .varitem{margin-bottom:14px}
+.adm .varitem>.t{display:block;font-size:11px;color:var(--sand);font-family:var(--mono);margin-bottom:6px}
+.adm .varitem>.bx{background:transparent}
+
+
 @media print{
   .adm .ahead,.adm .nav,.adm .qa,.adm .no-print,.adm .btn{display:none !important;}
   .adm{background:#fff;color:#000;}

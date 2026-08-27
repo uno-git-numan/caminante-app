@@ -1186,7 +1186,7 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
     .eq("id", slot.experience_id)
     .maybeSingle();
 
-  const [{ data: resvs }, { data: regs }] = await Promise.all([
+  const [{ data: resvs }, { data: regs }, { data: bajas }] = await Promise.all([
     sb
       .from("reservations")
       .select("id, contact_id, num_people, status, notes")
@@ -1196,7 +1196,16 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
       .from("registrations")
       .select("reservation_id, contact_id, signed_at, medical_snapshot, identity_snapshot, participants")
       .order("signed_at", { ascending: true }),
+    // Las bajas (0045). El deslinde firmado es inmutable y conserva a quien se
+    // dio de baja; el ROSTER no, porque es la lista de quién sube al cerro.
+    sb.from("participant_withdrawals").select("reservation_id, dependent_id, full_name"),
   ]);
+
+  const dadoDeBaja = new Set(
+    ((bajas ?? []) as { reservation_id: string; dependent_id: string | null; full_name: string }[]).map(
+      (b) => `${b.reservation_id}|${b.dependent_id ?? b.full_name}`,
+    ),
+  );
 
   const regByResv = new Map(
     ((regs || []) as {
@@ -1261,6 +1270,10 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
       ...fichaDe(snap),
     });
     for (const p of reg?.participants || []) {
+      // ⚠️ Se salta ANTES de empujar la fila: si se filtrara después, los
+      // conteos de arriba ya lo habrían contado.
+      const llave = `${r.id}|${(p as { dependent_id?: string }).dependent_id ?? p.full_name ?? ""}`;
+      if (dadoDeBaja.has(llave)) continue;
       rows.push({
         reservationId: r.id,
         nombre: p.full_name || "—",
