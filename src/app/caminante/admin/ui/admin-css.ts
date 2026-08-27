@@ -281,10 +281,8 @@ export const ADMIN_CSS = `
 .adm .salpick{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .adm .salpick button{font-size:12.5px;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);min-height:38px}
 .adm .salpick button.on{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d);font-weight:600}
-.adm .salper{grid-template-columns:26px 1fr;row-gap:8px}
-.adm .salper .rt{grid-column:1/-1;justify-content:flex-start}
-.adm .salmtr{gap:14px 24px}
-@media(max-width:760px){
+/* El teléfono, y SOLO el teléfono: sueltas se comían el layout de escritorio. */
+@media(max-width:620px){
   .adm .salper{grid-template-columns:26px 1fr;row-gap:8px}
   .adm .salper .rt{grid-column:1/-1;justify-content:flex-start}
   .adm .salmtr{gap:14px 24px}
@@ -292,13 +290,33 @@ export const ADMIN_CSS = `
 
 /* ── EXPERIENCIAS · transcrito VERBATIM del entregable de Claude Design
    (design/encuesta-v2/dc/experiencias.dc.html), prefijado con .adm.
-   Si el diseño cambia, RE-EXTRAER del HTML — no editar a mano. ── */
+   Si el diseño cambia, RE-EXTRAER con design/encuesta-v2/transcribir-css.py —
+   no editar a mano.
+
+   ⚠️ La primera transcripción se comió LAS ONCE reglas que seguían a un
+   comentario (.excat, .ex3, .exsem, .exarm, .excal, .exhero, .exban, .exkit,
+   .exdim, .extrato, .exfech): justo las que dan la estructura. La pantalla
+   compilaba y se veía «casi bien» —tarjetas a una columna, cifras apiladas—
+   porque lo que sobrevivió fueron los descendientes, que solo pintan.
+   El transcriptor ahora falla si pierde una regla.
+
+   Se omiten a propósito «a», «a:hover» y «.nav a»: Claude Design las marcó
+   «solo para esta pantalla» y contradicen al entregable del Dashboard, que
+   viste las otras doce pantallas del panel. ── */
 .adm .vtag{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:11px 16px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}
 .adm .vtag b{font-size:11px;font-weight:700;letter-spacing:var(--eb);text-transform:uppercase;color:var(--olive)}
 .adm .vtag span{font-size:12.5px;color:var(--ink-soft);line-height:1.45}
 .adm .vtag.casa{background:rgba(32,57,43,.07);border-color:rgba(32,57,43,.2)}
 .adm .vtag.casa b{color:var(--forest)}
 .adm .vsep{margin:60px 0 34px;border-top:1px solid rgba(32,33,28,.2)}
+/* catálogo */
+.adm .excat{display:grid;gap:18px;grid-template-columns:1fr}
+@media(min-width:720px){
+  .adm .excat{grid-template-columns:1fr 1fr}
+}
+@media(min-width:1080px){
+  .adm .excat{grid-template-columns:repeat(3,1fr)}
+}
 .adm .exc{display:flex;flex-direction:column;overflow:hidden;text-align:left;color:inherit;cursor:pointer;transition:transform .18s ease-out,box-shadow .18s ease-out,border-color .18s ease-out}
 .adm .exc:hover{transform:translateY(-2px);border-color:rgba(99,113,84,.4);box-shadow:0 18px 42px -22px rgba(32,33,28,.5)}
 .adm .exc:hover h3{color:var(--olive-d)}
@@ -311,6 +329,8 @@ export const ADMIN_CSS = `
 .adm .exc .bd{padding:15px 17px 17px;display:flex;flex-direction:column;flex:1}
 .adm .exc h3{font-size:17.5px;font-weight:400;letter-spacing:-.01em;line-height:1.25;transition:color .18s}
 .adm .exc .op{font-size:12px;color:var(--ink-soft);margin-top:4px}
+/* semáforo de venta */
+.adm .exsem{display:flex;align-items:baseline;gap:.5em;font-size:12.5px;line-height:1.45;margin-top:10px;padding:8px 11px;border-radius:10px}
 .adm .exsem s{text-decoration:none;font-family:var(--mono);font-weight:700;flex:0 0 auto}
 .adm .exsem.si{background:rgba(99,113,84,.11);color:var(--olive-d)}
 .adm .exsem.si s{color:var(--olive)}
@@ -319,10 +339,14 @@ export const ADMIN_CSS = `
 .adm .exsem.dorm{background:var(--panel);color:var(--ink-soft)}
 .adm .exsem.dorm s{color:var(--sand)}
 .adm .exsem.big{font-size:14px;padding:12px 15px;border-radius:12px}
+/* tres cifras */
+.adm .ex3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
 .adm .ex3 .v{font-family:var(--mono);font-weight:300;font-size:17px;letter-spacing:-.01em;line-height:1.15;white-space:nowrap}
 .adm .ex3 .v .st{font-family:"Geist",system-ui,sans-serif;font-size:14px;color:var(--orange);letter-spacing:1px}
 .adm .ex3 .l{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-top:4px;line-height:1.3}
 .adm .ex3 .d{font-size:11px;color:var(--ink-soft);margin-top:2px;font-family:var(--mono)}
+/* armadura · cinco dimensiones con nombre y tres estados */
+.adm .exarm{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
 .adm .exarm .hd{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
 .adm .exarm .hd .t{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
 .adm .exarm .hd .fr{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-left:auto}
@@ -345,8 +369,12 @@ export const ADMIN_CSS = `
 .adm .exleg .h i{background:transparent;border:2px solid var(--dune)}
 .adm .exleg .n{color:var(--charcoal);border-color:rgba(255,93,54,.42);background:rgba(255,93,54,.09)}
 .adm .exleg .n i{background:transparent;border:1.5px solid var(--orange)}
+/* pie · enunciado del calendario */
+.adm .excal{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:baseline;gap:.5em;font-size:12px;color:var(--ink-soft);line-height:1.45}
 .adm .excal s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand);flex:0 0 auto}
 .adm .excal b{color:var(--charcoal);font-weight:500;font-family:var(--mono)}
+/* ficha */
+.adm .exhero{position:relative;border-radius:var(--r);overflow:hidden;min-height:250px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff}
 .adm .exhero .ph{position:absolute;inset:0}
 .adm .exhero .ph img{width:100%;height:100%;object-fit:cover}
 .adm .exhero .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,20,14,.2),rgba(18,20,14,.62) 52%,rgba(18,20,14,.9))}
@@ -359,6 +387,11 @@ export const ADMIN_CSS = `
 .adm .exhero .exsem s{color:var(--orange)}
 .adm .exhero .exsem.si s{color:var(--salvia)}
 .adm .exbar{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 24px}
+/* banco de fotos */
+.adm .exban{display:grid;gap:10px;grid-template-columns:repeat(2,1fr);margin-top:14px}
+@media(min-width:560px){
+  .adm .exban{grid-template-columns:repeat(5,1fr)}
+}
 .adm .exsl{border-radius:12px;overflow:hidden;position:relative;aspect-ratio:3/4;background:var(--panel);border:1px solid var(--line)}
 .adm .exsl img{width:100%;height:100%;object-fit:cover;display:block}
 .adm .exsl .tt{position:absolute;left:0;right:0;bottom:0;padding:7px 8px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#fff;background:linear-gradient(180deg,transparent,rgba(18,20,14,.82))}
@@ -366,10 +399,14 @@ export const ADMIN_CSS = `
 .adm .exsl.vacia{border-style:dashed;border-color:rgba(255,93,54,.4);background:rgba(255,93,54,.05);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:10px}
 .adm .exsl.vacia .lb{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--charcoal)}
 .adm .exsl.vacia .ad{font-family:var(--mono);font-size:11px;color:var(--orange)}
+/* comunicación */
+.adm .exkit{display:grid;gap:0;margin-top:12px}
 .adm .exkit .r{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
 .adm .exkit .r:last-child{border-bottom:0}
 .adm .exkit .r .m{font-family:var(--mono);font-size:14px}
 .adm .exkit .r small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+/* dimensiones desplegadas */
+.adm .exdim{display:grid;gap:0;margin-top:12px}
 .adm .exdim .d{display:grid;grid-template-columns:10px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
 .adm .exdim .d:last-child{border-bottom:0}
 .adm .exdim .d i{width:8px;height:8px;border-radius:999px;background:var(--olive)}
@@ -378,8 +415,12 @@ export const ADMIN_CSS = `
 .adm .exdim .d .g{line-height:1.4}
 .adm .exdim .d .g small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px}
 .adm .exdim .d.full .g{color:var(--ink-soft)}
+/* trato */
+.adm .extrato{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-top:14px}
 .adm .extrato .pct{font-family:var(--mono);font-weight:200;font-size:44px;letter-spacing:-.03em;line-height:1}
 .adm .extrato .g{flex:1;min-width:190px;font-size:12.5px;color:var(--ink-soft);line-height:1.6}
+/* fechas · cierre discreto */
+.adm .exfech{margin-top:24px;padding-top:16px;border-top:1px solid var(--line)}
 .adm .exmir{display:flex;align-items:baseline;gap:.5em;font-size:12px;color:var(--ink-soft);line-height:1.5;margin:0 0 8px}
 .adm .exmir s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--olive)}
 .adm .exro{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
@@ -387,16 +428,11 @@ export const ADMIN_CSS = `
 .adm .exro .dt{font-family:var(--mono);font-size:13px}
 .adm .exro .sub{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px}
 .adm .exro .rt{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-@media(min-width:720px){
-  .adm .excat{grid-template-columns:1fr 1fr}
-}
-@media(min-width:1080px){
-  .adm .excat{grid-template-columns:repeat(3,1fr)}
-}
-@media(min-width:560px){
-  .adm .exban{grid-template-columns:repeat(5,1fr)}
-}
+.adm .docnote{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.7;color:var(--ink-soft)}
+.adm .docnote b{color:var(--charcoal);font-weight:600}
+.adm .docnote .sl{color:var(--orange);font-family:var(--mono);font-weight:700}
 @media(max-width:620px){
+  .adm .pad{padding:16px 16px}
   .adm .exro{grid-template-columns:1fr}
   .adm .exro .rt{justify-content:flex-start}
 }

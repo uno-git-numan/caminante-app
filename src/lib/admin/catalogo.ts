@@ -51,10 +51,28 @@ export type Producto = {
   proximaLabel: string | null;
 };
 
+/** La banda de arriba del catálogo. Cada cifra sale de `productos`, ninguna
+ *  se estima: si algo no se puede calcular viene en `null` y la tarjeta lo dice. */
+export type Resumen = {
+  ingresos: number;
+  vendieron: number;
+  operadores: number;
+  publicadas: number;
+  frenadas: string[];
+  completas: string[];
+  total: number;
+  /** Promedio PONDERADO por número de respuestas, no promedio de promedios. */
+  stars: number | null;
+  respuestas: number;
+  invitadas: number;
+};
+
 export type Catalogo = {
   productos: Producto[];
   /** `true` cuando quien mira es un operador externo. */
   esOperador: boolean;
+  /** Solo para la casa: el operador ve una sola cartera y la banda le sobra. */
+  resumen: Resumen | null;
 };
 
 export async function fetchCatalogo(): Promise<Catalogo> {
@@ -197,7 +215,33 @@ export async function fetchCatalogo(): Promise<Catalogo> {
     return a.nombre.localeCompare(b.nombre);
   });
 
-  return { productos, esOperador: !!operatorId };
+  const conRespuestas = productos.filter((p) => p.stars != null && p.respuestas > 0);
+  const totalRespuestas = conRespuestas.reduce((a, p) => a + p.respuestas, 0);
+
+  const resumen: Resumen | null = operatorId
+    ? null
+    : {
+        ingresos: productos.reduce((a, p) => a + p.ingresos, 0),
+        vendieron: productos.filter((p) => p.ingresos > 0).length,
+        operadores: new Set(productos.map((p) => p.operador).filter(Boolean)).size,
+        publicadas: productos.filter((p) => p.status === "published").length,
+        frenadas: productos
+          .filter((p) => p.status === "published" && !p.puedeVender)
+          .map((p) => `${p.nombre}: ${p.faltaParaVender.join(" ")}`),
+        completas: productos
+          .filter((p) => p.armada === DIMENSIONES_DEL_PRODUCTO.length)
+          .map((p) => p.nombre),
+        total: productos.length,
+        // ⚠️ Ponderado. Promediar los promedios le daría el mismo peso a una
+        // experiencia con una respuesta que a otra con veinte.
+        stars: totalRespuestas
+          ? conRespuestas.reduce((a, p) => a + (p.stars as number) * p.respuestas, 0) / totalRespuestas
+          : null,
+        respuestas: totalRespuestas,
+        invitadas: productos.reduce((a, p) => a + p.invitadas, 0),
+      };
+
+  return { productos, esOperador: !!operatorId, resumen };
 }
 
 // ── LA FICHA de una experiencia ──────────────────────────────────────────
