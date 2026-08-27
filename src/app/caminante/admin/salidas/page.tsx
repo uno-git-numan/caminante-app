@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminShell from "../ui/AdminShell";
 import Capsula from "./Capsula";
+import NuevaSalida from "./NuevaSalida";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { fetchSalidas } from "@/lib/admin/salidas";
 
@@ -22,8 +23,15 @@ export const metadata = { title: "Salidas · Admin — Caminante" };
 
 const SITIO = (process.env.NEXT_PUBLIC_SITE_URL || "https://caminante.numanhub.com").replace(/\/$/, "");
 
-export default async function SalidasPage() {
+export default async function SalidasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
   if (!(await puedeEntrarAlPanel())) redirect("/caminante/login?next=/caminante/admin/salidas");
+  const sp = await searchParams;
+  const error = sp.error?.trim() || "";
+  const aviso = error || sp.ok?.trim() || "";
   const d = await fetchSalidas();
 
   const tasa = d.respuestasPorLeer.invitadas
@@ -41,15 +49,24 @@ export default async function SalidasPage() {
             Cada viaje, <em className="ac">antes y después.</em>
           </h1>
           <div className="desc">
-            Antes se persiguen las firmas del deslinde; después se lee cómo estuvo. Las fechas se dan
-            de alta desde la ficha de cada experiencia, en{" "}
-            <Link href="/caminante/admin/eventos" style={{ textDecoration: "underline" }}>
-              Eventos
-            </Link>
-            .
+            Antes se persiguen las firmas del deslinde; después se lee cómo estuvo.
           </div>
         </div>
+        <NuevaSalida experiencias={d.experiencias} />
       </div>
+
+      {aviso ? (
+        <div
+          className="card pad"
+          style={{
+            marginBottom: 20,
+            borderColor: error ? "rgba(179,53,23,.35)" : "rgba(99,113,84,.35)",
+            background: error ? "rgba(179,53,23,.06)" : "rgba(99,113,84,.07)",
+          }}
+        >
+          {aviso}
+        </div>
+      ) : null}
 
       {/* ── El encabezado: lo que hay que saber sin abrir nada ── */}
       <div className="kpis" style={{ marginBottom: 34 }}>

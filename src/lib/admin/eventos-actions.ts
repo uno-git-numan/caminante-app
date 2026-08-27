@@ -411,11 +411,15 @@ function volver(slug: string, r: AdminActionResult, okMsg: string): never {
  */
 export async function crearSalidaAction(fd: FormData): Promise<void> {
   const slug = str(fd, "slug");
+  // De dónde vino: la ficha de la experiencia o la pantalla de Salidas. Sin
+  // esto, dar de alta una fecha desde Salidas te dejaba en otra pantalla.
+  const volverA = str(fd, "volverA") === "salidas" ? "/caminante/admin/salidas" : null;
   const fecha = str(fd, "fecha"); // YYYY-MM-DD
   const fin = str(fd, "fin");
   const cupo = str(fd, "cupo");
   const etiqueta = str(fd, "etiqueta");
   if (!fecha) {
+    if (volverA) redirect(`${volverA}?error=${encodeURIComponent("La salida necesita una fecha.")}`);
     volver(slug, { ok: false, error: "La salida necesita una fecha." }, "");
     return;
   }
@@ -431,6 +435,10 @@ export async function crearSalidaAction(fd: FormData): Promise<void> {
     endsAt: fin ? `${fin}T23:00:00Z` : null,
     capacityTotal: cupo ? Number(cupo) : null,
   });
+  if (volverA) {
+    const q = r.ok ? `ok=${encodeURIComponent("Salida creada.")}` : `error=${encodeURIComponent(r.error)}`;
+    redirect(`${volverA}?${q}`);
+  }
   volver(slug, r.ok ? { ok: true } : { ok: false, error: r.error }, "Salida creada.");
 }
 

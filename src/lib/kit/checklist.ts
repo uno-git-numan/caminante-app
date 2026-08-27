@@ -41,6 +41,24 @@ export type ChecklistEntrada = {
   salidas: { date?: string }[];
 };
 
+/**
+ * Las dimensiones que hablan del PRODUCTO, para la tarjeta de Experiencias.
+ *
+ * ⚠️ «Salidas» NO está aquí, y no es un olvido. Una experiencia puede vivir
+ * publicada sin ninguna fecha, vendiéndose por solicitud de grupo: cuántas
+ * fechas tiene no dice qué tan armada está. Cuando esta lista incluía las seis,
+ * la misma tarjeta felicitaba («lista para vender · sin fechas planeadas») y
+ * castigaba («4 de 6», y una de las que faltaban era justamente no tener
+ * fechas) por el mismo hecho.
+ *
+ * En el KIT sí se queda: ahí sin fecha no hay campaña que programar.
+ *
+ * Vive junto a `evaluarChecklist` a propósito. Si el subconjunto viviera en la
+ * pantalla, las dos listas se separarían el día que alguien agregue una
+ * dimensión — que es exactamente el bug que este archivo acaba de tener.
+ */
+export const DIMENSIONES_DEL_PRODUCTO = ["fotos", "ficha", "guias", "deslinde", "encuesta"];
+
 export function evaluarChecklist(e: ChecklistEntrada): ChecklistItem[] {
   const items: ChecklistItem[] = [];
 

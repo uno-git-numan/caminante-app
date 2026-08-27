@@ -100,6 +100,14 @@ export type Salida = {
 };
 
 export type LineaDeSalidas = {
+  /**
+   * A qué experiencias se les puede agregar una fecha.
+   *
+   * Solo las PUBLICADAS: una salida cuelga de un producto que ya está a la
+   * venta. Ponerle fecha a un borrador crearía algo que el público no puede ver
+   * y que nadie entiende por qué no aparece.
+   */
+  experiencias: { id: string; slug: string; nombre: string }[];
   proximas: Salida[];
   pasadas: Salida[];
   /** Próximas publicadas que nadie ha comprado. Se colapsan: no son un pendiente. */
@@ -149,7 +157,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
 
   const [{ data: expsRaw }, { data: slotsRaw }, { data: resvsRaw }, { data: regsRaw }, { data: fbsRaw }] =
     await Promise.all([
-      sb.from("experiences").select("id, slug, data, operator_id"),
+      sb.from("experiences").select("id, slug, status, data, operator_id"),
       sb
         .from("experience_slots")
         .select("id, experience_id, label, starts_at, capacity_total, status, visibility, feedback_token"),
@@ -162,7 +170,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
         ),
     ]);
 
-  type ExpRow = { id: string; slug: string; data: Partial<Experience> | null; operator_id: string | null };
+  type ExpRow = { id: string; slug: string; status: string; data: Partial<Experience> | null; operator_id: string | null };
   let exps = (expsRaw ?? []) as ExpRow[];
 
   // ⚠️ LA PODA VA AQUÍ: justo después de traer las filas y ANTES de la primera
@@ -388,6 +396,10 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     .map((s) => ({ experiencia: s.experiencia, faltan: s.titulares - s.firmados }));
 
   return {
+    experiencias: exps
+      .filter((e) => e.status === "published")
+      .map((e) => ({ id: e.id, slug: e.slug, nombre: experienceTitle(e.data ?? null, e.slug) }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre)),
     proximas,
     pasadas,
     vacias,
