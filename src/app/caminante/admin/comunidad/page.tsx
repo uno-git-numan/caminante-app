@@ -17,9 +17,20 @@ export const metadata = { title: "Comunidad · Admin — Caminante" };
 //
 // Diseño de design/comunidad/dc/comunidad.dc.html.
 
-const NUM = ["Cero","Una","Dos","Tres","Cuatro","Cinco","Seis","Siete","Ocho","Nueve","Diez",
-  "Once","Doce","Trece","Catorce","Quince","Dieciséis","Diecisiete","Dieciocho","Diecinueve","Veinte"];
-const letras = (n: number) => (n < NUM.length ? NUM[n] : String(n));
+// El título del entregable dice «Sesenta personas», no «60». La voz editorial
+// escribe los números; el dígito se ve a cifra de reporte. Hasta 99, que es
+// donde vive esta comunidad por ahora; arriba de eso, el dígito y ya.
+const UNO = ["Cero","Una","Dos","Tres","Cuatro","Cinco","Seis","Siete","Ocho","Nueve","Diez",
+  "Once","Doce","Trece","Catorce","Quince","Dieciséis","Diecisiete","Dieciocho","Diecinueve"];
+const DIEZ = ["","","Veinte","Treinta","Cuarenta","Cincuenta","Sesenta","Setenta","Ochenta","Noventa"];
+function letras(n: number): string {
+  if (n < 20) return UNO[n];
+  if (n > 99) return String(n);
+  const d = Math.floor(n / 10), u = n % 10;
+  if (u === 0) return DIEZ[d];
+  if (d === 2) return "Veinti" + UNO[u].toLowerCase();
+  return `${DIEZ[d]} y ${UNO[u].toLowerCase()}`;
+}
 
 export default async function ComunidadPage() {
   if (!(await puedeEntrarAlPanel())) redirect("/caminante/login?next=/caminante/admin/comunidad");
