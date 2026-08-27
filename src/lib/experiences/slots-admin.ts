@@ -66,11 +66,26 @@ export async function fetchSlotsForAdmin(slug: string): Promise<AdminSlot[]> {
   });
 }
 
-// Crea/edita las salidas; las que ya no estén en la lista se CIERRAN (status=closed),
-// no se borran — así no se orfanan reservas existentes. Idempotente.
+// Crea/edita las salidas que se le nombran, y cierra SOLO las que se le pidan
+// cerrar explícitamente por id.
+//
+// ⚠️ ANTES ESTA FUNCIÓN CERRABA POR AUSENCIA: lo que no venía en la lista se daba
+// por eliminado. Con una sola puerta de alta —el formulario de la experiencia—
+// eso funcionaba. Deja de funcionar en cuanto existe una segunda: una salida
+// creada desde la pantalla de Salidas no aparecería en la lista del formulario,
+// y el próximo que entrara a esa experiencia a corregir una foto la habría
+// CERRADO al guardar. Sin error, sin aviso: simplemente dejaría de venderse.
+//
+// Por eso el cierre pasó a ser explícito. El formulario manda los ids de las
+// filas que la persona quitó a mano, que es lo que de verdad quiso decir. El
+// comportamiento visible no cambia; lo que cambia es que la ausencia ya no
+// significa nada.
+//
+// Nada se borra nunca: cerrar conserva la fila y sus reservas.
 export async function saveExperienceSlots(
   slug: string,
   slots: AdminSlotInput[],
+  opts?: { cerrarIds?: string[] },
 ): Promise<SlotsResult> {
   // El permiso va por SLUG y contra la base, no contra lo que llegue del form:
   // este action escribe las salidas de la experiencia que le nombren.
@@ -146,18 +161,21 @@ export async function saveExperienceSlots(
     }
   }
 
-  // Cerrar (no borrar) las salidas ABIERTAS PÚBLICAS que el form ya no incluye.
-  // Las cerradas/canceladas conservan su estado y las PRIVADAS (grupos con
-  // link) no se tocan: el form no las conoce — se operan en Solicitudes/Eventos.
-  let q = sb
-    .from("experience_slots")
-    .update({ status: "closed" })
-    .eq("experience_id", expId)
-    .eq("status", "open")
-    .eq("visibility", "public");
-  if (keepIds.length > 0) q = q.not("id", "in", `(${keepIds.join(",")})`);
-  const { error: closeErr } = await q;
-  if (closeErr) return { ok: false, error: closeErr.message };
+  // Cerrar SOLO lo que se pidió cerrar, por id, y nunca algo que se acabe de
+  // guardar en esta misma llamada (si alguien quita una fila y vuelve a poner la
+  // misma fecha antes de guardar, gana lo que está en pantalla).
+  //
+  // Se acota a `experience_id` aunque el id ya sea único: un id de otra
+  // experiencia llegando por aquí no debe poder cerrar nada.
+  const cerrar = (opts?.cerrarIds ?? []).filter((id) => id && !keepIds.includes(id));
+  if (cerrar.length > 0) {
+    const { error: closeErr } = await sb
+      .from("experience_slots")
+      .update({ status: "closed" })
+      .eq("experience_id", expId)
+      .in("id", cerrar);
+    if (closeErr) return { ok: false, error: closeErr.message };
+  }
 
   return { ok: true };
 }

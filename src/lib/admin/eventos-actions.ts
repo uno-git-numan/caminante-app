@@ -49,9 +49,94 @@ function revalidateAdmin(slug?: string) {
 }
 
 // ── Salidas (experience_slots) ───────────────────────────────────────────
-// NOTA: crear/editar fechas vive en el FORMULARIO de experiencia
-// (saveExperienceSlots en src/lib/experiences/slots-admin.ts) — el dashboard
-// solo OPERA: cerrar/reabrir ventas vía updateSlot/setSlotStatusAction.
+//
+// UNA SALIDA ES UN OBJETO PROPIO: la experiencia es la plantilla atemporal y la
+// salida es la instancia que se vende. Por eso crear una salida es un acto
+// propio (`crearSalida`) y no un renglón de la lista del formulario.
+//
+// ⚠️ Y por eso `saveExperienceSlots` dejó de cerrar por ausencia. Mientras el
+// formulario era la única puerta, «lo que no venga en la lista se cierra»
+// funcionaba. Con dos puertas, una salida creada aquí no aparecería en la lista
+// del formulario y el próximo guardado de esa experiencia la habría cerrado sin
+// decir nada. Hoy el cierre viaja por id, siempre.
+
+/**
+ * Crea UNA salida. Es la primitiva de la pantalla «Salidas».
+ *
+ * Nace `open` y `public`: crear una salida ES ponerla a la venta — para eso se
+ * crea. Lo que decide si el público la ve es que su EXPERIENCIA esté publicada,
+ * y eso se avisa arriba, en la pantalla, no se resuelve callado aquí.
+ */
+export async function crearSalida(input: {
+  experienceId: string;
+  slug: string;
+  label: string;
+  startsAt: string;
+  endsAt?: string | null;
+  capacityTotal?: number | null;
+  priceMxn?: number | null;
+}): Promise<AdminActionResult & { slotId?: string }> {
+  const guard = await requireExperiencia(input.experienceId);
+  if (guard) return guard;
+
+  const label = input.label.trim();
+  if (!label) return fail("La salida necesita una etiqueta (cómo se muestra la fecha).");
+  if (!input.startsAt || Number.isNaN(Date.parse(input.startsAt))) {
+    return fail("La salida necesita una fecha de inicio válida.");
+  }
+  // ⚠️ Mismo guard que en updateSlot y en slots-admin: `ends_at` dispara la
+  // encuesta automática (+24h), así que un mes mal tecleado manda «¿cómo te
+  // fue?» ANTES del viaje. Ya pasó con una salida de volcanes.
+  if (input.endsAt) {
+    const fin = Date.parse(input.endsAt);
+    if (Number.isNaN(fin)) return fail("Fecha de fin inválida.");
+    if (fin < Date.parse(input.startsAt)) {
+      return fail("La salida no puede terminar antes de empezar. Revisa el mes o el año.");
+    }
+  }
+  if (input.capacityTotal != null && (!Number.isInteger(input.capacityTotal) || input.capacityTotal < 0)) {
+    return fail("El cupo debe ser un entero positivo (o vacío para sin tope).");
+  }
+  if (input.priceMxn != null && input.priceMxn <= 0) return fail("Precio inválido.");
+
+  const sb = createSupabaseAdminClient();
+
+  // No crear dos veces la misma fecha. Pasó con «los 4 de agosto repetidos»:
+  // guardar dos veces sin recargar duplicaba la salida, y una fecha duplicada
+  // parte el cupo en dos y descuadra el roster.
+  const { data: yaExiste } = await sb
+    .from("experience_slots")
+    .select("id")
+    .eq("experience_id", input.experienceId)
+    .eq("starts_at", input.startsAt)
+    .eq("status", "open")
+    .eq("visibility", "public")
+    .maybeSingle();
+  if (yaExiste) {
+    return fail("Ya existe una salida abierta con esa fecha de inicio para esta experiencia.");
+  }
+
+  const { data, error } = await sb
+    .from("experience_slots")
+    .insert({
+      experience_id: input.experienceId,
+      label,
+      starts_at: input.startsAt,
+      ends_at: input.endsAt || null,
+      capacity_total: input.capacityTotal ?? null,
+      price_mxn: input.priceMxn ?? null,
+      status: "open",
+      visibility: "public",
+      seats_taken: 0,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return fail(error?.message ?? "No se pudo crear la salida.");
+
+  revalidateAdmin(input.slug);
+  revalidatePath("/caminante/admin/salidas");
+  return { ok: true, slotId: data.id as string };
+}
 
 export async function updateSlot(input: {
   slotId: string;

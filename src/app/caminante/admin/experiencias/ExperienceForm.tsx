@@ -448,6 +448,15 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
     (initialSlots ?? []).map((s) => ({ id: s.id, label: s.label, start: (s.startsAt || "").slice(0, 10), end: (s.endsAt || "").slice(0, 10), cupo: s.capacity != null ? String(s.capacity) : "" })),
   );
   const [cupoEstandar, setCupoEstandar] = useState("");
+  // Ids de salidas que la persona quitó a mano con «Quitar».
+  //
+  // ⚠️ Antes esto no existía: quitar una fila la hacía desaparecer de la lista y
+  // `saveExperienceSlots` cerraba «todo lo que ya no venga». Esa regla —la
+  // ausencia significa cerrar— es la que se vuelve peligrosa en cuanto las
+  // salidas también se pueden crear desde su propia pantalla: una salida que
+  // este formulario no conoce se cerraría sola al guardar. Ahora el cierre es
+  // una intención explícita y viaja por id.
+  const [cerrarIds, setCerrarIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("Borrador sin guardar");
   const [statusOk, setStatusOk] = useState(false);
@@ -725,7 +734,8 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
         endsAt: s.end ? `${s.end}T23:00:00Z` : null,
         capacity: s.cupo ? Number(s.cupo) : null,
       }));
-    const slotRes = await saveExperienceSlots(res.slug, slotInputs);
+    const slotRes = await saveExperienceSlots(res.slug, slotInputs, { cerrarIds });
+    if (slotRes.ok) setCerrarIds([]); // ya se cerraron: no repetir en el siguiente guardado
     setSaving(false);
     setStatusOk(slotRes.ok);
     if (!slotRes.ok) { setStatus(`Guardada, pero las fechas fallaron: ${slotRes.error}`); return; }
@@ -1394,7 +1404,12 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
             <div className="rep-items">
               {slots.map((s, i) => (
                 <div key={i} className="rep-card">
-                  <button type="button" className="rm" onClick={() => setSlots(slots.filter((_, j) => j !== i))}>Quitar</button>
+                  <button type="button" className="rm" onClick={() => {
+                    // Solo las que ya existen en la base se piden cerrar; una fila
+                    // recién agregada y nunca guardada simplemente desaparece.
+                    if (s.id) setCerrarIds((prev) => (prev.includes(s.id!) ? prev : [...prev, s.id!]));
+                    setSlots(slots.filter((_, j) => j !== i));
+                  }}>Quitar</button>
                   <div className="row c3">
                     <Field label="Fecha de salida"><input type="date" value={s.start} onChange={(e) => setSlots(slots.map((x, j) => {
                       if (j !== i) return x;
