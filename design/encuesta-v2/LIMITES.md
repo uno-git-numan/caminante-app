@@ -50,7 +50,9 @@ La prueba de una frase, que sirve para cualquier campo nuevo:
 | **Quiénes van** | ¿quién viene? | **Salidas** |
 | **Deslindes firmados y pendientes** | ¿pueden subir al cerro? | **Salidas** |
 | **Roster** | ¿qué necesita el guía en campo? | **Salidas** |
-| **Respuestas · ★ · NPS · testimonios** | ¿cómo salió? | **Salidas** |
+| **Respuestas · ★ · NPS** | ¿cómo salió esa salida? | **Salidas** |
+| Fotos · piezas del Kit · testimonios publicables | ¿cómo se cuenta el producto? | Experiencias |
+| Solicitudes de grupo | ¿quién está pidiendo? | **el CRM** (por construir) |
 | Interruptor de la encuesta | configuración del producto | **el formulario** |
 
 ## Qué se MUEVE de Experiencias (y no se queda en las dos)
@@ -97,10 +99,24 @@ Decisión de producto: una experiencia puede estar **publicada para siempre sin
 ninguna fecha planeada**, con **«solicitar grupo» siempre abierto**. Siempre está
 disponible para venderse.
 
-Esto cambia cómo se lee el vacío en las dos pantallas: una experiencia sin
-salidas **no es un pendiente ni un error**, es un modo de operar. La pantalla no
-debe empujar a «agregarle fechas»; debe mostrar que su canal abierto es la
-solicitud de grupo, y cuántas solicitudes tiene esperando.
+Esto cambia cómo se lee el vacío: una experiencia sin salidas **no es un
+pendiente ni un error**, es un modo de operar. La pantalla no debe empujar a
+«agregarle fechas»; enuncia el hecho —«sin fechas planeadas · se vende por
+solicitud»— sin alerta.
+
+**Las solicitudes en sí NO viven aquí.** Van a un CRM que se construirá aparte.
+Experiencias se queda con tres cosas y nada más: **la información del producto,
+sus fotos y su comunicación.**
+
+⚠️ **Consecuencia que hay que arreglar en el código:** `evaluarChecklist` tiene
+una dimensión «Salidas» que marca *falta* cuando no hay fechas. Con esta
+decisión, una experiencia sana quedaba felicitada y castigada por el mismo
+hecho: «Lista para vender · sin fechas planeadas» junto a «4 de 6» donde una de
+las que faltaban era, justamente, no tener fechas. En la tarjeta de Experiencias
+la armadura son **CINCO** dimensiones (fotos · ficha · guías · deslinde ·
+encuesta); «Salidas» se queda solo en el Kit, donde sí importa —sin fecha no se
+puede programar una campaña—. El subconjunto se declara **en el mismo módulo**
+que la función, para que las dos listas no puedan separarse.
 
 ## El único traslape que sí se queda
 

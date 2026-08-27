@@ -1,5 +1,4 @@
-Reemplaza al «PROMPT 2» de `PROMPTS-CLAUDE-DESIGN.md`. Va en el MISMO chat,
-después de recibir el diseño de Salidas.
+Va en el MISMO chat, después de recibir el diseño de Salidas.
 
 > Copia desde aquí ↓
 
@@ -8,12 +7,12 @@ después de recibir el diseño de Salidas.
 ## CONTINÚA LO QUE ACABAS DE HACER — NO EMPIECES DE CERO
 
 Esta pantalla es la **pareja** de «Salidas», que acabas de diseñar arriba en este
-mismo chat. **Ábrela otra vez antes de escribir una línea.** Y sigue teniendo a la
-mano el panel de administración de Caminante que ya habías diseñado antes en este
-hilo (Panorama, Eventos, Reservas, Personas, Roster, Dinero).
+mismo chat. **Ábrela otra vez antes de escribir una línea.** Y ten a la mano el
+panel de administración de Caminante que ya habías diseñado antes en este hilo
+(Panorama, Eventos, Reservas, Personas, Roster, Dinero).
 
 Lo que me entregues tiene que poder ponerse al lado de Salidas y parecer **la
-misma aplicación, hecha el mismo día, por la misma persona**. Mismos
+misma aplicación, hecha el mismo día, por la misma persona**: mismos
 encabezados, mismas tarjetas, mismos chips, mismos botones, mismos nombres de
 clase.
 
@@ -27,14 +26,14 @@ Componentes que **ya tienes y debes reusar**, sin renombrarlos ni recrearlos:
 | `.card` · `.pad` · `.glass` | tarjeta, padding, vidrio | |
 | `.kpis` › `.kpi` | cifra grande | `.k-lbl` · `.k-val` (+`.u`) · `.k-sub` |
 | `.prog` (+`.prog.warn`) | barra con fracción | `.tk2 > i` · `.fr` |
-| `.chip` + `.c-pub` / `.c-draft` | estado publicada / borrador | `.cd` (puntito) |
+| `.chip` + `.c-pub` / `.c-draft` | publicada / borrador | `.cd` (puntito) |
 | `.btn` + `.btn-glass` / `.btn-orange` / `.btn-ghost` / `.btn-sm` | botones | |
 | `.tbl-wrap` › `table` · `.empty` · `.mut` · `.mono` · `.subtitle` | tabla, vacío, texto | |
-| `.stars-lg` · `.tick` · `.dot`/`.dots` | estrellas, palomita, puntos | |
+| `.stars-lg` · `.tick` · `.dot`/`.dots` · `.tcard` · `.testi` | estrellas, palomita, puntos, testimonios | |
 
-**FOTOS: usa las que ya tienes en tus assets de este chat** — las de bosque,
-hongos, mar de Cortés, barranca, montaña que ya trabajaste para Caminante. No
-uses placeholders grises ni stock genérico: estas tarjetas viven de su foto y el
+**FOTOS: usa las que ya tienes en tus assets de este chat** — bosque, hongos, mar
+de Cortés, barranca, montaña, las que ya trabajaste para Caminante. Nada de
+placeholders grises ni stock genérico: estas tarjetas viven de su foto y el
 diseño solo se puede juzgar con las imágenes reales.
 
 Variables (no agregues colores):
@@ -46,8 +45,9 @@ Variables (no agregues colores):
 --r:16px; --shadow:0 12px 34px -22px rgba(32,33,28,.42);
 ```
 Geist (títulos 200–300, nunca bold pesado) · Geist Mono para cifras · **cero
-emojis** (usa ★ ↑ ↓ ✓ ⚠ ·) · glassmorphism · español de México, trato de «tú», sin
-lenguaje de dashboard corporativo («KPI», «insights», «engagement» prohibidos).
+emojis** (usa ★ ↑ ↓ ✓ ⚠ ·) · glassmorphism · español de México, trato de «tú»,
+sin lenguaje de dashboard corporativo («KPI», «insights», «engagement»
+prohibidos).
 
 ## QUÉ ES ESTA PANTALLA
 
@@ -58,43 +58,55 @@ Experiencia = la PLANTILLA atemporal (el producto).
 Salida      = la INSTANCIA con fecha (ya la diseñaste).
 ```
 
-Aquí **no se administran fechas** — eso vive en Salidas. Aquí se ve el producto:
-si puede venderse, cómo se ha vendido, y qué tan armado está.
+Aquí viven **tres cosas y nada más**:
+
+1. **La información del producto** — si puede venderse y cómo se ha vendido.
+2. **Sus fotos** — el banco de imágenes de la experiencia.
+3. **Su comunicación** — las piezas del Kit y los testimonios publicables.
+
+Todo lo demás está en otra pantalla. **No dibujes aquí**: gestión de fechas
+(vive en Salidas), listas de participantes, deslindes pendientes, ni
+solicitudes de clientes (van a vivir en un CRM aparte que todavía no existe).
 
 ⚠️ **Una experiencia puede vivir publicada para siempre sin ninguna fecha
-planeada**, vendiéndose por «solicitar grupo». Eso **no es un error ni un
-pendiente**: es un modo normal de operar, y va a ser el caso más común. No lo
-dibujes como un hueco ni empujes a «agregarle fechas».
+planeada.** Se vende por solicitud de grupo. Eso **no es un error ni un
+pendiente**: es un modo normal de operar y va a ser el caso más común. Se
+enuncia como un hecho —«Sin fechas planeadas · se vende por solicitud»— sin
+número, sin alerta y sin empujar a agregar fechas.
 
 ## 1 · EL CATÁLOGO — TARJETAS, NO FILAS
 
-Una tarjeta por experiencia, **con su foto principal**. Cada una trae:
+Una tarjeta por experiencia, **con su foto principal**:
 
 - Foto · nombre · chip de estado (Publicada / Borrador)
 - **El semáforo de venta.** Una experiencia no puede venderse sin deslinde con
-  documento **y** encuesta activa — es candado duro en el sistema, bloquea
-  publicar y cobrar. Hoy solo te enteras al intentar publicar. La tarjeta debe
-  decirlo: *«Lista para vender»* o *«No vende: falta el documento del deslinde»*.
+  documento **y** encuesta activa — es candado duro del sistema: bloquea
+  publicar y bloquea cobrar. Hoy solo te enteras al intentar publicar. La
+  tarjeta lo dice: *«Lista para vender»* o *«No vende: falta el documento del
+  deslinde»*.
 - **Tres cifras**: ingresos · clientes que han pasado · ★ acumulado **con su
-  denominador** (nunca un promedio solo: «★ 4.7 de 23 respuestas»)
-- **La armadura**: seis puntitos con cuántos están completos — fotos por tipo,
-  ficha científica, saber de los guías, deslinde, encuesta, salidas. «4 de 6»
-- **«2 solicitudes esperando»** cuando las haya
+  denominador** (nunca un promedio solo: «★ 4.6 de 9»)
+- **La armadura: CINCO dimensiones**, con sus nombres visibles — no solo un
+  conteo. Fotos por tipo · Ficha científica · Saber de los guías · Deslinde ·
+  Encuesta. Cada una tiene tres estados (completa / a medias / falta), así que
+  la representación necesita distinguir tres, no dos, y llevar leyenda.
+- Al pie, el estado del calendario como enunciado: «Una fecha publicada ·
+  Oct 8–11» o «Sin fechas planeadas · se vende por solicitud».
 
 Con eso, entrar a la ficha debe ser **opcional**.
 
 Datos reales:
 ```
 Recolección de hongos · Publicada · lista para vender
-   $45,900 · 18 clientes · ★ 4.6 de 9 · armadura 5 de 6 · 2 solicitudes
+   $45,900 · 18 clientes · ★ 4.6 de 9 · armadura 4 de 5 · una fecha · 27 sep
 Ensenada de Muertos · Publicada · lista para vender
-   $241,280 · 13 clientes · ★ 4.8 de 5 · armadura 6 de 6
-El fondo de la barranca · Publicada · lista para vender · SIN FECHAS
-   $52,800 · 6 clientes · sin respuestas aún · armadura 4 de 6 · 3 solicitudes
+   $241,280 · 13 clientes · ★ 4.8 de 5 · armadura 5 de 5 · una fecha · Oct 3–4
+El fondo de la barranca · Publicada · lista para vender
+   $52,800 · 6 clientes · sin respuestas aún · armadura 4 de 5 · sin fechas planeadas
 Trekking Barrancas del Cobre · Publicada · No vende: falta el documento del deslinde
-   $96,000 · 8 clientes · sin respuestas aún · armadura 3 de 6
+   $96,000 · 8 clientes · sin respuestas aún · armadura 3 de 5 · una fecha · Oct 8–11
 Amanalco lobo glamp · Borrador
-   sin ventas · armadura 1 de 6
+   sin ventas · armadura 1 de 5 · sin fechas planeadas
 ```
 
 **Orden: por lo que necesitan, no alfabético.** Arriba las que no pueden vender,
@@ -103,55 +115,60 @@ respuesta.
 
 ## 2 · LA FICHA (se navega, no se expande)
 
-Picar una tarjeta lleva a su página. Arriba: foto de portada, nombre, estado y el
-semáforo de venta en grande. Y una barra de acciones: **Editar contenido** · **Ver
+Picar una tarjeta lleva a su página. Arriba: foto de portada, nombre, estado y
+el semáforo de venta en grande. Barra de acciones: **Editar contenido** · **Ver
 página pública** · **Kit de comunicación** · **Publicar / Pasar a borrador**.
 
-Cinco bloques:
+Cinco bloques, en este orden:
 
-1. **Cómo va** — ingresos · clientes · salidas corridas · ★ acumulado con
-   denominador · solicitudes esperando.
-2. **Sus salidas — SOLO LECTURA.** Fecha · cupo · estado · «Abrir salida →».
-   Sin crear, sin editar, sin cerrar: que se vea que es un reflejo, no un panel
-   de control.
-3. **Solicitudes de grupo** — quién está pidiendo fecha, con nombre y cuándo.
-   Es su canal de venta cuando no hay fechas: si hay tres esperando y nadie las
-   ve, es dinero parado. Dale peso.
-4. **Qué le falta** — las seis dimensiones de la armadura, cada una enlazando a
-   donde se arregla.
-5. **Tu trato / Operador** — ver abajo, cambia según quién mira.
+1. **Cómo va** — ingresos · clientes · salidas corridas · ★ acumulado con su
+   denominador.
+2. **Sus fotos** — el banco por tipo (paisaje, gente, flora, detalle, retrato),
+   como mosaico, marcando qué tipos están vacíos. Es la materia prima de todo
+   lo demás y hoy no se ve en ningún lado.
+3. **Su comunicación** — cuántas piezas del Kit están listas, programadas y
+   publicadas; y los **testimonios publicables** que dejó la encuesta (hay 9
+   aprobados en el sistema y ninguna pantalla lo dice). Con enlace al Kit.
+4. **Qué le falta** — las cinco dimensiones de la armadura, con nombre, estado y
+   enlace a donde se arregla.
+5. **Tu trato / Operador** — ver abajo: cambia según quién mira.
+
+Y como cierre, discreto: **sus fechas publicadas, en SOLO LECTURA**, con
+«Abrir salida →». Sin crear, sin editar, sin cerrar — que se lea como un reflejo
+y no como un panel de control.
 
 ## 3 · LA MISMA PANTALLA TIENE DOS PÚBLICOS
 
 Esto es lo más importante del encargo y quiero que lo dibujes **dos veces**.
 
-El panel lo usan **la casa** (Caminante, que ve todas las experiencias de todos
-los operadores) y **cada operador externo** (que ve solo las suyas).
+El panel lo usan **la casa** (Caminante, que ve las experiencias de todos los
+operadores) y **cada operador externo** (que ve solo las suyas).
 
 **Diseña primero la del OPERADOR.** Para él, «operador» siempre sería él mismo:
 como campo no dice nada. Lo de la casa se **agrega encima**.
 
 | | operador | casa |
 |---|---|---|
-| Columna / campo «Operador» | **no existe** | sí, y sirve de filtro |
+| Campo / columna «Operador» | **no existe** | sí, y sirve de filtro |
 | Comisión | **la suya**, como DATO de solo lectura, bajo el título «Tu trato» | editable, y la de todos |
 | Dinero | sus ingresos | el total de la plataforma |
 | Asignar operador · crear operador | **no existe** | sí |
 
-Para el operador, el bloque 5 se ve así: el título **«Tu trato»**, su porcentaje
-en grande y en mono («15%»), y una línea que explique que se congela en cada
-venta y que ajustarla aplica a ventas futuras. **Nada que se pueda picar.**
+Para el operador, el bloque 5 se ve así: título **«Tu trato»**, su porcentaje en
+grande y en mono («15%»), y una línea explicando que se congela en cada venta y
+que ajustarlo aplica a ventas futuras. **Nada que se pueda picar.**
 
-Dibuja el catálogo y la ficha **en las dos versiones**, una debajo de otra, con un
-rótulo que diga cuál es cuál.
+Dibuja el catálogo y la ficha **en las dos versiones**, una debajo de otra, con
+un rótulo que diga cuál es cuál.
 
 ## 4 · ESTADOS QUE NECESITO DIBUJADOS
 
-1. Experiencia **publicada sin fechas, con solicitudes esperando** (el caso más
-   común: dale la mejor versión).
-2. Experiencia **publicada sin fechas y sin solicitudes**.
-3. Experiencia que **no puede vender** por el candado del deslinde.
-4. Experiencia en **borrador**, sin ventas ni armadura.
+1. Experiencia **publicada sin fechas planeadas** — el caso más común. Dale la
+   mejor versión: tiene que verse sana, no incompleta.
+2. Experiencia que **no puede vender** por el candado del deslinde.
+3. Experiencia en **borrador**, sin ventas y con la armadura casi vacía.
+4. Experiencia **sin respuestas de encuesta todavía** (el lugar de las estrellas
+   cuando no hay ninguna).
 5. El catálogo **vacío** (aún no hay experiencias).
 
 ## 5 · ENTREGA
