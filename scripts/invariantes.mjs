@@ -16,7 +16,7 @@
 // Correr a mano:  node scripts/invariantes.mjs
 // Autoprueba:     node scripts/invariantes.mjs --autoprueba
 
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -262,6 +262,82 @@ const REGLAS = [
       // Y que nadie vuelva a escribir los números a mano.
       if (/<SecHead num="\d/.test(form))
         return "RegistrationForm.tsx volvió a numerar una sección a mano. Con el bloque de seguro prendido o apagado la numeración cambia, y tres superficies dependen de ella: usa seccion(conSeguro, id) de lib/registration/estructura.ts.";
+      return null;
+    },
+  },
+  {
+    nombre: "Ningún componente cliente alcanza next/headers",
+    comprueba() {
+      // Se sigue la cadena de imports @/… desde cada archivo con "use client".
+      // Si alguno llega a next/headers, el build de Next falla con un mensaje
+      // que NO nombra al componente culpable, solo al módulo del fondo.
+      const src = join(raiz, "src");
+      if (!existsSync(src)) return null;
+
+      const archivos = [];
+      (function barrer(d) {
+        for (const e of readdirSync(d, { withFileTypes: true })) {
+          const f = join(d, e.name);
+          if (e.isDirectory()) barrer(f);
+          else if (/\.(ts|tsx)$/.test(e.name)) archivos.push(f);
+        }
+      })(src);
+
+      const rel = (f) => f.slice(raiz.length + 1);
+      const resolver = (espec) => {
+        const base = join(src, espec.slice(2));
+        for (const cand of [base + ".ts", base + ".tsx", join(base, "index.ts")])
+          if (existsSync(cand)) return cand;
+        return null;
+      };
+
+      // `import type {…}` se borra al compilar: no arrastra nada.
+      const importsDe = (txt) =>
+        [...txt.matchAll(/^\s*import\s+(?!type\s)(?:[^"';]*?\sfrom\s+)?["'](@\/[^"']+)["']/gm)].map((m) => m[1]);
+
+      const cache = new Map();
+      const alcanza = (f, visto) => {
+        if (cache.has(f)) return cache.get(f);
+        if (visto.has(f)) return null;
+        visto.add(f);
+        const txt = readFileSync(f, "utf8");
+        // Un módulo "use server" es una FRONTERA legítima: el cliente importa
+        // la referencia a la acción, no su cuerpo, y nada de lo que hay dentro
+        // llega al bundle. Cruzarla es correcto y no se marca.
+        if (/^\s*["']use server["']/m.test(txt)) return null;
+        if (/from\s+["']next\/headers["']/.test(txt)) return [rel(f)];
+        for (const espec of importsDe(txt)) {
+          const destino = resolver(espec);
+          if (!destino) continue;
+          const cadena = alcanza(destino, visto);
+          if (cadena) { const r = [rel(f), ...cadena]; cache.set(f, r); return r; }
+        }
+        cache.set(f, null);
+        return null;
+      };
+
+      for (const f of archivos) {
+        const txt = readFileSync(f, "utf8");
+        if (!/^\s*["']use client["']/m.test(txt)) continue;
+        for (const espec of importsDe(txt)) {
+          const destino = resolver(espec);
+          if (!destino) continue;
+          const cadena = alcanza(destino, new Set([f]));
+          if (cadena)
+            return [
+              `${rel(f)} es un componente CLIENTE y llega a next/headers: ${[rel(f), ...cadena].join(" → ")}.`,
+              "Next tumba el build con «You're importing a component that needs next/headers»,",
+              "y el mensaje nombra solo el módulo del fondo, nunca al componente culpable.",
+              "",
+              "Pasó dos veces con lo mismo: una función pura —formatMXN, iniciales— viviendo",
+              "en lib/admin/queries.ts, que llega hasta next/headers por la cadena del alcance.",
+              "La salida NO es copiar la función al componente: es moverla a un módulo sin",
+              "servidor, como lib/admin/formato.ts. Un `import type` sí viaja gratis.",
+              "",
+              "⚠️ tsc --noEmit pasa limpio en este caso. No ve la frontera servidor/cliente.",
+            ].join("\n");
+        }
+      }
       return null;
     },
   },
