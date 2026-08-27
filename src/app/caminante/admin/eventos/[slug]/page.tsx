@@ -258,8 +258,35 @@ export default async function EventoDetallePage({
           </div>
         </div>
 
-        {/* Operador y comisión */}
+        {/* Operador y comisión — DOS BLOQUES, según quién mira.
+            «Operador» es un discriminador de LA CASA: para un operador externo
+            siempre sería él mismo, así que como campo no dice nada. Y el
+            catálogo de operadores le llega vacío a propósito (no tiene por qué
+            saber quiénes son los demás ni con qué comisión trabajan), lo que
+            dejaba en su pantalla un selector que no podía seleccionar nada y un
+            formulario de «crear operador» que el servidor iba a rechazar. Un
+            control que rebota se lee como un panel roto, no como un permiso.
+            Lo que él sí necesita ver es SU trato: lo firmó. Como dato. */}
         <div className="grid2" style={{ marginTop: 20 }}>
+          {ev.miOperatorId ? (
+            <div className="glass pad">
+              <span className="subtitle">Tu trato</span>
+              <div style={{ marginTop: 12 }}>
+                <div className="mono" style={{ fontSize: 28, fontWeight: 300, letterSpacing: "-.02em" }}>
+                  {ev.miComisionPct != null ? `${ev.miComisionPct}%` : "Por definir"}
+                </div>
+                <p className="mut" style={{ fontSize: 12.5, marginTop: 6, lineHeight: 1.5 }}>
+                  {ev.miComisionPct != null
+                    ? "Comisión de plataforma sobre esta experiencia, según tu convenio."
+                    : "Tu comisión todavía no está fijada. Se define en tu convenio antes de la primera venta."}
+                </p>
+              </div>
+              <p className="mut" style={{ fontSize: 12, marginTop: 10 }}>
+                La comisión se congela en cada venta al momento de cobrar (no cambia ventas pasadas).
+                Para ajustarla, escríbenos: aplica a ventas futuras.
+              </p>
+            </div>
+          ) : (
           <div className="glass pad">
             <span className="subtitle">Operador y comisión</span>
             <form action={assignOperatorAction} className="mini-form" style={{ marginTop: 0 }}>
@@ -296,6 +323,7 @@ export default async function EventoDetallePage({
               La comisión se congela en cada venta al momento de cobrar (no cambia ventas pasadas).
             </p>
           </div>
+          )}
 
           <div className="glass pad">
             <span className="subtitle">Cómo funciona</span>

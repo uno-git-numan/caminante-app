@@ -535,6 +535,15 @@ export type EventoDetalle = {
   registroActivo: boolean;
   slots: SlotAdmin[];
   operadores: OperadorRow[];
+  // Quién está mirando. `null` = la casa; si trae id, es el operador dueño.
+  //
+  // Hace falta explícito: `operadores` viene VACÍO cuando mira un operador
+  // (se poda a propósito), pero vacío también podría significar «no hay
+  // operadores dados de alta». Deducir el rol de una lista vacía es
+  // exactamente el tipo de inferencia que un día se equivoca.
+  miOperatorId: string | null;
+  /** Su comisión, cuando quien mira es un operador. Es SU trato: la ve, no la edita. */
+  miComisionPct: number | null;
 };
 
 // "YYYY-MM-DDTHH:mm" en CDMX (para prellenar datetime-local)
@@ -636,6 +645,13 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
   // operador no reasigna nada, y de paso no tiene por qué saber quiénes son los
   // demás ni con qué comisión trabajan.
   const ops = operatorId ? [] : opsTodos;
+  // Su propia comisión: es su trato y lo firmó, así que la ve. Pero como dato,
+  // no como control — y jamás la de nadie más.
+  const miComision = operatorId
+    ? ((opsTodos ?? []).find((o) => (o as { id: string }).id === operatorId) as
+        | { commission_pct: number | null }
+        | undefined)?.commission_pct ?? null
+    : null;
 
   const avail = await fetchSlotOccupancy(exp.id as string);
   const enc = await fetchSlotFeedbackStats(exp.id as string);
@@ -685,6 +701,8 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
       email: o.email,
       commissionPct: o.commission_pct != null ? Number(o.commission_pct) : null,
     })),
+    miOperatorId: operatorId,
+    miComisionPct: miComision != null ? Number(miComision) : null,
   };
 }
 
