@@ -400,6 +400,40 @@ function volver(slug: string, r: AdminActionResult, okMsg: string): never {
   redirect(`/caminante/admin/eventos/${slug}?${q}`);
 }
 
+/**
+ * Alta de una salida desde la ficha de la experiencia.
+ *
+ * ⚠️ Esta acción existe porque el formulario de la experiencia DEJÓ de capturar
+ * fechas: la experiencia es la plantilla y la salida es la instancia. Sin este
+ * camino, quitar la sección del formulario habría dejado a la plataforma sin
+ * ninguna forma de dar de alta una fecha hasta que exista la pantalla «Salidas».
+ * Cuando esa pantalla exista, este bloque se mueve allá — no se duplica.
+ */
+export async function crearSalidaAction(fd: FormData): Promise<void> {
+  const slug = str(fd, "slug");
+  const fecha = str(fd, "fecha"); // YYYY-MM-DD
+  const fin = str(fd, "fin");
+  const cupo = str(fd, "cupo");
+  const etiqueta = str(fd, "etiqueta");
+  if (!fecha) {
+    volver(slug, { ok: false, error: "La salida necesita una fecha." }, "");
+    return;
+  }
+  const r = await crearSalida({
+    experienceId: str(fd, "experienceId"),
+    slug,
+    // Sin etiqueta se usa la fecha: nunca se guarda una salida sin cómo
+    // mostrarse (`label` es NOT NULL y una salida sin nombre es ilegible).
+    label: etiqueta || fecha,
+    // Mediodía UTC, igual que hacía el formulario: evita que la salida se
+    // corra un día al pintarla en la zona de CDMX.
+    startsAt: `${fecha}T12:00:00Z`,
+    endsAt: fin ? `${fin}T23:00:00Z` : null,
+    capacityTotal: cupo ? Number(cupo) : null,
+  });
+  volver(slug, r.ok ? { ok: true } : { ok: false, error: r.error }, "Salida creada.");
+}
+
 export async function setSlotStatusAction(fd: FormData): Promise<void> {
   const slug = str(fd, "slug");
   const status = str(fd, "status") as "open" | "closed" | "cancelled";

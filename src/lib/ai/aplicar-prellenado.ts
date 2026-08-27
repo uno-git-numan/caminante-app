@@ -298,21 +298,3 @@ export function aplicarPrellenadoV2(
 
   return { exp, draft };
 }
-
-// Salidas de la IA → filas del form. Horas por defecto: el guardado del form
-// estampa T12:00Z / T23:00Z; aquí solo fecha y cupo.
-export function slotsDesdeIA(
-  slots: SlotIA[],
-  existentes: { label: string }[],
-): { label: string; start: string; end: string; cupo: string }[] {
-  const yaEstan = new Set(existentes.map((s) => s.label.trim().toLowerCase()));
-  return slots
-    .filter((s) => s.label.trim() && /^\d{4}-\d{2}-\d{2}$/.test(s.startDate))
-    .filter((s) => !yaEstan.has(s.label.trim().toLowerCase()))
-    .map((s) => ({
-      label: s.label.trim(),
-      start: s.startDate,
-      end: /^\d{4}-\d{2}-\d{2}$/.test(s.endDate) ? s.endDate : s.startDate,
-      cupo: /^\d+$/.test(s.capacity.trim()) ? s.capacity.trim() : "",
-    }));
-}

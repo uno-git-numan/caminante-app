@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salidas · Admin — Caminante</title>
+<style>
+/* ══ SISTEMA DEL PANEL · copiado verbatim de Caminante Admin - Dashboard ══ */
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-Italic-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:italic;font-display:swap;}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/GeistMono-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+:root{
+  --cream:#fbfbf7;--charcoal:#20211c;--lagoon:#1c6f6a;--forest:#20392b;
+  --olive:#637154;--olive-d:#4f5d44;--sand:#b6ada5;--dune:#c9b79c;--salvia:#d6d8c7;--orange:#ff5d36;
+  --panel:#f1eee7;--bg:#eceae3;--line:rgba(32,33,28,.13);--ink-soft:rgba(32,33,28,.6);
+  --r:16px;--eb:.2em;--shadow:0 12px 34px -22px rgba(32,33,28,.42);
+  --mono:"Geist Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:"Geist",system-ui,sans-serif;color:var(--charcoal);background:var(--bg);-webkit-font-smoothing:antialiased;}
+button{font-family:inherit;cursor:pointer;}
+.mono{font-family:var(--mono);}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;display:inline-flex;align-items:center;gap:.5em;line-height:1;color:var(--olive);}
+.eyebrow .sl{color:var(--orange);font-weight:700;}
+.display{font-weight:200;letter-spacing:-.02em;line-height:1.05;}
+em.ac{font-style:italic;color:var(--orange);font-weight:300;}
+
+/* ===== SHELL ===== */
+.ahead{position:sticky;top:0;z-index:50;background:rgba(251,251,247,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+.ahead .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 22px;}
+.ahead .brand{display:flex;align-items:center;gap:13px;}
+.ahead .logo{height:25px;}.ahead .logo svg{height:100%;width:auto;display:block;}
+.ahead .logo .g1{fill:var(--olive);}.ahead .logo .g2{fill:var(--sand);}.ahead .logo .g3{fill:var(--orange);}
+.ahead .mode{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);border-left:1px solid var(--line);padding-left:13px;}
+.qa{display:flex;gap:10px;}
+.nav{display:flex;gap:7px;padding:0 22px 12px;overflow-x:auto;}
+.nav a{flex:0 0 auto;font-size:13.5px;font-weight:500;color:var(--ink-soft);padding:8px 15px;border-radius:999px;border:1px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav a:hover{color:var(--charcoal);background:var(--panel);}
+.nav a.on{background:var(--forest);color:#fff;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:40px;padding:0 17px;border-radius:999px;font-size:13.5px;font-weight:500;border:1px solid transparent;transition:background .18s,transform .1s,color .18s,border-color .18s;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-orange{background:var(--orange);color:#fff;}.btn-orange:hover{background:#e8431f;}
+.btn-glass{background:rgba(255,255,255,.55);color:var(--olive);border-color:rgba(99,113,84,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.btn-glass:hover{background:rgba(255,255,255,.85);}
+.btn-ghost{background:transparent;color:var(--olive);border-color:var(--line);}.btn-ghost:hover{border-color:var(--olive);}
+.btn-sm{min-height:33px;padding:0 12px;font-size:12.5px;}
+.btn-danger{background:transparent;color:var(--orange);border-color:rgba(255,93,54,.4);}.btn-danger:hover{background:rgba(255,93,54,.08);}
+
+/* ===== LAYOUT ===== */
+.page{max-width:1200px;margin:0 auto;padding:26px 22px 90px;}
+.sec{margin-bottom:46px;scroll-margin-top:120px;}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+.sec-head h2{font-size:clamp(24px,3.4vw,34px);}
+.sec-head .desc{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);}
+.glass{background:rgba(255,255,255,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.5);box-shadow:var(--shadow);}
+.pad{padding:20px 22px;}
+
+/* ===== EXPANDIBLES (todo dato se desarrolla) ===== */
+.xhead{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.chev2{display:inline-block;color:var(--sand);font-size:10px;transition:transform .25s ease;margin-left:6px;flex:0 0 auto;}
+.xhead.open .chev2,.xhead.open + tr .chev2{transform:rotate(180deg);}
+.xbody{max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .28s ease;}
+.xbody.on{max-height:1600px;opacity:1;}
+.xpad{padding:16px 2px 8px;}
+tr.xdetail td{padding:0 15px;border-bottom:0;}
+tr.xdetail .xbody.on{border-bottom:1px solid var(--line);}
+tbody tr.xdetail:hover{background:transparent;}
+.xh4{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;margin:16px 0 9px;}
+.xh4:first-child{margin-top:0;}
+
+/* micro-patrón: barra de progreso con fracción */
+.prog{display:flex;align-items:center;gap:10px;}
+.prog .tk2{flex:1;height:6px;border-radius:999px;background:var(--salvia);overflow:hidden;min-width:70px;}
+.prog .tk2 i{display:block;height:100%;background:var(--olive);border-radius:999px;}
+.prog.warn .tk2 i{background:var(--orange);}
+.prog .fr{font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+.progrow{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:center;padding:6px 0;font-size:12.5px;}
+
+/* micro-patrón: chip de persona */
+.pchips{display:flex;flex-wrap:wrap;gap:8px;}
+.pchip{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:4px 11px 4px 4px;border:1px solid var(--line);border-radius:999px;background:#fff;}
+.pchip .av{width:22px;height:22px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.pchip .stt{font-size:10.5px;font-weight:700;}
+.pchip.ok .stt{color:var(--olive);}
+.pchip.pend .stt{color:var(--orange);}
+.pchip.pend{border-color:rgba(255,93,54,.35);}
+.pchip .dt{font-family:var(--mono);font-size:10px;color:var(--ink-soft);}
+
+/* micro-patrón: lista quién puso qué */
+.wlist{display:flex;flex-direction:column;}
+.wl{display:grid;grid-template-columns:1.3fr .7fr .9fr .7fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;align-items:baseline;}
+.wl .m{font-family:var(--mono);text-align:right;}
+.wl .me{color:var(--ink-soft);}
+.wl .d{font-family:var(--mono);color:var(--ink-soft);text-align:right;font-size:11.5px;}
+.wl.debt{color:var(--ink-soft);}
+.wl.debt .m{color:var(--orange);font-weight:600;}
+.wl.total{border-bottom:0;font-weight:600;}
+.wl.total .m{font-weight:600;}
+@media(max-width:560px){.wl{grid-template-columns:1fr auto;} .wl .me,.wl .d{display:none;}}
+
+/* KPI */
+.kpis{display:grid;gap:16px;grid-template-columns:1fr;}
+@media(min-width:640px){.kpis{grid-template-columns:1fr 1fr;}}
+@media(min-width:1000px){.kpis{grid-template-columns:repeat(4,1fr);}}
+.kpi{padding:20px 20px 18px;border-radius:var(--r);}
+.kpi .k-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;justify-content:space-between;}
+.kpi .k-val{font-family:var(--mono);font-weight:300;font-size:32px;letter-spacing:-.02em;margin:10px 0 2px;}
+.kpi .k-val .u{font-size:15px;color:var(--ink-soft);}
+.kpi .k-sub{font-size:12.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
+.kpi .k-sub b{color:var(--charcoal);font-weight:600;}
+.spark{display:flex;align-items:flex-end;gap:3px;height:30px;margin-top:12px;}
+.spark i{flex:1;background:var(--salvia);border-radius:2px 2px 0 0;min-height:3px;}
+.spark i.hi{background:var(--olive);}
+.dots{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.dot-l{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);}
+.dot{width:8px;height:8px;border-radius:999px;flex:0 0 auto;}
+.stars-lg{color:var(--orange);font-size:19px;letter-spacing:2px;}
+.stars-lg .off{color:var(--sand);}
+
+/* tablas */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r);}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;}
+thead th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:13px 15px;border-bottom:1px solid var(--line);white-space:nowrap;}
+tbody td{padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tbody tr{transition:background .12s;}
+tbody tr:hover{background:var(--panel);}
+tbody tr:last-child td{border-bottom:0;}
+td.num,th.num{font-family:var(--mono);}
+td.right,th.right{text-align:right;}
+.mut{color:var(--ink-soft);}
+
+/* chips / badges */
+.chip{display:inline-flex;align-items:center;gap:.4em;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+.chip .cd{width:6px;height:6px;border-radius:999px;}
+.c-draft{background:var(--salvia);color:var(--olive-d);}
+.c-pub{background:rgba(99,113,84,.14);color:var(--olive-d);}
+.c-full{background:rgba(255,93,54,.14);color:#c23c1c;}
+.c-sol{background:rgba(198,178,120,.22);color:#8a6d1f;}
+.c-conf{background:rgba(28,111,106,.14);color:var(--lagoon);}
+.c-paid{background:rgba(99,113,84,.16);color:var(--olive-d);}
+.c-canc{background:rgba(32,33,28,.08);color:var(--ink-soft);}
+.badge{display:inline-flex;align-items:center;gap:.4em;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:6px;background:var(--panel);color:var(--ink-soft);}
+.tick{color:var(--olive);font-weight:700;}
+.cross{color:var(--sand);}
+
+/* filtros */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.filters select,.filters input{font-family:inherit;font-size:13px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--charcoal);}
+.filters input{flex:1;min-width:160px;}
+.filters select:focus,.filters input:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15);}
+
+/* detalle */
+.detail{display:grid;gap:20px;grid-template-columns:1fr;}
+@media(min-width:760px){.detail{grid-template-columns:1.1fr .9fr;}}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;}
+.dl dt{color:var(--ink-soft);}
+.dl dd{font-weight:500;text-align:right;}
+.mini-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+.mini-form input,.mini-form select{font-family:inherit;font-size:12.5px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;}
+.act-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;}
+
+/* barras */
+.barrow{display:grid;grid-template-columns:150px 1fr 42px;gap:12px;align-items:center;padding:7px 0;font-size:13px;}
+.bar{height:8px;border-radius:999px;background:var(--salvia);overflow:hidden;}
+.bar i{display:block;height:100%;background:var(--olive);border-radius:999px;}
+.barrow .bv{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--ink-soft);}
+
+/* testimonios */
+.testi{display:grid;gap:14px;grid-template-columns:1fr;}
+@media(min-width:720px){.testi{grid-template-columns:1fr 1fr;}}
+.tcard{padding:18px 18px 16px;border-radius:var(--r);}
+.tcard .tt{font-size:14px;line-height:1.55;font-style:italic;color:#33352d;}
+.tcard .tm{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:10px;}
+.tcard .who{font-size:12px;color:var(--ink-soft);font-weight:600;}
+.tcard .st{color:var(--orange);font-size:13px;letter-spacing:1px;}
+
+.empty{padding:30px;text-align:center;color:var(--ink-soft);font-size:14px;border:1px dashed var(--line);border-radius:var(--r);background:rgba(255,255,255,.4);}
+.grid2{display:grid;gap:20px;grid-template-columns:1fr;}
+@media(min-width:900px){.grid2{grid-template-columns:1fr 1fr;}}
+.subtitle{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;margin-bottom:12px;}
+.roster-head{display:none;}
+
+@media print{
+  .ahead,.nav,.qa,.no-print,.btn{display:none !important;}
+  body{background:#fff;color:#000;}
+  .page{padding:0;max-width:none;}
+  .sec{display:none;}
+  #roster{display:block !important;margin:0;}
+  .roster-head{display:block;margin-bottom:14px;}
+  .card,.glass{box-shadow:none;border-color:#999;}
+  table{font-size:11px;}
+  thead th{color:#000;border-color:#000;}
+  tbody td{border-color:#999;}
+  .tick{color:#000;}
+}
+/* ══ NUEVO · solo para esta pantalla ══ */
+a{color:var(--olive-d);text-decoration:none}
+a:hover{color:var(--orange)}
+.nav a,.nav a.on{text-decoration:none}
+.saltop{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.saltop .g{flex:1;min-width:200px}
+.saltop h3{font-size:19px;font-weight:400;letter-spacing:-.01em;line-height:1.25}
+.saltop .meta{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.5}
+.salwhen{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--olive-d);white-space:nowrap;padding-top:3px}
+.salwhen.cerca{color:var(--orange);font-weight:700}
+.salbars{display:grid;gap:2px;margin-top:14px;max-width:520px}
+.salsig{display:flex;flex-wrap:wrap;gap:7px 16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);align-items:center}
+.salsig span{display:inline-flex;align-items:baseline;gap:.45em;font-size:12.5px;color:var(--ink-soft);line-height:1.45}
+.salsig s{text-decoration:none;font-family:var(--mono);font-weight:700;flex:0 0 auto}
+.salsig .ok s{color:var(--olive)}
+.salsig .pend{color:var(--charcoal)}.salsig .pend s{color:var(--orange)}
+.salsig .crit{color:var(--charcoal);font-weight:600;background:rgba(255,93,54,.13);border-radius:999px;padding:5px 12px}
+.salsig .crit s{color:var(--orange)}
+.salmtr{display:flex;flex-wrap:wrap;gap:14px 32px;margin-top:14px}
+.salmtr>div{min-width:118px}
+.salmtr .v{font-family:var(--mono);font-weight:300;font-size:26px;letter-spacing:-.02em;line-height:1.1}
+.salmtr .v .u{font-size:13px;color:var(--ink-soft)}
+.salmtr .v .st{font-family:"Geist",system-ui,sans-serif;font-size:17px;color:var(--orange);letter-spacing:1px}
+.salmtr .d{font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.4}
+.salmtr .d b{color:var(--charcoal);font-weight:600;font-family:var(--mono)}
+.salper{display:grid;grid-template-columns:26px 1fr auto;gap:11px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.salper:last-child{border-bottom:0}
+.salper .av{width:26px;height:26px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:700}
+.salper .nm{min-width:0;line-height:1.35}
+.salper .nm small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+.salper .rt{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.salper .st{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--orange);white-space:nowrap}
+.salper .qz{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.salper .qz .s{font-family:"Geist",system-ui,sans-serif;font-size:15px;color:var(--orange);letter-spacing:1px}
+.salper .tx{display:block;font-size:12.5px;font-style:italic;color:var(--ink-soft);line-height:1.45;max-width:44ch;margin-top:3px}
+.salsay{border-left:2px solid var(--orange);padding:2px 0 2px 13px;margin:14px 0 2px;font-size:13.5px;line-height:1.55;font-style:italic}
+.salsay small{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-top:5px}
+.salfoot{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.sallk{flex:1 1 210px;min-width:0;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 6px 5px 12px}
+.sallk span{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.salgrp{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.salgrp .t{font-size:11px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;color:var(--olive)}
+.salgrp .n{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.salgrp .r{flex:1;text-align:right;font-size:12.5px;color:var(--ink-soft);min-width:170px}
+.salcard{margin-bottom:12px}
+.salcard.alerta{border-color:rgba(255,93,54,.32)}
+.salcard.grave{border-color:rgba(255,93,54,.5);box-shadow:inset 3px 0 0 var(--orange),var(--shadow)}
+.salvac summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;min-height:52px}
+.salvac summary::-webkit-details-marker{display:none}
+.salvac summary .g{flex:1;font-size:13.5px;color:var(--ink-soft)}
+.salvac summary .g b{color:var(--charcoal);font-weight:600}
+.salvac[open] .chev2{transform:rotate(180deg)}
+.salvac .in{padding:0 20px 14px}
+.salvl{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.salvl .nm{flex:1 1 190px}
+.salvl .dt{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.salvl a{color:var(--olive);font-weight:500}
+.salnew{display:grid;gap:0}
+.salstep{display:grid;grid-template-columns:24px 1fr;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.salstep:last-child{border-bottom:0}
+.salstep .no{font-family:var(--mono);font-size:12px;color:var(--orange);font-weight:700;padding-top:9px}
+.salstep .h{font-size:14.5px;font-weight:500;margin-bottom:3px}
+.salstep .h small{display:block;font-size:12.5px;font-weight:400;color:var(--ink-soft);margin-top:2px;line-height:1.45}
+.salpick{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.salpick button{font-size:12.5px;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);min-height:38px}
+.salpick button.on{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d);font-weight:600}
+.docnote{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.7;color:var(--ink-soft)}
+.docnote b{color:var(--charcoal);font-weight:600}
+.docnote .sl{color:var(--orange);font-family:var(--mono);font-weight:700}
+@media(max-width:620px){
+.salper{grid-template-columns:26px 1fr;row-gap:8px}
+.salper .rt{grid-column:1/-1;justify-content:flex-start}
+.salmtr{gap:14px 24px}
+.pad{padding:16px 16px}
+}
+</style>
+</head>
+<body>
+
+<header class="ahead">
+  <div class="top">
+    <div class="brand"><span class="logo" data-mark aria-label="Caminante"></span><span class="mode">Modo admin</span></div>
+    <div class="qa">
+      <button class="btn btn-glass btn-sm">Generar cobro</button>
+      <button class="btn btn-orange btn-sm" data-x="nueva">+ Agregar salida</button>
+    </div>
+  </div>
+  <nav class="nav" id="nav">
+    <a href="#panorama">Panorama</a>
+    <a href="#experiencias">Experiencias</a>
+    <a href="#reservas">Reservas</a>
+    <a href="#roster">Personas</a>
+    <a href="#dinero">Dinero</a>
+    <a href="#salidas" class="on">Salidas</a>
+  </nav>
+</header>
+
+<div class="page">
+
+<div class="sec-head">
+  <div>
+    <span class="eyebrow"><span class="sl">//</span> Salidas</span>
+    <h2 class="display" style="margin-top:10px">Cada viaje, <em class="ac">antes y después.</em></h2>
+    <p class="desc">Antes de una salida se persiguen firmas. Después se lee cómo estuvo. Hoy es 26 de agosto de 2026.</p>
+  </div>
+  <button class="btn btn-orange" data-x="nueva">+ Agregar salida</button>
+</div>
+
+<!-- estado 5 · camino de alta -->
+<div class="xbody" id="nueva" style="margin-bottom:26px">
+<div class="card pad">
+  <span class="subtitle">Nueva salida</span>
+  <div class="salnew">
+    <div class="salstep"><span class="no">01</span><div>
+      <div class="h">¿De qué experiencia?<small>Solo aparecen las publicadas. Una experiencia en borrador no puede tener fechas.</small></div>
+      <div class="salpick">
+        <button class="on">Recolección de hongos</button><button>Ensenada de Muertos</button><button>El fondo de la barranca</button><button>Trekking Barrancas</button><button>Hacienda y hongos</button>
+      </div>
+    </div></div>
+    <div class="salstep"><span class="no">02</span><div>
+      <div class="h">¿Qué fecha?<small>Un día, o un rango si el viaje dura varios.</small></div>
+      <div class="mini-form">
+        <input type="date" value="2026-11-15"><span class="mut" style="font-size:12.5px">a</span><input type="date" value="2026-11-15">
+        <label class="mut" style="font-size:12.5px;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" style="width:auto;min-width:0"> Dura varios días</label>
+      </div>
+    </div></div>
+    <div class="salstep"><span class="no">03</span><div>
+      <div class="h">¿Cuántos lugares?<small>El cupo se puede mover después; lo ya vendido nunca se toca.</small></div>
+      <div class="mini-form"><input type="number" value="17" style="width:90px"><span class="mut" style="font-size:12.5px">lugares · precio heredado de la experiencia</span></div>
+    </div></div>
+    <div class="salstep"><span class="no">04</span><div>
+      <div class="h">Antes de publicar<small>Las dos casillas se encienden por defecto. Apagar la encuesta es lo que dejó a 18 personas sin encuestar en julio.</small></div>
+      <div class="pchips" style="margin-top:10px">
+        <span class="pchip ok"><span class="av">✓</span>Deslinde obligatorio<span class="stt">ON</span></span>
+        <span class="pchip ok"><span class="av">✓</span>Encuesta al volver<span class="stt">ON</span></span>
+      </div>
+      <div class="act-row"><button class="btn btn-orange">Publicar salida</button><button class="btn btn-ghost">Guardar sin publicar</button><button class="btn btn-ghost" data-x="nueva">Cancelar</button></div>
+    </div></div>
+  </div>
+</div>
+</div>
+
+<!-- pulso -->
+<div class="kpis" style="margin-bottom:34px">
+  <div class="kpi card"><div class="k-lbl">Por viajar</div><div class="k-val">4<span class="u"> salidas</span></div><div class="k-sub">La más cercana en <b>3 días</b> · 20 personas suben</div></div>
+  <div class="kpi card"><div class="k-lbl">Firmas pendientes</div><div class="k-val">4<span class="u"> de 20</span></div><div class="k-sub">Reparto: <b>2</b> en Hacienda y hongos, <b>2</b> en Ensenada</div>
+    <div class="prog warn" style="margin-top:12px"><div class="tk2"><i style="width:80%"></i></div><span class="fr">16/20</span></div></div>
+  <div class="kpi card" style="border-color:rgba(255,93,54,.34)"><div class="k-lbl">Sin encuesta armada</div><div class="k-val" style="color:var(--orange)">1<span class="u"> salida</span></div><div class="k-sub">Recolección de hongos, <b>27 sep</b>. Si viaja así, no hay cómo saber cómo estuvo.</div></div>
+  <div class="kpi card"><div class="k-lbl">Respuestas por leer</div><div class="k-val">14<span class="u"> de 37</span></div><div class="k-sub"><b>5</b> testimonios listos para publicar · <b>9</b> quieren repetir</div></div>
+</div>
+
+<!-- ═══════ PRÓXIMAS ═══════ -->
+<section class="sec" id="salidas">
+<div class="salgrp"><span class="t">Próximas</span><span class="n">4 salidas con gente</span><span class="r">La más cercana arriba</span></div>
+
+<!-- a 3 días, con firmas pendientes -->
+<article class="card salcard alerta">
+  <div class="pad xhead" data-x="x1">
+    <div class="saltop"><div class="g">
+      <h3>Hacienda y hongos <span class="chev2">▾</span></h3>
+      <p class="meta">Ago 29–30 · Estado de México · operada por Kéntro</p>
+    </div><span class="salwhen cerca">En 3 días</span></div>
+    <div class="salbars">
+      <div class="progrow"><span class="mut">Lugares</span><div class="prog"><div class="tk2"><i style="width:66.7%"></i></div><span class="fr">8/12</span></div></div>
+      <div class="progrow"><span class="mut">Deslindes</span><div class="prog warn"><div class="tk2"><i style="width:75%"></i></div><span class="fr">6/8</span></div></div>
+    </div>
+    <div class="salsig">
+      <span class="pend"><s>⚠</s>2 personas sin firmar, y la salida es en 3 días</span>
+      <span class="ok"><s>✓</s>Encuesta armada</span>
+    </div>
+  </div>
+  <div class="xbody" id="x1"><div class="pad" style="padding-top:0">
+    <div class="xh4">Falta la firma de dos</div>
+    <div class="salper"><span class="av">JD</span><span class="nm">John David O Donnell<small>john@correo.com · sin teléfono</small></span><span class="rt"><span class="st">Pendiente</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button></span></div>
+    <div class="salper"><span class="av">FE</span><span class="nm">Fabiola Escobosa<small>fabiola@correo.com · +52 55 0000 0000</small></span><span class="rt"><span class="st">Pendiente</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button><button class="btn btn-ghost btn-sm">WhatsApp</button></span></div>
+    <div class="xh4">Ya firmaron</div>
+    <div class="pchips">
+      <span class="pchip ok"><span class="av">MQ</span>Monica Quintero<span class="dt">26 ago</span></span>
+      <span class="pchip ok"><span class="av">RB</span>Regina Bueno<span class="dt">24 jul</span></span>
+      <span class="pchip ok"><span class="av">SR</span>Sylvia Rivera<span class="dt">21 ago</span></span>
+      <span class="pchip ok"><span class="av">AM</span>Alonso Mendiola<span class="dt">19 ago</span></span>
+      <span class="pchip ok"><span class="av">PG</span>Paulina Garza<span class="dt">18 ago</span></span>
+      <span class="pchip ok"><span class="av">TN</span>Teresa Núñez<span class="dt">18 ago</span></span>
+    </div>
+    <div class="salfoot"><button class="btn btn-orange">Recordar a los 2 que faltan</button><button class="btn btn-ghost">Ver roster</button></div>
+  </div></div>
+</article>
+
+<!-- sin encuesta · crítica -->
+<article class="card salcard grave">
+  <div class="pad xhead" data-x="x2">
+    <div class="saltop"><div class="g">
+      <h3>Recolección de hongos <span class="chev2">▾</span></h3>
+      <p class="meta">Domingo 27 de septiembre · Xalatlaco, Estado de México</p>
+    </div><span class="salwhen">En 32 días</span></div>
+    <div class="salbars">
+      <div class="progrow"><span class="mut">Lugares</span><div class="prog"><div class="tk2"><i style="width:23.5%"></i></div><span class="fr">4/17</span></div></div>
+      <div class="progrow"><span class="mut">Deslindes</span><div class="prog"><div class="tk2"><i style="width:100%"></i></div><span class="fr">4/4</span></div></div>
+    </div>
+    <div class="salsig">
+      <span class="crit"><s>⚠</s>Esta salida va a viajar sin encuesta</span>
+      <span class="ok"><s>✓</s>Todos firmaron</span>
+    </div>
+  </div>
+  <div class="xbody" id="x2"><div class="pad" style="padding-top:0">
+    <p class="salsay">La casilla de encuesta está apagada. El 26 de julio esta misma experiencia viajó con 18 personas y nadie recibió encuesta: el único síntoma fue el silencio.<small>Enciéndela antes del 27 de septiembre</small></p>
+    <div class="xh4">Cuatro personas suben</div>
+    <div class="pchips">
+      <span class="pchip ok"><span class="av">CV</span>Carla Villanueva<span class="dt">22 ago</span></span>
+      <span class="pchip ok"><span class="av">IM</span>Ignacio Madrigal<span class="dt">22 ago</span></span>
+      <span class="pchip ok"><span class="av">LT</span>Lucía Terán<span class="dt">20 ago</span></span>
+      <span class="pchip ok"><span class="av">HO</span>Héctor Ordóñez<span class="dt">19 ago</span></span>
+    </div>
+    <div class="salfoot"><button class="btn btn-orange">Encender la encuesta</button><button class="btn btn-ghost">Ver roster</button></div>
+  </div></div>
+</article>
+
+<!-- estado 4 · todo en orden -->
+<article class="card salcard">
+  <div class="pad xhead" data-x="x3">
+    <div class="saltop"><div class="g">
+      <h3>Trekking Barrancas del Cobre <span class="chev2">▾</span></h3>
+      <p class="meta">Oct 8–11 · Chihuahua · operada por Nomádika</p>
+    </div><span class="salwhen">En 43 días</span></div>
+    <div class="salbars">
+      <div class="progrow"><span class="mut">Lugares</span><div class="prog"><div class="tk2"><i style="width:75%"></i></div><span class="fr">6/8</span></div></div>
+      <div class="progrow"><span class="mut">Deslindes</span><div class="prog"><div class="tk2"><i style="width:100%"></i></div><span class="fr">6/6</span></div></div>
+    </div>
+    <div class="salsig">
+      <span class="ok"><s>✓</s>Todos firmaron</span>
+      <span class="ok"><s>✓</s>Encuesta armada</span>
+    </div>
+  </div>
+  <div class="xbody" id="x3"><div class="pad" style="padding-top:0">
+    <div class="xh4">Seis personas suben</div>
+    <div class="pchips">
+      <span class="pchip ok"><span class="av">DM</span>Daniela Mercado<span class="dt">21 ago</span></span>
+      <span class="pchip ok"><span class="av">JS</span>Joaquín Sandoval<span class="dt">20 ago</span></span>
+      <span class="pchip ok"><span class="av">MB</span>Mariana Bracho<span class="dt">20 ago</span></span>
+      <span class="pchip ok"><span class="av">RC</span>Rodrigo Cázares<span class="dt">17 ago</span></span>
+      <span class="pchip ok"><span class="av">VF</span>Valeria Fonseca<span class="dt">16 ago</span></span>
+      <span class="pchip ok"><span class="av">EG</span>Emiliano Gaytán<span class="dt">14 ago</span></span>
+    </div>
+    <div class="salfoot"><button class="btn btn-ghost">Ver roster</button><span class="mut" style="font-size:12.5px">Nada pendiente en esta salida.</span></div>
+  </div></div>
+</article>
+
+<!-- empieza a llenarse -->
+<article class="card salcard alerta">
+  <div class="pad xhead" data-x="x4">
+    <div class="saltop"><div class="g">
+      <h3>Ensenada de Muertos <span class="chev2">▾</span></h3>
+      <p class="meta">Oct 3–4 · Baja California Sur</p>
+    </div><span class="salwhen">En 38 días</span></div>
+    <div class="salbars">
+      <div class="progrow"><span class="mut">Lugares</span><div class="prog"><div class="tk2"><i style="width:15.4%"></i></div><span class="fr">2/13</span></div></div>
+      <div class="progrow"><span class="mut">Deslindes</span><div class="prog warn"><div class="tk2"><i style="width:0%"></i></div><span class="fr">0/2</span></div></div>
+    </div>
+    <div class="salsig">
+      <span class="pend"><s>⚠</s>2 personas sin firmar</span>
+      <span class="ok"><s>✓</s>Encuesta armada</span>
+    </div>
+  </div>
+  <div class="xbody" id="x4"><div class="pad" style="padding-top:0">
+    <div class="xh4">Nadie ha firmado todavía</div>
+    <div class="salper"><span class="av">GO</span><span class="nm">Gabriel Ochoa Villarreal<small>gabriel@correo.com · +52 612 000 0000</small></span><span class="rt"><span class="st">Pendiente</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button><button class="btn btn-ghost btn-sm">WhatsApp</button></span></div>
+    <div class="salper"><span class="av">NW</span><span class="nm">Nanae Watabe<small>nanae@correo.com · sin teléfono</small></span><span class="rt"><span class="st">Pendiente</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button></span></div>
+    <div class="salfoot"><button class="btn btn-orange">Recordar a los 2</button><button class="btn btn-ghost">Ver roster</button></div>
+  </div></div>
+</article>
+
+<!-- estado 1 · próximas sin reservas -->
+<details class="card salvac salcard">
+  <summary><span class="g"><b>3 salidas próximas sin reservas</b> — publicadas, nadie ha comprado lugar todavía</span><span class="chev2">▾</span></summary>
+  <div class="in">
+    <div class="salvl"><span class="nm">El acto de ver · Xalatlaco</span><span class="dt">Sep 12 · 0 de 14</span><a href="#">Abrir</a></div>
+    <div class="salvl"><span class="nm">Safari marino · La Paz</span><span class="dt">Sep 19–20 · 0 de 10</span><a href="#">Abrir</a></div>
+    <div class="salvl"><span class="nm">El fondo de la barranca · Veracruz</span><span class="dt">Nov 7–9 · 0 de 8</span><a href="#">Abrir</a></div>
+  </div>
+</details>
+</section>
+
+<!-- ═══════ PASADAS ═══════ -->
+<section class="sec">
+<div class="salgrp"><span class="t">Pasadas</span><span class="n">6 salidas</span><span class="r">Ningún promedio se muestra sin su denominador</span></div>
+
+<!-- abierta -->
+<article class="card salcard">
+  <div class="pad xhead open" data-x="p1">
+    <div class="saltop"><div class="g">
+      <h3>Recolección de hongos <span class="chev2">▾</span></h3>
+      <p class="meta">26 de julio · Xalatlaco, Estado de México</p>
+    </div><span class="salwhen">Hace 31 días</span></div>
+    <div class="salmtr">
+      <div><div class="v">4,6<span class="st"> ★</span></div><div class="d">promedio de <b>9</b> respuestas</div></div>
+      <div><div class="v">+67<span class="u"> NPS</span></div><div class="d">8 promotores · 1 pasivo · 0 detractores</div></div>
+      <div><div class="v">50<span class="u">%</span></div><div class="d"><b>9 de 18</b> respondieron</div></div>
+    </div>
+    <div class="salsig">
+      <span class="pend"><s>↓</s>Lo más bajo: Comida (3,5)</span>
+      <span class="ok"><s>✎</s>2 testimonios listos para publicar</span>
+      <span class="ok"><s>↻</s>4 quieren repetir</span>
+      <span class="pend"><s>//</s>1 dijo qué faltó</span>
+    </div>
+  </div>
+  <div class="xbody on" id="p1"><div class="pad" style="padding-top:0">
+    <p class="salsay">«Faltó agua en el tramo de subida. Lo demás, impecable.»<small>Qué faltó · Monica Quintero Mateos</small></p>
+    <div class="xh4">Nueve contestaron</div>
+    <div class="salper"><span class="av">MQ</span><span class="nm">Monica Quintero Mateos<span class="tx">«El bosque huele distinto después de la lluvia. No sabía que eso se podía aprender.»</span></span><span class="rt"><span class="qz"><span class="s">★</span> 5 · NPS 10</span><span class="chip c-pub"><span class="cd" style="background:var(--olive)"></span>Publicable</span></span></div>
+    <div class="salper"><span class="av">IM</span><span class="nm">Ignacio Madrigal Ponce<span class="tx">«La guía sabe los nombres de todo. Volvería nada más por eso.»</span></span><span class="rt"><span class="qz"><span class="s">★</span> 5 · NPS 10</span><span class="chip c-pub"><span class="cd" style="background:var(--olive)"></span>Publicable</span></span></div>
+    <div class="salper"><span class="av">RB</span><span class="nm">Regina Bueno Ros<span class="tx">Sin comentario</span></span><span class="rt"><span class="qz"><span class="s">★</span> 4 · NPS 8</span></span></div>
+    <div class="salper"><span class="av">LT</span><span class="nm">Lucía Terán Berman<small>entró por el link de grupo, sin reserva</small></span><span class="rt"><span class="qz"><span class="s">★</span> 4 · NPS 9</span></span></div>
+    <div class="xh4">Nueve no han contestado</div>
+    <div class="salper"><span class="av">SR</span><span class="nm">Sylvia Rivera Jauregui</span><span class="rt"><span class="st">Sin responder</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button></span></div>
+    <div class="salper"><span class="av">AM</span><span class="nm">Alonso Mendiola Cruz</span><span class="rt"><span class="st">Sin responder</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button><button class="btn btn-ghost btn-sm">WhatsApp</button></span></div>
+    <div class="salfoot">
+      <div class="sallk"><span>caminante.numanhub.com/e/hongos-26jul</span><button class="btn btn-ghost btn-sm">Copiar</button></div>
+      <button class="btn btn-orange">Recordar a los 9 que faltan</button>
+    </div>
+  </div></div>
+</article>
+
+<!-- cerrada -->
+<article class="card salcard">
+  <div class="pad xhead" data-x="p2">
+    <div class="saltop"><div class="g">
+      <h3>Ensenada de Muertos <span class="chev2">▾</span></h3>
+      <p class="meta">12–15 de junio · Baja California Sur</p>
+    </div><span class="salwhen">Hace 75 días</span></div>
+    <div class="salmtr">
+      <div><div class="v">4,8<span class="st"> ★</span></div><div class="d">promedio de <b>5</b> respuestas</div></div>
+      <div><div class="v">+100<span class="u"> NPS</span></div><div class="d">5 promotores · 0 pasivos · 0 detractores</div></div>
+      <div><div class="v">38<span class="u">%</span></div><div class="d"><b>5 de 13</b> respondieron</div></div>
+    </div>
+    <div class="salsig">
+      <span class="ok"><s>✎</s>3 testimonios listos para publicar</span>
+      <span class="ok"><s>↻</s>5 quieren repetir</span>
+    </div>
+  </div>
+  <div class="xbody" id="p2"><div class="pad" style="padding-top:0">
+    <div class="xh4">Cinco contestaron</div>
+    <div class="salper"><span class="av">NW</span><span class="nm">Nanae Watabe<span class="tx">«El mar de Cortés se siente más viejo que uno.»</span></span><span class="rt"><span class="qz"><span class="s">★</span> 5 · NPS 10</span><span class="chip c-pub"><span class="cd" style="background:var(--olive)"></span>Publicable</span></span></div>
+    <div class="salper"><span class="av">GO</span><span class="nm">Gabriel Ochoa Villarreal<span class="tx">«Cuatro días y ni un momento de relleno.»</span></span><span class="rt"><span class="qz"><span class="s">★</span> 5 · NPS 10</span><span class="chip c-pub"><span class="cd" style="background:var(--olive)"></span>Publicable</span></span></div>
+    <div class="salper"><span class="av">PG</span><span class="nm">Paulina Garza Elizondo<span class="tx">Sin comentario</span></span><span class="rt"><span class="qz"><span class="s">★</span> 4 · NPS 9</span></span></div>
+    <div class="salfoot">
+      <div class="sallk"><span>caminante.numanhub.com/e/muertos-12jun</span><button class="btn btn-ghost btn-sm">Copiar</button></div>
+      <button class="btn btn-ghost">Recordar a los 8 que faltan</button>
+    </div>
+  </div></div>
+</article>
+
+<!-- estado 2 · pasada sin respuestas -->
+<article class="card salcard alerta">
+  <div class="pad xhead" data-x="p3">
+    <div class="saltop"><div class="g">
+      <h3>El fondo de la barranca <span class="chev2">▾</span></h3>
+      <p class="meta">2 de agosto · Veracruz</p>
+    </div><span class="salwhen">Hace 24 días</span></div>
+    <div class="salmtr">
+      <div><div class="v mut">—</div><div class="d">Sin promedio: nadie ha contestado</div></div>
+      <div><div class="v mut">—</div><div class="d">Sin NPS todavía</div></div>
+      <div><div class="v">0<span class="u">%</span></div><div class="d"><b>0 de 6</b> respondieron</div></div>
+    </div>
+    <div class="salsig"><span class="pend"><s>⚠</s>La encuesta salió hace 24 días y sigue en cero</span></div>
+  </div>
+  <div class="xbody" id="p3"><div class="pad" style="padding-top:0">
+    <div class="xh4">Seis personas viajaron</div>
+    <div class="salper"><span class="av">TN</span><span class="nm">Teresa Núñez Ávila</span><span class="rt"><span class="st">Sin responder</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button><button class="btn btn-ghost btn-sm">WhatsApp</button></span></div>
+    <div class="salper"><span class="av">HO</span><span class="nm">Héctor Ordóñez Lima</span><span class="rt"><span class="st">Sin responder</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button></span></div>
+    <div class="salper"><span class="av">CV</span><span class="nm">Carla Villanueva Sáenz</span><span class="rt"><span class="st">Sin responder</span><button class="btn btn-glass btn-sm">✉ Recordar</button><button class="btn btn-ghost btn-sm">Copiar link</button></span></div>
+    <div class="salfoot">
+      <div class="sallk"><span>Sin link de grupo todavía</span><button class="btn btn-ghost btn-sm">Generar</button></div>
+      <button class="btn btn-orange">Recordar a los 6</button>
+    </div>
+  </div></div>
+</article>
+</section>
+
+<!-- estado 3 · sin próximas -->
+<section class="sec">
+<div class="salgrp"><span class="t">Próximas</span><span class="n">0 salidas</span><span class="r">Estado vacío de este grupo</span></div>
+<div class="empty" style="padding:34px 24px">
+  <b style="display:block;font-size:17px;font-weight:400;color:var(--charcoal);margin-bottom:8px">Ninguna experiencia tiene fecha por delante.</b>
+  <p style="max-width:46ch;margin:0 auto;line-height:1.6">No es un pendiente. Una experiencia puede vivir publicada sin fechas y venderse por solicitud de grupo; ahí las fechas las pone quien pregunta.</p>
+  <div class="act-row" style="justify-content:center;margin-top:18px"><button class="btn btn-orange" data-x="nueva">+ Agregar salida</button><a class="btn btn-ghost" href="#experiencias">Ver solicitudes de grupo</a></div>
+</div>
+</section>
+
+<p class="docnote"><b>Notas de la maqueta.</b> <span class="sl">//</span> Las cápsulas se abren en su lugar con el acordeón del panel; «Recolección de hongos» pasada viene abierta. <span class="sl">//</span> El grupo vacío de «Próximas» está al final solo para documentar ese estado. <span class="sl">//</span> Cada promedio lleva su denominador pegado. <span class="sl">//</span> «WhatsApp» solo cuando la persona tiene teléfono. <span class="sl">//</span> Sin dinero en toda la pantalla.</p>
+
+</div>
+
+<script>
+const G1='<g class="g1"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+const G2='<g class="g2"><path d="M218.65,2.3c-8.09,0-14.64,6.56-14.64,14.64s6.56,14.64,14.64,14.64,14.64-6.56,14.64-14.64-6.56-14.64-14.64-14.64"/><path d="M276.91,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/><path d="M189.47,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/></g>';
+const G3='<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+document.querySelectorAll('[data-mark]').forEach(el=>el.innerHTML='<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">'+G1+G2+G3+'</svg>');
+document.addEventListener('click',(e)=>{
+  const t=e.target.closest('[data-x]');
+  if(!t) return;
+  if(t.tagName!=='BUTTON' && e.target.closest('button, a, input, select, textarea, label')) return;
+  const body=document.getElementById(t.dataset.x);
+  if(!body) return;
+  const on=body.classList.toggle('on');
+  const head=document.querySelector('.xhead[data-x="'+t.dataset.x+'"]');
+  if(head) head.classList.toggle('open',on);
+  if(on&&t.tagName==='BUTTON'&&t.dataset.x==='nueva') body.scrollIntoView?0:0;
+});
+</script>
+
+<!--
+  ════════════════════════════════════════════════════════════════════
+  REUSADO del panel de administración (Caminante Admin · Dashboard)
+  ════════════════════════════════════════════════════════════════════
+  Shell ......... .ahead / .top / .brand / .logo (mismo SVG del isotipo,
+                  mismas clases .g1 .g2 .g3) / .mode / .qa / .nav / .nav a.on
+  Layout ........ .page · .sec · .sec-head (+ h2.display, .desc)
+  Tipografía .... .eyebrow + span.sl · .display + em.ac · .mono · .mut · .subtitle
+  Superficies ... .card · .pad · .empty
+  Acordeón ...... .xhead · .xhead.open · .xbody · .xbody.on · .xpad · .xh4 · .chev2
+                  y el mismo listener data-x del dashboard
+  Progreso ...... .prog · .prog.warn · .tk2 > i · .fr · .progrow
+  Personas ...... .pchips · .pchip · .pchip.ok · .pchip.pend · .av · .stt · .dt
+  Cifras ........ .kpis · .kpi · .k-lbl · .k-val (+ .u) · .k-sub (+ b)
+  Estados ....... .chip · .c-pub · .cd
+  Botones ....... .btn · .btn-orange · .btn-glass · .btn-ghost · .btn-sm
+  Formularios ... .mini-form · .act-row
+  Variables ..... las 15 del :root, sin agregar un solo color nuevo
+
+  ════════════════════════════════════════════════════════════════════
+  INVENTADO, y por qué
+  ════════════════════════════════════════════════════════════════════
+  .saltop / .salwhen ..... el encabezado de la cápsula necesita el título a la
+        izquierda y la CUENTA REGRESIVA a la derecha, en mono. .sec-head alinea
+        al final (align-items:flex-end) y no sirve dentro de una tarjeta.
+        .salwhen.cerca es el mismo naranja, solo con peso 700.
+  .salbars ............... contenedor de dos .progrow seguidos; nada más que
+        el gap y el ancho máximo para que las barras no se estiren de más.
+  .salsig ................ la fila de señales («2 sin firmar», «encuesta
+        armada»). El panel no tenía una fila de alertas: los chips de estado
+        (.chip.c-*) son etiquetas de una palabra y aquí las señales son frases.
+        .crit usa el naranja al 13% con texto carbón para que el aviso más
+        grave cargue contraste sin volverse rojo de error.
+  .salmtr ................ la fila de métricas de una salida pasada. Es un
+        .kpi partido en tres, pero DENTRO del encabezado de la cápsula: cada
+        cifra lleva su denominador pegado abajo, que es la regla dura de esta
+        pantalla. Un .kpi por métrica habría ocupado tres tarjetas.
+  .salper ................ el renglón de persona CON acciones. .pchip es un
+        chip compacto y no aguanta tres botones ni una cita; se usa .pchip
+        para quien ya firmó (se barre de un vistazo) y .salper para quien
+        tiene algo pendiente o algo que dijo. Hereda .av del chip de persona.
+  .salsay ................ la cita de «qué faltó» y la explicación de la
+        alerta de encuesta. El panel tenía .tcard para testimonios, pero eso
+        es una tarjeta de galería; esto es una nota dentro de la cápsula.
+  .salfoot / .sallk ...... pie de la cápsula abierta y la caja del link de
+        grupo con su botón de copiar.
+  .salgrp ................ cabecera de grupo «PRÓXIMAS · 4 salidas». Es un
+        .sec-head más chico, sin título display, porque los dos grupos viven
+        dentro de una misma pantalla que ya tiene su encabezado.
+  .salcard.alerta / .grave  el borde de la tarjeta como termómetro. Tres
+        niveles: sin color, hairline naranja, y hairline + regla de 3px.
+  .salvac / .salvl ....... las salidas sin reservas colapsadas. Usa <details>
+        y el .chev2 del panel; el punteado las separa de las cápsulas reales.
+  .salnew / .salstep / .salpick   el camino de «+ Agregar salida»: cuatro
+        pasos numerados con los inputs de .mini-form. Los pasos numerados no
+        existían en el panel.
+  .docnote ............... solo notas de la maqueta; no va a producción.
+-->
+</body>
+</html>

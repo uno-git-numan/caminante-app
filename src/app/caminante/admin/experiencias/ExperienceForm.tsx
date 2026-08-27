@@ -6,14 +6,16 @@
 // itinerario, inversión, incluye, faq, mochila, fechas, cierre) que al guardar
 // se convierte en `page.blocks` (buildBlocks) + design:"v2". Las secciones de
 // operación (precio, fechas/cupo, registro, encuesta) siguen sobre Experience.
-// Wiring: saveExperience (guarda jsonb) + saveExperienceSlots (experience_slots).
+// Wiring: saveExperience (guarda el jsonb de la experiencia).
+// ⚠️ Ya NO escribe salidas: la experiencia es la plantilla atemporal y las
+// fechas viven en su propia pantalla. Ver .claude/rules/experiencias.md.
 // Fotos: subida con compresión en el navegador, multi-selección soportada.
 
 import { useMemo, useRef, useState } from "react";
 import { emptyExperience, slugify } from "@/lib/experiences/empty";
 import PrellenarIA from "./PrellenarIA";
 import ChecklistComunicacion from "./ChecklistComunicacion";
-import { aplicarPrellenadoV2, slotsDesdeIA } from "@/lib/ai/aplicar-prellenado";
+import { aplicarPrellenadoV2 } from "@/lib/ai/aplicar-prellenado";
 import { leerClausulas, etiquetaOrigen, type Clausula } from "@/lib/legal/clausulas";
 import { seccionesVisibles, CASILLAS_DESLINDE } from "@/lib/registration/estructura";
 import type { ContactoDueno } from "@/lib/experiences/empty";
@@ -21,7 +23,6 @@ import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import { ESTADOS } from "@/lib/experiences/estados";
-import { saveExperienceSlots } from "@/lib/experiences/slots-admin";
 import type { Experience, V2Image } from "@/lib/experiences/types";
 import {
   emptyV2Draft,
@@ -48,7 +49,6 @@ const BANK_EXTRA: { key: "problemas" | "cielo" | "detalle"; label: string; hint:
   { key: "detalle", label: "Detalle / textura", hint: "close-ups y texturas" },
 ];
 
-type SlotRow = { id?: string; label: string; start: string; end: string; cupo: string };
 type InitialSlot = { id: string; label: string; startsAt: string; endsAt: string | null; capacity: number | null };
 
 const G1 =
@@ -444,19 +444,9 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
   const [v2, setV2] = useState<V2Draft>(() =>
     initial ? draftFromBlocks(initial.page, initial) : emptyV2Draft(emptyExperience(dueno)),
   );
-  const [slots, setSlots] = useState<SlotRow[]>(
-    (initialSlots ?? []).map((s) => ({ id: s.id, label: s.label, start: (s.startsAt || "").slice(0, 10), end: (s.endsAt || "").slice(0, 10), cupo: s.capacity != null ? String(s.capacity) : "" })),
-  );
-  const [cupoEstandar, setCupoEstandar] = useState("");
-  // Ids de salidas que la persona quitó a mano con «Quitar».
-  //
-  // ⚠️ Antes esto no existía: quitar una fila la hacía desaparecer de la lista y
-  // `saveExperienceSlots` cerraba «todo lo que ya no venga». Esa regla —la
-  // ausencia significa cerrar— es la que se vuelve peligrosa en cuanto las
-  // salidas también se pueden crear desde su propia pantalla: una salida que
-  // este formulario no conoce se cerraría sola al guardar. Ahora el cierre es
-  // una intención explícita y viaja por id.
-  const [cerrarIds, setCerrarIds] = useState<string[]>([]);
+  // Fechas que la IA encontró en el itinerario. No se capturan aquí —las
+  // salidas viven en su propia pantalla— pero se enseñan para no perderlas.
+  const [fechasIA, setFechasIA] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("Borrador sin guardar");
   const [statusOk, setStatusOk] = useState(false);
@@ -552,10 +542,10 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
     const r = aplicarPrellenadoV2(exp, v2, data);
     setExp(r.exp);
     setV2(r.draft);
-    setSlots((prev) => {
-      const conContenido = prev.filter((s) => s.label.trim() || s.start);
-      return [...conContenido, ...slotsDesdeIA(slotsIA, conContenido)];
-    });
+    // Las fechas ya no se capturan aquí, pero la IA sí las encuentra en el
+    // itinerario. Tirarlas en silencio sería perder trabajo que ya se hizo: se
+    // reportan para que se den de alta en Salidas.
+    setFechasIA(slotsIA.map((s) => s.label || s.startDate).filter(Boolean));
     setStatusOk(false);
     setStatus("Pre-llenado con IA — revisa antes de guardar");
   }
@@ -724,33 +714,29 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
     setPendienteSobrescribir(null);
     setExp(filled);
     setSavedSlug(res.slug);
-    // Salidas → experience_slots (fuera del jsonb)
-    const slotInputs = slots
-      .filter((s) => s.label.trim() && s.start)
-      .map((s) => ({
-        ...(s.id ? { id: s.id } : {}),
-        label: s.label.trim(),
-        startsAt: `${s.start}T12:00:00Z`,
-        endsAt: s.end ? `${s.end}T23:00:00Z` : null,
-        capacity: s.cupo ? Number(s.cupo) : null,
-      }));
-    const slotRes = await saveExperienceSlots(res.slug, slotInputs, { cerrarIds });
-    if (slotRes.ok) setCerrarIds([]); // ya se cerraron: no repetir en el siguiente guardado
+    // ⚠️ ESTE FORMULARIO YA NO ESCRIBE FECHAS.
+    //
+    // La experiencia es la PLANTILLA atemporal; la salida es la instancia que
+    // se vende, y vive en su propia pantalla. Mientras las dos puertas
+    // existieron, `saveExperienceSlots` cerraba «lo que no venga en la lista»,
+    // así que una salida creada fuera del formulario moría en silencio al
+    // siguiente guardado de la experiencia. Se quitó la puerta, no el candado.
     setSaving(false);
-    setStatusOk(slotRes.ok);
-    if (!slotRes.ok) { setStatus(`Guardada, pero las fechas fallaron: ${slotRes.error}`); return; }
+    setStatusOk(true);
     setStatus(st === "published" ? `✓ Experiencia publicada · ${t}` : `✓ Borrador guardado · ${t}`);
   }
 
   async function onSubmit(st: Experience["status"]) {
     // No dejar PUBLICAR sin fecha de salida y sin precio (borrador sí se permite).
     if (st === "published") {
-      const hayFecha = slots.some((s) => s.start.trim());
+      // ⚠️ PUBLICAR YA NO EXIGE FECHA. Una experiencia puede vivir publicada
+      // para siempre sin ninguna salida planeada, vendiéndose por solicitud de
+      // grupo: es un modo de operar, no un pendiente. El precio sí sigue siendo
+      // obligatorio — sin él no hay nada que cobrar.
       const hayPrecio = !!price.amount.trim() || priceTiers.some((t) => t.amount.trim());
-      if (!hayFecha || !hayPrecio) {
-        const faltan = [!hayFecha ? "una fecha de salida (sección Fechas & cupo)" : null, !hayPrecio ? "el precio (sección Precio o Inversión)" : null].filter(Boolean);
+      if (!hayPrecio) {
         setStatusOk(false);
-        setStatus(`No puedes publicar sin ${faltan.join(" y ")}. Guárdala como borrador o complétala.`);
+        setStatus("No puedes publicar sin el precio (sección Precio o Inversión). Guárdala como borrador o complétalo.");
         return;
       }
       // REGLA DE LUIS: "siempre tiene que estar prendido todo antes de publicar
@@ -904,6 +890,23 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
         <div className="main">
           {!initial ? <PrellenarIA onResult={onPrellenado} /> : null}
 
+          {/* Las fechas ya no se capturan en este formulario, pero la IA sí las
+              encuentra en el itinerario. Tirarlas en silencio sería perder
+              trabajo que ya se hizo. */}
+          {fechasIA.length ? (
+            <div className="startcard" style={{ display: "block", borderColor: "rgba(255,93,54,.35)" }}>
+              <strong>La IA encontró {fechasIA.length === 1 ? "una fecha" : `${fechasIA.length} fechas`} en el material</strong>
+              <p className="sd-hint" style={{ marginTop: 6 }}>
+                {fechasIA.join(" · ")}
+              </p>
+              <p className="sd-hint" style={{ marginTop: 6 }}>
+                Las salidas no se dan de alta aquí — esta pantalla es la
+                experiencia, que no tiene fecha. Guarda primero y agrégalas desde
+                su ficha, en <b>Eventos</b>.
+              </p>
+            </div>
+          ) : null}
+
           <details className="brandbanner">
             <summary>
               <span className="bb-l"><span className="chip-auto">auto</span><span><span className="t">Ajustes de marca</span><br /><span className="d">Heredado de tu perfil · contacto, moneda, deslinde, encuesta</span></span></span>
@@ -930,7 +933,10 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
               registration: exp.registration,
               feedback: exp.feedback,
               guias: v2.guides.map((g) => ({ name: g.title, bio: (g.paragraphs || []).find((x) => x && x.trim()) })),
-              salidas: slots.map((sl) => ({ date: sl.start })),
+              // Las salidas ya no se editan aquí: se leen de la BASE, que es la
+              // verdad. Antes venían del estado del formulario y el checklist
+              // contaba fechas que todavía no existían.
+              salidas: (initialSlots ?? []).map((s) => ({ date: (s.startsAt || "").slice(0, 10) })),
             }}
           />
 
@@ -1383,54 +1389,6 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
               <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
             </div>
             <AvisoPrecio />
-          </section>
-
-          {/* 14 · FECHAS & CUPO */}
-          <section className="card" id="s14">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Fechas &amp; cupo</span><h2>Fechas &amp; cupo</h2><p className="desc">Las fechas de salida y cuántos lugares hay en cada una. El sitio muestra &quot;Quedan N lugares&quot; y baja el número conforme la gente reserva; cuando se llena, aparece &quot;Agotado&quot;. Deja el cupo vacío para una salida sin tope.</p></div>
-            <div className="row c2" style={{ maxWidth: 480 }}>
-              <Field label="Cupo estándar" hint="se usa al agregar salidas"><input type="number" value={cupoEstandar} placeholder="16" onChange={(e) => setCupoEstandar(e.target.value)} /></Field>
-              <Field label="Mínimo para salir" hint="valida &quot;solicitar nueva fecha&quot; · vacío = desde 1">
-                <input
-                  type="number"
-                  min={1}
-                  value={exp.minPeople ?? ""}
-                  placeholder="ej. 6"
-                  onChange={(e) => set("minPeople", e.target.value ? Math.max(1, parseInt(e.target.value, 10) || 1) : undefined)}
-                />
-              </Field>
-            </div>
-            <div className="subhead">Salidas</div>
-            <div className="rep-items">
-              {slots.map((s, i) => (
-                <div key={i} className="rep-card">
-                  <button type="button" className="rm" onClick={() => {
-                    // Solo las que ya existen en la base se piden cerrar; una fila
-                    // recién agregada y nunca guardada simplemente desaparece.
-                    if (s.id) setCerrarIds((prev) => (prev.includes(s.id!) ? prev : [...prev, s.id!]));
-                    setSlots(slots.filter((_, j) => j !== i));
-                  }}>Quitar</button>
-                  <div className="row c3">
-                    <Field label="Fecha de salida"><input type="date" value={s.start} onChange={(e) => setSlots(slots.map((x, j) => {
-                      if (j !== i) return x;
-                      const start = e.target.value;
-                      // La etiqueta se regenera sola de la fecha, salvo que el admin la haya editado a mano.
-                      const label = (!x.label.trim() || x.label === fechaLabel(x.start, x.end)) ? fechaLabel(start, x.end) : x.label;
-                      return { ...x, start, label };
-                    }))} /></Field>
-                    <Field label="Termina" hint="opcional · varios días"><input type="date" value={s.end} onChange={(e) => setSlots(slots.map((x, j) => {
-                      if (j !== i) return x;
-                      const end = e.target.value;
-                      const label = (!x.label.trim() || x.label === fechaLabel(x.start, x.end)) ? fechaLabel(x.start, end) : x.label;
-                      return { ...x, end, label };
-                    }))} /></Field>
-                    <Field label="Cupo" hint="vacío = sin tope"><input type="number" value={s.cupo} placeholder="sin tope" onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, cupo: e.target.value } : x)))} /></Field>
-                  </div>
-                  <Field label="Cómo se muestra" hint="se genera de la fecha; puedes editarla"><input type="text" value={s.label} placeholder="26 jul 2026" onChange={(e) => setSlots(slots.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></Field>
-                </div>
-              ))}
-            </div>
-            <button type="button" className="add" onClick={() => setSlots([...slots, { label: "", start: "", end: "", cupo: cupoEstandar }])}>+ Agregar salida</button>
           </section>
 
           {/* 15 · REGISTRO & DESLINDE */}

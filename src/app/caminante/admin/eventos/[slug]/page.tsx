@@ -5,6 +5,7 @@ import CopyLinkBtn from "./CopyLinkBtn";
 import OperadorSelect from "./OperadorSelect";
 import { fetchEventoDetalle, formatMXN, formatFechaCorta } from "@/lib/admin/queries";
 import {
+  crearSalidaAction,
   setSlotStatusAction,
   assignOperatorAction,
   createOperatorAction,
@@ -241,14 +242,9 @@ export default async function EventoDetallePage({
                   <tr>
                     <td colSpan={8}>
                       <div className="empty" style={{ border: 0 }}>
-                        Sin salidas aún.{" "}
-                        <Link
-                          href={`/caminante/admin/experiencias/${ev.slug}`}
-                          style={{ textDecoration: "underline" }}
-                        >
-                          Agrégalas en el formulario de la experiencia
-                        </Link>
-                        , junto con su contenido.
+                        Sin salidas planeadas. No es un pendiente: la experiencia
+                        se puede vender por solicitud de grupo. Agrega una fecha
+                        aquí abajo cuando la tengas.
                       </div>
                     </td>
                   </tr>
@@ -256,6 +252,39 @@ export default async function EventoDetallePage({
               </tbody>
             </table>
           </div>
+
+          {/* ALTA DE SALIDA.
+              Vive aquí porque el formulario de la experiencia dejó de capturar
+              fechas: la experiencia es la plantilla y la salida es la instancia
+              que se vende. Sin este camino, quitar aquella sección habría dejado
+              a la plataforma sin ninguna forma de dar de alta una fecha.
+              Cuando exista la pantalla «Salidas», este bloque se MUEVE allá.
+              No se queda en los dos lados. */}
+          <form action={crearSalidaAction} className="mini-form" style={{ marginTop: 14, alignItems: "flex-end" }}>
+            <input type="hidden" name="experienceId" value={ev.id} />
+            <input type="hidden" name="slug" value={ev.slug} />
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 600 }}>
+              Fecha de salida
+              <input name="fecha" type="date" required />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 600 }}>
+              Termina <span className="mut" style={{ fontWeight: 400 }}>opcional</span>
+              <input name="fin" type="date" />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 600 }}>
+              Cupo <span className="mut" style={{ fontWeight: 400 }}>vacío = sin tope</span>
+              <input name="cupo" type="number" min={0} style={{ maxWidth: 90 }} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 170px", fontSize: 12, fontWeight: 600 }}>
+              Cómo se muestra <span className="mut" style={{ fontWeight: 400 }}>vacío = la fecha</span>
+              <input name="etiqueta" placeholder="Oct 8–11" />
+            </label>
+            <button className="btn btn-orange btn-sm" type="submit">+ Agregar salida</button>
+          </form>
+          <p className="mut" style={{ fontSize: 12, marginTop: 8 }}>
+            La salida nace a la venta. Que el público la vea depende de que esta
+            experiencia esté publicada.
+          </p>
         </div>
 
         {/* Operador y comisión — DOS BLOQUES, según quién mira.
