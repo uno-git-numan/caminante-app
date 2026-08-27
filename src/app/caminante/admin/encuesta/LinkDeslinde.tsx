@@ -1,6 +1,7 @@
 "use client";
 
-// COPIAR EL LINK DEL DESLINDE de una persona, para mandárselo a mano.
+// COPIAR EL LINK de una persona, para mandárselo a mano — del DESLINDE antes
+// del viaje, o de la ENCUESTA después.
 //
 // El recordatorio por correo existe y funciona, pero el correo no siempre
 // llega: cae en promociones, el cliente puso mal su dirección, o simplemente no
@@ -12,6 +13,11 @@
 // (`/caminante/registro/<slug>?reserva=<id>`), ya trae la reserva, así que la
 // persona llega con su lugar reconocido y no vuelve a elegir salida.
 //
+// Sirve para las dos cosas porque el problema es el mismo: el correo no siempre
+// llega, y tanto la firma como la respuesta hay que perseguirlas. Lo único que
+// cambia es el mensaje — y por eso el mensaje vive aquí, en un solo lugar, en
+// vez de duplicarse en cada pantalla que lo necesite.
+//
 // ⚠️ El de WhatsApp solo aparece si HAY teléfono. Un `wa.me/` sin número abre
 // una pantalla vacía y se lee como que el sistema está roto.
 
@@ -22,19 +28,27 @@ export default function LinkDeslinde({
   telefono,
   nombre,
   experiencia,
+  tipo = "deslinde",
 }: {
   link: string;
   telefono: string | null;
   nombre: string;
   experiencia: string;
+  /** Cambia el mensaje de WhatsApp, no el comportamiento. */
+  tipo?: "deslinde" | "encuesta";
 }) {
   const [copiado, setCopiado] = useState(false);
 
   // Solo el primer nombre: en WhatsApp el nombre completo suena a cobranza.
   const primerNombre = nombre.trim().split(/\s+/)[0] || "";
   const mensaje =
-    `Hola ${primerNombre}, te comparto el registro y la carta de deslinde de ${experiencia}. ` +
-    `Es rápido y nos deja tus datos de emergencia por si algo pasa en el camino:\n${link}`;
+    tipo === "encuesta"
+      ? // Después del viaje se pide un favor, no se cobra un trámite: el tono
+        // cambia y se dice cuánto cuesta, que es lo que decide si lo abren.
+        `Hola ${primerNombre}, ¿nos regalas dos minutos? Nos ayuda mucho saber cómo te fue en ${experiencia}, ` +
+        `y de ahí sale lo que cambiamos para la próxima:\n${link}`
+      : `Hola ${primerNombre}, te comparto el registro y la carta de deslinde de ${experiencia}. ` +
+        `Es rápido y nos deja tus datos de emergencia por si algo pasa en el camino:\n${link}`;
   const wa = telefono ? `https://wa.me/${telefono.replace(/[^\d]/g, "")}?text=${encodeURIComponent(mensaje)}` : null;
 
   return (

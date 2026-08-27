@@ -13,6 +13,7 @@
 import { useState } from "react";
 import type { Salida } from "@/lib/admin/salidas";
 import LinkDeslinde from "@/app/caminante/admin/encuesta/LinkDeslinde";
+import { reenviarEncuesta } from "@/lib/feedback/resend-actions";
 
 // ⚠️ Vive aquí y no en lib/admin/salidas.ts a propósito: ese módulo llega hasta
 // next/headers por la cadena del alcance, y un componente CLIENTE que lo
@@ -123,9 +124,15 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
                   <s>{"//"}</s>1 dijo qué faltó
                 </span>
               ) : null}
-              {!s.respuestas ? (
+              {s.sinResponder.length ? (
                 <span className="pend">
-                  <s>·</s>Sin respuestas todavía
+                  <s>·</s>
+                  {s.sinResponder.length} {s.sinResponder.length === 1 ? "falta" : "faltan"} de responder
+                </span>
+              ) : null}
+              {!s.respuestas && !s.sinResponder.length ? (
+                <span className="pend">
+                  <s>·</s>Nadie recibió la encuesta
                 </span>
               ) : null}
             </div>
@@ -199,11 +206,62 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
                     </div>
                   ))}
                 </>
-              ) : (
+              ) : null}
+
+              {/* Perseguir al que NO respondió es la mitad del trabajo, igual
+                  que con las firmas. Mismas tres acciones: correo, copiar el
+                  link, y WhatsApp cuando hay teléfono — porque el correo no
+                  siempre llega y una encuesta sin respuestas no mide nada. */}
+              {s.sinResponder.length ? (
+                <>
+                  <div className="xh4">
+                    {s.sinResponder.length === 1
+                      ? "Falta de responder"
+                      : `Faltan de responder (${s.sinResponder.length})`}
+                  </div>
+                  {s.sinResponder.map((p) => (
+                    <div className="salper" key={p.feedbackId}>
+                      <span className="av">{iniciales(p.nombre)}</span>
+                      <span className="nm">
+                        {p.nombre}
+                        <small>{[p.email, p.telefono || "sin teléfono"].filter(Boolean).join(" · ")}</small>
+                      </span>
+                      <span className="rt">
+                        <span className="st">Sin responder</span>
+                        {p.email ? (
+                          <form action={reenviarEncuesta} style={{ display: "inline" }}>
+                            <input type="hidden" name="feedbackId" value={p.feedbackId} />
+                            <button
+                              type="submit"
+                              className="btn btn-glass btn-sm"
+                              style={{ padding: "3px 9px", fontSize: 11.5 }}
+                              title={`Reenviar la encuesta a ${p.email}`}
+                            >
+                              ✉ Recordar
+                            </button>
+                          </form>
+                        ) : null}
+                        {p.token ? (
+                          <LinkDeslinde
+                            tipo="encuesta"
+                            link={`${sitio}/caminante/feedback/${p.token}`}
+                            telefono={p.telefono}
+                            nombre={p.nombre}
+                            experiencia={s.experiencia}
+                          />
+                        ) : null}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              ) : null}
+
+              {!s.respondieron.length && !s.sinResponder.length ? (
                 <div className="empty" style={{ border: 0 }}>
-                  Nadie ha respondido esta salida todavía.
+                  A nadie de esta salida se le mandó la encuesta.
                 </div>
-              )}
+              ) : null}
+
               <div className="salfoot">
                 {s.tokenGrupo ? (
                   <div className="sallk">

@@ -36,6 +36,17 @@ export type PersonaPendiente = {
 
 export type PersonaFirmada = { nombre: string; fecha: string };
 
+/** Alguien a quien se le mandó la encuesta y todavía no contesta. */
+export type SinResponder = {
+  /** Id de la fila de `experience_feedback` — lo pide `reenviarEncuesta`. */
+  feedbackId: string;
+  /** Su token personal: `/caminante/feedback/<token>`. */
+  token: string | null;
+  nombre: string;
+  email: string | null;
+  telefono: string | null;
+};
+
 export type Respuesta = {
   nombre: string;
   stars: number | null;
@@ -84,6 +95,7 @@ export type Salida = {
   repiten: number;
   queFalto: { texto: string; autor: string } | null;
   respondieron: Respuesta[];
+  sinResponder: SinResponder[];
   tokenGrupo: string | null;
 };
 
@@ -146,7 +158,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       sb
         .from("experience_feedback")
         .select(
-          "slot_id, contact_id, reservation_id, status, overall_stars, nps, section_ratings, loved_text, improve_text, testimonial_consent, publish_status, rebook_interest",
+          "id, token, slot_id, contact_id, reservation_id, status, overall_stars, nps, section_ratings, loved_text, improve_text, testimonial_consent, publish_status, rebook_interest",
         ),
     ]);
 
@@ -297,6 +309,22 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
 
     const conMejora = enviadas.find((f) => ((f.improve_text as string) ?? "").trim());
 
+    // Quién falta de contestar. Es la mitad que faltaba: la pantalla enseñaba
+    // quién respondió, pero perseguir al que NO respondió es el trabajo — igual
+    // que con las firmas del deslinde.
+    const sinResponder: SinResponder[] = mios
+      .filter((f) => f.status !== "submitted")
+      .map((f) => {
+        const c = cById.get(f.contact_id);
+        return {
+          feedbackId: String(f.id),
+          token: (f.token as string) ?? null,
+          nombre: c?.full_name || c?.email || "—",
+          email: c?.email ?? null,
+          telefono: c?.phone ?? null,
+        };
+      });
+
     const respondieron: Respuesta[] = enviadas.map((f) => ({
       nombre: cById.get(f.contact_id)?.full_name || "—",
       stars: Number.isFinite(Number(f.overall_stars)) ? Number(f.overall_stars) : null,
@@ -340,6 +368,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
           }
         : null,
       respondieron,
+      sinResponder,
       tokenGrupo: s.feedback_token,
     });
   }
