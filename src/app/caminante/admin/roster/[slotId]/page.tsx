@@ -20,7 +20,19 @@ export default async function RosterPage({
   const roster = await fetchRoster(slotId);
   if (!roster) notFound();
 
-  const firmados = roster.rows.filter((r) => r.deslinde).length;
+  // TRES cuentas distintas, y cada una se dice por su nombre.
+  //
+  // ⚠️ Antes decía «6 personas · 6/6 con deslinde» donde había 5 lugares
+  // pagados y 4 firmas. Ninguno de los dos números estaba mal: la cápsula
+  // contaba LUGARES PAGADOS y el roster contaba FILAS, y el encabezado los
+  // presentaba como si midieran lo mismo. Un guía que lee «6/6 con deslinde»
+  // cree que tiene seis firmas y tiene cuatro.
+  const enLista = roster.rows.length;
+  const acompanantes = roster.rows.filter((r) => r.titular).length;
+  // Filas de más de lo que se pagó: alguien capturó más participantes que
+  // lugares compró. Es dinero y es una persona en el cerro; se dice, no se
+  // esconde, y lo resuelve una persona — no un ajuste en la consulta.
+  const deMas = enLista - roster.lugaresPagados;
 
   return (
     <AdminShell active="personas">
@@ -46,8 +58,17 @@ export default async function RosterPage({
               Roster <em className="ac">de salida.</em>
             </h1>
             <div className="desc">
-              {roster.salidaLabel} · {formatFechaCorta(roster.startsAt)} · {roster.rows.length} personas ·{" "}
-              {firmados}/{roster.rows.length} con deslinde
+              {roster.salidaLabel} · {formatFechaCorta(roster.startsAt)} ·{" "}
+              <b>{roster.lugaresPagados}</b> {roster.lugaresPagados === 1 ? "lugar pagado" : "lugares pagados"} ·{" "}
+              <b>{enLista}</b> en la lista
+              {acompanantes ? (
+                <>
+                  {" "}
+                  ({roster.titulares} {roster.titulares === 1 ? "titular" : "titulares"} + {acompanantes}{" "}
+                  {acompanantes === 1 ? "acompañante" : "acompañantes"})
+                </>
+              ) : null}{" "}
+              · <b>{roster.firmados}</b>/{roster.titulares} deslindes firmados
             </div>
           </div>
           <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
@@ -57,6 +78,27 @@ export default async function RosterPage({
             <PrintButton />
           </div>
         </div>
+
+        {deMas > 0 ? (
+          <div
+            className="card pad"
+            style={{
+              marginBottom: 16,
+              borderColor: "rgba(255,93,54,.35)",
+              background: "rgba(255,93,54,.06)",
+              fontSize: 13,
+              lineHeight: 1.55,
+            }}
+          >
+            <b>
+              Hay {deMas} {deMas === 1 ? "persona" : "personas"} en la lista de más de lo pagado.
+            </b>{" "}
+            Se pagaron {roster.lugaresPagados}{" "}
+            {roster.lugaresPagados === 1 ? "lugar" : "lugares"} y en la lista van {enLista}. Alguien
+            capturó más participantes de los que compró. No lo cuadramos aquí: o se cobra el lugar
+            que falta, o se corrige el número de personas de esa reserva en Salidas.
+          </div>
+        ) : null}
 
         <div className="card" style={{ overflow: "hidden" }}>
           <RosterTabla rows={roster.rows} />

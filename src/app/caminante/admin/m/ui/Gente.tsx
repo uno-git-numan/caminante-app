@@ -450,18 +450,27 @@ export function Roster({ nav, ui, params }: { nav: Nav; ui: Ui; params: Record<s
       <NavBar
         onBack={nav.pop}
         t={"Roster · " + r.salida}
-        s={r.personas.length + " personas · modo campo"}
+        s={r.personas.length + " en la lista · modo campo"}
       />
       <div className="adm-pad">
         <Head
           eyebrow={"Roster · " + r.experiencia}
           title={
             r.personas.length +
-            " personas, <em>" +
-            (r.sinFirmar === 0 ? "todas firmaron." : r.sinFirmar + " sin firmar.") +
+            " en la lista, <em>" +
+            (r.sinFirmar === 0 ? "todos firmaron." : r.sinFirmar + " sin firmar.") +
             "</em>"
           }
         />
+        {r.personas.length > r.lugaresPagados ? (
+          <div className="adm-note adm-note-warn" style={{ marginTop: 10 }}>
+            <span className="st"></span>
+            <span>
+              Van {r.personas.length} en la lista y se pagaron {r.lugaresPagados}. Alguien capturó
+              más participantes de los que compró: se cobra el lugar o se corrige la reserva.
+            </span>
+          </div>
+        ) : null}
         <Gap s />
         <div className="adm-note adm-note-info">
           <span className="st" style={{ background: "var(--olive)" }}></span>

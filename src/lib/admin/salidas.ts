@@ -76,6 +76,12 @@ export type Salida = {
   personas: number;
   cupo: number | null;
 
+  // ── lo editable, para el panel «Editar salida» ──
+  // En «YYYY-MM-DD», que es lo que come un <input type="date">.
+  inicioInput: string;
+  finInput: string;
+  precio: number | null;
+
   // ── deslinde ──
   firmados: number;
   titulares: number;
@@ -163,7 +169,9 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       sb.from("experiences").select("id, slug, status, data, operator_id"),
       sb
         .from("experience_slots")
-        .select("id, experience_id, label, starts_at, capacity_total, status, visibility, feedback_token"),
+        .select(
+          "id, experience_id, label, starts_at, ends_at, capacity_total, price_mxn, status, visibility, feedback_token",
+        ),
       sb.from("reservations").select("id, experience_id, slot_id, contact_id, num_people, status"),
       sb.from("registrations").select("reservation_id, signed_at"),
       sb
@@ -187,6 +195,8 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     id: string;
     experience_id: string;
     label: string | null;
+    ends_at: string | null;
+    price_mxn: number | null;
     starts_at: string | null;
     capacity_total: number | null;
     status: string;
@@ -357,6 +367,9 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       cerca: dias !== null && dias >= 0 && dias <= 7,
       personas,
       cupo: s.capacity_total,
+      inicioInput: s.starts_at ? cdmxDay(s.starts_at) : "",
+      finInput: s.ends_at ? cdmxDay(s.ends_at) : "",
+      precio: s.price_mxn ?? null,
       firmados,
       titulares,
       pendientes,

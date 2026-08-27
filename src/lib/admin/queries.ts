@@ -1081,6 +1081,13 @@ export type Roster = {
   salidaLabel: string;
   startsAt: string | null;
   rows: RosterRow[];
+  /** Suma de `num_people` de las reservas que apartan lugar: lo PAGADO. */
+  lugaresPagados: number;
+  /** Reservas que apartan lugar. Es el denominador REAL de las firmas: un
+   *  deslinde lo firma el titular y el acompañante lo hereda. */
+  titulares: number;
+  /** Titulares que ya firmaron. */
+  firmados: number;
 };
 
 function edadDe(birth: string | null | undefined, ref: string | null): number | null {
@@ -1305,6 +1312,16 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
     return a.nombre.localeCompare(b.nombre);
   });
 
+  // Las TRES cuentas del roster son distintas y hay que devolver las tres.
+  // Presentarlas como una sola fue el bug: la cápsula decía «5» (lugares
+  // pagados) y el roster «6 personas» (filas), y ninguna estaba mal.
+  //
+  // ⚠️ Las filas pueden pasar de los lugares pagados: un titular puede capturar
+  // más participantes de los que compró. Eso NO se corrige aquí bajando un
+  // número — es un dato del negocio y lo resuelve una persona.
+  const lista = (resvs || []) as { id: string; num_people: number }[];
+  const lugaresPagados = lista.reduce((a, r) => a + (r.num_people || 1), 0);
+
   return {
     slotId,
     experienciaNombre: experienceTitle((exp?.data as Partial<Experience>) ?? null, exp?.slug || "?"),
@@ -1312,6 +1329,11 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
     salidaLabel: (slot.label as string) || formatFechaCorta(slot.starts_at as string | null),
     startsAt: slot.starts_at as string | null,
     rows,
+    lugaresPagados,
+    titulares: lista.length,
+    // El deslinde lo firma el TITULAR y el acompañante lo hereda: contar firmas
+    // sobre las filas daba «6/6» donde hay cuatro firmas reales.
+    firmados: lista.filter((r) => regByResv.has(r.id)).length,
   };
 }
 

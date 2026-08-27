@@ -291,6 +291,10 @@ export type RosterMovil = {
   csvUrl: string;
   imprimibleUrl: string;
   sinFirmar: number;
+  /** Lugares vendidos. Puede ser MENOS que `personas.length`. */
+  lugaresPagados: number;
+  titulares: number;
+  firmados: number;
   personas: {
     reservationId: string;
     nombre: string;
@@ -316,7 +320,12 @@ export async function fetchRosterMovil(slotId: string): Promise<RosterMovil | nu
     // Las dos salidas que YA existen en el escritorio, admin-gated las dos.
     csvUrl: `/caminante/admin/roster/${r.slotId}/csv`,
     imprimibleUrl: `/caminante/admin/roster/${r.slotId}`,
-    sinFirmar: r.rows.filter((x) => !x.deslinde).length,
+    // El deslinde lo firma el TITULAR; el acompañante lo hereda. Contar sobre
+    // las filas daba «todas firmaron» con firmas de menos.
+    sinFirmar: r.titulares - r.firmados,
+    lugaresPagados: r.lugaresPagados,
+    titulares: r.titulares,
+    firmados: r.firmados,
     personas: r.rows.map((x) => ({
       reservationId: x.reservationId,
       nombre: x.nombre,

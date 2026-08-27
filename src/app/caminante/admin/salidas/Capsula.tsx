@@ -14,12 +14,134 @@ import { useState } from "react";
 import type { Salida } from "@/lib/admin/salidas";
 import LinkDeslinde from "@/app/caminante/admin/encuesta/LinkDeslinde";
 import { reenviarEncuesta } from "@/lib/feedback/resend-actions";
-import { setSlotStatusAction } from "@/lib/admin/eventos-actions";
+import { setSlotStatusAction, updateSlot } from "@/lib/admin/eventos-actions";
 import { iniciales } from "@/lib/admin/formato";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
 /** Con coma decimal: es un número que se lee, no un identificador. */
 const dec = (n: number) => n.toFixed(1).replace(".", ",");
+
+/** EDITAR SALIDA — cupo, fechas, etiqueta y precio.
+ *
+ *  ⚠️ Existe porque al sacar las fechas del formulario de experiencia, el
+ *  cupo de una salida ya creada se quedó SIN forma de editarse en escritorio:
+ *  el teléfono podía y la computadora no. Una capacidad no se pierde al mover
+ *  una pantalla de sitio.
+ *
+ *  Reusa `updateSlot`, la misma acción que llama el panel móvil, con sus dos
+ *  guardas del servidor: el cupo nunca por debajo de lo ya vendido, y el fin
+ *  nunca antes del inicio. Aquí se avisan antes de mandar, para no hacer ir y
+ *  volver al servidor por un error que ya se ve.
+ */
+function EditarSalida({ s, onListo }: { s: Salida; onListo: () => void }) {
+  const [f, setF] = useState({
+    etiqueta: s.label,
+    ini: s.inicioInput,
+    fin: s.finInput,
+    cupo: s.cupo != null ? String(s.cupo) : "",
+    precio: s.precio != null ? String(s.precio) : "",
+  });
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+
+  const cupoN = f.cupo.trim() === "" ? null : parseInt(f.cupo.replace(/\D/g, ""), 10);
+  const cupoErr = cupoN != null && (Number.isNaN(cupoN) || cupoN < s.personas);
+  // El fin dispara la encuesta +24h: invertido le manda «¿cómo te fue?» a
+  // gente que todavía no viaja. Ya pasó con una salida de volcanes.
+  const finErr = !!f.fin && !!f.ini && f.fin < f.ini;
+  const ok = !cupoErr && !finErr && !!f.ini && !!f.etiqueta.trim();
+
+  return (
+    <div className="card pad" style={{ marginTop: 14 }}>
+      <span className="subtitle">Editar salida</span>
+      <div className="mini-form">
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Etiqueta{" "}
+          <input
+            value={f.etiqueta}
+            onChange={(e) => setF({ ...f, etiqueta: e.target.value })}
+            style={{ width: 150 }}
+          />
+        </label>
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Inicio{" "}
+          <input type="date" value={f.ini} onChange={(e) => setF({ ...f, ini: e.target.value })} />
+        </label>
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Fin{" "}
+          <input type="date" value={f.fin} onChange={(e) => setF({ ...f, fin: e.target.value })} />
+        </label>
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Cupo{" "}
+          <input
+            value={f.cupo}
+            onChange={(e) => setF({ ...f, cupo: e.target.value })}
+            placeholder="sin tope"
+            style={{ width: 90 }}
+          />
+        </label>
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Precio{" "}
+          <input
+            value={f.precio}
+            onChange={(e) => setF({ ...f, precio: e.target.value })}
+            placeholder="el de la experiencia"
+            style={{ width: 130 }}
+          />
+        </label>
+      </div>
+
+      {cupoErr ? (
+        <p style={{ fontSize: 12.5, color: "var(--orange)", marginTop: 10 }}>
+          Hay {s.personas} {s.personas === 1 ? "lugar ocupado" : "lugares ocupados"} — el cupo no
+          puede quedar abajo de la ocupación.
+        </p>
+      ) : null}
+      {finErr ? (
+        <p style={{ fontSize: 12.5, color: "var(--orange)", marginTop: 10 }}>
+          El fin no puede ser antes del inicio: es lo que dispara la encuesta, y al revés le
+          preguntaría «¿cómo te fue?» a quien todavía no viaja.
+        </p>
+      ) : null}
+      {error ? (
+        <p style={{ fontSize: 12.5, color: "var(--orange)", marginTop: 10 }}>{error}</p>
+      ) : null}
+
+      <div className="act-row">
+        <button
+          type="button"
+          className="btn btn-orange"
+          disabled={!ok || guardando}
+          onClick={async () => {
+            setGuardando(true);
+            setError("");
+            const precioN = f.precio.replace(/\D/g, "");
+            const r = await updateSlot({
+              slotId: s.id,
+              slug: s.slug,
+              label: f.etiqueta.trim(),
+              // Misma convención que el formulario y que el teléfono: inicio a
+              // mediodía UTC y fin a las 23:00 UTC, para que ninguna zona
+              // horaria mueva la salida un día.
+              startsAt: f.ini ? `${f.ini}T12:00:00.000Z` : undefined,
+              endsAt: f.fin ? `${f.fin}T23:00:00.000Z` : null,
+              capacityTotal: cupoN,
+              priceMxn: precioN ? Number(precioN) : null,
+            });
+            setGuardando(false);
+            if (r?.ok === false) setError(r.error);
+            else onListo();
+          }}
+        >
+          {guardando ? "Guardando…" : "Guardar"}
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onListo}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function Barra({ etiqueta, hecho, total, warn }: { etiqueta: string; hecho: number; total: number | null; warn?: boolean }) {
   return (
@@ -39,6 +161,7 @@ function Barra({ etiqueta, hecho, total, warn }: { etiqueta: string; hecho: numb
 
 export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
   const [abierta, setAbierta] = useState(false);
+  const [editando, setEditando] = useState(false);
   const faltan = s.titulares - s.firmados;
   // «Grave» se reserva para la salida que va a viajar sin encuesta: si viaja
   // así, no hay forma de saber cómo estuvo, y el único síntoma es el silencio.
@@ -323,12 +446,26 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
                     {s.estado === "open" ? "Cerrar ventas" : "Reabrir ventas"}
                   </button>
                 </form>
+                {/* Editar vive AQUÍ porque aquí vive la salida. Al sacar las
+                    fechas del formulario de experiencia, el cupo de una salida
+                    ya creada se quedó sin forma de editarse en escritorio: el
+                    teléfono podía y la computadora no. */}
+                {s.pasada ? null : (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setEditando((v) => !v)}
+                  >
+                    {editando ? "Cerrar edición" : "Editar cupo y fechas"}
+                  </button>
+                )}
                 {s.estado !== "open" ? (
                   <span className="mut" style={{ fontSize: 12.5 }}>
                     Ya no se vende. La fecha y su gente siguen aquí.
                   </span>
                 ) : null}
               </div>
+              {editando ? <EditarSalida s={s} onListo={() => setEditando(false)} /> : null}
             </>
           )}
         </div>
