@@ -90,14 +90,23 @@ detalle de implementación, cambia lo que puedes dibujar:
   estados y que se entienda cuál está activo y por qué. Es la regla que más se va
   a topar en el uso real.
 
-**b) La llamada.** El operador pega su link de Zoom o Meet y pone fecha y hora.
-Eso produce tres cosas de un tirón, y quiero verlas dibujadas:
+**b) La llamada.** ⚠️ **El sistema NO crea la reunión.** Cada operador ya tiene
+su cuenta de Google o de Zoom y genera la liga allá — muchos prefieren Zoom. Aquí
+sólo la **pega**, junto con fecha y hora. No dibujes ningún botón de «generar
+Meet»: prometería algo que no hacemos.
 
-1. el link entra al mensaje que se va a mandar,
-2. el cliente recibe un **«agregar a mi calendario»** (archivo .ics + link de
-   Google Calendar — sirve en cualquier calendario, sin conectar nada),
+Lo que sí pasa, y quiero verlo dibujado, es que esa liga pegada se reparte sola:
+
+1. entra al mensaje **por los dos canales** — correo Y WhatsApp. No es «uno u
+   otro»: al solicitante le llega por ambos, porque es la cita y no se puede
+   perder.
+2. el cliente recibe un **«agregar a mi calendario»**: archivo .ics más liga de
+   Google Calendar. Sirve en cualquier calendario y no exige conectar nada.
 3. la llamada aparece **en la agenda del operador**, dentro de esta misma
    pantalla. No hay integración con Google: es una lista propia. Dibújala.
+
+O sea: el operador hace UN trabajo —pegar la liga y poner la hora— y de ahí
+salen el mensaje, el calendario del cliente y su propia agenda.
 
 ### Etapa 3 abierta · cobrar
 
