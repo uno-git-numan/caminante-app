@@ -9,60 +9,19 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
+// Los formateadores puros viven en ./formato y NO se re-exportan desde aquí:
+// re-exportarlos dejaría el mismo hoyo, un componente cliente importándolos
+// de un módulo que arrastra next/headers.
+import { cdmxDay, formatDiaMes, formatFechaCorta, iniciales, metodoLabel } from "./formato";
 
 // Zona horaria de negocio: cortes de mes y "próximas salidas" se calculan aquí.
 const TZ = "America/Mexico_City";
-
-// ── Helpers de fecha/dinero ──────────────────────────────────────────────
-
-// "YYYY-MM-DD" del instante dado EN CDMX (en-CA da ISO-like).
-export function cdmxDay(iso: string | Date): string {
-  const d = typeof iso === "string" ? new Date(iso) : iso;
-  return d.toLocaleDateString("en-CA", { timeZone: TZ });
-}
-
-export function formatMXN(n: number): string {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
-
-export function formatFechaCorta(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("es-MX", {
-    timeZone: TZ,
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-}
-
-export function formatDiaMes(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("es-MX", { timeZone: TZ, day: "numeric", month: "short" });
-}
-
-const METODOS: Record<string, string> = {
-  stripe: "Stripe",
-  transfer: "Transferencia",
-  cash: "Efectivo",
-};
-export function metodoLabel(m: string | null): string {
-  return m ? METODOS[m] || m : "—";
-}
 
 // Nombre legible de una experiencia desde su data jsonb.
 export function experienceTitle(data: Partial<Experience> | null, slug: string): string {
   if (!data) return slug;
   const full = [data.title, data.titleAccent].filter(Boolean).join(" ").trim();
   return data.cardTitle || full || data.subtitle || slug;
-}
-
-export function iniciales(nombre: string): string {
-  const parts = nombre.trim().split(/\s+/);
-  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
 }
 
 // ── Tipos del panorama ───────────────────────────────────────────────────

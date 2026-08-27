@@ -22,7 +22,8 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
-import { cdmxDay, experienceTitle, formatDiaMes, operadorDelAlcance } from "@/lib/admin/queries";
+import { experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
+import { cdmxDay, formatDiaMes } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
 
 const TZ = "America/Mexico_City";

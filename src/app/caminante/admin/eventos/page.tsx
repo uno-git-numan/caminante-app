@@ -4,7 +4,7 @@ import AdminShell from "../ui/AdminShell";
 import Catalogo from "./Catalogo";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { fetchCatalogo } from "@/lib/admin/catalogo";
-import { formatMXN } from "@/lib/admin/queries";
+import { formatMXN } from "@/lib/admin/formato";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Experiencias · Admin — Caminante" };

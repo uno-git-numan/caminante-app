@@ -16,7 +16,8 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
-import { cdmxDay, experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
+import { experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
+import { cdmxDay } from "@/lib/admin/formato";
 import { CORE, evaluarChecklist, DIMENSIONES_DEL_PRODUCTO, type ItemEstado } from "@/lib/kit/checklist";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import type { Experience } from "@/lib/experiences/types";

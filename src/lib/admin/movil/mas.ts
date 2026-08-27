@@ -21,7 +21,8 @@
 
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { cdmxDay, fetchEventos, experienceTitle } from "@/lib/admin/queries";
+import { fetchEventos, experienceTitle } from "@/lib/admin/queries";
+import { cdmxDay } from "@/lib/admin/formato";
 import { listRecentPosts, type SocialPost } from "@/lib/social/posts";
 import { HORA_PUBLICACION } from "@/lib/social/publish-hora";
 import { fetchEstadoPiezas, fechaPill, type PiezaEnCola } from "@/lib/kit/pieza-estado";

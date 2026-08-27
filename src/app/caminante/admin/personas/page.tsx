@@ -1,5 +1,6 @@
 import AdminShell from "../ui/AdminShell";
-import { fetchPersonas, formatMXN, iniciales } from "@/lib/admin/queries";
+import { fetchPersonas } from "@/lib/admin/queries";
+import { formatMXN, iniciales } from "@/lib/admin/formato";
 import type { PersonaAdmin } from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";

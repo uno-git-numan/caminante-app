@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminShell from "../../ui/AdminShell";
-import { fetchRoster, formatFechaCorta } from "@/lib/admin/queries";
+import { fetchRoster } from "@/lib/admin/queries";
+import { formatFechaCorta } from "@/lib/admin/formato";
 import RosterTabla from "./RosterTabla";
 
 export const dynamic = "force-dynamic";

@@ -4,13 +4,8 @@ import { redirect } from "next/navigation";
 import { esTelefono } from "@/lib/ui/dispositivo";
 import { isCurrentUserAdmin as esCasa } from "@/lib/auth/authorization";
 import AdminShell from "./ui/AdminShell";
-import {
-  fetchAdminOverview,
-  formatMXN,
-  formatDiaMes,
-  iniciales,
-  type UpcomingSlot,
-} from "@/lib/admin/queries";
+import { fetchAdminOverview, type UpcomingSlot } from "@/lib/admin/queries";
+import { formatMXN, formatDiaMes, iniciales } from "@/lib/admin/formato";
 
 export const dynamic = "force-dynamic";
 

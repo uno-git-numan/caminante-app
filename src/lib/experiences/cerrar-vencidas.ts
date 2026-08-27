@@ -23,7 +23,7 @@
 //     y por las reservas, nunca por el status de la salida. Verificado.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { cdmxDay } from "@/lib/admin/queries";
+import { cdmxDay } from "@/lib/admin/formato";
 
 export type CierreResult = {
   revisadas: number;

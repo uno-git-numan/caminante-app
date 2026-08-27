@@ -14,7 +14,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Producto } from "@/lib/admin/catalogo";
-import { formatMXN } from "@/lib/admin/queries";
+import { formatMXN } from "@/lib/admin/formato";
 
 const dec = (n: number) => n.toFixed(1).replace(".", ",");
 

@@ -28,7 +28,8 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { experienceTitle, formatFechaCorta } from "@/lib/admin/queries";
+import { experienceTitle } from "@/lib/admin/queries";
+import { formatFechaCorta } from "@/lib/admin/formato";
 import { findOrCreateContact, findOrCreateContactByPhone } from "@/lib/crm/contacts";
 import { notifyConfirmacionCompra } from "@/lib/notifications/notify-customer";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";

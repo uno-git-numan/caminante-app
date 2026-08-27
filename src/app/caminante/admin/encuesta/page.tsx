@@ -1,5 +1,6 @@
 import AdminShell from "../ui/AdminShell";
-import { fetchEncuestaAdmin, iniciales } from "@/lib/admin/queries";
+import { fetchEncuestaAdmin } from "@/lib/admin/queries";
+import { iniciales } from "@/lib/admin/formato";
 import type { EncuestaExperiencia } from "@/lib/admin/queries";
 import { setTestimonioAction } from "@/lib/admin/encuesta-actions";
 import {

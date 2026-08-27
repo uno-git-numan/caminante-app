@@ -5,7 +5,8 @@ import OperadorSelect from "./OperadorSelect";
 import ConfirmSubmit from "../../ui/ConfirmSubmit";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { fetchFicha } from "@/lib/admin/catalogo";
-import { fetchEventoDetalle, formatMXN } from "@/lib/admin/queries";
+import { fetchEventoDetalle } from "@/lib/admin/queries";
+import { formatMXN } from "@/lib/admin/formato";
 import {
   assignOperatorAction,
   createOperatorAction,

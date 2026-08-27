@@ -4,7 +4,8 @@
 // verdad de los mismos números. Si el panel de escritorio y el teléfono
 // discreparan en una cifra, el bug sería imposible de explicar.
 
-import { fetchAdminOverview, fetchDinero, formatFechaCorta } from "@/lib/admin/queries";
+import { fetchAdminOverview, fetchDinero } from "@/lib/admin/queries";
+import { formatFechaCorta } from "@/lib/admin/formato";
 import { fetchRentabilidad } from "@/lib/admin/rentabilidad";
 import type { PanoramaData } from "@/app/caminante/admin/m/ui/Panorama";
 

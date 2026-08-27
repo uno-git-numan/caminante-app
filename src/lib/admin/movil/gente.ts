@@ -13,14 +13,8 @@
 // no salen del panel. El único export sigue siendo el CSV admin-gated que ya
 // existía en el escritorio.
 
-import {
-  fetchEncuestaAdmin,
-  fetchPersonas,
-  fetchReservas,
-  fetchRoster,
-  fetchSalidasParaLinkAbierto,
-  iniciales,
-} from "@/lib/admin/queries";
+import { fetchEncuestaAdmin, fetchPersonas, fetchReservas, fetchRoster, fetchSalidasParaLinkAbierto } from "@/lib/admin/queries";
+import { iniciales } from "@/lib/admin/formato";
 import { fetchDeslindesPendientes } from "@/lib/registration/pending";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://caminante.numanhub.com";

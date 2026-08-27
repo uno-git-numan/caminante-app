@@ -1,5 +1,6 @@
 import AdminShell from "../ui/AdminShell";
-import { fetchReservas, formatMXN, formatDiaMes, metodoLabel } from "@/lib/admin/queries";
+import { fetchReservas } from "@/lib/admin/queries";
+import { formatMXN, formatDiaMes, metodoLabel } from "@/lib/admin/formato";
 import type { ReservaAdmin } from "@/lib/admin/queries";
 import { registrarPagoManualAction, cancelarReservaAction } from "@/lib/admin/reservas-actions";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";

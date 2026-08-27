@@ -20,14 +20,8 @@
 //     se cuenta sumando `num_people` de las reservas que apartan.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import {
-  cdmxDay,
-  experienceTitle,
-  formatDiaMes,
-  formatFechaCorta,
-  metodoLabel,
-  type LedgerLinea,
-} from "@/lib/admin/queries";
+import { experienceTitle, type LedgerLinea } from "@/lib/admin/queries";
+import { cdmxDay, formatDiaMes, formatFechaCorta, metodoLabel } from "@/lib/admin/formato";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 

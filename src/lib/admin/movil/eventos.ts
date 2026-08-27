@@ -17,7 +17,8 @@
 // nombres de quienes apartan lugar en el diálogo de cancelar (ahí va el número
 // real de personas, que sí tenemos).
 
-import { fetchEventos, fetchEventoDetalle, formatFechaCorta } from "@/lib/admin/queries";
+import { fetchEventos, fetchEventoDetalle } from "@/lib/admin/queries";
+import { formatFechaCorta } from "@/lib/admin/formato";
 import { fetchSlotsForAdmin } from "@/lib/experiences/slots-admin";
 import { deslindeListo, encuestaLista, listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import { evaluarChecklist } from "@/lib/kit/checklist";

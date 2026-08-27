@@ -20,7 +20,8 @@
 // (la escalera agrupa por mes), que es lo que pidió Luis.
 
 import Link from "next/link";
-import { formatMXN, type LedgerLinea, type PayoutOperador } from "@/lib/admin/queries";
+import { type LedgerLinea, type PayoutOperador } from "@/lib/admin/queries";
+import { formatMXN } from "@/lib/admin/formato";
 import type { SalidaRentabilidad } from "@/lib/admin/rentabilidad";
 import { mx } from "./ui";
 

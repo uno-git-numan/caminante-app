@@ -15,13 +15,7 @@ import type { Salida } from "@/lib/admin/salidas";
 import LinkDeslinde from "@/app/caminante/admin/encuesta/LinkDeslinde";
 import { reenviarEncuesta } from "@/lib/feedback/resend-actions";
 import { setSlotStatusAction } from "@/lib/admin/eventos-actions";
-
-// ⚠️ Vive aquí y no en lib/admin/salidas.ts a propósito: ese módulo llega hasta
-// next/headers por la cadena del alcance, y un componente CLIENTE que lo
-// importe —aunque sea por una función de una línea— rompe el build. El tipo sí
-// viaja gratis, con `import type`, que se borra al compilar.
-const iniciales = (n: string) =>
-  n.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "·";
+import { iniciales } from "@/lib/admin/formato";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
 /** Con coma decimal: es un número que se lee, no un identificador. */
