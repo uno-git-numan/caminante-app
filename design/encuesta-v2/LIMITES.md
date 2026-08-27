@@ -149,3 +149,33 @@ Solicitudes · Reservas · Personas · Recursos.
   Recursos. Salidas la ve también un operador externo con su alcance podado, y
   meter monto ahí obligaría a podar una superficie más sin ganar nada para el
   trabajo que esa pantalla hace.
+
+---
+
+## Las tres cuentas de una salida (26 ago 2026)
+
+Un roster tiene **tres** números distintos y ninguna pantalla debe presentarlos
+como uno solo. El bug: la cápsula decía «Lugares 5/18» y el roster «6 personas ·
+6/6 con deslinde», y los dos tenían razón.
+
+| Cuenta | Qué es | De dónde sale |
+|---|---|---|
+| **Lugares pagados** | lo que se cobró | Σ `reservations.num_people` de las que apartan lugar |
+| **En la lista** | quién sube al cerro | filas del roster: titular + participantes capturados + lugares pagados sin capturar |
+| **Deslindes** | firmas reales | `registrations` por RESERVA — lo firma el titular, el acompañante lo hereda |
+
+⚠️ **«En la lista» puede pasar de «lugares pagados»**: un titular puede capturar
+más participantes de los que compró. Eso es dinero y es una persona en el cerro.
+**No se cuadra bajando un número en la consulta** — se avisa con las dos salidas
+(cobrar el lugar, o corregir la reserva) y lo resuelve una persona.
+
+Y el número peligroso era «6/6 con deslinde»: un guía que lo lee cree que tiene
+seis firmas y tiene cuatro.
+
+## Editar una salida vive en Salidas
+
+Al sacar las fechas del formulario de experiencia, el cupo de una salida ya
+creada se quedó sin editor en escritorio — el teléfono podía y la computadora
+no. «Editar cupo y fechas» está en el pie de la cápsula y reusa `updateSlot`,
+la misma acción del panel móvil, con sus dos guardas: cupo nunca por debajo de
+lo vendido, fin nunca antes del inicio.
