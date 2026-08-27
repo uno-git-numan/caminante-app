@@ -31,7 +31,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { key: "comunicacion", label: "Comunicación", href: "/caminante/admin/comunicacion" },
   { key: "solicitudes", label: "Solicitudes", href: "/caminante/admin/solicitudes" },
   { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
-  { key: "personas", label: "Personas", href: "/caminante/admin/personas" },
+  // «Personas» era una tabla de 60 renglones con una columna «Etapa» que decía
+  // «Lead» en los 60 — incluida la persona que gastó $32,000. No diferenciaba
+  // nada. Ahora es COMUNIDAD: la biblioteca de quién es la gente, ordenada por
+  // su historia y no por fecha de alta. La clave interna se conserva para no
+  // tocar las llamadas a AdminShell.
+  { key: "personas", label: "Comunidad", href: "/caminante/admin/comunidad" },
   // Antes eran DOS: «Dinero» (lo que entró) y «Rentabilidad» (cuánto es tuyo).
   // Dos páginas que hablan de lo mismo se leen como redundancia y obligan a
   // saltar entre ellas para cerrar una cuenta. Ahora es una sola.
