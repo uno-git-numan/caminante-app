@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiencias · Admin — Caminante</title>
+<style>
+/* ══ SISTEMA DEL PANEL · copiado verbatim de Caminante Admin - Dashboard ══ */
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-Italic-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:italic;font-display:swap;}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/GeistMono-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+:root{
+  --cream:#fbfbf7;--charcoal:#20211c;--lagoon:#1c6f6a;--forest:#20392b;
+  --olive:#637154;--olive-d:#4f5d44;--sand:#b6ada5;--dune:#c9b79c;--salvia:#d6d8c7;--orange:#ff5d36;
+  --panel:#f1eee7;--bg:#eceae3;--line:rgba(32,33,28,.13);--ink-soft:rgba(32,33,28,.6);
+  --r:16px;--eb:.2em;--shadow:0 12px 34px -22px rgba(32,33,28,.42);
+  --mono:"Geist Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:"Geist",system-ui,sans-serif;color:var(--charcoal);background:var(--bg);-webkit-font-smoothing:antialiased;}
+button{font-family:inherit;cursor:pointer;}
+.mono{font-family:var(--mono);}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;display:inline-flex;align-items:center;gap:.5em;line-height:1;color:var(--olive);}
+.eyebrow .sl{color:var(--orange);font-weight:700;}
+.display{font-weight:200;letter-spacing:-.02em;line-height:1.05;}
+em.ac{font-style:italic;color:var(--orange);font-weight:300;}
+
+/* ===== SHELL ===== */
+.ahead{position:sticky;top:0;z-index:50;background:rgba(251,251,247,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+.ahead .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 22px;}
+.ahead .brand{display:flex;align-items:center;gap:13px;}
+.ahead .logo{height:25px;}.ahead .logo svg{height:100%;width:auto;display:block;}
+.ahead .logo .g1{fill:var(--olive);}.ahead .logo .g2{fill:var(--sand);}.ahead .logo .g3{fill:var(--orange);}
+.ahead .mode{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);border-left:1px solid var(--line);padding-left:13px;}
+.qa{display:flex;gap:10px;}
+.nav{display:flex;gap:7px;padding:0 22px 12px;overflow-x:auto;}
+.nav a{flex:0 0 auto;font-size:13.5px;font-weight:500;color:var(--ink-soft);padding:8px 15px;border-radius:999px;border:1px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav a:hover{color:var(--charcoal);background:var(--panel);}
+.nav a.on{background:var(--forest);color:#fff;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:40px;padding:0 17px;border-radius:999px;font-size:13.5px;font-weight:500;border:1px solid transparent;transition:background .18s,transform .1s,color .18s,border-color .18s;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-orange{background:var(--orange);color:#fff;}.btn-orange:hover{background:#e8431f;}
+.btn-glass{background:rgba(255,255,255,.55);color:var(--olive);border-color:rgba(99,113,84,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.btn-glass:hover{background:rgba(255,255,255,.85);}
+.btn-ghost{background:transparent;color:var(--olive);border-color:var(--line);}.btn-ghost:hover{border-color:var(--olive);}
+.btn-sm{min-height:33px;padding:0 12px;font-size:12.5px;}
+.btn-danger{background:transparent;color:var(--orange);border-color:rgba(255,93,54,.4);}.btn-danger:hover{background:rgba(255,93,54,.08);}
+
+/* ===== LAYOUT ===== */
+.page{max-width:1200px;margin:0 auto;padding:26px 22px 90px;}
+.sec{margin-bottom:46px;scroll-margin-top:120px;}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+.sec-head h2{font-size:clamp(24px,3.4vw,34px);}
+.sec-head .desc{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);}
+.glass{background:rgba(255,255,255,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.5);box-shadow:var(--shadow);}
+.pad{padding:20px 22px;}
+
+/* ===== EXPANDIBLES (todo dato se desarrolla) ===== */
+.xhead{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.chev2{display:inline-block;color:var(--sand);font-size:10px;transition:transform .25s ease;margin-left:6px;flex:0 0 auto;}
+.xhead.open .chev2,.xhead.open + tr .chev2{transform:rotate(180deg);}
+.xbody{max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .28s ease;}
+.xbody.on{max-height:1600px;opacity:1;}
+.xpad{padding:16px 2px 8px;}
+tr.xdetail td{padding:0 15px;border-bottom:0;}
+tr.xdetail .xbody.on{border-bottom:1px solid var(--line);}
+tbody tr.xdetail:hover{background:transparent;}
+.xh4{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;margin:16px 0 9px;}
+.xh4:first-child{margin-top:0;}
+
+/* micro-patrón: barra de progreso con fracción */
+.prog{display:flex;align-items:center;gap:10px;}
+.prog .tk2{flex:1;height:6px;border-radius:999px;background:var(--salvia);overflow:hidden;min-width:70px;}
+.prog .tk2 i{display:block;height:100%;background:var(--olive);border-radius:999px;}
+.prog.warn .tk2 i{background:var(--orange);}
+.prog .fr{font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+.progrow{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:center;padding:6px 0;font-size:12.5px;}
+
+/* micro-patrón: chip de persona */
+.pchips{display:flex;flex-wrap:wrap;gap:8px;}
+.pchip{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:4px 11px 4px 4px;border:1px solid var(--line);border-radius:999px;background:#fff;}
+.pchip .av{width:22px;height:22px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.pchip .stt{font-size:10.5px;font-weight:700;}
+.pchip.ok .stt{color:var(--olive);}
+.pchip.pend .stt{color:var(--orange);}
+.pchip.pend{border-color:rgba(255,93,54,.35);}
+.pchip .dt{font-family:var(--mono);font-size:10px;color:var(--ink-soft);}
+
+/* micro-patrón: lista quién puso qué */
+.wlist{display:flex;flex-direction:column;}
+.wl{display:grid;grid-template-columns:1.3fr .7fr .9fr .7fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;align-items:baseline;}
+.wl .m{font-family:var(--mono);text-align:right;}
+.wl .me{color:var(--ink-soft);}
+.wl .d{font-family:var(--mono);color:var(--ink-soft);text-align:right;font-size:11.5px;}
+.wl.debt{color:var(--ink-soft);}
+.wl.debt .m{color:var(--orange);font-weight:600;}
+.wl.total{border-bottom:0;font-weight:600;}
+.wl.total .m{font-weight:600;}
+@media(max-width:560px){.wl{grid-template-columns:1fr auto;} .wl .me,.wl .d{display:none;}}
+
+/* KPI */
+.kpis{display:grid;gap:16px;grid-template-columns:1fr;}
+@media(min-width:640px){.kpis{grid-template-columns:1fr 1fr;}}
+@media(min-width:1000px){.kpis{grid-template-columns:repeat(4,1fr);}}
+.kpi{padding:20px 20px 18px;border-radius:var(--r);}
+.kpi .k-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;justify-content:space-between;}
+.kpi .k-val{font-family:var(--mono);font-weight:300;font-size:32px;letter-spacing:-.02em;margin:10px 0 2px;}
+.kpi .k-val .u{font-size:15px;color:var(--ink-soft);}
+.kpi .k-sub{font-size:12.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
+.kpi .k-sub b{color:var(--charcoal);font-weight:600;}
+.spark{display:flex;align-items:flex-end;gap:3px;height:30px;margin-top:12px;}
+.spark i{flex:1;background:var(--salvia);border-radius:2px 2px 0 0;min-height:3px;}
+.spark i.hi{background:var(--olive);}
+.dots{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.dot-l{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);}
+.dot{width:8px;height:8px;border-radius:999px;flex:0 0 auto;}
+.stars-lg{color:var(--orange);font-size:19px;letter-spacing:2px;}
+.stars-lg .off{color:var(--sand);}
+
+/* tablas */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r);}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;}
+thead th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:13px 15px;border-bottom:1px solid var(--line);white-space:nowrap;}
+tbody td{padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tbody tr{transition:background .12s;}
+tbody tr:hover{background:var(--panel);}
+tbody tr:last-child td{border-bottom:0;}
+td.num,th.num{font-family:var(--mono);}
+td.right,th.right{text-align:right;}
+.mut{color:var(--ink-soft);}
+
+/* chips / badges */
+.chip{display:inline-flex;align-items:center;gap:.4em;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+.chip .cd{width:6px;height:6px;border-radius:999px;}
+.c-draft{background:var(--salvia);color:var(--olive-d);}
+.c-pub{background:rgba(99,113,84,.14);color:var(--olive-d);}
+.c-full{background:rgba(255,93,54,.14);color:#c23c1c;}
+.c-sol{background:rgba(198,178,120,.22);color:#8a6d1f;}
+.c-conf{background:rgba(28,111,106,.14);color:var(--lagoon);}
+.c-paid{background:rgba(99,113,84,.16);color:var(--olive-d);}
+.c-canc{background:rgba(32,33,28,.08);color:var(--ink-soft);}
+.badge{display:inline-flex;align-items:center;gap:.4em;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:6px;background:var(--panel);color:var(--ink-soft);}
+.tick{color:var(--olive);font-weight:700;}
+.cross{color:var(--sand);}
+
+/* filtros */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.filters select,.filters input{font-family:inherit;font-size:13px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--charcoal);}
+.filters input{flex:1;min-width:160px;}
+.filters select:focus,.filters input:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15);}
+
+/* detalle */
+.detail{display:grid;gap:20px;grid-template-columns:1fr;}
+@media(min-width:760px){.detail{grid-template-columns:1.1fr .9fr;}}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;}
+.dl dt{color:var(--ink-soft);}
+.dl dd{font-weight:500;text-align:right;}
+.mini-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+.mini-form input,.mini-form select{font-family:inherit;font-size:12.5px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;}
+.act-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;}
+
+/* barras */
+.barrow{display:grid;grid-template-columns:150px 1fr 42px;gap:12px;align-items:center;padding:7px 0;font-size:13px;}
+.bar{height:8px;border-radius:999px;background:var(--salvia);overflow:hidden;}
+.bar i{display:block;height:100%;background:var(--olive);border-radius:999px;}
+.barrow .bv{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--ink-soft);}
+
+/* testimonios */
+.testi{display:grid;gap:14px;grid-template-columns:1fr;}
+@media(min-width:720px){.testi{grid-template-columns:1fr 1fr;}}
+.tcard{padding:18px 18px 16px;border-radius:var(--r);}
+.tcard .tt{font-size:14px;line-height:1.55;font-style:italic;color:#33352d;}
+.tcard .tm{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:10px;}
+.tcard .who{font-size:12px;color:var(--ink-soft);font-weight:600;}
+.tcard .st{color:var(--orange);font-size:13px;letter-spacing:1px;}
+
+.empty{padding:30px;text-align:center;color:var(--ink-soft);font-size:14px;border:1px dashed var(--line);border-radius:var(--r);background:rgba(255,255,255,.4);}
+.grid2{display:grid;gap:20px;grid-template-columns:1fr;}
+@media(min-width:900px){.grid2{grid-template-columns:1fr 1fr;}}
+.subtitle{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;margin-bottom:12px;}
+.roster-head{display:none;}
+
+@media print{
+  .ahead,.nav,.qa,.no-print,.btn{display:none !important;}
+  body{background:#fff;color:#000;}
+  .page{padding:0;max-width:none;}
+  .sec{display:none;}
+  #roster{display:block !important;margin:0;}
+  .roster-head{display:block;margin-bottom:14px;}
+  .card,.glass{box-shadow:none;border-color:#999;}
+  table{font-size:11px;}
+  thead th{color:#000;border-color:#000;}
+  tbody td{border-color:#999;}
+  .tick{color:#000;}
+}
+/* ══ NUEVO · solo para esta pantalla ══ */
+a{color:var(--olive-d);text-decoration:none}a:hover{color:var(--orange)}
+.nav a,.nav a.on{text-decoration:none}
+.vtag{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:11px 16px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}
+.vtag b{font-size:11px;font-weight:700;letter-spacing:var(--eb);text-transform:uppercase;color:var(--olive)}
+.vtag span{font-size:12.5px;color:var(--ink-soft);line-height:1.45}
+.vtag.casa{background:rgba(32,57,43,.07);border-color:rgba(32,57,43,.2)}
+.vtag.casa b{color:var(--forest)}
+.vsep{margin:60px 0 34px;border-top:1px solid rgba(32,33,28,.2)}
+/* catálogo */
+.excat{display:grid;gap:18px;grid-template-columns:1fr}
+@media(min-width:720px){.excat{grid-template-columns:1fr 1fr}}
+@media(min-width:1080px){.excat{grid-template-columns:repeat(3,1fr)}}
+.exc{display:flex;flex-direction:column;overflow:hidden;text-align:left;color:inherit;cursor:pointer;transition:transform .18s ease-out,box-shadow .18s ease-out,border-color .18s ease-out}
+.exc:hover{transform:translateY(-2px);border-color:rgba(99,113,84,.4);box-shadow:0 18px 42px -22px rgba(32,33,28,.5)}
+.exc:hover h3{color:var(--olive-d)}
+.exc .ph{position:relative;aspect-ratio:16/10;overflow:hidden;background:var(--salvia)}
+.exc .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.exc .ph .tp{position:absolute;top:11px;left:11px;right:11px;display:flex;gap:7px;flex-wrap:wrap}
+.exc .ph .tp .chip{background:rgba(20,22,16,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.26);color:#fff}
+.exc .ph .tp .chip .cd{background:var(--salvia)}
+.exc .ph .tp .chip.c-draft .cd{background:var(--sand)}
+.exc .bd{padding:15px 17px 17px;display:flex;flex-direction:column;flex:1}
+.exc h3{font-size:17.5px;font-weight:400;letter-spacing:-.01em;line-height:1.25;transition:color .18s}
+.exc .op{font-size:12px;color:var(--ink-soft);margin-top:4px}
+/* semáforo de venta */
+.exsem{display:flex;align-items:baseline;gap:.5em;font-size:12.5px;line-height:1.45;margin-top:10px;padding:8px 11px;border-radius:10px}
+.exsem s{text-decoration:none;font-family:var(--mono);font-weight:700;flex:0 0 auto}
+.exsem.si{background:rgba(99,113,84,.11);color:var(--olive-d)}
+.exsem.si s{color:var(--olive)}
+.exsem.no{background:rgba(255,93,54,.13);color:var(--charcoal);font-weight:600}
+.exsem.no s{color:var(--orange)}
+.exsem.dorm{background:var(--panel);color:var(--ink-soft)}
+.exsem.dorm s{color:var(--sand)}
+.exsem.big{font-size:14px;padding:12px 15px;border-radius:12px}
+/* tres cifras */
+.ex3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.ex3 .v{font-family:var(--mono);font-weight:300;font-size:17px;letter-spacing:-.01em;line-height:1.15;white-space:nowrap}
+.ex3 .v .st{font-family:"Geist",system-ui,sans-serif;font-size:14px;color:var(--orange);letter-spacing:1px}
+.ex3 .l{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-top:4px;line-height:1.3}
+.ex3 .d{font-size:11px;color:var(--ink-soft);margin-top:2px;font-family:var(--mono)}
+/* armadura · cinco dimensiones con nombre y tres estados */
+.exarm{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.exarm .hd{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
+.exarm .hd .t{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.exarm .hd .fr{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-left:auto}
+.exdims{display:flex;flex-wrap:wrap;gap:5px}
+.exd{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;line-height:1;padding:5px 9px 5px 7px;border-radius:999px;border:1px solid var(--line);background:#fff;white-space:nowrap}
+.exd i{width:7px;height:7px;border-radius:999px;flex:0 0 auto}
+.exd.full{color:var(--olive-d);border-color:rgba(99,113,84,.3);background:rgba(99,113,84,.08)}
+.exd.full i{background:var(--olive)}
+.exd.half{color:var(--olive-d);border-color:rgba(201,183,156,.7);background:rgba(201,183,156,.22)}
+.exd.half i{background:transparent;border:2px solid var(--dune)}
+.exd.none{color:var(--charcoal);border-color:rgba(255,93,54,.42);background:rgba(255,93,54,.09)}
+.exd.none i{background:transparent;border:1.5px solid var(--orange)}
+.exleg{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:18px;padding:11px 15px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.exleg span{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-soft)}
+.exleg .f,.exleg .h,.exleg .n{padding:4px 10px 4px 8px;border-radius:999px;border:1px solid var(--line);background:#fff}
+.exleg i{width:7px;height:7px;border-radius:999px;flex:0 0 auto}
+.exleg .f{color:var(--olive-d);border-color:rgba(99,113,84,.3);background:rgba(99,113,84,.08)}
+.exleg .f i{background:var(--olive)}
+.exleg .h{color:var(--olive-d);border-color:rgba(201,183,156,.7);background:rgba(201,183,156,.22)}
+.exleg .h i{background:transparent;border:2px solid var(--dune)}
+.exleg .n{color:var(--charcoal);border-color:rgba(255,93,54,.42);background:rgba(255,93,54,.09)}
+.exleg .n i{background:transparent;border:1.5px solid var(--orange)}
+/* pie · enunciado del calendario */
+.excal{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:baseline;gap:.5em;font-size:12px;color:var(--ink-soft);line-height:1.45}
+.excal s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand);flex:0 0 auto}
+.excal b{color:var(--charcoal);font-weight:500;font-family:var(--mono)}
+/* ficha */
+.exhero{position:relative;border-radius:var(--r);overflow:hidden;min-height:250px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff}
+.exhero .ph{position:absolute;inset:0}
+.exhero .ph img{width:100%;height:100%;object-fit:cover}
+.exhero .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,20,14,.2),rgba(18,20,14,.62) 52%,rgba(18,20,14,.9))}
+.exhero .in{position:relative;padding:20px 22px}
+.exhero .chip{background:rgba(20,22,16,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.26);color:#fff}
+.exhero .chip .cd{background:var(--salvia)}
+.exhero h2{font-size:clamp(23px,3.4vw,32px);font-weight:200;letter-spacing:-.02em;line-height:1.08;margin:9px 0 4px}
+.exhero .sub{font-size:12.5px;color:rgba(255,255,255,.8)}
+.exhero .exsem{background:rgba(20,22,16,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.24);color:#fff;max-width:max-content}
+.exhero .exsem s{color:var(--orange)}
+.exhero .exsem.si s{color:var(--salvia)}
+.exbar{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 24px}
+/* banco de fotos */
+.exban{display:grid;gap:10px;grid-template-columns:repeat(2,1fr);margin-top:14px}
+@media(min-width:560px){.exban{grid-template-columns:repeat(5,1fr)}}
+.exsl{border-radius:12px;overflow:hidden;position:relative;aspect-ratio:3/4;background:var(--panel);border:1px solid var(--line)}
+.exsl img{width:100%;height:100%;object-fit:cover;display:block}
+.exsl .tt{position:absolute;left:0;right:0;bottom:0;padding:7px 8px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#fff;background:linear-gradient(180deg,transparent,rgba(18,20,14,.82))}
+.exsl .n{position:absolute;top:7px;right:8px;font-family:var(--mono);font-size:10px;color:#fff;background:rgba(20,22,16,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:999px;padding:3px 7px}
+.exsl.vacia{border-style:dashed;border-color:rgba(255,93,54,.4);background:rgba(255,93,54,.05);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:10px}
+.exsl.vacia .lb{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--charcoal)}
+.exsl.vacia .ad{font-family:var(--mono);font-size:11px;color:var(--orange)}
+/* comunicación */
+.exkit{display:grid;gap:0;margin-top:12px}
+.exkit .r{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.exkit .r:last-child{border-bottom:0}
+.exkit .r .m{font-family:var(--mono);font-size:14px}
+.exkit .r small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+/* dimensiones desplegadas */
+.exdim{display:grid;gap:0;margin-top:12px}
+.exdim .d{display:grid;grid-template-columns:10px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+.exdim .d:last-child{border-bottom:0}
+.exdim .d i{width:8px;height:8px;border-radius:999px;background:var(--olive)}
+.exdim .d.half i{background:transparent;border:2px solid var(--dune)}
+.exdim .d.none i{background:transparent;border:1.5px solid var(--orange)}
+.exdim .d .g{line-height:1.4}
+.exdim .d .g small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+.exdim .d.full .g{color:var(--ink-soft)}
+/* trato */
+.extrato{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-top:14px}
+.extrato .pct{font-family:var(--mono);font-weight:200;font-size:44px;letter-spacing:-.03em;line-height:1}
+.extrato .g{flex:1;min-width:190px;font-size:12.5px;color:var(--ink-soft);line-height:1.6}
+/* fechas · cierre discreto */
+.exfech{margin-top:24px;padding-top:16px;border-top:1px solid var(--line)}
+.exmir{display:flex;align-items:baseline;gap:.5em;font-size:12px;color:var(--ink-soft);line-height:1.5;margin:0 0 8px}
+.exmir s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--olive)}
+.exro{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.exro:last-child{border-bottom:0}
+.exro .dt{font-family:var(--mono);font-size:13px}
+.exro .sub{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+.exro .rt{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.docnote{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.7;color:var(--ink-soft)}
+.docnote b{color:var(--charcoal);font-weight:600}
+.docnote .sl{color:var(--orange);font-family:var(--mono);font-weight:700}
+@media(max-width:620px){.pad{padding:16px 16px}.exro{grid-template-columns:1fr}.exro .rt{justify-content:flex-start}}
+</style>
+</head>
+<body>
+
+<header class="ahead">
+  <div class="top">
+    <div class="brand"><span class="logo" data-mark aria-label="Caminante"></span><span class="mode">Modo operador</span></div>
+    <div class="qa"><button class="btn btn-glass btn-sm">Generar cobro</button></div>
+  </div>
+  <nav class="nav" id="nav">
+    <a href="#panorama">Panorama</a>
+    <a href="#experiencias" class="on">Experiencias</a>
+    <a href="#reservas">Reservas</a>
+    <a href="#roster">Personas</a>
+    <a href="Admin Salidas v2.html">Salidas</a>
+  </nav>
+</header>
+
+<div class="page">
+
+<!-- ═══════ A · OPERADOR ═══════ -->
+<div class="vtag"><b>Versión A · operador</b><span>Nomádika entra a su propio panel. No hay campo de operador, no puede asignar ni crear operadores, y su comisión es un dato, no un control.</span></div>
+
+<div class="sec-head">
+  <div>
+    <span class="eyebrow"><span class="sl">//</span> Experiencias</span>
+    <h2 class="display" style="margin-top:10px">Tu catálogo, <em class="ac">no tus grupos.</em></h2>
+    <p class="desc">Aquí vive el producto: si puede venderse, cómo se ha vendido, sus fotos y su comunicación. Los grupos con fecha viven en <a href="Admin Salidas v2.html">Salidas</a>.</p>
+  </div>
+  <button class="btn btn-orange">+ Experiencia</button>
+</div>
+
+<section class="sec">
+<div class="exleg">
+  <span class="f"><i></i>Dimensión completa</span>
+  <span class="h"><i></i>A medias</span>
+  <span class="n"><i></i>Falta</span>
+  <span style="margin-left:auto;color:var(--ink-soft)">La armadura son cinco cosas: fotos, ficha científica, saber de los guías, deslinde y encuesta.</span>
+</div>
+<div class="excat">
+  <!-- estado 2 · no puede vender -->
+  <a class="card exc" href="#ficha-op">
+    <div class="ph"><img src="assets/img/chihuahua.jpg" alt="Barrancas del Cobre bajo nubes de tormenta, Chihuahua"><div class="tp"><span class="chip c-pub"><span class="cd"></span>Publicada</span></div></div>
+    <div class="bd">
+      <h3>Trekking Barrancas del Cobre</h3>
+      <p class="exsem no"><s>⚠</s><span>No vende: falta el documento del deslinde</span></p>
+      <div class="ex3">
+        <div><div class="v">$96.000</div><div class="l">Ingresos</div></div>
+        <div><div class="v">8</div><div class="l">Clientes</div></div>
+        <div><div class="v mut">—</div><div class="l">Estrellas</div><div class="d">0 de 8</div></div>
+      </div>
+      <div class="exarm">
+        <div class="hd"><span class="t">Armadura</span><span class="fr">3 de 5</span></div>
+        <div class="exdims">
+          <span class="exd half"><i></i>Fotos</span>
+          <span class="exd full"><i></i>Ficha científica</span>
+          <span class="exd full"><i></i>Guías</span>
+          <span class="exd none"><i></i>Deslinde</span>
+          <span class="exd none"><i></i>Encuesta</span>
+        </div>
+      </div>
+      <p class="excal"><s>//</s><span>Una fecha publicada · <b>Oct 8–11</b></span></p>
+    </div>
+  </a>
+
+  <!-- estado 1 · publicada sin fechas · el caso más común -->
+  <a class="card exc" href="#ficha-op">
+    <div class="ph"><img src="assets/img/bosque-niebla.jpg" alt="Ladera boscosa entre niebla en Veracruz"><div class="tp"><span class="chip c-pub"><span class="cd"></span>Publicada</span></div></div>
+    <div class="bd">
+      <h3>El fondo de la barranca</h3>
+      <p class="exsem si"><s>✓</s><span>Lista para vender</span></p>
+      <div class="ex3">
+        <div><div class="v">$52.800</div><div class="l">Ingresos</div></div>
+        <div><div class="v">6</div><div class="l">Clientes</div></div>
+        <div><div class="v mut">—</div><div class="l">Estrellas</div><div class="d">0 de 6</div></div>
+      </div>
+      <div class="exarm">
+        <div class="hd"><span class="t">Armadura</span><span class="fr">4 de 5</span></div>
+        <div class="exdims">
+          <span class="exd full"><i></i>Fotos</span>
+          <span class="exd full"><i></i>Ficha científica</span>
+          <span class="exd half"><i></i>Guías</span>
+          <span class="exd full"><i></i>Deslinde</span>
+          <span class="exd full"><i></i>Encuesta</span>
+        </div>
+      </div>
+      <p class="excal"><s>//</s><span>Sin fechas planeadas · se vende por solicitud</span></p>
+    </div>
+  </a>
+</div>
+</section>
+
+<!-- FICHA · operador -->
+<section class="sec" id="ficha-op">
+<div class="sec-head" style="margin-bottom:14px"><div><span class="eyebrow"><span class="sl">//</span> Ficha · operador</span><h2 class="display" style="font-size:22px;margin-top:9px">La experiencia <em class="ac">completa.</em></h2><p class="desc">Se navega, no se expande: picar una tarjeta abre su página.</p></div></div>
+
+<div class="exhero">
+  <div class="ph"><img src="assets/img/bosque-niebla.jpg" alt="Ladera boscosa entre niebla en Veracruz"></div>
+  <div class="in">
+    <span class="chip c-pub"><span class="cd"></span>Publicada</span>
+    <h2>El fondo de la barranca</h2>
+    <p class="sub">Veracruz · tres días</p>
+    <p class="exsem si big" style="margin-top:12px"><s>✓</s><span>Lista para vender</span></p>
+  </div>
+</div>
+<div class="exbar">
+  <button class="btn btn-orange">Editar contenido</button>
+  <button class="btn btn-glass">Ver página pública</button>
+  <button class="btn btn-ghost">Kit de comunicación</button>
+  <button class="btn btn-ghost">Pasar a borrador</button>
+</div>
+
+<!-- 1 · cómo va -->
+<span class="subtitle">Cómo va</span>
+<div class="kpis" style="margin:10px 0 24px">
+  <div class="kpi card"><div class="k-lbl">Ingresos</div><div class="k-val">$52.800</div><div class="k-sub">De <b>2</b> salidas corridas</div></div>
+  <div class="kpi card"><div class="k-lbl">Clientes que han pasado</div><div class="k-val">6</div><div class="k-sub">Sin repetidores todavía</div></div>
+  <div class="kpi card"><div class="k-lbl">Salidas corridas</div><div class="k-val">2</div><div class="k-sub">Última el <b>2 ago 2026</b></div></div>
+  <!-- estado 4 · sin respuestas -->
+  <div class="kpi card"><div class="k-lbl">Estrellas</div><div class="k-val mut">—</div><div class="k-sub">Sin respuestas todavía · <b>0 de 6</b> contestaron</div></div>
+</div>
+
+<!-- 2 · sus fotos -->
+<div class="card pad">
+  <span class="subtitle">Sus fotos</span>
+  <p class="desc" style="margin:0">El banco por tipo. Es la materia prima de la página pública, del Kit y del correo.</p>
+  <div class="exban">
+    <div class="exsl"><img src="assets/img/bosque-niebla.jpg" alt="Ladera boscosa entre niebla"><span class="n">4</span><span class="tt">Paisaje</span></div>
+    <div class="exsl"><img src="assets/img/camp-people.jpg" alt="Grupo en el campamento"><span class="n">6</span><span class="tt">Gente</span></div>
+    <div class="exsl"><img src="assets/img/flores.jpg" alt="Flores del bosque"><span class="n">3</span><span class="tt">Flora</span></div>
+    <div class="exsl"><img src="assets/img/h-hands-moss.jpg" alt="Manos sobre musgo"><span class="n">5</span><span class="tt">Detalle</span></div>
+    <div class="exsl vacia"><span class="lb">Retrato</span><span class="ad">Falta</span><span class="btn btn-ghost btn-sm">Subir</span></div>
+  </div>
+  <p class="mut" style="font-size:12.5px;margin-top:12px;line-height:1.55">Cuatro tipos con material y uno vacío. Sin retrato, el Kit no puede armar la pieza de guía.</p>
+</div>
+
+<!-- 3 · su comunicación -->
+<div class="grid2" style="margin-top:20px">
+  <div class="card pad">
+    <span class="subtitle">Su comunicación</span>
+    <div class="exkit">
+      <div class="r"><span>Piezas listas<small>Armadas y esperando fecha de publicación</small></span><span class="m">3</span></div>
+      <div class="r"><span>Programadas<small>La próxima sale el 2 sep</small></span><span class="m">2</span></div>
+      <div class="r"><span>Publicadas<small>Desde marzo de 2026</small></span><span class="m">7</span></div>
+    </div>
+    <div class="act-row"><button class="btn btn-glass btn-sm">Abrir Kit de comunicación</button></div>
+  </div>
+  <div class="card pad">
+    <span class="subtitle">Testimonios publicables</span>
+    <div class="empty" style="padding:22px;margin-top:12px">Ninguno todavía. Los testimonios los deja la encuesta, y esta experiencia no tiene respuestas.</div>
+  </div>
+</div>
+
+<!-- 4 · qué le falta -->
+<div class="card pad" style="margin-top:20px">
+  <span class="subtitle">Qué le falta</span>
+  <div class="exdim">
+    <div class="d half"><i></i><div class="g">Saber de los guías<small>Están los nombres y la certificación; falta la historia de cada uno</small></div><a href="#">Completar →</a></div>
+    <div class="d full"><i></i><div class="g">Fotos por tipo<small>Cuatro tipos con material · falta retrato</small></div><span class="tick">✓</span></div>
+    <div class="d full"><i></i><div class="g">Ficha científica<small>Especies, temporada y contexto del lugar</small></div><span class="tick">✓</span></div>
+    <div class="d full"><i></i><div class="g">Deslinde<small>Cláusulas y documento firmable cargados</small></div><span class="tick">✓</span></div>
+    <div class="d full"><i></i><div class="g">Encuesta<small>Activa · sale 24 horas después de volver</small></div><span class="tick">✓</span></div>
+  </div>
+</div>
+
+<!-- 5 · tu trato -->
+<div class="card pad" style="margin-top:20px">
+  <span class="subtitle">Tu trato</span>
+  <div class="extrato">
+    <span class="pct">{{TRAMO_2}}</span>
+    <div class="g">Es la comisión que Caminante toma de cada venta de esta experiencia. <b style="color:var(--charcoal);font-weight:600">Se congela en cada venta</b>: lo ya vendido nunca cambia de porcentaje, y un ajuste aplica solo a ventas futuras.</div>
+  </div>
+  <dl class="dl" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
+    <dt>Escalón</dt><dd>$5.001 – $15.000 por persona</dd>
+    <dt>Convenio</dt><dd>Firmado el 13/08/2026</dd>
+    <dt>Pago</dt><dd>A los 7 días del regreso</dd>
+  </dl>
+</div>
+
+<!-- cierre · fechas en solo lectura -->
+<div class="exfech">
+  <span class="subtitle">Sus fechas publicadas</span>
+  <p class="exmir"><s>//</s><span>Reflejo de lo que hay en Salidas. Se crean, se editan y se cierran allá; aquí solo se leen.</span></p>
+  <div class="exro"><span><span class="dt">2 ago 2026</span><span class="sub">6 lugares · llenos</span></span><span class="rt"><span class="chip c-canc"><span class="cd" style="background:var(--sand)"></span>Ya viajó</span><a href="Admin Salidas v2.html">Abrir salida →</a></span></div>
+  <div class="exro"><span><span class="dt">14 mar 2026</span><span class="sub">6 lugares · llenos</span></span><span class="rt"><span class="chip c-canc"><span class="cd" style="background:var(--sand)"></span>Ya viajó</span><a href="Admin Salidas v2.html">Abrir salida →</a></span></div>
+  <p class="mut" style="font-size:12.5px;line-height:1.55;margin-top:12px">Sin fechas por delante, y así puede quedarse: esta experiencia se vende por solicitud.</p>
+</div>
+</section>
+
+<div class="vsep"></div>
+
+<!-- ═══════ B · LA CASA ═══════ -->
+<div class="vtag casa"><b>Versión B · la casa</b><span>Caminante ve las experiencias de todos los operadores. Se agrega encima: campo y filtro de operador, comisión editable y los totales de la plataforma.</span></div>
+
+<div class="sec-head">
+  <div>
+    <span class="eyebrow"><span class="sl">//</span> Experiencias</span>
+    <h2 class="display" style="margin-top:10px">Cinco productos, <em class="ac">tres operadores.</em></h2>
+    <p class="desc">Ordenadas por lo que necesitan: arriba las que no pueden vender, luego las que están vendiendo, al final las dormidas.</p>
+  </div>
+  <div class="act-row" style="margin-top:0"><button class="btn btn-ghost">+ Operador</button><button class="btn btn-orange">+ Experiencia</button></div>
+</div>
+
+<section class="sec">
+<div class="filters">
+  <input type="search" placeholder="Buscar experiencia">
+  <select><option>Todos los operadores</option><option>Numan · Caminante</option><option>Nomádika</option><option>Kéntro</option></select>
+  <select><option>Todos los estados</option><option>Publicadas</option><option>Borrador</option></select>
+  <select><option>Orden: por lo que necesitan</option><option>Por ingresos</option><option>Alfabético</option></select>
+</div>
+
+<div class="kpis" style="margin-bottom:24px">
+  <div class="kpi card"><div class="k-lbl">Ingresos de la plataforma</div><div class="k-val">$436.000</div><div class="k-sub">De <b>4</b> experiencias que han vendido · <b>3</b> operadores</div></div>
+  <div class="kpi card" style="border-color:rgba(255,93,54,.34)"><div class="k-lbl">No pueden vender</div><div class="k-val" style="color:var(--orange)">1<span class="u"> de 5</span></div><div class="k-sub">Trekking Barrancas: falta el documento del deslinde</div></div>
+  <div class="kpi card"><div class="k-lbl">Armadura completa</div><div class="k-val">1<span class="u"> de 5</span></div><div class="k-sub">Solo Ensenada tiene las cinco dimensiones</div></div>
+  <div class="kpi card"><div class="k-lbl">Estrellas de la casa</div><div class="k-val">4,7<span class="st" style="font-family:'Geist',system-ui,sans-serif;font-size:18px;color:var(--orange);letter-spacing:1px"> ★</span></div><div class="k-sub">Promedio de <b>14</b> respuestas de <b>37</b> viajeros</div></div>
+</div>
+
+<div class="exleg">
+  <span class="f"><i></i>Dimensión completa</span>
+  <span class="h"><i></i>A medias</span>
+  <span class="n"><i></i>Falta</span>
+  <span style="margin-left:auto;color:var(--ink-soft)">Fotos · ficha científica · saber de los guías · deslinde · encuesta</span>
+</div>
+
+<div class="excat">
+  <!-- 1 · no vende -->
+  <a class="card exc" href="#ficha-casa">
+    <div class="ph"><img src="assets/img/chihuahua.jpg" alt="Barrancas del Cobre bajo nubes de tormenta, Chihuahua"><div class="tp"><span class="chip c-pub"><span class="cd"></span>Publicada</span></div></div>
+    <div class="bd">
+      <h3>Trekking Barrancas del Cobre</h3>
+      <p class="op">Nomádika · escalón {{TRAMO_2}}</p>
+      <p class="exsem no"><s>⚠</s><span>No vende: falta el documento del deslinde</span></p>
+      <div class="ex3">
+        <div><div class="v">$96.000</div><div class="l">Ingresos</div></div>
+        <div><div class="v">8</div><div class="l">Clientes</div></div>
+        <div><div class="v mut">—</div><div class="l">Estrellas</div><div class="d">0 de 8</div></div>
+      </div>
+      <div class="exarm"><div class="hd"><span class="t">Armadura</span><span class="fr">3 de 5</span></div>
+        <div class="exdims"><span class="exd half"><i></i>Fotos</span><span class="exd full"><i></i>Ficha científica</span><span class="exd full"><i></i>Guías</span><span class="exd none"><i></i>Deslinde</span><span class="exd none"><i></i>Encuesta</span></div>
+      </div>
+      <p class="excal"><s>//</s><span>Una fecha publicada · <b>Oct 8–11</b></span></p>
+    </div>
+  </a>
+
+  <!-- 2 · vendiendo, 5 de 5 -->
+  <a class="card exc" href="#ficha-casa">
+    <div class="ph"><img src="assets/img/exp-ensenada.jpg" alt="Ensenada de Muertos desde el aire, Baja California Sur"><div class="tp"><span class="chip c-pub"><span class="cd"></span>Publicada</span></div></div>
+    <div class="bd">
+      <h3>Ensenada de Muertos</h3>
+      <p class="op">Numan · Caminante · casa</p>
+      <p class="exsem si"><s>✓</s><span>Lista para vender</span></p>
+      <div class="ex3">
+        <div><div class="v">$241.280</div><div class="l">Ingresos</div></div>
+        <div><div class="v">13</div><div class="l">Clientes</div></div>
+        <div><div class="v">4,8<span class="st"> ★</span></div><div class="l">Estrellas</div><div class="d">de 5</div></div>
+      </div>
+      <div class="exarm"><div class="hd"><span class="t">Armadura</span><span class="fr">5 de 5</span></div>
+        <div class="exdims"><span class="exd full"><i></i>Fotos</span><span class="exd full"><i></i>Ficha científica</span><span class="exd full"><i></i>Guías</span><span class="exd full"><i></i>Deslinde</span><span class="exd full"><i></i>Encuesta</span></div>
+      </div>
+      <p class="excal"><s>//</s><span>Una fecha publicada · <b>Oct 3–4</b></span></p>
+    </div>
+  </a>
+
+  <!-- 3 · vendiendo -->
+  <a class="card exc" href="#ficha-casa">
+    <div class="ph"><img src="assets/img/exp-hongos.jpg" alt="Recolección de hongos en el bosque de Xalatlaco"><div class="tp"><span class="chip c-pub"><span class="cd"></span>Publicada</span></div></div>
+    <div class="bd">
+      <h3>Recolección de hongos</h3>
+      <p class="op">Numan · Caminante · casa</p>
+      <p class="exsem si"><s>✓</s><span>Lista para vender</span></p>
+      <div class="ex3">
+        <div><div class="v">$45.900</div><div class="l">Ingresos</div></div>
+        <div><div class="v">18</div><div class="l">Clientes</div></div>
+        <div><div class="v">4,6<span class="st"> ★</span></div><div class="l">Estrellas</div><div class="d">de 9</div></div>
+      </div>
+      <div class="exarm"><div class="hd"><span class="t">Armadura</span><span class="fr">4 de 5</span></div>
+        <div class="exdims"><span class="exd full"><i></i>Fotos</span><span class="exd full"><i></i>Ficha científica</span><span class="exd half"><i></i>Guías</span><span class="exd full"><i></i>Deslinde</span><span class="exd full"><i></i>Encuesta</span></div>
+      </div>
+      <p class="excal"><s>//</s><span>Una fecha publicada · <b>27 sep</b></span></p>
+    </div>
+  </a>
+
+  <!-- 4 · estado 1 · sin fechas planeadas -->
+  <a class="card exc" href="#ficha-op">
+    <div class="ph"><img src="assets/img/bosque-niebla.jpg" alt="Ladera boscosa entre niebla en Veracruz"><div class="tp"><span class="chip c-pub"><span class="cd"></span>Publicada</span></div></div>
+    <div class="bd">
+      <h3>El fondo de la barranca</h3>
+      <p class="op">Nomádika · escalón {{TRAMO_2}}</p>
+      <p class="exsem si"><s>✓</s><span>Lista para vender</span></p>
+      <div class="ex3">
+        <div><div class="v">$52.800</div><div class="l">Ingresos</div></div>
+        <div><div class="v">6</div><div class="l">Clientes</div></div>
+        <div><div class="v mut">—</div><div class="l">Estrellas</div><div class="d">0 de 6</div></div>
+      </div>
+      <div class="exarm"><div class="hd"><span class="t">Armadura</span><span class="fr">4 de 5</span></div>
+        <div class="exdims"><span class="exd full"><i></i>Fotos</span><span class="exd full"><i></i>Ficha científica</span><span class="exd half"><i></i>Guías</span><span class="exd full"><i></i>Deslinde</span><span class="exd full"><i></i>Encuesta</span></div>
+      </div>
+      <p class="excal"><s>//</s><span>Sin fechas planeadas · se vende por solicitud</span></p>
+    </div>
+  </a>
+
+  <!-- 5 · publicada, sin ventas -->
+  <a class="card exc" href="#ficha-casa">
+    <div class="ph"><img src="assets/img/hero-edomex.jpg" alt="Bosque del Estado de México al amanecer"><div class="tp"><span class="chip c-pub"><span class="cd"></span>Publicada</span></div></div>
+    <div class="bd">
+      <h3>El acto de ver</h3>
+      <p class="op">Kéntro · escalón {{TRAMO_1}}</p>
+      <p class="exsem si"><s>✓</s><span>Lista para vender</span></p>
+      <div class="ex3">
+        <div><div class="v mut">—</div><div class="l">Ingresos</div></div>
+        <div><div class="v">0</div><div class="l">Clientes</div></div>
+        <div><div class="v mut">—</div><div class="l">Estrellas</div><div class="d">sin viajes</div></div>
+      </div>
+      <div class="exarm"><div class="hd"><span class="t">Armadura</span><span class="fr">4 de 5</span></div>
+        <div class="exdims"><span class="exd full"><i></i>Fotos</span><span class="exd half"><i></i>Ficha científica</span><span class="exd full"><i></i>Guías</span><span class="exd full"><i></i>Deslinde</span><span class="exd full"><i></i>Encuesta</span></div>
+      </div>
+      <p class="excal"><s>//</s><span>Sin fechas planeadas · se vende por solicitud</span></p>
+    </div>
+  </a>
+
+  <!-- 6 · estado 3 · borrador -->
+  <a class="card exc" href="#ficha-casa">
+    <div class="ph"><img src="assets/img/tents-sunset.jpg" alt="Campamento al atardecer en Amanalco" style="filter:saturate(.55) brightness(.94)"><div class="tp"><span class="chip c-draft"><span class="cd"></span>Borrador</span></div></div>
+    <div class="bd">
+      <h3>Amanalco lobo glamp</h3>
+      <p class="op">Numan · Caminante · casa</p>
+      <p class="exsem dorm"><s>·</s><span>En borrador: nadie la ve todavía</span></p>
+      <div class="ex3">
+        <div><div class="v mut">—</div><div class="l">Ingresos</div></div>
+        <div><div class="v">0</div><div class="l">Clientes</div></div>
+        <div><div class="v mut">—</div><div class="l">Estrellas</div><div class="d">sin viajes</div></div>
+      </div>
+      <div class="exarm"><div class="hd"><span class="t">Armadura</span><span class="fr">1 de 5</span></div>
+        <div class="exdims"><span class="exd half"><i></i>Fotos</span><span class="exd none"><i></i>Ficha científica</span><span class="exd none"><i></i>Guías</span><span class="exd none"><i></i>Deslinde</span><span class="exd none"><i></i>Encuesta</span></div>
+      </div>
+      <p class="excal"><s>//</s><span>Sin fechas planeadas · se vende por solicitud</span></p>
+    </div>
+  </a>
+</div>
+</section>
+
+<!-- FICHA · casa -->
+<section class="sec" id="ficha-casa">
+<div class="sec-head" style="margin-bottom:14px"><div><span class="eyebrow"><span class="sl">//</span> Ficha · la casa</span><h2 class="display" style="font-size:22px;margin-top:9px">La misma página, <em class="ac">con dos cosas más.</em></h2><p class="desc">Cambia el bloque de trato —editable, y con quién opera— y aparece el campo de operador.</p></div></div>
+
+<div class="exhero">
+  <div class="ph"><img src="assets/img/exp-hongos.jpg" alt="Recolección de hongos en el bosque de Xalatlaco"></div>
+  <div class="in">
+    <span class="chip c-pub"><span class="cd"></span>Publicada</span>
+    <h2>Recolección de hongos</h2>
+    <p class="sub">Xalatlaco, Estado de México · un día · Numan · Caminante</p>
+    <p class="exsem si big" style="margin-top:12px"><s>✓</s><span>Lista para vender</span></p>
+  </div>
+</div>
+<div class="exbar">
+  <button class="btn btn-orange">Editar contenido</button>
+  <button class="btn btn-glass">Ver página pública</button>
+  <button class="btn btn-ghost">Kit de comunicación</button>
+  <button class="btn btn-ghost">Pasar a borrador</button>
+</div>
+
+<span class="subtitle">Cómo va</span>
+<div class="kpis" style="margin:10px 0 24px">
+  <div class="kpi card"><div class="k-lbl">Ingresos</div><div class="k-val">$45.900</div><div class="k-sub">De <b>2</b> salidas corridas</div></div>
+  <div class="kpi card"><div class="k-lbl">Clientes que han pasado</div><div class="k-val">18</div><div class="k-sub"><b>4</b> quieren repetir</div></div>
+  <div class="kpi card"><div class="k-lbl">Salidas corridas</div><div class="k-val">2</div><div class="k-sub">Última el <b>26 jul 2026</b></div></div>
+  <div class="kpi card"><div class="k-lbl">Estrellas</div><div class="k-val">4,6<span class="st" style="font-family:'Geist',system-ui,sans-serif;font-size:17px;color:var(--orange);letter-spacing:1px"> ★</span></div><div class="k-sub">Promedio de <b>9</b> respuestas de <b>18</b> viajeros</div></div>
+</div>
+
+<div class="card pad">
+  <span class="subtitle">Sus fotos</span>
+  <p class="desc" style="margin:0">El banco por tipo. Es la materia prima de la página pública, del Kit y del correo.</p>
+  <div class="exban">
+    <div class="exsl"><img src="assets/img/hero-edomex.jpg" alt="Bosque del Estado de México"><span class="n">9</span><span class="tt">Paisaje</span></div>
+    <div class="exsl"><img src="assets/img/h-hands-moss.jpg" alt="Manos sobre musgo"><span class="n">7</span><span class="tt">Gente</span></div>
+    <div class="exsl"><img src="assets/img/h-ghost-pipes.jpg" alt="Plantas fantasma en el suelo del bosque"><span class="n">12</span><span class="tt">Flora</span></div>
+    <div class="exsl"><img src="assets/img/h-gill-macro.jpg" alt="Macro de las láminas de un hongo"><span class="n">14</span><span class="tt">Detalle</span></div>
+    <div class="exsl"><img src="assets/img/h-nanae.jpg" alt="Retrato de Nanae Watabe, guía"><span class="n">3</span><span class="tt">Retrato</span></div>
+  </div>
+  <p class="mut" style="font-size:12.5px;margin-top:12px;line-height:1.55">Los cinco tipos con material: 45 fotos en total.</p>
+</div>
+
+<div class="grid2" style="margin-top:20px">
+  <div class="card pad">
+    <span class="subtitle">Su comunicación</span>
+    <div class="exkit">
+      <div class="r"><span>Piezas listas<small>Armadas y esperando fecha de publicación</small></span><span class="m">5</span></div>
+      <div class="r"><span>Programadas<small>La próxima sale el 30 ago</small></span><span class="m">3</span></div>
+      <div class="r"><span>Publicadas<small>Desde enero de 2026</small></span><span class="m">21</span></div>
+    </div>
+    <div class="act-row"><button class="btn btn-glass btn-sm">Abrir Kit de comunicación</button></div>
+  </div>
+  <div class="card pad">
+    <span class="subtitle">Testimonios publicables · 2</span>
+    <p class="desc" style="margin:0 0 12px">Los dejó la encuesta con permiso de publicación. Están listos y nadie los ha usado.</p>
+    <div class="testi">
+      <div class="tcard glass"><p class="tt">«El bosque huele distinto después de la lluvia. No sabía que eso se podía aprender.»</p><div class="tm"><span class="mut" style="font-size:12px">Monica Quintero · 26 jul</span><span class="stars-lg" style="font-size:14px">★★★★★</span></div></div>
+      <div class="tcard glass"><p class="tt">«La guía sabe los nombres de todo. Volvería nada más por eso.»</p><div class="tm"><span class="mut" style="font-size:12px">Ignacio Madrigal · 26 jul</span><span class="stars-lg" style="font-size:14px">★★★★★</span></div></div>
+    </div>
+    <div class="act-row"><button class="btn btn-ghost btn-sm">Mandar al Kit</button></div>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:20px">
+  <div class="card pad">
+    <span class="subtitle">Qué le falta</span>
+    <div class="exdim">
+      <div class="d half"><i></i><div class="g">Saber de los guías<small>Falta la certificación vigente de una de las dos guías</small></div><a href="#">Completar →</a></div>
+      <div class="d full"><i></i><div class="g">Fotos por tipo<small>Los cinco tipos con material · 45 fotos</small></div><span class="tick">✓</span></div>
+      <div class="d full"><i></i><div class="g">Ficha científica<small>Especies, temporada y contexto del lugar</small></div><span class="tick">✓</span></div>
+      <div class="d full"><i></i><div class="g">Deslinde<small>Cláusulas y documento firmable cargados</small></div><span class="tick">✓</span></div>
+      <div class="d full"><i></i><div class="g">Encuesta<small>Activa · sale 24 horas después de volver</small></div><span class="tick">✓</span></div>
+    </div>
+  </div>
+  <div class="card pad">
+    <span class="subtitle">Operador y comisión</span>
+    <div class="extrato">
+      <span class="pct">0%</span>
+      <div class="g">Experiencia de la casa: no hay comisión que repartir. Si se asigna a un operador externo, aquí aparece su escalón. <b style="color:var(--charcoal);font-weight:600">Se congela en cada venta</b>: un ajuste aplica solo a ventas futuras.</div>
+    </div>
+    <div class="mini-form" style="margin-top:16px">
+      <select><option>Numan · Caminante</option><option>Nomádika</option><option>Kéntro</option></select>
+      <input type="text" value="0%" style="width:100px" aria-label="Comisión">
+      <button class="btn btn-ghost btn-sm">Guardar trato</button>
+    </div>
+    <dl class="dl" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+      <dt>Precio por persona</dt><dd>$2.550</dd>
+      <dt>Deslinde</dt><dd>Obligatorio</dd>
+      <dt>Encuesta</dt><dd>Activa</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="exfech">
+  <span class="subtitle">Sus fechas publicadas</span>
+  <p class="exmir"><s>//</s><span>Reflejo de lo que hay en Salidas. Se crean, se editan y se cierran allá; aquí solo se leen.</span></p>
+  <div class="exro"><span><span class="dt">27 sep 2026</span><span class="sub">17 lugares · 4 vendidos</span></span><span class="rt"><span class="chip c-pub"><span class="cd" style="background:var(--olive)"></span>Abierta</span><a href="Admin Salidas v2.html">Abrir salida →</a></span></div>
+  <div class="exro"><span><span class="dt">26 jul 2026</span><span class="sub">18 lugares · llenos</span></span><span class="rt"><span class="chip c-canc"><span class="cd" style="background:var(--sand)"></span>Ya viajó</span><a href="Admin Salidas v2.html">Abrir salida →</a></span></div>
+</div>
+</section>
+
+<!-- estado 5 · catálogo vacío -->
+<section class="sec">
+<div class="sec-head" style="margin-bottom:14px"><div><span class="eyebrow"><span class="sl">//</span> Estado</span><h2 class="display" style="font-size:22px;margin-top:9px">El catálogo <em class="ac">vacío.</em></h2></div></div>
+<div class="empty" style="padding:44px 24px">
+  <b style="display:block;font-size:18px;font-weight:400;color:var(--charcoal);margin-bottom:8px">Todavía no hay experiencias.</b>
+  <p style="max-width:44ch;margin:0 auto;line-height:1.6">Una experiencia es la plantilla que se repite: su lugar, su itinerario, su precio y sus fotos. Las fechas vienen después, en Salidas.</p>
+  <div class="act-row" style="justify-content:center;margin-top:20px"><button class="btn btn-orange">+ Experiencia</button></div>
+</div>
+</section>
+
+<p class="docnote"><b>Notas de la maqueta.</b> <span class="sl">//</span> Fotos reales del proyecto. <span class="sl">//</span> La armadura son cinco dimensiones con nombre visible y tres estados, con leyenda arriba del catálogo. <span class="sl">//</span> Ninguna estrella aparece sin su denominador; sin respuestas se dibuja un guion, no un cero. <span class="sl">//</span> «Sin fechas planeadas» se enuncia como hecho, sin número ni alerta. <span class="sl">//</span> No hay solicitudes de clientes, listas de participantes ni deslindes pendientes: eso vive en Salidas o en el CRM que sigue. <span class="sl">//</span> Las comisiones van como <span class="mono">{{TRAMO_1}}</span> y <span class="mono">{{TRAMO_2}}</span>. <span class="sl">//</span> En la maqueta hay una ficha por versión: las tarjetas del catálogo del operador abren la ficha del operador, y las de la casa abren la de la casa. <span class="sl">//</span> Los rótulos de versión son de la maqueta: en producción es una sola pantalla que se poda según quién entra.</p>
+
+</div>
+
+<script>
+const G1='<g class="g1"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+const G2='<g class="g2"><path d="M218.65,2.3c-8.09,0-14.64,6.56-14.64,14.64s6.56,14.64,14.64,14.64,14.64-6.56,14.64-14.64-6.56-14.64-14.64-14.64"/><path d="M276.91,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/><path d="M189.47,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/></g>';
+const G3='<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+document.querySelectorAll('[data-mark]').forEach(el=>el.innerHTML='<svg viewBox="0 0 437.31 121.74" role="img" aria-label="Caminante">'+G1+G2+G3+'</svg>');
+</script>
+
+<!--
+  ════════════════════════════════════════════════════════════════════
+  REUSADO — de «Salidas» (arriba en este chat) y del panel de admin
+  ════════════════════════════════════════════════════════════════════
+  Shell ......... .ahead / .top / .brand / .logo (mismo SVG, .g1 .g2 .g3) /
+                  .mode / .qa / .nav / .nav a.on
+  Layout ........ .page · .sec · .sec-head (+ h2.display, .desc) · .grid2
+  Tipografía .... .eyebrow + span.sl · .display + em.ac · .mono · .mut · .subtitle
+  Superficies ... .card · .pad · .glass · .empty
+  Cifras ........ .kpis · .kpi · .k-lbl · .k-val (+.u) · .k-sub (+b)
+  Estados ....... .chip · .c-pub · .c-draft · .c-canc · .cd · .tick
+  Testimonios ... .testi · .tcard (+ .glass) · .tt · .tm · .stars-lg
+                  — el bloque de comunicación usa la galería de testimonios
+                  del dashboard tal cual
+  Botones ....... .btn · .btn-orange · .btn-glass · .btn-ghost · .btn-sm · .act-row
+  Formularios ... .filters · .mini-form
+  Definiciones .. .dl / dt / dd
+  De «Salidas» .. el denominador pegado a todo promedio; los vacíos que no
+                  regañan; el vidrio sobre foto (mismo tratamiento que
+                  .exhero heredó de las cápsulas); .docnote; el reset de
+                  subrayado; la clase .st para sacar el ★ del mono
+  Variables ..... las 15 del :root. Los cuatro hex que había fuera de paleta
+                  (#a8c48c, #e2e4d6, #7a6528, #cfe0bd, puestos para legibilidad
+                  sobre vidrio) se cambiaron por --salvia, --sand y --olive-d.
+                  Los hex que quedan en el archivo vienen del bloque copiado
+                  del dashboard, no de este trabajo.
+
+  ════════════════════════════════════════════════════════════════════
+  INVENTADO, y por qué
+  ════════════════════════════════════════════════════════════════════
+  .excat / .exc .......... la tarjeta de catálogo con foto, y es un <a>: la
+        ficha se navega. El panel solo tenía tablas y .tcard.
+  .exsem ................. el semáforo de venta. Un .chip es una etiqueta de
+        una palabra y aquí hace falta decir POR QUÉ no vende. Tres variantes:
+        si, no (naranja al 13% con texto carbón, para cargar contraste sin
+        volverse rojo de error) y dorm para el borrador. .big en la ficha.
+  .ex3 ................... las tres cifras. Un .kpi partido en tres dentro de
+        una tarjeta chica; la tercera celda lleva su denominador debajo.
+  .exarm / .exdims / .exd  la armadura con las cinco dimensiones NOMBRADAS y
+        tres estados. .dots/.dot del panel solo distingue dos, así que cada
+        dimensión es una píldora con su marca: relleno olivo (completa),
+        medio círculo dune (a medias) y aro naranja vacío (falta). El
+        contador va a la derecha del rótulo, no en lugar de los nombres.
+  .exleg ................. la leyenda de esos tres estados. Sin ella, tres
+        marcas distintas son un acertijo.
+  .excal ................. el enunciado del calendario al pie: «Una fecha
+        publicada · Oct 8–11» o «Sin fechas planeadas · se vende por
+        solicitud». Atenuado a propósito: es un hecho, no un pendiente.
+  .exhero / .exbar ....... la portada fotográfica de la ficha y su barra de
+        acciones. El panel no tenía encabezado con foto; el velo y el vidrio
+        vienen del sitio público de Caminante.
+  .exban / .exsl ......... el banco de fotos por tipo, en mosaico de cinco.
+        Cada casilla lleva su conteo en vidrio y su tipo abajo; la vacía va
+        punteada en naranja con su botón de subir. No existía nada parecido.
+  .exkit ................. las tres cuentas del Kit (listas, programadas,
+        publicadas). Es una tabla de dos columnas demasiado chica para
+        .tbl-wrap.
+  .exdim ................. las cinco dimensiones desplegadas en la ficha, con
+        el mismo código de tres estados y enlace a donde se arregla. Las
+        completas se atenúan; lo que falta queda al frente.
+  .extrato ............... «Tu trato»: el porcentaje en mono a 44px con su
+        explicación al lado. En la versión del operador no hay ningún control;
+        en la de la casa se le agrega un .mini-form debajo.
+  .exfech / .exro / .exmir  el cierre de fechas en solo lectura y la nota que
+        declara que es un reflejo. Es la pieza que evita que alguien busque
+        aquí el botón de editar la fecha.
+  .vtag / .vsep .......... rótulos de versión y separador; de la maqueta.
+  .docnote ............... notas de la maqueta.
+-->
+</body>
+</html>
