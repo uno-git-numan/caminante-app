@@ -158,7 +158,7 @@ export default async function SalidasPage() {
               {d.proximas.length === 1 ? "salida" : "salidas"}
             </span>
             <h2 className="display" style={{ fontSize: 30 }}>
-              Lo que <em className="ac">todavía puede arreglarse.</em>
+              Lo que <em className="ac">viene.</em>
             </h2>
             <div className="desc">
               La más cercana arriba. Aquí se persiguen las firmas del deslinde: sin ellas, esa persona
@@ -219,7 +219,7 @@ export default async function SalidasPage() {
               {d.pasadas.length === 1 ? "salida" : "salidas"}
             </span>
             <h2 className="display" style={{ fontSize: 30 }}>
-              Lo que ya <em className="ac">nos dijeron.</em>
+              Lo que <em className="ac">fue.</em>
             </h2>
             <div className="desc">
               La más reciente arriba. Ningún promedio se muestra sin su denominador: 4,6 de nueve
