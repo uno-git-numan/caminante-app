@@ -154,6 +154,29 @@ existía. Y la salida de hongos del 26 jul viajó con **18 personas y nadie reci
 encuesta** — la casilla nacía apagada, ningún gate la exigía, y el único síntoma
 fue el silencio.
 
+## Las TRES cuentas de una salida
+
+| Cuenta | Qué es | De dónde |
+|---|---|---|
+| **Lugares pagados** | lo que se cobró | Σ `reservations.num_people` |
+| **En la lista** | quién sube al cerro | filas del roster (titular + acompañantes) |
+| **Deslindes** | firmas reales | `registrations` por RESERVA |
+
+`fetchRoster` devuelve las tres (`lugaresPagados`, `titulares`, `firmados`).
+**No cuentes sobre `rows`.** Contar firmas sobre las filas daba «6/6 con
+deslinde» donde había cuatro firmas — y un guía que lo lee cree que tiene seis.
+
+⚠️ **«En la lista» puede pasar de «lugares pagados»**: un titular puede capturar
+más participantes de los que compró. Se AVISA con las dos salidas (cobrar el
+lugar, o corregir la reserva); **no se cuadra bajando un número en la consulta**.
+
+## Editar una salida vive en Salidas
+
+«Editar cupo y fechas» en el pie de la cápsula, reusando `updateSlot` — la misma
+acción del panel móvil. Al sacar las fechas del formulario de experiencia, el
+cupo de una salida ya creada se quedó sin editor en escritorio: el teléfono
+podía y la computadora no.
+
 ## Fechas: el fin nunca antes del inicio
 
 Una salida de volcanes tenía `ends_at` en **julio** para un viaje de agosto. Como
