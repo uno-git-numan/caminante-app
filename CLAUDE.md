@@ -150,7 +150,27 @@ cláusulas saben si son obligatorias y de quién son, el formulario avisa cuando
 precio que se muestra no es el que se cobra, y una experiencia nueva hereda el
 contacto de SU dueño. Migración **0043** aplicada.
 
-**Siguiente:** A3, facturación multi-emisor con Facturapi.
+**Desde el 27 ago:** **Comunidad** sustituyó a «Personas» en la nav — la
+biblioteca de los 60 que dejaron rastro está EN PRODUCCIÓN (lista densa, origen
+en humano, cumpleaños por «hoy y los próximos 30»). El **tablero CRM** está
+diseñado y con base de datos lista, pero NO construido: `crm_cards` está vacía y
+un kanban con arrastre que no arrastra nada es un control muerto.
+
+Migraciones **0044, 0045 y 0046** aplicadas (bajas de participante · el CRM y el
+punto de encuentro POR SALIDA · los regalos con token). El **roster ya resta las
+bajas**: el deslinde firmado conserva a quien se dio de baja, la lista no.
+
+⚠️ **La comisión no cambia con un descuento** (Luis, 27 ago): se calcula normal
+sobre lo cobrado. Operador y casa lo absorben en proporción.
+
+⚠️ **Aplicar migraciones: usa curl leyendo el archivo, no el navegador.** Mandar
+el SQL por trozos a una pestaña perdió 8 caracteres en silencio; el candado del
+hash lo cazó. El token de la Management API sí se puede sacar del navegador — si
+llega corrupto falla con 401, que es un fallo seguro.
+
+**Siguiente:** A3, facturación multi-emisor con Facturapi. Y en Comunidad: el
+tablero, el editor de etiquetas, «Unificar ciudades», el regalo, y mandar a
+aprobar las plantillas de WhatsApp a Meta (tardan días).
 
 ⚠️ **Corrección (25 ago 2026):** aquí decía que el plan multi-organización era «un
 requisito, no un detalle», como si fuera caro y aparte. **No lo es.** El plan base
