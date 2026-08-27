@@ -21,20 +21,39 @@ import { crearSalidaAction } from "@/lib/admin/eventos-actions";
 
 type Exp = { id: string; slug: string; nombre: string };
 
-export default function NuevaSalida({ experiencias }: { experiencias: Exp[] }) {
+// ⚠️ Este componente OWNS el .sec-head y recibe el título como children. No es
+// un capricho: el entregable pone el panel de alta FUERA y DESPUÉS del
+// encabezado, y meterlo dentro lo convertía en un tercer hijo flex con
+// width:100% que saltaba de renglón. Cerrado y todo, aportaba su alto + 26px
+// de margen + los 16px de gap: casi cien pixeles de hueco entre el título y
+// las pastillas, que es justo lo que se veía mal.
+export default function NuevaSalida({
+  experiencias,
+  children,
+}: {
+  experiencias: Exp[];
+  /** El bloque de título del encabezado, renderizado en el servidor. */
+  children: React.ReactNode;
+}) {
   const [abierto, setAbierto] = useState(false);
   const [elegida, setElegida] = useState<Exp | null>(experiencias[0] ?? null);
   const [variosDias, setVariosDias] = useState(false);
 
-  if (!experiencias.length) return null;
-
   return (
     <>
-      <button type="button" className="btn btn-orange" onClick={() => setAbierto((v) => !v)}>
-        {abierto ? "Cancelar" : "+ Agregar salida"}
-      </button>
+      <div className="sec-head">
+        {children}
+        {experiencias.length ? (
+          <button type="button" className="btn btn-orange" onClick={() => setAbierto((v) => !v)}>
+            {abierto ? "Cancelar" : "+ Agregar salida"}
+          </button>
+        ) : null}
+      </div>
 
-      <div className={`xbody${abierto ? " on" : ""}`} style={{ marginBottom: 26, width: "100%" }}>
+      {/* Cerrado NO reserva margen: un panel plegado que empuja el contenido
+          hacia abajo se lee como un hueco sin causa. Los 26px del entregable
+          están authored para el estado abierto, que es como lo dibujó. */}
+      <div className={`xbody${abierto ? " on" : ""}`} style={abierto ? { marginBottom: 26 } : undefined}>
         <div className="card pad">
           <span className="subtitle">Nueva salida</span>
           <form action={crearSalidaAction}>

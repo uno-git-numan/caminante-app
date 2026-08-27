@@ -40,20 +40,21 @@ export default async function SalidasPage({
 
   return (
     <AdminShell active="encuesta">
-      <div className="sec-head">
+      {/* NuevaSalida OWNS el .sec-head: el panel de alta va DESPUÉS del
+          encabezado, como en el entregable, y no dentro de él. */}
+      <NuevaSalida experiencias={d.experiencias}>
         <div>
           <span className="eyebrow">
             <span className="sl">{"//"}</span> Salidas
           </span>
-          <h1 className="display">
+          <h1 className="display" style={{ marginTop: 10 }}>
             Cada viaje, <em className="ac">antes y después.</em>
           </h1>
-          <div className="desc">
+          <p className="desc">
             Antes se persiguen las firmas del deslinde; después se lee cómo estuvo.
-          </div>
+          </p>
         </div>
-        <NuevaSalida experiencias={d.experiencias} />
-      </div>
+      </NuevaSalida>
 
       {aviso ? (
         <div
