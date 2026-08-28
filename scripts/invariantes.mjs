@@ -374,6 +374,28 @@ const REGLAS = [
       return null;
     },
   },
+  {
+    nombre: "Ningún backtick dentro del CSS del panel",
+    comprueba() {
+      const css = leer("src/app/caminante/admin/ui/admin-css.ts");
+      if (!css) return null;
+      const abre = css.indexOf("= `");
+      const cierra = css.lastIndexOf("`;");
+      if (abre === -1 || cierra <= abre) return null;
+      const cuerpo = css.slice(abre + 3, cierra);
+      const n = (cuerpo.match(/`/g) || []).length;
+      if (!n) return null;
+      const linea = css.slice(0, abre + 3 + cuerpo.indexOf("`")).split("\n").length;
+      return [
+        `admin-css.ts tiene ${n} backtick(s) dentro del template literal (cerca de la línea ${linea}).`,
+        "Cierran la cadena a media hoja y el build truena con «',' expected» en un",
+        "punto que no dice nada del error real.",
+        "",
+        "Ya pasó TRES veces, siempre en un comentario que citaba una clase o una",
+        "propiedad. En prosa no hacen falta: escribe .cmboard sin adornos.",
+      ].join("\n");
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

@@ -587,6 +587,23 @@ export const ADMIN_CSS = `
 /* tablero + panel · el scroll vive adentro */
 .adm .cmwrap{display:flex;gap:0;align-items:stretch}
 .adm .cmboard{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:14px;scrollbar-width:thin}
+/* ── EL TABLERO SANGRA HASTA LOS BORDES DE LA VENTANA ──────────────────────
+   Vivía dentro de .page (máximo 1200px) mientras la navegación de arriba
+   abarca la ventana entera. El resultado: media columna cortada en los dos
+   extremos, que no se lee como «hay más si deslizas» sino como un recorte mal
+   hecho — y hace que columnas idénticas de 280px parezcan de tamaños
+   distintos.
+
+   El margin-inline negativo estira la caja hasta los bordes; el
+   padding-inline del mismo tamaño devuelve el margen de la página, así que
+   la PRIMERA columna sigue alineada con el título y con las cifras de arriba.
+   Nada se mueve de sitio: sólo deja de cortarse.
+
+   ⚠️ El scroll sigue encerrado aquí dentro. La página no se desliza de lado. */
+.adm .cmboard{margin-inline:calc(50% - 50vw);padding-inline:calc(50vw - 50%);scroll-padding-inline:calc(50vw - 50%);}
+/* Y el último renglón de columnas necesita aire al final: sin esto la última
+   se pega al borde y tampoco se ve que terminó. */
+.adm .cmtrack{padding-right:22px;}
 .adm .cmboard::-webkit-scrollbar{height:9px}
 .adm .cmboard::-webkit-scrollbar-track{background:var(--panel);border-radius:999px}
 .adm .cmboard::-webkit-scrollbar-thumb{background:var(--sand);border-radius:999px}
