@@ -28,22 +28,14 @@ function isImmersive(pathname: string): boolean {
     pathname === "/caminante/aprende" || // índice de la ficha científica: shell propio (.pub)
     pathname.startsWith("/caminante/invitar/") || // invitación imprimible (→ PDF)
     pathname.startsWith("/caminante/deslinde/") || // deslinde legal data-driven (imprimible)
-    pathname.startsWith("/caminante/admin/experiencias") ||
-    pathname.startsWith("/caminante/admin/preview") || // vista previa de borradores
-    pathname.startsWith("/caminante/admin/print") || // versión imprimible (→ PDF)
-    pathname.startsWith("/caminante/admin/social") || // flyer para redes (→ PNG 4:5)
-    pathname.startsWith("/caminante/admin/kit") || // kit de comunicación (→ PNGs 4:5 y 9:16)
-
-    pathname.startsWith("/caminante/admin/eventos") || // dashboard (AdminShell)
-    pathname.startsWith("/caminante/admin/comunicacion") || // Comunicación (AdminShell)
-    pathname.startsWith("/caminante/admin/reservas") ||
-    pathname.startsWith("/caminante/admin/personas") ||
-    pathname.startsWith("/caminante/admin/roster") ||
-    pathname.startsWith("/caminante/admin/encuesta") ||
-    pathname.startsWith("/caminante/admin/dinero") ||
-    pathname.startsWith("/caminante/admin/recursos") || // dinero unificado (CSS .fin propio)
-    pathname.startsWith("/caminante/admin/m") || // app de admin en móvil (shell propio)
-    pathname === "/caminante/admin" || // dashboard: trae su propio shell (AdminShell)
+    // ⚠️ TODO /caminante/admin es inmersivo, sin excepciones. Antes esto era
+    // una lista blanca de rutas una por una, y cada pantalla nueva del panel
+    // había que acordarse de anotarla AQUÍ, en un componente del sitio
+    // público. Trece de las veintisiete se habían olvidado: se veían con el
+    // encabezado público montado encima del panel. El panel entero trae su
+    // propio shell (AdminShell o el de móvil); ninguna de sus pantallas
+    // quiere el chrome de visitante. La regla es estructural, no una lista.
+    pathname.startsWith("/caminante/admin") ||
     pathname === "/caminante/perfil" || // Mi espacio: topbar propio (.mesp)
     pathname.startsWith("/caminante/operador/") || // perfil de operador (.opf)
     pathname.startsWith("/caminante/o/") || // portal white-label del operador (.opw)

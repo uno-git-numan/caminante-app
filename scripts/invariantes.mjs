@@ -341,6 +341,39 @@ const REGLAS = [
       return null;
     },
   },
+  {
+    nombre: "Ninguna pantalla del panel lleva el chrome del sitio público",
+    comprueba() {
+      const chrome = leer("src/app/caminante/SiteChrome.tsx");
+      if (!chrome) return null;
+      // La regla tiene que ser UNA, sobre el prefijo entero del panel. Si vuelve
+      // a haber rutas de admin listadas una por una, la lista se va a quedar
+      // corta otra vez.
+      const generica = /pathname\.startsWith\(\s*["']\/caminante\/admin["']\s*\)/.test(chrome);
+      const sueltas = [...chrome.matchAll(/pathname\.startsWith\(\s*["']\/caminante\/admin\/[^"']+["']\s*\)/g)]
+        .map((m) => m[0]);
+      if (!generica) {
+        return [
+          "SiteChrome ya no manda a inmersivo a todo /caminante/admin.",
+          "Sin esa regla, las pantallas del panel salen con el encabezado del",
+          "sitio público montado encima de su propio shell: dos navegaciones,",
+          "dos logos, el usuario sin saber en cuál está.",
+          "",
+          "Pasó con una LISTA BLANCA ruta por ruta: nombraba 14 de 27 pantallas",
+          "y las otras 13 se habían olvidado. Comunidad y Solicitudes salieron",
+          "así a producción. La regla va sobre el prefijo, no por pantalla.",
+        ].join("\n");
+      }
+      if (sueltas.length) {
+        return [
+          `SiteChrome volvió a listar rutas de admin una por una: ${sueltas.length}.`,
+          "Sobran: /caminante/admin ya está cubierto por la regla general, y una",
+          "lista paralela invita a que la siguiente pantalla se quede fuera.",
+        ].join("\n");
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────
