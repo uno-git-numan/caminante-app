@@ -96,8 +96,8 @@ export async function emailAvisoAdminAplicacion(info: {
       `<tr><td style="padding:0 36px 10px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREMA};border:1px solid ${ARENA};border-radius:12px;"><tr><td style="padding:14px 20px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${fila("Nombre", info.nombre)}${fila("Correo", info.email)}${fila("WhatsApp", info.whatsapp || "—")}${fila("Perfil", info.perfil)}${fila("Redes", info.links)}</table></td></tr></table></td></tr>` +
-      `<tr><td align="center" style="padding:14px 36px 8px;"><a href="${SITE}/caminante/admin/solicitudes" target="_blank" style="display:inline-block;background:${LAGOON};color:#fff;text-decoration:none;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;padding:12px 28px;border-radius:999px;">Revisar en el panel</a></td></tr>`,
+      `<tr><td align="center" style="padding:14px 36px 8px;"><a href="${SITE}/caminante/admin/comunidad" target="_blank" style="display:inline-block;background:${LAGOON};color:#fff;text-decoration:none;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;padding:12px 28px;border-radius:999px;">Revisar en el panel</a></td></tr>`,
   );
-  const text = `Aplicación nueva de embajador\n\nNombre: ${info.nombre}\nCorreo: ${info.email}\nWhatsApp: ${info.whatsapp || "—"}\nPerfil: ${info.perfil}\nRedes: ${info.links}\n\nRevisar: ${SITE}/caminante/admin/solicitudes`;
+  const text = `Aplicación nueva de embajador\n\nNombre: ${info.nombre}\nCorreo: ${info.email}\nWhatsApp: ${info.whatsapp || "—"}\nPerfil: ${info.perfil}\nRedes: ${info.links}\n\nRevisar: ${SITE}/caminante/admin/comunidad`;
   return enviar(ADMIN_EMAIL, `Embajador aplica: ${info.nombre}`, html, text);
 }

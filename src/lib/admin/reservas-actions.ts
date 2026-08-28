@@ -39,8 +39,8 @@ function volver(msg: { ok?: string; error?: string }): never {
     ? `ok=${encodeURIComponent(msg.ok)}`
     : `error=${encodeURIComponent(msg.error || "Algo falló.")}`;
   revalidatePath("/caminante/admin");
-  revalidatePath("/caminante/admin/reservas");
-  redirect(`/caminante/admin/reservas?${q}`);
+  revalidatePath("/caminante/admin/pagos");
+  redirect(`/caminante/admin/pagos?${q}`);
 }
 
 /**

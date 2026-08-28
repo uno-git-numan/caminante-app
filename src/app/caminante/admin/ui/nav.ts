@@ -10,8 +10,9 @@ export type AdminSection =
   | "panorama"
   | "eventos"
   | "comunicacion"
-  | "solicitudes"
-  | "reservas"
+  // «personas» conserva el nombre viejo de la clave a propósito: la sección se
+  // llama Comunidad, pero renombrarla obligaba a tocar cada `active=` del panel
+  // para no ganar nada. La etiqueta es lo que se lee; la clave sólo se compara.
   | "personas"
   | "recursos"
   | "operador"
@@ -29,8 +30,15 @@ export const ADMIN_NAV: AdminNavItem[] = [
   // las 20 llamadas a AdminShell; lo que cambia es lo que lee quien la usa.
   { key: "eventos", label: "Experiencias", href: "/caminante/admin/eventos" },
   { key: "comunicacion", label: "Comunicación", href: "/caminante/admin/comunicacion" },
-  { key: "solicitudes", label: "Solicitudes", href: "/caminante/admin/solicitudes" },
-  { key: "reservas", label: "Reservas", href: "/caminante/admin/reservas" },
+  // «Solicitudes» y «Reservas» dejaron de ser pestañas: todo lo que es gente
+  // vive en Comunidad y todo lo que es dinero vive en Recursos. Las páginas no
+  // se borraron —siguen enteras, con sus acciones— sólo se mudaron:
+  //   · /admin/solicitudes → tercera vista de /admin/comunidad
+  //   · /admin/reservas    → /admin/recursos/pagos
+  // Y «Personas» sí se borró: su lista era la biblioteca de Comunidad con menos
+  // información. Dos pantallas de la misma gente terminan diciendo cosas
+  // distintas de la misma persona.
+  // Las claves internas se conservan para no tocar las llamadas a AdminShell.
   // «Personas» era una tabla de 60 renglones con una columna «Etapa» que decía
   // «Lead» en los 60 — incluida la persona que gastó $32,000. No diferenciaba
   // nada. Ahora es COMUNIDAD: la biblioteca de quién es la gente, ordenada por
@@ -77,9 +85,12 @@ export const PERSON_ICON =
 // escriba la URL a mano. Esto es cortesía visual: enseñar un botón que rebota
 // se siente roto.
 const FUERA_DEL_OPERADOR: AdminSection[] = [
-  "solicitudes", // aprobar operadores y embajadores es de la casa
-  "recursos", // rentabilidad, proveedores, egresos, payouts
+  "recursos", // rentabilidad, proveedores, egresos, payouts (y ahí vive Pagos)
 ];
+// Ojo: «Solicitudes» ya no se poda aquí porque dejó de ser una sección. Es una
+// vista dentro de Comunidad, y Comunidad SÍ es del operador. El corte de esa
+// vista está en `comunidad/page.tsx`: con rol operador la bandeja no se
+// consulta. Si algún día vuelve a ser pantalla propia, vuelve a esta lista.
 
 export const ADMIN_NAV_DE_OPERADOR: AdminNavItem[] = ADMIN_NAV.filter(
   (i) => !FUERA_DEL_OPERADOR.includes(i.key),

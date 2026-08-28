@@ -15,7 +15,7 @@ import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emailBienvenidaEmbajador, emailRechazoAplicacion } from "@/lib/embajadores/emails";
 
-const PANEL = "/caminante/admin/solicitudes";
+const PANEL = "/caminante/admin/comunidad";
 
 type Res = { ok: boolean; error?: string };
 

@@ -268,7 +268,7 @@ export async function registrarPagoManual(input: TransferenciaInput): Promise<Tr
     : `Hola${primerNombre ? " " + primerNombre : ""}, ya quedó registrado tu pago de ${money(monto)} ` +
       `para ${nombreExp}${slot.label ? ` · ${slot.label}` : ""} (${personas} ${personas === 1 ? "lugar" : "lugares"}).`;
 
-  revalidatePath("/caminante/admin/reservas");
+  revalidatePath("/caminante/admin/pagos");
   revalidatePath("/caminante/admin/dinero");
   revalidatePath("/caminante/admin/rentabilidad");
   revalidatePath(`/caminante/admin/roster/${slot.id}`);

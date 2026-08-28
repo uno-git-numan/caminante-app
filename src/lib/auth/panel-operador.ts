@@ -18,8 +18,8 @@
 const EXACTAS = new Set<string>([
   "/caminante/admin", // Panorama
   "/caminante/admin/eventos",
-  "/caminante/admin/reservas",
-  "/caminante/admin/personas",
+  "/caminante/admin/pagos",
+  "/caminante/admin/comunidad",
   "/caminante/admin/encuesta",
   "/caminante/admin/salidas", // la línea de tiempo de SUS salidas, ya podada
   "/caminante/admin/comunicacion",
@@ -47,7 +47,14 @@ const EXACTAS = new Set<string>([
 //     justo la forma en que una lista blanca deja de serlo. Si algún día el
 //     panel-app crece en sub-rutas, el prefijo se agrega DESPUÉS de podarlas, no
 //     antes.
-//   · solicitudes · operadores · payouts · facturación · proveedores · listings ·
+//   · La VISTA «Solicitudes» de Comunidad — aprobar operadoras y embajadores es
+//     de la casa. Aquí no alcanzaba con la lista blanca: Comunidad SÍ es del
+//     operador (su CRM y su gente, ya podados por `operadorDelAlcance`) y la
+//     bandeja es una vista adentro, no una ruta. El corte está en la página:
+//     con rol operador la bandeja ni se consulta ni se pinta. Es el mismo
+//     principio de siempre —podar en el origen, no esconder con CSS— aplicado
+//     una capa más adentro porque la URL ya no distingue.
+//   · operadores · payouts · facturación · proveedores · listings ·
 //     soporte · cobro · accesos · social-cola — administración de la plataforma.
 
 /** Prefijos con parámetro: `/caminante/admin/eventos/<slug>`, etc. */

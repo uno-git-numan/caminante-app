@@ -196,6 +196,6 @@ export async function rejectSlotRequest(requestId: string): Promise<{ ok: boolea
     .eq("id", requestId)
     .eq("status", "new"); // solo desde 'new' (no pisa aprobadas)
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/caminante/admin/solicitudes");
+  revalidatePath("/caminante/admin/comunidad");
   return { ok: true };
 }

@@ -1,100 +1,28 @@
-// Solicitudes: bandeja única del admin con DOS tipos —
-//  · Solicitud operador (admin_whitelist is_active=false): dar acceso al panel.
-//  · Solicitud cliente (slot_requests): pedir nueva fecha → nace la salida real.
-// Antes "Accesos" era su propia sección; se fundió aquí (un solo lugar para todo
-// lo que llega "pidiendo algo"). El contenido de la experiencia NO se toca aquí.
-import AdminShell from "../ui/AdminShell";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+// LO QUE PIDEN — la tercera vista de Comunidad.
+//
+// Era su propia pestaña («Solicitudes»). Dejó de serlo porque una solicitud es
+// una persona preguntando: pertenece al mismo lugar donde vive la gente, no a
+// una bandeja aparte. Nada del contenido cambió al mudarse —las cuatro tarjetas
+// y sus acciones de aprobar/rechazar son las mismas—; lo que cambió es que ya no
+// trae su propio `AdminShell` ni su propio fetch: Comunidad la envuelve y le
+// pasa los datos ya cargados (`lib/comunidad/solicitudes.ts`).
+//
+// Cuatro cosas llegan aquí, y conviene no confundirlas:
+//   · operadora que quiere operar sobre la plataforma  → llamada, expediente, alta
+//   · embajador que aplica al programa curado          → alta como aliado, sin panel
+//   · operador pidiendo acceso al panel                → whitelist
+//   · cliente pidiendo una nueva fecha                 → nace la salida real
 import SolicitudCard, { type SolicitudView } from "./SolicitudCard";
 import AccesoCard from "./AccesoCard";
 import EmbajadorCard, { type EmbAppView } from "./EmbajadorCard";
 import OperadorAppCard, { type OpAppView } from "./OperadorAppCard";
-
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Solicitudes · Admin" };
-
-type Row = {
-  id: string;
-  desired_date: string | null;
-  nota: string | null;
-  num_people: number;
-  group_type: string;
-  status: string;
-  created_at: string;
-  resolved_at: string | null;
-  created_slot_id: string | null;
-  contacts: { full_name: string | null; email: string | null; phone: string | null } | null;
-  experiences: { slug: string; data: { title?: string; titleAccent?: string; docTitle?: string } | null } | null;
-};
-
-type WLRow = { email: string; is_active: boolean; note: string | null; created_at: string };
-
-type EmbRow = {
-  id: string;
-  full_name: string;
-  email: string;
-  whatsapp: string | null;
-  profile_kind: string;
-  social_links: string;
-  experience: string | null;
-  why_caminante: string | null;
-  referral_source: string | null;
-  status: string;
-  created_at: string;
-};
-
-// Aplicaciones de embajador — best-effort: si la tabla aún no existe (0029 sin
-// aplicar), la página no se cae; la sección sale vacía con la nota.
-async function fetchEmbApps(): Promise<{ rows: EmbRow[]; tablaLista: boolean }> {
-  try {
-    const sb = createSupabaseAdminClient();
-    const { data, error } = await sb
-      .from("ambassador_applications")
-      .select("id, full_name, email, whatsapp, profile_kind, social_links, experience, why_caminante, referral_source, status, created_at")
-      .order("created_at", { ascending: false });
-    if (error) return { rows: [], tablaLista: false };
-    return { rows: (data ?? []) as EmbRow[], tablaLista: true };
-  } catch {
-    return { rows: [], tablaLista: false };
-  }
-}
-
-
-// ── Solicitudes de OPERADOR ───────────────────────────────────────────────────
-// Best-effort igual que embajadores: si la 0041 aún no está aplicada, la sección
-// avisa en vez de tumbar toda la bandeja.
-type OpRow = {
-  id: string; nombre_operadora: string; responsable: string; email: string; whatsapp: string;
-  instagram: string | null; ciudad_estado: string; tipo_operacion: string; descripcion: string;
-  antiguedad: string; salidas_ano: string | null; personas_salida: string | null;
-  rango_precio: string | null; seguro_rc: string; primeros_auxilios: string; ratio_guias: string;
-  incidentes: string; porque: string | null; conociste: string | null; status: string;
-  llamada_meet_url: string | null; llamada_at: string | null; expediente: unknown;
-  branding: unknown; branding_despues: boolean | null; created_at: string;
-};
-
-async function cargarOperadores(): Promise<{ rows: OpRow[]; tablaLista: boolean }> {
-  try {
-    const sb = createSupabaseAdminClient();
-    const { data, error } = await sb
-      .from("operator_applications")
-      .select(
-        "id, nombre_operadora, responsable, email, whatsapp, instagram, ciudad_estado, tipo_operacion, descripcion, antiguedad, salidas_ano, personas_salida, rango_precio, seguro_rc, primeros_auxilios, ratio_guias, incidentes, porque, conociste, status, llamada_meet_url, llamada_at, expediente, branding, branding_despues, created_at",
-      )
-      .in("status", ["pending", "calling", "docs"])
-      .order("created_at", { ascending: false });
-    if (error) return { rows: [], tablaLista: false };
-    return { rows: (data ?? []) as OpRow[], tablaLista: true };
-  } catch {
-    return { rows: [], tablaLista: false };
-  }
-}
+import type { EmbRow, SolRow, Solicitudes as Datos } from "@/lib/comunidad/solicitudes";
 
 const TZ = "America/Mexico_City";
 function fmtFecha(iso: string): string {
   return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short", timeZone: TZ });
 }
-function titulo(r: Row): string {
+function titulo(r: SolRow): string {
   return (
     [r.experiences?.data?.title, r.experiences?.data?.titleAccent].filter(Boolean).join(" ").trim() ||
     r.experiences?.data?.docTitle ||
@@ -107,33 +35,7 @@ function nombreDeNota(note: string | null): string {
   return m ? m[1].trim() : "";
 }
 
-export default async function SolicitudesPage() {
-  const sb = createSupabaseAdminClient();
-  const [{ data: reqData }, { data: wlData }, emb, ops] = await Promise.all([
-    sb
-      .from("slot_requests")
-      .select(
-        "id, desired_date, nota, num_people, group_type, status, created_at, resolved_at, created_slot_id, contacts(full_name, email, phone), experiences(slug, data)",
-      )
-      .order("created_at", { ascending: false }),
-    sb
-      .from("admin_whitelist")
-      .select("email, is_active, note, created_at")
-      .order("created_at", { ascending: false }),
-    fetchEmbApps(),
-    cargarOperadores(),
-  ]);
-
-  const rows = (reqData ?? []) as unknown as Row[];
-  const nuevas = rows.filter((r) => r.status === "new");
-  const resueltas = rows.filter((r) => r.status !== "new");
-
-  const wl = (wlData ?? []) as WLRow[];
-  const opPend = wl.filter((r) => !r.is_active);
-  const opActivos = wl.filter((r) => r.is_active);
-
-  const embPend = emb.rows.filter((r) => r.status === "pending");
-  const embResueltas = emb.rows.filter((r) => r.status !== "pending");
+export default function Solicitudes({ d }: { d: Datos }) {
   const aVista = (r: EmbRow): EmbAppView => ({
     id: r.id,
     nombre: r.full_name,
@@ -148,16 +50,18 @@ export default async function SolicitudesPage() {
   });
 
   return (
-    <AdminShell active="solicitudes">
-      <div className="sec-head">
-        <span className="eyebrow"><span className="sl">{"//"}</span> Solicitudes</span>
-        <h1 className="display">
-          Lo que <em className="ac">piden.</em>
-        </h1>
-        <p className="subtitle">
-          Todo lo que llega pidiendo algo: <b>embajadores</b> que aplican al programa,{" "}
-          <b>operadores</b> que quieren acceso al panel y <b>clientes</b> que piden una nueva fecha.
-        </p>
+    <>
+      <div className="sec-head" style={{ marginTop: 18 }}>
+        <div>
+          <span className="eyebrow"><span className="sl">{"//"}</span> Lo que piden</span>
+          <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
+            Alguien está <em className="ac">esperando respuesta.</em>
+          </h2>
+          <p className="desc">
+            <b>Embajadores</b> que aplican al programa, <b>operadores</b> que quieren acceso al panel
+            y <b>clientes</b> que piden una nueva fecha.
+          </p>
+        </div>
       </div>
 
       {/* ── Solicitud de OPERADOR ── */}
@@ -171,15 +75,15 @@ export default async function SolicitudesPage() {
         </p>
       </div>
 
-      {!ops.tablaLista ? (
+      {!d.opsTablaLista ? (
         <div className="empty">
           Falta aplicar <b>0041_operator_application_branding</b> en el SQL Editor (o la 0035, si es la primera vez).
         </div>
-      ) : ops.rows.length === 0 ? (
+      ) : d.ops.length === 0 ? (
         <div className="empty">Sin solicitudes de operador abiertas.</div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          {ops.rows.map((r) => (
+          {d.ops.map((r) => (
             <OperadorAppCard
               key={r.id}
               app={{
@@ -228,21 +132,21 @@ export default async function SolicitudesPage() {
         </p>
       </div>
 
-      {!emb.tablaLista ? (
+      {!d.embTablaLista ? (
         <div className="empty">
           La tabla de aplicaciones aún no existe — aplica la migración <b>0029_ambassador_applications</b> en el SQL Editor.
         </div>
-      ) : embPend.length === 0 ? (
+      ) : d.embPend.length === 0 ? (
         <div className="empty">Sin aplicaciones de embajador pendientes.</div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          {embPend.map((r) => (
+          {d.embPend.map((r) => (
             <EmbajadorCard key={r.id} app={aVista(r)} />
           ))}
         </div>
       )}
 
-      {embResueltas.length ? (
+      {d.embResueltas.length ? (
         <>
           <div className="sec-head" style={{ marginTop: 24 }}>
             <span className="eyebrow"><span className="sl">{"//"}</span> Historial de embajadores</span>
@@ -254,7 +158,7 @@ export default async function SolicitudesPage() {
                   <tr><th>Nombre</th><th>Correo</th><th>Perfil</th><th>Estado</th><th>Fecha</th></tr>
                 </thead>
                 <tbody>
-                  {embResueltas.map((r) => (
+                  {d.embResueltas.map((r) => (
                     <tr key={r.id}>
                       <td style={{ fontWeight: 500 }}>{r.full_name}</td>
                       <td className="mut">{r.email}</td>
@@ -285,17 +189,17 @@ export default async function SolicitudesPage() {
         </p>
       </div>
 
-      {opPend.length === 0 ? (
+      {d.opPend.length === 0 ? (
         <div className="empty">Sin solicitudes de acceso pendientes.</div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          {opPend.map((r) => (
+          {d.opPend.map((r) => (
             <AccesoCard key={r.email} email={r.email} nombre={nombreDeNota(r.note)} />
           ))}
         </div>
       )}
 
-      {opActivos.length ? (
+      {d.opActivos.length ? (
         <>
           <div className="sec-head" style={{ marginTop: 24 }}>
             <span className="eyebrow"><span className="sl">{"//"}</span> Operadores activos</span>
@@ -311,7 +215,7 @@ export default async function SolicitudesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {opActivos.map((r) => (
+                  {d.opActivos.map((r) => (
                     <tr key={r.email}>
                       <td style={{ fontWeight: 500 }}>{r.email}</td>
                       <td className="mut">{r.note || "—"}</td>
@@ -338,11 +242,11 @@ export default async function SolicitudesPage() {
         </p>
       </div>
 
-      {nuevas.length === 0 ? (
+      {d.nuevas.length === 0 ? (
         <div className="empty">Sin solicitudes pendientes. Cuando llegue una, también te avisamos por WhatsApp y correo.</div>
       ) : (
         <div style={{ display: "grid", gap: 14 }}>
-          {nuevas.map((r) => {
+          {d.nuevas.map((r) => {
             const s: SolicitudView = {
               id: r.id,
               cliente: r.contacts?.full_name || "Sin nombre",
@@ -361,7 +265,7 @@ export default async function SolicitudesPage() {
         </div>
       )}
 
-      {resueltas.length > 0 ? (
+      {d.resueltas.length > 0 ? (
         <>
           <div className="sec-head" style={{ marginTop: 34 }}>
             <span className="eyebrow"><span className="sl">{"//"}</span> Historial</span>
@@ -380,7 +284,7 @@ export default async function SolicitudesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {resueltas.map((r) => (
+                  {d.resueltas.map((r) => (
                     <tr key={r.id}>
                       <td style={{ fontWeight: 500 }}>{r.contacts?.full_name || "—"}</td>
                       <td>{titulo(r)}</td>
@@ -406,6 +310,6 @@ export default async function SolicitudesPage() {
           </p>
         </>
       ) : null}
-    </AdminShell>
+    </>
   );
 }

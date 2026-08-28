@@ -91,9 +91,9 @@ export async function emailAvisoAdminOperador(i: {
       p(`<b>${esc(i.nombreOperadora)}</b> — ${esc(i.responsable)} · ${esc(i.ciudadEstado)}`) +
       p(`Seguro: <b>${esc(i.seguro)}</b> · Primeros auxilios: <b>${esc(i.primerosAuxilios)}</b> · Guías: ${esc(i.ratioGuias)}`) +
       p(`${esc(i.email)} · ${esc(i.whatsapp)} · Opera: ${esc(i.tipo)}`) +
-      boton("Abrir en Solicitudes", `${SITE}/caminante/admin/solicitudes`),
+      boton("Abrir en Solicitudes", `${SITE}/caminante/admin/comunidad`),
   );
-  const text = `Solicitud de operador: ${i.nombreOperadora} (${i.responsable}, ${i.ciudadEstado})\nSeguro: ${i.seguro} · Primeros auxilios: ${i.primerosAuxilios} · Guías: ${i.ratioGuias}\n${i.email} · ${i.whatsapp}\n${SITE}/caminante/admin/solicitudes`;
+  const text = `Solicitud de operador: ${i.nombreOperadora} (${i.responsable}, ${i.ciudadEstado})\nSeguro: ${i.seguro} · Primeros auxilios: ${i.primerosAuxilios} · Guías: ${i.ratioGuias}\n${i.email} · ${i.whatsapp}\n${SITE}/caminante/admin/comunidad`;
   return enviar(ADMIN_EMAIL, `Solicitud de operador · ${i.nombreOperadora}`, html, text);
 }
 

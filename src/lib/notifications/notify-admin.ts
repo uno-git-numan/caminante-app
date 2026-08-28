@@ -13,7 +13,7 @@ import { sendText, sendTemplate, whatsappConfigured } from "@/lib/whatsapp/clien
 const ADMIN_EMAIL = "uno@numanhub.com";
 const FROM = "Caminante <caminante@numanhub.com>";
 const ADMIN_WHATSAPP_DEFAULT = "+525512020565";
-const PANEL = "https://caminante.numanhub.com/caminante/admin/reservas";
+const PANEL = "https://caminante.numanhub.com/caminante/admin/pagos";
 
 export type NuevaReservaInfo = {
   cliente: string;
@@ -112,7 +112,7 @@ export async function notifyNuevaReserva(info: NuevaReservaInfo): Promise<void> 
 // (reusa `nueva_reserva` con variables genéricas — sin esperar otra aprobación
 // de Meta) → correo Resend SIEMPRE.
 
-const PANEL_SOLICITUDES = "https://caminante.numanhub.com/caminante/admin/solicitudes";
+const PANEL_SOLICITUDES = "https://caminante.numanhub.com/caminante/admin/comunidad";
 
 export type SolicitudFechaInfo = {
   cliente: string;
@@ -188,7 +188,7 @@ export async function notifySolicitudFecha(info: SolicitudFechaInfo): Promise<vo
 }
 
 // ── Solicitud de acceso de OPERADOR (whitelist is_active=false) ──────────────
-const PANEL_ACCESOS = "https://caminante.numanhub.com/caminante/admin/solicitudes";
+const PANEL_ACCESOS = "https://caminante.numanhub.com/caminante/admin/comunidad";
 
 export type AccesoOperadorInfo = { email: string; nombre: string };
 

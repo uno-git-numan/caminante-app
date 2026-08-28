@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import AdminShell from "../ui/AdminShell";
 import Biblioteca from "./Biblioteca";
 import TableroCRM from "./Tablero";
+import Solicitudes from "./Solicitudes";
 import Vistas from "./Vistas";
-import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
+import { getCurrentRole, puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { fetchBiblioteca } from "@/lib/comunidad/biblioteca";
+import { fetchSolicitudes } from "@/lib/comunidad/solicitudes";
 import { fetchTablero } from "@/lib/comunidad/tablero";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +14,14 @@ export const metadata = { title: "Comunidad · Admin — Caminante" };
 
 // COMUNIDAD — quién es la gente, no cuántos son.
 //
-// Dos mitades que no se parecen y son dos VISTAS, no dos secciones apiladas:
-//   · CRM   — quién está preguntando y todavía no paga. Es trabajo: se mueve.
-//   · Gente — quién ya viajó. Es cuidado: se hojea.
+// Tres vistas que no se parecen, y son VISTAS, no secciones apiladas:
+//   · Solicitudes — quién está esperando un sí o un no. Es una decisión.
+//   · CRM         — quién está preguntando y todavía no paga. Es trabajo: se mueve.
+//   · Gente       — quién ya viajó. Es cuidado: se hojea.
+//
+// Las tres son la misma pregunta en tres momentos, por eso viven juntas: la
+// bandeja dejó de ser su propia pestaña cuando quedó claro que una solicitud
+// no es un trámite, es alguien.
 //
 // El tablero nace vacío a propósito. Una solicitud de fecha ahora CREA su
 // tarjeta en «Llegó» (lib/experiences/solicitudes.ts), así que se llena solo en
@@ -40,7 +47,17 @@ function letras(n: number): string {
 
 export default async function ComunidadPage() {
   if (!(await puedeEntrarAlPanel())) redirect("/caminante/login?next=/caminante/admin/comunidad");
-  const [d, tablero] = await Promise.all([fetchBiblioteca(), fetchTablero()]);
+
+  // La bandeja es de la casa: aprobar una operadora o un embajador no es algo
+  // que un operador externo pueda hacer, y sus filas no se podan con
+  // `operadorDelAlcance` porque no son suyas —son de la plataforma. Por eso no
+  // se esconde: no se consulta. Un operador no llega a rozar esos datos.
+  const esCasa = (await getCurrentRole()) === "admin";
+  const [d, tablero, solicitudes] = await Promise.all([
+    fetchBiblioteca(),
+    fetchTablero(),
+    esCasa ? fetchSolicitudes() : Promise.resolve(null),
+  ]);
 
   return (
     <AdminShell active="personas">
@@ -66,6 +83,8 @@ export default async function ComunidadPage() {
       <Vistas
         crm={tablero.total}
         gente={d.conteos.todos}
+        solicitudes={solicitudes ? solicitudes.pendientes : null}
+        bandeja={solicitudes ? <Solicitudes d={solicitudes} /> : null}
         tablero={
           <>
             <div className="sec-head" style={{ marginTop: 18 }}>

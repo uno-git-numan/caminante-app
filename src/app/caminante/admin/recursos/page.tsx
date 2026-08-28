@@ -234,6 +234,13 @@ export default async function RentabilidadPage() {
             <span className="mode">Modo admin</span>
           </div>
           <div className="qa">
+            {/* «Pagos» era la pestaña «Reservas» del nav. Se mudó aquí porque
+                una reserva es dinero cobrado, no una persona: la persona está
+                en Comunidad y el pago está en Recursos, que es donde ya vivían
+                el ledger, los payouts y la facturación. */}
+            <Link className="btn btn-glass btn-sm" href="/caminante/admin/pagos">
+              Pagos
+            </Link>
             <Link className="btn btn-glass btn-sm" href="/caminante/admin/facturacion">
               Facturación CFDI
             </Link>

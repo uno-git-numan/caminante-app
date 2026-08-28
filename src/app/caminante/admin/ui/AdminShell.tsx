@@ -117,9 +117,12 @@ export default async function AdminShell({
           pendientesAccesos(),
           pendientesEmbajadores(),
         ]);
-  // Solicitudes agrupa operador (accesos) + cliente (fechas) + embajador → un solo badge.
+  // El badge sigue a la bandeja: era de «Solicitudes» y hoy Solicitudes es una
+  // vista de Comunidad, así que el punto rojo vive en Comunidad. Agrupa los tres
+  // tipos —operador (accesos), cliente (fechas) y embajador— en un solo número,
+  // porque lo que dice no es «cuántos de cada cosa» sino «alguien te espera».
   const badgeDe = (key: AdminSection): number =>
-    key === "solicitudes" ? pendientes + accesos + embajadores : 0;
+    key === "personas" ? pendientes + accesos + embajadores : 0;
   return (
     <div className="adm">
       <style dangerouslySetInnerHTML={{ __html: ADMIN_CSS }} />
@@ -139,6 +142,17 @@ export default async function AdminShell({
             </span>
           </div>
           <div className="qa">
+            {/* Pagos («Reservas» hasta que dejó de ser pestaña) se entra desde
+                Recursos, que es de la casa. El operador no ve Recursos, así que
+                sin este botón se habría quedado sin la lista de quién le pagó
+                —una pantalla que sí era suya, ya podada a sus salidas. Al
+                mudar una sección hay que preguntarse por quién entraba por la
+                puerta que se cerró. */}
+            {rol === "operador" ? (
+              <Link href="/caminante/admin/pagos" className="btn btn-glass btn-sm">
+                Pagos
+              </Link>
+            ) : null}
             {rol === "admin" ? (
               <Link href="/caminante/admin/cobro" className="btn btn-glass btn-sm">
                 Generar cobro

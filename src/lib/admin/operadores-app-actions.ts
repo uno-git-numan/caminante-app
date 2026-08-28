@@ -41,7 +41,7 @@ import {
   emailRechazoOperador,
 } from "@/lib/operadores/emails";
 
-const PANEL = "/caminante/admin/solicitudes";
+const PANEL = "/caminante/admin/comunidad";
 const SITIO = "https://caminante.numanhub.com";
 
 // `operatorId` solo lo llena la aprobación: la tarjeta lo necesita para

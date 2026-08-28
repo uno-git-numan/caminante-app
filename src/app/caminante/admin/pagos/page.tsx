@@ -6,7 +6,7 @@ import { registrarPagoManualAction, cancelarReservaAction } from "@/lib/admin/re
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Reservas · Admin — Caminante" };
+export const metadata = { title: "Pagos · Admin — Caminante" };
 
 const estadoChip: Record<string, { clase: string; label: string }> = {
   requested: { clase: "c-sol", label: "Solicitada" },
@@ -157,7 +157,7 @@ function Row({ r, esCasa }: { r: ReservaAdmin; esCasa: boolean }) {
   );
 }
 
-export default async function ReservasPage({
+export default async function PagosPage({
   searchParams,
 }: {
   searchParams: Promise<{ exp?: string; estado?: string; q?: string; ok?: string; error?: string }>;
@@ -169,7 +169,7 @@ export default async function ReservasPage({
   ]);
 
   return (
-    <AdminShell active="reservas">
+    <AdminShell active="recursos">
       <section className="sec">
         {ok ? (
           <div className="glass pad" style={{ marginBottom: 18, fontSize: 13.5, color: "var(--olive-d)" }}>
@@ -195,7 +195,7 @@ export default async function ReservasPage({
         <div className="sec-head">
           <div>
             <span className="eyebrow">
-              <span className="sl">{"//"}</span> Reservas
+              <span className="sl">{"//"}</span> Pagos
             </span>
             <h1 className="display">
               Quién <em className="ac">viene.</em>
