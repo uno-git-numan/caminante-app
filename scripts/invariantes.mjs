@@ -396,6 +396,36 @@ const REGLAS = [
       ].join("\n");
     },
   },
+  {
+    nombre: "Esperar a Supabase nunca puede tumbar el sitio",
+    comprueba() {
+      const src = leer("src/lib/supabase/middleware.ts");
+      if (!src) return null;
+      // `getUser()` es la única espera del middleware, y el middleware corre en
+      // CADA request. Si no está acotada, la latencia de un tercero se convierte
+      // en 504 para todo el mundo.
+      const acotada = /conLimite\s*\(\s*supabase\.auth\.getUser\(\)/.test(src);
+      const suelta = /await\s+supabase\.auth\.getUser\(\)/.test(src);
+      if (acotada && !suelta) return null;
+      return [
+        "El middleware espera a `supabase.auth.getUser()` sin límite de tiempo.",
+        "",
+        "Refrescar la cookie es una MEJORA, no un requisito: si no se logra, la",
+        "página se sirve igual y la siguiente request lo reintenta. Pero como esto",
+        "corre en cada request, una espera sin reloj convierte la lentitud de",
+        "Supabase en un 504 MIDDLEWARE_INVOCATION_TIMEOUT del sitio ENTERO.",
+        "",
+        "Pasó el 28 de agosto de 2026: Supabase declaró «API Gateway: degraded",
+        "performance» y todo el que tenía sesión —incluida la home pública— vio",
+        "504 durante el incidente. Un visitante anónimo entraba perfecto y Luis no",
+        "podía abrir su propio panel. La caída era de ellos; que se llevara el",
+        "sitio puesto era nuestro.",
+        "",
+        "Envuélvelo en `conLimite(...)`. Y si se acaba el tiempo NO borres las",
+        "cookies: lento no es lo mismo que muerto.",
+      ].join("\n");
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────
