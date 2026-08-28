@@ -42,7 +42,8 @@ export async function submitSlotRequest(formData: FormData): Promise<void> {
   const sb = createSupabaseAdminClient();
   const { data: expRow } = await sb
     .from("experiences")
-    .select("id, data, status")
+    // operator_id viaja para que la tarjeta del CRM nazca con su alcance.
+    .select("id, data, status, operator_id")
     .eq("slug", slug)
     .maybeSingle();
   if (!expRow || expRow.status !== "published") redirect("/caminante");
@@ -74,15 +75,39 @@ export async function submitSlotRequest(formData: FormData): Promise<void> {
   const { data: dup } = await dupQuery;
 
   if (!dup?.length) {
-    const { error } = await sb.from("slot_requests").insert({
-      experience_id: expRow.id,
-      contact_id: contacto.contact.id,
-      desired_date: fecha || null,
-      nota: nota || null,
-      num_people: personas,
-      group_type: tipo,
-    });
+    const { data: creada, error } = await sb
+      .from("slot_requests")
+      .insert({
+        experience_id: expRow.id,
+        contact_id: contacto.contact.id,
+        desired_date: fecha || null,
+        nota: nota || null,
+        num_people: personas,
+        group_type: tipo,
+      })
+      .select("id")
+      .maybeSingle();
     if (error) redirect(back("error=guardar"));
+
+    // La solicitud NACE como tarjeta en «Llegó» del tablero de Comunidad. Es lo
+    // que hace que el CRM se llene solo: sin esto, `crm_cards` se quedaría
+    // vacía para siempre y el tablero sería un adorno.
+    //
+    // Best-effort a propósito: si esto fallara, la solicitud ya está guardada y
+    // el cliente ya recibió su confirmación. Perder la tarjeta es recuperable;
+    // perder la solicitud, no.
+    await sb
+      .from("crm_cards")
+      .insert({
+        contact_id: contacto.contact.id,
+        experience_id: expRow.id,
+        operator_id: expRow.operator_id ?? null,
+        slot_request_id: creada?.id ?? null,
+        num_people: personas,
+        origen: "solicitud",
+        stage: "llego",
+      })
+      .then(() => undefined, () => undefined);
 
     const titulo =
       [experience.title, experience.titleAccent].filter(Boolean).join(" ").trim() ||
