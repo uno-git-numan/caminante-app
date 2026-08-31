@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth/actions";
-import { navPara, ADMIN_NAV_OPERADOR, PERSON_ICON, type AdminSection } from "./nav";
+import {
+  navPara,
+  ADMIN_NAV_OPERADOR,
+  NAV_PLATAFORMA,
+  PERSON_ICON,
+  RAIZ_PLATAFORMA,
+  sombreroDeRuta,
+  type AdminSection,
+} from "./nav";
+import { headers } from "next/headers";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -123,6 +132,13 @@ export default async function AdminShell({
   // porque lo que dice no es «cuántos de cada cosa» sino «alguien te espera».
   const badgeDe = (key: AdminSection): number =>
     key === "personas" ? pendientes + accesos + embajadores : 0;
+  // EL SOMBRERO se deduce de la ruta, no llega por prop. `x-ruta` lo pone el
+  // middleware porque los Server Components no reciben el pathname — es la
+  // misma cabecera con la que el layout decide el alcance del operador.
+  const ruta = (await headers()).get("x-ruta");
+  const sombrero = sombreroDeRuta(ruta);
+  const nav = sombrero === "caminante" ? NAV_PLATAFORMA : items;
+
   return (
     <div className="adm">
       <style dangerouslySetInnerHTML={{ __html: ADMIN_CSS }} />
@@ -140,6 +156,29 @@ export default async function AdminShell({
             <span className="mode">
               {esOperador(alcance) ? alcance.nombre : "Modo admin"}
             </span>
+            {/* LA PASTILLA · sólo la casa. Caminante es la plataforma —cobra
+                comisión y administra operadoras— y NUMAN es la operadora
+                propia, la que vende lo suyo. Son DOS y no van a crecer: «ver el
+                panel como lo ve tal operadora» es otra cosa y vive en su ficha.
+                Una pastilla por operadora sería inservible con veinte.
+                Un operador externo entra directo a lo suyo y esto no existe
+                para él. */}
+            {rol === "admin" ? (
+              <span className="hatwrap">
+                <span className="hatlb">Panel</span>
+                <span className="hat">
+                  <Link
+                    href={RAIZ_PLATAFORMA}
+                    className={sombrero === "caminante" ? "cam on" : "cam"}
+                  >
+                    Caminante
+                  </Link>
+                  <Link href="/caminante/admin" className={sombrero === "numan" ? "on" : undefined}>
+                    NUMAN
+                  </Link>
+                </span>
+              </span>
+            ) : null}
           </div>
           <div className="qa">
             {/* Pagos («Reservas» hasta que dejó de ser pestaña) se entra desde
@@ -169,7 +208,7 @@ export default async function AdminShell({
           </div>
         </div>
         <nav className="nav">
-          {items.map((it) =>
+          {nav.map((it) =>
             it.href ? (
               <Link key={it.key} href={it.href} className={active === it.key ? "on" : ""}>
                 {it.label}

@@ -16,7 +16,17 @@ export type AdminSection =
   | "personas"
   | "recursos"
   | "operador"
-  | "encuesta";
+  | "encuesta"
+  // ── El sombrero CAMINANTE · la plataforma ──────────────────────────────
+  // Claves aparte de las de NUMAN aunque tres etiquetas se repitan. Son
+  // pantallas distintas con la misma palabra: «Experiencias» con el sombrero
+  // NUMAN son las mías, con el de Caminante son las de TODAS las operadoras.
+  // Compartir clave habría hecho que el nav de un sombrero se marcara solo
+  // estando en el otro.
+  | "pl-panorama"
+  | "pl-experiencias"
+  | "pl-comunidad"
+  | "pl-recursos";
 
 export type AdminNavItem = { key: AdminSection; label: string; href?: string; soon?: boolean };
 
@@ -55,6 +65,39 @@ export const ADMIN_NAV: AdminNavItem[] = [
   // conserva para no tocar las 20 llamadas a AdminShell.
   { key: "encuesta", label: "Salidas", href: "/caminante/admin/salidas" },
 ];
+
+// ── EL NAV DE LA PLATAFORMA ────────────────────────────────────────────────
+//
+// Caminante es la PLATAFORMA: cobra comisión, administra operadoras y ve el
+// catálogo de todas. NUMAN es una operadora más —la propia— y usa el nav de
+// arriba, con Comunicación y Salidas, porque son de quien opera.
+//
+// Los dos son paralelos a propósito: Panorama, Experiencias, Comunidad y
+// Recursos están en los dos y en el mismo orden. Lo que cambia no es dónde
+// vive cada cosa, es la unidad. Con el sombrero NUMAN, Comunidad son los
+// clientes; con el de Caminante, son las operadoras. Que la misma persona no
+// tenga que reaprender el panel al cambiarse el sombrero es el punto entero.
+export const NAV_PLATAFORMA: AdminNavItem[] = [
+  { key: "pl-panorama", label: "Panorama", href: "/caminante/admin/plataforma" },
+  { key: "pl-experiencias", label: "Experiencias", soon: true },
+  { key: "pl-comunidad", label: "Comunidad", soon: true },
+  { key: "pl-recursos", label: "Recursos", soon: true },
+];
+
+/** Rutas del sombrero Caminante. Todo lo demás del panel es el sombrero NUMAN. */
+export const RAIZ_PLATAFORMA = "/caminante/admin/plataforma";
+
+/**
+ * ¿Qué sombrero corresponde a esta ruta?
+ *
+ * Se DEDUCE de la ruta en vez de recibirse por prop. Con prop, una pantalla
+ * nueva que olvidara pasarla se dibujaría con el nav del otro sombrero y se
+ * vería perfectamente normal — el mismo tipo de error silencioso que tuvo el
+ * chrome del panel enseñando 14 rutas de 27.
+ */
+export function sombreroDeRuta(pathname: string | null | undefined): "caminante" | "numan" {
+  return pathname?.startsWith(RAIZ_PLATAFORMA) ? "caminante" : "numan";
+}
 
 // «Operador» va aparte porque se dibuja a la DERECHA del nav y con ícono, no en
 // la fila de píldoras. Pero vive aquí, no dentro de un componente: estaba
