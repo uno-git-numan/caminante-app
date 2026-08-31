@@ -192,8 +192,16 @@ Ver `.claude/rules/dinero.md` y la memoria `caminante-facturacion-cfdi`.
 **Y antes de facturar:** hay **49 pagos cobrados sin CFDI** según la base contra 31
 en el ledger de contabilidad. Esa diferencia se cuadra ANTES de emitir.
 
-**También pendiente:** definir la comisión de Kéntro — hoy `commission_pct` está en
-NULL y el gate no deja vender por Connect sin ella.
+**Comisión de operadores (28 ago 2026):** techo de **20%**, y de ahí se negocia a la
+baja caso por caso — no es una escala que baje sola con el volumen. La 0047 lo hace
+cumplir con un CHECK (probado: rechaza un 25%) y agrega `operators.comision_desde`,
+la fecha desde la que cada operador genera comisión. **Toda consulta de comisión
+filtra por esa fecha**, o multiplicaría el % por ventas viejas e inventaría ingreso
+que nadie cobró. Los dos operadores dados de alta entraron con 20% y arranque el
+28 ago. `numan-caminante` se queda en NULL a propósito: la casa retiene el 100%.
+
+⚠️ **No hay ni un convenio firmado todavía** — el primero está por firmarse. Hasta
+entonces la comisión devengada es $0, y eso es correcto, no un pendiente.
 
 **Pendiente conocido:** ningún operador tiene `convenio_firmado_at`; independizar
 el DNS de Squarespace.

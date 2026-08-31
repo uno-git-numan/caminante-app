@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caminante · Admin de la plataforma</title>
+<style>
+
+/* ══ SISTEMA DEL PANEL · copiado verbatim de Caminante Admin - Dashboard ══ */
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:"Geist";src:url("assets/fonts/Geist-Italic-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:italic;font-display:swap;}
+@font-face{font-family:"Geist Mono";src:url("assets/fonts/GeistMono-VariableFont_wght.ttf") format("truetype-variations");font-weight:100 900;font-style:normal;font-display:swap;}
+:root{
+  --cream:#fbfbf7;--charcoal:#20211c;--lagoon:#1c6f6a;--forest:#20392b;
+  --olive:#637154;--olive-d:#4f5d44;--sand:#b6ada5;--dune:#c9b79c;--salvia:#d6d8c7;--orange:#ff5d36;
+  --panel:#f1eee7;--bg:#eceae3;--line:rgba(32,33,28,.13);--ink-soft:rgba(32,33,28,.6);
+  --r:16px;--eb:.2em;--shadow:0 12px 34px -22px rgba(32,33,28,.42);
+  --mono:"Geist Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:"Geist",system-ui,sans-serif;color:var(--charcoal);background:var(--bg);-webkit-font-smoothing:antialiased;}
+button{font-family:inherit;cursor:pointer;}
+.mono{font-family:var(--mono);}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:var(--eb);text-transform:uppercase;display:inline-flex;align-items:center;gap:.5em;line-height:1;color:var(--olive);}
+.eyebrow .sl{color:var(--orange);font-weight:700;}
+.display{font-weight:200;letter-spacing:-.02em;line-height:1.05;}
+em.ac{font-style:italic;color:var(--orange);font-weight:300;}
+
+/* ===== SHELL ===== */
+.ahead{position:sticky;top:0;z-index:50;background:rgba(251,251,247,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);}
+.ahead .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 22px;}
+.ahead .brand{display:flex;align-items:center;gap:13px;}
+.ahead .logo{height:25px;}.ahead .logo svg{height:100%;width:auto;display:block;}
+.ahead .logo .g1{fill:var(--olive);}.ahead .logo .g2{fill:var(--sand);}.ahead .logo .g3{fill:var(--orange);}
+.ahead .mode{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);border-left:1px solid var(--line);padding-left:13px;}
+.qa{display:flex;gap:10px;}
+.nav{display:flex;gap:7px;padding:0 22px 12px;overflow-x:auto;}
+.nav a{flex:0 0 auto;font-size:13.5px;font-weight:500;color:var(--ink-soft);padding:8px 15px;border-radius:999px;border:1px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav a:hover{color:var(--charcoal);background:var(--panel);}
+.nav a.on{background:var(--forest);color:#fff;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:40px;padding:0 17px;border-radius:999px;font-size:13.5px;font-weight:500;border:1px solid transparent;transition:background .18s,transform .1s,color .18s,border-color .18s;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-orange{background:var(--orange);color:#fff;}.btn-orange:hover{background:#e8431f;}
+.btn-glass{background:rgba(255,255,255,.55);color:var(--olive);border-color:rgba(99,113,84,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.btn-glass:hover{background:rgba(255,255,255,.85);}
+.btn-ghost{background:transparent;color:var(--olive);border-color:var(--line);}.btn-ghost:hover{border-color:var(--olive);}
+.btn-sm{min-height:33px;padding:0 12px;font-size:12.5px;}
+.btn-danger{background:transparent;color:var(--orange);border-color:rgba(255,93,54,.4);}.btn-danger:hover{background:rgba(255,93,54,.08);}
+
+/* ===== LAYOUT ===== */
+.page{max-width:1200px;margin:0 auto;padding:26px 22px 90px;}
+.sec{margin-bottom:46px;scroll-margin-top:120px;}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+.sec-head h2{font-size:clamp(24px,3.4vw,34px);}
+.sec-head .desc{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);}
+.glass{background:rgba(255,255,255,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.5);box-shadow:var(--shadow);}
+.pad{padding:20px 22px;}
+
+/* ===== EXPANDIBLES (todo dato se desarrolla) ===== */
+.xhead{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.chev2{display:inline-block;color:var(--sand);font-size:13px;transition:transform .25s ease;margin-left:6px;flex:0 0 auto;}
+.xhead.open .chev2,.xhead.open + tr .chev2{transform:rotate(180deg);}
+.xbody{max-height:0;opacity:0;overflow:hidden;transition:max-height .35s ease,opacity .28s ease;}
+.xbody.on{max-height:1600px;opacity:1;}
+.xbody.on.tall{max-height:5000px}
+.cmgrp.sleep{border-color:rgba(201,183,156,.9);background:rgba(201,183,156,.14)}
+.cmgrp.sleep>.hd{background:rgba(201,183,156,.22)}
+.cmgrp .bd .in .tbl-wrap{border:0;margin-bottom:4px}
+.xpad{padding:16px 2px 8px;}
+tr.xdetail td{padding:0 15px;border-bottom:0;}
+tr.xdetail .xbody.on{border-bottom:1px solid var(--line);}
+tbody tr.xdetail:hover{background:transparent;}
+.xh4{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;margin:16px 0 9px;}
+.xh4:first-child{margin-top:0;}
+
+/* micro-patrón: barra de progreso con fracción */
+.prog{display:flex;align-items:center;gap:10px;}
+.prog .tk2{flex:1;height:6px;border-radius:999px;background:var(--salvia);overflow:hidden;min-width:70px;}
+.prog .tk2 i{display:block;height:100%;background:var(--olive);border-radius:999px;}
+.prog.warn .tk2 i{background:var(--orange);}
+.prog .fr{font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+.progrow{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:center;padding:6px 0;font-size:12.5px;}
+
+/* micro-patrón: chip de persona */
+.pchips{display:flex;flex-wrap:wrap;gap:8px;}
+.pchip{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:4px 11px 4px 4px;border:1px solid var(--line);border-radius:999px;background:#fff;}
+.pchip .av{width:22px;height:22px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.pchip .stt{font-size:10.5px;font-weight:700;}
+.pchip.ok .stt{color:var(--olive);}
+.pchip.pend .stt{color:var(--orange);}
+.pchip.pend{border-color:rgba(255,93,54,.35);}
+.pchip .dt{font-family:var(--mono);font-size:10px;color:var(--ink-soft);}
+
+/* micro-patrón: lista quién puso qué */
+.wlist{display:flex;flex-direction:column;}
+.wl{display:grid;grid-template-columns:1.3fr .7fr .9fr .7fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;align-items:baseline;}
+.wl .m{font-family:var(--mono);text-align:right;}
+.wl .me{color:var(--ink-soft);}
+.wl .d{font-family:var(--mono);color:var(--ink-soft);text-align:right;font-size:11.5px;}
+.wl.debt{color:var(--ink-soft);}
+.wl.debt .m{color:var(--orange);font-weight:600;}
+.wl.total{border-bottom:0;font-weight:600;}
+.wl.total .m{font-weight:600;}
+@media(max-width:560px){.wl{grid-template-columns:1fr auto;} .wl .me,.wl .d{display:none;}}
+
+/* KPI */
+.kpis{display:grid;gap:16px;grid-template-columns:1fr;}
+@media(min-width:640px){.kpis{grid-template-columns:1fr 1fr;}}
+@media(min-width:1000px){.kpis{grid-template-columns:repeat(4,1fr);}}
+.kpi{padding:20px 20px 18px;border-radius:var(--r);}
+.kpi .k-lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;justify-content:space-between;}
+.kpi .k-val{font-family:var(--mono);font-weight:300;font-size:32px;letter-spacing:-.02em;margin:10px 0 2px;}
+.kpi .k-val .u{font-size:15px;color:var(--ink-soft);}
+.kpi .k-sub{font-size:12.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
+.kpi .k-sub b{color:var(--charcoal);font-weight:600;}
+.spark{display:flex;align-items:flex-end;gap:3px;height:30px;margin-top:12px;}
+.spark i{flex:1;background:var(--salvia);border-radius:2px 2px 0 0;min-height:3px;}
+.spark i.hi{background:var(--olive);}
+.dots{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.dot-l{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink-soft);}
+.dot{width:8px;height:8px;border-radius:999px;flex:0 0 auto;}
+.stars-lg{color:var(--orange);font-size:19px;letter-spacing:2px;}
+.stars-lg .off{color:var(--sand);}
+
+/* tablas */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r);}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;}
+thead th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:13px 15px;border-bottom:1px solid var(--line);white-space:nowrap;}
+tbody td{padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tbody tr{transition:background .12s;}
+tbody tr:hover{background:var(--panel);}
+tbody tr:last-child td{border-bottom:0;}
+td.num,th.num{font-family:var(--mono);}
+td.right,th.right{text-align:right;}
+.mut{color:var(--ink-soft);}
+
+/* chips / badges */
+.chip{display:inline-flex;align-items:center;gap:.4em;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+.chip .cd{width:6px;height:6px;border-radius:999px;}
+.c-draft{background:var(--salvia);color:var(--olive-d);}
+.c-pub{background:rgba(99,113,84,.14);color:var(--olive-d);}
+.c-full{background:rgba(255,93,54,.14);color:#c23c1c;}
+.c-sol{background:rgba(198,178,120,.22);color:#8a6d1f;}
+.c-conf{background:rgba(28,111,106,.14);color:var(--lagoon);}
+.c-paid{background:rgba(99,113,84,.16);color:var(--olive-d);}
+.c-canc{background:rgba(32,33,28,.08);color:var(--ink-soft);}
+.badge{display:inline-flex;align-items:center;gap:.4em;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:6px;background:var(--panel);color:var(--ink-soft);}
+.tick{color:var(--olive);font-weight:700;}
+.cross{color:var(--sand);}
+
+/* filtros */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.filters select,.filters input{font-family:inherit;font-size:13px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--charcoal);}
+.filters input{flex:1;min-width:160px;}
+.filters select:focus,.filters input:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15);}
+
+/* detalle */
+.detail{display:grid;gap:20px;grid-template-columns:1fr;}
+@media(min-width:760px){.detail{grid-template-columns:1.1fr .9fr;}}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px;}
+.dl dt{color:var(--ink-soft);}
+.dl dd{font-weight:500;text-align:right;}
+.mini-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+.mini-form input,.mini-form select{font-family:inherit;font-size:12.5px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;}
+.act-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;}
+
+/* barras */
+.barrow{display:grid;grid-template-columns:150px 1fr 42px;gap:12px;align-items:center;padding:7px 0;font-size:13px;}
+.bar{height:8px;border-radius:999px;background:var(--salvia);overflow:hidden;}
+.bar i{display:block;height:100%;background:var(--olive);border-radius:999px;}
+.barrow .bv{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--ink-soft);}
+
+/* testimonios */
+.testi{display:grid;gap:14px;grid-template-columns:1fr;}
+@media(min-width:720px){.testi{grid-template-columns:1fr 1fr;}}
+.tcard{padding:18px 18px 16px;border-radius:var(--r);}
+.tcard .tt{font-size:14px;line-height:1.55;font-style:italic;color:#33352d;}
+.tcard .tm{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:10px;}
+.tcard .who{font-size:12px;color:var(--ink-soft);font-weight:600;}
+.tcard .st{color:var(--orange);font-size:13px;letter-spacing:1px;}
+
+.empty{padding:30px;text-align:center;color:var(--ink-soft);font-size:14px;border:1px dashed var(--line);border-radius:var(--r);background:rgba(255,255,255,.4);}
+.grid2{display:grid;gap:20px;grid-template-columns:1fr;}
+@media(min-width:900px){.grid2{grid-template-columns:1fr 1fr;}}
+.subtitle{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--olive);font-weight:700;margin-bottom:12px;}
+.roster-head{display:none;}
+
+@media print{
+  .ahead,.nav,.qa,.no-print,.btn{display:none !important;}
+  body{background:#fff;color:#000;}
+  .page{padding:0;max-width:none;}
+  .sec{display:none;}
+  #roster{display:block !important;margin:0;}
+  .roster-head{display:block;margin-bottom:14px;}
+  .card,.glass{box-shadow:none;border-color:#999;}
+  table{font-size:11px;}
+  thead th{color:#000;border-color:#000;}
+  tbody td{border-color:#999;}
+  .tick{color:#000;}
+}
+/* ══ PIEZAS DE ADMIN SALIDAS v2 · copiadas verbatim ══ */
+.salper{display:grid;grid-template-columns:26px 1fr auto;gap:11px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.salper:last-child{border-bottom:0}
+.salper .av{width:26px;height:26px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:700}
+.salper .nm{min-width:0;line-height:1.35}
+.salper .nm small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+.salper .rt{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.salper .st{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--orange);white-space:nowrap}
+.salper .qz{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.salper .qz .s{font-family:"Geist",system-ui,sans-serif;font-size:15px;color:var(--orange);letter-spacing:1px}
+.salper .tx{display:block;font-size:12.5px;font-style:italic;color:var(--ink-soft);line-height:1.45;max-width:44ch;margin-top:3px}
+.salsay{border-left:2px solid var(--orange);padding:2px 0 2px 13px;margin:14px 0 2px;font-size:13.5px;line-height:1.55;font-style:italic}
+.salsay small{display:block;font-style:normal;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-top:5px}
+.salfoot{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.sallk{flex:1 1 210px;min-width:0;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 6px 5px 12px}
+.sallk span{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.salper{grid-template-columns:26px 1fr;row-gap:8px}
+.salper .rt{grid-column:1/-1;justify-content:flex-start}
+/* ══ NUEVO · solo para esta pantalla ══ */
+a{color:var(--olive-d);text-decoration:none}a:hover{color:var(--orange)}
+.nav a,.nav a.on{text-decoration:none}
+.vtag{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:11px 16px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}
+.vtag b{font-size:11px;font-weight:700;letter-spacing:var(--eb);text-transform:uppercase;color:var(--olive);flex:0 0 auto}
+.vtag span{font-size:12.5px;color:var(--ink-soft);line-height:1.45}
+/* fases y etapas · el tablero baja, no se va de lado */
+.cmphase{display:flex;align-items:baseline;gap:14px;margin:34px 0 4px}
+.cmphase .t{font-size:11px;letter-spacing:var(--eb);text-transform:uppercase;color:var(--olive);font-weight:700;flex:0 0 auto}
+.cmphase .l{flex:1;height:1px;background:var(--line)}
+.cmphase .n{font-size:12px;color:var(--ink-soft);flex:0 0 auto}
+.cmstage{border-top:1px solid var(--line);padding:16px 0 20px}
+.cmstage-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:13px}
+.cmstage-hd .no{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--sand)}
+.cmstage-hd h3{font-size:16px;font-weight:400;letter-spacing:-.01em}
+.cmstage-hd .ct{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.cmstage-hd .how{margin-left:auto;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft);background:#fff}
+.cmstage-hd .how.auto{color:var(--olive-d);border-color:rgba(99,113,84,.3);background:rgba(99,113,84,.08)}
+.cmstage .gl{font-size:12.5px;color:var(--ink-soft);line-height:1.55;margin:-6px 0 13px;max-width:66ch}
+.cmcards{display:grid;gap:14px;grid-template-columns:1fr;align-items:start}
+@media(min-width:780px){.cmcards{grid-template-columns:1fr 1fr}}
+.cmcards.one{grid-template-columns:1fr}
+/* la tarjeta persona × salida */
+.cmc{border:1px solid var(--line);border-radius:var(--r);background:var(--cream);padding:15px 17px;box-shadow:var(--shadow)}
+.cmc .hd{display:flex;align-items:flex-start;gap:12px}
+.cmc .av{width:34px;height:34px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;flex:0 0 auto}
+.cmc .nm{flex:1;min-width:0}
+.cmc .nm b{display:block;font-size:15.5px;font-weight:500;letter-spacing:-.01em;line-height:1.25}
+.cmc .nm small{display:block;font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.4}
+.cmc .nm small .sal{color:var(--olive-d);font-weight:500}
+.cmc .age{font-family:var(--mono);font-size:11px;color:var(--ink-soft);white-space:nowrap;flex:0 0 auto;padding-top:3px}
+.cmc .met{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.cmtag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;line-height:1;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);white-space:nowrap}
+.cmtag .k{font-family:var(--mono);color:var(--charcoal);font-weight:700}
+/* LA SIGUIENTE ACCIÓN · lo único que de verdad importa */
+.cmnext{display:flex;align-items:baseline;gap:.55em;margin-top:12px;padding:9px 12px;border-radius:10px;background:rgba(99,113,84,.1);font-size:13px;line-height:1.45;color:var(--olive-d)}
+.cmnext s{text-decoration:none;font-family:var(--mono);font-weight:700;flex:0 0 auto;color:var(--olive)}
+.cmnext b{font-family:var(--mono);font-weight:700;color:var(--charcoal)}
+/* fría · tiene que verse mal */
+.cmc.cold{border-color:rgba(255,93,54,.5);background:linear-gradient(180deg,rgba(255,93,54,.07),rgba(255,93,54,0) 90px),var(--cream)}
+.cmc.cold .cmnext{background:rgba(255,93,54,.13);color:var(--charcoal);font-weight:500}
+.cmc.cold .cmnext s,.cmc.cold .cmnext b{color:var(--orange)}
+.cmc.cold .age{color:var(--orange);font-weight:700}
+/* caída · perder es un dato */
+.cmc.lost{background:var(--panel);box-shadow:none;border-style:dashed}
+.cmc.lost .av,.cmc.lost .nm b{color:var(--ink-soft)}
+.cmc.lost .av{background:#fff}
+.cmc.lost .cmnext{background:#fff;border:1px solid var(--line);color:var(--ink-soft);font-style:italic}
+.cmc.lost .cmnext s{color:var(--sand)}
+.cmxp{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+/* mensaje · canal y ventana */
+.cmch{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.cmch button{font-size:12.5px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);min-height:38px;font-family:inherit;cursor:pointer}
+.cmch button.on{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d);font-weight:600}
+.cmwin{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+.cmwin+.cmwin{margin-top:12px}
+.cmwin .wh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px}
+.cmwin .wh .lb{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--olive)}
+.cmwin .wh .cd{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+.cmwin .wb{padding:14px}
+.cmwin .why{font-size:12px;color:var(--ink-soft);line-height:1.55;padding:0 14px 13px}
+.cmwin.open{border-color:rgba(99,113,84,.4)}
+.cmwin.open .wh{background:rgba(99,113,84,.08)}
+.cmwin.open .wh .cd{color:var(--olive-d);font-weight:700}
+.cmwin.locked .wh{background:var(--panel)}
+.cmwin.locked .wh .lb{color:var(--ink-soft)}
+.cmwin input,.cmwin textarea{font-family:inherit;font-size:13px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--charcoal);line-height:1.5;resize:vertical}
+.cmwin textarea{min-height:88px}
+.cmwin input+input,.cmwin input+textarea{margin-top:9px}
+.cmwin textarea[disabled]{background:var(--panel);color:var(--sand);font-style:italic;cursor:not-allowed;min-height:52px}
+/* la plantilla: se llenan huecos, no se redacta */
+.cmtpl{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:13px 14px;font-size:13.5px;line-height:2.05;color:var(--charcoal)}
+.cmslot{display:inline-flex;align-items:center;min-width:96px;padding:2px 10px;margin:0 2px;border-radius:7px;border:1px dashed rgba(255,93,54,.55);background:rgba(255,93,54,.08);font-family:var(--mono);font-size:12.5px;color:var(--charcoal)}
+.cmslot.empty{color:var(--orange);font-style:italic}
+.cmtpl .fx{color:var(--ink-soft)}
+/* el reparto de la liga · un trabajo, tres destinos */
+.cmfan{display:grid;gap:0;margin-top:14px;border-top:1px solid var(--line);padding-top:4px}
+.cmfan .r{display:grid;grid-template-columns:22px 1fr;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.45}
+.cmfan .r:last-child{border-bottom:0}
+.cmfan .r .no{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--orange);padding-top:2px}
+.cmfan .r small{display:block;font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.5}
+.cmfan .r .two{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+/* agenda propia */
+.cmag{display:grid;grid-template-columns:74px 1fr auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}
+.cmag:last-child{border-bottom:0}
+.cmag .dy{font-family:var(--mono);font-size:12px;line-height:1.35}
+.cmag .dy b{display:block;font-size:19px;font-weight:300;letter-spacing:-.02em;color:var(--charcoal)}
+.cmag .g{min-width:0;line-height:1.4}
+.cmag .g small{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px}
+.cmag .rt{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+/* mensajes programados · por día */
+.cmt{display:grid;grid-template-columns:96px 1fr auto;gap:14px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+.cmt:last-child{border-bottom:0}
+.cmt .wn{font-family:var(--mono);font-size:12px;color:var(--ink-soft);line-height:1.35}
+.cmt .g small{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.45}
+.cmt.sent{color:var(--ink-soft)}
+.cmt.sent .g b{font-weight:400}
+.cmt .sg{font-family:var(--mono);font-size:11.5px;white-space:nowrap;font-weight:700}
+.cmt.sent .sg{color:var(--olive)}
+.cmt.wait .sg{color:var(--sand)}
+/* la gente · grupos como deuda, no como estadística */
+.cmgrp{border:1px solid var(--line);border-radius:var(--r);background:var(--cream);box-shadow:var(--shadow);overflow:hidden}
+.cmgrp+.cmgrp{margin-top:14px}
+.cmgrp>.hd{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 18px}
+.cmgrp>.hd .g{flex:1;min-width:220px}
+.cmgrp>.hd .ph{font-size:17px;font-weight:400;letter-spacing:-.01em;line-height:1.3}
+.cmgrp>.hd .ph b{font-family:var(--mono);font-weight:700;color:var(--orange)}
+.cmgrp>.hd .ph .cool{color:var(--olive-d)}
+.cmgrp>.hd small{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.5;max-width:62ch}
+.cmgrp>.hd .rt{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+.cmgrp>.hd .chev2{color:var(--olive);font-size:14px;margin-left:0}
+.cmgrp.owe{border-color:rgba(255,93,54,.42)}
+.cmgrp.owe>.hd{background:rgba(255,93,54,.06)}
+.cmgrp .bd{padding:0 18px}
+.cmgrp .bd .in{padding:15px 0 18px;border-top:1px solid var(--line)}
+/* la meta · no es un dato */
+.cmgoal{border:1px solid rgba(99,113,84,.32);border-radius:var(--r);background:rgba(99,113,84,.07);padding:18px}
+.cmgoal .ph{font-size:17px;font-weight:400;line-height:1.3}
+.cmgoal .ph b{font-family:var(--mono);font-weight:700;color:var(--olive)}
+.cmgoal .prog{margin-top:14px}
+.cmgoal small{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:11px;line-height:1.55;max-width:60ch}
+/* ficha de persona */
+.cmficha{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px 18px;margin-top:12px}
+.cmficha .top{display:flex;align-items:flex-start;gap:13px;flex-wrap:wrap}
+.cmficha .av{width:40px;height:40px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12.5px;font-weight:700;flex:0 0 auto}
+.cmficha .top .g{flex:1;min-width:170px}
+.cmficha .top .g b{display:block;font-size:18px;font-weight:400;letter-spacing:-.01em}
+.cmficha .top .g small{display:block;font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6}
+.cmtrip{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.cmtrip:last-child{border-bottom:0}
+.cmtrip .dt{font-family:var(--mono);font-size:12px;color:var(--ink-soft);display:block;margin-top:2px}
+.cmtrip .mn{font-family:var(--mono);font-size:13.5px}
+.hole{display:inline-block;min-width:52px;border-bottom:1px dashed var(--sand);color:var(--sand);font-family:var(--mono);font-size:12px}
+.docnote{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.7;color:var(--ink-soft)}
+.docnote b{color:var(--charcoal);font-weight:600}
+.docnote .sl{color:var(--orange);font-family:var(--mono);font-weight:700}
+@media(max-width:620px){.pad{padding:16px 16px}.cmag,.cmt{grid-template-columns:1fr;row-gap:7px}.cmag .rt{justify-content:flex-start}}
+/* ══ NUEVO EN v2 · el tablero ══ */
+:root{--ahead-h:108px;--stick-h:154px}
+html{overflow-x:hidden}
+.page{max-width:none;padding-left:26px;padding-right:26px}
+/* la cabecera de la pantalla se queda fija */
+.cmstick{position:sticky;top:var(--ahead-h);z-index:30;background:var(--bg);padding:18px 0 12px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.cmstick .sec-head{margin-bottom:0}
+.cmseg{display:inline-flex;gap:0;margin-top:14px;padding:3px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}
+.cmseg button{font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding:9px 22px;border-radius:999px;border:0;background:transparent;color:var(--ink-soft);cursor:pointer;min-height:40px}
+.cmseg button.on{background:var(--charcoal);color:#fff}
+.cmseg .ct{font-family:var(--mono);font-weight:400;letter-spacing:0;text-transform:none;margin-left:7px;opacity:.6}
+/* tablero + panel · el scroll vive adentro */
+.cmwrap{display:flex;gap:0;align-items:stretch}
+.cmboard{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;padding-bottom:14px;scrollbar-width:thin}
+.cmboard::-webkit-scrollbar{height:9px}
+.cmboard::-webkit-scrollbar-track{background:var(--panel);border-radius:999px}
+.cmboard::-webkit-scrollbar-thumb{background:var(--sand);border-radius:999px}
+.cmtrack{display:flex;gap:14px;align-items:flex-start;min-width:max-content;padding:2px}
+.cmcol{flex:0 0 280px;display:flex;flex-direction:column;border-radius:14px;border:1px solid var(--line);background:rgba(251,251,247,.55);padding:13px 12px 14px}
+.cmcol-hd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;padding-bottom:11px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.cmcol-hd .no{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--sand)}
+.cmcol-hd h3{font-size:13.5px;font-weight:500;letter-spacing:-.005em}
+.cmcol-hd .ct{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);margin-left:auto}
+.cmcol-hd .how{flex:1 0 100%;font-size:10px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);margin-top:5px}
+.cmcol-hd .how.auto{color:var(--olive)}
+.cmcol-bd{display:flex;flex-direction:column;gap:11px;min-height:76px}
+/* columnas que sólo reciben */
+.cmcol.recv{background:var(--panel)}
+.cmcol.recv .cmcol-hd{border-bottom-style:dashed}
+.cmcol .src{font-size:11.5px;color:var(--ink-soft);line-height:1.5;margin-top:11px;padding-top:10px;border-top:1px dashed var(--line)}
+.cmcol .src s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand);margin-right:.45em}
+/* estados de arrastre */
+.cmcol.can{border-color:var(--olive);border-style:dashed;background:rgba(99,113,84,.1)}
+.cmcol.can .cmcol-hd h3{color:var(--olive-d)}
+.cmcol.cant{background:var(--panel)}
+.cmcol.cant .cmcol-hd{opacity:.5}
+.cmcol.cant .cmcol-bd{opacity:.4}
+.cmcol .nodrop{display:flex;align-items:baseline;gap:.5em;font-size:11.5px;line-height:1.5;color:var(--ink-soft);margin-bottom:11px;padding:9px 11px;border-radius:10px;background:#fff;border:1px solid var(--line)}
+.cmcol .nodrop s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand)}
+.cmghost{border:1px dashed var(--sand);border-radius:var(--r);background:rgba(182,173,165,.1);min-height:104px;display:flex;align-items:center;justify-content:center;font-size:11.5px;color:var(--sand);font-family:var(--mono)}
+.cmghost.tgt{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d)}
+/* la tarjeta dentro de la columna */
+.cmcol .cmc{padding:12px 13px;box-shadow:none;cursor:pointer}
+.cmcol .cmc:hover{border-color:rgba(99,113,84,.4)}
+.cmcol .cmc .av{width:28px;height:28px;font-size:10px}
+.cmcol .cmc .nm b{font-size:14px}
+.cmcol .cmc .nm small{font-size:11.5px}
+.cmcol .cmc .age{font-size:10.5px;padding-top:2px}
+.cmcol .cmc .met{margin-top:9px;gap:5px}
+.cmcol .cmc .cmtag{font-size:11px;padding:4px 9px}
+.cmcol .cmc .cmnext{margin-top:10px;padding:8px 10px;font-size:12px}
+.cmcol.recv .cmc{cursor:default}
+.cmcol.recv .cmc:hover{border-color:rgba(99,113,84,.4)}
+/* asa de arrastre · sólo en las tres primeras */
+.cmgrip{display:flex;flex-direction:column;gap:3px;padding:4px 2px;flex:0 0 auto;cursor:grab}
+.cmgrip i{display:block;width:11px;height:1.5px;border-radius:999px;background:var(--sand)}
+.cmc:hover .cmgrip i{background:var(--olive)}
+/* siendo arrastrada */
+.cmc.drag{transform:rotate(-1.6deg) scale(1.015);box-shadow:0 26px 50px -20px rgba(32,33,28,.55);border-color:var(--olive);cursor:grabbing;position:relative;z-index:5}
+.cmc.drag .cmgrip{cursor:grabbing}
+.cmc.drag .cmgrip i{background:var(--olive)}
+/* abierta en el panel */
+.cmc.picked{border-color:var(--charcoal);box-shadow:0 0 0 1px var(--charcoal)}
+.cmc.picked .nm b{color:var(--charcoal)}
+/* la séptima columna · colapsada */
+.cmcol.lost{flex:0 0 60px;padding:13px 8px;align-items:center;background:var(--panel)}
+.cmcol.lost .vt{writing-mode:vertical-rl;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);white-space:nowrap;margin-top:8px}
+.cmcol.lost .n{font-family:var(--mono);font-size:12px;color:var(--sand)}
+.cmcol.lost .cv{font-size:12px;color:var(--sand);margin-bottom:8px}
+.cmcol.lost.open{flex:0 0 280px;padding:13px 12px;align-items:stretch}
+.cmcol.lost.open .vt{writing-mode:horizontal-tb;margin-top:0}
+/* el panel lateral */
+.cmpanel{flex:0 0 420px;align-self:flex-start;position:sticky;top:calc(var(--ahead-h) + var(--stick-h) + 12px);max-height:calc(100vh - var(--ahead-h) - var(--stick-h) - 30px);display:flex;flex-direction:column;border:1.5px solid rgba(32,33,28,.22);border-radius:var(--r);background:#fff;margin-left:-22px;z-index:6;box-shadow:-20px 0 44px -24px rgba(32,33,28,.5),0 34px 70px -26px rgba(32,33,28,.45);overflow:hidden}
+.cmpanel-hd{display:flex;align-items:flex-start;gap:12px;padding:16px 17px;border-bottom:1px solid var(--line);background:#fff}
+.cmpanel-hd .av{width:36px;height:36px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11.5px;font-weight:700;flex:0 0 auto}
+.cmpanel-hd .g{flex:1;min-width:0}
+.cmpanel-hd .g b{display:block;font-size:16.5px;font-weight:500;letter-spacing:-.01em;line-height:1.25}
+.cmpanel-hd .g small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:3px;line-height:1.45}
+.cmpanel-hd .g small .sal{color:var(--olive-d);font-weight:500}
+.cmpanel-hd .x{font-family:inherit;font-size:16px;line-height:1;color:var(--ink-soft);background:transparent;border:1px solid var(--line);border-radius:999px;width:30px;height:30px;cursor:pointer;flex:0 0 auto}
+.cmpanel-st{display:flex;align-items:center;gap:9px;padding:10px 17px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--olive)}
+.cmpanel-st .n{font-family:var(--mono);color:var(--sand)}
+.cmpanel-st .mv{margin-left:auto;font-size:10px;letter-spacing:.08em;color:var(--ink-soft);font-weight:600}
+.cmpanel-bd{padding:16px 17px 20px;overflow-y:auto;flex:1}
+.cmpanel-bd .xh4:first-child{margin-top:0}
+.cmpanel .cmwin input,.cmpanel .cmwin textarea{font-size:12.5px}
+.cmpanel .cmtpl{font-size:12.5px;line-height:1.95}
+.cmpanel .dl{font-size:12.5px}
+.lam{margin:52px 0 0;padding-top:22px;border-top:1px solid rgba(32,33,28,.2)}
+@media(max-width:1180px){.cmpanel{flex:0 0 380px}}
+@media(max-width:980px){.cmwrap{flex-direction:column;gap:18px}.cmpanel{margin-left:0}.cmpanel{flex:1 1 auto;width:100%;position:static;max-height:none}}
+
+/* ══ NUEVO EN v3 · los textos que salen ══ */
+.cmpanel.wide{flex:1 1 auto;position:static;max-height:none;max-width:820px;margin-left:0;box-shadow:var(--shadow)}
+.cmtx{font-size:13px;line-height:2;color:var(--charcoal)}
+.cmdb{background:rgba(99,113,84,.13);border-bottom:1px solid rgba(99,113,84,.45);padding:1px 6px;border-radius:5px}
+.cmdb.va{color:var(--olive-d);font-style:italic;background:rgba(99,113,84,.07)}
+.cmsrc{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:11px;border-top:1px dashed var(--line);font-size:11px;color:var(--ink-soft)}
+.cmsrc s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--olive)}
+.cmsrc .p{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:999px;background:rgba(99,113,84,.1);color:var(--olive-d)}
+.cmmact{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.cmstop{display:flex;gap:.6em;align-items:baseline;margin-top:13px;padding:11px 13px;border-radius:10px;background:rgba(255,93,54,.1);border:1px solid rgba(255,93,54,.4);font-size:12.5px;line-height:1.6}
+.cmstop s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.cmstop b{font-weight:600}
+.cmfill{margin-top:12px;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.cmfill .lb{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--olive);display:block;margin-bottom:7px}
+.cmfill p{font-size:12px;color:var(--ink-soft);line-height:1.55}
+/* el calendario · dos estados */
+.cmconn{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:13px 14px;border:1px solid rgba(99,113,84,.32);border-radius:12px;background:rgba(99,113,84,.07);font-size:12.5px;line-height:1.55;color:var(--olive-d)}
+.cmconn .g{flex:1 1 210px}
+.cmconn b{color:var(--charcoal);font-weight:600}
+.cmauto{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 12px;border:1px solid rgba(99,113,84,.3);border-radius:10px;background:rgba(99,113,84,.07);font-family:var(--mono);font-size:11.5px;color:var(--olive-d)}
+.cmauto .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ══ NUEVO EN v3 · GENTE, la biblioteca ══ */
+.gnf.on{border-color:var(--olive);background:rgba(99,113,84,.1);color:var(--olive-d);font-weight:600}
+.gnf.on .n,.gnf.on .cv{color:var(--olive)}
+.gntags{display:flex;gap:6px;flex-wrap:wrap}
+.gntag{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;padding:4px 11px;border-radius:999px;background:rgba(28,111,106,.1);color:var(--lagoon);border:1px solid rgba(28,111,106,.22)}
+.gntag .x{color:rgba(28,111,106,.5);font-size:12px;line-height:1;cursor:pointer}
+.gntag.add{background:transparent;border-style:dashed;border-color:var(--sand);color:var(--ink-soft);cursor:pointer}
+.gnfalta{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--sand);font-style:italic}
+.gnnew{display:flex;gap:.55em;align-items:baseline;margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:12.5px;line-height:1.55;color:var(--ink-soft)}
+.gnnew s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand);flex:0 0 auto}
+.gnnew b{color:var(--charcoal);font-weight:600}
+.gnmeta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink-soft)}
+.gnficha{background:#fff}
+.gnficha .top .g small{font-family:var(--mono)}
+.gnhint{font-size:12px;color:var(--ink-soft);line-height:1.55;margin-top:8px;max-width:52ch}
+
+
+/* ══ v3.1 · EL PANEL COMO CAPA ══ */
+.cmstage{position:relative;margin:0 -26px;height:660px;overflow:hidden;background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.cmstage>.cmboard{position:absolute;inset:0;padding:18px 0 18px 26px;overflow-x:auto;overflow-y:hidden}
+.cmstage>.cmboard>.cmtrack{align-items:flex-start}
+.cmveil{position:absolute;inset:0;z-index:4;background:rgba(32,33,28,.34);cursor:pointer;transition:background .2s}
+.cmveil:hover{background:rgba(32,33,28,.4)}
+.cmveil span{position:absolute;left:26px;bottom:16px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,.82)}
+.cmstage .cmc.picked{position:relative;z-index:6;background:#fff;box-shadow:0 0 0 1px var(--charcoal),0 0 0 10px rgba(251,251,247,.5),0 18px 34px -20px rgba(32,33,28,.5)}
+/* el panel: pegado al borde derecho, de alto completo, opaco */
+.cmpanel.layer{position:absolute;top:0;right:0;bottom:0;left:auto;z-index:8;flex:none;width:min(580px,52%);height:100%;max-height:none;margin:0;background:#fff;border:1px solid rgba(32,33,28,.2);border-right:0;border-radius:20px 0 0 20px;box-shadow:-34px 0 70px -22px rgba(32,33,28,.55),-3px 0 0 rgba(32,33,28,.06);overflow:hidden}
+.cmpanel.layer .cmpanel-hd{flex:0 0 auto;position:relative;z-index:2;background:#fff;border-bottom:1px solid rgba(32,33,28,.18);padding:17px 20px}
+.cmpanel.layer .cmpanel-st{flex:0 0 auto;position:relative;z-index:2;background:rgba(99,113,84,.07);padding:11px 20px}
+.cmpanel.layer .cmpanel-bd{padding:18px 20px 46px;scrollbar-width:thin}
+.cmpanel.layer .cmpanel-bd::-webkit-scrollbar{width:9px}
+.cmpanel.layer .cmpanel-bd::-webkit-scrollbar-track{background:var(--panel)}
+.cmpanel.layer .cmpanel-bd::-webkit-scrollbar-thumb{background:var(--sand);border-radius:999px}
+.cmpanel .fade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(180deg,rgba(255,255,255,0),#fff 78%);pointer-events:none;z-index:3}
+.cmpanel-hd .esc{align-self:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--sand);border:1px solid var(--line);border-radius:6px;padding:3px 6px;flex:0 0 auto}
+.cmstage.shut .cmpanel,.cmstage.shut .cmveil{display:none}
+.cmreopen{position:absolute;right:26px;bottom:18px;z-index:9;display:none}
+.cmstage.shut .cmreopen{display:inline-flex}
+@media(max-width:980px){.cmpanel.layer{width:86%}}
+
+
+/* v3.2 · el mensaje se despliega en su renglón */
+.cmmi{border-bottom:1px solid var(--line)}
+.cmmi:last-of-type{border-bottom:0}
+.cmmi .cmt{border-bottom:0;cursor:pointer;align-items:center}
+.cmmi .cmt:hover .g b{color:var(--olive-d)}
+.cmmi.open .cmt{padding-bottom:4px}
+.cmmi.mio .cmt{background:rgba(201,183,156,.16);border-radius:9px;padding-left:9px;padding-right:9px;margin:4px 0}
+.cmmi.off .cmt .g,.cmmi.off .cmt .wn{opacity:.55}
+.cmmi.off .cmt .sg{color:var(--sand)}
+.cmmi.falta .cmt .sg{color:var(--orange)}
+.cmmi.falta .cmt .g b{color:var(--charcoal)}
+.cmpen{border:0;background:transparent;padding:3px;color:var(--sand);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;line-height:0}
+.cmpen svg{width:13px;height:13px;display:block}
+.cmpen:hover{color:var(--olive)}
+.cmmi.edit .cmpen{color:var(--olive)}
+.cmmi.open{background:var(--bg);border:1px solid rgba(32,33,28,.18);border-radius:12px;margin:7px 0;padding:0 11px}
+.cmmi.open .cmt{background:transparent}
+.cmmi.open .cmfill,.cmmi.open .cmtx{background:#fff}
+.cmmi.open .cmfill{border-color:rgba(32,33,28,.16)}
+.cmmi.open.mio{background:rgba(201,183,156,.3);border-color:rgba(201,183,156,.85)}
+.cmmi.open.mio .cmt{background:transparent;margin:0;padding-left:0;padding-right:0}
+.cmdrop{display:none;padding:2px 0 14px}
+.cmmi.open .cmdrop{display:block}
+.cmmi.edit .cmtx{background:var(--panel);border:1px solid var(--olive);border-radius:9px;padding:11px 12px;outline:none}
+.cmedit{display:none;gap:7px;flex-wrap:wrap;margin-top:11px}
+.cmmi.edit .cmedit{display:flex}
+.cmmi.edit .cmsrc,.cmmi.edit .cmmact{opacity:.45}
+
+
+/* v3.3 · GENTE es una lista de renglones */
+
+
+/* v3.4 · la lista: cuatro columnas, encabezados que ordenan */
+.gnhead{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.gnpills{display:flex;gap:2px;flex-wrap:wrap;align-items:center}
+.gnp{display:inline-flex;align-items:center;gap:7px;height:38px;font-family:inherit;font-size:12.5px;padding:0 14px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--ink-soft);cursor:pointer}
+.gnp .n{font-family:var(--mono);font-size:11px;color:var(--sand)}
+.gnp:hover{background:rgba(32,33,28,.045)}
+.gnp.on{background:rgba(99,113,84,.13);border-color:rgba(99,113,84,.3);color:var(--olive-d);font-weight:600}
+.gnp.on .n{color:var(--olive)}
+.gntools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.gntools input[type=search]{font-family:inherit;font-size:13px;height:38px;padding:0 15px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--charcoal);min-width:210px}
+.gntools input[type=search]:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15)}
+.gntools .mas{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;font-family:inherit;font-size:12.5px;color:var(--ink-soft);background:#fff;border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.gntools .mas:hover{border-color:var(--olive);color:var(--olive-d)}
+.gntools .mas s{text-decoration:none;font-size:9px;color:var(--sand)}
+/* la línea que convierte el dato sucio en tarea */
+.gnfix{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:10px 16px;border:1px dashed rgba(99,113,84,.45);border-radius:12px;background:rgba(99,113,84,.06);font-size:12.5px;color:var(--olive-d);line-height:1.5}
+.gnfix s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.gnfix .g{flex:1 1 220px}
+.gnfix b{color:var(--charcoal);font-weight:600}
+.gnuv{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}
+.gnuv:last-of-type{border-bottom:0}
+.gnuv .rd{width:14px;height:14px;border-radius:999px;border:1px solid var(--sand);flex:0 0 auto}
+.gnuv.on .rd{background:var(--olive);border-color:var(--olive);box-shadow:inset 0 0 0 2.5px #fff}
+.gnuv.on{font-weight:500}
+.gnuv .n{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+.gnuv .wr{color:var(--ink-soft)}
+/* la lista */
+.gnlist{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden}
+.gnlist .gnhd,.gnlist .gnr{display:grid;grid-template-columns:32px minmax(150px,1.15fr) minmax(0,1.4fr) 64px;gap:14px;align-items:center}
+.gnlist.contags .gnhd,.gnlist.contags .gnr{grid-template-columns:32px minmax(140px,1fr) minmax(0,.92fr) minmax(0,1.12fr) 64px}
+.gnhd{padding:10px 15px;border-bottom:1px solid var(--line);background:rgba(251,251,247,.75)}
+.gnhd span,.gnsort{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--sand);line-height:1}
+.gnhd .r{text-align:right}
+.gnsort{display:inline-flex;align-items:center;gap:6px;font-family:inherit;background:transparent;border:0;padding:0;cursor:pointer}
+.gnsort:hover{color:var(--olive)}
+.gnsort.on{color:var(--olive-d)}
+.gnsort s{text-decoration:none;font-size:10px;opacity:0;transition:opacity .15s}
+.gnsort.on s,.gnsort:hover s{opacity:1}
+.gnr{padding:5px 15px;min-height:46px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .12s}
+.gnr:last-child{border-bottom:0}
+.gnr:hover{background:rgba(99,113,84,.05)}
+.gnr .av{width:32px;height:32px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;font-weight:700}
+.gnr .who{min-width:0}
+.gnr .who b{display:block;font-size:14px;font-weight:500;letter-spacing:-.01em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gnr .who small{display:block;font-size:11px;color:var(--ink-soft);line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gnr .tags{display:flex;gap:5px;min-width:0;flex-wrap:nowrap;align-items:center}
+.gnr .tags .gntag{font-size:10.5px;padding:2px 9px;white-space:nowrap;display:block;flex:0 0 auto}
+.gnr .tags .gntag.mas{position:relative;background:transparent;border-color:var(--sand);color:var(--ink-soft);font-family:var(--mono);font-size:10px;overflow:visible}
+.gnr .tags .gntag.mas .tip{display:none;position:absolute;left:0;top:calc(100% + 7px);white-space:nowrap;background:var(--charcoal);color:#fff;font-family:"Geist",system-ui,sans-serif;font-size:11px;letter-spacing:0;padding:6px 10px;border-radius:8px;z-index:20}
+.gnr .tags .gntag.mas:hover .tip{display:block}
+.gnr .hist{font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gnr .hist b{font-family:var(--mono);font-weight:700}
+.gnr .hist i{font-style:normal;color:var(--ink-soft)}
+.gnr .hist u{text-decoration:none;font-family:var(--mono);font-size:11px;color:var(--sand)}
+.gnr .hist.no em{font-style:italic;color:var(--charcoal);font-weight:400}
+.gnr .ic{display:flex;gap:14px;justify-content:flex-end;color:var(--olive-d)}
+.gnr .ic span{position:relative;display:block}
+.gnr .ic svg{width:17px;height:17px;display:block}
+.gnr .ic .off{color:var(--sand)}
+.gnr .ic .off::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:1.25px;background:var(--sand);transform:rotate(-40deg)}
+.gnr.picked{position:relative;z-index:6;background:#fff;box-shadow:0 0 0 1px var(--charcoal),0 14px 30px -22px rgba(32,33,28,.5)}
+.gnmore{padding:12px 15px;font-family:var(--mono);font-size:11.5px;color:var(--sand);border-top:1px solid var(--line);background:rgba(251,251,247,.6);cursor:pointer}
+.gnmore:hover{color:var(--olive)}
+.cmstage>.gnstack{position:absolute;inset:0;padding:18px 26px;overflow:hidden}
+@media(max-width:1040px){.gnlist .gnhd,.gnlist .gnr{grid-template-columns:32px minmax(130px,1fr) minmax(0,1.3fr) 64px}.gnlist.contags .gnhd,.gnlist.contags .gnr{grid-template-columns:32px minmax(120px,1fr) minmax(0,.9fr) minmax(0,1.1fr) 64px}}
+
+
+/* v3.5 · el presente del CRM en el renglón, y los cumpleaños */
+.gnr .who .nmline{display:flex;align-items:center;gap:8px;min-width:0}
+.gnr .who .nmline b{min-width:0}
+.gnst{position:relative;display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(99,113,84,.14);color:var(--olive-d);white-space:nowrap}
+.gnst .d{width:5px;height:5px;border-radius:999px;background:var(--olive);flex:0 0 auto}
+.gnst .s{font-size:10px;font-weight:400;letter-spacing:.01em;text-transform:none;opacity:.8}
+.gnst.caida{background:rgba(32,33,28,.07);color:var(--ink-soft)}
+.gnst.caida .d{background:var(--sand)}
+.gnr .gnst .tip{display:none;position:absolute;left:0;top:calc(100% + 7px);white-space:nowrap;background:var(--charcoal);color:#fff;font-family:"Geist",system-ui,sans-serif;font-size:11px;font-weight:400;letter-spacing:0;text-transform:none;padding:6px 10px;border-radius:8px;z-index:20}
+.gnr .gnst:hover .tip{display:block}
+.gnlist.conest .gnhd,.gnlist.conest .gnr{grid-template-columns:32px minmax(210px,1.5fr) minmax(0,1.12fr) 64px}
+.gnlist.conest.contags .gnhd,.gnlist.conest.contags .gnr{grid-template-columns:32px minmax(200px,1.4fr) minmax(0,.82fr) minmax(0,1fr) 64px}
+/* la banda de cumpleaños · buena noticia, no alerta */
+.gncum{border:1.5px solid rgba(255,93,54,.6);border-radius:14px;background:linear-gradient(180deg,rgba(201,183,156,.2),rgba(201,183,156,.07));padding:14px 17px;margin-bottom:14px}
+.gncum .lb{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:#8a6d1f;display:flex;align-items:center;gap:.5em}
+.gncum .lb s{text-decoration:none;font-family:var(--mono);color:var(--orange)}
+.gncum .hoy,.gnpa .hoy{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-top:11px}
+.gncum .hoy .av,.gnpa .hoy .av{width:40px;height:40px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;flex:0 0 auto}
+.gncum .hoy .g,.gnpa .hoy .g{min-width:0;flex:1 1 180px}
+.gncum .hoy .g b,.gnpa .hoy .g b{display:block;font-size:16px;font-weight:500;letter-spacing:-.01em}
+.gncum .hoy .g small,.gnpa .hoy .g small{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px}
+.gncum .hoy .rt,.gnpa .hoy .rt{display:flex;gap:8px;flex-wrap:wrap}
+.gncum .nx{display:flex;gap:26px;flex-wrap:wrap;margin-top:13px;padding-top:12px;border-top:1px solid rgba(32,33,28,.13)}
+.gncum .nx .grp{min-width:160px}
+.gncum .nx .t{font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:var(--olive);display:block;margin-bottom:6px}
+.gncum .nx .p{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;margin:0 14px 4px 0}
+.gncum .nx .p .dt{font-family:var(--mono);font-size:11px;color:var(--sand)}
+.gncum.solo{background:rgba(201,183,156,.1);border-color:rgba(255,93,54,.45)}
+.gncum.solo .nx{margin-top:9px;padding-top:0;border-top:0}
+/* capturar el cumpleaños desde la ficha */
+.gncap{display:inline-flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft)}
+.gncap input{font-family:var(--mono);font-size:11.5px;padding:5px 9px;border:1px dashed var(--sand);border-radius:8px;background:#fff;color:var(--charcoal)}
+.gncap input:focus{outline:none;border-style:solid;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15)}
+.gncap small{font-size:11px;color:var(--sand)}
+
+
+/* v3.6 · el regalo de cumpleaños */
+.gngift{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(99,113,84,.15);color:var(--olive-d);white-space:nowrap}
+.gngift .d{width:5px;height:5px;border-radius:999px;background:var(--olive)}
+.gnopt{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.gnopt button{font-family:inherit;font-size:12.5px;min-height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer}
+.gnopt button.on{border-color:var(--olive);background:rgba(99,113,84,.12);color:var(--olive-d);font-weight:600}
+.gnopt input{font-family:var(--mono);font-size:12px;width:86px;padding:0 11px;height:34px;border:1px dashed var(--sand);border-radius:999px;background:#fff;color:var(--charcoal)}
+.gnefe{padding:11px 13px;border-radius:10px;background:rgba(99,113,84,.1);font-size:13px;line-height:1.55;color:var(--olive-d)}
+.gnefe b{font-family:var(--mono);color:var(--charcoal);font-weight:700}
+.gncost{display:flex;gap:.6em;align-items:baseline;margin-top:10px;font-size:12px;line-height:1.6;color:var(--ink-soft)}
+.gncost s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.gncost b{font-family:var(--mono);color:var(--charcoal);font-weight:700}
+.gnlink{display:flex;align-items:center;gap:9px;padding:7px 8px 7px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.gnlink .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+.gnlink .u{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--olive)}
+.gnprev{border:1px solid var(--line);border-radius:12px;background:#fff;padding:13px 14px}
+.gnprev .hd{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sand);font-weight:700;margin-bottom:9px}
+.gnprev .bd{font-size:13px;line-height:1.85}
+/* el regalo, después de mandarlo */
+.gnrg{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.gnrg:last-child{border-bottom:0}
+.gnrg .st{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:4px 9px;border-radius:5px;white-space:nowrap}
+.gnrg .g{min-width:0;line-height:1.4}
+.gnrg .g small{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:3px}
+.gnrg .mn{font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.gnrg.env .st{background:rgba(99,113,84,.15);color:var(--olive-d)}
+.gnrg.abi .st{background:rgba(255,93,54,.14);color:#c23c1c}
+.gnrg.abi .mn{color:var(--orange);font-weight:700}
+.gnrg.uso .st{background:rgba(28,111,106,.14);color:var(--lagoon)}
+.gnrg.ven .st{background:transparent;border:1px dashed var(--sand);color:var(--sand)}
+.gnrg.ven .g b{font-weight:400;color:var(--ink-soft)}
+.gnrg.ven .g,.gnrg.ven .mn{color:var(--sand)}
+
+
+/* v3.7 · el regalo se arma DENTRO de la pastilla, y las variantes se separan del producto */
+.gncum .hoy,.gnpa .hoy{margin-top:0}
+.gnpa{border:1px solid rgba(32,33,28,.12);border-radius:12px;background:rgba(255,255,255,.72);padding:11px 13px;margin-top:11px;transition:background .18s,border-color .18s}
+.gnpa+.gnpa{margin-top:9px}
+.gnpa.open{background:#fff;border-color:rgba(255,93,54,.45)}
+.gnpa>.hoy{cursor:pointer}
+.gnpa .cv{font-family:var(--mono);font-size:11px;color:var(--sand);flex:0 0 auto;transition:transform .18s}
+.gnpa.open .cv{transform:rotate(180deg);color:var(--orange)}
+.gnbody{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(32,33,28,.12);max-height:360px;overflow-y:auto;scrollbar-width:thin}
+.gnpa.open .gnbody{display:block}
+.gnbody::-webkit-scrollbar{width:8px}
+.gnbody::-webkit-scrollbar-thumb{background:var(--sand);border-radius:999px}
+.gnstep{display:flex;align-items:baseline;gap:9px;margin:0 0 10px}
+.gnstep s{text-decoration:none;font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--orange)}
+.gnstep b{font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:var(--olive)}
+.gnstep span{font-size:12px;color:var(--ink-soft)}
+.gnfila{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px 18px;align-items:start}
+.gnfila .cel>.lb{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--sand);margin-bottom:7px}
+.gnfila .gnopt,.gnfila .cmch{margin-bottom:0}
+.gnfila .gnuv{padding:6px 0;font-size:12.5px}
+.gnmsg2{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:14px;align-items:start}
+/* galería de variantes · nunca es la pantalla */
+.varset{margin:22px 0 0;padding:0 0 0 15px;border-left:2px dashed var(--sand)}
+.varset>.hd{display:flex;align-items:baseline;gap:9px;margin-bottom:4px}
+.varset>.hd s{text-decoration:none;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--orange)}
+.varset>.hd b{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--sand)}
+.varset>.note{font-size:12px;color:var(--ink-soft);line-height:1.55;max-width:62ch;margin-bottom:14px}
+.varitem{margin-bottom:14px}
+.varitem>.t{display:block;font-size:11px;color:var(--sand);font-family:var(--mono);margin-bottom:6px}
+.varitem>.bx{background:transparent}
+
+
+/* ══ NUEVO · SOLO PARA EL PANEL DE LA PLATAFORMA ══ */
+:root{--ahead-h:112px}
+/* la pastilla del sombrero · rango mayor que el segmentado de dentro */
+.hat{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--charcoal)}
+.hat button{font-family:inherit;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:999px;border:0;background:transparent;color:rgba(255,255,255,.55)}
+.hat button:hover{color:#fff}
+.hat button.on{background:#fff;color:var(--charcoal)}
+.hat button.on.cam{background:var(--olive);color:#fff}
+.nav[hidden]{display:none}
+.lk .own{margin-left:auto;flex:0 0 auto;font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--sand);border:1px solid var(--line);border-radius:4px;padding:2px 5px;line-height:1.3}
+.lk.no .own.yo{color:var(--orange);border-color:rgba(255,93,54,.4)}
+.lk.no .own.el{color:var(--olive);border-color:rgba(99,113,84,.35)}
+.lk.ok .own{border-color:rgba(99,113,84,.25);color:var(--olive)}
+.ownkey{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--ink-soft);line-height:1.5}
+.ownkey span{display:inline-flex;align-items:center;gap:7px}
+.ownkey b{font-size:9px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:2px 5px}
+.ownkey .yo b{color:var(--orange);border-color:rgba(255,93,54,.4)}
+.ownkey .el b{color:var(--olive);border-color:rgba(99,113,84,.35)}
+/* las dos cabeceras, una junto a la otra */
+.hatdemo{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:1000px){.hatdemo{grid-template-columns:1fr 1fr}}
+.hatdemo .hd{display:flex;align-items:baseline;gap:9px;margin-bottom:8px}
+.hatdemo .hd s{text-decoration:none;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--orange)}
+.hatdemo .hd b{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--sand)}
+.hatdemo .fr{position:static;border:1px solid var(--line);border-radius:14px;background:rgba(251,251,247,.96);backdrop-filter:none;overflow:hidden}
+.hatdemo .fr .top{padding:12px 15px}
+.hatdemo .fr .nav{padding:0 15px 12px;overflow:visible;flex-wrap:wrap}
+.hatdemo .fr .logo{height:20px}
+.hatdemo .fr .nav a{font-size:12.5px;padding:7px 12px}
+.hatdemo .fr .qa .btn{display:none}
+.hatdemo .fr .who{display:flex;align-items:center;gap:8px}
+.hatlb{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--sand);margin-right:2px}
+.ahead .brand .hatwrap{display:flex;align-items:center;gap:9px;border-left:1px solid var(--line);padding-left:13px}
+/* las dos cifras que no son la misma cosa */
+.mnyrow{display:grid;grid-template-columns:1fr;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+@media(min-width:900px){.mnyrow{grid-template-columns:.85fr 1.15fr}}
+.mny{padding:22px 24px 20px}
+.mny .lb{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;display:block}
+.mny .n{font-family:var(--mono);font-weight:200;letter-spacing:-.03em;line-height:1;display:block;margin:13px 0 0}
+.mny .un{font-size:.42em;color:var(--ink-soft)}
+.mny .sub{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin-top:11px;max-width:40ch}
+.mny .sub b{color:var(--charcoal);font-weight:600}
+.mny.thru{background:var(--panel);border-bottom:1px dashed var(--line)}
+@media(min-width:900px){.mny.thru{border-bottom:0;border-right:1px dashed var(--line)}}
+.mny.thru .lb{color:var(--ink-soft)}
+.mny.thru .n{font-size:30px;color:var(--ink-soft)}
+.mny.thru .nope{display:inline-block;margin-top:12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--sand);border:1px dashed var(--sand);border-radius:7px;padding:4px 9px}
+.mny.mine{background:#fff}
+.mny.mine .lb{color:var(--orange)}
+.mny.mine .n{font-size:clamp(46px,7vw,68px);color:var(--orange)}
+.mny.mine .yes{display:inline-block;margin-top:12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--orange);border-radius:7px;padding:5px 10px}
+.mnybridge{display:flex;align-items:baseline;gap:.6em;flex-wrap:wrap;margin-top:14px;padding:11px 16px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.6);font-size:13px;line-height:1.6;color:var(--ink-soft)}
+.mnybridge s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.mnybridge b{font-family:var(--mono);color:var(--charcoal);font-weight:700}
+details.arch summary{display:flex;align-items:baseline;gap:12px;cursor:pointer;list-style:none}
+details.arch summary::-webkit-details-marker{display:none}
+details.arch summary::after{content:'+';margin-left:auto;font-family:var(--mono);font-size:16px;color:var(--sand)}
+details.arch[open] summary::after{content:'−'}
+details.arch summary .mut{font-size:12px}
+/* desglose del renglón de operador · una línea por experiencia */
+.dsgw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+.dsg{display:grid;grid-template-columns:minmax(240px,2.1fr) minmax(118px,1fr) minmax(118px,1fr) minmax(158px,1.25fr) minmax(126px,1fr);min-width:780px}
+.dh{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--sand);padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+.dh.r{text-align:right}
+.dc{padding:12px 14px;border-bottom:1px dashed var(--line);font-size:13px;line-height:1.45;color:var(--ink-soft)}
+.dc.r{text-align:right}
+.dc .nm{font-size:13.5px;font-weight:600;color:var(--charcoal);letter-spacing:-.01em;display:block;margin-bottom:5px}
+.dc .mn{font-family:var(--mono);font-size:14px;color:var(--charcoal);white-space:nowrap;display:block}
+.dc small{display:block;font-size:11px;color:var(--ink-soft);margin-top:3px}
+.dc .canc{color:var(--sand)}
+.dc.dim .nm,.dc.dim .mn{color:var(--ink-soft)}
+.dc.tot{background:var(--panel);border-bottom:0}
+.dc.tot .nm,.dc.tot .mn{color:var(--charcoal);font-weight:600}
+.pct{display:inline-flex;align-items:baseline;gap:7px;font-family:var(--mono);font-size:12.5px;color:var(--charcoal);border:1px solid var(--line);border-radius:7px;padding:3px 8px;margin:0 5px 5px 0;white-space:nowrap}
+.pct em{font-style:normal;font-family:'Geist',system-ui,sans-serif;font-size:11px;color:var(--ink-soft)}
+.pct.old{border-style:dashed;color:var(--ink-soft)}
+.dsgnote{display:flex;align-items:baseline;gap:.55em;font-size:12px;line-height:1.6;color:var(--ink-soft);margin-top:10px}
+.dsgnote s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.dsgnote b{color:var(--charcoal);font-weight:600}
+.dsgblk{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--olive);margin:18px 0 8px;display:flex;align-items:baseline;gap:8px}
+.dsgblk s{text-decoration:none;color:var(--orange);font-family:var(--mono)}
+/* vista prestada · se entra y se sale, no se vive ahí */
+.borrowbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:11px 16px;border-radius:12px;background:var(--charcoal);color:rgba(255,255,255,.75);font-size:12.5px;line-height:1.5;border:1px dashed rgba(255,93,54,.6)}
+.borrowbar s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto}
+.borrowbar b{color:#fff;font-weight:600}
+.borrowbar .out{margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:5px 13px;background:transparent;font-family:inherit;cursor:pointer}
+/* la resta de la cuenta · entró, salió, se declara, queda */
+.cuenta{display:grid;grid-template-columns:1fr;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+@media(min-width:820px){.cuenta{grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch}}
+.cuenta .cu{padding:20px 22px}
+.cuenta .cu .lb{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-soft)}
+.cuenta .cu .n{display:block;font-family:var(--mono);font-weight:200;font-size:34px;letter-spacing:-.03em;line-height:1;margin-top:11px}
+.cuenta .cu .sub{font-size:12px;line-height:1.55;color:var(--ink-soft);margin-top:9px;max-width:26ch}
+.cuenta .op{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:17px;color:var(--sand);padding:0 4px;border-top:1px dashed var(--line)}
+@media(min-width:820px){.cuenta .op{border-top:0}}
+.cuenta .cu:not(:first-child){border-top:1px dashed var(--line)}
+@media(min-width:820px){.cuenta .cu:not(:first-child){border-top:0}}
+.cuenta .cu.res{background:var(--panel)}
+.cuenta .cu.res .lb{color:var(--orange)}
+.cuenta .cu.res .n{color:var(--orange);font-size:40px}
+/* el cero que todavía no es un problema */
+.zl{display:flex;align-items:baseline;gap:.5em;font-size:12px;line-height:1.5;color:var(--ink-soft);margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
+.zl s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--olive);flex:0 0 auto}
+.zl b{color:var(--charcoal);font-weight:600}
+/* los seis candados */
+.verdict{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:12px;margin-bottom:14px}
+.verdict .n{font-family:var(--mono);font-size:22px;font-weight:300;line-height:1.1;flex:0 0 auto}
+.verdict .g b{display:block;font-size:15px;font-weight:500;letter-spacing:-.01em;line-height:1.3}
+.verdict .g span{display:block;font-size:12.5px;line-height:1.55;margin-top:5px}
+.verdict.no{background:rgba(255,93,54,.09);border:1px solid rgba(255,93,54,.45)}
+.verdict.no .n,.verdict.no .g b{color:#c23c1c}
+.verdict.no .g span{color:var(--charcoal)}
+.verdict.si{background:rgba(99,113,84,.11);border:1px solid rgba(99,113,84,.4)}
+.verdict.si .n,.verdict.si .g b{color:var(--olive-d)}
+.verdict.si .g span{color:var(--ink-soft)}
+.verdict.casa{background:var(--panel);border:1px solid var(--line)}
+.verdict.casa .n{color:var(--sand)}
+.verdict.casa .g span{color:var(--ink-soft)}
+.locks{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(172px,1fr))}
+.lk{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:12.5px;line-height:1.35}
+.lk .m{width:15px;height:15px;flex:0 0 auto;display:block}
+.lk .g{min-width:0}
+.lk .g small{display:block;font-size:11px;color:var(--ink-soft);margin-top:2px}
+.lk .dest{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-top:5px;color:var(--olive);text-decoration:none;border-bottom:1px dashed rgba(99,113,84,.45);padding-bottom:1px}
+.lk .dest:hover{color:var(--orange);border-color:rgba(255,93,54,.6)}
+.lk.no .dest{color:var(--orange);border-color:rgba(255,93,54,.45)}
+.lk.ok{border-color:rgba(99,113,84,.4);background:rgba(99,113,84,.08);color:var(--olive-d)}
+.lk.ok .m{color:var(--olive)}
+.lk.no{border-color:rgba(255,93,54,.42);background:rgba(255,93,54,.06)}
+.lk.no .m{color:var(--orange)}
+.lk.na{border-style:dashed;background:transparent;color:var(--sand)}
+.lk.na .m{color:var(--sand)}
+/* la fecha de arranque · nunca escondida */
+.arr{display:flex;align-items:baseline;gap:.6em;flex-wrap:wrap;margin-top:14px;padding:12px 14px;border:1.25px solid rgba(255,93,54,.5);border-radius:12px;font-size:12.5px;line-height:1.6;color:var(--charcoal)}
+.arr s{text-decoration:none;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--orange);flex:0 0 auto}
+.arr b{font-family:var(--mono);font-weight:700}
+.arr span{color:var(--ink-soft)}
+/* la venta que no generó comisión */
+.ghostsale{margin-top:14px;padding:13px 15px;border:1px dashed var(--sand);border-radius:12px;background:rgba(182,173,165,.1)}
+.ghostsale .t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:13.5px}
+.ghostsale .t b{font-weight:500}
+.ghostsale .t .mn{font-family:var(--mono);margin-left:auto;font-weight:700}
+.ghostsale p{font-size:12px;color:var(--ink-soft);line-height:1.55;margin-top:7px}
+/* tabla de operadores */
+td .opnm{display:flex;align-items:center;gap:10px}
+td .opnm .av{width:28px;height:28px;border-radius:999px;background:var(--salvia);color:var(--olive-d);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:700;flex:0 0 auto}
+td .opnm b{font-weight:500}
+td .opnm small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-top:1px}
+.lockmini{display:inline-flex;gap:3px;align-items:center}
+.lockmini i{width:9px;height:9px;border-radius:2px;background:var(--sand);display:block}
+.lockmini i.ok{background:var(--olive)}
+.lockmini i.no{background:rgba(255,93,54,.85)}
+.lockmini u{text-decoration:none;font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-left:5px}
+tr.casa td{background:rgba(214,216,199,.28)}
+tr.casa:hover td{background:rgba(214,216,199,.4)}
+tr.ejem td{background:rgba(255,255,255,.5)}
+.ejemtag{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--sand);border:1px dashed var(--sand);border-radius:6px;padding:3px 8px}
+/* dormido · aviso, no fracaso */
+.cmcol.sleep{background:rgba(201,183,156,.22);border-color:rgba(201,183,156,.85)}
+.cmcol.sleep .cmcol-hd{border-bottom-color:rgba(201,183,156,.9)}
+.cmcol.sleep .cmcol-hd h3{color:#7a5f2a}
+.cmcol.sleep .cmcol-hd .how{color:#8a6d1f}
+.cmc.sleep{border-color:rgba(201,183,156,.9);background:#fff}
+.cmc.sleep .cmnext{background:rgba(201,183,156,.3);color:#7a5f2a}
+.cmc.sleep .cmnext s,.cmc.sleep .cmnext b{color:#8a6d1f}
+.cmc.sleep .age{color:#8a6d1f;font-weight:700}
+</style>
+</head>
+<body>
+
+<header class="ahead">
+  <div class="top">
+    <div class="brand">
+      <span class="logo" data-mark aria-label="numan"></span>
+      <span class="hatwrap"><span class="hatlb">Panel</span><span class="hat" id="hat"><button class="cam on">Caminante</button><button>NUMAN</button></span></span>
+    </div>
+    <div class="qa"><button class="btn btn-glass btn-sm">Dar de alta una operadora</button><span class="pchip" style="padding:4px 12px 4px 4px"><span class="av">LM</span>Luis M.</span><button class="btn btn-ghost btn-sm">Salir</button></div>
+  </div>
+  <nav class="nav" id="navNum0" hidden>
+    <a href="#">Panorama</a>
+    <a href="Admin Experiencias v3.html">Experiencias</a>
+    <a href="#">Comunicación</a>
+    <a href="Admin Comunidad v3.html">Comunidad</a>
+    <a href="#">Recursos</a>
+    <a href="Admin Salidas v2.html">Salidas</a>
+  </nav>
+  <nav class="nav" id="navCam">
+    <a href="#panorama" class="on">Panorama</a>
+    <a href="#experiencias">Experiencias</a>
+    <a href="#comunidad">Comunidad</a>
+    <a href="#recursos">Recursos</a>
+  </nav>
+</header>
+
+<div class="page">
+
+<div class="vtag"><b>La pastilla sólo la ve la casa</b><span>La plataforma va a la izquierda y mi operadora a la derecha. Con el sombrero <b style="color:var(--charcoal);font-weight:600">Caminante</b> es la plataforma —las experiencias de todas, las operadoras y la cuenta de la casa— y con el sombrero <b style="color:var(--charcoal);font-weight:600">NUMAN</b> es la operadora, que vende lo suyo. Son dos y son los mismos siempre: son los dos negocios de la casa y no van a crecer. Ver el panel de un operador no es un tercer sombrero: es una vista prestada que se abre desde su ficha y de la que se sale. Esta pantalla es la del sombrero Caminante. Luis es la misma persona con dos sombreros y nunca ve las dos cosas a la vez. Un operador externo entra a su propio panel y esta pastilla no existe para él. Cambia el panel completo, no una vista: por eso vive junto al logo y arriba del nav, y por eso es oscura y sólida, distinta del segmentado claro que cambia de vista dentro de una pantalla.</span></div>
+
+<div class="lam" style="margin-top:0;padding-top:0;border-top:0">
+<p class="xh4" style="margin-top:0">Los dos sombreros, uno junto al otro</p>
+<div class="hatdemo">
+  <div>
+    <div class="hd"><s>//</s><b>Sombrero Caminante · la plataforma · el panel de esta pantalla</b></div>
+    <div class="ahead fr">
+      <div class="top">
+        <div class="brand">
+          <span class="logo" data-mark aria-label="numan"></span>
+          <span class="hatwrap"><span class="hatlb">Panel</span><span class="hat"><button class="cam on">Caminante</button><button>NUMAN</button></span></span>
+        </div>
+        <div class="qa"><span class="who"><span class="pchip" style="padding:4px 12px 4px 4px"><span class="av">LM</span>Luis M.</span></span></div>
+      </div>
+      <nav class="nav"><a href="#panorama" class="on">Panorama</a><a href="#experiencias">Experiencias</a><a href="#comunidad">Comunidad</a><a href="#recursos">Recursos</a></nav>
+    </div>
+  </div>
+  <div>
+    <div class="hd"><s>//</s><b>Sombrero NUMAN · mi operadora · la que vende lo mío</b></div>
+    <div class="ahead fr">
+      <div class="top">
+        <div class="brand">
+          <span class="logo" data-mark aria-label="numan"></span>
+          <span class="hatwrap"><span class="hatlb">Panel</span><span class="hat"><button class="cam">Caminante</button><button class="on">NUMAN</button></span></span>
+        </div>
+        <div class="qa"><span class="who"><span class="pchip" style="padding:4px 12px 4px 4px"><span class="av">LM</span>Luis M.</span></span></div>
+      </div>
+      <nav class="nav"><a href="#" class="on">Panorama</a><a href="#">Experiencias</a><a href="#">Comunicación</a><a href="#">Comunidad</a><a href="#">Recursos</a><a href="#">Salidas</a></nav>
+    </div>
+  </div>
+</div>
+<p class="gnhint" style="max-width:74ch;margin-top:12px">Cuatro entradas contra seis, y son paralelas a propósito: Panorama, Experiencias, Comunidad y Recursos están en los dos sombreros y en el mismo orden, para no reaprender dónde vive nada. Lo que cambia es la unidad. Con el sombrero NUMAN, Comunidad son los clientes y Experiencias son las suyas; con el sombrero Caminante, Comunidad son las operadoras y Experiencias son las de todas. Comunicación y Salidas existen sólo en NUMAN, porque son de quien opera. Esta pantalla es la del sombrero Caminante. Nunca se ven los dos navs a la vez.</p>
+</div>
+
+<!-- ═══════════ PANORAMA ═══════════ -->
+<div class="sec" id="panorama">
+  <div class="sec-head">
+    <div>
+      <span class="eyebrow"><span class="sl">//</span> Panorama</span>
+      <h2 class="display" style="margin-top:10px">Dos cifras que no son <em class="ac">la misma cosa.</em></h2>
+      <p class="desc">Lo que corre por la plataforma es de los operadores. Lo mío es la comisión. La diferencia entre esas dos cifras es el negocio entero.</p>
+    </div>
+  </div>
+
+  <div class="mnyrow">
+    <div class="mny thru">
+      <span class="lb">Corrió por la plataforma</span>
+      <span class="n">$736,700</span>
+      <p class="sub">En <b>52 reservas</b>. Es dinero de los operadores: entra, se les paga y sale.</p>
+      <span class="nope">No es ingreso de Caminante</span>
+    </div>
+    <div class="mny mine">
+      <span class="lb">Me tocó a mí · comisión devengada</span>
+      <span class="n">$0</span>
+      <p class="sub">Esto es lo único que Caminante gana. Hoy es cero porque las 52 reservas son <b>de la casa</b> —que se vende a sí misma y retiene el 100%— y <b>ningún operador externo</b> ha vendido todavía su primera reserva.</p>
+      <span class="yes">Ingreso de Caminante</span>
+    </div>
+  </div>
+  <p class="mnybridge"><s>//</s><span>De cada peso que corrió, me tocaron <b>$0</b>: los 49 pesos de reserva son de la casa, y la casa no se cobra comisión a sí misma. La comisión sólo aparece cuando vende un operador externo, y ninguno ha vendido todavía.</span></p>
+
+  <p class="xh4" style="margin-top:30px">El estado de hoy</p>
+  <div class="kpis">
+    <div class="card kpi">
+      <span class="k-lbl">Operadores externos</span>
+      <span class="k-val">2</span>
+      <p class="k-sub">Kéntro y Nomádika. Los dos aprobados, los dos con el panel prendido.</p>
+      <p class="zl"><s>//</s><span>Ninguno puede vender todavía: les faltan candados.</span></p>
+    </div>
+    <div class="card kpi">
+      <span class="k-lbl">Vendiendo este mes</span>
+      <span class="k-val">0</span>
+      <p class="k-sub">Ningún operador externo tiene ventas atribuidas en agosto.</p>
+      <p class="zl"><s>//</s><span>Para que este cero se mueva hace falta una experiencia publicada <b>a nombre del operador</b>.</span></p>
+    </div>
+    <div class="card kpi">
+      <span class="k-lbl">Comisión por cobrar</span>
+      <span class="k-val">$0</span>
+      <p class="k-sub">Nada devengado, nada por cobrar, ningún CFDI pendiente.</p>
+      <p class="zl"><s>//</s><span>La primera comisión se devenga con la primera reserva posterior al 28 de agosto.</span></p>
+    </div>
+    <div class="card kpi">
+      <span class="k-lbl">Solicitudes esperando respuesta</span>
+      <span class="k-val">0</span>
+      <p class="k-sub">La bandeja está limpia. Nadie lleva esperando.</p>
+      <p class="zl"><s>//</s><span>Las solicitudes nuevas caen en <b>01 Llegó</b>, en el pipeline.</span></p>
+    </div>
+  </div>
+  <p class="mnybridge" style="margin-top:16px"><s>//</s><span>Tres ceros no son tres problemas. Es el primer día de la plataforma: dos operadores firmados, el panel abierto y nada vendido todavía. Lo que falta está escrito abajo de cada cifra, y todo cabe en una tarde.</span></p>
+</div>
+
+<!-- ═══════════ EXPERIENCIAS · el catálogo de todas las operadoras ═══════════ -->
+<div class="sec" id="experiencias">
+  <div class="sec-head">
+    <div>
+      <span class="eyebrow"><span class="sl">//</span> Experiencias</span>
+      <h2 class="display" style="margin-top:10px">No por nombre: <em class="ac">por si se puede comprar hoy.</em></h2>
+      <p class="desc">El catálogo de todas las experiencias de todas las operadoras, la casa incluida. Hoy son siete y algún día serán cientos, así que el orden principal es el estado de vida: publicada con fecha, publicada sin fecha, agendada sin publicar, borrador. Aquí está el volumen —lo que se mueve—; la comisión es dinero y vive en Recursos.</p>
+    </div>
+  </div>
+
+  <div class="filters">
+    <input type="search" placeholder="Buscar por nombre">
+    <select><option>Todas las operadoras</option><option>NUMAN · mi operadora</option><option>Kéntro</option><option>Nomádika</option></select>
+    <select><option>Todo el país</option><option>Baja California Sur</option><option>Estado de México</option><option>Chihuahua</option><option>Michoacán</option></select>
+    <select><option>Todas las categorías</option><option>Hiking</option><option>Swimming</option><option>Workshop</option></select>
+  </div>
+
+  <div class="vtag"><b>Los dos grupos de arriba piden acción</b><span>02 y 03 van abiertos porque son experiencias rotas: una publicada que nadie puede reservar y una fecha en el calendario de algo que nadie puede ver. 01 y 04 van colapsados con su cuenta —lo que está bien no se scrollea—. Con trescientas experiencias esta pantalla se abre igual: dos grupos abiertos, dos cerrados, y los filtros de arriba para bajar de trescientas a diez.</span></div>
+
+<div class="cmgrp sleep">
+  <div class="hd xhead open" data-x="gx02"><span class="g"><span class="ph"><b>01</b> experiencia publicada que nadie puede reservar</span><small>OCEAN safari. está publicada, lleva 23 reservas y $384,000 de histórico, y no tiene una sola fecha futura. Es dinero apagado que parece encendido: lo mismo que la 06 Dormido del pipeline, en el inventario. Por eso se ve distinta sin robarle el naranja a lo urgente.</small></span><span class="rt"><span class="badge">02 · En el aire</span><span class="chev2">▾</span></span></div>
+  <div class="bd"><div class="xbody on" id="gx02"><div class="in"><div class="tbl-wrap card" style="box-shadow:none"><table><thead><tr><th>Experiencia</th><th>De quién</th><th>Estado</th><th>Próxima salida</th><th class="num">Cupo</th><th class="num right">Agosto</th><th class="num right">Histórico</th></tr></thead><tbody><tr class="xhead" data-x="ex4"><td><b style="font-weight:600">OCEAN safari.</b> <span class="chev2">▾</span><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>mi operadora</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span><small class="mut" style="display:block;font-size:11px">sin una sola fecha futura</small></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">$384,000</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">23 reservas</small></td></tr>
+<tr class="xdetail"><td colspan="7"><div class="xbody" id="ex4"><div class="xpad"><div class="verdict no"><span class="n">0</span><span class="g"><b>Publicada, y nadie la puede reservar</b><span>Se ve viva: está publicada, tiene 23 reservas pagadas y $384,000 de histórico. No tiene una sola salida futura, así que hoy no se puede comprar. Vendió $0 en agosto y nada en la pantalla lo decía.</span></span></div>
+ <p class="xh4">Sus salidas</p><div class="cmag"><span class="dy"><span class="hole">fechas</span></span><span class="g"><b>Salidas pasadas</b><small>23 reservas pagadas · $384,000</small></span><span class="rt"><span class="mut">cerradas</span></span></div><div class="empty" style="margin-top:12px">No hay ninguna salida futura.<br><span style="font-size:13px">Mientras no tenga fecha, esta experiencia está publicada y apagada.</span></div>
+ <div class="salfoot"><button class="btn btn-orange btn-sm">Agendarle una salida</button><button class="btn btn-ghost btn-sm">Despublicarla</button></div><p class="dsgnote"><s>//</s><span>Las fechas y el cupo de cada salida quedan como <b>huecos marcados</b>: no me los diste y no los invento. El número de salidas futuras y las reservas sí son reales.</span></p></div></div></td></tr></tbody></table></div></div></div></div>
+</div>
+<div class="cmgrp owe">
+  <div class="hd xhead open" data-x="gx03"><span class="g"><span class="ph"><b>01</b> experiencia agendada sin publicar</span><small>El error inverso: la fecha existe en el calendario y la experiencia está en borrador. Alguien va a llegar a una salida que no se puede reservar.</small></span><span class="rt"><span class="badge">03 · Agendada sin publicar</span><span class="chev2">▾</span></span></div>
+  <div class="bd"><div class="xbody on" id="gx03"><div class="in"><div class="tbl-wrap card" style="box-shadow:none"><table><thead><tr><th>Experiencia</th><th>De quién</th><th>Estado</th><th>Próxima salida</th><th class="num">Cupo</th><th class="num right">Agosto</th><th class="num right">Histórico</th></tr></thead><tbody><tr class="xhead" data-x="ex5"><td><b style="font-weight:600">(sin título)</b> <span class="chev2">▾</span><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>mi operadora</small></span></span></td><td><span class="chip c-draft"><span class="cd"></span>Borrador</span></td><td>1 salida futura<small class="mut" style="display:block;font-size:11px"><span class="hole">fecha</span></small></td><td class="num"><span class="hole">cupo</span></td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">sin ventas</small></td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">sin ventas</small></td></tr>
+<tr class="xdetail"><td colspan="7"><div class="xbody" id="ex5"><div class="xpad"><div class="verdict no"><span class="n">!</span><span class="g"><b>Hay una fecha en el calendario de algo que nadie puede ver</b><span>La salida existe y la experiencia está en borrador —ni siquiera tiene título—, así que nadie puede reservarla. Es el error inverso al de arriba: no falta fecha, falta publicar.</span></span></div>
+ <p class="xh4">Sus salidas</p><div class="cmag"><span class="dy"><span class="hole">fecha</span></span><span class="g"><b>Salida futura</b><small>Agendada, y sin público</small></span><span class="rt"><span class="chip c-full"><span class="cd"></span>Invisible</span></span></div>
+ <div class="salfoot"><button class="btn btn-orange btn-sm">Ponerle título y publicarla</button><button class="btn btn-ghost btn-sm">Cancelar la salida</button></div><p class="dsgnote"><s>//</s><span>Las fechas y el cupo de cada salida quedan como <b>huecos marcados</b>: no me los diste y no los invento. El número de salidas futuras y las reservas sí son reales.</span></p></div></div></td></tr></tbody></table></div></div></div></div>
+</div>
+<div class="cmgrp">
+  <div class="hd xhead" data-x="gx01"><span class="g"><span class="ph"><b>03</b> experiencias vendiendo</span><small>Publicadas y con salida futura. Se pueden comprar hoy. No piden nada.</small></span><span class="rt"><span class="badge">01 · Vendiendo</span><span class="chev2">▾</span></span></div>
+  <div class="bd"><div class="xbody" id="gx01"><div class="in"><div class="tbl-wrap card" style="box-shadow:none"><table><thead><tr><th>Experiencia</th><th>De quién</th><th>Estado</th><th>Próxima salida</th><th class="num">Cupo</th><th class="num right">Agosto</th><th class="num right">Histórico</th></tr></thead><tbody><tr class="xhead" data-x="ex1"><td><b style="font-weight:600">El bosque de Xalatlaco.</b> <span class="chev2">▾</span><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>mi operadora</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td>1 salida futura<small class="mut" style="display:block;font-size:11px"><span class="hole">fecha</span></small></td><td class="num"><span class="hole">cupo</span></td><td class="num right"><span style="font-family:var(--mono)">$2,550</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">1 reserva</small></td><td class="num right"><span style="font-family:var(--mono)">$61,200</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">12 reservas<br>2 canceladas fuera</small></td></tr>
+<tr class="xdetail"><td colspan="7"><div class="xbody" id="ex1"><div class="xpad"><p class="xh4" style="margin-top:0">Sus salidas</p><div class="cmag"><span class="dy"><span class="hole">fecha</span></span><span class="g"><b>Salida futura</b><small>Se puede comprar hoy</small></span><span class="rt"><span class="chip c-pub"><span class="cd"></span>Abierta</span><span class="mut"><span class="hole">ocupación</span></span></span></div><div class="cmag"><span class="dy"><span class="hole">fechas</span></span><span class="g"><b>Salidas pasadas</b><small>12 reservas pagadas · $61,200</small></span><span class="rt"><span class="mut">cerradas</span></span></div><p class="dsgnote"><s>//</s><span>Las fechas y el cupo de cada salida quedan como <b>huecos marcados</b>: no me los diste y no los invento. El número de salidas futuras y las reservas sí son reales.</span></p></div></div></td></tr><tr class="xhead" data-x="ex2"><td><b style="font-weight:600">Hacienda San Andrés</b> <span class="chev2">▾</span><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>mi operadora</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td>1 salida futura<small class="mut" style="display:block;font-size:11px"><span class="hole">fecha</span></small></td><td class="num"><span class="hole">cupo</span></td><td class="num right"><span style="font-family:var(--mono)">$57,500</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">3 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">$126,500</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">7 reservas</small></td></tr>
+<tr class="xdetail"><td colspan="7"><div class="xbody" id="ex2"><div class="xpad"><p class="xh4" style="margin-top:0">Sus salidas</p><div class="cmag"><span class="dy"><span class="hole">fecha</span></span><span class="g"><b>Salida futura</b><small>Se puede comprar hoy</small></span><span class="rt"><span class="chip c-pub"><span class="cd"></span>Abierta</span><span class="mut"><span class="hole">ocupación</span></span></span></div><div class="cmag"><span class="dy"><span class="hole">fechas</span></span><span class="g"><b>Salidas pasadas</b><small>7 reservas pagadas · $126,500</small></span><span class="rt"><span class="mut">cerradas</span></span></div><p class="dsgnote"><s>//</s><span>Las fechas y el cupo de cada salida quedan como <b>huecos marcados</b>: no me los diste y no los invento. El número de salidas futuras y las reservas sí son reales.</span></p></div></div></td></tr><tr class="xhead" data-x="ex3"><td><b style="font-weight:600">Trek Majimachi</b> <span class="chev2">▾</span><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>mi operadora</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td>2 salidas futuras<small class="mut" style="display:block;font-size:11px"><span class="hole">fecha</span></small></td><td class="num"><span class="hole">cupo</span></td><td class="num right"><span style="font-family:var(--mono)">$132,000</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">8 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">$165,000</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">10 reservas</small></td></tr>
+<tr class="xdetail"><td colspan="7"><div class="xbody" id="ex3"><div class="xpad"><p class="xh4" style="margin-top:0">Sus salidas</p><div class="cmag"><span class="dy"><span class="hole">fecha</span></span><span class="g"><b>Primera salida futura</b><small>Se puede comprar hoy</small></span><span class="rt"><span class="chip c-pub"><span class="cd"></span>Abierta</span><span class="mut"><span class="hole">ocupación</span></span></span></div><div class="cmag"><span class="dy"><span class="hole">fecha</span></span><span class="g"><b>Segunda salida futura</b><small>Se puede comprar hoy</small></span><span class="rt"><span class="chip c-pub"><span class="cd"></span>Abierta</span><span class="mut"><span class="hole">ocupación</span></span></span></div><div class="cmag"><span class="dy"><span class="hole">fechas</span></span><span class="g"><b>Salidas pasadas</b><small>10 reservas pagadas · $165,000</small></span><span class="rt"><span class="mut">cerradas</span></span></div><p class="dsgnote"><s>//</s><span>Las fechas y el cupo de cada salida quedan como <b>huecos marcados</b>: no me los diste y no los invento. El número de salidas futuras y las reservas sí son reales.</span></p></div></div></td></tr></tbody></table></div></div></div></div>
+</div>
+<div class="cmgrp">
+  <div class="hd xhead" data-x="gx04"><span class="g"><span class="ph"><b>02</b> experiencias en borrador</span><small>Sin publicar y sin fechas. Trabajo pendiente, no un problema: una es de Nomádika y una de la casa.</small></span><span class="rt"><span class="badge">04 · Borrador</span><span class="chev2">▾</span></span></div>
+  <div class="bd"><div class="xbody" id="gx04"><div class="in"><div class="tbl-wrap card" style="box-shadow:none"><table><thead><tr><th>Experiencia</th><th>De quién</th><th>Estado</th><th>Próxima salida</th><th class="num">Cupo</th><th class="num right">Agosto</th><th class="num right">Histórico</th></tr></thead><tbody><tr class="xhead" data-x="ex6"><td><b style="font-weight:600">Raíz de agua.</b> <span class="chev2">▾</span><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">NO</span><span><b>Nomádika</b><small>externa</small></span></span></td><td><span class="chip c-draft"><span class="cd"></span>Borrador</span></td><td><span class="mut">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">sin ventas</small></td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">sin ventas</small></td></tr>
+<tr class="xdetail"><td colspan="7"><div class="xbody" id="ex6"><div class="xpad"><div class="empty">Sin salidas y sin publicar.<br><span style="font-size:13px">Es la única experiencia de Nomádika. Publicarla es el candado que le falta a ella, y me toca a mí.</span></div><div class="salfoot"><button class="btn btn-glass btn-sm">Revisarla y publicarla</button></div></div></div></td></tr><tr class="xhead" data-x="ex7"><td><b style="font-weight:600">Hike Mariposas Monarca</b> <span class="chev2">▾</span><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>mi operadora</small></span></span></td><td><span class="chip c-draft"><span class="cd"></span>Borrador</span></td><td><span class="mut">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">sin ventas</small></td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">1 cancelada, fuera de la cuenta</small></td></tr>
+<tr class="xdetail"><td colspan="7"><div class="xbody" id="ex7"><div class="xpad"><div class="empty">Sin salidas y sin publicar.<br><span style="font-size:13px">Tiene una reserva cancelada, que no cuenta como vendido. Trabajo pendiente, no un problema.</span></div></div></div></td></tr></tbody></table></div></div></div></div>
+</div>
+
+  <p class="mnybridge" style="margin-top:16px"><s>//</s><span>Los totales de la casa cuadran con Panorama: <b>$192,050</b> en agosto en 12 reservas y <b>$736,700</b> de histórico en 52. Las <b>3 canceladas</b> no cuentan como vendido y se ven atenuadas en la línea de su experiencia.</span></p>
+
+  <p class="xh4" style="margin-top:34px">La misma pantalla con trescientas <span class="ejemtag" style="margin-left:8px">Ejemplo · nombres y cifras inventadas</span></p>
+  <p class="gnhint" style="max-width:74ch;margin:0 0 14px">Lo único que cambia son las cuentas de los grupos y el uso de los filtros. Los dos grupos que piden acción siguen arriba y abiertos: nueve experiencias en el aire se revisan en una sentada, trescientas no.</p>
+  <div class="filters">
+    <input type="search" placeholder="Buscar por nombre" value="">
+    <select><option>Todas las operadoras · 34</option></select>
+    <select><option>Todo el país · 19 estados</option></select>
+    <select><option>Todas las categorías · 6</option></select>
+  </div>
+<div class="cmgrp sleep">
+  <div class="hd xhead open" data-x="gxm2"><span class="g"><span class="ph"><b>09</b> experiencias publicadas sin una sola fecha futura</span><small>Nueve experiencias vivas que nadie puede reservar. Es la lista que se revisa primero cada semana.</small></span><span class="rt"><span class="badge">02 · En el aire</span><span class="chev2">▾</span></span></div>
+  <div class="bd"><div class="xbody on" id="gxm2"><div class="in"><div class="tbl-wrap card" style="box-shadow:none"><table><thead><tr><th>Experiencia</th><th>De quién</th><th>Estado</th><th>Próxima salida</th><th class="num">Cupo</th><th class="num right">Agosto</th><th class="num right">Histórico</th></tr></thead><tbody><tr class="ejem"><td><b style="font-weight:600">Cañón del Zopilote</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">KÉ</span><span><b>Kéntro</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">18 reservas · $412,000</small></td></tr>
+<tr class="ejem"><td><b style="font-weight:600">Amanecer en la barra</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">MG</span><span><b>Manglar</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">9 reservas · $198,000</small></td></tr>
+<tr class="ejem"><td><b style="font-weight:600">Vereda de niebla</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">VS</span><span><b>Vereda Sur</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">24 reservas · $528,000</small></td></tr>
+<tr class="ejem"><td><b style="font-weight:600">Salinas al alba</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">AL</span><span><b>Altamar</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">6 reservas · $132,000</small></td></tr>
+<tr class="ejem"><td><b style="font-weight:600">Sierra en tres días</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">SA</span><span><b>Sierra Alta</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">31 reservas · $682,000</small></td></tr>
+<tr class="ejem"><td><b style="font-weight:600">Bosque de agua</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">LI</span><span><b>Lindero</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">12 reservas · $264,000</small></td></tr>
+<tr class="ejem"><td><b style="font-weight:600">Nado con tiburón ballena</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">CB</span><span><b>Costa Brava</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">40 reservas · $880,000</small></td></tr>
+<tr class="ejem"><td><b style="font-weight:600">Cocina de humo</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">TE</span><span><b>Tepozán</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">15 reservas · $330,000</small></td></tr>
+<tr class="ejem"><td><b style="font-weight:600">Cascadas de Xico</b><small class="mut" style="display:block;font-size:11.5px;margin-top:3px"><span class="hole">estado</span> · <span class="hole">categoría</span></small></td><td><span class="opnm"><span class="av">RA</span><span><b>Raíces</b><small>inventada</small></span></span></td><td><span class="chip c-pub"><span class="cd"></span>Publicada</span></td><td><span style="color:var(--orange);font-weight:600">Ninguna</span></td><td class="num">—</td><td class="num right"><span style="font-family:var(--mono)">$0</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">0 reservas</small></td><td class="num right"><span style="font-family:var(--mono)">—</span><small class="mut" style="display:block;font-family:'Geist',system-ui,sans-serif;font-size:11px">7 reservas · $154,000</small></td></tr></tbody></table></div></div></div></div>
+</div>
+<div class="cmgrp owe">
+  <div class="hd xhead" data-x="gxm3"><span class="g"><span class="ph"><b>04</b> experiencias agendadas sin publicar</span><small></small></span><span class="rt"><div class="empty">Cuatro renglones, con la misma forma que arriba.</div><span class="chev2">▾</span></span></div>
+  <div class="bd"><div class="xbody" id="gxm3"><div class="in">false</div></div></div>
+</div>
+<div class="cmgrp">
+  <div class="hd xhead" data-x="gxm1"><span class="g"><span class="ph"><b>212</b> experiencias vendiendo</span><small></small></span><span class="rt"><div class="empty">Doscientas doce, colapsadas. Se abren cuando alguien las busca.</div><span class="chev2">▾</span></span></div>
+  <div class="bd"><div class="xbody" id="gxm1"><div class="in">false</div></div></div>
+</div>
+<div class="cmgrp">
+  <div class="hd xhead" data-x="gxm4"><span class="g"><span class="ph"><b>61</b> experiencias en borrador</span><small></small></span><span class="rt"><div class="empty">Sesenta y una, colapsadas.</div><span class="chev2">▾</span></span></div>
+  <div class="bd"><div class="xbody" id="gxm4"><div class="in">false</div></div></div>
+</div>
+</div>
+
+<!-- ═══════════ COMUNIDAD · pipeline · operadoras · solicitudes ═══════════ -->
+<div class="sec" id="comunidad">
+  <div class="sec-head">
+    <div>
+      <span class="eyebrow"><span class="sl">//</span> Comunidad</span>
+      <h2 class="display" style="margin-top:10px">Lo legal y <em class="ac">el contacto.</em></h2>
+      <p class="desc">La misma forma que Comunidad en Caminante, con otra gente: allá son los clientes, aquí las operadoras. Tres vistas y un segmentado. Ningún peso vive aquí.</p>
+      <div class="cmseg" id="cmnSeg"><button data-pane="pane-pipe">Pipeline <span class="ct">2</span></button><button class="on" data-pane="pane-ops">Operadoras <span class="ct">3</span></button><button data-pane="pane-sol">Solicitudes <span class="ct">0</span></button></div>
+    </div>
+  </div>
+
+<div class="cmnpane" id="pane-ops">
+  <div class="vtag"><b>El estado del primer día</b><span>Ningún convenio firmado todavía —el primero está por firmarse—, ningún operador externo con una experiencia a su nombre y ninguna venta suya. Los dos entraron, tienen su comisión y todavía no venden. No hay casos con historia que arreglar: hay huecos que llenar por primera vez.</span></div>
+  <div class="tbl-wrap card">
+    <table>
+      <thead><tr><th>Operadora</th><th>¿Puede vender hoy?</th><th>Candados</th><th>Convenio</th><th>CSD</th><th>Contacto</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="opnm"><span class="av">KÉ</span><span><b>Kéntro</b><small>KHO230512AB1</small></span></span></td>
+          <td><span class="chip c-full"><span class="cd"></span>No puede vender</span></td>
+          <td><span class="lockmini"><i class="ok"></i><i class="ok"></i><i class="no"></i><i class="no"></i><i class="no"></i><i class="no"></i><u>2 de 6</u></span></td>
+          <td><span class="chip c-full"><span class="cd"></span>Sin firmar</span></td>
+          <td><span class="chip c-full"><span class="cd"></span>Sin cargar</span></td>
+          <td><span class="hole">correo</span> · <span class="hole">WhatsApp</span></td>
+        </tr>
+        <tr>
+          <td><span class="opnm"><span class="av">NO</span><span><b>Nomádika</b><small>ROBL990531HI3</small></span></span></td>
+          <td><span class="chip c-full"><span class="cd"></span>No puede vender</span></td>
+          <td><span class="lockmini"><i class="ok"></i><i class="ok"></i><i class="no"></i><i class="no"></i><i class="no"></i><i class="no"></i><u>2 de 6</u></span></td>
+          <td><span class="chip c-full"><span class="cd"></span>Sin firmar</span></td>
+          <td><span class="chip c-full"><span class="cd"></span>Sin cargar</span></td>
+          <td><span class="hole">correo</span> · <span class="hole">WhatsApp</span></td>
+        </tr>
+        <tr class="casa">
+          <td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>NHU250826CS8</small></span></span></td>
+          <td><span class="chip c-paid"><span class="cd"></span>Es mi operadora</span></td>
+          <td><span class="mut" style="font-size:12.5px">Sin candados que cumplir</span></td>
+          <td><span class="mut">No aplica</span></td>
+          <td><span class="chip c-conf"><span class="cd"></span>Vigente</span></td>
+          <td>Luis M.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="gnhint" style="max-width:74ch;margin-top:11px">Ni una columna de dinero. Lo que se vendió y lo que se cobró de comisión salió de aquí y vive en Recursos: aquí la unidad es la operadora como persona —quién es, cómo se le escribe, qué papeles tiene—, no el periodo. Los datos de contacto son huecos marcados: no los tengo.</p>
+
+  <!-- la ficha, en el mismo panel anclado -->
+  <div class="lam">
+  <div class="vtag"><b>La ficha entra por la derecha</b><span>El mismo panel del CRM de Caminante, sin una clase nueva: anclado al borde, alto completo, fondo sólido y sombra hacia la izquierda. La lista se atenúa y el renglón abierto se queda a plena luz.</span></div>
+  <div class="cmstage">
+    <div class="gnstack">
+      <div class="tbl-wrap card">
+        <table>
+          <thead><tr><th>Operadora</th><th>¿Puede vender hoy?</th><th>Candados</th><th>Convenio</th></tr></thead>
+          <tbody>
+            <tr><td><span class="opnm"><span class="av">KÉ</span><span><b>Kéntro</b><small>KHO230512AB1</small></span></span></td><td><span class="chip c-full"><span class="cd"></span>No puede vender</span></td><td><span class="lockmini"><i class="ok"></i><i class="ok"></i><i class="no"></i><i class="no"></i><i class="no"></i><i class="no"></i><u>2 de 6</u></span></td><td><span class="chip c-full"><span class="cd"></span>Sin firmar</span></td></tr>
+            <tr><td><span class="opnm"><span class="av">NO</span><span><b>Nomádika</b><small>ROBL990531HI3</small></span></span></td><td><span class="chip c-full"><span class="cd"></span>No puede vender</span></td><td><span class="lockmini"><i class="ok"></i><i class="ok"></i><i class="no"></i><i class="no"></i><i class="no"></i><i class="no"></i><u>2 de 6</u></span></td><td><span class="chip c-full"><span class="cd"></span>Sin firmar</span></td></tr>
+            <tr class="casa"><td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>NHU250826CS8</small></span></span></td><td><span class="chip c-paid"><span class="cd"></span>Es mi operadora</span></td><td><span class="mut" style="font-size:12.5px">Sin candados</span></td><td><span class="mut">No aplica</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="cmveil"><span>Picar la lista cierra</span></div>
+    <aside class="cmpanel layer">
+      <div class="cmpanel-hd">
+        <span class="av">KÉ</span>
+        <span class="g"><b>Kéntro</b><small>RFC KHO230512AB1 · comisión <span class="sal">20%</span></small></span>
+        <button class="x" aria-label="Cerrar">×</button>
+      </div>
+      <div class="cmpanel-st"><span class="n">//</span>Operadora externa<span class="mv">Panel activo</span></div>
+      <div class="cmpanel-bd">
+        <div class="verdict no">
+          <span class="n">2/6</span>
+          <span class="g"><b>No puede vender hoy</b><span>Se ve activo —entra a su panel, tiene comisión definida— y no tiene ninguna experiencia registrada. Aunque firmara todo mañana, no tendría qué vender. De los cuatro candados que faltan, <b>dos me tocan a mí</b> y dos se le piden a él.</span></span>
+        </div>
+        <div class="locks"><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Comisión definida<small>20% · desde el 28 ago 2026</small><a class="dest" href="#recursos">Se define en Recursos →</a></span><span class="own yo">Yo</span></span><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Panel activo<small>Entra y ve su tablero</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own yo">Yo</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Convenio firmado<small>Sin firmar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own el">Él</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">CSD fiscal<small>Sin cargar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own el">Él</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Stripe Connect<small>Sin conectar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own yo">Yo</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Una experiencia publicada<small>Ninguna registrada</small><a class="dest" href="#experiencias">Se publica en Experiencias →</a></span><span class="own yo">Yo</span></span></div>
+      <div class="ownkey"><span class="yo"><b>Yo</b>Lo hace la casa: definir comisión, prender el panel, publicarle su experiencia y habilitar Connect.</span><span class="el"><b>Él</b>Se le pide al operador: convenio y CSD.</span></div>
+        <p class="arr"><s>Arranque de comisión</s><span>Su comisión arranca el</span><b>28 ago 2026.</b><span>Lo vendido antes de esa fecha no genera comisión y no se suma nunca.</span></p>
+        <p class="xh4">Qué falta, en orden</p>
+        <div class="cmfan" style="margin-top:0">
+          <div class="r"><span class="no">01</span><span>Registrar su experiencia y publicarla<small>Sin una experiencia a su nombre, los otros cinco candados no sirven de nada: no habría qué vender.</small></span></div>
+          <div class="r"><span class="no">02</span><span>Firmar el convenio<small>Se manda a firma desde aquí. Es el que fija el 20% por escrito.</small></span></div>
+          <div class="r"><span class="no">03</span><span>Cargar el CSD fiscal<small>Sin CSD no puede facturar sus propias ventas.</small></span></div>
+          <div class="r"><span class="no">04</span><span>Conectar Stripe<small>Es donde le cae el dinero. Sin esto, el cobro no tiene a dónde ir.</small></span></div>
+        </div>
+        <div class="salfoot"><button class="btn btn-orange btn-sm">Mandar el convenio a firma</button><button class="btn btn-glass btn-sm">Escribirle</button><button class="btn btn-ghost btn-sm">Ver su panel como lo ve él</button></div>
+        <p class="borrowbar" style="margin-top:12px"><s>//</s><span>Así se ve mientras dura: <b>estás viendo el panel de Kéntro</b>. Es una vista prestada, no un sombrero. Se entra desde su ficha y se sale de aquí.</span><button class="out">Salir de la vista</button></p>
+        <p class="gnhint">La vista prestada vive en la ficha del operador y no en la pastilla: con veinte operadores la pastilla sería inservible, y de esto se sale. Sería el primer convenio firmado de la plataforma. Ninguno de los dos operadores lo tiene todavía, y eso es lo normal del primer día.</p>
+      </div>
+    </aside>
+  </div>
+  </div>
+
+  <p class="xh4" style="margin-top:26px">Los dos no-puede-vender, uno al lado del otro</p>
+  <div class="grid2">
+    <div class="card pad">
+      <span class="subtitle">Kéntro · no tiene qué vender</span>
+      <div class="verdict no">
+        <span class="n">2/6</span>
+        <span class="g"><b>Se ve activo y no tiene experiencia</b><span>Ninguna experiencia registrada a su nombre: todavía no hay nada que publicar. Es el hueco de más arriba, y sin él los otros candados no cambian nada.</span></span>
+      </div>
+      <div class="locks"><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Comisión definida<small>20% · desde el 28 ago 2026</small><a class="dest" href="#recursos">Se define en Recursos →</a></span><span class="own yo">Yo</span></span><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Panel activo<small>Entra y ve su tablero</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own yo">Yo</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Convenio firmado<small>Sin firmar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own el">Él</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">CSD fiscal<small>Sin cargar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own el">Él</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Stripe Connect<small>Sin conectar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own yo">Yo</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Una experiencia publicada<small>Ninguna registrada</small><a class="dest" href="#experiencias">Se publica en Experiencias →</a></span><span class="own yo">Yo</span></span></div>
+      <div class="ownkey"><span class="yo"><b>Yo</b>Lo hace la casa: definir comisión, prender el panel, publicarle su experiencia y habilitar Connect.</span><span class="el"><b>Él</b>Se le pide al operador: convenio y CSD.</span></div>
+      <p class="arr"><s>Arranque</s><b>28 ago 2026</b><span>· lo anterior no cuenta</span></p>
+      <div class="salfoot"><button class="btn btn-orange btn-sm">Registrar su primera experiencia</button></div>
+    </div>
+    <div class="card pad">
+      <span class="subtitle">Nomádika · tiene qué vender, sin publicar</span>
+      <div class="verdict no">
+        <span class="n">2/6</span>
+        <span class="g"><b>Su única experiencia está en borrador</b><span>«Raíz de agua.» existe y es suya, pero nadie puede verla ni reservarla. Aquí no falta registrar nada: falta publicarla, y eso me toca a mí.</span></span>
+      </div>
+      <div class="locks"><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Comisión definida<small>20% · desde el 28 ago 2026</small><a class="dest" href="#recursos">Se define en Recursos →</a></span><span class="own yo">Yo</span></span><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Panel activo<small>Entra y ve su tablero</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own yo">Yo</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Convenio firmado<small>Sin firmar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own el">Él</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">CSD fiscal<small>Sin cargar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own el">Él</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Stripe Connect<small>Sin conectar</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own yo">Yo</span></span><span class="lk no"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="g">Una experiencia publicada<small>Tiene una, en borrador</small><a class="dest" href="#experiencias">Se publica en Experiencias →</a></span><span class="own yo">Yo</span></span></div>
+      <div class="ownkey"><span class="yo"><b>Yo</b>Lo hace la casa: definir comisión, prender el panel, publicarle su experiencia y habilitar Connect.</span><span class="el"><b>Él</b>Se le pide al operador: convenio y CSD.</span></div>
+      <p class="arr"><s>Arranque</s><b>28 ago 2026</b><span>· lo anterior no cuenta</span></p>
+      <div class="salfoot"><button class="btn btn-orange btn-sm">Revisar y publicar «Raíz de agua.»</button></div>
+    </div>
+  </div>
+
+  <p class="xh4" style="margin-top:26px">Mi operadora, y el estado sano <span class="ejemtag" style="margin-left:8px">Ejemplo · no existe en la base</span></p>
+  <div class="grid2">
+    <div class="card pad">
+      <span class="subtitle">NUMAN · mi operadora</span>
+      <div class="verdict casa">
+        <span class="n">//</span>
+        <span class="g"><b>Es mía, no es un operador externo</b><span>NUMAN es una operadora más del catálogo, y la única que no le paga comisión a Caminante: se vende a sí misma y retiene el 100%. Por eso no tiene candados que cumplir ni fecha de arranque que respetar.</span></span>
+      </div>
+      <div class="locks"><span class="lk na"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg><span class="g">Comisión definida<small>No cobra comisión</small><a class="dest" href="#recursos">Se define en Recursos →</a></span></span><span class="lk na"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg><span class="g">Convenio firmado<small>Es la casa</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span></span><span class="lk na"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg><span class="g">Stripe Connect<small>Cobra en su propia cuenta</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span></span></div>
+      <p class="gnhint" style="max-width:none">Sus seis experiencias —cuatro publicadas y dos en borrador— viven en Experiencias, y lo que hacen correr, en Recursos. Aquí sólo importa que la casa no tiene candados que cumplir.</p>
+    </div>
+    <div class="card pad">
+      <span class="subtitle">Sierra Alta · los seis candados verdes</span>
+      <div class="verdict si">
+        <span class="n">6/6</span>
+        <span class="g"><b>Puede vender hoy</b><span>Convenio firmado, CSD vigente, Connect conectado y dos experiencias publicadas. Los seis candados verdes, que es todo lo que esta pantalla contesta. Lo que vendió y lo que me tocó de comisión se leen en Recursos.</span></span>
+      </div>
+      <div class="locks"><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Comisión definida<small>20% · desde el 1 mar 2026</small><a class="dest" href="#recursos">Se define en Recursos →</a></span><span class="own yo">Yo</span></span><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Panel activo<small>Entra y ve su tablero</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own yo">Yo</span></span><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Convenio firmado<small>12 mar 2026</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own el">Él</span></span><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">CSD fiscal<small>Vigente</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own el">Él</span></span><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Stripe Connect<small>Cuenta verificada</small><a class="dest" href="#comunidad">Se resuelve aquí →</a></span><span class="own yo">Yo</span></span><span class="lk ok"><svg class="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6"/></svg><span class="g">Una experiencia publicada<small>Dos, publicadas</small><a class="dest" href="#experiencias">Se publica en Experiencias →</a></span><span class="own yo">Yo</span></span></div>
+      <div class="ownkey"><span class="yo"><b>Yo</b>Lo hace la casa: definir comisión, prender el panel, publicarle su experiencia y habilitar Connect.</span><span class="el"><b>Él</b>Se le pide al operador: convenio y CSD.</span></div>
+      <p class="arr"><s>Arranque</s><b>1 mar 2026</b><span>· todo lo de agosto cuenta</span></p>
+      <div class="salfoot"><button class="btn btn-ghost btn-sm">Ver sus experiencias</button><button class="btn btn-ghost btn-sm">Ver su comisión en Recursos</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="cmnpane" id="pane-sol" hidden>
+  <div class="sec-head" style="margin-bottom:14px"><div>
+    <span class="eyebrow"><span class="sl">//</span> Comunidad · Solicitudes</span>
+    <h2 class="display" style="margin-top:10px;font-size:26px">La bandeja de <em class="ac">quien pide entrar.</em></h2>
+    <p class="desc">Lo que llega por el formulario público. De aquí sale la primera tarjeta del pipeline, en 01 Llegó.</p>
+  </div></div>
+  <div class="empty">Ninguna solicitud esperando respuesta.<br><span style="font-size:13px">La bandeja está limpia: nadie lleva esperando. La última fue Nomádika, el 25 de agosto, y se aprobó el mismo día.</span></div>
+  <p class="xh4" style="margin-top:26px">Con una solicitud dentro <span class="ejemtag" style="margin-left:8px">Ejemplo · no existe en la base</span></p>
+  <div class="tbl-wrap card"><table>
+    <thead><tr><th>Quién</th><th>Qué ofrece</th><th>Llegó</th><th>Estado</th><th>Papeles</th></tr></thead>
+    <tbody><tr class="ejem">
+      <td><span class="opnm"><span class="av">VS</span><span><b>Vereda Sur</b><small>inventada</small></span></span></td>
+      <td>Hiking · Veracruz</td>
+      <td class="num">hace 2 días</td>
+      <td><span class="chip c-sol"><span class="cd"></span>Sin responder</span></td>
+      <td><span class="mut">nada cargado</span></td>
+    </tr></tbody>
+  </table></div>
+  <p class="gnhint" style="max-width:74ch;margin-top:11px">Aprobar una solicitud crea la operadora y su tarjeta en 01 Llegó. Rechazarla la cierra sin crear nada.</p>
+</div>
+
+
+<div class="cmnpane" id="pane-pipe" hidden>
+  <div class="sec-head">
+    <div>
+      <span class="eyebrow"><span class="sl">//</span> Pipeline</span>
+      <h2 class="display" style="margin-top:10px">El mismo tablero, <em class="ac">otra unidad.</em></h2>
+      <p class="desc">Las columnas, las tarjetas y el arrastre son los del CRM de Caminante. Ahí la unidad era persona por salida; aquí es operadora por alta.</p>
+    </div>
+  </div>
+
+  <div class="vtag"><b>Hoy · dos tarjetas y cinco columnas vacías</b><span>Nomádika llegó por solicitud el 25 de agosto y se aprobó ese día: van tres días y nunca se le agendó videollamada, así que nunca pasó por 02. Kéntro no tiene solicitud —se dio de alta a mano y no pasó por el funnel—, por eso su tarjeta cuenta «entró por fuera» en lugar de días. La antigüedad de la tarjeta se cuenta desde que llegó la solicitud, no desde que arrancó su comisión. La 06 no se pone a mano: se prende sola a los sesenta días sin vender.</span></div>
+<div class="cmwrap">
+<div class="cmboard"><div class="cmtrack">
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">01</span><h3>Llegó</h3><span class="ct">0</span><span class="how auto">Automática · cae la solicitud</span></div>
+        <div class="cmcol-bd">
+          <div class="cmghost">nadie</div>
+        </div>
+      </div>
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">02</span><h3>En llamada</h3><span class="ct">0</span><span class="how">A mano · se agenda</span></div>
+        <div class="cmcol-bd">
+          <div class="cmghost">nadie</div>
+        </div>
+      </div>
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">03</span><h3>Expediente</h3><span class="ct">2</span><span class="how">A mano · se juntan papeles</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">KÉ</span><span class="nm"><b>Kéntro</b><small>Alta a mano · sin solicitud</small></span><span class="age">entró por fuera</span></div>
+          <div class="met"><span class="cmtag">RFC <span class="k">ok</span></span><span class="cmtag">Convenio <span class="k">no</span></span><span class="cmtag">CSD <span class="k">no</span></span><span class="cmtag">Connect <span class="k">no</span></span></div>
+          <p class="cmnext"><s>//</s><span>Mandarle el convenio a firma y registrarle su primera experiencia.</span></p>
+        </div>
+        <div class="cmc">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">NO</span><span class="nm"><b>Nomádika</b><small>Solicitud del 25 ago · aprobada</small></span><span class="age">3 días</span></div>
+          <div class="met"><span class="cmtag">RFC <span class="k">ok</span></span><span class="cmtag">Convenio <span class="k">no</span></span><span class="cmtag">CSD <span class="k">no</span></span><span class="cmtag">Connect <span class="k">no</span></span></div>
+          <p class="cmnext"><s>//</s><span>Revisar y publicar <b>«Raíz de agua.»</b></span></p>
+        </div>
+        </div>
+      </div>
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">04</span><h3>Listo para vender</h3><span class="ct">0</span><span class="how auto">Automática · seis candados verdes</span></div>
+        <div class="cmcol-bd">
+          <div class="cmghost">nadie</div>
+        </div>
+        <p class="src"><s>//</s>Aquí caen solos cuando el sexto candado se pone verde.</p>
+      </div>
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">05</span><h3>Vendiendo</h3><span class="ct">0</span><span class="how auto">Automática · tiene ventas del mes</span></div>
+        <div class="cmcol-bd">
+          <div class="cmghost">nadie</div>
+        </div>
+      </div>
+      <div class="cmcol sleep">
+        <div class="cmcol-hd"><span class="no">06</span><h3>Dormido</h3><span class="ct">0</span><span class="how auto">Automática · 60 días sin vender</span></div>
+        <div class="cmcol-bd">
+          <div class="cmghost">nadie todavía</div>
+        </div>
+        <p class="src"><s>//</s>Kéntro y Nomádika caen aquí el 27 de octubre si nadie mueve nada.</p>
+      </div>
+      <div class="cmcol lost">
+        <span class="cv">▾</span><span class="n">0</span><span class="vt">07 · Se salieron</span>
+      </div>
+</div></div>
+</div>
+
+  <p class="xh4" style="margin-top:26px">Con gente en todas las etapas <span class="ejemtag" style="margin-left:8px">Ejemplo · no existe en la base</span></p>
+<div class="cmwrap">
+<div class="cmboard"><div class="cmtrack">
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">01</span><h3>Llegó</h3><span class="ct">2</span><span class="how auto">Automática · cae la solicitud</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">VE</span><span class="nm"><b>Vereda Sur</b><small>Solicitud · 26 ago</small></span><span class="age">2 días</span></div>
+          <div class="met"><span class="cmtag">Sin contestar</span></div>
+          <p class="cmnext"><s>//</s><span>Contestarle. Lleva <b>2 días</b> esperando.</span></p>
+        </div>
+        <div class="cmc cold">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">MA</span><span class="nm"><b>Manglar</b><small>Solicitud · 18 ago</small></span><span class="age">10 días</span></div>
+          <div class="met"><span class="cmtag">Sin contestar</span></div>
+          <p class="cmnext"><s>//</s><span>Contestarle o cerrarla. Lleva <b>10 días</b>.</span></p>
+        </div>
+        </div>
+      </div>
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">02</span><h3>En llamada</h3><span class="ct">1</span><span class="how">A mano · se agenda</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">AL</span><span class="nm"><b>Altamar</b><small>Videollamada · 29 ago, 18:00</small></span><span class="age">agendada</span></div>
+          <div class="met"><span class="cmtag">Zoom</span></div>
+          <p class="cmnext"><s>//</s><span>Preguntarle qué experiencia trae y con qué precio.</span></p>
+        </div>
+        </div>
+      </div>
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">03</span><h3>Expediente</h3><span class="ct">1</span><span class="how">A mano · se juntan papeles</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">RA</span><span class="nm"><b>Raíces</b><small>Expediente · 4 de 6</small></span><span class="age">11 días</span></div>
+          <div class="met"><span class="cmtag">Convenio <span class="k">ok</span></span><span class="cmtag">CSD <span class="k">no</span></span></div>
+          <p class="cmnext"><s>//</s><span>Le falta el CSD y conectar Stripe.</span></p>
+        </div>
+        </div>
+      </div>
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">04</span><h3>Listo para vender</h3><span class="ct">1</span><span class="how auto">Automática · seis candados verdes</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">TE</span><span class="nm"><b>Tepozán</b><small>Seis candados verdes · 24 ago</small></span><span class="age">4 días</span></div>
+          <div class="met"><span class="cmtag">1 publicada</span></div>
+          <p class="cmnext"><s>//</s><span>No ha vendido nada. Empujarle la primera salida.</span></p>
+        </div>
+        </div>
+      </div>
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">05</span><h3>Vendiendo</h3><span class="ct">1</span><span class="how auto">Automática · tiene ventas del mes</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">SA</span><span class="nm"><b>Sierra Alta</b><small>2 publicadas · agosto</small></span><span class="age">5 meses</span></div>
+          <div class="met"><span class="cmtag">$340,000</span><span class="cmtag">Comisión <span class="k">$68,000</span></span></div>
+          <p class="cmnext"><s>//</s><span>Emitirle el CFDI de agosto.</span></p>
+        </div>
+        </div>
+      </div>
+      <div class="cmcol sleep">
+        <div class="cmcol-hd"><span class="no">06</span><h3>Dormido</h3><span class="ct">2</span><span class="how auto">Automática · 60 días sin vender</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc sleep">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">LI</span><span class="nm"><b>Lindero</b><small>Alta a mano · sin ventas</small></span><span class="age">61 días</span></div>
+          <div class="met"><span class="cmtag">0 publicadas</span></div>
+          <p class="cmnext"><s>//</s><span>Sigue sin experiencia registrada. <b>Registrarle una</b> o preguntarle si sigue.</span></p>
+        </div>
+        <div class="cmc sleep">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">AB</span><span class="nm"><b>Abrevadero</b><small>Solicitud de junio · sin ventas</small></span><span class="age">61 días</span></div>
+          <div class="met"><span class="cmtag">1 en borrador</span></div>
+          <p class="cmnext"><s>//</s><span>Su experiencia nunca se publicó. <b>Publicarla</b> o preguntarle si sigue.</span></p>
+        </div>
+        </div>
+        <p class="src"><s>//</s>No es un fracaso: es un aviso. Prendió sola, sin que nadie se acordara de revisar.</p>
+      </div>
+      <div class="cmcol lost open">
+        <div class="cmcol-hd"><span class="no">07</span><h3>Se salieron</h3><span class="ct">1</span><span class="how">A mano · con motivo</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc lost">
+          <div class="hd"><span class="av">CO</span><span class="nm"><b>Costa Brava</b><small>Se salió · 12 ago</small></span><span class="age"></span></div>
+          <div class="met"><span class="cmtag">Motivo <span class="k">se fue con otra plataforma</span></span></div>
+          <p class="cmnext"><s>//</s><span>Sin nada abierto. Se puede volver a buscar el año que viene.</span></p>
+        </div>
+        </div>
+      </div>
+</div></div>
+</div>
+
+  <p class="xh4" style="margin-top:26px">La cola del tablero, de cerca · 05 · 06 · 07 <span class="ejemtag" style="margin-left:8px">Ejemplo · ninguna de estas tarjetas existe hoy</span></p>
+  <div class="cmwrap">
+  <div class="cmboard"><div class="cmtrack">
+      <div class="cmcol">
+        <div class="cmcol-hd"><span class="no">05</span><h3>Vendiendo</h3><span class="ct">1</span><span class="how auto">Automática · tiene ventas del mes</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">SA</span><span class="nm"><b>Sierra Alta</b><small>2 publicadas · agosto</small></span><span class="age">5 meses</span></div>
+          <div class="met"><span class="cmtag">$340,000</span><span class="cmtag">Comisión <span class="k">$68,000</span></span></div>
+          <p class="cmnext"><s>//</s><span>Emitirle el CFDI de agosto.</span></p>
+        </div>
+        </div>
+        <p class="src"><s>//</s>La única etapa que produce comisión.</p>
+      </div>
+      <div class="cmcol sleep">
+        <div class="cmcol-hd"><span class="no">06</span><h3>Dormido</h3><span class="ct">2</span><span class="how auto">Automática · 60 días sin vender</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc sleep">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">LI</span><span class="nm"><b>Lindero</b><small>Alta a mano · sin ventas</small></span><span class="age">61 días</span></div>
+          <div class="met"><span class="cmtag">0 publicadas</span></div>
+          <p class="cmnext"><s>//</s><span>Sigue sin experiencia registrada. <b>Registrarle una</b> o preguntarle si sigue.</span></p>
+        </div>
+        <div class="cmc sleep">
+          <div class="hd"><span class="cmgrip"><i></i><i></i><i></i></span><span class="av">AB</span><span class="nm"><b>Abrevadero</b><small>Solicitud de junio · sin ventas</small></span><span class="age">61 días</span></div>
+          <div class="met"><span class="cmtag">1 en borrador</span></div>
+          <p class="cmnext"><s>//</s><span>Su experiencia nunca se publicó. <b>Publicarla</b> o preguntarle si sigue.</span></p>
+        </div>
+        </div>
+        <p class="src"><s>//</s>No es un fracaso: es un aviso. Prendió sola, sin que nadie se acordara de revisar.</p>
+      </div>
+      <div class="cmcol lost open">
+        <div class="cmcol-hd"><span class="no">07</span><h3>Se salieron</h3><span class="ct">1</span><span class="how">A mano · con motivo</span></div>
+        <div class="cmcol-bd">
+        <div class="cmc lost">
+          <div class="hd"><span class="av">CO</span><span class="nm"><b>Costa Brava</b><small>Se salió · 12 ago</small></span><span class="age"></span></div>
+          <div class="met"><span class="cmtag">Motivo <span class="k">se fue con otra plataforma</span></span></div>
+          <p class="cmnext"><s>//</s><span>Sin nada abierto. Se puede volver a buscar el año que viene.</span></p>
+        </div>
+        </div>
+      </div>
+  </div></div>
+  </div>
+  <p class="gnhint" style="max-width:72ch">La 06 se ve distinta de las demás sin usar el naranja de lo urgente: fondo y borde en dune, el color de lo tibio, y su nota dice por qué prendió. No es la columna de los que perdiste —esa es la 07, gris y punteada— es la de los que dejaron de vender sin que nadie se enterara. En una plataforma el problema no es firmar operadores.</p>
+</div>
+
+
+</div>
+
+<!-- ═══════════ RECURSOS · entra · sale · se declara · se factura · archivo ═══════════ -->
+<div class="sec" id="recursos">
+  <div class="sec-head">
+    <div>
+      <span class="eyebrow"><span class="sl">//</span> Recursos</span>
+      <h2 class="display" style="margin-top:10px">Una sola cuenta, <em class="ac">de arriba abajo.</em></h2>
+      <p class="desc">Lo que entra, lo que sale y lo que se declara son partes de la misma cuenta. Estaban en dos pestañas y contestar «¿cómo cerró el mes?» obligaba a abrir las dos.</p>
+    </div>
+  </div>
+
+  <div class="cuenta">
+    <div class="cu"><span class="lb">Entró</span><span class="n">$0</span><p class="sub">Comisión cobrada en agosto.</p></div>
+    <div class="op">−</div>
+    <div class="cu"><span class="lb">Salió</span><span class="n">$0</span><p class="sub">Fijo mensual de proveedores. Stripe cobra por cobro, y no hubo.</p></div>
+    <div class="op">−</div>
+    <div class="cu"><span class="lb">Se declara</span><span class="n" style="font-size:20px"><span class="hole">sin registrar</span></span><p class="sub">IVA e ISR de agosto. Alarma el 15 de septiembre.</p></div>
+    <div class="op">=</div>
+    <div class="cu res"><span class="lb">Queda</span><span class="n">$0</span><p class="sub">Agosto cerró en cero por los tres lados. Es el primer mes.</p></div>
+  </div>
+  <p class="mnybridge" style="margin-top:14px"><s>//</s><span>La resta se lee sin sumar de cabeza, y ése es el único motivo por el que estos cinco bloques viven juntos. Lo que se declara queda como hueco hasta que se presente: la maqueta no lo inventa.</span></p>
+
+  <p class="xh4" style="margin-top:36px"><span class="sl" style="color:var(--orange);font-family:var(--mono);margin-right:9px">01</span>Lo que entra</p>
+  <p class="gnhint" style="max-width:74ch;margin:0 0 14px">Comisión devengada, cobrada y por cobrar, y el CFDI de cada operadora.</p>
+  <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+    <div class="card kpi"><span class="k-lbl">Devengada · agosto</span><span class="k-val">$0</span><p class="k-sub">Comisión generada por reservas posteriores a la fecha de arranque.</p></div>
+    <div class="card kpi"><span class="k-lbl">Cobrada · agosto</span><span class="k-val">$0</span><p class="k-sub">Lo que ya entró a la cuenta de Caminante.</p></div>
+    <div class="card kpi"><span class="k-lbl">Por cobrar</span><span class="k-val">$0</span><p class="k-sub">Ningún operador me debe nada.</p></div>
+    <div class="card kpi"><span class="k-lbl">CFDI por emitir</span><span class="k-val">0</span><p class="k-sub">No hay comisión que facturar.</p></div>
+  </div>
+
+  <p class="xh4" style="margin-top:22px">Cobros a operadores</p>
+  <div class="empty">Todavía no hay un solo cobro.<br><span style="font-size:13px">La primera comisión se devenga con la primera reserva posterior al 28 de agosto. Ese día aparece aquí el primer renglón, con su CFDI por emitir.</span></div>
+
+  <p class="xh4" style="margin-top:26px">La misma tabla con movimiento <span class="ejemtag" style="margin-left:8px">Ejemplo · no existe en la base</span></p>
+  <div class="tbl-wrap card">
+    <table>
+      <thead><tr><th>Operadora</th><th>Periodo</th><th class="num right">Corrió</th><th class="num right">Comisión</th><th>CFDI</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><td><span class="opnm"><span class="av">SA</span><span><b>Sierra Alta</b><small>20%</small></span></span></td><td>Agosto 2026</td><td class="num right">$340,000</td><td class="num right">$68,000</td><td><span class="chip c-full"><span class="cd"></span>Por emitir</span></td><td><span class="mut">Por cobrar</span></td></tr>
+        <tr><td><span class="opnm"><span class="av">TE</span><span><b>Tepozán</b><small>18%</small></span></span></td><td>Agosto 2026</td><td class="num right">$96,000</td><td class="num right">$17,280</td><td><span class="chip c-conf"><span class="cd"></span>Emitido</span></td><td><span class="mut">Por cobrar</span></td></tr>
+        <tr><td><span class="opnm"><span class="av">RA</span><span><b>Raíces</b><small>20%</small></span></span></td><td>Julio 2026</td><td class="num right">$210,500</td><td class="num right">$42,100</td><td><span class="chip c-conf"><span class="cd"></span>Emitido</span></td><td><span class="chip c-paid"><span class="cd"></span>Pagado</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<p class="xh4" style="margin-top:30px">Desglose por operadora · ábrelo</p>
+  <p class="gnhint" style="max-width:74ch;margin:0 0 14px">Cada renglón se abre con una línea por experiencia suya: lo que vendió en el periodo, el porcentaje con el que se cobró cada venta y la comisión que generó. El mismo renglón expandible de Pagos.</p>
+  <div class="tbl-wrap card">
+    <table>
+      <thead><tr><th>Operadora</th><th class="num">Arranque</th><th class="num right">Vendido en agosto</th><th class="num right">Comisión de agosto</th><th class="num right">Comisión histórica</th><th>CFDI</th></tr></thead>
+      <tbody>
+        <tr class=" xhead" data-x="rke"><td><span class="opnm"><span class="av">KÉ</span><span><b>Kéntro</b><small>20% vigente</small></span><span class="chev2">▾</span></span></td><td class="num">28 ago 2026</td><td class="num right">$0</td><td class="num right">$0</td><td class="num right">$0</td><td><span class="mut">nada que emitir</span></td></tr>
+        <tr class="xdetail"><td colspan="6"><div class="xbody" id="rke"><div class="xpad"><div class="empty">Kéntro todavía no tiene ninguna experiencia registrada.<br><span style="font-size:13px">Cuando registre la primera, este desglose se llena solo: una línea por experiencia, con sus reservas de agosto, su histórico, el porcentaje con el que se cobró cada venta y la comisión que generó.</span></div></div></div></td></tr>
+        <tr class=" xhead" data-x="rno"><td><span class="opnm"><span class="av">NO</span><span><b>Nomádika</b><small>20% vigente</small></span><span class="chev2">▾</span></span></td><td class="num">28 ago 2026</td><td class="num right">$0</td><td class="num right">$0</td><td class="num right">$0</td><td><span class="mut">nada que emitir</span></td></tr>
+        <tr class="xdetail"><td colspan="6"><div class="xbody" id="rno"><div class="xpad"><div class="dsgw"><div class="dsg"><div class="dh">Experiencia</div><div class="dh r">Agosto</div><div class="dh r">Histórico</div><div class="dh">% con el que se cobró</div><div class="dh r">Comisión que generó</div>
+<div class="dc dim"><span class="nm">Raíz de agua.</span><span class="chip c-draft"><span class="cd"></span>Borrador</span></div><div class="dc r dim"><span class="mn">$0</span><small>sin ventas</small></div><div class="dc r dim"><span class="mn">$0</span><small>sin ventas</small></div><div class="dc"><span class="pct">20% <em>vigente hoy</em></span></div><div class="dc r"><span class="mut">—</span></div>
+<div class="dc tot"><span class="nm">Total de Nomádika</span><small>1 experiencia · en borrador</small></div><div class="dc r tot"><span class="mn">$0</span><small>0 reservas</small></div><div class="dc r tot"><span class="mn">$0</span><small>0 reservas</small></div><div class="dc tot"></div><div class="dc r tot"><span class="mn">$0</span><small>nada devengado</small></div>
+</div></div>
+<p class="dsgnote"><s>//</s><span>Su única experiencia existe y es suya, pero está en borrador: nadie la ve ni la reserva. El <b>20%</b> es el vigente hoy, no el de ninguna venta: no hay ventas de las que congelar un porcentaje.</span></p></div></div></td></tr>
+        <tr class="casa xhead" data-x="rnu"><td><span class="opnm"><span class="av">NU</span><span><b>NUMAN</b><small>mi operadora</small></span><span class="chev2">▾</span></span></td><td class="num">—</td><td class="num right">$192,050</td><td class="num right"><span class="mut">Ninguna</span></td><td class="num right"><span class="mut">Ninguna</span></td><td><span class="mut">no aplica</span></td></tr>
+        <tr class="xdetail"><td colspan="6"><div class="xbody" id="rnu"><div class="xpad"><div class="dsgw"><div class="dsg"><div class="dh">Experiencia</div><div class="dh r">Agosto</div><div class="dh r">Histórico</div><div class="dh">% con el que se cobró</div><div class="dh r">Comisión que generó</div>
+<div class="dc"><span class="nm">OCEAN safari.</span><span class="chip c-pub"><span class="cd"></span>Publicada</span></div><div class="dc r"><span class="mn">$0</span><small>0 reservas</small></div><div class="dc r"><span class="mn">$384,000</span><small>23 reservas</small></div><div class="dc"><span class="mut">No aplica</span></div><div class="dc r"><span class="mut">—</span></div>
+<div class="dc"><span class="nm">Trek Majimachi</span><span class="chip c-pub"><span class="cd"></span>Publicada</span></div><div class="dc r"><span class="mn">$132,000</span><small>8 reservas</small></div><div class="dc r"><span class="mn">$165,000</span><small>10 reservas</small></div><div class="dc"><span class="mut">No aplica</span></div><div class="dc r"><span class="mut">—</span></div>
+<div class="dc"><span class="nm">Hacienda San Andrés</span><span class="chip c-pub"><span class="cd"></span>Publicada</span></div><div class="dc r"><span class="mn">$57,500</span><small>3 reservas</small></div><div class="dc r"><span class="mn">$126,500</span><small>7 reservas</small></div><div class="dc"><span class="mut">No aplica</span></div><div class="dc r"><span class="mut">—</span></div>
+<div class="dc"><span class="nm">El bosque de Xalatlaco.</span><span class="chip c-pub"><span class="cd"></span>Publicada</span></div><div class="dc r"><span class="mn">$2,550</span><small>1 reserva</small></div><div class="dc r"><span class="mn">$61,200</span><small>12 reservas</small><small class="canc">2 canceladas, fuera de la cuenta</small></div><div class="dc"><span class="mut">No aplica</span></div><div class="dc r"><span class="mut">—</span></div>
+<div class="dc dim"><span class="nm">Hike Mariposas Monarca</span><span class="chip c-draft"><span class="cd"></span>Borrador</span></div><div class="dc r dim"><span class="mn">$0</span><small>sin ventas</small></div><div class="dc r dim"><span class="mn">$0</span><small class="canc">1 cancelada, fuera de la cuenta</small></div><div class="dc"><span class="mut">—</span></div><div class="dc r"><span class="mut">—</span></div>
+<div class="dc dim"><span class="nm">(sin título)</span><span class="chip c-draft"><span class="cd"></span>Borrador</span></div><div class="dc r dim"><span class="mn">$0</span><small>sin ventas</small></div><div class="dc r dim"><span class="mn">$0</span><small>sin ventas</small></div><div class="dc"><span class="mut">—</span></div><div class="dc r"><span class="mut">—</span></div>
+<div class="dc tot"><span class="nm">Total de NUMAN</span><small>6 experiencias · 4 publicadas, 2 en borrador</small></div><div class="dc r tot"><span class="mn">$192,050</span><small>12 reservas</small></div><div class="dc r tot"><span class="mn">$736,700</span><small>52 reservas</small></div><div class="dc tot"><span class="mut">No aplica</span></div><div class="dc r tot"><span class="mn">Ninguna</span><small>es la casa: retiene el 100%</small></div>
+</div></div>
+<p class="dsgnote"><s>//</s><span><b>Tres reservas canceladas no cuentan como vendido:</b> una de Hike Mariposas Monarca y dos de El bosque de Xalatlaco. Quedan a la vista, atenuadas, para que nadie eche de menos reservas que sí recuerda.</span></p>
+<p class="dsgnote"><s>//</s><span>Una experiencia publicada puede pasar meses sin vender: OCEAN safari lleva 23 reservas de histórico y ninguna en agosto. Y las de borrador ocupan renglón sin cifras. Las dos situaciones son normales.</span></p></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="gnhint" style="max-width:74ch;margin-top:11px">La casa vende y no genera comisión: se vende a sí misma y retiene el 100%. Sus $192,050 de agosto son volumen —el mismo que se ve en Experiencias— y aquí están sólo para que la columna de comisión pueda decir «ninguna» con el número al lado. Las dos operadoras externas abren en vacío, que es el caso de hoy y va a serlo durante semanas.</p>
+
+  <p class="xh4" style="margin-top:30px">Una operadora con comisión, y con una renegociación a media temporada <span class="ejemtag" style="margin-left:8px">Ejemplo · tabla aparte, no existe en la base</span></p>
+  <div class="tbl-wrap card">
+    <table>
+      <thead><tr><th>Operadora</th><th class="num">Arranque</th><th class="num right">Vendido en agosto</th><th class="num right">Comisión de agosto</th><th class="num right">Comisión histórica</th><th>CFDI</th></tr></thead>
+      <tbody>
+        <tr class="ejem xhead" data-x="rsa"><td><span class="opnm"><span class="av">SA</span><span><b>Sierra Alta</b><small>Inventada</small></span><span class="chev2">▾</span></span></td><td class="num">1 mar 2026</td><td class="num right">$298,000</td><td class="num right">$49,100</td><td class="num right">$132,700</td><td><span class="chip c-full"><span class="cd"></span>Por emitir</span></td></tr>
+        <tr class="xdetail"><td colspan="6"><div class="xbody" id="rsa"><div class="xpad"><div class="dsgw"><div class="dsg"><div class="dh">Experiencia</div><div class="dh r">Agosto</div><div class="dh r">Histórico</div><div class="dh">% con el que se cobró</div><div class="dh r">Comisión que generó</div>
+<div class="dc"><span class="nm">Cañón del Zopilote</span><span class="chip c-pub"><span class="cd"></span>Publicada</span></div><div class="dc r"><span class="mn">$210,000</span><small>9 reservas</small></div><div class="dc r"><span class="mn">$540,000</span><small>24 reservas</small></div><div class="dc"><span class="pct old">20% <em>15 res · hasta 14 jul</em></span><span class="pct">15% <em>9 res · desde 15 jul</em></span></div><div class="dc r"><span class="mn">$97,500</span><small>$66,000 al 20% + $31,500 al 15%</small></div>
+<div class="dc"><span class="nm">Vereda Sur nocturna</span><span class="chip c-pub"><span class="cd"></span>Publicada</span></div><div class="dc r"><span class="mn">$88,000</span><small>4 reservas</small></div><div class="dc r"><span class="mn">$242,000</span><small>11 reservas</small></div><div class="dc"><span class="pct">20% <em>8 res · desde el arranque</em></span></div><div class="dc r"><span class="mn">$35,200</span><small>8 de 11 reservas generaron; 3 son anteriores al arranque</small></div>
+<div class="dc tot"><span class="nm">Total de lo suyo</span><small>2 experiencias publicadas</small></div><div class="dc r tot"><span class="mn">$298,000</span><small>13 reservas</small></div><div class="dc r tot"><span class="mn">$782,000</span><small>35 reservas</small></div><div class="dc tot"><span class="mut">dos porcentajes vivos</span></div><div class="dc r tot"><span class="mn">$132,700</span><small>histórico · $49,100 de agosto</small></div>
+</div></div>
+<p class="dsgnote"><s>//</s><span><b>El porcentaje es el congelado, no el de hoy.</b> Cañón del Zopilote tiene ventas cobradas al 20% y ventas al 15% porque hubo renegociación a media temporada. Cada venta guarda el porcentaje que estaba vigente al cobrar y ese número ya no cambia; el 15% de la ficha es sólo el de hoy.</span></p>
+<p class="dsgnote"><s>//</s><span><b>Tres reservas de Vereda Sur son anteriores al arranque</b> y no generaron comisión: 11 reservas, 8 contaron. La línea lo dice para que nadie tenga que restar.</span></p>
+<div class="dsgblk"><s>//</s>Clientes que trajo a experiencias de otros · eje aparte</div>
+<div class="dsgw"><div class="dsg"><div class="dh">Experiencia</div><div class="dh r">Agosto</div><div class="dh r">Histórico</div><div class="dh">% con el que se cobró</div><div class="dh r">Comisión que generó</div>
+<div class="dc"><span class="nm">Manglar · «Amanecer en la barra»</span><small>experiencia de otro operador</small></div><div class="dc r"><span class="mn">$46,000</span><small>2 reservas</small></div><div class="dc r"><span class="mn">$96,000</span><small>4 reservas</small></div><div class="dc"><span class="mut">sin acuerdo de referencia</span></div><div class="dc r"><span class="mut">no aplica</span></div>
+<div class="dc tot"><span class="nm">Total traído de fuera</span><small>no suma con lo suyo</small></div><div class="dc r tot"><span class="mn">$46,000</span><small>2 reservas</small></div><div class="dc r tot"><span class="mn">$96,000</span><small>4 reservas</small></div><div class="dc tot"></div><div class="dc r tot"><span class="mut">—</span></div>
+</div></div>
+<p class="dsgnote"><s>//</s><span><b>Vender lo suyo y traer clientes a lo de otro son dos ejes.</b> Su comisión sale sólo de lo suyo. Los dos totales viven en bloques separados y nunca se suman: un total que los mezcla no significa nada.</span></p></div></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="gnhint" style="max-width:74ch;margin-top:11px">Es el renglón que prueba el diseño: una de sus dos experiencias tiene ventas cobradas a dos porcentajes distintos porque hubo renegociación, la otra tiene reservas anteriores al arranque que no generaron nada, y lo que trajo a experiencias de otros va en un bloque aparte que no suma.</p>
+
+  <p class="xh4" style="margin-top:40px"><span class="sl" style="color:var(--orange);font-family:var(--mono);margin-right:9px">02</span>Lo que sale</p>
+  <p class="gnhint" style="max-width:74ch;margin:0 0 14px">Los proveedores de la plataforma. Stripe se lleva su parte de cada cobro; lo demás es fijo.</p>
+  <div class="card pad">
+    <span class="subtitle">Proveedores</span>
+    <div class="wlist">
+      <div class="wl"><span>Stripe</span><span class="me">3.6% + $3 más IVA</span><span class="d">por cobro</span><span class="m">4.23% all-in</span></div>
+      <div class="wl"><span>Vercel</span><span class="me">Plan Hobby</span><span class="d">mensual</span><span class="m">$0</span></div>
+      <div class="wl"><span>Meta · WhatsApp</span><span class="me">Plantillas</span><span class="d">por mensaje</span><span class="m">variable</span></div>
+      <div class="wl total"><span>Fijo mensual</span><span class="me"></span><span class="d"></span><span class="m">$0</span></div>
+    </div>
+  </div>
+
+  <p class="xh4" style="margin-top:40px"><span class="sl" style="color:var(--orange);font-family:var(--mono);margin-right:9px">03</span>Lo que se declara</p>
+  <p class="gnhint" style="max-width:74ch;margin:0 0 14px">Los impuestos son de la entidad, y la entidad es una sola. Este bloque existe aquí y en ningún otro panel: si apareciera dos veces, un día se presenta dos veces o ninguna.</p>
+  <div class="card pad">
+    <span class="subtitle">Impuestos</span>
+    <p class="cmstop" style="margin-top:0"><s>15</s><span>El <b>día 15</b> es la alarma; el vencimiento es el <b>día 17</b>. Son dos días de margen para conseguir la línea de captura y pagarla. Es la única alarma fija y no depende de que haya habido comisión: si el mes fue cero, se declara en cero.</span></p>
+    <div class="wlist" style="margin-top:14px">
+      <div class="wl"><span>Julio 2026</span><span class="me">IVA e ISR</span><span class="d">alarma 15 ago · vence 17</span><span class="m"><span class="hole">sin registrar</span></span></div>
+      <div class="wl"><span>Agosto 2026</span><span class="me">IVA e ISR</span><span class="d">alarma 15 sep · vence 17</span><span class="m"><span class="hole">sin registrar</span></span></div>
+    </div>
+    <p class="gnhint" style="max-width:none">El estatus de cada mes se marca aquí cuando se presenta. La maqueta no lo inventa.</p>
+  </div>
+
+  <p class="xh4" style="margin-top:40px"><span class="sl" style="color:var(--orange);font-family:var(--mono);margin-right:9px">04</span>Con qué se factura</p>
+  <p class="gnhint" style="max-width:74ch;margin:0 0 14px">Los datos de emisión del CFDI y el expediente fiscal eran lo mismo escrito dos veces. Existen aquí una sola vez, y de aquí salen los CFDI de comisión del bloque 01.</p>
+  <div class="card pad">
+    <span class="subtitle">Datos de emisión</span>
+    <p class="cmstop" style="margin-top:0"><s>//</s><span>La plataforma se llama <b>Caminante</b> y mi operadora se llama <b>NUMAN</b>, pero las dos son marcas de una sola empresa: <b>NUMAN Hub, S.A.P.I. de C.V.</b> Los CFDI de comisión los emite Caminante como plataforma y salen a nombre de NUMAN Hub, que es la persona moral que existe ante el SAT. Los impuestos son de la empresa, y por eso viven en este sombrero y en ningún otro.</span></p>
+    <div class="dl" style="margin-top:14px"><dt>Razón social</dt><dd>NUMAN Hub, S.A.P.I. de C.V.</dd><dt>RFC</dt><dd class="mono">NHU250826CS8</dd><dt>Régimen</dt><dd><span class="hole">sin capturar</span></dd><dt>Uso</dt><dd><span class="hole">sin capturar</span></dd></div>
+    <div class="salfoot"><button class="btn btn-ghost btn-sm">Editar los datos de emisión</button></div>
+  </div>
+
+  <p class="xh4" style="margin-top:40px"><span class="sl" style="color:var(--orange);font-family:var(--mono);margin-right:9px">05</span>El archivo</p>
+  <p class="gnhint" style="max-width:74ch;margin:0 0 14px">Documentos que se consultan tres veces al año. Van al final y cerrados, para que no compitan con las cifras.</p>
+  <details class="card pad arch">
+    <summary><span class="subtitle" style="margin:0">Expediente NUMAN Hub</span><span class="mut">4 documentos</span></summary>
+    <div class="wlist" style="margin-top:14px">
+      <div class="wl"><span>Acta constitutiva</span><span class="me"><span class="hole">notaría</span></span><span class="d"><span class="hole">fecha</span></span><span class="m"><span class="hole">—</span></span></div>
+      <div class="wl"><span>Constancia de situación fiscal</span><span class="me"><span class="hole">archivo</span></span><span class="d"><span class="hole">fecha</span></span><span class="m"><span class="hole">—</span></span></div>
+      <div class="wl"><span>Marca · NUMAN</span><span class="me">IMPI</span><span class="d"><span class="hole">estatus</span></span><span class="m"><span class="hole">—</span></span></div>
+      <div class="wl"><span>Marca · Caminante</span><span class="me">IMPI</span><span class="d"><span class="hole">estatus</span></span><span class="m"><span class="hole">—</span></span></div>
+    </div>
+    <p class="gnhint" style="max-width:none">Las dos marcas —Caminante y NUMAN— se registran por separado y la empresa que las tiene es una sola. El RFC no se repite aquí: vive en los datos de emisión. Lo demás queda con su forma y su hueco, para llenarse con el expediente de verdad.</p>
+    <div class="salfoot"><button class="btn btn-ghost btn-sm">Subir un documento</button></div>
+  </details>
+</div>
+
+<p class="docnote" id="notas"><b>Notas de la maqueta.</b> <span class="sl">//</span> <b>Caminante es la plataforma y NUMAN es mi operadora.</b> Todo lo de esta pantalla —el catálogo completo, las operadoras, el pipeline de altas y la comisión— pertenece al sombrero Caminante. NUMAN aparece como una operadora más del catálogo y es la única que no le paga comisión, porque es la casa. En el bloque fiscal, en cambio, <b>NUMAN Hub</b> no es una marca sino el contribuyente: las dos marcas son de una sola empresa. <span class="sl">//</span> <b>El nav de Caminante, que es la plataforma, es Panorama · Experiencias · Comunidad · Recursos</b>, paralelo al de NUMAN, que es la operadora y añade Comunicación y Salidas. Lo informativo de cada experiencia vive en Experiencias, lo legal y el contacto en Comunidad, y todo el dinero en Recursos. «Vendido» aparece en Experiencias como volumen y en Recursos como base de la comisión: misma venta, dos preguntas. <span class="sl">//</span> <b>De las siete experiencias, las fechas y el cupo de cada salida, el estado de la república y la categoría quedan como huecos marcados</b>: no los tengo. El número de salidas futuras, las reservas y los montos sí son reales. Las nueve experiencias del ejemplo «con trescientas» y la solicitud de Vereda Sur son inventadas y están marcadas. <span class="sl">//</span> Los datos de la casa, Kéntro y Nomádika son los reales: RFC, comisión del 20%, fecha de arranque 28 ago 2026, panel activo sí, convenio y CSD y Connect no, ninguna experiencia a nombre de Kéntro, una en borrador de Nomádika, tres reservas canceladas que no cuentan como vendido —una de Hike Mariposas Monarca y dos de El bosque de Xalatlaco—, $192,050 vendidos en agosto y $736,700 de histórico en 52 reservas —todos de la casa— y $0 de comisión devengada. <span class="sl">//</span> <b>Ningún convenio está firmado todavía</b> y ningún operador externo ha vendido nunca: es el estado del primer día, no un caso que haya que reparar. Por eso ninguna pantalla mueve experiencias entre dueños ni acredita ventas viejas a nadie. <span class="sl">//</span> <b>Sierra Alta, Tepozán, Raíces, Vereda Sur, Manglar, Altamar, Lindero, Abrevadero y Costa Brava son inventadas</b>, y con ellas el desglose de Sierra Alta completo: sus dos experiencias, la renegociación de 20% a 15% a media temporada, las tres reservas anteriores al arranque y los clientes que trajo a experiencias de otros. Son el caso que prueba el diseño y no existen en la base y están marcadas como ejemplo; los datos reales y los inventados nunca comparten tabla. Hoy no existe ningún operador con los seis candados verdes, ni un solo cobro, ni una tarjeta en 06 Dormido. <span class="sl">//</span> Proveedores: Stripe 3.6% + $3 más IVA, 4.23% all-in; Vercel en plan Hobby, $0. El estatus del expediente, de las marcas, los datos de emisión del CFDI y el estatus mensual de impuestos quedan como <b>huecos marcados</b>, no como datos: son del expediente real. El día 15 es la alarma; el vencimiento es el 17. <span class="sl">//</span> Nomádika llegó por solicitud el 25 ago 2026 y se aprobó ese día, sin videollamada; Kéntro se dio de alta a mano y no tiene solicitud, así que su tarjeta cuenta «entró por fuera» en lugar de días. <span class="sl">//</span> Ni las dos vistas de ejemplo del tablero ni la tabla de ejemplo llevan un solo operador real: en 06 Dormido aparecen Lindero y Abrevadero, inventados, en lugar de proyectar a Kéntro y Nomádika a un futuro que no ha pasado. Los montos siguen la convención del panel: coma para los miles y cero decimales.</p>
+
+</div>
+
+<script>
+const G1='<g class="g1"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+const G2='<g class="g2"><path d="M218.65,2.3c-8.09,0-14.64,6.56-14.64,14.64s6.56,14.64,14.64,14.64,14.64-6.56,14.64-14.64-6.56-14.64-14.64-14.64"/><path d="M276.91,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/><path d="M189.47,16.97l.22,87.33c0,8.09-6.56,14.64-14.64,14.64s-14.64-6.56-14.64-14.64l-.22-87.33c0-8.09,6.56-14.64,14.64-14.64s14.64,6.56,14.64,14.64"/></g>';
+const G3='<g class="g3"><path d="M335.23,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M422.67,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M412.31,114.57l-87.43-87.13c-5.72-5.72-5.72-14.99,0-20.71,5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
+/* el segmentado de Comunidad · una vista a la vez */
+(function(){const seg=document.getElementById('cmnSeg');if(!seg)return;
+seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+  seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  document.querySelectorAll('#comunidad .cmnpane').forEach(p=>{p.hidden=p.id!==b.dataset.pane});
+}));})();
+/* expandibles · ningún renglón es un callejón sin salida */
+document.addEventListener('click',e=>{
+  if(e.target.closest('button, a, input, select, textarea'))return;
+  const t=e.target.closest('[data-x]');if(!t)return;
+  const body=document.getElementById(t.dataset.x);if(!body)return;
+  t.classList.toggle('open',body.classList.toggle('on'));
+});
+document.querySelectorAll('[data-mark]').forEach(el=>el.innerHTML='<svg viewBox="0 0 437.31 121.74" role="img" aria-label="numan">'+G1+G2+G3+'</svg>');
+/* la pastilla del sombrero · cambia el nav completo */
+const hat=document.getElementById('hat'),navs=[document.getElementById('navCam'),document.getElementById('navNum0')];
+hat.querySelectorAll('button').forEach((b,i)=>b.addEventListener('click',()=>{
+  hat.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  navs.forEach((n,j)=>{n.hidden=j!==i});
+}));
+/* el nav marca la sección visible */
+const secs=[...document.querySelectorAll('.sec[id]')];
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  nvC.querySelectorAll('a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id));
+}})},{rootMargin:'-30% 0px -60% 0px'});
+secs.forEach(s=>io.observe(s));
+/* el panel de la ficha · equis, Escape y picar la lista */
+document.querySelectorAll('.cmstage').forEach(st=>{
+  const p=st.querySelector('.cmpanel'),v=st.querySelector('.cmveil');
+  if(!p)return;
+  p.insertAdjacentHTML('beforeend','<span class="fade"></span>');
+  const x=p.querySelector('.x');
+  if(x)x.insertAdjacentHTML('beforebegin','<span class="esc">Esc</span>');
+  st.insertAdjacentHTML('beforeend','<button class="btn btn-glass btn-sm cmreopen">Volver a abrir la ficha</button>');
+  const shut=()=>st.classList.add('shut');
+  if(v)v.addEventListener('click',shut);
+  if(x)x.addEventListener('click',shut);
+  st.querySelector('.cmreopen').addEventListener('click',()=>st.classList.remove('shut'));
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.cmstage').forEach(s=>s.classList.add('shut'))});
+/* la séptima columna se abre */
+document.querySelectorAll('.cmcol.lost').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('open')));
+</script>
+
+<!--
+  ════════════════════════════════════════════════════════════════════
+  RECIBO · el panel de la plataforma
+  ════════════════════════════════════════════════════════════════════
+  REUSADO de mi sistema, sin tocarlo: el shell .adm entero (.ahead, .top,
+  .brand, .logo, .mode, .qa, .nav) · .page .sec .sec-head .eyebrow .sl
+  .display em.ac .desc · .card .glass .pad .subtitle .xh4 · .kpis .kpi
+  (k-lbl, k-val, k-sub) · .tbl-wrap + table + td.num/.right + .mut ·
+  .chip .cd .c-pub .c-full .c-paid .c-conf · .empty · .vtag · .grid2 ·
+  .wlist .wl (.me .d .m .total) · .dl · .btn y variantes · .salfoot ·
+  .cmstop · .gnhint · .docnote · .tick · .mono · y el tablero completo
+  del CRM: .cmwrap .cmboard .cmtrack .cmcol .cmcol-hd/.bd .cmcol.recv
+  .cmcol.lost(.open) .src .cmghost .cmc .hd .av .nm .age .met .cmtag
+  .cmnext .cmgrip .cmc.cold .cmc.lost .cmfan, más el panel anclado
+  .cmstage .cmveil .cmpanel.layer .cmpanel-hd/-st/-bd con su equis, su
+  Esc y su cerrar-picando, y .gnstack para colgar la lista del marco.
+
+  INVENTADO · nueve piezas, todas porque la plataforma mide cosas que la
+  operación no tiene:
+    .hat + .hatwrap + .hatlb  la pastilla del sombrero. Tenía que leerse
+        de RANGO MAYOR que .cmseg: contenedor oscuro sólido, esquinas
+        cuadradas de 8–11px y activo en losa blanca, en la cabecera y
+        junto al logo. .cmseg es lo contrario —píldora clara dentro de la
+        página, activo en chip oscuro— así que no se confunden: una
+        cambia el panel completo, la otra cambia de vista dentro de una
+        pantalla.
+    .mnyrow .mny (.thru / .mine) + .mnybridge  las dos cifras. Ninguna
+        pieza mía servía: .kpi las habría puesto del mismo tamaño y en la
+        misma caja, que es exactamente la lectura que hay que hacer
+        imposible.
+    .zl  el renglón de «qué falta para que este cero se mueva», debajo de
+        cada cifra en ceros.
+    .verdict (.no/.si/.casa)  el veredicto de puede-vender-hoy, con la
+        fracción de candados.
+    .locks .lk (.ok/.no/.na)  los seis candados.
+    .arr  la fecha de arranque de la comisión, en caja de pendiente
+        naranja para que no se pueda esconder.
+    .ghostsale  la venta que corrió sin generar comisión.
+    .opnm .lockmini tr.casa tr.ejem .ejemtag  la tabla de operadores y la
+        marca de lo que es ejemplo.
+    .cmcol.sleep .cmc.sleep  la 06 Dormido en dune, el color de lo tibio:
+        distinta de las demás sin robarle el naranja a lo urgente ni el
+        gris punteado a la 07.
+
+  ════════════════════════════════════════════════════════════════════
+  CORRECCIONES DE ESTA VUELTA
+  ════════════════════════════════════════════════════════════════════
+  A · Salió todo lo que trataba a un operador como un caso con historia:
+       la venta fantasma en la ficha, el botón de transferir, su nota en
+       Dinero, el renglón de cobro de un operador real y el recuadro que
+       existía sólo para explicarlo. No existe transferir experiencias.
+  A2 · «Vendido este mes» se partió en dos columnas, «vendido en agosto»
+       ($192,050 · 12 reservas) e «histórico» ($736,700 · 52 reservas).
+  A3 · El cero de Panorama dice la razón verdadera: las 52 reservas son de
+       la casa, que retiene el 100%, y ningún operador externo ha vendido.
+  PREMISA · No hay ningún convenio firmado, ningún operador externo con
+       experiencia a su nombre y ninguna venta suya. Salió todo lo que
+       trataba a un operador como un caso con historia: la venta fantasma
+       en la ficha, la confirmación de transferencia, la nota de Dinero y
+       los botones de reparar el pasado. Los dos operadores son iguales:
+       entraron, tienen comisión y
+       todavía no venden, y el primer convenio está por firmarse.
+  C1 · Formato del panel: coma para los miles, cero decimales, y fuera los
+       centavos en gris.
+  D1 · Nomádika llegó por solicitud el 25 ago y se aprobó ese día, sin
+       videollamada: tres días. Kéntro no tiene solicitud y su tarjeta
+       cuenta «entró por fuera» en lugar de días.
+  D2–D4 · Vercel en $0 (plan Hobby), Stripe 4.23% all-in, el 15 como
+       alarma y el 17 como vencimiento, y el expediente, los datos de
+       emisión y el estatus mensual como huecos marcados.
+  D5 · Tres ceros, no cuatro.
+  E1–E2 · Las dos cabeceras, una junto a la otra, con el nav real de
+       Caminante: Panorama · Experiencias · Comunicación · Comunidad ·
+       Recursos · Salidas.
+  E3 · La pastilla es redonda, como el resto del sistema; lo que la separa
+       del segmentado es el contraste: contenedor oscuro sólido en la
+       cabecera, losa blanca activa, contra el papel claro de .cmseg.
+  E4 · La cola del tablero —05, 06 y 07— se ve de cerca, sin depender del
+       scroll horizontal.
+  E5 · Perfil y «Salir» volvieron a la cabecera.
+  F  · Cada candado dice a quién le toca: .lk .own, «Yo» en naranja
+       cuando el pendiente es de la casa, «Él» en verde cuando se le pide
+       al operador, con su leyenda debajo de la cuadrícula. Kéntro y
+       Nomádika siguen en 2 de 6 y ahora se distinguen también por eso.
+  ÚNICO DATO NUEVO · el histórico de Sierra Alta, que no existe: quedó
+  como hueco marcado en lugar de un número que se ve real.
+
+  ════════════════════════════════════════════════════════════════════
+  LAS TRES DECISIONES
+  ════════════════════════════════════════════════════════════════════
+  1 · $736,700 NO PUEDE PARECER INGRESO. La jerarquía hace el trabajo,
+      no una nota. Las dos cifras viven en el MISMO marco partido, y todo
+      lo que las separa dice lo mismo: la que corre va en el 45% del
+      ancho, sobre papel gris, a 30px y en gris, con el borde de su lado
+      PUNTEADO —dinero que pasa— y su etiqueta «No es ingreso de Caminante»
+      en versalitas huecas; la mía va en el 55%, sobre papel blanco, a
+      68px y en naranja, con «Ingreso de Caminante» en naranja sólido. Nueve
+      diferencias simultáneas: ancho, fondo, tamaño, color, peso, borde,
+      etiqueta, orden de lectura y el puente de abajo, que dice en una
+      línea «de cada peso que corrió, me tocaron $0». Y el cero grande
+      en naranja es la única cifra grande de la pantalla: el ojo cae
+      primero en lo que Caminante gana, no en lo que Caminante mueve.
+  2 · LOS CEROS NO SE VEN ROTOS. Ningún cero va solo. Cada tarjeta
+      lleva debajo una línea con el // verde —el color de lo que está por
+      hacerse, no el naranja de lo urgente— que dice qué lo va a mover:
+      «para que este cero se mueva hace falta una experiencia publicada a
+      nombre del operador». Nada de rojos, nada de íconos de alerta, nada
+      de barras al 0%. Y el cierre lo nombra: tres ceros no son tres
+      problemas, es el primer día. La misma voz del vacío del CRM.
+  3 · KÉNTRO Y NOMÁDIKA NO SE PARECEN. Los dos tienen 2 de 6 candados y
+      los dos dicen «no puede vender», así que la diferencia no puede
+      estar en el estado: está en el SEXTO CANDADO y en el veredicto. El
+      de Kéntro dice «ninguna registrada» y su veredicto es «se ve activo
+      y no tiene experiencia», con un botón que dice «registrar su primera
+      experiencia». El de
+      Nomádika dice «tiene una, en borrador» y su veredicto es «su única
+      experiencia está en borrador», con un botón que dice «revisar y
+      publicar». Dos huecos que se ven idénticos en la tabla se vuelven
+      dos trabajos distintos en la ficha, y el botón nombra el trabajo.
+-->
+</body>
+</html>
