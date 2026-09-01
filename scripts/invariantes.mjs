@@ -266,7 +266,7 @@ const REGLAS = [
     },
   },
   {
-    nombre: "Ningún componente cliente alcanza next/headers",
+    nombre: "Ningún componente cliente alcanza el servidor",
     comprueba() {
       // Se sigue la cadena de imports @/… desde cada archivo con "use client".
       // Si alguno llega a next/headers, el build de Next falla con un mensaje
@@ -305,7 +305,10 @@ const REGLAS = [
         // la referencia a la acción, no su cuerpo, y nada de lo que hay dentro
         // llega al bundle. Cruzarla es correcto y no se marca.
         if (/^\s*["']use server["']/m.test(txt)) return null;
-        if (/from\s+["']next\/headers["']/.test(txt)) return [rel(f)];
+        // Dos barreras, el mismo síntoma: el build revienta nombrando el
+        // módulo del fondo y nunca al componente que lo arrastró.
+        if (/from\s+["']next\/headers["']/.test(txt)) return [rel(f) + " (next/headers)"];
+        if (/^\s*import\s+["']server-only["']/m.test(txt)) return [rel(f) + " (server-only)"];
         for (const espec of importsDe(txt)) {
           const destino = resolver(espec);
           if (!destino) continue;
@@ -325,14 +328,19 @@ const REGLAS = [
           const cadena = alcanza(destino, new Set([f]));
           if (cadena)
             return [
-              `${rel(f)} es un componente CLIENTE y llega a next/headers: ${[rel(f), ...cadena].join(" → ")}.`,
-              "Next tumba el build con «You're importing a component that needs next/headers»,",
+              `${rel(f)} es un componente CLIENTE y llega al servidor: ${[rel(f), ...cadena].join(" → ")}.`,
+              "Next tumba el build con «You're importing a component that needs …»,",
               "y el mensaje nombra solo el módulo del fondo, nunca al componente culpable.",
               "",
               "Pasó dos veces con lo mismo: una función pura —formatMXN, iniciales— viviendo",
               "en lib/admin/queries.ts, que llega hasta next/headers por la cadena del alcance.",
               "La salida NO es copiar la función al componente: es moverla a un módulo sin",
               "servidor, como lib/admin/formato.ts. Un `import type` sí viaja gratis.",
+              "",
+              "Tercera vez, ahora con server-only: volver cliente el Pipeline para que sus",
+              "tarjetas abrieran el cajón arrastró lib/plataforma/operadoras.ts, que abre",
+              "Supabase con la llave de servicio. Las etapas —constantes puras— se fueron a",
+              "lib/plataforma/etapas.ts y operadoras.ts las reexporta.",
               "",
               "⚠️ tsc --noEmit pasa limpio en este caso. No ve la frontera servidor/cliente.",
             ].join("\n");

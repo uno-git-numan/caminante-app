@@ -1,5 +1,10 @@
 import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { Candado, Etapa } from "./etapas";
+
+// Reexportados para no mover cada llamada: lo puro vive en `etapas.ts`.
+export { ETAPAS } from "./etapas";
+export type { Candado, Etapa } from "./etapas";
 
 // LAS OPERADORAS DE LA PLATAFORMA — y la única pregunta que importa de cada una:
 // ¿PUEDE VENDER HOY?
@@ -16,24 +21,6 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 // El sexto candado —una experiencia PUBLICADA a su nombre— es el que más se
 // olvida: se puede tener todo firmado, el panel prendido y Connect listo, y aun
 // así no tener nada que vender.
-
-export type Candado = {
-  clave: string;
-  nombre: string;
-  cumplido: boolean;
-  detalle: string;
-  /** Quién lo destraba: la operadora o la casa. */
-  toca: "operadora" | "casa";
-};
-
-export type Etapa =
-  | "llego"
-  | "en_llamada"
-  | "expediente"
-  | "listo"
-  | "vendiendo"
-  | "dormido"
-  | "se_salieron";
 
 export type OperadoraPlataforma = {
   id: string;
@@ -202,12 +189,3 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
   });
 }
 
-export const ETAPAS: { clave: Etapa; num: string; nombre: string; como: string }[] = [
-  { clave: "llego", num: "01", nombre: "Llegó", como: "Automática · cae la solicitud" },
-  { clave: "en_llamada", num: "02", nombre: "En llamada", como: "A mano · se agenda" },
-  { clave: "expediente", num: "03", nombre: "Expediente", como: "A mano · se juntan papeles" },
-  { clave: "listo", num: "04", nombre: "Listo para vender", como: "Automática · seis candados" },
-  { clave: "vendiendo", num: "05", nombre: "Vendiendo", como: "Automática · tiene ventas del mes" },
-  { clave: "dormido", num: "06", nombre: "Dormido", como: "Automática · 60 días sin vender" },
-  { clave: "se_salieron", num: "07", nombre: "Se salieron", como: "Con su motivo" },
-];

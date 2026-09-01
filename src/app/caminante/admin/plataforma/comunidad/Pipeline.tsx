@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ETAPAS, type OperadoraPlataforma } from "@/lib/plataforma/operadoras";
+import { ETAPAS } from "@/lib/plataforma/etapas";
+import type { OperadoraPlataforma } from "@/lib/plataforma/operadoras";
 import { formatMXN } from "@/lib/admin/formato";
 import Cajon from "../../ui/Cajon";
 import Candados, { LlaveDeDuenos } from "./Candados";
