@@ -5,6 +5,7 @@ import type { Experience } from "@/lib/experiences/types";
 import { sendViaResend } from "@/lib/email/resend";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 import { DEFAULT_EMAIL_INTRO } from "./types";
+import { HUSO_CASA, diaSiguiente, horaLocal, husoDeCiudad } from "./husos";
 
 const SITE = "https://caminante.numanhub.com";
 
@@ -67,22 +68,32 @@ export type DispatchResult = {
   invited: number;
   skipped: number;
   errors: number;
+  /** A cuántos les SUPUSIMOS el huso porque no tenían ciudad legible. */
+  husoSupuesto: number;
+  /** Cuántos ya cumplen el día pero todavía no dan las 19:30 donde están. */
+  esperandoSuHora: number;
 };
+
+/** La hora local a la que sale la encuesta. */
+export const HORA_ENVIO = 19;
 
 // Para cada salida que terminó hace ≥24h, manda la encuesta a los asistentes
 // (reservas paid/confirmed/attended) que aún no tengan invitación. Idempotente.
 export async function runSurveyDispatch(now = new Date()): Promise<DispatchResult> {
   const sb = createSupabaseAdminClient();
-  const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const lowerBound = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString();
-  const res: DispatchResult = { dueSlots: 0, invited: 0, skipped: 0, errors: 0 };
+  const res: DispatchResult = {
+    dueSlots: 0, invited: 0, skipped: 0, errors: 0, husoSupuesto: 0, esperandoSuHora: 0,
+  };
 
-  // Salidas que terminaron hace ≥24h (ventana de 60 días para acotar trabajo).
+  // Toda salida ya terminada (ventana de 60 días para acotar trabajo). El corte
+  // fino ya NO se hace aquí: depende de la hora de cada persona, no del reloj
+  // del servidor, así que se decide más abajo una por una.
   const { data: slots } = await sb
     .from("experience_slots")
     .select("id, label, experience_id, ends_at")
     .not("ends_at", "is", null)
-    .lte("ends_at", cutoff)
+    .lte("ends_at", now.toISOString())
     .gte("ends_at", lowerBound);
   if (!slots || slots.length === 0) return res;
 
@@ -97,16 +108,20 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
   };
 
   for (const slotRaw of slots) {
-    const slot = slotRaw as { id: string; experience_id: string };
+    const slot = slotRaw as { id: string; experience_id: string; ends_at: string };
     const expRow = await getExp(slot.experience_id);
     const fb = expRow?.data?.feedback;
     if (!fb?.active) continue; // experiencia sin encuesta activa
     res.dueSlots++;
 
+    // EL DÍA lo pone la salida —ocurre en México—, LA HORA la pone quien
+    // recibe. «El día que acaba más uno, ese día a las 19:30 de su ciudad.»
+    const diaLimite = diaSiguiente(horaLocal(new Date(slot.ends_at), HUSO_CASA).dia);
+
     // Asistentes de la salida (reservas que apartan) + contacto
     const { data: resv } = await sb
       .from("reservations")
-      .select("id, contact_id, contacts(full_name, email, mailing_unsubscribed_at)")
+      .select("id, contact_id, contacts(full_name, email, city, mailing_unsubscribed_at)")
       .eq("slot_id", slot.id)
       .in("status", HOLDING_STATUSES);
 
@@ -114,13 +129,32 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
       const r = rRaw as unknown as {
         id: string;
         contact_id: string;
-        contacts: { full_name: string | null; email: string | null; mailing_unsubscribed_at: string | null } | null;
+        contacts: {
+          full_name: string | null; email: string | null; city: string | null;
+          mailing_unsubscribed_at: string | null;
+        } | null;
       };
       const email = r.contacts?.email;
       if (!email || r.contacts?.mailing_unsubscribed_at) {
         res.skipped++;
         continue;
       }
+      // ¿Ya son las 19:30 DONDE ESTÁ? La ventana es la hora entera de las 19
+      // porque el cron corre cada hora en punto y media.
+      //
+      // Se compara `dia >= diaLimite`, no `==`: si un día se cae el cron o el
+      // deploy llega tarde, la encuesta sale la SIGUIENTE noche a las 19:30 en
+      // vez de perderse para siempre. Una encuesta tarde sirve; una que nunca
+      // salió, no.
+      const huso = husoDeCiudad(r.contacts?.city ?? null);
+      if (huso.supuesto) res.husoSupuesto++;
+      const alla = horaLocal(now, huso.zona);
+      if (alla.dia < diaLimite || alla.hora !== HORA_ENVIO) {
+        if (alla.dia >= diaLimite) res.esperandoSuHora++;
+        res.skipped++;
+        continue;
+      }
+
       // ¿ya tiene invitación? (idempotencia)
       const { data: existing } = await sb
         .from("experience_feedback")
