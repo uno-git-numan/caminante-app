@@ -61,7 +61,8 @@ export function husoDeCiudad(ciudad: string | null | undefined): Huso {
 
 const partes = (fecha: Date, zona: string): Record<string, string> => {
   const f = new Intl.DateTimeFormat("en-CA", {
-    timeZone: zona, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false,
+    timeZone: zona, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
   });
   return Object.fromEntries(f.formatToParts(fecha).map((p) => [p.type, p.value]));
 };
@@ -72,6 +73,37 @@ export function horaLocal(fecha: Date, zona: string): { dia: string; hora: numbe
   // A las 24 horas Intl le llama "24" en algunos runtimes; se normaliza a 0.
   const h = Number(p.hour) % 24;
   return { dia: `${p.year}-${p.month}-${p.day}`, hora: h };
+}
+
+/** Cuánto se corre esa zona respecto a UTC, en ese instante (con horario de verano). */
+function desfase(fecha: Date, zona: string): number {
+  const p = partes(fecha, zona);
+  const comoSiFueraUtc = Date.UTC(
+    Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24,
+    Number(p.minute ?? 0), 0,
+  );
+  return comoSiFueraUtc - Math.floor(fecha.getTime() / 60000) * 60000;
+}
+
+/**
+ * El instante UTC en que serán las HH:MM del día `dia` EN esa zona.
+ *
+ * Esto es lo que vuelve al envío independiente de cada cuánto corra el cron. La
+ * versión anterior preguntaba «¿allá son las 19?», y con una sola corrida al día
+ * eso sólo se cumple para un huso: al resto no le tocaba NUNCA. Aquí se compara
+ * contra un momento absoluto, así que una corrida diaria acierta en la hora de
+ * la casa y a los demás les llega en la siguiente pasada —tarde, pero les llega.
+ *
+ * Se resuelve en dos vueltas porque el desfase depende del instante que estamos
+ * calculando (un día de cambio de horario se mueve solo).
+ */
+export function instanteEnZona(dia: string, hora: number, minuto: number, zona: string): Date {
+  const hh = String(hora).padStart(2, "0");
+  const mm = String(minuto).padStart(2, "0");
+  const comoUtc = Date.parse(`${dia}T${hh}:${mm}:00Z`);
+  let t = comoUtc;
+  for (let i = 0; i < 2; i++) t = comoUtc - desfase(new Date(t), zona);
+  return new Date(t);
 }
 
 /** El día siguiente a una fecha YYYY-MM-DD, en texto. */

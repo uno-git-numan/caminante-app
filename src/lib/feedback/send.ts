@@ -5,7 +5,7 @@ import type { Experience } from "@/lib/experiences/types";
 import { sendViaResend } from "@/lib/email/resend";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 import { DEFAULT_EMAIL_INTRO } from "./types";
-import { HUSO_CASA, diaSiguiente, horaLocal, husoDeCiudad } from "./husos";
+import { HUSO_CASA, diaSiguiente, horaLocal, husoDeCiudad, instanteEnZona } from "./husos";
 
 const SITE = "https://caminante.numanhub.com";
 
@@ -74,8 +74,9 @@ export type DispatchResult = {
   esperandoSuHora: number;
 };
 
-/** La hora local a la que sale la encuesta. */
+/** La hora local a la que sale la encuesta, donde esté quien la recibe. */
 export const HORA_ENVIO = 19;
+export const MINUTO_ENVIO = 30;
 
 // Para cada salida que terminó hace ≥24h, manda la encuesta a los asistentes
 // (reservas paid/confirmed/attended) que aún no tengan invitación. Idempotente.
@@ -139,18 +140,19 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
         res.skipped++;
         continue;
       }
-      // ¿Ya son las 19:30 DONDE ESTÁ? La ventana es la hora entera de las 19
-      // porque el cron corre cada hora en punto y media.
+      // ¿YA PASARON las 19:30 donde está? Se compara contra un INSTANTE, no
+      // contra «¿allá son las 19?».
       //
-      // Se compara `dia >= diaLimite`, no `==`: si un día se cae el cron o el
-      // deploy llega tarde, la encuesta sale la SIGUIENTE noche a las 19:30 en
-      // vez de perderse para siempre. Una encuesta tarde sirve; una que nunca
-      // salió, no.
+      // La diferencia no es de estilo. El plan es Hobby y ahí Vercel sólo deja
+      // crons diarios: con una corrida al día, preguntar por la hora local sólo
+      // acierta en un huso y al resto no le tocaría NUNCA. Comparar contra el
+      // momento absoluto hace que la corrida de la 01:30 UTC caiga exactamente
+      // en las 19:30 de la casa, y que a quien esté en otra zona le llegue en la
+      // siguiente pasada: tarde, pero le llega. Nadie se queda fuera.
       const huso = husoDeCiudad(r.contacts?.city ?? null);
       if (huso.supuesto) res.husoSupuesto++;
-      const alla = horaLocal(now, huso.zona);
-      if (alla.dia < diaLimite || alla.hora !== HORA_ENVIO) {
-        if (alla.dia >= diaLimite) res.esperandoSuHora++;
+      if (now < instanteEnZona(diaLimite, HORA_ENVIO, MINUTO_ENVIO, huso.zona)) {
+        res.esperandoSuHora++;
         res.skipped++;
         continue;
       }
