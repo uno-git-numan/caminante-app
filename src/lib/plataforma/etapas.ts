@@ -15,6 +15,14 @@ export type Candado = {
   detalle: string;
   /** Quién lo destraba: la operadora o la casa. */
   toca: "operadora" | "casa";
+  /**
+   * QUÉ bloquea si falta. No todos bloquean lo mismo, y tratarlos igual es la
+   * forma más rápida de perder a un operador: pedirle su sello del SAT a
+   * alguien que todavía no ha escrito su primera experiencia lo manda a cerrar
+   * la pestaña. Con «armar» puede entrar y construir en borrador desde el día
+   * uno; lo de cobrar se le pide cuando ya tiene algo que quiere publicar.
+   */
+  bloquea: "armar" | "cobrar";
 };
 
 export type Etapa =

@@ -9,6 +9,25 @@
 
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { operadorDelAlcance } from "@/lib/admin/queries";
+
+/**
+ * ¿Puede tocar el expediente de ESTA operadora?
+ *
+ * Las cuatro acciones de aquí exigían `isCurrentUserAdmin()`, y por eso la ficha
+ * de la casa mentía: marcaba «CSD fiscal · ÉL» y «Stripe Connect · ÉL» cuando
+ * en realidad ninguno de los dos lo podía hacer él. Un candado con dueño pero
+ * sin puerta es peor que no tener candado.
+ *
+ * Ahora entra la casa —que opera para cualquiera— o la operadora SOBRE SÍ MISMA.
+ * El `operadorId` viaja en un input oculto, así que compararlo contra el alcance
+ * de la sesión es lo único que impide que uno abra el expediente de otro.
+ */
+async function puedeTocarOperador(operadorId: string): Promise<boolean> {
+  if (!operadorId) return false;
+  if (await isCurrentUserAdmin()) return true;
+  return (await operadorDelAlcance()) === operadorId;
+}
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { crearLinkOnboarding, refrescarEstado } from "@/lib/payments/connect";
 
@@ -28,7 +47,7 @@ export async function pedirLinkStripe(
   operadorId: string,
   origen?: string,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "No autorizado." };
+  if (!(await puedeTocarOperador(operadorId))) return { ok: false, error: "No autorizado." };
   if (!operadorId) return { ok: false, error: "Falta el operador." };
   const r = await crearLinkOnboarding(operadorId, origen);
   return r.ok ? { ok: true, url: r.data.url } : { ok: false, error: r.error };
@@ -43,7 +62,7 @@ export async function pedirLinkStripe(
  * conectadas (una casilla del dashboard de Stripe, fácil de olvidar).
  */
 export async function refrescarConexion(operadorId: string): Promise<ConnectActionResult> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "No autorizado." };
+  if (!(await puedeTocarOperador(operadorId))) return { ok: false, error: "No autorizado." };
   if (!operadorId) return { ok: false, error: "Falta el operador." };
   const r = await refrescarEstado(operadorId);
   if (!r.ok) return { ok: false, error: r.error };
@@ -64,8 +83,8 @@ export async function refrescarConexion(operadorId: string): Promise<ConnectActi
  * sería un bug, no una funcionalidad.
  */
 export async function guardarCsd(formData: FormData): Promise<ConnectActionResult> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "No autorizado." };
   const id = String(formData.get("id") ?? "").trim();
+  if (!(await puedeTocarOperador(id))) return { ok: false, error: "No autorizado." };
   const cer = String(formData.get("cerPath") ?? "").trim();
   const key = String(formData.get("keyPath") ?? "").trim();
   const vence = String(formData.get("vence") ?? "").trim();
@@ -106,8 +125,8 @@ export async function guardarCsd(formData: FormData): Promise<ConnectActionResul
  * facturar es esta. Unificarlas es una migración aparte, con decisión de Luis.
  */
 export async function guardarFiscales(formData: FormData): Promise<ConnectActionResult> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "No autorizado." };
   const id = String(formData.get("id") ?? "").trim();
+  if (!(await puedeTocarOperador(id))) return { ok: false, error: "No autorizado." };
   if (!id) return { ok: false, error: "Falta el operador." };
 
   const t = (k: string, max: number) => String(formData.get(k) ?? "").trim().slice(0, max);

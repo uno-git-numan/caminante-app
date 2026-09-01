@@ -25,6 +25,13 @@ MIOS = [
 # .no-print no sale de ningún entregable: es la utilidad de impresión del panel.
 PERDONADAS = {"adm", "fin", "no-print"}
 
+# Desajustes de ETIQUETA revisados uno por uno y dados por buenos: son clases de
+# tipografía, no de componente, y aplican igual en cualquier elemento. Se listan
+# en vez de aflojar la regla, para que la regla siga cazando lo que sí importa
+# —una clase de componente puesta en otra cosa, como `.in` en un <input>, que
+# era un envoltorio de padding para <div> y dejaba el campo sin estilo—.
+TAG_PERDONADO = {"display", "subtitle", "mono", "mut", "op", "filters", "btn-orange", "btn-sm"}
+
 # Por clase, CON QUÉ ETIQUETAS la usa el entregable. El nombre solo no basta:
 # `cmch` existe —es un <div> contenedor de botones— y ponerla en un <span>
 # como si fuera un chip compila, pasa cualquier chequeo de nombres y se ve
@@ -76,7 +83,7 @@ for c, donde in sorted(usadas.items()):
         # className viaja a otro lado y aquí no se puede saber a cuál.
         malos = {(f, tg) for f, tg in donde
                  if tg[0].islower() and tg not in enMarkup[c]}
-        if malos:
+        if malos and c not in TAG_PERDONADO:
             mal_tag.append((c, sorted(enMarkup[c]), malos))
         continue
     (solo_css if c in enCss else inventadas).append((c, donde))

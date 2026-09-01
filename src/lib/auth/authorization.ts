@@ -91,6 +91,19 @@ export async function getCurrentRole(): Promise<Role | null> {
   return roleForClient(supabase);
 }
 
+/**
+ * El correo de quien está en sesión, en minúsculas. Null si no hay nadie.
+ *
+ * Se expone porque «¿de quién es esta pantalla?» se resuelve por correo en
+ * varias partes (operadores, solicitudes), y cada una lo estaba sacando por su
+ * cuenta del cliente de servidor.
+ */
+export async function correoEnSesion(): Promise<string | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  return data.user?.email?.toLowerCase() ?? null;
+}
+
 /** ¿Es LA CASA? Este es el gate de todo lo que administra la plataforma. */
 export async function isCurrentUserAdmin() {
   return (await getCurrentRole()) === "admin";

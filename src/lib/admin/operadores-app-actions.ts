@@ -32,6 +32,7 @@ import { randomBytes } from "node:crypto";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureOperador } from "@/lib/operators/alta";
+import { sembrarPerfilDesdeSolicitud } from "@/lib/operadores/perfil";
 import { marcaLista } from "@/lib/operators/marca";
 import type { OperatorBranding } from "@/lib/operators/branding";
 import {
@@ -56,6 +57,18 @@ type App = {
   status: string;
   branding: OperatorBranding | null;
   operator_id: string | null;
+  // Lo operativo que declaró: viaja a su perfil al aprobarlo.
+  ciudad_estado: string | null;
+  tipo_operacion: string | null;
+  antiguedad: string | null;
+  salidas_ano: string | null;
+  personas_salida: string | null;
+  seguro_rc: string | null;
+  primeros_auxilios: string | null;
+  ratio_guias: string | null;
+  descripcion: string | null;
+  instagram: string | null;
+  whatsapp: string | null;
 };
 
 /** Carga la solicitud si está en alguno de los estados que permiten avanzar. */
@@ -63,7 +76,11 @@ async function cargar(id: string, permitidos: string[]): Promise<App | null> {
   const sb = createSupabaseAdminClient();
   const { data } = await sb
     .from("operator_applications")
-    .select("id, nombre_operadora, responsable, email, status, branding, operator_id")
+    .select(
+      "id, nombre_operadora, responsable, email, status, branding, operator_id, " +
+        "ciudad_estado, tipo_operacion, antiguedad, salidas_ano, personas_salida, " +
+        "seguro_rc, primeros_auxilios, ratio_guias, descripcion, instagram, whatsapp",
+    )
     .eq("id", id)
     .maybeSingle();
   const app = data as App | null;
@@ -190,6 +207,25 @@ export async function aprobarOperadorApp(id: string): Promise<Res> {
     console.error("aprobarOperadorApp panel:", panelErr);
     return { ok: false, error: "Se creó el operador pero no se pudo abrir su panel." };
   }
+
+  // Lo que nos dio para ser aprobado —desde cuándo opera, su seguro, su ratio de
+  // guías— es justo lo que a un viajero le da confianza, y hasta ahora se
+  // quedaba enterrado en la solicitud. Se copia a su perfil, que es suyo y él
+  // edita; la solicitud no se toca.
+  await sembrarPerfilDesdeSolicitud(alta.operatorId, {
+    id: app.id,
+    ciudad_estado: app.ciudad_estado ?? null,
+    tipo_operacion: app.tipo_operacion ?? null,
+    antiguedad: app.antiguedad ?? null,
+    salidas_ano: app.salidas_ano ?? null,
+    personas_salida: app.personas_salida ?? null,
+    seguro_rc: app.seguro_rc ?? null,
+    primeros_auxilios: app.primeros_auxilios ?? null,
+    ratio_guias: app.ratio_guias ?? null,
+    descripcion: app.descripcion ?? null,
+    instagram: app.instagram ?? null,
+    whatsapp: app.whatsapp ?? null,
+  }).catch((e) => console.error("sembrar perfil:", e));
 
   // La marca declarada al aplicar se copia al operador — pero NUNCA pisa una
   // que ya exista: si alguien ya la configuró desde el panel, esa manda.

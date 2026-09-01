@@ -73,10 +73,10 @@ export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
             bandaDer: `${sel.cumplidos} de 6 candados`,
             cuerpo: (
               <>
-                <div className={sel.puedeVender ? "verdict" : "verdict no"}>
+                <div className={sel.puedeCobrar ? "verdict" : "verdict no"}>
                   <span className="n">{sel.cumplidos}/6</span>
                   <span className="g">
-                    <b>{sel.puedeVender ? "Puede vender hoy" : "No puede vender hoy"}</b>
+                    <b>{sel.puedeCobrar ? "Puede vender hoy" : "No puede vender hoy"}</b>
                     <span>
                       {pendientes.length === 0 ? (
                         <>Todo listo. Lo único que falta es que venda.</>

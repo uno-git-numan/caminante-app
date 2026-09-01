@@ -183,13 +183,13 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
       ) : null}
 
       {panel === "llamada" ? (
-        <div style={{ marginTop: 14, padding: 14, border: "1px solid #ddd6c9" }}>
+        <div className="cmwin" style={{ marginTop: 14, padding: 14, border: "1px solid #ddd6c9" }}>
           <p className="mut" style={{ fontSize: 12.5, marginBottom: 10 }}>
             Abre <a href="https://meet.google.com/new" target="_blank" rel="noreferrer">meet.google.com/new</a>, copia la liga y pégala aquí.
           </p>
-          <input className="in" placeholder="https://meet.google.com/abc-defg-hij" value={meet} onChange={(e) => setMeet(e.target.value)} />
-          <input className="in" type="datetime-local" style={{ marginTop: 8 }} value={cuando} onChange={(e) => setCuando(e.target.value)} />
-          <textarea className="in" style={{ marginTop: 8 }} rows={3} placeholder="Mensaje para el correo (opcional)" value={msg} onChange={(e) => setMsg(e.target.value)} />
+          <input placeholder="https://meet.google.com/abc-defg-hij" value={meet} onChange={(e) => setMeet(e.target.value)} />
+          <input type="datetime-local" style={{ marginTop: 8 }} value={cuando} onChange={(e) => setCuando(e.target.value)} />
+          <textarea style={{ marginTop: 8 }} rows={3} placeholder="Mensaje para el correo (opcional)" value={msg} onChange={(e) => setMsg(e.target.value)} />
           <div className="act-row">
             <button className="btn btn-orange btn-sm" disabled={busy !== null}
               onClick={() => correr("llamada", () => agendarLlamada(app.id, meet, cuando, msg))}>
@@ -201,7 +201,7 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
       ) : null}
 
       {panel === "docs" ? (
-        <div style={{ marginTop: 14, padding: 14, border: "1px solid #ddd6c9" }}>
+        <div className="cmwin" style={{ marginTop: 14, padding: 14, border: "1px solid #ddd6c9" }}>
           <p className="mut" style={{ fontSize: 12.5, marginBottom: 10 }}>
             Le llega un link privado con token, que expira en 21 días.
           </p>
@@ -212,7 +212,7 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
               {d}
             </label>
           ))}
-          <textarea className="in" style={{ marginTop: 8 }} rows={3} placeholder="Mensaje para el correo (opcional)" value={msg} onChange={(e) => setMsg(e.target.value)} />
+          <textarea style={{ marginTop: 8 }} rows={3} placeholder="Mensaje para el correo (opcional)" value={msg} onChange={(e) => setMsg(e.target.value)} />
           <div className="act-row">
             <button className="btn btn-orange btn-sm" disabled={busy !== null}
               onClick={() => correr("docs", () => pedirExpediente(app.id, docs, msg))}>

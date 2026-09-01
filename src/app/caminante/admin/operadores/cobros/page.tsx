@@ -42,7 +42,9 @@ export default async function CobrosPage() {
     .select(
       `id,name,email,stripe_payouts_enabled,stripe_requirements,stripe_onboarded_at,csd_subido_at,${COLUMNAS_GATE}`,
     )
-    .eq("active", true)
+    // Una suspendida SIGUE COBRANDO lo que ya vendió: cortarle el dinero de
+    // viajes que sí va a operar sería quedarle mal a ella y a sus clientes.
+    .neq("estado", "baja")
     .order("created_at");
   const rows = (data ?? []) as Row[];
 

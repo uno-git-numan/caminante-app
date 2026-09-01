@@ -1,5 +1,6 @@
 import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { convenioAlDia, leerEstado, versionesConvenio } from "@/lib/operadores/convenio";
 import type { Candado, Etapa } from "./etapas";
 
 // Reexportados para no mover cada llamada: lo puro vive en `etapas.ts`.
@@ -33,7 +34,10 @@ export type OperadoraPlataforma = {
   comisionDesde: string | null;
   candados: Candado[];
   cumplidos: number;
-  puedeVender: boolean;
+  /** Puede entrar y construir experiencias en borrador. */
+  puedeArmar: boolean;
+  /** Puede publicar y cobrar. Implica `puedeArmar`. */
+  puedeCobrar: boolean;
   experienciasPublicadas: number;
   experienciasBorrador: number;
   vendidoMes: number;
@@ -65,7 +69,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     sb
       .from("operators")
       .select(
-        "id, slug, name, es_la_casa, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, csd_subido_at, created_at",
+        "id, slug, name, es_la_casa, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, created_at",
       ),
     sb.from("experiences").select("id, status, operator_id"),
     sb.from("reservations").select("experience_id, status, total_amount_mxn, created_at"),
@@ -82,6 +86,11 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
   const reservas = ((resv ?? []) as Res[]).filter((r) => r.status === "paid");
   const solicitudes = (apps ?? []) as unknown as App[];
 
+  // Qué versión del convenio hay que tener firmada HOY. Se pide una sola vez
+  // para todas las operadoras: es la misma respuesta para todas.
+  const versiones = await versionesConvenio();
+  const estadoConvenio = leerEstado(versiones, ahora);
+
   return ((ops ?? []) as Record<string, unknown>[]).map((o) => {
     const id = o.id as string;
     const nombre = o.name as string;
@@ -94,6 +103,12 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       .filter((r) => r.created_at >= desdeMes)
       .reduce((a, r) => a + Number(r.total_amount_mxn ?? 0), 0);
 
+    const conv = convenioAlDia(
+      estadoConvenio,
+      (o.convenio_version as string | null) ?? null,
+      versiones,
+    );
+
     const candados: Candado[] = [
       {
         clave: "comision",
@@ -101,13 +116,18 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
         cumplido: o.commission_pct != null,
         detalle: o.commission_pct != null ? `${o.commission_pct}%` : "Sin definir",
         toca: "casa",
+        bloquea: "cobrar",
       },
+      // Ojo con el dueño: si la casa todavía no publica ningún convenio, el
+      // pendiente es SUYO, no del operador. Un candado que le echa la culpa a
+      // quien no puede resolverlo es peor que no tener candado.
       {
         clave: "convenio",
         nombre: "Convenio firmado",
-        cumplido: Boolean(o.convenio_firmado_at),
-        detalle: o.convenio_firmado_at ? "Firmado" : "Sin firmar",
-        toca: "operadora",
+        cumplido: conv.alDia,
+        detalle: conv.detalle,
+        toca: conv.toca,
+        bloquea: "armar",
       },
       {
         clave: "csd",
@@ -115,6 +135,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
         cumplido: Boolean(o.csd_subido_at),
         detalle: o.csd_subido_at ? "Cargado" : "Sin cargar",
         toca: "operadora",
+        bloquea: "cobrar",
       },
       {
         clave: "connect",
@@ -122,6 +143,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
         cumplido: o.stripe_charges_enabled === true,
         detalle: o.stripe_charges_enabled === true ? "Cuenta verificada" : "Sin conectar",
         toca: "casa",
+        bloquea: "cobrar",
       },
       {
         clave: "panel",
@@ -129,6 +151,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
         cumplido: o.panel_activo === true,
         detalle: o.panel_activo === true ? "Entra y ve su tablero" : "Apagado",
         toca: "casa",
+        bloquea: "armar",
       },
       {
         clave: "experiencia",
@@ -141,10 +164,16 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
               ? `Ninguna publicada · ${mias.length} en borrador`
               : "Ninguna a su nombre",
         toca: "casa",
+        bloquea: "cobrar",
       },
     ];
 
     const cumplidos = candados.filter((c) => c.cumplido).length;
+    // Dos preguntas distintas, y la primera se contesta mucho antes que la
+    // segunda. Nomádika hoy no puede ninguna de las dos, pero le falta UNA cosa
+    // para armar y tres para cobrar: decirle «2 de 6» esconde justo eso.
+    const puedeArmar = candados.filter((c) => c.bloquea === "armar").every((c) => c.cumplido);
+    const puedeCobrar = puedeArmar && candados.every((c) => c.cumplido);
     const app = solicitudes.find((a) => a.operator_id === id);
 
     // La etapa se DEDUCE del estado real, no de un campo que alguien mueve a
@@ -171,7 +200,9 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       candados,
       cumplidos,
       // La casa no tiene candados que cumplir: se vende a sí misma.
-      puedeVender: esLaCasa ? publicadas.length > 0 : cumplidos === 6,
+      // La casa no tiene candados: se le mide por si tiene algo publicado.
+      puedeArmar: esLaCasa ? true : puedeArmar,
+      puedeCobrar: esLaCasa ? publicadas.length > 0 : puedeCobrar,
       experienciasPublicadas: publicadas.length,
       experienciasBorrador: mias.length - publicadas.length,
       vendidoMes,

@@ -36,7 +36,9 @@ export default async function OperadoresAdminPage() {
     .select(
       "id, name, slug, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public, commission_pct, legal, rfc, razon_social",
     )
-    .eq("active", true)
+    // Se listan todas menos las dadas de baja: una suspendida sigue operando
+    // lo que ya vendió y tiene que poder verse.
+    .neq("estado", "baja")
     .order("created_at");
   const rows = (data ?? []) as Row[];
 

@@ -61,7 +61,7 @@ export default function Operadoras({ ops }: { ops: OperadoraPlataforma[] }) {
                     <td>
                       {o.esLaCasa ? (
                         <span className="chip">Es la casa</span>
-                      ) : o.puedeVender ? (
+                      ) : o.puedeCobrar ? (
                         <span className="chip c-paid">Puede vender</span>
                       ) : (
                         <span className="chip c-canc">No puede vender</span>
@@ -118,12 +118,12 @@ export default function Operadoras({ ops }: { ops: OperadoraPlataforma[] }) {
                             </div>
                           ) : (
                             <>
-                              <div className={o.puedeVender ? "verdict" : "verdict no"}>
+                              <div className={o.puedeCobrar ? "verdict" : "verdict no"}>
                                 <span className="n">{o.cumplidos}/6</span>
                                 <span className="g">
-                                  <b>{o.puedeVender ? "Puede vender hoy" : "No puede vender hoy"}</b>
+                                  <b>{o.puedeCobrar ? "Puede vender hoy" : "No puede vender hoy"}</b>
                                   <span>
-                                    {o.puedeVender
+                                    {o.puedeCobrar
                                       ? "Los seis candados están puestos."
                                       : `Le faltan ${6 - o.cumplidos}: ${o.candados
                                           .filter((c) => !c.cumplido)
