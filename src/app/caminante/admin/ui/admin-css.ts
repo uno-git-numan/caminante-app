@@ -1018,11 +1018,16 @@ export const ADMIN_CSS = `
 .adm .gnrg.ven .g,.adm .gnrg.ven .mn{color:var(--sand)}
 .adm .gncum .hoy,.adm .gnpa .hoy{margin-top:0}
 .adm .gnfila .gnopt,.adm .gnfila .cmch{margin-bottom:0}
+/* La pastilla la dibujó el entregable con <button>, y aquí es <Link> porque
+   tiene que navegar sin recargar. Los selectores llevan las dos formas: sin
+   esto los <a> se quedaban SIN UNA SOLA REGLA —naranja sobre el fondo oscuro,
+   y el segundo sombrero invisible— aunque el DOM fuera perfecto. Verificar la
+   estructura no es verificar que se ve. */
 .adm .hat{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--charcoal)}
-.adm .hat button{font-family:inherit;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:999px;border:0;background:transparent;color:rgba(255,255,255,.55)}
-.adm .hat button:hover{color:#fff}
-.adm .hat button.on{background:#fff;color:var(--charcoal)}
-.adm .hat button.on.cam{background:var(--olive);color:#fff}
+.adm .hat button,.adm .hat a{text-decoration:none;font-family:inherit;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:999px;border:0;background:transparent;color:rgba(255,255,255,.55)}
+.adm .hat button:hover,.adm .hat a:hover{color:#fff}
+.adm .hat button.on,.adm .hat a.on{background:#fff;color:var(--charcoal)}
+.adm .hat button.on.cam,.adm .hat a.on.cam{background:var(--olive);color:#fff}
 .adm .nav[hidden]{display:none}
 .adm .lk .own{margin-left:auto;flex:0 0 auto;font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--sand);border:1px solid var(--line);border-radius:4px;padding:2px 5px;line-height:1.3}
 .adm .lk.no .own.yo{color:var(--orange);border-color:rgba(255,93,54,.4)}
