@@ -81,7 +81,7 @@ export const NAV_PLATAFORMA: AdminNavItem[] = [
   { key: "pl-panorama", label: "Panorama", href: "/caminante/admin/plataforma" },
   { key: "pl-experiencias", label: "Experiencias", href: "/caminante/admin/plataforma/experiencias" },
   { key: "pl-comunidad", label: "Comunidad", href: "/caminante/admin/plataforma/comunidad" },
-  { key: "pl-recursos", label: "Recursos", soon: true },
+  { key: "pl-recursos", label: "Recursos", href: "/caminante/admin/plataforma/recursos" },
 ];
 
 /** Rutas del sombrero Caminante. Todo lo demás del panel es el sombrero NUMAN. */

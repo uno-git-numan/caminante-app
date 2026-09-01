@@ -224,5 +224,43 @@ quedaron todas en `unico`: aplicarla no movió ni un número.
 ⚠️ Ojo con los dos ejes: **`tipo`** (fijo/variable/buffer) decide el EQUILIBRIO;
 **`modo`** decide CÓMO se calcula el monto. No se deducen uno del otro.
 
+## El panel de la PLATAFORMA (28 ago 2026)
+
+**Caminante es la PLATAFORMA; NUMAN es una operadora — la propia.** Una pastilla
+en la cabecera cambia de sombrero, y el sombrero se DEDUCE de la ruta (`x-ruta`),
+no llega por prop: con prop, una pantalla nueva que olvidara pasarla se dibujaría
+con el nav del otro sombrero y se vería normal.
+
+    Caminante → /caminante/admin/plataforma · Panorama · Experiencias ·
+                Comunidad · Recursos
+    NUMAN     → /caminante/admin (el de siempre) · Panorama · Experiencias ·
+                Comunicación · Comunidad · Recursos · Salidas
+
+Paralelos a propósito: lo que cambia no es dónde vive cada cosa, es la unidad.
+Con NUMAN, Comunidad son los clientes; con Caminante, las operadoras.
+
+⚠️ **SOLICITUDES YA NO EXISTE.** Traía cuatro tipos revueltos y dos no eran de
+NUMAN: aprobar una operadora y abrir un panel son de la casa → Pipeline de
+Caminante. El cliente que pide fecha y el embajador → ARRIBA del tablero del CRM
+de NUMAN (`comunidad/PorContestar.tsx`), que es donde acaban convertidos en
+tarjeta. Una bandeja aparte es una pestaña que hay que acordarse de visitar.
+
+**Experiencias se ordena por ESTADO DE VIDA, no por nombre.** El grupo que
+justifica la pantalla es «en el aire»: publicada y sin fecha futura. Se ve viva
+—está en el sitio y tiene histórico— y nadie puede reservarla.
+
+**En Recursos, tres de los cinco bloques son HUECOS MARCADOS a propósito**: no
+hay tabla de proveedores de la plataforma (la `providers` que existe es del
+andamio viejo del marketplace), ni de impuestos, ni del expediente. Se dice en
+pantalla en vez de rellenarse.
+
+⚠️ **AL TRANSCRIBIR UN ENTREGABLE, VERIFICA ESTILOS COMPUTADOS, NO EL DOM.** La
+pastilla salió a producción rota: el entregable la dibuja con `<button>`, aquí
+tiene que ser `<Link>`, y las cuatro reglas apuntaban sólo a `button` — los `<a>`
+quedaron sin una sola regla («NUMAN» invisible, oscuro sobre oscuro). El DOM
+estaba perfecto. Y antes de escribir cada pantalla, **compara las clases que vas
+a usar contra admin-css.ts**: en la segunda tanda seis eran inventadas por mí.
+
 **Pendiente conocido:** ningún operador tiene `convenio_firmado_at`; independizar
-el DNS de Squarespace.
+el DNS de Squarespace. La operadora de la casa se llama `numan-caminante` y
+debería llamarse sólo «Numan».
