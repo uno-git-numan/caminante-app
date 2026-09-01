@@ -1,7 +1,13 @@
 "use client";
 
-// EL SEGMENTADO de Comunidad: CRM, Gente y Solicitudes son tres VISTAS de la
-// misma pantalla, no tres secciones apiladas. Se cambia sin recargar y sin
+// EL SEGMENTADO de Comunidad: CRM y Gente son dos VISTAS de la misma pantalla.
+//
+// Fueron tres un rato. «Solicitudes» desapareció: la mitad de lo que traía no
+// era de NUMAN sino de la plataforma —aprobar operadoras— y se fue al Pipeline
+// del sombrero Caminante; la otra mitad —el cliente que pide fecha, el
+// embajador que quiere traer gente— se subió ARRIBA del tablero, que es donde
+// va a acabar convertida en tarjeta. Una bandeja aparte es una pestaña que hay
+// que acordarse de visitar. Se cambia sin recargar y sin
 // perder el scroll.
 //
 // Las tres llegan ya renderizadas desde el servidor: el cliente sólo decide
@@ -15,27 +21,20 @@
 
 import { useState } from "react";
 
-type Vista = "solicitudes" | "crm" | "gente";
+type Vista = "crm" | "gente";
 
 export default function Vistas({
   crm,
   gente,
-  solicitudes,
   tablero,
   biblioteca,
-  bandeja,
 }: {
   crm: number;
   gente: number;
-  /** null = este usuario no tiene bandeja (operador externo): la pestaña no existe. */
-  solicitudes: number | null;
   tablero: React.ReactNode;
   biblioteca: React.ReactNode;
-  bandeja: React.ReactNode;
 }) {
-  const [vista, setVista] = useState<Vista>(
-    solicitudes ? "solicitudes" : crm > 0 ? "crm" : "gente",
-  );
+  const [vista, setVista] = useState<Vista>(crm > 0 ? "crm" : "gente");
   const tab = (k: Vista, label: string, n: number) => (
     <button type="button" className={vista === k ? "on" : undefined} onClick={() => setVista(k)}>
       {label}
@@ -45,11 +44,10 @@ export default function Vistas({
   return (
     <>
       <div className="cmseg">
-        {solicitudes === null ? null : tab("solicitudes", "Solicitudes", solicitudes)}
         {tab("crm", "CRM", crm)}
         {tab("gente", "Gente", gente)}
       </div>
-      {vista === "crm" ? tablero : vista === "gente" ? biblioteca : bandeja}
+      {vista === "crm" ? tablero : biblioteca}
     </>
   );
 }

@@ -54,7 +54,7 @@ export async function approveOperador(email: string): Promise<{ ok: boolean; err
     return { ok: false, error: `Acceso concedido, pero el alta como operador falló: ${alta.error}` };
   }
 
-  revalidatePath("/caminante/admin/comunidad");
+  revalidatePath("/caminante/admin/plataforma/comunidad");
   revalidatePath("/caminante/admin/operadores");
   return { ok: true };
 }
@@ -68,6 +68,6 @@ export async function rejectOperador(email: string): Promise<{ ok: boolean; erro
   // activo por accidente desde esta acción.
   const { error } = await sb.from("admin_whitelist").delete().eq("email", e).eq("is_active", false);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/caminante/admin/comunidad");
+  revalidatePath("/caminante/admin/plataforma/comunidad");
   return { ok: true };
 }

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import AdminShell from "../ui/AdminShell";
 import Biblioteca from "./Biblioteca";
 import TableroCRM from "./Tablero";
-import Solicitudes from "./Solicitudes";
+import PorContestar from "./PorContestar";
 import Vistas from "./Vistas";
 import { getCurrentRole, puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { fetchBiblioteca } from "@/lib/comunidad/biblioteca";
@@ -48,10 +48,9 @@ function letras(n: number): string {
 export default async function ComunidadPage() {
   if (!(await puedeEntrarAlPanel())) redirect("/caminante/login?next=/caminante/admin/comunidad");
 
-  // La bandeja es de la casa: aprobar una operadora o un embajador no es algo
-  // que un operador externo pueda hacer, y sus filas no se podan con
-  // `operadorDelAlcance` porque no son suyas —son de la plataforma. Por eso no
-  // se esconde: no se consulta. Un operador no llega a rozar esos datos.
+  // Lo que espera respuesta se consulta siempre: ya no trae nada de la
+  // plataforma —eso se fue al Pipeline del sombrero Caminante— sino sólo lo de
+  // quien opera, que es suyo.
   const esCasa = (await getCurrentRole()) === "admin";
   const [d, tablero, solicitudes] = await Promise.all([
     fetchBiblioteca(),
@@ -83,8 +82,6 @@ export default async function ComunidadPage() {
       <Vistas
         crm={tablero.total}
         gente={d.conteos.todos}
-        solicitudes={solicitudes ? solicitudes.pendientes : null}
-        bandeja={solicitudes ? <Solicitudes d={solicitudes} /> : null}
         tablero={
           <>
             <div className="sec-head" style={{ marginTop: 18 }}>
@@ -101,6 +98,7 @@ export default async function ComunidadPage() {
                 </p>
               </div>
             </div>
+            {solicitudes ? <PorContestar d={solicitudes} /> : null}
             <TableroCRM d={tablero} />
           </>
         }

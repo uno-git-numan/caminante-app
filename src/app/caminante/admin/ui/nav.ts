@@ -79,8 +79,8 @@ export const ADMIN_NAV: AdminNavItem[] = [
 // tenga que reaprender el panel al cambiarse el sombrero es el punto entero.
 export const NAV_PLATAFORMA: AdminNavItem[] = [
   { key: "pl-panorama", label: "Panorama", href: "/caminante/admin/plataforma" },
-  { key: "pl-experiencias", label: "Experiencias", soon: true },
-  { key: "pl-comunidad", label: "Comunidad", soon: true },
+  { key: "pl-experiencias", label: "Experiencias", href: "/caminante/admin/plataforma/experiencias" },
+  { key: "pl-comunidad", label: "Comunidad", href: "/caminante/admin/plataforma/comunidad" },
   { key: "pl-recursos", label: "Recursos", soon: true },
 ];
 

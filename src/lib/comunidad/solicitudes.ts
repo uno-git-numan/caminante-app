@@ -1,7 +1,17 @@
 import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-// LO QUE PIDEN — la carga de la bandeja, separada de su pantalla.
+// LO QUE ESPERA RESPUESTA EN EL CRM DE NUMAN.
+//
+// Antes esto cargaba CUATRO cosas y las metía en una sola bandeja. Dos de ellas
+// no eran de NUMAN sino de la plataforma —quién quiere operar sobre Caminante y
+// a quién se le abre el panel— y se mudaron al Pipeline del sombrero Caminante.
+// Aprobar una operadora es de la casa; no es algo que una operadora haga.
+//
+// Aquí se queda lo que sí es de quien opera: el cliente que pide una fecha o un
+// grupo privado, y el embajador que quiere traerle gente. Los dos son personas
+// que se acercan a MI operación, y por eso viven junto al CRM y no en una
+// bandeja aparte.
 //
 // Vivía dentro de `admin/solicitudes/page.tsx`. Cuando la bandeja dejó de ser
 // una pestaña y pasó a ser la tercera vista de Comunidad, la pantalla dejó de
@@ -29,8 +39,6 @@ export type SolRow = {
   experiences: { slug: string; data: { title?: string; titleAccent?: string; docTitle?: string } | null } | null;
 };
 
-export type WLRow = { email: string; is_active: boolean; note: string | null; created_at: string };
-
 export type EmbRow = {
   id: string;
   full_name: string;
@@ -45,27 +53,13 @@ export type EmbRow = {
   created_at: string;
 };
 
-export type OpRow = {
-  id: string; nombre_operadora: string; responsable: string; email: string; whatsapp: string;
-  instagram: string | null; ciudad_estado: string; tipo_operacion: string; descripcion: string;
-  antiguedad: string; salidas_ano: string | null; personas_salida: string | null;
-  rango_precio: string | null; seguro_rc: string; primeros_auxilios: string; ratio_guias: string;
-  incidentes: string; porque: string | null; conociste: string | null; status: string;
-  llamada_meet_url: string | null; llamada_at: string | null; expediente: unknown;
-  branding: unknown; branding_despues: boolean | null; created_at: string;
-};
-
 export type Solicitudes = {
   nuevas: SolRow[];
   resueltas: SolRow[];
-  opPend: WLRow[];
-  opActivos: WLRow[];
   embPend: EmbRow[];
   embResueltas: EmbRow[];
   embTablaLista: boolean;
-  ops: OpRow[];
-  opsTablaLista: boolean;
-  /** Lo que espera una decisión humana: es el número del segmentado. */
+  /** Lo que espera una decisión humana. */
   pendientes: number;
 };
 
@@ -83,58 +77,29 @@ async function fetchEmbApps(): Promise<{ rows: EmbRow[]; tablaLista: boolean }> 
   }
 }
 
-async function cargarOperadores(): Promise<{ rows: OpRow[]; tablaLista: boolean }> {
-  try {
-    const sb = createSupabaseAdminClient();
-    const { data, error } = await sb
-      .from("operator_applications")
-      .select(
-        "id, nombre_operadora, responsable, email, whatsapp, instagram, ciudad_estado, tipo_operacion, descripcion, antiguedad, salidas_ano, personas_salida, rango_precio, seguro_rc, primeros_auxilios, ratio_guias, incidentes, porque, conociste, status, llamada_meet_url, llamada_at, expediente, branding, branding_despues, created_at",
-      )
-      .in("status", ["pending", "calling", "docs"])
-      .order("created_at", { ascending: false });
-    if (error) return { rows: [], tablaLista: false };
-    return { rows: (data ?? []) as OpRow[], tablaLista: true };
-  } catch {
-    return { rows: [], tablaLista: false };
-  }
-}
-
 export async function fetchSolicitudes(): Promise<Solicitudes> {
   const sb = createSupabaseAdminClient();
-  const [{ data: reqData }, { data: wlData }, emb, ops] = await Promise.all([
+  const [{ data: reqData }, emb] = await Promise.all([
     sb
       .from("slot_requests")
       .select(
         "id, desired_date, nota, num_people, group_type, status, created_at, resolved_at, created_slot_id, contacts(full_name, email, phone), experiences(slug, data)",
       )
       .order("created_at", { ascending: false }),
-    sb
-      .from("admin_whitelist")
-      .select("email, is_active, note, created_at")
-      .order("created_at", { ascending: false }),
     fetchEmbApps(),
-    cargarOperadores(),
   ]);
 
   const rows = (reqData ?? []) as unknown as SolRow[];
-  const wl = (wlData ?? []) as WLRow[];
-
   const nuevas = rows.filter((r) => r.status === "new");
-  const opPend = wl.filter((r) => !r.is_active);
   const embPend = emb.rows.filter((r) => r.status === "pending");
 
   return {
     nuevas,
     resueltas: rows.filter((r) => r.status !== "new"),
-    opPend,
-    opActivos: wl.filter((r) => r.is_active),
     embPend,
     embResueltas: emb.rows.filter((r) => r.status !== "pending"),
     embTablaLista: emb.tablaLista,
-    ops: ops.rows,
-    opsTablaLista: ops.tablaLista,
-    // Las cuatro cosas que están esperando a que alguien diga sí o no.
-    pendientes: nuevas.length + opPend.length + embPend.length + ops.rows.length,
+    // Las dos cosas que esperan a que alguien diga sí o no.
+    pendientes: nuevas.length + embPend.length,
   };
 }
