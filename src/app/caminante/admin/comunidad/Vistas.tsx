@@ -45,7 +45,7 @@ export default function Vistas({
     <>
       <div className="cmseg">
         {tab("crm", "CRM", crm)}
-        {tab("gente", "Gente", gente)}
+        {tab("gente", "Clientes", gente)}
       </div>
       {vista === "crm" ? tablero : biblioteca}
     </>

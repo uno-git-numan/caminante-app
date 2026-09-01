@@ -1,5 +1,6 @@
 import { formatMXN } from "@/lib/admin/formato";
 import type { OperadoraPlataforma } from "@/lib/plataforma/operadoras";
+import Candados from "./Candados";
 
 // LA BIBLIOTECA DE OPERADORAS — una sola pregunta por renglón: ¿puede vender hoy?
 //
@@ -8,40 +9,6 @@ import type { OperadoraPlataforma } from "@/lib/plataforma/operadoras";
 // por área habría roto lo único que los hace útiles: ver de un jalón qué falta.
 // Lo que sí se distingue es DE QUIÉN es cada uno — así la ficha deja de ser un
 // diagnóstico y se vuelve una lista de pendientes con dueño.
-
-const PALOMA = (
-  <svg className="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 12.6l5.2 5.2L20 6.6" />
-  </svg>
-);
-const TACHE = (
-  <svg className="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 6l12 12M18 6L6 18" />
-  </svg>
-);
-
-function Candados({ o }: { o: OperadoraPlataforma }) {
-  return (
-    <div className="locks">
-      {o.candados.map((c) => (
-        <span key={c.clave} className={c.cumplido ? "lk ok" : "lk no"}>
-          {c.cumplido ? PALOMA : TACHE}
-          <span className="g">
-            {c.nombre}
-            <small>{c.detalle}</small>
-          </span>
-          {/* El entregable ya traía esta distinción y es lo que vuelve útil la
-              ficha: «Yo» es lo que la casa tiene que hacer, «Él» lo que se le
-              pide a la operadora. Sin eso, dos operadoras en 2 de 6 se ven
-              idénticas y lo que las destraba es distinto. */}
-          <span className={c.toca === "casa" ? "own yo" : "own el"}>
-            {c.toca === "casa" ? "Yo" : "Él"}
-          </span>
-        </span>
-      ))}
-    </div>
-  );
-}
 
 export default function Operadoras({ ops }: { ops: OperadoraPlataforma[] }) {
   const externas = ops.filter((o) => !o.esLaCasa);

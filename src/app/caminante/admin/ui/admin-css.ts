@@ -992,7 +992,7 @@ export const ADMIN_CSS = `
 .adm .filters select:focus,.adm .filters input:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(99,113,84,.15);}
 .adm .mini-form input,.adm .mini-form select{font-family:inherit;font-size:12.5px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;}
 @media print{.adm .ahead,.adm .nav,.adm .qa,.adm .no-print,.adm .btn{display:none !important;}.adm body{background:#fff;color:#000;}}
-.adm a:hover{color:var(--orange)}
+.adm a:not(.btn):hover{color:var(--orange)}
 .adm .nav a,.adm .nav a.on{text-decoration:none}
 .adm .cmc.cold .cmnext s,.adm .cmc.cold .cmnext b{color:var(--orange)}
 .adm .cmwin input,.adm .cmwin textarea{font-family:inherit;font-size:13px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--charcoal);line-height:1.5;resize:vertical}

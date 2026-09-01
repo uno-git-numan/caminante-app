@@ -37,7 +37,7 @@ export default function Gente({ d, nav, ui }: { d: GenteMovil; nav: Nav; ui: Ui 
   const [seg, setSeg] = useState("Reservas");
   return (
     <div className="adm-screen">
-      <Head eyebrow="Gente" title="Quién <em>viene.</em>" />
+      <Head eyebrow="Clientes" title="Quién <em>viene.</em>" />
       <div className="adm-pad">
         <Seg
           opts={["Reservas", "Personas", "Encuesta"]}
@@ -220,7 +220,7 @@ export function Persona({
         <NavBar onBack={nav.pop} t="Expediente" s="" />
         <div className="adm-pad">
           <div className="adm-card">
-            <Empty ic="◌" t="Ya no está" p="Esa persona no aparece en la lista; vuelve a abrirla desde Gente." />
+            <Empty ic="◌" t="Ya no está" p="Esa persona no aparece en la lista; vuelve a abrirla desde Clientes." />
           </div>
         </div>
       </div>

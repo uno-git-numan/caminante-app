@@ -67,7 +67,7 @@ export default async function ComunidadPage() {
               <span className="sl">{"//"}</span> Comunidad
             </span>
             <h1 className="display" style={{ marginTop: 10 }}>
-              Quién es la gente, <em className="ac">no cuántos son.</em>
+              Quién es cada cliente, <em className="ac">no cuántos son.</em>
             </h1>
             <p className="desc">
               Aquí no hay nada que perseguir: ni pagos, ni deslindes, ni pendientes. Eso es operación
@@ -107,7 +107,7 @@ export default async function ComunidadPage() {
             <div className="sec-head" style={{ marginTop: 18 }}>
               <div>
                 <span className="eyebrow">
-                  <span className="sl">{"//"}</span> Gente
+                  <span className="sl">{"//"}</span> Clientes
                 </span>
                 <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
                   {letras(d.conteos.todos)} personas <em className="ac">que dejaron rastro.</em>

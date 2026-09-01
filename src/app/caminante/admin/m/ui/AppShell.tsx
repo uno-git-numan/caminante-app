@@ -56,7 +56,7 @@ export type ShellProps = {
 const TABS: [string, string][] = [
   ["panorama", "Panorama"],
   ["eventos", "Eventos"],
-  ["gente", "Gente"],
+  ["gente", "Clientes"],
   // «Dinero» pasó a «Recursos», igual que en el panel de escritorio: es la
   // misma pregunta —qué entra y qué sale— y dos nombres para lo mismo confunden.
   ["recursos", "Recursos"],

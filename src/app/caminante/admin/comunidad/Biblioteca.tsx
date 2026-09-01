@@ -9,6 +9,7 @@
 // cinco facetas simultáneas fue justo lo que no se entendía.
 
 import { useMemo, useState } from "react";
+import Cajon from "../ui/Cajon";
 import type { PersonaBiblio, Biblioteca as Datos } from "@/lib/comunidad/biblioteca";
 
 type Filtro = "todos" | "vinieron" | "no" | "boletin" | "tag";
@@ -176,7 +177,64 @@ export default function Biblioteca({ d }: { d: Datos }) {
         </div>
       </div>
 
-      <div className={`gnlist${hayTags ? " contags" : ""}`}>
+      <Cajon
+        abierta={!!persona}
+        cerrar={() => setAbierta(null)}
+        ficha={
+          persona && {
+            iniciales: persona.iniciales,
+            titulo: persona.nombre,
+            subtitulo: persona.ciudad || "Sin ciudad",
+            banda: persona.viajes.length
+              ? `${persona.viajes.length} ${persona.viajes.length === 1 ? "viaje" : "viajes"}`
+              : "Todavía no ha venido",
+            bandaDer: persona.boletin ? "En el boletín" : undefined,
+            cuerpo: (
+              <>
+                <div className="gnmeta">
+                {persona.email ? <a href={`mailto:${persona.email}`}>{persona.email}</a> : <span className="hole">sin correo</span>}
+                {persona.telefono ? <span>{persona.telefono}</span> : <span className="hole">sin teléfono</span>}
+              </div>
+
+              <div className="gnhint">Te sigue desde: {persona.origen}</div>
+
+              <h4 className="xh4">Sus viajes</h4>
+              {persona.viajes.length ? (
+                persona.viajes.map((v, i) => (
+                  <div className="gnfila" key={i}>
+                    <span>{v.experiencia}</span>
+                    <span className="mono">{v.cuando}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="mut" style={{ fontSize: 13 }}>Ninguno todavía.</p>
+              )}
+
+              {persona.voz.length ? (
+                <>
+                  <h4 className="xh4">Su voz</h4>
+                  {persona.voz.map((v, i) => (
+                    <blockquote className="gnp" key={i} style={{ display: "block" }}>
+                      «{v.texto}»
+                      <cite>
+                        Encuesta · {v.cuando} · {v.publicable ? "con permiso de publicación" : "sin permiso de publicación"}
+                      </cite>
+                    </blockquote>
+                  ))}
+                </>
+              ) : null}
+
+              <h4 className="xh4">Boletín y cumpleaños</h4>
+              <div className="gnfila">
+                <span>{persona.boletin ? "En el boletín" : "No está en el boletín"}</span>
+                <span className={persona.cumple ? "mono" : "hole"}>{persona.cumple ?? "sin fecha"}</span>
+              </div>
+              </>
+            ),
+          }
+        }
+      >
+        <div className={`gnlist${hayTags ? " contags" : ""}`}>
         <div className="gnhd">
           <span />
           <button className={`gnsort${orden === "persona" ? " on" : ""}`} onClick={() => setOrden("persona")}>
@@ -238,66 +296,7 @@ export default function Biblioteca({ d }: { d: Datos }) {
           ))
         )}
       </div>
-
-      {/* La ficha entra por la derecha, igual que en el CRM: mismo componente,
-          una sola interacción que aprender en toda la pantalla. */}
-      {persona ? (
-        <>
-          <div className="cmveil" onClick={() => setAbierta(null)} />
-          <aside className="gnficha">
-            <header>
-              <span className="av">{persona.iniciales}</span>
-              <span className="g">
-                <b>{persona.nombre}</b>
-                <small>{persona.ciudad || "Sin ciudad"}</small>
-              </span>
-              <button type="button" className="x" onClick={() => setAbierta(null)} aria-label="Cerrar">
-                ×
-              </button>
-            </header>
-            <div className="bd">
-              <div className="gnmeta">
-                {persona.email ? <a href={`mailto:${persona.email}`}>{persona.email}</a> : <span className="hole">sin correo</span>}
-                {persona.telefono ? <span>{persona.telefono}</span> : <span className="hole">sin teléfono</span>}
-              </div>
-
-              <div className="gnhint">Te sigue desde: {persona.origen}</div>
-
-              <h4 className="xh4">Sus viajes</h4>
-              {persona.viajes.length ? (
-                persona.viajes.map((v, i) => (
-                  <div className="gnfila" key={i}>
-                    <span>{v.experiencia}</span>
-                    <span className="mono">{v.cuando}</span>
-                  </div>
-                ))
-              ) : (
-                <p className="mut" style={{ fontSize: 13 }}>Ninguno todavía.</p>
-              )}
-
-              {persona.voz.length ? (
-                <>
-                  <h4 className="xh4">Su voz</h4>
-                  {persona.voz.map((v, i) => (
-                    <blockquote className="gnp" key={i} style={{ display: "block" }}>
-                      «{v.texto}»
-                      <cite>
-                        Encuesta · {v.cuando} · {v.publicable ? "con permiso de publicación" : "sin permiso de publicación"}
-                      </cite>
-                    </blockquote>
-                  ))}
-                </>
-              ) : null}
-
-              <h4 className="xh4">Boletín y cumpleaños</h4>
-              <div className="gnfila">
-                <span>{persona.boletin ? "En el boletín" : "No está en el boletín"}</span>
-                <span className={persona.cumple ? "mono" : "hole"}>{persona.cumple ?? "sin fecha"}</span>
-              </div>
-            </div>
-          </aside>
-        </>
-      ) : null}
+      </Cajon>
     </>
   );
 }
