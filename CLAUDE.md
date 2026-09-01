@@ -203,5 +203,26 @@ que nadie cobró. Los dos operadores dados de alta entraron con 20% y arranque e
 ⚠️ **No hay ni un convenio firmado todavía** — el primero está por firmarse. Hasta
 entonces la comisión devengada es $0, y eso es correcto, no un pendiente.
 
+⚠️ **PENDIENTE DE LUIS · $12,440 de utilidad que no existen (28 ago 2026).** La
+salida «Ago 29-30» de Hacienda San Andrés tiene **11 personas pagadas** y dos
+costos capturados que suponen **9**: hospedaje ($4,650 c/u) y caminata ($1,250
+c/u), más el buffer del 5% que hereda el error. El costo real es $100,716 y no
+$88,276; el margen real es 20.4% y no el 30.2% que muestra el panel.
+
+**Esas dos filas se recapturan A MANO.** No se convierten solas: la tarifa
+unitaria sólo existe dentro del TEXTO del concepto («9 x $4,650») y parsearla
+para mover un número de dinero es adivinar. Al recapturarlas se decide si eran
+9 u 11.
+
+La **0049** (aplicada) hace que no vuelva a pasar: `experience_costs` guarda la
+TARIFA y no el producto, con cuatro modos —`unico`, `por_persona`,
+`desde_personas` (escalones) y `porcentaje` (el buffer)— y el total se resuelve
+al leer contra el roster real. Se congela cuando la salida se va, para que un
+reembolso tardío no reescriba un mes ya cerrado. Las 35 filas existentes
+quedaron todas en `unico`: aplicarla no movió ni un número.
+
+⚠️ Ojo con los dos ejes: **`tipo`** (fijo/variable/buffer) decide el EQUILIBRIO;
+**`modo`** decide CÓMO se calcula el monto. No se deducen uno del otro.
+
 **Pendiente conocido:** ningún operador tiene `convenio_firmado_at`; independizar
 el DNS de Squarespace.
