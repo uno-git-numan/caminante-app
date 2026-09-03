@@ -168,11 +168,10 @@ export default function CalculadoraPrecio({
                     lineHeight: 1.6,
                   }}
                 >
-                  <b>Si tú traes al cliente, te cae más dinero.</b> Al mismo precio de etiqueta
-                  recibirías <b>{mxn(siLoTraeEl!.neto)}</b> en vez de {mxn(actual!.neto)} —{" "}
-                  {mxn(deMas)} más — porque la comisión baja a {(siLoTraeEl!.pct * 100).toFixed(2)}%.
-                  El precio sugerido de arriba usa el caso más caro para ti, así que nunca te va a
-                  llegar menos de lo que pediste.
+                  <b>Si tú traes al cliente, recibes {mxn(siLoTraeEl!.neto)}</b> en vez de{" "}
+                  {mxn(actual!.neto)} (+{mxn(deMas)}): la comisión baja a{" "}
+                  {(siLoTraeEl!.pct * 100).toFixed(2)}%. Lo sugerido usa el caso más caro — nunca
+                  recibes menos.
                 </div>
               ) : null}
               <p className="mut" style={{ fontSize: 11.5, lineHeight: 1.6, marginTop: 8 }}>
