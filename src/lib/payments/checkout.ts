@@ -18,6 +18,7 @@ import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
 import { deslindeListo } from "@/lib/experiences/flujo-venta";
 import { fetchComplementos, resolverElegidos } from "@/lib/experiences/complementos";
+import { comisionDeVenta } from "@/lib/operadores/comision";
 import type { Experience } from "@/lib/experiences/types";
 
 async function getOrigin() {
@@ -128,6 +129,25 @@ export async function createCheckout(formData: FormData) {
     if (op?.commission_pct != null) commissionPct = Number(op.commission_pct);
   }
 
+  // LA COMISIÓN, CONGELADA EN PESOS Y SOBRE EL TOTAL.
+  //
+  // El complemento comisiona: la venta es un boleto, no dos. Antes solo viajaba
+  // el porcentaje y el monto se recalculaba después contra lo pagado — lo que
+  // funcionaba de casualidad, y solo mientras nadie tocara la tasa. Ahora se
+  // resuelve aquí, con el precio de HOY, y se guarda en `payments.platform_fee_mxn`.
+  const baseTotal = perPerson * numPeople;
+  const totalComplementos = complementosElegidos.reduce(
+    (n, c) => n + c.precioUnitario * (c.porPersona ? numPeople : 1),
+    0,
+  );
+  const comision =
+    commissionPct != null
+      ? comisionDeVenta(
+          { base: baseTotal, complementos: totalComplementos },
+          { tipo: "plano", pct: commissionPct },
+        )
+      : null;
+
   const origin = await getOrigin();
   const title =
     [experience.title, experience.titleAccent].filter(Boolean).join(" ").trim() ||
@@ -152,6 +172,9 @@ export async function createCheckout(formData: FormData) {
     num_people: String(numPeople),
     operator_id: operatorId ?? "",
     commission_pct: commissionPct != null ? String(commissionPct) : "",
+    // El MONTO, no solo la tasa: es lo que se congela en el pago.
+    platform_fee_mxn: comision ? String(comision.monto) : "",
+    platform_fee_complementos: comision ? String(comision.desglose.complementos) : "",
     tier_label: tierLabel,
     slot_visibility: (slot.visibility as string | null) ?? "public",
     // CONGELADO: id + nombre + precio unitario de cada complemento al momento

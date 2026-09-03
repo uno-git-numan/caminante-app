@@ -79,6 +79,63 @@ export function comisionPara(precio: number, escala: Escala): Comision {
   return { monto, pctEfectivo: monto / precio, escala };
 }
 
+/**
+ * La regla que se le aplica a una venta.
+ *
+ * Hoy conviven dos y hay que ser honestos sobre por qué: `operators.commission_pct`
+ * es el número PLANO que se pacta y se congela en el convenio de cada operadora
+ * —es lo que cobra el checkout en vivo—, y la ESCALA por tramos es el esquema
+ * nuevo, ya calculado aquí pero todavía no enchufado al cobro. Las dos pasan
+ * por esta misma puerta para que el día que se cambie de una a otra no haya un
+ * porcentaje suelto en otro archivo.
+ */
+export type Regla = { tipo: "plano"; pct: number } | { tipo: "escala"; escala: Escala };
+
+/**
+ * La comisión de UNA venta completa: el viaje MÁS lo que se le agregó.
+ *
+ * ⚠️ El complemento comisiona. Un tren de $6,778 pegado a un viaje de $32,197
+ * no es un regalo de la plataforma: pasó por el mismo checkout, el mismo cobro
+ * y el mismo soporte.
+ *
+ * Lo que había que decidir era a QUÉ TASA, y la respuesta es la que ya usa todo
+ * lo demás: **la venta es UN boleto**. Se suma base + complementos y el total
+ * entra a la regla, así que los pesos del complemento pagan la tasa del tramo
+ * donde caen.
+ *
+ * La alternativa —correr el complemento solo por la escala, como boleto
+ * aparte— se descartó porque invierte el discurso: al ser barato caería en el
+ * tramo MÁS caro (un tren de $6,778 pagaría ~23% mientras el viaje de $32,197
+ * paga ~18%) y se comería casi todo el margen del agregado. Entre más cara la
+ * venta, más baja la tasa; el complemento no puede ser la excepción.
+ */
+export function comisionDeVenta(
+  { base, complementos = 0 }: { base: number; complementos?: number },
+  regla: Regla,
+): Comision & { desglose: { viaje: number; complementos: number } } {
+  const total = base + complementos;
+  const c: Comision =
+    regla.tipo === "escala"
+      ? comisionPara(total, regla.escala)
+      : {
+          monto: Math.round(total * (regla.pct / 100) * 100) / 100,
+          pctEfectivo: regla.pct / 100,
+          escala: "plataforma",
+        };
+  // El desglose NO se recalcula por separado (eso sería otra comisión): se
+  // reparte la del total a prorrata, que es lo único consistente con un tramo
+  // marginal. Sirve para explicarle al operador de dónde salió su retención.
+  const parte = total > 0 ? complementos / total : 0;
+  const deComplementos = Math.round(c.monto * parte * 100) / 100;
+  return {
+    ...c,
+    desglose: {
+      viaje: Math.round((c.monto - deComplementos) * 100) / 100,
+      complementos: deComplementos,
+    },
+  };
+}
+
 /** Para la página pública: los tramos tal como se comunican. */
 export function tramosPara(escala: Escala): { desde: number; hasta: number | null; pct: number }[] {
   let piso = 0;

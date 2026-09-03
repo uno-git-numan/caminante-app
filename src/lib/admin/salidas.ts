@@ -37,6 +37,25 @@ export type PersonaPendiente = {
 
 export type PersonaFirmada = { nombre: string; fecha: string };
 
+/**
+ * Alguien con dinero adentro que se le puede devolver.
+ *
+ * ⚠️ Solo se llena para LA CASA. Salidas también la ve un operador externo y
+ * ahí no hay dinero por diseño (design/encuesta-v2/LIMITES.md); además la
+ * devolución sale de la cuenta de NUMAN HUB, no de la suya.
+ */
+export type PersonaReembolsable = {
+  reservationId: string;
+  nombre: string;
+  email: string | null;
+  /** Lo cobrado y todavía vivo. */
+  monto: number;
+  /** `stripe` se devuelve con un clic; lo demás se avisa y se hace por banco. */
+  porStripe: boolean;
+  /** Ya tiene un reembolso pedido o confirmado: el botón no se ofrece dos veces. */
+  enCurso: boolean;
+};
+
 /** Alguien a quien se le mandó la encuesta y todavía no contesta. */
 export type SinResponder = {
   /** Id de la fila de `experience_feedback` — lo pide `reenviarEncuesta`. */
@@ -87,6 +106,8 @@ export type Salida = {
   titulares: number;
   pendientes: PersonaPendiente[];
   firmadosLista: PersonaFirmada[];
+  /** Vacío para un operador: los reembolsos son de la casa. */
+  reembolsables: PersonaReembolsable[];
 
   // ── encuesta ──
   encuestaArmada: boolean;
@@ -130,6 +151,8 @@ export type LineaDeSalidas = {
   repartoFirmas: { experiencia: string; faltan: number }[];
   sinEncuesta: { experiencia: string; label: string }[];
   respuestasPorLeer: { respuestas: number; invitadas: number; publicables: number; repiten: number };
+  /** La casa ve y mueve dinero; un operador no. Decide si salen los reembolsos. */
+  esCasa: boolean;
 };
 
 /** Días calendario entre hoy y una fecha, en CDMX. Negativo = ya pasó. */
@@ -181,6 +204,16 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
         ),
     ]);
 
+  // Dinero: SOLO si quien mira es la casa. Un operador no debe recibir estas
+  // filas ni siquiera en el payload del servidor.
+  const esCasa = !operatorId;
+  const [{ data: paysRaw }, { data: reemsRaw }] = esCasa
+    ? await Promise.all([
+        sb.from("payments").select("reservation_id, amount_mxn, status, method"),
+        sb.from("reembolsos").select("payment_id, reservation_id, estado"),
+      ])
+    : [{ data: null }, { data: null }];
+
   type ExpRow = { id: string; slug: string; status: string; data: Partial<Experience> | null; operator_id: string | null };
   let exps = (expsRaw ?? []) as ExpRow[];
 
@@ -218,6 +251,26 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   );
 
   // Contactos: solo los que aparecen en lo ya podado.
+  // Lo cobrado y vivo por reserva, y qué reserva ya tiene un reembolso en curso.
+  const cobradoPorResv = new Map<string, { monto: number; porStripe: boolean }>();
+  for (const p of (paysRaw ?? []) as {
+    reservation_id: string | null; amount_mxn: number | null; status: string; method: string | null;
+  }[]) {
+    if (!p.reservation_id || p.status !== "paid") continue;
+    const prev = cobradoPorResv.get(p.reservation_id);
+    cobradoPorResv.set(p.reservation_id, {
+      monto: (prev?.monto ?? 0) + Number(p.amount_mxn || 0),
+      // Basta con que UN cobro no sea de Stripe para que no sea un clic: se
+      // dice, en vez de devolver la mitad y callar la otra.
+      porStripe: (prev?.porStripe ?? true) && p.method === "stripe",
+    });
+  }
+  const reembolsoEnCurso = new Set(
+    ((reemsRaw ?? []) as { reservation_id: string | null; estado: string }[])
+      .filter((r) => r.reservation_id && (r.estado === "solicitado" || r.estado === "confirmado"))
+      .map((r) => r.reservation_id as string),
+  );
+
   const contactIds = [...new Set([...resvs.map((r) => r.contact_id), ...fbs.map((f) => f.contact_id)])];
   const { data: contactsRaw } = contactIds.length
     ? await sb.from("contacts").select("id, full_name, email, phone").in("id", contactIds)
@@ -294,6 +347,24 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
           telefono: c?.phone ?? null,
         };
       });
+    const reembolsables: PersonaReembolsable[] = esCasa
+      ? mias
+          .map((r) => {
+            const cobro = cobradoPorResv.get(r.id);
+            if (!cobro || cobro.monto <= 0) return null;
+            const c = cById.get(r.contact_id);
+            return {
+              reservationId: r.id,
+              nombre: c?.full_name || c?.email || "—",
+              email: c?.email ?? null,
+              monto: cobro.monto,
+              porStripe: cobro.porStripe,
+              enCurso: reembolsoEnCurso.has(r.id),
+            };
+          })
+          .filter((x): x is PersonaReembolsable => x !== null)
+      : [];
+
     const firmadosLista: PersonaFirmada[] = mias
       .filter((r) => firmadoPorResv.has(r.id))
       .map((r) => ({
@@ -374,6 +445,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       titulares,
       pendientes,
       firmadosLista,
+      reembolsables,
       encuestaArmada: !!data?.feedback?.active && (data?.feedback?.sections ?? []).length > 0,
       invitadas: mios.length,
       respuestas: enviadas.length,
@@ -433,6 +505,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       publicables: pasadas.reduce((n, s) => n + s.publicables, 0),
       repiten: pasadas.reduce((n, s) => n + s.repiten, 0),
     },
+    esCasa,
   };
 }
 

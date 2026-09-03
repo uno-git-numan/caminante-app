@@ -15,6 +15,7 @@ import type { Salida } from "@/lib/admin/salidas";
 import LinkDeslinde from "@/app/caminante/admin/encuesta/LinkDeslinde";
 import { reenviarEncuesta } from "@/lib/feedback/resend-actions";
 import { setSlotStatusAction, updateSlot } from "@/lib/admin/eventos-actions";
+import { reembolsarPersona, cancelarSalidaYReembolsar } from "@/lib/payments/reembolsos";
 import { iniciales } from "@/lib/admin/formato";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
@@ -159,9 +160,147 @@ function Barra({ etiqueta, hecho, total, warn }: { etiqueta: string; hecho: numb
   );
 }
 
-export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
+const mxn = (n: number) => "$" + Math.round(n).toLocaleString("es-MX");
+
+/** DEVOLVER DINERO — una persona, o la salida entera.
+ *
+ *  ⚠️ Pide MOTIVO y CONFIRMACIÓN escrita, no un `confirm()`. Dos razones: el
+ *  diálogo nativo del navegador se auto-cancela en el Chrome automatizado (nos
+ *  costó una campaña entera descubrirlo), y sobre todo porque devolver dinero
+ *  no se deshace. Escribir el nombre de la salida para cancelarla es la misma
+ *  fricción que usa GitHub para borrar un repo, y por el mismo motivo.
+ *
+ *  El botón NO promete que el dinero ya volvió: se le pide a Stripe, y la
+ *  cancelación, el lugar liberado y el correo ocurren cuando Stripe confirma.
+ *  El texto lo dice tal cual para que nadie cierre la pantalla creyendo otra cosa.
+ */
+function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
+  const [motivo, setMotivo] = useState("");
+  const [confirmacion, setConfirmacion] = useState("");
+  const [ocupado, setOcupado] = useState("");
+  const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  const vivos = s.reembolsables.filter((r) => !r.enCurso);
+  const totalVivo = vivos.reduce((n, r) => n + r.monto, 0);
+  const puedeCancelar = confirmacion.trim().toLowerCase() === s.label.trim().toLowerCase();
+
+  const contar = (r: { ok: boolean; reembolsados?: number; monto?: number; avisos?: string[]; error?: string }) => {
+    if (!r.ok) { setAviso({ ok: false, texto: r.error || "No se pudo." }); return; }
+    const base = `Le pedimos a Stripe ${r.reembolsados} ${r.reembolsados === 1 ? "devolución" : "devoluciones"} por ${mxn(r.monto ?? 0)}. En cuanto Stripe confirme se cancela el lugar y sale el correo.`;
+    setAviso({ ok: true, texto: [base, ...(r.avisos ?? [])].join(" · ") });
+  };
+
+  return (
+    <div className="card pad" style={{ marginTop: 14, borderColor: "rgba(179,53,23,.3)" }}>
+      <span className="subtitle">Reembolsos</span>
+      <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 4 }}>
+        Se devuelve por la misma tarjeta. El lugar vuelve a la venta y la persona recibe su correo
+        <b> cuando Stripe confirma</b>, no al apretar el botón.
+      </p>
+
+      <label className="mut" style={{ fontSize: 12.5, display: "block", marginTop: 12 }}>
+        Motivo{" "}
+        <input
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Se dio de baja · Mal clima · Cupo mínimo no alcanzado"
+          style={{ width: "min(420px, 100%)" }}
+        />
+      </label>
+
+      {s.reembolsables.length === 0 ? (
+        <p className="mut" style={{ fontSize: 12.5, marginTop: 12 }}>
+          Nadie de esta salida tiene un cobro vivo que devolver.
+        </p>
+      ) : (
+        <div style={{ marginTop: 12 }}>
+          {s.reembolsables.map((r) => (
+            <div
+              key={r.reservationId}
+              style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "7px 0" }}
+            >
+              <span className="av">{iniciales(r.nombre)}</span>
+              <span style={{ fontSize: 14 }}>{r.nombre}</span>
+              <span className="mut" style={{ fontSize: 12.5 }}>{mxn(r.monto)}</span>
+              {r.enCurso ? (
+                <span className="mut" style={{ fontSize: 12.5 }}>Reembolso en curso</span>
+              ) : !r.porStripe ? (
+                <span className="mut" style={{ fontSize: 12.5 }}>Se cobró fuera de Stripe — devuélvelo por banco</span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={!!ocupado}
+                  onClick={async () => {
+                    setOcupado(r.reservationId);
+                    setAviso(null);
+                    contar(await reembolsarPersona(r.reservationId, motivo));
+                    setOcupado("");
+                    onListo();
+                  }}
+                >
+                  {ocupado === r.reservationId ? "Pidiendo a Stripe…" : "Reembolsar"}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Cancelar la salida entera. Detrás de la confirmación escrita porque no
+          es «lo mismo pero a todos»: además cierra la fecha para siempre. */}
+      <div style={{ borderTop: "1px solid var(--line)", marginTop: 14, paddingTop: 14 }}>
+        <span className="subtitle">Cancelar la salida</span>
+        <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 4 }}>
+          Devuelve a las {vivos.length} {vivos.length === 1 ? "persona" : "personas"} con cobro vivo
+          ({mxn(totalVivo)}), cierra la fecha y avisa a cada quien. <b>No se deshace.</b> Para
+          confirmar, escribe la etiqueta de la salida: <b>{s.label}</b>
+        </p>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+          <input
+            value={confirmacion}
+            onChange={(e) => setConfirmacion(e.target.value)}
+            placeholder={s.label}
+            style={{ width: "min(260px, 100%)" }}
+          />
+          <button
+            type="button"
+            className="btn btn-orange"
+            disabled={!puedeCancelar || !!ocupado}
+            onClick={async () => {
+              setOcupado("salida");
+              setAviso(null);
+              contar(await cancelarSalidaYReembolsar(s.id, motivo));
+              setOcupado("");
+              setConfirmacion("");
+              onListo();
+            }}
+          >
+            {ocupado === "salida" ? "Cancelando…" : "Cancelar salida y reembolsar a todos"}
+          </button>
+        </div>
+      </div>
+
+      {aviso ? (
+        <p
+          style={{
+            fontSize: 12.5,
+            lineHeight: 1.6,
+            marginTop: 12,
+            color: aviso.ok ? "var(--olive)" : "#b33517",
+          }}
+        >
+          {aviso.texto}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio: string; esCasa?: boolean }) {
   const [abierta, setAbierta] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [reembolsando, setReembolsando] = useState(false);
   const faltan = s.titulares - s.firmados;
   // «Grave» se reserva para la salida que va a viajar sin encuesta: si viaja
   // así, no hay forma de saber cómo estuvo, y el único síntoma es el silencio.
@@ -459,6 +598,18 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
                     {editando ? "Cerrar edición" : "Editar cupo y fechas"}
                   </button>
                 )}
+                {/* Dinero. Solo aparece para la casa: `reembolsables` llega
+                    vacío para un operador (la devolución sale de la cuenta de
+                    NUMAN HUB, no de la suya). */}
+                {esCasa ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setReembolsando((v) => !v)}
+                  >
+                    {reembolsando ? "Cerrar reembolsos" : "Reembolsar o cancelar"}
+                  </button>
+                ) : null}
                 {s.estado !== "open" ? (
                   <span className="mut" style={{ fontSize: 12.5 }}>
                     Ya no se vende. La fecha y su gente siguen aquí.
@@ -466,6 +617,7 @@ export default function Capsula({ s, sitio }: { s: Salida; sitio: string }) {
                 ) : null}
               </div>
               {editando ? <EditarSalida s={s} onListo={() => setEditando(false)} /> : null}
+              {reembolsando ? <Reembolsos s={s} onListo={() => setReembolsando(false)} /> : null}
             </>
           )}
         </div>

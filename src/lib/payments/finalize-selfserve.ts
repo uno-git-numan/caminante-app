@@ -169,11 +169,17 @@ export async function finalizeSelfServeCheckout(
     }
   }
 
-  // Pago.
+  // Pago. `platform_fee_mxn` viaja CONGELADO desde el checkout (ya incluye los
+  // complementos); si no viniera, se deja nulo y el panel cae al porcentaje —
+  // nunca se inventa aquí un número que debía decidirse al vender.
+  const platformFee = session.metadata?.platform_fee_mxn
+    ? Number(session.metadata.platform_fee_mxn)
+    : null;
   const { error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,
     contact_id: contact.id,
     amount_mxn: amountPaid,
+    ...(platformFee != null && Number.isFinite(platformFee) ? { platform_fee_mxn: platformFee } : {}),
     status: "paid",
     method: "stripe",
     provider_ref: providerRef,

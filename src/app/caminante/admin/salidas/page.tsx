@@ -193,7 +193,7 @@ export default async function SalidasPage({
         ) : null}
 
         {d.proximas.map((s) => (
-          <Capsula key={s.id} s={s} sitio={SITIO} />
+          <Capsula key={s.id} s={s} sitio={SITIO} esCasa={d.esCasa} />
         ))}
 
         {/* Publicadas que nadie ha comprado. Se colapsan: tampoco son un
@@ -248,7 +248,7 @@ export default async function SalidasPage({
         {d.pasadas.length === 0 ? (
           <div className="empty">Todavía no ha viajado ningún grupo.</div>
         ) : (
-          d.pasadas.map((s) => <Capsula key={s.id} s={s} sitio={SITIO} />)
+          d.pasadas.map((s) => <Capsula key={s.id} s={s} sitio={SITIO} esCasa={d.esCasa} />)
         )}
       </section>
     </AdminShell>
