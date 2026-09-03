@@ -76,11 +76,28 @@ export type Comision = {
   escala: Escala;
 };
 
+/** El IVA mexicano. Vive aquí porque la comisión se calcula SIN él. */
+export const IVA = 0.16;
+
+/** De un precio al público (con IVA) al valor del servicio. */
+export const sinIva = (conIva: number): number => Math.round((conIva / (1 + IVA)) * 100) / 100;
+
 /**
  * Cuánto retiene la plataforma de UNA venta.
  *
- * ⚠️ `precio` es el precio por persona CON IVA, tal como se le cobra al
- * cliente y como vive en `experience_slots.price_mxn`.
+ * ⚠️ `precio` es la BASE SIN IVA, no el precio de la etiqueta.
+ *
+ * Dos razones, y las dos importan:
+ *   1. Una comisión se cobra sobre el valor del servicio, no sobre un impuesto
+ *      que no es de nadie: el IVA se traslada al SAT. Cobrar 18% sobre los
+ *      $32,197 en vez de sobre los $27,756 sería cobrarle al operador por
+ *      recaudar.
+ *   2. Si el tramo se leyera con IVA y la tasa se aplicara sin él, la tasa
+ *      efectiva sería la de la tabla ÷ 1.16 y ningún porcentaje publicado sería
+ *      cierto. Un solo número, un solo significado: todo en base.
+ *
+ * Los cortes ($3,000 / $8,000 / $15,000) son de base, entonces: al público eso
+ * es $3,480 / $9,280 / $17,400.
  */
 export function comisionPara(precio: number, escala: Escala): Comision {
   if (!(precio > 0)) return { monto: 0, pctEfectivo: 0, escala };

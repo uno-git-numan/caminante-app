@@ -18,7 +18,8 @@ import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
 import { deslindeListo } from "@/lib/experiences/flujo-venta";
 import { fetchComplementos, resolverElegidos } from "@/lib/experiences/complementos";
-import { comisionDeVenta } from "@/lib/operadores/comision";
+import { comisionDeVenta, sinIva, type Regla } from "@/lib/operadores/comision";
+import { ATRIB_COOKIE, escalaPara, leerAtribucion } from "@/lib/operadores/atribucion";
 import type { Experience } from "@/lib/experiences/types";
 
 async function getOrigin() {
@@ -129,27 +130,40 @@ export async function createCheckout(formData: FormData) {
     if (op?.commission_pct != null) commissionPct = Number(op.commission_pct);
   }
 
-  // LA COMISIÓN, CONGELADA EN PESOS. Antes solo viajaba el porcentaje y el monto
-  // se recalculaba después contra lo pagado — funcionaba de casualidad, y solo
-  // mientras nadie tocara la tasa. Ahora se resuelve aquí, con el precio de HOY.
+  const jar = await cookies();
+
+  // ── LA COMISIÓN ─────────────────────────────────────────────────────────────
   //
-  // Cada cosa va con SU precio unitario, no sumada: la comisión se tarifica por
-  // objeto (el tren es un ticket barato aunque cuelgue de un viaje caro). Con la
-  // regla plana de hoy da lo mismo; con la escala por tramos NO, y este es el
-  // dato correcto para cuando se enchufe.
-  const comision =
+  // QUÉ REGLA. La escala por tramos es el default; un `commission_pct` pactado
+  // la sobrescribe. No es un fallback: un porcentaje plano solo existe cuando se
+  // negoció y se congeló en un convenio firmado, y ese acuerdo manda sobre la
+  // tabla de la casa. Con `commission_pct` en NULL —el caso de la propia
+  // Numan— cobra la escala.
+  //
+  // QUÉ ESCALA. La decide QUIÉN trajo al cliente, leyendo la cookie de
+  // atribución: si viene atribuido al mismo operador dueño de la experiencia,
+  // él lo trajo y paga la escala de plataforma; en cualquier otro caso lo trajo
+  // Caminante y paga la de venta.
+  //
+  // SOBRE QUÉ MONTO. Sobre la BASE SIN IVA, y por OBJETO. El precio guardado es
+  // con IVA (es la etiqueta), así que se convierte aquí. Cada cosa con su propio
+  // precio: el tren es un ticket barato aunque cuelgue de un viaje caro.
+  const atribuidoA = await leerAtribucion(jar.get(ATRIB_COOKIE)?.value);
+  const regla: Regla =
     commissionPct != null
-      ? comisionDeVenta(
-          {
-            viaje: { precioUnitario: perPerson, cantidad: numPeople },
-            complementos: complementosElegidos.map((c) => ({
-              precioUnitario: c.precioUnitario,
-              cantidad: c.porPersona ? numPeople : 1,
-            })),
-          },
-          { tipo: "plano", pct: commissionPct },
-        )
-      : null;
+      ? { tipo: "plano", pct: commissionPct }
+      : { tipo: "escala", escala: escalaPara(operatorId, atribuidoA) };
+
+  const comision = comisionDeVenta(
+    {
+      viaje: { precioUnitario: sinIva(perPerson), cantidad: numPeople },
+      complementos: complementosElegidos.map((c) => ({
+        precioUnitario: sinIva(c.precioUnitario),
+        cantidad: c.porPersona ? numPeople : 1,
+      })),
+    },
+    regla,
+  );
 
   const origin = await getOrigin();
   const title =
@@ -162,7 +176,6 @@ export async function createCheckout(formData: FormData) {
   // guardan en la metadata de Stripe → vuelven en el webhook → finalize-selfserve
   // los pasa al Purchase server-side. Cierra identidad navegador→servidor y
   // atribución de anuncios. Solo van si existen.
-  const jar = await cookies();
   const fbp = jar.get("_fbp")?.value ?? "";
   const fbc = jar.get("_fbc")?.value ?? "";
 
@@ -176,8 +189,11 @@ export async function createCheckout(formData: FormData) {
     operator_id: operatorId ?? "",
     commission_pct: commissionPct != null ? String(commissionPct) : "",
     // El MONTO, no solo la tasa: es lo que se congela en el pago.
-    platform_fee_mxn: comision ? String(comision.monto) : "",
-    platform_fee_complementos: comision ? String(comision.desglose.complementos) : "",
+    platform_fee_mxn: String(comision.monto),
+    platform_fee_complementos: String(comision.desglose.complementos),
+    // Con qué regla se cobró. Sin esto, un corte futuro no puede reproducir por
+    // qué esta venta retuvo lo que retuvo.
+    comision_regla: regla.tipo === "plano" ? `plano:${regla.pct}` : `escala:${regla.escala}`,
     tier_label: tierLabel,
     slot_visibility: (slot.visibility as string | null) ?? "public",
     // CONGELADO: id + nombre + precio unitario de cada complemento al momento
