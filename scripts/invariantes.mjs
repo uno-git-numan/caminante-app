@@ -434,6 +434,58 @@ const REGLAS = [
       ].join("\n");
     },
   },
+  {
+    nombre: "Ninguna comisión pasa del 20%",
+    comprueba() {
+      const src = leer("src/lib/operadores/comision.ts");
+      if (!src) return "Falta src/lib/operadores/comision.ts — es el ÚNICO lugar donde vive una tasa de comisión.";
+
+      // Cada tramo se escribe `[8_000, 0.18]` o `[Infinity, 0.14]`.
+      const tramos = [...src.matchAll(/\[\s*(?:Infinity|[\d_]+)\s*,\s*(0?\.\d+)\s*\]/g)].map((m) =>
+        Number(m[1]),
+      );
+      if (!tramos.length) return "No se encontró ni un tramo en comision.ts: o cambió el formato de la tabla o la tabla desapareció. Revísalo a mano.";
+
+      const TOPE = 0.2;
+      const pasados = tramos.filter((t) => t > TOPE + 1e-9);
+      if (pasados.length) {
+        return [
+          `Hay ${pasados.length} tasa(s) por encima del 20%: ${pasados.map((t) => (t * 100).toFixed(0) + "%").join(", ")}.`,
+          "",
+          "El tope de 20% es una decisión de Luis, no una preferencia.",
+          "",
+          "Ya estuvo roto entre el 18 ago y el 3 sep de 2026 sin que nadie lo viera:",
+          "la tabla nació del research de mercado con 25% y 22% arriba, y cuando se",
+          "fijó el tope nadie la corrigió. No se notaba porque el porcentaje siempre",
+          "se miraba contra el ticket completo —una travesía de $32,197 sale en",
+          "19.71% y parece que respeta el tope— y solo salió al tarifar POR OBJETO:",
+          "un complemento de $6,778 caía en los dos primeros tramos y pagaba 23.33%.",
+          "",
+          "Si de verdad hay que subir el tope, cámbialo AQUÍ y en comision.ts a la vez.",
+        ].join("\n");
+      }
+
+      // Las tasas de cada escala tienen que ir de mayor a menor. Si una subiera,
+      // la tasa efectiva dejaría de bajar con el precio y «entre más cara, más
+      // baja» se volvería mentira — el discurso que se le vende al operador.
+      for (const nombre of ["VENTA", "PLATAFORMA"]) {
+        // Del `const NOMBRE` hasta su PRIMER `];`. Sin ese corte, el bloque de
+        // VENTA se tragaba el de PLATAFORMA y la comprobación de monotonía leía
+        // el salto entre las dos escalas como si fuera un tramo que sube.
+        const desde = src.indexOf(`const ${nombre}`);
+        if (desde < 0) continue;
+        const hasta = src.indexOf("];", desde);
+        const bloque = src.slice(desde, hasta < 0 ? undefined : hasta);
+        const tasas = [...bloque.matchAll(/,\s*(0?\.\d+)\s*\]/g)].map((m) => Number(m[1]));
+        for (let i = 1; i < tasas.length; i++) {
+          if (tasas[i] > tasas[i - 1]) {
+            return `En la escala ${nombre} la tasa SUBE del tramo ${i} al ${i + 1} (${tasas[i - 1]} → ${tasas[i]}). Con tramos marginales eso rompe «entre más cara la venta, más baja la tasa», que es justo lo que se le promete al operador.`;
+          }
+        }
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

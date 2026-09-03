@@ -33,12 +33,28 @@ export type Escala = "venta" | "plataforma";
 /** [hasta_este_precio, tasa]. El último tramo va al infinito. */
 type Tramo = readonly [number, number];
 
+/**
+ * EL TOPE ES 20%. Ninguna tasa de ninguna escala puede pasar de ahí — es una
+ * decisión de Luis, no una preferencia, y `scripts/invariantes.mjs` tumba el
+ * build si alguien la sube.
+ *
+ * Estuvo roto entre el 18 ago y el 3 sep de 2026: la tabla nació del research
+ * de mercado (Viator, GetYourGuide y Klook cobran 20-30% plano) con 25% y 22%
+ * arriba, y cuando se fijó el tope nadie la corrigió. No se notó porque el
+ * porcentaje siempre se miraba contra el ticket completo —una travesía de
+ * $32,197 sale en 19.71% y parece que respeta el tope— y solo salió a la luz al
+ * tarifar POR OBJETO: un tren de $6,778 caía en los dos primeros tramos y
+ * pagaba 23.33%. Nunca llegó a cobrarse: la escala no está enchufada al
+ * checkout todavía.
+ */
+export const TOPE = 0.20;
+
 /** Caminante entregó el cliente: su audiencia, su contenido, su canal. */
 const VENTA: readonly Tramo[] = [
-  [3_000, 0.25],
-  [8_000, 0.22],
-  [15_000, 0.20],
-  [Infinity, 0.18],
+  [3_000, 0.20],
+  [8_000, 0.18],
+  [15_000, 0.16],
+  [Infinity, 0.14],
 ];
 
 /** El operador trajo a su cliente y solo usa los rieles. */
