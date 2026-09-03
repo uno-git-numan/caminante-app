@@ -28,7 +28,7 @@ import { NavCream } from "@/app/caminante/ui/pub/atoms";
 import { pfmt } from "@/app/caminante/ui/pub/PubShell";
 import { createCheckout } from "@/lib/payments/checkout";
 import { trackPixel } from "@/lib/meta/pixel";
-import type { PriceTier, ReservarSlot } from "./CheckoutForm";
+import type { PriceTier, ReservarComplemento, ReservarSlot } from "./CheckoutForm";
 
 // Parseo del monto del nivel — mismo criterio que `parseMxnAmount` del server
 // (el monto de verdad lo resuelve `createCheckout` por índice; esto es display).
@@ -50,6 +50,7 @@ export default function ReservarMovil({
   lugar,
   slots,
   tiers,
+  complementos,
   grupoToken,
   deslindeOk,
   errMsg,
@@ -59,6 +60,7 @@ export default function ReservarMovil({
   lugar: string;
   slots: ReservarSlot[];
   tiers: PriceTier[];
+  complementos: ReservarComplemento[];
   grupoToken?: string | null;
   /** `deslindeListo(exp).ok` — sin él NO se cobra (regla que nació del caso Enyd). */
   deslindeOk: boolean;
@@ -68,6 +70,7 @@ export default function ReservarMovil({
   const [sel, setSel] = useState(primero?.id ?? "");
   const [pax, setPax] = useState(1);
   const [nivel, setNivel] = useState(tiers.length ? 0 : -1);
+  const [marcados, setMarcados] = useState<string[]>([]);
   const [pagando, setPagando] = useState(false);
   const [host, setHost] = useState<HTMLElement | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -82,7 +85,12 @@ export default function ReservarMovil({
   const maxPax = salida?.available != null ? Math.max(1, Math.min(salida.available, 12)) : 12;
   const ppl = Math.min(pax, maxPax);
   const precio = tiers.length && nivel >= 0 ? parseTier(tiers[nivel].amount) : (salida?.perPerson ?? 0);
-  const total = precio * ppl;
+
+  // Agregables de ESTA salida. Los obligatorios entran solos.
+  const agregables = complementos.filter((c) => c.slotId === null || c.slotId === sel);
+  const puestos = agregables.filter((c) => c.obligatorio || marcados.includes(c.id));
+  const extra = puestos.reduce((n, c) => n + c.precioUnitario * (c.porPersona ? ppl : 1), 0);
+  const total = precio * ppl + extra;
 
   const backHref = `/caminante/experiencias/${slug}${grupoToken ? `?grupo=${grupoToken}` : ""}`;
 
@@ -170,6 +178,9 @@ export default function ReservarMovil({
           <input type="hidden" name="numPeople" value={ppl} />
           {tiers.length ? <input type="hidden" name="tierIndex" value={nivel} /> : null}
           {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
+          {puestos.map((c) => (
+            <input key={c.id} type="hidden" name="complemento" value={c.id} />
+          ))}
 
           <div className="pub-book" style={{ paddingTop: 14, paddingBottom: 150 }}>
             <div className="pub-blk">
@@ -224,6 +235,45 @@ export default function ReservarMovil({
               </div>
             ) : null}
 
+            {agregables.length ? (
+              <div className="pub-blk">
+                <span className="pub-lbl">Agrega a tu viaje</span>
+                {agregables.map((c) => {
+                  const on = c.obligatorio || marcados.includes(c.id);
+                  return (
+                    <button
+                      type="button"
+                      key={c.id}
+                      className={"pub-sel" + (on ? " on" : "")}
+                      disabled={c.obligatorio}
+                      onClick={() =>
+                        setMarcados((m) =>
+                          m.includes(c.id) ? m.filter((x) => x !== c.id) : [...m, c.id],
+                        )
+                      }
+                    >
+                      <span className="rd">{on ? <i></i> : null}</span>
+                      <div className="g">
+                        <b>{c.nombre}</b>
+                        {/* Un solo <small>: `.pub-sel .g small` es inline, dos
+                            renglones se pegarían en la misma línea. */}
+                        {c.descripcion || c.obligatorio ? (
+                          <small>
+                            {[c.descripcion, c.obligatorio ? "Incluido siempre" : ""]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </small>
+                        ) : null}
+                      </div>
+                      <span className="pr">
+                        + {pfmt(c.precioUnitario * (c.porPersona ? ppl : 1))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+
             <div className="pub-blk">
               <span className="pub-lbl">Personas</span>
               <div className="pub-stepper">
@@ -255,6 +305,14 @@ export default function ReservarMovil({
                 </span>
                 <span className="pub-mono">{pfmt(total)}</span>
               </div>
+              {puestos.map((c) => (
+                <div className="row" key={c.id}>
+                  <span>{c.nombre}</span>
+                  <span className="pub-mono">
+                    {pfmt(c.precioUnitario * (c.porPersona ? ppl : 1))}
+                  </span>
+                </div>
+              ))}
               <div className="row">
                 <span>IVA incluido</span>
                 <span className="pub-mono">—</span>

@@ -11,6 +11,7 @@ import PubShell from "../../ui/pub/PubShell";
 import WhiteLabelStyles, { wlApp, wlDoc } from "../../ui/wl/WhiteLabelStyles";
 import CheckoutForm, { type ReservarSlot } from "./CheckoutForm";
 import ReservarMovil from "./ReservarMovil";
+import { fetchTodosLosComplementos } from "@/lib/experiences/complementos";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,9 @@ export default async function ReservarPage({
   const { data: slotRows } = await slotsQuery;
 
   const avail = await fetchSlotAvailability(experienceId);
+  // Agregables (el tren de la travesía). Van todos al cliente con su slotId: la
+  // pantalla filtra al vuelo cuando el visitante cambia de salida.
+  const complementos = await fetchTodosLosComplementos(experienceId);
   const basePrice = parseMxnAmount(experience?.price?.amount);
 
   // ⚠️ Fuera las salidas que YA SALIERON. La consulta filtra por status='open',
@@ -146,7 +150,13 @@ export default async function ReservarPage({
             </a>
           </div>
         ) : (
-          <CheckoutForm slug={slug} slots={slots} tiers={experience?.priceTiers ?? []} grupoToken={grupoToken} />
+          <CheckoutForm
+            slug={slug}
+            slots={slots}
+            tiers={experience?.priceTiers ?? []}
+            complementos={complementos}
+            grupoToken={grupoToken}
+          />
         )}
       </div>
       </section>
@@ -158,6 +168,7 @@ export default async function ReservarPage({
           lugar={lugar}
           slots={slots}
           tiers={experience?.priceTiers ?? []}
+          complementos={complementos}
           grupoToken={grupoToken}
           deslindeOk={deslindeOk}
           errMsg={errMsg}

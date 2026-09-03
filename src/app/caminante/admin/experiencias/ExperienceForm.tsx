@@ -21,6 +21,7 @@ import { seccionesVisibles, CASILLAS_DESLINDE } from "@/lib/registration/estruct
 import type { ContactoDueno } from "@/lib/experiences/empty";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
+import { guardarComplementos, type ComplementoEdit } from "@/lib/experiences/complementos-actions";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import { ESTADOS } from "@/lib/experiences/estados";
 import type { Experience, V2Image } from "@/lib/experiences/types";
@@ -437,7 +438,7 @@ function SecToggle({ checked, onChange }: { checked: boolean; onChange: (v: bool
 }
 
 /* ---------- main ---------- */
-export default function ExperienceForm({ initial, initialSlots, dueno }: { initial?: Experience; initialSlots?: InitialSlot[]; dueno?: ContactoDueno }) {
+export default function ExperienceForm({ initial, initialSlots, initialComplementos, dueno }: { initial?: Experience; initialSlots?: InitialSlot[]; initialComplementos?: ComplementoEdit[]; dueno?: ContactoDueno }) {
   // `dueno` = el operador que está creando. Siembra el contacto del cierre con
   // el SUYO; sin él la página nueva nacía invitando a escribirle a Caminante.
   const [exp, setExp] = useState<Experience>(initial ?? emptyExperience(dueno));
@@ -474,6 +475,12 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
   const setReg = (patch: Partial<typeof reg>) => set("registration", { ...reg, ...patch });
   const setFb = (patch: Partial<typeof fb>) => set("feedback", { ...fb, ...patch });
   const setPrice = (patch: Partial<typeof price>) => set("price", { ...price, ...patch });
+  // Complementos: viven en su TABLA, no en el jsonb — por eso son estado
+  // aparte y se guardan con su propio action después de la experiencia.
+  const [comps, setComps] = useState<ComplementoEdit[]>(initialComplementos ?? []);
+  const setComp = (i: number, patch: Partial<ComplementoEdit>) =>
+    setComps(comps.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+
   const priceTiers = exp.priceTiers ?? [];
   const setTiers = (v: { label: string; amount: string }[]) => set("priceTiers", v);
 
@@ -714,6 +721,15 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
     setPendienteSobrescribir(null);
     setExp(filled);
     setSavedSlug(res.slug);
+    // Los complementos van DESPUÉS: necesitan la experiencia ya existente para
+    // colgarse de su id. Si fallan, se avisa pero la experiencia ya se guardó.
+    const rc = await guardarComplementos(res.slug, comps);
+    if (!rc.ok) {
+      setSaving(false);
+      setStatusOk(false);
+      setStatus(`La experiencia se guardó, pero los complementos no: ${rc.error}`);
+      return;
+    }
     // ⚠️ ESTE FORMULARIO YA NO ESCRIBE FECHAS.
     //
     // La experiencia es la PLANTILLA atemporal; la salida es la instancia que
@@ -1302,6 +1318,45 @@ export default function ExperienceForm({ initial, initialSlots, dueno }: { initi
               </div>
             ))}
             <button type="button" className="add" onClick={() => setTiers([...priceTiers, { label: "", amount: "" }])}>+ Agregar tipo de precio</button>
+
+            <div className="subhead">Complementos <span className="optflag">opcional</span></div>
+            <p className="desc" style={{ marginTop: -4, marginBottom: 12 }}>
+              Lo que se puede <b>agregar</b> al viaje y cambia el total: el tren, una noche extra, un traslado. El cliente los ve como casillas en el checkout y solo paga lo que marque. Marca <b>obligatorio</b> si no se puede declinar (una entrada al ejido): se cobra siempre y se desglosa. El <b>costo</b> es lo que te cuesta darlo — <b>no se le muestra a nadie</b>, sirve para tu utilidad.
+            </p>
+            {comps.map((c, i) => (
+              <div key={c.id ?? `n${i}`} style={{ borderTop: "1px solid var(--line)", paddingTop: 12, marginBottom: 12 }}>
+                <div className="row c2">
+                  <Field label="Nombre"><input type="text" value={c.nombre} placeholder="Tren Chepe · extensión de un día" onChange={(e) => setComp(i, { nombre: e.target.value })} /></Field>
+                  <Field label="Descripción"><input type="text" value={c.descripcion} placeholder="Tramo Divisadero–Bahuichivo en clase ejecutiva" onChange={(e) => setComp(i, { descripcion: e.target.value })} /></Field>
+                </div>
+                <div className="row c2">
+                  <Field label="Precio al cliente (MXN)"><input type="number" value={c.precio} placeholder="6778" onChange={(e) => setComp(i, { precio: e.target.value })} /></Field>
+                  <Field label="Costo para ti (MXN)"><input type="number" value={c.costo} placeholder="5025" onChange={(e) => setComp(i, { costo: e.target.value })} /></Field>
+                </div>
+                <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
+                  <label style={{ display: "flex", gap: 7, alignItems: "center", fontSize: 13 }}>
+                    <input type="checkbox" checked={c.precioPorPersona} onChange={(e) => setComp(i, { precioPorPersona: e.target.checked })} />
+                    El precio es por persona
+                  </label>
+                  <label style={{ display: "flex", gap: 7, alignItems: "center", fontSize: 13 }}>
+                    <input type="checkbox" checked={c.costoPorPersona} onChange={(e) => setComp(i, { costoPorPersona: e.target.checked })} />
+                    El costo es por persona
+                  </label>
+                  <label style={{ display: "flex", gap: 7, alignItems: "center", fontSize: 13 }}>
+                    <input type="checkbox" checked={c.obligatorio} onChange={(e) => setComp(i, { obligatorio: e.target.checked })} />
+                    Obligatorio
+                  </label>
+                  <button type="button" className="rm" onClick={() => setComps(comps.filter((_, j) => j !== i))}>Quitar</button>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="add"
+              onClick={() => setComps([...comps, { nombre: "", descripcion: "", precio: "", precioPorPersona: true, costo: "", costoPorPersona: true, obligatorio: false }])}
+            >
+              + Agregar complemento
+            </button>
           </section>
 
           {/* 08 · INCLUYE / NO */}

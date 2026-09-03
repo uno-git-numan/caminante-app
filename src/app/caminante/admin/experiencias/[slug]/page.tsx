@@ -3,6 +3,7 @@ import { puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchSlotsForAdmin } from "@/lib/experiences/slots-admin";
 import type { Experience } from "@/lib/experiences/types";
+import { leerComplementos } from "@/lib/experiences/complementos-actions";
 import ExperienceForm from "../ExperienceForm";
 
 export const dynamic = "force-dynamic";
@@ -40,9 +41,12 @@ export default async function EditarExperienciaPage({
     (s) => s.status === "open" && s.visibility === "public",
   );
 
+  const complementos = await leerComplementos(slug);
+
   return (
     <ExperienceForm
       initial={row.data as Experience}
+      initialComplementos={complementos}
       initialSlots={slots.map((s) => ({
         id: s.id,
         label: s.label,

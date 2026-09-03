@@ -142,6 +142,33 @@ export async function finalizeSelfServeCheckout(
     reservationId = created.id as string;
   }
 
+  // Complementos comprados. El precio viene CONGELADO de la metadata de Stripe
+  // —lo que se cobró, no lo que hoy diga la tabla— porque el roster de la salida
+  // tiene que decir lo que la persona creyó estar comprando.
+  const crudo = session.metadata?.complementos ?? "";
+  if (crudo) {
+    try {
+      const elegidos = JSON.parse(crudo) as { id: string; n: string; u: number; pp: number }[];
+      const filas = elegidos.map((c) => ({
+        reservation_id: reservationId,
+        complement_id: c.id,
+        nombre_snapshot: c.n,
+        personas: c.pp ? numPeople : 1,
+        precio_mxn: Number(c.u) * (c.pp ? numPeople : 1),
+      }));
+      if (filas.length) {
+        // onConflict: comprar dos veces el mismo complemento no lo duplica.
+        const { error } = await sb
+          .from("reservation_complements")
+          .upsert(filas, { onConflict: "reservation_id,complement_id" });
+        if (error) console.error("[finalize] complementos:", error.message);
+      }
+    } catch (e) {
+      // Un complemento que no se guarda NO tumba el pago: el dinero ya entró.
+      console.error("[finalize] complementos ilegibles:", (e as Error).message);
+    }
+  }
+
   // Pago.
   const { error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,

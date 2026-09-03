@@ -17,6 +17,7 @@ import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
 import { deslindeListo } from "@/lib/experiences/flujo-venta";
+import { fetchComplementos, resolverElegidos } from "@/lib/experiences/complementos";
 import type { Experience } from "@/lib/experiences/types";
 
 async function getOrigin() {
@@ -41,6 +42,12 @@ export async function createCheckout(formData: FormData) {
   // Token de grupo privado (si la salida es privada, es OBLIGATORIO y se
   // valida contra la BD — nunca se confía en el cliente).
   const grupoToken = cleanGrupoToken(formData.get("grupo"));
+  // Complementos marcados (el tren, la noche extra…). Llegan como ids y NADA
+  // más: el precio se resuelve contra la base, igual que los niveles.
+  const idsComplementos = formData
+    .getAll("complemento")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
   const backQ = grupoToken ? `&grupo=${grupoToken}` : "";
   const back = (e: string) => `/caminante/reservar/${slug}?error=${encodeURIComponent(e)}${backQ}`;
 
@@ -101,6 +108,14 @@ export async function createCheckout(formData: FormData) {
   if (perPerson == null) perPerson = parseMxnAmount(experience.price?.amount);
   if (perPerson == null || perPerson <= 0) redirect(back("precio"));
 
+  // Complementos: se leen de la BD para ESTA salida y se cruzan con lo que
+  // marcó el cliente. Los obligatorios entran aunque no vengan marcados; un id
+  // que no esté en la lista de su salida se cae solo (resolverElegidos).
+  const complementosElegidos = resolverElegidos(
+    await fetchComplementos(experienceId, slotId),
+    idsComplementos,
+  );
+
   // Operador dueño + comisión vigente (snapshot en metadata → congelada en la reserva).
   const operatorId = (expRow.operator_id as string | null) ?? null;
   let commissionPct: number | null = null;
@@ -139,6 +154,20 @@ export async function createCheckout(formData: FormData) {
     commission_pct: commissionPct != null ? String(commissionPct) : "",
     tier_label: tierLabel,
     slot_visibility: (slot.visibility as string | null) ?? "public",
+    // CONGELADO: id + nombre + precio unitario de cada complemento al momento
+    // de pagar. Si mañana sube el tren, esta reserva conserva lo que se cobró.
+    ...(complementosElegidos.length
+      ? {
+          complementos: JSON.stringify(
+            complementosElegidos.map((c) => ({
+              id: c.id,
+              n: c.nombre,
+              u: c.precioUnitario,
+              pp: c.porPersona ? 1 : 0,
+            })),
+          ).slice(0, 500),
+        }
+      : {}),
     ...(fbp ? { fbp } : {}),
     ...(fbc ? { fbc } : {}),
   };
@@ -148,6 +177,8 @@ export async function createCheckout(formData: FormData) {
     const stripe = getStripeServerClient();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Un renglón por concepto: el viaje y cada complemento aparte. El cliente
+      // ve en Stripe exactamente lo que está pagando, desglosado.
       line_items: [
         {
           quantity: numPeople,
@@ -160,6 +191,17 @@ export async function createCheckout(formData: FormData) {
             },
           },
         },
+        ...complementosElegidos.map((c) => ({
+          quantity: c.porPersona ? numPeople : 1,
+          price_data: {
+            currency: "mxn" as const,
+            unit_amount: toStripeAmount(c.precioUnitario),
+            product_data: {
+              name: c.nombre,
+              ...(c.descripcion ? { description: c.descripcion.slice(0, 300) } : {}),
+            },
+          },
+        })),
       ],
       metadata,
       payment_intent_data: { metadata },

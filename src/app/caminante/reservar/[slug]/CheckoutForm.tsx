@@ -14,6 +14,17 @@ export type ReservarSlot = {
 
 export type PriceTier = { label: string; amount: string };
 
+/** Un agregable: el tren, una noche extra. Espejo de `Complemento` del server. */
+export type ReservarComplemento = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  precioUnitario: number;
+  porPersona: boolean;
+  obligatorio: boolean;
+  slotId: string | null;
+};
+
 const mxn = (n: number) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n);
 
@@ -27,11 +38,13 @@ export default function CheckoutForm({
   slug,
   slots,
   tiers = [],
+  complementos = [],
   grupoToken,
 }: {
   slug: string;
   slots: ReservarSlot[];
   tiers?: PriceTier[];
+  complementos?: ReservarComplemento[];
   // Token de grupo privado: viaja como hidden y el server lo valida contra la
   // BD (una salida privada NUNCA se paga sin su token).
   grupoToken?: string | null;
@@ -40,13 +53,23 @@ export default function CheckoutForm({
   const [slotId, setSlotId] = useState(firstOpen?.id ?? "");
   const [people, setPeople] = useState(1);
   const [tierIndex, setTierIndex] = useState(tiers.length ? 0 : -1);
+  const [marcados, setMarcados] = useState<string[]>([]);
 
   const slot = slots.find((s) => s.id === slotId) ?? firstOpen;
   const maxPeople = slot?.available != null ? Math.max(1, Math.min(slot.available, 12)) : 12;
   const ppl = Math.min(people, maxPeople);
   // Con niveles, el precio por persona lo fija el nivel elegido; sin niveles, el del slot.
   const perPerson = tiers.length && tierIndex >= 0 ? parseTier(tiers[tierIndex].amount) : (slot?.perPerson ?? 0);
-  const total = perPerson * ppl;
+
+  // Los complementos de ESTA salida. Al cambiar de fecha la lista cambia sin
+  // recargar; lo que quedó marcado y ya no se ofrece no suma ni se manda.
+  const disponibles = complementos.filter((c) => c.slotId === null || c.slotId === slotId);
+  const elegidos = disponibles.filter((c) => c.obligatorio || marcados.includes(c.id));
+  const sumaComplementos = elegidos.reduce(
+    (n, c) => n + c.precioUnitario * (c.porPersona ? ppl : 1),
+    0,
+  );
+  const total = perPerson * ppl + sumaComplementos;
 
   return (
     <form
@@ -67,6 +90,9 @@ export default function CheckoutForm({
       <input type="hidden" name="numPeople" value={ppl} />
       {tiers.length ? <input type="hidden" name="tierIndex" value={tierIndex} /> : null}
       {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
+      {elegidos.map((c) => (
+        <input key={c.id} type="hidden" name="complemento" value={c.id} />
+      ))}
 
       {tiers.length ? (
         <fieldset className="space-y-3">
@@ -122,6 +148,53 @@ export default function CheckoutForm({
         })}
       </fieldset>
 
+      {disponibles.length ? (
+        <fieldset className="space-y-3">
+          <legend className="text-xs font-semibold uppercase tracking-wider text-olive">
+            Agrega a tu viaje
+          </legend>
+          {disponibles.map((c) => {
+            const puesto = c.obligatorio || marcados.includes(c.id);
+            const monto = c.precioUnitario * (c.porPersona ? ppl : 1);
+            return (
+              <label
+                key={c.id}
+                className={`flex w-full cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                  puesto ? "border-dune bg-dune/5" : "border-sand bg-white hover:border-dune"
+                } ${c.obligatorio ? "cursor-default" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={puesto}
+                  disabled={c.obligatorio}
+                  onChange={(e) =>
+                    setMarcados((m) =>
+                      e.target.checked ? [...m, c.id] : m.filter((id) => id !== c.id),
+                    )
+                  }
+                  className="mt-1 h-4 w-4 accent-[#8a7a63]"
+                />
+                <span className="flex-1">
+                  <span className="block text-sm font-semibold text-lagoon">{c.nombre}</span>
+                  {c.descripcion ? (
+                    <span className="mt-0.5 block text-xs leading-relaxed text-olive">{c.descripcion}</span>
+                  ) : null}
+                  {c.obligatorio ? (
+                    <span className="mt-1 block text-[11px] text-olive/70">Incluido siempre</span>
+                  ) : null}
+                </span>
+                <span className="whitespace-nowrap text-xs font-medium text-olive">
+                  + {mxn(monto)}
+                  {c.porPersona && ppl > 1 ? (
+                    <span className="block text-[11px] text-olive/70">{mxn(c.precioUnitario)} c/u</span>
+                  ) : null}
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+      ) : null}
+
       <div>
         <label className="block text-xs font-semibold uppercase tracking-wider text-olive">Personas</label>
         <div className="mt-2 flex items-center gap-4">
@@ -148,7 +221,26 @@ export default function CheckoutForm({
         </div>
       </div>
 
-      <div className="flex items-baseline justify-between border-t border-sand pt-4">
+      <div className="space-y-1 border-t border-sand pt-4">
+        {sumaComplementos ? (
+          <>
+            <div className="flex items-baseline justify-between text-xs text-olive">
+              <span>
+                Viaje · {ppl} {ppl === 1 ? "persona" : "personas"}
+              </span>
+              <span>{mxn(perPerson * ppl)}</span>
+            </div>
+            {elegidos.map((c) => (
+              <div key={c.id} className="flex items-baseline justify-between text-xs text-olive">
+                <span>{c.nombre}</span>
+                <span>{mxn(c.precioUnitario * (c.porPersona ? ppl : 1))}</span>
+              </div>
+            ))}
+          </>
+        ) : null}
+      </div>
+
+      <div className="flex items-baseline justify-between">
         <span className="text-sm text-olive">Total</span>
         <span className="text-2xl font-semibold text-lagoon">{mxn(total)}</span>
       </div>
