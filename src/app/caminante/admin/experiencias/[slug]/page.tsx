@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchSlotsForAdmin } from "@/lib/experiences/slots-admin";
 import type { Experience } from "@/lib/experiences/types";
 import { leerComplementos } from "@/lib/experiences/complementos-actions";
-import { reglaComisionActual } from "@/lib/auth/alcance";
+import { operadorDeExperiencia, reglaComisionDeOperador } from "@/lib/operadores/regla";
 import ExperienceForm from "../ExperienceForm";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +43,10 @@ export default async function EditarExperienciaPage({
   );
 
   const complementos = await leerComplementos(slug);
-  const reglaComision = await reglaComisionActual();
+  // La regla sale del operador DUEÑO, no de quien tiene la sesión: cuando la
+  // casa edita la experiencia de Kéntro, el precio se sugiere con el convenio
+  // de Kéntro.
+  const reglaComision = await reglaComisionDeOperador(await operadorDeExperiencia(slug));
 
   return (
     <ExperienceForm

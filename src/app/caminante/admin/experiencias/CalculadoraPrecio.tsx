@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import type { Regla } from "@/lib/operadores/comision";
+import type { ReglaResuelta } from "@/lib/operadores/regla";
 import { desglosarPrecio, precioSugerido, type Desglose } from "@/lib/operadores/precio-sugerido";
 
 const mxn = (n: number) =>
@@ -50,13 +51,13 @@ function Renglon({ k, v, nota, fuerte }: { k: string; v: string; nota?: string; 
 }
 
 export default function CalculadoraPrecio({
-  regla,
+  reglaResuelta,
   publico,
   onUsarPrecio,
   compacta = false,
 }: {
-  /** La regla que le toca a ESTE operador. La resuelve el servidor. */
-  regla: Regla;
+  /** La regla del operador DUEÑO, con su origen. La resuelve el servidor. */
+  reglaResuelta: ReglaResuelta;
   /** El precio que hoy tiene el campo, con IVA. */
   publico: string;
   /** Escribe el precio sugerido en el campo del formulario. */
@@ -64,6 +65,7 @@ export default function CalculadoraPrecio({
   /** Dentro de un complemento: sin encabezado, más apretada. */
   compacta?: boolean;
 }) {
+  const { regla, origen } = reglaResuelta;
   const [quiero, setQuiero] = useState("");
   const [abierta, setAbierta] = useState(false);
 
@@ -74,10 +76,19 @@ export default function CalculadoraPrecio({
 
   const comoSeCobra =
     regla.tipo === "plano"
-      ? `tu comisión pactada de ${regla.pct}%`
-      : regla.escala === "venta"
-        ? "la escala de venta (Caminante trae al cliente)"
-        : "la escala de plataforma (tú traes al cliente)";
+      ? origen === "convenio"
+        ? `tu comisión de ${regla.pct}%, la que quedó congelada en tu convenio firmado`
+        : `tu comisión pactada de ${regla.pct}%`
+      : "la escala de la casa por tramos (nadie ha pactado un porcentaje todavía)";
+
+  // SI TÚ TRAES AL CLIENTE, TE CAE MÁS. Con la escala, quien trae al cliente paga
+  // la de plataforma —más barata— y por el mismo precio de etiqueta recibe más.
+  // Con un porcentaje pactado no hay diferencia, y decirlo evita una expectativa.
+  const siLoTraeEl =
+    regla.tipo === "escala" && actual
+      ? desglosarPrecio(actual.publico, { tipo: "escala", escala: "plataforma" })
+      : null;
+  const deMas = siLoTraeEl && actual ? siLoTraeEl.neto - actual.neto : 0;
 
   return (
     <div className="card pad" style={{ marginTop: 12, background: "rgba(99,113,84,.05)" }}>
@@ -146,6 +157,24 @@ export default function CalculadoraPrecio({
               <div style={{ borderTop: "1px solid var(--line)", marginTop: 6, paddingTop: 6 }}>
                 <Renglon k="Paga el cliente" v={mxn(actual.publico)} fuerte />
               </div>
+              {deMas > 0 ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "9px 11px",
+                    borderRadius: 10,
+                    background: "rgba(99,113,84,.1)",
+                    fontSize: 12.5,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <b>Si tú traes al cliente, te cae más dinero.</b> Al mismo precio de etiqueta
+                  recibirías <b>{mxn(siLoTraeEl!.neto)}</b> en vez de {mxn(actual!.neto)} —{" "}
+                  {mxn(deMas)} más — porque la comisión baja a {(siLoTraeEl!.pct * 100).toFixed(2)}%.
+                  El precio sugerido de arriba usa el caso más caro para ti, así que nunca te va a
+                  llegar menos de lo que pediste.
+                </div>
+              ) : null}
               <p className="mut" style={{ fontSize: 11.5, lineHeight: 1.6, marginTop: 8 }}>
                 La comisión se calcula sobre la base <b>sin IVA</b>: se cobra por el servicio, no por
                 un impuesto que se traslada. Entre más caro el ticket, más baja la tasa — por eso un

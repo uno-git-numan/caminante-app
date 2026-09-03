@@ -22,7 +22,7 @@ import type { ContactoDueno } from "@/lib/experiences/empty";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
 import { guardarComplementos, type ComplementoEdit } from "@/lib/experiences/complementos-actions";
-import type { Regla } from "@/lib/operadores/comision";
+import type { ReglaResuelta } from "@/lib/operadores/regla";
 import CalculadoraPrecio from "./CalculadoraPrecio";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import { ESTADOS } from "@/lib/experiences/estados";
@@ -440,10 +440,10 @@ function SecToggle({ checked, onChange }: { checked: boolean; onChange: (v: bool
 }
 
 /* ---------- main ---------- */
-export default function ExperienceForm({ initial, initialSlots, initialComplementos, reglaComision, dueno }: { initial?: Experience; initialSlots?: InitialSlot[]; initialComplementos?: ComplementoEdit[]; reglaComision?: Regla; dueno?: ContactoDueno }) {
+export default function ExperienceForm({ initial, initialSlots, initialComplementos, reglaComision, dueno }: { initial?: Experience; initialSlots?: InitialSlot[]; initialComplementos?: ComplementoEdit[]; reglaComision?: ReglaResuelta; dueno?: ContactoDueno }) {
   // Sin regla resuelta por el servidor, la escala de venta: es la más cara, y
   // sugerir con la barata prometería un neto que a veces no llegaría.
-  const regla: Regla = reglaComision ?? { tipo: "escala", escala: "venta" };
+  const regla: ReglaResuelta = reglaComision ?? { regla: { tipo: "escala", escala: "venta" }, origen: "escala" };
   // `dueno` = el operador que está creando. Siembra el contacto del cierre con
   // el SUYO; sin él la página nueva nacía invitando a escribirle a Caminante.
   const [exp, setExp] = useState<Experience>(initial ?? emptyExperience(dueno));
@@ -1325,7 +1325,7 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
                 <div style={{ gridColumn: "1 / -1" }}>
                   <CalculadoraPrecio
                     compacta
-                    regla={regla}
+                    reglaResuelta={regla}
                     publico={t.amount}
                     onUsarPrecio={(v) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, amount: v } : x)))}
                   />
@@ -1350,7 +1350,7 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
                 </div>
                 <CalculadoraPrecio
                   compacta
-                  regla={regla}
+                  reglaResuelta={regla}
                   publico={c.precio}
                   onUsarPrecio={(v) => setComp(i, { precio: v })}
                 />
@@ -1465,7 +1465,7 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
               <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
             </div>
             <CalculadoraPrecio
-              regla={regla}
+              reglaResuelta={regla}
               publico={price.amount}
               onUsarPrecio={(v) => setPrice({ amount: v })}
             />

@@ -1,4 +1,5 @@
-import { reglaComisionActual } from "@/lib/auth/alcance";
+import { alcanceActual, esOperador } from "@/lib/auth/alcance";
+import { reglaComisionDeOperador } from "@/lib/operadores/regla";
 import { redirect } from "next/navigation";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { operadorDelAlcance } from "@/lib/admin/queries";
@@ -47,7 +48,10 @@ export default async function NuevaExperienciaPage() {
   }
 
   // El form es full-page (trae su propio header admin + barra de acciones).
-  const reglaComision = await reglaComisionActual();
+  // Una experiencia nueva nace atribuida a quien la crea (ver saveExperience),
+  // así que su regla es la de esa operadora. Si la crea la casa, la escala.
+  const alc = await alcanceActual();
+  const reglaComision = await reglaComisionDeOperador(esOperador(alc) ? alc.operatorId : null);
 
   return <ExperienceForm dueno={dueno} reglaComision={reglaComision} />;
 }

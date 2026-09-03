@@ -19,6 +19,7 @@ import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availa
 import { deslindeListo } from "@/lib/experiences/flujo-venta";
 import { fetchComplementos, resolverElegidos } from "@/lib/experiences/complementos";
 import { comisionDeVenta, sinIva, type Regla } from "@/lib/operadores/comision";
+import { reglaComisionDeOperador } from "@/lib/operadores/regla";
 import { ATRIB_COOKIE, escalaPara, leerAtribucion } from "@/lib/operadores/atribucion";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -119,16 +120,14 @@ export async function createCheckout(formData: FormData) {
   );
 
   // Operador dueño + comisión vigente (snapshot en metadata → congelada en la reserva).
+  // ⚠️ LA REGLA SALE DE `reglaComisionDeOperador`, NO de leer `commission_pct` a
+  // pelo. Esa columna es EDITABLE; lo que el operador firmó no. Si alguien la
+  // bajara de 20 a 18, el formulario le seguiría sugiriendo precios con 20 —lo
+  // que dice su convenio— y el cobro retendría 18: dos criterios sobre el mismo
+  // número, y el corte no cuadraría con lo que él va a reclamar.
   const operatorId = (expRow.operator_id as string | null) ?? null;
-  let commissionPct: number | null = null;
-  if (operatorId) {
-    const { data: op } = await sb
-      .from("operators")
-      .select("commission_pct")
-      .eq("id", operatorId)
-      .maybeSingle();
-    if (op?.commission_pct != null) commissionPct = Number(op.commission_pct);
-  }
+  const { regla: reglaOperador, origen: origenRegla } = await reglaComisionDeOperador(operatorId);
+  const commissionPct = reglaOperador.tipo === "plano" ? reglaOperador.pct : null;
 
   const jar = await cookies();
 
@@ -150,8 +149,8 @@ export async function createCheckout(formData: FormData) {
   // precio: el tren es un ticket barato aunque cuelgue de un viaje caro.
   const atribuidoA = await leerAtribucion(jar.get(ATRIB_COOKIE)?.value);
   const regla: Regla =
-    commissionPct != null
-      ? { tipo: "plano", pct: commissionPct }
+    reglaOperador.tipo === "plano"
+      ? reglaOperador
       : { tipo: "escala", escala: escalaPara(operatorId, atribuidoA) };
 
   const comision = comisionDeVenta(
@@ -193,7 +192,8 @@ export async function createCheckout(formData: FormData) {
     platform_fee_complementos: String(comision.desglose.complementos),
     // Con qué regla se cobró. Sin esto, un corte futuro no puede reproducir por
     // qué esta venta retuvo lo que retuvo.
-    comision_regla: regla.tipo === "plano" ? `plano:${regla.pct}` : `escala:${regla.escala}`,
+    comision_regla:
+      regla.tipo === "plano" ? `${origenRegla}:${regla.pct}` : `escala:${regla.escala}`,
     tier_label: tierLabel,
     slot_visibility: (slot.visibility as string | null) ?? "public",
     // CONGELADO: id + nombre + precio unitario de cada complemento al momento
