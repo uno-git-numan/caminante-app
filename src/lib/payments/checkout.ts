@@ -129,21 +129,24 @@ export async function createCheckout(formData: FormData) {
     if (op?.commission_pct != null) commissionPct = Number(op.commission_pct);
   }
 
-  // LA COMISIÓN, CONGELADA EN PESOS Y SOBRE EL TOTAL.
+  // LA COMISIÓN, CONGELADA EN PESOS. Antes solo viajaba el porcentaje y el monto
+  // se recalculaba después contra lo pagado — funcionaba de casualidad, y solo
+  // mientras nadie tocara la tasa. Ahora se resuelve aquí, con el precio de HOY.
   //
-  // El complemento comisiona: la venta es un boleto, no dos. Antes solo viajaba
-  // el porcentaje y el monto se recalculaba después contra lo pagado — lo que
-  // funcionaba de casualidad, y solo mientras nadie tocara la tasa. Ahora se
-  // resuelve aquí, con el precio de HOY, y se guarda en `payments.platform_fee_mxn`.
-  const baseTotal = perPerson * numPeople;
-  const totalComplementos = complementosElegidos.reduce(
-    (n, c) => n + c.precioUnitario * (c.porPersona ? numPeople : 1),
-    0,
-  );
+  // Cada cosa va con SU precio unitario, no sumada: la comisión se tarifica por
+  // objeto (el tren es un ticket barato aunque cuelgue de un viaje caro). Con la
+  // regla plana de hoy da lo mismo; con la escala por tramos NO, y este es el
+  // dato correcto para cuando se enchufe.
   const comision =
     commissionPct != null
       ? comisionDeVenta(
-          { base: baseTotal, complementos: totalComplementos },
+          {
+            viaje: { precioUnitario: perPerson, cantidad: numPeople },
+            complementos: complementosElegidos.map((c) => ({
+              precioUnitario: c.precioUnitario,
+              cantidad: c.porPersona ? numPeople : 1,
+            })),
+          },
           { tipo: "plano", pct: commissionPct },
         )
       : null;

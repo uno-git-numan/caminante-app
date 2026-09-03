@@ -91,48 +91,61 @@ export function comisionPara(precio: number, escala: Escala): Comision {
  */
 export type Regla = { tipo: "plano"; pct: number } | { tipo: "escala"; escala: Escala };
 
+/** Algo que se cobra, con su precio y cuántas veces se cobra. */
+export type Objeto = {
+  /** El precio de UNA unidad. Es lo que decide el tramo. */
+  precioUnitario: number;
+  /** Cuántas. Multiplica la comisión, NO el precio que entra a la escala. */
+  cantidad: number;
+};
+
 /**
- * La comisión de UNA venta completa: el viaje MÁS lo que se le agregó.
+ * La comisión de una venta completa: el viaje MÁS lo que se le agregó.
  *
- * ⚠️ El complemento comisiona. Un tren de $6,778 pegado a un viaje de $32,197
- * no es un regalo de la plataforma: pasó por el mismo checkout, el mismo cobro
- * y el mismo soporte.
+ * ⚠️ CADA OBJETO SE TARIFICA POR SU PROPIO PRECIO, y las comisiones se suman.
+ * No se suman los precios para tarifar el total. Esto es deliberado y es la
+ * regla de la casa (Luis, 3 sep 2026):
  *
- * Lo que había que decidir era a QUÉ TASA, y la respuesta es la que ya usa todo
- * lo demás: **la venta es UN boleto**. Se suma base + complementos y el total
- * entra a la regla, así que los pesos del complemento pagan la tasa del tramo
- * donde caen.
+ *   «La comisión se calcula a partir del precio del objeto que se cobra. Si es
+ *    barato, comisión más alta; si es caro, comisión más baja.»
  *
- * La alternativa —correr el complemento solo por la escala, como boleto
- * aparte— se descartó porque invierte el discurso: al ser barato caería en el
- * tramo MÁS caro (un tren de $6,778 pagaría ~23% mientras el viaje de $32,197
- * paga ~18%) y se comería casi todo el margen del agregado. Entre más cara la
- * venta, más baja la tasa; el complemento no puede ser la excepción.
+ * Un tren de $6,778 es un ticket barato y paga tasa de ticket barato, aunque
+ * viaje pegado a una experiencia de $32,197 que paga tasa de ticket caro. Si se
+ * sumaran los precios primero, el tren se colaría al tramo más bajo del viaje y
+ * la plataforma cobraría de menos justo en el producto donde más trabaja por
+ * peso vendido.
+ *
+ * ⚠️ Y LA CANTIDAD MULTIPLICA LA COMISIÓN, NO EL PRECIO. Dos personas no
+ * compran un boleto de $64,394: compran dos de $32,197. Meter el total a la
+ * escala haría que un grupo grande pagara menos tasa por cabeza que una persona
+ * sola en el mismo viaje — la tabla habla de tickets, no de facturas.
  */
 export function comisionDeVenta(
-  { base, complementos = 0 }: { base: number; complementos?: number },
+  venta: { viaje: Objeto; complementos?: Objeto[] },
   regla: Regla,
 ): Comision & { desglose: { viaje: number; complementos: number } } {
-  const total = base + complementos;
-  const c: Comision =
+  const deUno = (o: Objeto): number =>
     regla.tipo === "escala"
-      ? comisionPara(total, regla.escala)
-      : {
-          monto: Math.round(total * (regla.pct / 100) * 100) / 100,
-          pctEfectivo: regla.pct / 100,
-          escala: "plataforma",
-        };
-  // El desglose NO se recalcula por separado (eso sería otra comisión): se
-  // reparte la del total a prorrata, que es lo único consistente con un tramo
-  // marginal. Sirve para explicarle al operador de dónde salió su retención.
-  const parte = total > 0 ? complementos / total : 0;
-  const deComplementos = Math.round(c.monto * parte * 100) / 100;
+      ? comisionPara(o.precioUnitario, regla.escala).monto * o.cantidad
+      : o.precioUnitario * o.cantidad * (regla.pct / 100);
+
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+
+  const deViaje = r2(deUno(venta.viaje));
+  const deComplementos = r2((venta.complementos ?? []).reduce((n, c) => n + deUno(c), 0));
+  const monto = r2(deViaje + deComplementos);
+
+  const cobrado =
+    venta.viaje.precioUnitario * venta.viaje.cantidad +
+    (venta.complementos ?? []).reduce((n, c) => n + c.precioUnitario * c.cantidad, 0);
+
   return {
-    ...c,
-    desglose: {
-      viaje: Math.round((c.monto - deComplementos) * 100) / 100,
-      complementos: deComplementos,
-    },
+    monto,
+    // Sobre el total cobrado. Con la escala ya NO es la tasa de ningún tramo:
+    // es la mezcla de dos tickets distintos, y por eso se dice «efectiva».
+    pctEfectivo: cobrado > 0 ? monto / cobrado : 0,
+    escala: regla.tipo === "escala" ? regla.escala : "plataforma",
+    desglose: { viaje: deViaje, complementos: deComplementos },
   };
 }
 
