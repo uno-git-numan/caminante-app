@@ -84,6 +84,12 @@ export default function CalculadoraPrecio({
   // SI TÚ TRAES AL CLIENTE, TE CAE MÁS. Con la escala, quien trae al cliente paga
   // la de plataforma —más barata— y por el mismo precio de etiqueta recibe más.
   // Con un porcentaje pactado no hay diferencia, y decirlo evita una expectativa.
+  // Lo que factura cada quien. `aCaminante` se DERIVA del precio para que la
+  // columna cierre al peso: redondear los dos por separado podía dejarla en
+  // $32,196 contra un campo que dice $32,197.
+  const aOperador = actual ? Math.round(actual.neto + actual.ivaNeto) : 0;
+  const aCaminante = actual ? Math.round(actual.publico) - aOperador : 0;
+
   const siLoTraeEl =
     regla.tipo === "escala" && actual
       ? desglosarPrecio(actual.publico, { tipo: "escala", escala: "plataforma" })
@@ -139,20 +145,21 @@ export default function CalculadoraPrecio({
           </button>
           {abierta ? (
             <div>
+              {/* DOS RENGLONES, NO CUATRO, Y QUE SUMEN. La versión anterior
+                  listaba «Recibes tú» SIN IVA junto a la comisión y su IVA, y
+                  dejaba el IVA del operador solo en una nota: la columna daba
+                  $28,461 contra un total de $32,197 y parecía un error de
+                  cálculo. Ahora cada renglón es UNA FACTURA —lo que emite cada
+                  quien— y las dos suman exactamente el precio. */}
               <Renglon
                 k="Recibes tú"
-                v={mxn(actual.neto)}
-                nota={`facturas ${mxn(actual.neto + actual.ivaNeto)} con IVA`}
+                v={mxn(aOperador)}
+                nota={`${mxn(actual.neto)} + ${mxn(actual.ivaNeto)} de IVA — es lo que facturas`}
               />
               <Renglon
                 k="Comisión Caminante"
-                v={mxn(actual.comision)}
-                nota={`${(actual.pct * 100).toFixed(2)}% sobre la base de ${mxn(actual.base)}`}
-              />
-              <Renglon
-                k="IVA de la comisión"
-                v={mxn(actual.ivaComision)}
-                nota="lo retiene Caminante y lo traslada al SAT"
+                v={mxn(aCaminante)}
+                nota={`${mxn(actual.comision)} (${(actual.pct * 100).toFixed(2)}%) + ${mxn(actual.ivaComision)} de IVA`}
               />
               <div style={{ borderTop: "1px solid var(--line)", marginTop: 6, paddingTop: 6 }}>
                 <Renglon k="Paga el cliente" v={mxn(actual.publico)} fuerte />
@@ -168,7 +175,7 @@ export default function CalculadoraPrecio({
                     lineHeight: 1.6,
                   }}
                 >
-                  <b>Si tú traes al cliente, recibes {mxn(siLoTraeEl!.neto)}</b> en vez de{" "}
+                  <b>Si tú traes al cliente, te quedan {mxn(siLoTraeEl!.neto)}</b> en vez de{" "}
                   {mxn(actual!.neto)} (+{mxn(deMas)}): la comisión baja a{" "}
                   {(siLoTraeEl!.pct * 100).toFixed(2)}%. Lo sugerido usa el caso más caro — nunca
                   recibes menos.
