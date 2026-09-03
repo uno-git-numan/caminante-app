@@ -30,6 +30,7 @@ import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esSesionMuerta } from "@/lib/auth/sesion-rota";
+import type { Regla } from "@/lib/operadores/comision";
 
 export type Alcance =
   | { tipo: "casa" }
@@ -177,4 +178,28 @@ export async function puedeEditarSlot(slotId: string): Promise<boolean> {
   const a = await alcanceActual();
   if (!a) return false;
   return alcanzaSlot(a, slotId);
+}
+
+/**
+ * La regla de comisión que le toca a quien está usando el panel.
+ *
+ * Sirve para SUGERIR precios en el formulario, no para cobrar — el cobro la
+ * resuelve `createCheckout` con la cookie de atribución en la mano. Aquí no hay
+ * cliente todavía, así que se asume el caso menos favorable para el operador:
+ * la escala de VENTA, la más cara. Si al final resulta que él trajo al cliente,
+ * paga menos y recibe MÁS de lo que pidió. Sugerir con la barata sería
+ * prometerle un neto que a veces no llegaría.
+ */
+export async function reglaComisionActual(): Promise<Regla> {
+  const a = await alcanceActual();
+  if (!esOperador(a)) return { tipo: "escala", escala: "venta" };
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb
+    .from("operators")
+    .select("commission_pct")
+    .eq("id", a.operatorId)
+    .maybeSingle();
+  const pct = (data as { commission_pct: number | null } | null)?.commission_pct;
+  // Un porcentaje pactado manda sobre la tabla de la casa: está firmado.
+  return pct != null ? { tipo: "plano", pct: Number(pct) } : { tipo: "escala", escala: "venta" };
 }

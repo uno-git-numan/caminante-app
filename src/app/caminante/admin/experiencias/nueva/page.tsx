@@ -1,3 +1,4 @@
+import { reglaComisionActual } from "@/lib/auth/alcance";
 import { redirect } from "next/navigation";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { operadorDelAlcance } from "@/lib/admin/queries";
@@ -46,5 +47,7 @@ export default async function NuevaExperienciaPage() {
   }
 
   // El form es full-page (trae su propio header admin + barra de acciones).
-  return <ExperienceForm dueno={dueno} />;
+  const reglaComision = await reglaComisionActual();
+
+  return <ExperienceForm dueno={dueno} reglaComision={reglaComision} />;
 }

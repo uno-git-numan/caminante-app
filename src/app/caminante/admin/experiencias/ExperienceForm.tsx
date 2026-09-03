@@ -22,6 +22,8 @@ import type { ContactoDueno } from "@/lib/experiences/empty";
 import type { SlotIA } from "@/lib/ai/prellenar";
 import { saveExperience } from "@/lib/experiences/actions";
 import { guardarComplementos, type ComplementoEdit } from "@/lib/experiences/complementos-actions";
+import type { Regla } from "@/lib/operadores/comision";
+import CalculadoraPrecio from "./CalculadoraPrecio";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import { ESTADOS } from "@/lib/experiences/estados";
 import type { Experience, V2Image } from "@/lib/experiences/types";
@@ -438,7 +440,10 @@ function SecToggle({ checked, onChange }: { checked: boolean; onChange: (v: bool
 }
 
 /* ---------- main ---------- */
-export default function ExperienceForm({ initial, initialSlots, initialComplementos, dueno }: { initial?: Experience; initialSlots?: InitialSlot[]; initialComplementos?: ComplementoEdit[]; dueno?: ContactoDueno }) {
+export default function ExperienceForm({ initial, initialSlots, initialComplementos, reglaComision, dueno }: { initial?: Experience; initialSlots?: InitialSlot[]; initialComplementos?: ComplementoEdit[]; reglaComision?: Regla; dueno?: ContactoDueno }) {
+  // Sin regla resuelta por el servidor, la escala de venta: es la más cara, y
+  // sugerir con la barata prometería un neto que a veces no llegaría.
+  const regla: Regla = reglaComision ?? { tipo: "escala", escala: "venta" };
   // `dueno` = el operador que está creando. Siembra el contacto del cierre con
   // el SUYO; sin él la página nueva nacía invitando a escribirle a Caminante.
   const [exp, setExp] = useState<Experience>(initial ?? emptyExperience(dueno));
@@ -1315,6 +1320,16 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
                   <Field label="Monto por persona"><input type="number" value={t.amount} placeholder="11500" onChange={(e) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} /></Field>
                   <button type="button" className="rm" style={{ marginBottom: 16 }} onClick={() => setTiers(priceTiers.filter((_, j) => j !== i))}>Quitar</button>
                 </div>
+                {/* Un tipo de precio TAMBIÉN se cobra: merece la misma cuenta que
+                    el precio base. Ocupa las dos columnas de la fila. */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <CalculadoraPrecio
+                    compacta
+                    regla={regla}
+                    publico={t.amount}
+                    onUsarPrecio={(v) => setTiers(priceTiers.map((x, j) => (j === i ? { ...x, amount: v } : x)))}
+                  />
+                </div>
               </div>
             ))}
             <button type="button" className="add" onClick={() => setTiers([...priceTiers, { label: "", amount: "" }])}>+ Agregar tipo de precio</button>
@@ -1333,7 +1348,13 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
                   <Field label="Precio al cliente (MXN)"><input type="number" value={c.precio} placeholder="6778" onChange={(e) => setComp(i, { precio: e.target.value })} /></Field>
                   <Field label="Costo para ti (MXN)"><input type="number" value={c.costo} placeholder="5025" onChange={(e) => setComp(i, { costo: e.target.value })} /></Field>
                 </div>
-                <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", marginTop: 4 }}>
+                <CalculadoraPrecio
+                  compacta
+                  regla={regla}
+                  publico={c.precio}
+                  onUsarPrecio={(v) => setComp(i, { precio: v })}
+                />
+                <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
                   <label style={{ display: "flex", gap: 7, alignItems: "center", fontSize: 13 }}>
                     <input type="checkbox" checked={c.precioPorPersona} onChange={(e) => setComp(i, { precioPorPersona: e.target.checked })} />
                     El precio es por persona
@@ -1443,6 +1464,11 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
               <Field label="Moneda" auto><input type="text" value={price.currency} onChange={(e) => setPrice({ currency: e.target.value })} /></Field>
               <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
             </div>
+            <CalculadoraPrecio
+              regla={regla}
+              publico={price.amount}
+              onUsarPrecio={(v) => setPrice({ amount: v })}
+            />
             <AvisoPrecio />
           </section>
 

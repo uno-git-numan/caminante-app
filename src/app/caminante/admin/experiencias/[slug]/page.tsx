@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchSlotsForAdmin } from "@/lib/experiences/slots-admin";
 import type { Experience } from "@/lib/experiences/types";
 import { leerComplementos } from "@/lib/experiences/complementos-actions";
+import { reglaComisionActual } from "@/lib/auth/alcance";
 import ExperienceForm from "../ExperienceForm";
 
 export const dynamic = "force-dynamic";
@@ -42,11 +43,13 @@ export default async function EditarExperienciaPage({
   );
 
   const complementos = await leerComplementos(slug);
+  const reglaComision = await reglaComisionActual();
 
   return (
     <ExperienceForm
       initial={row.data as Experience}
       initialComplementos={complementos}
+      reglaComision={reglaComision}
       initialSlots={slots.map((s) => ({
         id: s.id,
         label: s.label,
