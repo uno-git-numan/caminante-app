@@ -54,6 +54,8 @@ export type PersonaReembolsable = {
   porStripe: boolean;
   /** Ya tiene un reembolso pedido o confirmado: el botón no se ofrece dos veces. */
   enCurso: boolean;
+  /** Id de la fila de `reembolsos` viva — lo pide «Verificar con Stripe». */
+  reembolsoId: string | null;
 };
 
 /** Alguien a quien se le mandó la encuesta y todavía no contesta. */
@@ -210,7 +212,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   const [{ data: paysRaw }, { data: reemsRaw }] = esCasa
     ? await Promise.all([
         sb.from("payments").select("reservation_id, amount_mxn, status, method"),
-        sb.from("reembolsos").select("payment_id, reservation_id, estado"),
+        sb.from("reembolsos").select("id, payment_id, reservation_id, estado"),
       ])
     : [{ data: null }, { data: null }];
 
@@ -265,11 +267,13 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       porStripe: (prev?.porStripe ?? true) && p.method === "stripe",
     });
   }
-  const reembolsoEnCurso = new Set(
-    ((reemsRaw ?? []) as { reservation_id: string | null; estado: string }[])
-      .filter((r) => r.reservation_id && (r.estado === "solicitado" || r.estado === "confirmado"))
-      .map((r) => r.reservation_id as string),
-  );
+  // Reserva → id del reembolso VIVO. Se guarda el id, no solo un booleano: sin
+  // él, un reembolso atorado no se puede destrabar desde la pantalla.
+  const reembolsoVivo = new Map<string, string>();
+  for (const r of (reemsRaw ?? []) as { id: string; reservation_id: string | null; estado: string }[]) {
+    if (!r.reservation_id) continue;
+    if (r.estado === "solicitado" || r.estado === "confirmado") reembolsoVivo.set(r.reservation_id, r.id);
+  }
 
   const contactIds = [...new Set([...resvs.map((r) => r.contact_id), ...fbs.map((f) => f.contact_id)])];
   const { data: contactsRaw } = contactIds.length
@@ -359,7 +363,8 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
               email: c?.email ?? null,
               monto: cobro.monto,
               porStripe: cobro.porStripe,
-              enCurso: reembolsoEnCurso.has(r.id),
+              enCurso: reembolsoVivo.has(r.id),
+              reembolsoId: reembolsoVivo.get(r.id) ?? null,
             };
           })
           .filter((x): x is PersonaReembolsable => x !== null)

@@ -15,7 +15,11 @@ import type { Salida } from "@/lib/admin/salidas";
 import LinkDeslinde from "@/app/caminante/admin/encuesta/LinkDeslinde";
 import { reenviarEncuesta } from "@/lib/feedback/resend-actions";
 import { setSlotStatusAction, updateSlot } from "@/lib/admin/eventos-actions";
-import { reembolsarPersona, cancelarSalidaYReembolsar } from "@/lib/payments/reembolsos";
+import {
+  reembolsarPersona,
+  cancelarSalidaYReembolsar,
+  verificarReembolso,
+} from "@/lib/payments/reembolsos";
 import { iniciales } from "@/lib/admin/formato";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
@@ -182,7 +186,19 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
 
   const vivos = s.reembolsables.filter((r) => !r.enCurso);
   const totalVivo = vivos.reduce((n, r) => n + r.monto, 0);
-  const puedeCancelar = confirmacion.trim().toLowerCase() === s.label.trim().toLowerCase();
+  // Comparación TOLERANTE. La etiqueta trae guion largo («Oct 8–11») y nadie lo
+  // teclea: escribir «oct 8-11» quedaba fuera y el botón no se habilitaba nunca,
+  // sin decir por qué. Se normalizan guiones, acentos y espacios — la
+  // confirmación es para frenar un descuido, no para ganar un dictado.
+  const plano = (t: string) =>
+    t
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u2010-\u2015]/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  const puedeCancelar = plano(confirmacion) === plano(s.label);
 
   const contar = (r: { ok: boolean; reembolsados?: number; monto?: number; avisos?: string[]; error?: string }) => {
     if (!r.ok) { setAviso({ ok: false, texto: r.error || "No se pudo." }); return; }
@@ -223,7 +239,28 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
               <span style={{ fontSize: 14 }}>{r.nombre}</span>
               <span className="mut" style={{ fontSize: 12.5 }}>{mxn(r.monto)}</span>
               {r.enCurso ? (
-                <span className="mut" style={{ fontSize: 12.5 }}>Reembolso en curso</span>
+                <>
+                  <span className="mut" style={{ fontSize: 12.5 }}>Reembolso en curso</span>
+                  {/* Un «en curso» sin salida no es información: es un callejón.
+                      Este botón le pregunta a Stripe y cierra lo que falte. */}
+                  {r.reembolsoId ? (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={!!ocupado}
+                      onClick={async () => {
+                        setOcupado(r.reservationId);
+                        setAviso(null);
+                        const v = await verificarReembolso(r.reembolsoId!);
+                        setAviso(v.ok ? { ok: true, texto: v.mensaje } : { ok: false, texto: v.error });
+                        setOcupado("");
+                        onListo();
+                      }}
+                    >
+                      {ocupado === r.reservationId ? "Preguntando a Stripe…" : "Verificar con Stripe"}
+                    </button>
+                  ) : null}
+                </>
               ) : !r.porStripe ? (
                 <span className="mut" style={{ fontSize: 12.5 }}>Se cobró fuera de Stripe — devuélvelo por banco</span>
               ) : (
@@ -278,6 +315,11 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
           >
             {ocupado === "salida" ? "Cancelando…" : "Cancelar salida y reembolsar a todos"}
           </button>
+          {!puedeCancelar ? (
+            <span className="mut" style={{ fontSize: 12.5 }}>
+              Escribe <b>{s.label}</b> para habilitarlo.
+            </span>
+          ) : null}
         </div>
       </div>
 

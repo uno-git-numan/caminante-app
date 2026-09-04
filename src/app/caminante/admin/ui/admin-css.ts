@@ -43,6 +43,13 @@ export const ADMIN_CSS = `
 .adm .nav span.soon{border:1px dashed var(--line);opacity:.55;cursor:default;}
 
 .adm .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:40px;padding:0 17px;border-radius:999px;font-size:13.5px;font-weight:500;border:1px solid transparent;transition:background .18s,transform .1s,color .18s,border-color .18s;white-space:nowrap;}
+/* Un botón bloqueado TIENE QUE VERSE bloqueado. Sin esto, «Cancelar salida y
+   reembolsar a todos» se pintaba naranja intenso aunque faltara escribir la
+   confirmación: se picaba, no pasaba nada, y la conclusión razonable era que el
+   botón estaba roto. Un control que no responde y no explica por qué es un bug
+   de interfaz, no del usuario. */
+.adm .btn:disabled{opacity:.42;cursor:not-allowed;filter:saturate(.5);}
+.adm .btn:disabled:hover{transform:none;}
 .adm .btn:active{transform:translateY(1px);}
 .adm .btn-orange{background:var(--orange);color:#fff;}
 .adm .btn-orange:hover{background:#e8431f;}

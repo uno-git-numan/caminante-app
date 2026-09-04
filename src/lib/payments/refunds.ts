@@ -22,6 +22,26 @@ export type RefundResult = {
 };
 
 /**
+ * Cierra un reembolso: marca el pago y ejecuta lo prometido.
+ *
+ * ⚠️ LA LLAMAN DOS VÍAS y las dos tienen que poder ser la primera:
+ *   · `reembolsarPersona` en cuanto Stripe contesta `succeeded` — que es el caso
+ *     normal de una tarjeta y ocurre en la misma llamada.
+ *   · el webhook `charge.refunded`, para los que Stripe deja en `pending` y
+ *     confirma minutos u horas después.
+ *
+ * Antes SOLO existía la segunda, y por eso el reembolso de Mónica (3 sep, $16,500)
+ * se pagó en Stripe y se quedó «en curso» en el panel para siempre: el endpoint
+ * de Stripe no tenía suscrito `charge.refunded`, así que el evento no llegó
+ * nunca. Colgar el cierre de un evento que Stripe ya me había contestado en la
+ * respuesta era el error; la configuración solo lo hizo visible.
+ */
+export async function marcarYCerrar(sb: SupabaseClient, paymentId: string): Promise<void> {
+  await sb.from("payments").update({ status: "refunded" }).eq("id", paymentId);
+  await cerrarReembolsoDelPanel(sb, paymentId);
+}
+
+/**
  * `charge.refunded` — Stripe manda el cargo COMPLETO con `amount_refunded`
  * acumulado, no solo la devolución de este evento.
  *
@@ -92,7 +112,10 @@ export async function finalizeRefund(
  * Nada de esto puede tirar el webhook: el dinero YA se devolvió. Un fallo aquí
  * se registra y se ve en el panel, no se propaga.
  */
-async function cerrarReembolsoDelPanel(sb: SupabaseClient, paymentId: string): Promise<void> {
+export async function cerrarReembolsoDelPanel(
+  sb: SupabaseClient,
+  paymentId: string,
+): Promise<void> {
   try {
     const { data: reem } = await sb
       .from("reembolsos")

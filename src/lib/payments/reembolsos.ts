@@ -23,6 +23,7 @@ import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
+import { marcarYCerrar } from "@/lib/payments/refunds";
 
 export type ResultadoReembolso =
   | { ok: true; reembolsados: number; monto: number; avisos: string[] }
@@ -113,6 +114,18 @@ async function devolver(
       metadata: { origen: "caminante", reembolso_id: fila.id as string },
     });
     await sb.from("reembolsos").update({ stripe_refund_id: refund.id }).eq("id", fila.id);
+
+    // ⚠️ NO SE ESPERA AL WEBHOOK SI STRIPE YA CONTESTÓ. Una devolución a tarjeta
+    // vuelve `succeeded` en esta misma llamada: eso ES la confirmación, y con
+    // ella ya se puede cancelar la reserva, liberar el lugar y mandar el correo.
+    //
+    // Colgarlo del evento `charge.refunded` costó caro el 3 sep: el endpoint de
+    // Stripe no lo tenía suscrito, el dinero salió y el panel se quedó diciendo
+    // «reembolso en curso» sin nada que lo destrabara. El webhook sigue, pero
+    // como RED, no como único camino.
+    if (refund.status === "succeeded") {
+      await marcarYCerrar(sb, pago.id);
+    }
     return { monto: pago.amount_mxn, aviso: null };
   } catch (e) {
     // El reembolso queda 'fallido' Y CON EL MOTIVO. Así el libro dice por qué
@@ -233,4 +246,56 @@ export async function cancelarSalidaYReembolsar(
 
   revalidatePath("/caminante/admin/salidas");
   return { ok: true, reembolsados: n, monto, avisos };
+}
+
+/**
+ * DESTRABAR un reembolso que se quedó «en curso».
+ *
+ * Le pregunta a Stripe por el refund y, si ya está `succeeded`, cierra lo que
+ * faltaba: cancela la reserva, libera el lugar y manda el correo.
+ *
+ * Existe porque el webhook puede no llegar —y no llegó— y porque un movimiento
+ * de dinero a medias no puede depender de que alguien note el renglón. Es
+ * idempotente: si ya estaba cerrado, no vuelve a mandar el correo.
+ */
+export async function verificarReembolso(
+  reembolsoId: string,
+): Promise<{ ok: true; estado: string; mensaje: string } | { ok: false; error: string }> {
+  const auth = await quienEsLaCasa();
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  const sb = createSupabaseAdminClient();
+  const { data: r } = await sb
+    .from("reembolsos")
+    .select("id, payment_id, stripe_refund_id, estado")
+    .eq("id", reembolsoId)
+    .maybeSingle();
+  if (!r) return { ok: false, error: "No se encontró ese reembolso." };
+  if (!r.stripe_refund_id) {
+    return { ok: false, error: "Ese reembolso nunca llegó a crearse en Stripe. Vuelve a pedirlo." };
+  }
+
+  let estado: string;
+  try {
+    const stripe = getStripeServerClient();
+    const refund = await stripe.refunds.retrieve(r.stripe_refund_id as string);
+    estado = refund.status ?? "desconocido";
+  } catch (e) {
+    return { ok: false, error: `No se pudo consultar Stripe: ${(e as Error).message}` };
+  }
+
+  if (estado === "succeeded") {
+    await marcarYCerrar(sb, r.payment_id as string);
+    revalidatePath("/caminante/admin/salidas");
+    return { ok: true, estado, mensaje: "Stripe confirmó la devolución. Lugar liberado y correo enviado." };
+  }
+  if (estado === "failed" || estado === "canceled") {
+    await sb
+      .from("reembolsos")
+      .update({ estado: "fallido", error: `Stripe: ${estado}` })
+      .eq("id", r.id);
+    revalidatePath("/caminante/admin/salidas");
+    return { ok: true, estado, mensaje: `Stripe lo marcó como ${estado}: el dinero NO volvió. Hay que resolverlo a mano.` };
+  }
+  return { ok: true, estado, mensaje: `Stripe todavía lo tiene en «${estado}». Vuelve a verificar más tarde.` };
 }
