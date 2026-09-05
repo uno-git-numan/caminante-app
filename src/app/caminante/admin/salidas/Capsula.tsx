@@ -21,6 +21,8 @@ import {
   verificarReembolso,
 } from "@/lib/payments/reembolsos";
 import { iniciales } from "@/lib/admin/formato";
+import { mandarmeUnaPrueba } from "@/lib/feedback/prueba";
+import { generarLinkDeGrupo } from "@/lib/feedback/link-grupo";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
 /** Con coma decimal: es un número que se lee, no un identificador. */
@@ -343,6 +345,10 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
   const [abierta, setAbierta] = useState(false);
   const [editando, setEditando] = useState(false);
   const [reembolsando, setReembolsando] = useState(false);
+  const [tokenGrupo, setTokenGrupo] = useState(s.tokenGrupo);
+  const [generando, setGenerando] = useState(false);
+  const [probando, setProbando] = useState(false);
+  const [prueba, setPrueba] = useState("");
   const faltan = s.titulares - s.firmados;
   // «Grave» se reserva para la salida que va a viajar sin encuesta: si viaja
   // así, no hay forma de saber cómo estuvo, y el único síntoma es el silencio.
@@ -549,23 +555,70 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                 </>
               ) : null}
 
-              {!s.respondieron.length && !s.sinResponder.length ? (
+              {/* «Nadie recibió» solo si de verdad no se mandó. Antes esta línea
+                  aparecía cuando NADIE HABÍA RESPONDIDO, sobre siete correos ya
+                  entregados: el tablero afirmaba lo contrario de lo que pasaba y
+                  mandó a perseguir un bug que no existía. */}
+              {s.invitadas === 0 ? (
                 <div className="empty" style={{ border: 0 }}>
                   A nadie de esta salida se le mandó la encuesta.
+                </div>
+              ) : !s.respondieron.length ? (
+                <div className="empty" style={{ border: 0 }}>
+                  Encuesta enviada a {s.invitadas}{" "}
+                  {s.invitadas === 1 ? "persona" : "personas"} · nadie ha respondido todavía.
+                  Mándales el link de abajo por WhatsApp.
                 </div>
               ) : null}
 
               <div className="salfoot">
-                {s.tokenGrupo ? (
+                {/* EL LINK, SIEMPRE A LA MANO. Antes solo aparecía si la salida
+                    ya tenía token, y las salidas viejas no lo tienen: quedaba una
+                    pantalla que decía «nadie respondió» sin ofrecer con qué
+                    arreglarlo. Ahora, si falta, se genera de un clic. */}
+                {tokenGrupo ? (
                   <div className="sallk">
-                    <span>{`${sitio}/caminante/feedback/salida/${s.tokenGrupo}`}</span>
+                    <span>{`${sitio}/caminante/feedback/salida/${tokenGrupo}`}</span>
                     <LinkDeslinde
-                      link={`${sitio}/caminante/feedback/salida/${s.tokenGrupo}`}
+                      link={`${sitio}/caminante/feedback/salida/${tokenGrupo}`}
                       telefono={null}
                       nombre=""
                       experiencia={s.experiencia}
                     />
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={generando}
+                    onClick={async () => {
+                      setGenerando(true);
+                      const r = await generarLinkDeGrupo(s.id);
+                      if (r.ok) setTokenGrupo(r.token);
+                      setGenerando(false);
+                    }}
+                  >
+                    {generando ? "Generando…" : "Generar link de la encuesta"}
+                  </button>
+                )}
+                {/* Prueba SEGURA: no recibe destinatario, va a tu propio correo.
+                    Ver lib/feedback/prueba.ts — nació de mandarle dos duplicados
+                    a una clienta por apretar el renglón equivocado. */}
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={probando}
+                  onClick={async () => {
+                    setProbando(true);
+                    const r = await mandarmeUnaPrueba(s.experienceId);
+                    setPrueba(r.ok ? `Prueba enviada a ${r.a}` : r.error);
+                    setProbando(false);
+                  }}
+                >
+                  {probando ? "Mandando…" : "Mandarme una prueba a mí"}
+                </button>
+                {prueba ? (
+                  <span className="mut" style={{ fontSize: 12.5 }}>{prueba}</span>
                 ) : null}
                 <a href={`/caminante/admin/roster/${s.id}`} className="btn btn-ghost">
                   Ver roster

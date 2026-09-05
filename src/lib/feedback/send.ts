@@ -80,6 +80,17 @@ export const MINUTO_ENVIO = 30;
 
 // Para cada salida que terminó hace ≥24h, manda la encuesta a los asistentes
 // (reservas paid/confirmed/attended) que aún no tengan invitación. Idempotente.
+/** El nombre con el que la persona reconoce lo que compró. */
+function tituloDeExperiencia(
+  data: Experience | undefined | null,
+  locationLabel: string | null | undefined,
+): string {
+  const t = [data?.title, data?.titleAccent].filter(Boolean).join(" ").trim();
+  if (t) return t;
+  if (data?.docTitle?.trim()) return data.docTitle.trim();
+  return (locationLabel || "tu experiencia").split(",")[0];
+}
+
 export async function runSurveyDispatch(now = new Date()): Promise<DispatchResult> {
   const sb = createSupabaseAdminClient();
   const lowerBound = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString();
@@ -194,7 +205,14 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
         res.errors++;
         continue;
       }
-      const loc = (fb.locationLabel || "tu experiencia").split(",")[0];
+      // EL ASUNTO LLEVA EL NOMBRE DE LA EXPERIENCIA, no el del lugar.
+      //
+      // Antes salía del `locationLabel`: quien compró «Hacienda y hongos»
+      // recibía «¿Cómo te fuiste de Amecameca?» y no reconocía de qué le
+      // hablaban. Un asunto que el destinatario no reconoce es un correo que no
+      // se abre — y con 0 de 7 respuestas, es una hipótesis que había que quitar
+      // de encima.
+      const loc = tituloDeExperiencia(expRow?.data, fb.locationLabel);
       const name = firstName(r.contacts?.full_name ?? null);
       const unsub = unsubscribeUrl(r.contact_id);
       const intro = fb.emailIntro?.trim() || DEFAULT_EMAIL_INTRO;
@@ -248,7 +266,14 @@ export async function resendSurveyEmail(feedbackId: string): Promise<boolean> {
     const contactId = f.contact_id as string;
     const token = f.token as string;
     const link = `${SITE}/caminante/feedback/${token}`;
-    const loc = ((f.location_label as string | null) || "tu experiencia").split(",")[0];
+    // Mismo criterio que el envío automático: el nombre de la experiencia.
+    const { data: expDoc } = f.experience_id
+      ? await sb.from("experiences").select("data").eq("id", f.experience_id as string).maybeSingle()
+      : { data: null };
+    const loc = tituloDeExperiencia(
+      (expDoc?.data as Experience | undefined) ?? null,
+      f.location_label as string | null,
+    );
     const name = firstName((c?.full_name as string | null) ?? null);
     const unsub = unsubscribeUrl(contactId);
     // Intro data-driven: config de la experiencia → default atemporal.

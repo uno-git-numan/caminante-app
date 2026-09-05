@@ -1,5 +1,7 @@
 "use client";
 
+import { OPCIONES_ESTADO } from "@/lib/geo/estados";
+
 // Implementación React del diseño "Registro y deslinde" (Numan Caminante Design
 // System / Claude Design, jun 2026) — re-skin del rebrand: nav+formhero+fsec cards,
 // eyebrows " // ", secnum Geist Mono, paper bg. La lógica real está intacta: slots
@@ -498,8 +500,17 @@ export default function RegistrationForm({
                 <input id="nacimiento" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
               </div>
               <div className="field">
-                <label htmlFor="ciudad">Ciudad</label>
-                <input id="ciudad" type="text" placeholder="Ciudad de México" autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} />
+                <label htmlFor="ciudad">Estado</label>
+                {/* ESTADO, NO CIUDAD LIBRE. El texto libre llegaba como «Mexico city»,
+                    «Mexico», «CDMX» y vacío — y de ahí sale la HORA a la que se le
+                    manda la encuesta a esta persona. Una lista cerrada convierte
+                    una adivinanza en un dato. */}
+                <select id="ciudad" value={city} onChange={(e) => setCity(e.target.value)}>
+                  <option value="">Elige tu estado</option>
+                  {OPCIONES_ESTADO.map((e) => (
+                    <option key={e.clave} value={e.clave}>{e.nombre}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="frow two">

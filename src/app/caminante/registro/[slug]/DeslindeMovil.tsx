@@ -1,5 +1,7 @@
 "use client";
 
+import { OPCIONES_ESTADO } from "@/lib/geo/estados";
+
 // Vista MÓVIL de /caminante/registro/[slug] — transcripción de `PubDeslinde`
 // (design/publico-movil/pub-b.jsx:80) contra el registro real.
 //
@@ -371,15 +373,15 @@ export default function DeslindeMovil({
             />
           </div>
           <div className="pub-fld">
-            <label htmlFor="d-ciudad">Ciudad</label>
-            <input
-              id="d-ciudad"
-              type="text"
-              autoComplete="address-level2"
-              placeholder="Ciudad de México"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-            />
+            <label htmlFor="d-ciudad">Estado</label>
+            {/* Lista cerrada, no texto libre: de aquí sale la HORA a la que se le
+                manda la encuesta. Ver lib/geo/estados.ts. */}
+            <select id="d-ciudad" value={city} onChange={(e) => setCity(e.target.value)}>
+              <option value="">Elige tu estado</option>
+              {OPCIONES_ESTADO.map((e) => (
+                <option key={e.clave} value={e.clave}>{e.nombre}</option>
+              ))}
+            </select>
           </div>
           <div className="pub-fld">
             <label htmlFor="d-correo">Correo</label>

@@ -11,6 +11,8 @@
 // mundo— pero lo CUENTA, para que el reporte del cron diga a cuántos les
 // estamos suponiendo el huso en vez de saberlo.
 
+import { husoDeEstado } from "@/lib/geo/estados";
+
 export const HUSO_CASA = "America/Mexico_City";
 
 const limpia = (s: string) =>
@@ -42,6 +44,14 @@ export type Huso = { zona: string; supuesto: boolean };
 
 /** El huso de quien recibe. `supuesto` = no lo sabemos, caímos en el de la casa. */
 export function husoDeCiudad(ciudad: string | null | undefined): Huso {
+  // PRIMERO la lista cerrada de estados: desde hoy el registro guarda «CDMX» o
+  // «Estado de México», no texto libre. Si acierta ahí, el huso NO es supuesto.
+  // El mapa de abajo se queda para lo que ya está en la base («Mexico city»,
+  // «Tijuana, BC») y para las ciudades de fuera; migrarlo a mano no vale la pena
+  // y borrarlo perdería husos que hoy sí acertamos.
+  const porEstado = husoDeEstado(ciudad);
+  if (!porEstado.supuesto) return { zona: porEstado.zona, supuesto: false };
+
   const c = limpia(ciudad ?? "");
   if (!c) return { zona: HUSO_CASA, supuesto: true };
   for (const [claves, zona] of MAPA) {

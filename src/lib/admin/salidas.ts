@@ -82,6 +82,8 @@ export type Respuesta = {
 export type Salida = {
   id: string;
   slug: string;
+  /** El id de la experiencia — lo pide «Mandarme una prueba a mí». */
+  experienceId: string;
   experiencia: string;
   lugar: string;
   label: string;
@@ -434,6 +436,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     salidas.push({
       id: s.id,
       slug: exp.slug,
+      experienceId: exp.id,
       experiencia: experienceTitle(data, exp.slug),
       lugar: (data?.cardPloc || data?.estado || "").toString(),
       label: s.label || fechaLarga(s.starts_at),
