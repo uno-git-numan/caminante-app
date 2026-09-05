@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import AdminShell from "../ui/AdminShell";
 import Capsula from "./Capsula";
 import NuevaSalida from "./NuevaSalida";
+import MandarEncuestas from "./MandarEncuestas";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { fetchSalidas } from "@/lib/admin/salidas";
 
@@ -55,6 +56,10 @@ export default async function SalidasPage({
           </p>
         </div>
       </NuevaSalida>
+
+      {/* El disparador manual vive junto al KPI de encuestas, que es donde se ve
+          el daño cuando no salen. */}
+      <MandarEncuestas />
 
       {aviso ? (
         <div
