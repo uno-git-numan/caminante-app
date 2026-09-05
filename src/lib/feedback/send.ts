@@ -204,8 +204,23 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
         listUnsubscribeUrl: unsub,
         fromName: "Luis · Caminante",
       });
-      if (ok) res.invited++;
-      else res.errors++;
+      if (ok) {
+        res.invited++;
+      } else {
+        // ⚠️ SI EL CORREO NO SALIÓ, LA FILA NO SE QUEDA.
+        //
+        // La fila se inserta ANTES de mandar (necesita el token para armar el
+        // link). Si el envío falla y la fila se queda, dice «invited» sobre un
+        // correo que nunca salió: la idempotencia la salta para siempre y esa
+        // persona no vuelve a recibir nada, mientras el panel la cuenta como
+        // invitada. Un registro que afirma más de lo que ocurrió es peor que no
+        // tenerlo.
+        //
+        // Borrándola, la fila pasa a ser el ACUSE del envío —existe solo si
+        // Resend aceptó— y la siguiente pasada reintenta con un token nuevo.
+        await sb.from("experience_feedback").delete().eq("token", token);
+        res.errors++;
+      }
     }
   }
   return res;
