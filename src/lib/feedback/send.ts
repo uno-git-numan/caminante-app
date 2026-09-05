@@ -174,6 +174,17 @@ export async function runSurveyDispatch(now = new Date()): Promise<DispatchResul
         reservation_id: r.id,
         contact_id: r.contact_id,
         experience_id: slot.experience_id,
+        // ⚠️ SIN ESTO LA ENCUESTA SE MANDA Y EL PANEL DICE QUE NO.
+        //
+        // Faltaba, y las 7 invitaciones de Hacienda y hongos (Ago 29-30, 1 sep)
+        // salieron con slot_id NULL. La cápsula de la salida agrupa por slot_id,
+        // así que mostraba «0 de 0 · Nadie recibió la encuesta» sobre siete
+        // correos que sí se habían enviado. Seis días creyendo que el sistema
+        // estaba mudo cuando el mudo era el tablero.
+        //
+        // Peor que no mandar: mandar y reportar que no. Lo primero se corrige;
+        // lo segundo hace que se corrija lo que no estaba roto.
+        slot_id: slot.id,
         status: "invited",
         source: "email",
         location_label: fb.locationLabel || null,
