@@ -122,3 +122,32 @@ export async function entrarEncuestaAbierta(input: {
   }
   return { ok: true, token: creada.token as string };
 }
+
+/**
+ * ENTRAR CON LA SESIÓN DE GOOGLE, sin volver a teclear nombre y correo.
+ *
+ * ⚠️ RESUELVE UN PROBLEMA REAL, NO ES COMODIDAD. Enyd abrió el link de grupo y
+ * escribió `dssegu@segustar.mx` en vez del `karinamne@hotmail.com` con el que
+ * está registrada: la cascada no la reconoció, le creó un SEGUNDO contacto y
+ * quedó dos veces en la lista de pendientes de la misma salida. Mientras la
+ * identidad la teclee la persona, ese duplicado va a repetirse.
+ *
+ * Con la sesión de Google el correo lo dice el proveedor, no la memoria de
+ * quien contesta. Sigue pudiendo no coincidir con el registrado —alguien puede
+ * tener dos cuentas— pero deja de coincidir por accidente.
+ */
+export async function entrarConSesion(slotToken: string): Promise<EntrarResult> {
+  const { createSupabaseServerClient } = await import("@/lib/supabase/server");
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  const u = data.user;
+  if (!u?.email) return { ok: false, error: "Tu sesión no trae correo. Escríbelo abajo." };
+
+  // El nombre sale de Google si viene; si no, del correo. Nunca vacío, porque
+  // `entrarEncuestaAbierta` exige dos caracteres.
+  const meta = (u.user_metadata ?? {}) as { full_name?: string; name?: string };
+  const nombre =
+    (meta.full_name || meta.name || "").trim() || u.email.split("@")[0].replace(/[._-]+/g, " ");
+
+  return entrarEncuestaAbierta({ slotToken, fullName: nombre, email: u.email });
+}

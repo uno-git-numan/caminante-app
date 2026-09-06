@@ -3,7 +3,9 @@
 // PERSONAL de siempre — el formulario de la encuesta no se toca.
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { fetchSalidaEncuesta, entrarEncuestaAbierta } from "@/lib/feedback/abierta";
+import { fetchSalidaEncuesta, entrarEncuestaAbierta, entrarConSesion } from "@/lib/feedback/abierta";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import GoogleButton from "@/app/caminante/login/GoogleButton";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,23 @@ export default async function EncuestaAbiertaPage({ params, searchParams }: Para
   if (!salida) notFound();
 
   const lugar = salida.locationLabel.split(",")[0] || "el viaje";
+
+  // ¿Ya trae sesión? Entonces no se le vuelve a pedir lo que el navegador ya
+  // sabe. Ver `entrarConSesion`: nació del contacto duplicado de Enyd.
+  let sesion: string | null = null;
+  try {
+    const sb = await createSupabaseServerClient();
+    sesion = (await sb.auth.getUser()).data.user?.email ?? null;
+  } catch {
+    sesion = null; // sesión rota = no hay sesión; el formulario de abajo sirve igual
+  }
+
+  async function entrarYa() {
+    "use server";
+    const r = await entrarConSesion(token);
+    if (!r.ok) redirect(`/caminante/feedback/salida/${token}?error=guardar`);
+    redirect(`/caminante/feedback/${r.token}`);
+  }
 
   async function entrar(formData: FormData) {
     "use server";
@@ -56,6 +75,19 @@ export default async function EncuestaAbiertaPage({ params, searchParams }: Para
           {salida.experienceTitle ? `${salida.experienceTitle} · ` : ""}
           {salida.slotLabel}
         </p>
+        {/* Un clic si ya está identificada; el formulario sigue debajo para
+            quien no quiera o no pueda usar Google. Nunca se quita la salida a
+            mano: una encuesta que exige cuenta pierde respuestas. */}
+        {sesion ? (
+          <form action={entrarYa} style={{ marginBottom: 14 }}>
+            <button type="submit" className="fbo-btn">Entrar como {sesion}</button>
+          </form>
+        ) : (
+          <div style={{ marginBottom: 14 }}>
+            <GoogleButton next={`/caminante/feedback/salida/${token}`} />
+          </div>
+        )}
+
         <p className="fbo-nota">
           Da igual si tú compraste el viaje o te trajo alguien: queremos oírte. Déjanos tu nombre y
           correo para no confundir tu respuesta con la de otra persona.
