@@ -8,6 +8,8 @@ import "server-only";
 // que gobierna el punto de equilibrio sería la que NO estás editando.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { experienceTitle } from "@/lib/admin/queries";
+import type { Experience } from "@/lib/experiences/types";
 import { reglaComisionDeOperador } from "@/lib/operadores/regla";
 import type { Cortesia, LineaCosto, Modo } from "./costeo";
 import type { Regla } from "@/lib/operadores/comision";
@@ -34,6 +36,17 @@ export type OperadorConRegla = {
 
 const num = (v: unknown): number | null => (v == null ? null : Number(v));
 
+/**
+ * El precio publicado viene como texto («$18,560») porque así se muestra.
+ * Muchas salidas tienen `price_mxn` en NULL —el cobro real vive en el
+ * checkout— y sin este respaldo el cotizador precargaba $0 y la cascada
+ * arrancaba en pérdida total antes de que escribieras nada.
+ */
+const precioDeTexto = (v: unknown): number => {
+  const n = Number(String(v ?? "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+};
+
 export async function fetchCotizables(): Promise<{
   salidas: SalidaCotizable[];
   operadores: OperadorConRegla[];
@@ -41,9 +54,14 @@ export async function fetchCotizables(): Promise<{
   const sb = createSupabaseAdminClient();
 
   const [{ data: slots }, { data: costos }, { data: ops }] = await Promise.all([
+    // ⚠️ La tabla es `experience_slots` y el cupo es `capacity_total`. Y el
+    // título NO es una columna: vive dentro del jsonb `data` y se arma con
+    // `experienceTitle`, igual que en el resto del panel.
     sb
-      .from("slots")
-      .select("id, starts_at, label, price_mxn, capacity, experience_id, experiences(id, title, operator_id, cabezas_cortesia)")
+      .from("experience_slots")
+      .select(
+        "id, starts_at, label, price_mxn, capacity_total, experience_id, experiences(id, slug, data, operator_id, cabezas_cortesia)",
+      )
       .order("starts_at", { ascending: false })
       .limit(120),
     sb.from("experience_costs").select("*"),
@@ -75,11 +93,11 @@ export async function fetchCotizables(): Promise<{
     return {
       slotId: String(s.id),
       experienceId: expId,
-      experiencia: String(e.title ?? "—"),
+      experiencia: experienceTitle((e.data ?? null) as Partial<Experience> | null, String(e.slug ?? "—")),
       salida: String(s.label ?? s.starts_at ?? ""),
       startsAt: (s.starts_at as string) ?? null,
-      precioMxn: num(s.price_mxn) ?? 0,
-      cupo: num(s.capacity),
+      precioMxn: num(s.price_mxn) || precioDeTexto((e.data as { price?: { amount?: string } } | null)?.price?.amount),
+      cupo: num(s.capacity_total),
       operatorId: (e.operator_id as string) ?? null,
       // Los costos de la salida MÁS los de la experiencia: los de experiencia
       // aplican a todas sus fechas, y omitirlos cotizaría de menos.
