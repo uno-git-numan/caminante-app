@@ -24,13 +24,26 @@ export async function sendViaResend(
   // fromName = override del nombre visible del remitente. El default ya es
   // "Luis · Caminante" (ver FROM arriba); solo se pasa si un correo puntual
   // quisiera otro nombre.
-  opts: { ua?: string; text?: string; listUnsubscribeUrl?: string; fromName?: string } = {},
+  // attachments = adjuntos ya en base64. Se usa para el .ics de una llamada:
+  // sin evento en el calendario, una cita vive sólo dentro de un correo y
+  // desaparece en cuanto ese correo se archiva.
+  opts: {
+    ua?: string; text?: string; listUnsubscribeUrl?: string; fromName?: string;
+    attachments?: { filename: string; content: string; contentType?: string }[];
+  } = {},
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key || !to || !to.includes("@")) return false;
   const from = opts.fromName ? `${opts.fromName} <${DIR}>` : FROM;
   const payload: Record<string, unknown> = { from, to: [to], reply_to: REPLY_TO, subject, html };
   if (opts.text) payload.text = opts.text;
+  if (opts.attachments?.length) {
+    payload.attachments = opts.attachments.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      ...(a.contentType ? { content_type: a.contentType } : {}),
+    }));
+  }
   if (opts.listUnsubscribeUrl) {
     payload.headers = {
       "List-Unsubscribe": `<${opts.listUnsubscribeUrl}>, <mailto:${REPLY_TO}?subject=Baja>`,

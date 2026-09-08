@@ -28,6 +28,7 @@
 // Cada action re-verifica admin: el gate del layout no cubre invocación directa.
 
 import { revalidatePath } from "next/cache";
+import { desdeHoraLocal } from "@/lib/fecha/zona";
 import { randomBytes } from "node:crypto";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -103,12 +104,25 @@ export async function agendarLlamada(
   const app = await cargar(id, ["pending", "calling"]);
   if (!app) return { ok: false, error: "La solicitud ya no admite agendar." };
 
+  // ⚠️ NO se exige Google Meet. Lo exigía, y eso rebotaba una liga de Zoom, de
+  // Whereby o de una sala propia sin más razón que la costumbre. Lo que importa
+  // es que sea una dirección segura a la que se pueda entrar.
   const url = (meetUrl || "").trim();
-  if (!/^https:\/\/meet\.google\.com\/[a-z-]{3,}/i.test(url)) {
-    return { ok: false, error: "Pega una liga de Google Meet válida." };
+  let host = "";
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") throw new Error("http");
+    host = u.hostname;
+  } catch {
+    return { ok: false, error: "Pega la liga completa de la videollamada, empezando con https://" };
   }
-  const cuando = new Date(cuandoISO);
-  if (Number.isNaN(cuando.getTime())) return { ok: false, error: "Fecha inválida." };
+  if (!host.includes(".")) return { ok: false, error: "Esa liga no tiene un dominio válido." };
+
+  // ⚠️ El input entrega "2026-09-09T09:00" SIN zona y el servidor corre en UTC:
+  // `new Date()` guardaba las 9:00 como 09:00Z, o sea las 3 de la mañana en
+  // CDMX. La hora que se teclea es la del centro de México.
+  const cuando = desdeHoraLocal(cuandoISO);
+  if (!cuando) return { ok: false, error: "Fecha inválida." };
 
   const sb = createSupabaseAdminClient();
   const { error } = await sb
@@ -126,7 +140,7 @@ export async function agendarLlamada(
     return { ok: false, error: "No se pudo guardar la llamada." };
   }
 
-  await emailInvitacionLlamada(app.email, app.responsable, url, mensaje).catch((e) =>
+  await emailInvitacionLlamada(app.email, app.responsable, url, cuando, mensaje, id).catch((e) =>
     console.error("invitacion llamada:", e),
   );
   revalidatePath(PANEL);

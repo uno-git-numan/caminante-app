@@ -11,6 +11,7 @@
 // Lo único propio es el rótulo del encabezado y el copy.
 
 import { sendViaResend } from "@/lib/email/resend";
+import { CDMX, enPalabras } from "@/lib/fecha/zona";
 
 const SITE = "https://caminante.numanhub.com";
 const ADMIN_EMAIL = "uno@numanhub.com";
@@ -97,27 +98,80 @@ export async function emailAvisoAdminOperador(i: {
   return enviar(ADMIN_EMAIL, `Solicitud de operador · ${i.nombreOperadora}`, html, text);
 }
 
-// 3 · Invitación a la llamada. La liga es la AGENDA DE GOOGLE de Luis: la
-// persona elige su hueco y Google crea el evento con su Meet e invita a los dos.
-// Así no hay que agendar a mano ni pegar links de vuelta.
+// 3 · Invitación a la llamada.
+//
+// ANTES este correo mandaba la agenda de Google para que la persona eligiera
+// hueco. Se cambió el 8 sep 2026: ahora la cita se acuerda por WhatsApp y aquí
+// se CONFIRMA una fecha concreta con su liga. Un correo que dice «elige tu
+// horario» cuando la hora ya está acordada obliga a la otra persona a adivinar
+// cuál de las dos cosas es verdad.
+//
+// ⚠️ La hora se imprime SIEMPRE en la zona de quien va a la llamada, y se dice
+// cuál es. «9:00» sin zona es una promesa a medias.
+
+/** El evento de calendario. Sin esto la cita vive sólo dentro del correo. */
+function ics(i: {
+  uid: string; inicio: Date; minutos: number; titulo: string;
+  descripcion: string; url: string; para: string;
+}): string {
+  const z = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const fin = new Date(i.inicio.getTime() + i.minutos * 60000);
+  // Las líneas de un .ics se separan con CRLF y el texto escapa comas y saltos.
+  const t = (s: string) => s.replace(/([,;\\])/g, "\\$1").replace(/\n/g, "\\n");
+  return [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Caminante//Operadores//ES",
+    "CALSCALE:GREGORIAN", "METHOD:REQUEST", "BEGIN:VEVENT",
+    `UID:${i.uid}`, `DTSTAMP:${z(new Date())}`,
+    `DTSTART:${z(i.inicio)}`, `DTEND:${z(fin)}`,
+    `SUMMARY:${t(i.titulo)}`, `DESCRIPTION:${t(i.descripcion)}`,
+    `LOCATION:${t(i.url)}`, `URL:${i.url}`,
+    `ORGANIZER;CN=Caminante:mailto:${ADMIN_EMAIL}`,
+    `ATTENDEE;CN=${t(i.para)};RSVP=TRUE:mailto:${i.para}`,
+    "BEGIN:VALARM", "TRIGGER:-PT30M", "ACTION:DISPLAY",
+    "DESCRIPTION:Tu llamada con Caminante es en 30 minutos", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+}
+
 export async function emailInvitacionLlamada(
   to: string,
   responsable: string | null,
-  agendaUrl: string,
+  meetUrl: string,
+  cuando: Date,
   mensaje: string,
+  solicitudId: string,
 ): Promise<boolean> {
   const n = firstName(responsable);
+  const cuandoTxt = enPalabras(cuando, CDMX);
   const cuerpo = mensaje.trim()
     ? mensaje.trim().split(/\n{2,}/).map((t) => p(esc(t).replace(/\n/g, "<br>"))).join("")
-    : p("Nos interesó tu solicitud y queremos conocerte. Son 30 minutos por Google Meet: nos cuentas cómo operas, cerramos números y te decimos con claridad qué existe hoy y qué está en camino.");
+    : p("Son 30 minutos por video: nos cuentas cómo operas, cerramos números y te decimos con claridad qué existe hoy en la plataforma y qué está en camino.");
   const html = shell(
-    h1(`Vamos a platicar, ${n}.`) +
+    h1(`Nos vemos el ${esc(cuandoTxt)}, ${n}.`) +
+      p(`<b>${esc(cuandoTxt)}</b>, hora del centro de México. Te adjuntamos el evento para que se meta a tu calendario.`) +
       cuerpo +
-      boton("Elegir mi horario", agendaUrl) +
-      p("Al elegir tu hueco, Google nos manda la invitación con el enlace de la videollamada a los dos."),
+      boton("Entrar a la llamada", meetUrl) +
+      p("La liga también vive en tu panel, en «Mi alta»: si borras este correo, la llamada no se pierde. Si esa hora no te queda, respóndenos y la movemos."),
   );
-  const text = `Vamos a platicar, ${n}.\n\nSon 30 minutos por Google Meet. Elige el horario que te acomode:\n${agendaUrl}\n\nCaminante by NUMAN · uno@numanhub.com`;
-  return enviar(to, "Agendemos 30 minutos · Caminante", html, text);
+  const text = `Nos vemos el ${cuandoTxt}, ${n}.\n\n${cuandoTxt}, hora del centro de México.\nSon 30 minutos por video.\n\nLiga: ${meetUrl}\n\nSi esa hora no te queda, responde este correo y la movemos.\n\nCaminante by NUMAN · uno@numanhub.com`;
+
+  const cal = ics({
+    uid: `alta-${solicitudId}@caminante.numanhub.com`,
+    inicio: cuando, minutos: 30,
+    titulo: "Caminante · tu llamada de alta",
+    descripcion: `Media hora por video para conocernos.\nLiga: ${meetUrl}`,
+    url: meetUrl, para: to,
+  });
+
+  return sendViaResend(to, `Tu llamada con Caminante · ${cuandoTxt}`, html, {
+    ua: "caminante-operadores/1.0",
+    text,
+    attachments: [{
+      filename: "llamada-caminante.ics",
+      content: Buffer.from(cal, "utf8").toString("base64"),
+      contentType: "text/calendar; method=REQUEST; charset=utf-8",
+    }],
+  });
 }
 
 // 4 · Petición de expediente (link privado con token).
