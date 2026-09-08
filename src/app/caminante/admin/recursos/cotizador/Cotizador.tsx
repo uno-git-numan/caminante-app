@@ -11,7 +11,8 @@
 // `.cascade`, `.tbl`, `.chip`) igual que Ingresos y Egresos: el entregable no
 // cubría esta pantalla, y armarla con clases nuevas la haría derivar del resto.
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   cabezasDe,
   cascada,
@@ -20,7 +21,8 @@ import {
   type Modo,
 } from "@/lib/admin/costeo";
 import type { Regla } from "@/lib/operadores/comision";
-import type { OperadorConRegla, SalidaCotizable } from "@/lib/admin/cotizacion";
+import type { LineaGuardable, OperadorConRegla, SalidaCotizable } from "@/lib/admin/cotizacion";
+import { guardarCotizacionAction } from "@/lib/admin/cotizacion-actions";
 
 const mx = (n: number) => "$" + Math.round(Math.abs(n)).toLocaleString("es-MX");
 const pct = (n: number) => (n * 100).toFixed(2) + "%";
@@ -33,7 +35,20 @@ const MODOS: { v: Modo; l: string; ayuda: string }[] = [
   { v: "porcentaje", l: "Porcentaje", ayuda: "un % sobre los demás costos (buffer)" },
 ];
 
-const LINEA_NUEVA: LineaCosto = { concepto: "", tipo: "variable", modo: "por_persona", tarifaMxn: 0 };
+// Una línea nueva es de la SALIDA: se está cotizando una fecha concreta. Las de
+// la experiencia (la plantilla que aplica a todas sus fechas) llegan cargadas
+// con su ámbito puesto y lo conservan al guardar.
+const LINEA_NUEVA: LineaGuardable = {
+  id: null,
+  ambito: "salida",
+  concepto: "",
+  tipo: "variable",
+  modo: "por_persona",
+  tarifaMxn: 0,
+};
+
+/** ISO → YYYY-MM-DD, que es lo que come <input type="date">. */
+const dia = (iso: string | null): string => (iso ? iso.slice(0, 10) : "");
 
 export default function Cotizador({
   salidas,
@@ -47,8 +62,27 @@ export default function Cotizador({
   const [publico, setPublico] = useState(13500);
   const [clientes, setClientes] = useState(12);
   const [cortesias, setCortesias] = useState<Cortesia[]>([{ rol: "guía", cuantas: 2, descuentoPct: 50 }]);
-  const [costos, setCostos] = useState<LineaCosto[]>([{ ...LINEA_NUEVA }]);
+  const [costos, setCostos] = useState<LineaGuardable[]>([{ ...LINEA_NUEVA }]);
   const [copiado, setCopiado] = useState(false);
+
+  // ── A DÓNDE SE GUARDA ────────────────────────────────────────────────────
+  // Vacío = experiencia nueva en borrador. Con ids = se reescribe esa salida.
+  const [slotId, setSlotId] = useState<string | null>(null);
+  const [experienceId, setExperienceId] = useState<string | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [etiqueta, setEtiqueta] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [fin, setFin] = useState("");
+  // El CUPO de la salida es cosa aparte de «clientes que pagan»: ese se mueve
+  // para ver escenarios. Si guardar publicara el escenario como tope, mover la
+  // tabla para ver qué pasa con 6 le cerraría la salida a 6 lugares.
+  const [cupo, setCupo] = useState("");
+  const [guardando, empezarGuardado] = useTransition();
+  const [msg, setMsg] = useState<{ tono: "ok" | "mal"; texto: string } | null>(null);
+  // Lo que el servidor devolvió como «esto le cambia el precio a gente que ya
+  // apartó»: hasta que se confirme, no se vuelve a mandar.
+  const [pidePrecio, setPidePrecio] = useState<string | null>(null);
+  const router = useRouter();
 
   const op = operadores.find((o) => o.id === operatorId);
 
@@ -86,6 +120,64 @@ export default function Cotizador({
     setClientes(s.cupo || 10);
     setCortesias(s.cortesias.length ? s.cortesias : []);
     setCostos(s.costos.length ? s.costos : [{ ...LINEA_NUEVA }]);
+    setSlotId(s.slotId);
+    setExperienceId(s.experienceId);
+    setNombre(s.experiencia);
+    setEtiqueta(s.etiqueta);
+    setCupo(s.cupo == null ? "" : String(s.cupo));
+    setFecha(dia(s.startsAt));
+    setFin(dia(s.endsAt));
+    setMsg(null);
+    setPidePrecio(null);
+  }
+
+  /** En blanco: se suelta la salida cargada para no reescribirla sin querer. */
+  function enBlanco() {
+    setSlotId(null);
+    setExperienceId(null);
+    setNombre("");
+    setEtiqueta("");
+    setCupo("");
+    setFecha("");
+    setFin("");
+    setMsg(null);
+    setPidePrecio(null);
+  }
+
+  function guardar(confirmaPrecio: boolean) {
+    setMsg(null);
+    empezarGuardado(async () => {
+      const r = await guardarCotizacionAction({
+        slotId,
+        experienceId,
+        nombre,
+        etiqueta,
+        fecha,
+        fin,
+        cupo: cupo.trim() === "" ? null : Math.max(0, Number(cupo) || 0),
+        publico,
+        operatorId: operatorId || null,
+        cortesias,
+        costos,
+        confirmaPrecio,
+      });
+      if (!r.ok) {
+        if (r.code === "precio_cambia") setPidePrecio(r.error);
+        else setMsg({ tono: "mal", texto: r.error });
+        return;
+      }
+      // Los ids que devuelve son los que mandan de aquí en adelante: sin esto,
+      // guardar dos veces crearía DOS experiencias con el mismo nombre.
+      setSlotId(r.slotId);
+      setExperienceId(r.experienceId);
+      setPidePrecio(null);
+      setMsg({
+        tono: "ok",
+        texto: r.aviso ?? "Guardado. La salida ya aparece en «Partir de una salida» y en Recursos.",
+      });
+      // Para que el selector de arriba traiga la salida recién creada.
+      router.refresh();
+    });
   }
 
   function editar(i: number, patch: Partial<LineaCosto>) {
@@ -116,7 +208,10 @@ export default function Cotizador({
         <div className="pgf" style={{ padding: "0 22px 4px" }}>
           <label>
             <span className="k">Partir de una salida</span>
-            <select defaultValue="" onChange={(e) => e.target.value && cargar(e.target.value)}>
+            <select
+              value={slotId ?? ""}
+              onChange={(e) => (e.target.value ? cargar(e.target.value) : enBlanco())}
+            >
               <option value="">— en blanco —</option>
               {salidas.map((s) => (
                 <option key={s.slotId} value={s.slotId}>
@@ -124,7 +219,11 @@ export default function Cotizador({
                 </option>
               ))}
             </select>
-            <span className="h">trae su precio, su cupo y sus costos ya cargados</span>
+            <span className="h">
+              {slotId
+                ? "guardar reescribe ESTA salida · «en blanco» la suelta"
+                : "trae su precio, su cupo y sus costos ya cargados"}
+            </span>
           </label>
 
           <label>
@@ -587,6 +686,132 @@ export default function Cotizador({
             <span className="chip c-var chip-sm">
               El tramo se mide en CABEZAS — confirma con el proveedor si cuenta a los guías
             </span>
+          ) : null}
+        </div>
+      </section>
+
+      {/* GUARDAR — donde la cotización deja de ser una pestaña abierta.
+          Escribe en las mismas tablas de las que lee Recursos: la experiencia
+          (borrador + cortesías), la salida (fecha, cupo, precio) y sus costos.
+          Lo que NO hace es publicar: eso lo decide Luis con las fotos puestas. */}
+      <section className="sec card">
+        <div className="card-head">
+          <span className="card-lbl">
+            Guardar
+            <span className="m">
+              {" · "}
+              {slotId ? "reescribe la salida cargada" : "crea la experiencia en borrador y su salida"}
+            </span>
+          </span>
+          <p className="card-desc">
+            Queda en <b>borrador</b>: no se publica ni se pone a la venta. Faltan las fotos y darle
+            publicar, y eso sigue siendo tuyo.
+          </p>
+        </div>
+
+        <div className="pgf" style={{ padding: "0 22px 4px" }}>
+          <label style={{ gridColumn: "span 2" }}>
+            <span className="k">Nombre de la experiencia</span>
+            <input
+              value={nombre}
+              placeholder="San Andrés · Hacienda y volcán"
+              disabled={!!experienceId}
+              onChange={(e) => setNombre(e.target.value)}
+            />
+            <span className="h">
+              {experienceId
+                ? "ya existe · guardar no le cambia el nombre"
+                : "de aquí sale su identificador; si ya hay uno igual se le pone un número"}
+            </span>
+          </label>
+
+          <label>
+            <span className="k">Cómo se muestra la fecha</span>
+            <input
+              value={etiqueta}
+              placeholder="Nov 13-15"
+              onChange={(e) => setEtiqueta(e.target.value)}
+            />
+            <span className="h">vacío = se usa la fecha</span>
+          </label>
+
+          <label>
+            <span className="k">Empieza</span>
+            <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          </label>
+
+          <label>
+            <span className="k">Termina</span>
+            <input type="date" value={fin} onChange={(e) => setFin(e.target.value)} />
+            <span className="h">dispara la encuesta 24 h después</span>
+          </label>
+
+          <label>
+            <span className="k">Cupo de la salida</span>
+            <input
+              type="number"
+              value={cupo}
+              min={0}
+              placeholder="sin tope"
+              onChange={(e) => setCupo(e.target.value)}
+            />
+            <span className="h">
+              no es lo mismo que los {clientes} clientes de la tabla · vacío = sin tope
+            </span>
+          </label>
+        </div>
+
+        <div className="notes" style={{ padding: "10px 22px 0" }}>
+          <span className="chip c-info chip-sm">
+            se guarda a {mx(publico)} por persona · {costos.filter((l) => l.concepto.trim()).length}{" "}
+            costos · {cortesias.filter((k) => k.cuantas > 0).length} cortesías
+          </span>
+          {experienceId && operatorId ? (
+            <span className="chip c-var chip-sm">
+              el operador es solo para esta cuenta · no se le reasigna la experiencia
+            </span>
+          ) : null}
+          {costos.some((l) => l.ambito === "experiencia") ? (
+            <span className="chip c-var chip-sm">
+              {costos.filter((l) => l.ambito === "experiencia").length} costos son de la experiencia
+              y aplican a TODAS sus fechas
+            </span>
+          ) : null}
+        </div>
+
+        {/* El precio de la salida es el que cobra el checkout. Si ya hay gente
+            apartada a otro precio, el servidor se niega y lo dice aquí. */}
+        {pidePrecio ? (
+          <div className="notes" style={{ padding: "10px 22px 0" }}>
+            <span className="chip c-full chip-sm">{pidePrecio}</span>
+          </div>
+        ) : null}
+        {msg ? (
+          <div className="notes" style={{ padding: "10px 22px 0" }}>
+            <span className={"chip chip-sm " + (msg.tono === "ok" ? "c-paid" : "c-full")}>
+              {msg.texto}
+            </span>
+          </div>
+        ) : null}
+
+        <div className="actrow" style={{ padding: "14px 22px 20px" }}>
+          <button
+            type="button"
+            className="btn btn-orange"
+            disabled={guardando}
+            onClick={() => guardar(false)}
+          >
+            {guardando ? "Guardando…" : slotId ? "Guardar en esta salida" : "Guardar como borrador"}
+          </button>
+          {pidePrecio ? (
+            <button
+              type="button"
+              className="btn btn-glass btn-sm"
+              disabled={guardando}
+              onClick={() => guardar(true)}
+            >
+              Sí, cambiarle el precio
+            </button>
           ) : null}
         </div>
       </section>

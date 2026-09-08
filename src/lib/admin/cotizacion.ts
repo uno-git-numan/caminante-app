@@ -14,16 +14,42 @@ import { reglaComisionDeOperador } from "@/lib/operadores/regla";
 import type { Cortesia, LineaCosto, Modo } from "./costeo";
 import type { Regla } from "@/lib/operadores/comision";
 
+/** De dónde salió un costo — y, al guardar, a dónde vuelve. */
+export type Ambito = "experiencia" | "salida";
+
+/**
+ * Una línea de costo con SU ORIGEN pegado.
+ *
+ * `fetchCotizables` mezcla los costos de la experiencia con los de la salida
+ * (los dos aplican, y omitir los primeros cotizaría de menos). Esa mezcla es
+ * correcta para CALCULAR y venenosa para GUARDAR: sin saber de dónde vino cada
+ * línea, guardar la escribiría entera a nivel salida y la de experiencia
+ * quedaría duplicada —una vez heredada, otra copiada—, así que cada
+ * abrir-guardar inflaría el costo. Por eso el ámbito viaja con la línea.
+ *
+ * `id` null = línea nueva que todavía no tiene fila.
+ */
+export type LineaGuardable = LineaCosto & { id: string | null; ambito: Ambito };
+
 export type SalidaCotizable = {
   slotId: string;
   experienceId: string;
   experiencia: string;
   salida: string;
+  /** La etiqueta tal cual, para poder devolverla al guardar. */
+  etiqueta: string;
   startsAt: string | null;
+  /**
+   * ⚠️ Se lee aunque la pantalla no lo muestre: al guardar, `updateSlot` recibe
+   * `endsAt` y un undefined aquí lo dejaría en NULL. Y `ends_at` es lo que
+   * dispara la encuesta «¿cómo te fue?» — borrarlo al guardar una cotización
+   * apagaría la encuesta de esa salida sin que nadie lo notara.
+   */
+  endsAt: string | null;
   precioMxn: number;
   cupo: number | null;
   operatorId: string | null;
-  costos: LineaCosto[];
+  costos: LineaGuardable[];
   cortesias: Cortesia[];
 };
 
@@ -60,7 +86,7 @@ export async function fetchCotizables(): Promise<{
     sb
       .from("experience_slots")
       .select(
-        "id, starts_at, label, price_mxn, capacity_total, experience_id, experiences(id, slug, data, operator_id, cabezas_cortesia)",
+        "id, starts_at, ends_at, label, price_mxn, capacity_total, experience_id, experiences(id, slug, data, operator_id, cabezas_cortesia)",
       )
       .order("starts_at", { ascending: false })
       .limit(120),
@@ -68,10 +94,12 @@ export async function fetchCotizables(): Promise<{
     sb.from("operators").select("id, name").eq("estado", "activa").order("name"),
   ]);
 
-  const porSlot = new Map<string, LineaCosto[]>();
-  const porExp = new Map<string, LineaCosto[]>();
+  const porSlot = new Map<string, LineaGuardable[]>();
+  const porExp = new Map<string, LineaGuardable[]>();
   for (const c of (costos ?? []) as Record<string, unknown>[]) {
-    const l: LineaCosto = {
+    const l: LineaGuardable = {
+      id: String(c.id),
+      ambito: c.slot_id ? "salida" : "experiencia",
       concepto: String(c.concepto ?? ""),
       tipo: (c.tipo as LineaCosto["tipo"]) ?? "variable",
       modo: (c.modo as Modo) ?? "unico",
@@ -95,7 +123,9 @@ export async function fetchCotizables(): Promise<{
       experienceId: expId,
       experiencia: experienceTitle((e.data ?? null) as Partial<Experience> | null, String(e.slug ?? "—")),
       salida: String(s.label ?? s.starts_at ?? ""),
+      etiqueta: String(s.label ?? ""),
       startsAt: (s.starts_at as string) ?? null,
+      endsAt: (s.ends_at as string) ?? null,
       precioMxn: num(s.price_mxn) || precioDeTexto((e.data as { price?: { amount?: string } } | null)?.price?.amount),
       cupo: num(s.capacity_total),
       operatorId: (e.operator_id as string) ?? null,
