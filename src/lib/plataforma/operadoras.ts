@@ -46,6 +46,9 @@ export type OperadoraPlataforma = {
   solicitudAt: string | null;
   solicitudStatus: string | null;
   diasEsperando: number | null;
+  /** De su llamada agendada. Es el dato por el que se abre la columna 02. */
+  llamadaAt: string | null;
+  llamadaUrl: string | null;
   etapa: Etapa;
 };
 
@@ -75,12 +78,17 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     sb.from("reservations").select("experience_id, status, total_amount_mxn, created_at"),
     // Se une por `operator_id`, que la 0035 guarda al aprobar. Unir por nombre
     // habría bastado hoy y se habría roto el día que alguien corrija una tilde.
-    sb.from("operator_applications").select("operator_id, status, created_at"),
+    sb
+      .from("operator_applications")
+      .select("operator_id, status, created_at, llamada_at, llamada_meet_url"),
   ]);
 
   type Exp = { id: string; status: string; operator_id: string | null };
   type Res = { experience_id: string | null; status: string; total_amount_mxn: number | null; created_at: string };
-  type App = { operator_id: string | null; status: string; created_at: string };
+  type App = {
+    operator_id: string | null; status: string; created_at: string;
+    llamada_at: string | null; llamada_meet_url: string | null;
+  };
 
   const experiencias = (exps ?? []) as unknown as Exp[];
   const reservas = ((resv ?? []) as Res[]).filter((r) => r.status === "paid");
@@ -209,6 +217,8 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       vendidoHistorico: misReservas.reduce((a, r) => a + Number(r.total_amount_mxn ?? 0), 0),
       solicitudAt: app?.created_at ?? null,
       solicitudStatus: app?.status ?? null,
+      llamadaAt: app?.llamada_at ?? null,
+      llamadaUrl: app?.llamada_meet_url ?? null,
       // Una operadora dada de alta a mano NO tiene solicitud: su antigüedad se
       // cuenta desde que se creó, y `solicitudAt` queda en null para que la
       // tarjeta pueda decir «entró por fuera» en vez de fingir un funnel que

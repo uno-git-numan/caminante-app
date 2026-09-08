@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ETAPAS } from "@/lib/plataforma/etapas";
+import { ETAPAS, tarjetaDeEtapa } from "@/lib/plataforma/etapas";
 import type { OperadoraPlataforma } from "@/lib/plataforma/operadoras";
 import { formatMXN } from "@/lib/admin/formato";
 import Cajon from "../../ui/Cajon";
@@ -172,10 +172,14 @@ export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
                     {dentro.length === 0 ? (
                       <div className="empty">nadie</div>
                     ) : (
-                      dentro.map((o) => (
+                      dentro.map((o) => {
+                        // La tarjeta se arma según SU columna: en «Llegó» importan
+                        // los días esperando, en «En llamada» importa cuándo es.
+                        const t = tarjetaDeEtapa(o);
+                        return (
                         <div
                           key={o.id}
-                          className={`cmc${dormida ? " sleep" : ""}${o.id === abierta ? " picked" : ""}`}
+                          className={`cmc${dormida ? " sleep" : ""}${t.fria ? " cold" : ""}${o.id === abierta ? " picked" : ""}`}
                           role="button"
                           tabIndex={0}
                           onClick={() => setAbierta(o.id)}
@@ -190,50 +194,31 @@ export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
                             <span className="av">{o.iniciales}</span>
                             <span className="nm">
                               <b>{o.nombre}</b>
-                              <small>
-                                {o.diasEsperando === 0
-                                  ? "hoy"
-                                  : `${o.diasEsperando} ${o.diasEsperando === 1 ? "día" : "días"}`}
-                              </small>
+                              <small>{t.subtitulo}</small>
                             </span>
                             {/* Una operadora dada de alta a mano no tiene solicitud.
                                 Fingirle una fecha de funnel que nunca ocurrió es lo
                                 que hacía que todas se vieran de «día 1». */}
-                            <span className="age">
-                              {o.solicitudAt ? "por solicitud" : "entró por fuera"}
-                            </span>
+                            <span className="age">{t.edad}</span>
                           </div>
                           {/* .cmtag es el chip; .cmch era un contenedor de botones
                               que no existe en el entregable — de ahí el texto
                               crecido y sin píldora que se veía sucio. */}
                           <div className="met">
-                            {o.candados
-                              .filter((c) => c.clave !== "experiencia")
-                              .map((c) => (
-                                <span key={c.clave} className="cmtag">
-                                  {c.nombre.split(" ")[0]}{" "}
-                                  <span className="k">{c.cumplido ? "ok" : "no"}</span>
-                                </span>
-                              ))}
+                            {t.chips.map((c, i) => (
+                              <span key={i} className="cmtag">
+                                {c.texto}
+                                {c.valor ? <> <span className="k">{c.valor}</span></> : null}
+                              </span>
+                            ))}
                           </div>
                           <p className="cmnext">
                             <s>{"//"}</s>
-                            <span>
-                              {o.candados.find((c) => !c.cumplido && c.toca === "casa")
-                                ? `Me toca: ${o.candados
-                                    .filter((c) => !c.cumplido && c.toca === "casa")
-                                    .map((c) => c.nombre.toLowerCase())
-                                    .join(" y ")}.`
-                                : o.candados.find((c) => !c.cumplido)
-                                  ? `Pedirle: ${o.candados
-                                      .filter((c) => !c.cumplido)
-                                      .map((c) => c.nombre.toLowerCase())
-                                      .join(" y ")}.`
-                                  : "Todo listo. Sólo falta que venda."}
-                            </span>
+                            <span>{t.siguiente}</span>
                           </p>
                         </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
