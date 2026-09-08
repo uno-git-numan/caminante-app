@@ -265,7 +265,7 @@ export default function Cotizador({
               style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 4 }}
             >
               <div className="pgf">
-                <label className="ancho" style={{ gridColumn: "span 2" }}>
+                <label style={{ gridColumn: "span 2" }}>
                   <span className="k">Concepto</span>
                   <input
                     value={l.concepto}
