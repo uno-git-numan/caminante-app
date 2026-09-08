@@ -24,6 +24,69 @@ import { experienceTitle, type LedgerLinea } from "@/lib/admin/queries";
 import { cdmxDay, formatDiaMes, formatFechaCorta, metodoLabel } from "@/lib/admin/formato";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
+import { cabezasDe, costoDeLinea, type Cortesia, type LineaCosto, type Modo } from "./costeo";
+
+/** Una fila cruda de `experience_costs`, con todo lo que la 0049 y la 0057 agregaron. */
+type CostoRow = {
+  slot_id: string | null;
+  experience_id: string;
+  concepto: string;
+  tipo: string;
+  monto_mxn: number;
+  notas: string | null;
+  created_at: string;
+  modo: Modo | null;
+  tarifa_mxn: number | null;
+  escalones: { desde: number; monto: number }[] | null;
+  tramos: { desde: number; tarifa: number }[] | null;
+  porcentaje: number | null;
+  proporcion: number | null;
+};
+type CortesiaRow = { rol?: string; cuantas?: number; descuento_pct?: number };
+
+/**
+ * ⚠️ ESTA FUNCIÓN ES LA QUE FALTABA, Y SU AUSENCIA NO SE VEÍA.
+ *
+ * La 0049 agregó modos de costo (`por_persona`, `desde_personas`, `porcentaje`)
+ * y su CHECK obliga a `monto_mxn = 0` en todos ellos — el monto real se deriva.
+ * Pero aquí se sumaba `monto_mxn` a secas, así que TODO costo que no fuera
+ * `unico` entraba como cero: la utilidad de esa salida salía inflada por el
+ * costo completo, y encima la línea se marcaba «sin cotizar» estando cotizada.
+ * Ya había una fila viva así (Ecotravel · travesía 7 días).
+ *
+ * Ahora el monto sale del MISMO motor que usa el cotizador. Una sola aritmética
+ * para lo que se planea y para lo que se reporta.
+ */
+function montoDeFila(c: CostoRow, ctx: { clientes: number; cortesias: Cortesia[] }): number {
+  const l: LineaCosto = {
+    concepto: c.concepto,
+    tipo: (c.tipo === "variable" || c.tipo === "buffer" ? c.tipo : "fijo") as LineaCosto["tipo"],
+    modo: c.modo ?? "unico",
+    montoMxn: Number(c.monto_mxn || 0),
+    tarifaMxn: c.tarifa_mxn,
+    escalones: c.escalones,
+    tramos: c.tramos,
+    porcentaje: c.porcentaje,
+    proporcion: c.proporcion,
+  };
+  return costoDeLinea(l, ctx);
+}
+
+/** Un costo está sin cotizar cuando el dato de SU modo está vacío, no cuando monto_mxn es 0. */
+function sinCotizar(c: CostoRow): boolean {
+  switch (c.modo ?? "unico") {
+    case "por_persona":
+      return !Number(c.tarifa_mxn || 0);
+    case "tarifa_por_tramo":
+      return !(c.tramos ?? []).some((t) => Number(t.tarifa || 0) > 0);
+    case "desde_personas":
+      return !(c.escalones ?? []).some((e) => Number(e.monto || 0) > 0);
+    case "porcentaje":
+      return !Number(c.porcentaje || 0);
+    default:
+      return !Number(c.monto_mxn || 0);
+  }
+}
 
 const IVA = 0.16;
 
@@ -89,17 +152,21 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
   const sb = createSupabaseAdminClient();
   const [slots, exps, resvs, pays, costos] = (await Promise.all([
     sb.from("experience_slots").select("id, experience_id, label, starts_at, capacity_total, price_mxn"),
-    sb.from("experiences").select("id, slug, data"),
+    sb.from("experiences").select("id, slug, data, cabezas_cortesia"),
     sb.from("reservations").select("id, slot_id, num_people, status, total_amount_mxn"),
     sb
       .from("payments")
       .select(
         "reservation_id, contact_id, amount_mxn, status, method, paid_at, created_at, stripe_fee_mxn, stripe_fee_tax_mxn, refunded_mxn, referencia, comprobante_url",
       ),
-    sb.from("experience_costs").select("slot_id, concepto, tipo, monto_mxn, notas, created_at"),
+    sb
+      .from("experience_costs")
+      .select(
+        "slot_id, experience_id, concepto, tipo, monto_mxn, notas, created_at, modo, tarifa_mxn, escalones, tramos, porcentaje, proporcion",
+      ),
   ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
     { id: string; experience_id: string; label: string | null; starts_at: string | null; capacity_total: number | null; price_mxn: number | null }[],
-    { id: string; slug: string; data: Partial<Experience> | null }[],
+    { id: string; slug: string; data: Partial<Experience> | null; cabezas_cortesia: CortesiaRow[] | null }[],
     { id: string; slot_id: string | null; num_people: number; status: string; total_amount_mxn: number }[],
     {
       reservation_id: string;
@@ -115,14 +182,7 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
       referencia: string | null;
       comprobante_url: string | null;
     }[],
-    {
-      slot_id: string | null;
-      concepto: string;
-      tipo: string;
-      monto_mxn: number;
-      notas: string | null;
-      created_at: string;
-    }[],
+    CostoRow[],
   ];
 
   const { data: contactRows } = await sb.from("contacts").select("id, full_name, email");
@@ -177,10 +237,19 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
     ]);
   }
 
+  // ⚠️ UN COSTO SIN `slot_id` ES DE LA EXPERIENCIA, NO ES BASURA.
+  //
+  // Antes se descartaba con un `continue` y por eso desaparecía de la cascada:
+  // el costo de Ecotravel de la travesía ($23,350 por persona) no aparecía en
+  // ninguna salida, y esas fechas se leían como «sin costear» teniendo su costo
+  // principal cargado. Un costo de experiencia aplica a CADA una de sus fechas
+  // —cada salida lo paga— así que se reparte a todas, no se promedia.
   const costosBySlot = new Map<string, typeof costos>();
+  const costosByExp = new Map<string, typeof costos>();
   for (const c of costos) {
-    if (!c.slot_id) continue;
-    costosBySlot.set(c.slot_id, [...(costosBySlot.get(c.slot_id) || []), c]);
+    if (c.slot_id) costosBySlot.set(c.slot_id, [...(costosBySlot.get(c.slot_id) || []), c]);
+    else if (c.experience_id)
+      costosByExp.set(c.experience_id, [...(costosByExp.get(c.experience_id) || []), c]);
   }
 
   const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -189,7 +258,7 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
 
   for (const s of slots) {
     const d = dinero.get(s.id);
-    const cs = costosBySlot.get(s.id) || [];
+    const cs = [...(costosByExp.get(s.experience_id) || []), ...(costosBySlot.get(s.id) || [])];
     // Una salida sin dinero y sin costos no tiene nada que contar.
     if (!d && !cs.length) continue;
 
@@ -202,6 +271,20 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
     const ingreso = cobrado - reembolsado;
     const stripe = d?.stripe || 0;
     const stripeSinIva = d?.stripeSinIva || 0;
+
+    // Las cortesías salen de la EXPERIENCIA: los guías van en todas sus fechas.
+    const cortesias: Cortesia[] = ((exp?.cabezas_cortesia ?? []) as CortesiaRow[]).map((k) => ({
+      rol: String(k.rol ?? "cortesía"),
+      cuantas: Number(k.cuantas ?? 0),
+      descuentoPct: Number(k.descuento_pct ?? 0),
+    }));
+    const ctxCosteo = { clientes: vendidos, cortesias };
+
+    // El porcentaje (buffer) va sobre los DEMÁS, y por eso se resuelve en dos
+    // pasos: si entrara en la misma pasada, dos buffers se comerían el uno al
+    // otro y el total dependería del orden de las filas.
+    const noPct = cs.filter((c) => (c.modo ?? "unico") !== "porcentaje");
+    const basePct = noPct.reduce((a, c) => a + montoDeFila(c, ctxCosteo), 0);
 
     // ¿Se liberó el buffer? (regla de Luis, 11 ago, opción A)
     //
@@ -234,16 +317,30 @@ export async function fetchRentabilidad(): Promise<SalidaRentabilidad[]> {
         : s.starts_at || primeraCaptura;
     const huboGastoDespues = !!corte && cs.some((c) => c.created_at && c.created_at > corte);
     const liberaBuffer = yaSeFue && !huboGastoDespues;
+    // ⚠️ El buffer también se deriva: si es modo `porcentaje`, su `monto_mxn` es
+    // 0 por CHECK y liberarlo por ese valor no liberaba nada.
     const bufferLiberado = liberaBuffer
-      ? cs.filter((c) => c.tipo === "buffer").reduce((a, c) => a + Number(c.monto_mxn || 0), 0)
+      ? cs
+          .filter((c) => c.tipo === "buffer")
+          .reduce(
+            (a, c) =>
+              a +
+              ((c.modo ?? "unico") === "porcentaje"
+                ? Math.round(basePct * (Number(c.porcentaje || 0) / 100) * 100) / 100
+                : montoDeFila(c, ctxCosteo)),
+            0,
+          )
       : 0;
 
     const lineas: CostoLinea[] = cs.map((c) => ({
       concepto: c.concepto,
       tipo: (c.tipo === "variable" || c.tipo === "buffer" ? c.tipo : "fijo") as CostoLinea["tipo"],
-      montoSinIva: Number(c.monto_mxn || 0),
+      montoSinIva:
+        (c.modo ?? "unico") === "porcentaje"
+          ? Math.round(basePct * (Number(c.porcentaje || 0) / 100) * 100) / 100
+          : montoDeFila(c, ctxCosteo),
       notas: c.notas,
-      sinCotizar: Number(c.monto_mxn || 0) === 0,
+      sinCotizar: sinCotizar(c),
     }));
     const provSinIva = lineas.reduce((a, l) => a + l.montoSinIva, 0) - bufferLiberado;
     const fijos =
