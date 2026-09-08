@@ -6,6 +6,7 @@ import type { OperadoraPlataforma } from "@/lib/plataforma/operadoras";
 import { formatMXN } from "@/lib/admin/formato";
 import Cajon from "../../ui/Cajon";
 import Candados, { LlaveDeDuenos } from "./Candados";
+import SolicitudEnCajon from "./SolicitudEnCajon";
 
 // EL PIPELINE DE ALTAS — el mismo tablero del CRM de Caminante, otra unidad.
 //
@@ -72,6 +73,14 @@ export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
             banda: ETAPAS.find((e) => e.clave === sel.etapa)?.nombre ?? "Operadora externa",
             bandaDer: `${sel.cumplidos} de 6 candados`,
             cuerpo: (
+              // ⚠️ En las etapas 01 y 02 el cajón NO habla de candados. Abrir la
+              // ficha de alguien que apenas mandó su solicitud sirve para leer
+              // lo que mandó y para agendarle la llamada; los seis candados son
+              // la respuesta a una pregunta que todavía nadie hizo, y encima
+              // obligaban a salirse del tablero para agendar.
+              sel.etapa === "llego" || sel.etapa === "en_llamada" ? (
+                <SolicitudEnCajon o={sel} />
+              ) : (
               <>
                 <div className={sel.puedeCobrar ? "verdict" : "verdict no"}>
                   <span className="n">{sel.cumplidos}/6</span>
@@ -147,6 +156,7 @@ export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
                   </span>
                 </div>
               </>
+              )
             ),
           }
         }

@@ -49,6 +49,13 @@ export type OperadoraPlataforma = {
   /** De su llamada agendada. Es el dato por el que se abre la columna 02. */
   llamadaAt: string | null;
   llamadaUrl: string | null;
+  /** La solicitud misma, para poder actuar sobre ella desde el cajón. */
+  solicitudId: string | null;
+  solicitud: {
+    responsable: string | null; email: string; whatsapp: string | null;
+    ciudadEstado: string | null; tipoOperacion: string | null;
+    seguro: string | null; primerosAuxilios: string | null; ratioGuias: string | null;
+  } | null;
   etapa: Etapa;
 };
 
@@ -80,14 +87,19 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     // habría bastado hoy y se habría roto el día que alguien corrija una tilde.
     sb
       .from("operator_applications")
-      .select("operator_id, status, created_at, llamada_at, llamada_meet_url"),
+      .select(
+        "id, operator_id, status, created_at, llamada_at, llamada_meet_url, responsable, email, whatsapp, ciudad_estado, tipo_operacion, seguro_rc, primeros_auxilios, ratio_guias",
+      ),
   ]);
 
   type Exp = { id: string; status: string; operator_id: string | null };
   type Res = { experience_id: string | null; status: string; total_amount_mxn: number | null; created_at: string };
   type App = {
-    operator_id: string | null; status: string; created_at: string;
+    id: string; operator_id: string | null; status: string; created_at: string;
     llamada_at: string | null; llamada_meet_url: string | null;
+    responsable: string | null; email: string; whatsapp: string | null;
+    ciudad_estado: string | null; tipo_operacion: string | null;
+    seguro_rc: string | null; primeros_auxilios: string | null; ratio_guias: string | null;
   };
 
   const experiencias = (exps ?? []) as unknown as Exp[];
@@ -219,6 +231,15 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       solicitudStatus: app?.status ?? null,
       llamadaAt: app?.llamada_at ?? null,
       llamadaUrl: app?.llamada_meet_url ?? null,
+      solicitudId: app?.id ?? null,
+      solicitud: app
+        ? {
+            responsable: app.responsable, email: app.email, whatsapp: app.whatsapp,
+            ciudadEstado: app.ciudad_estado, tipoOperacion: app.tipo_operacion,
+            seguro: app.seguro_rc, primerosAuxilios: app.primeros_auxilios,
+            ratioGuias: app.ratio_guias,
+          }
+        : null,
       // Una operadora dada de alta a mano NO tiene solicitud: su antigüedad se
       // cuenta desde que se creó, y `solicitudAt` queda en null para que la
       // tarjeta pueda decir «entró por fuera» en vez de fingir un funnel que
