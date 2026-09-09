@@ -39,12 +39,17 @@ export default function MiAlta({ datos }: { datos: Datos }) {
     <>
       <div className="pasos" id="pasos">
         {PASOS.map((p, i) => {
+          // ⚠️ `done`, NO `hecho`. El único `.hecho` del CSS es
+          // `.paso .subs button.hecho` —un botón dentro de otra cosa—, así que
+          // `.paso.hecho` no casaba con ninguna regla y los pasos ya cumplidos
+          // se pintaban como si no lo estuvieran. El modificador del entregable
+          // para un paso terminado es `done`, y tiene sus cuatro reglas.
           const hecho = i < aqui.indice;
           const actual = i === aqui.indice;
           return (
             <div
               key={p.n}
-              className={`paso${actual ? " now" : ""}${hecho ? " hecho" : ""}${viendo === i ? " sel" : ""}`}
+              className={`paso${actual ? " now" : ""}${hecho ? " done" : ""}${viendo === i ? " sel" : ""}`}
             >
               <button className="phead" onClick={() => setViendo(i)}>
                 <span className="n">{p.n}</span>

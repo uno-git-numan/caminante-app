@@ -15,10 +15,25 @@ RAIZ = pathlib.Path(__file__).resolve().parents[2]
 # TODOS los entregables: el panel se armó de varios y una clase legítima puede
 # venir de cualquiera. Mirar sólo el último es lo que producía falsas alarmas.
 DCS = sorted(RAIZ.glob("design/*/dc/*.html"))
-CSS = RAIZ / "src/app/caminante/admin/ui/admin-css.ts"
+# TODAS las hojas del panel, no sólo la base. Hasta el 9 sep 2026 aquí sólo
+# estaba `admin-css.ts`, así que el guardián marcaba como inventadas clases que
+# SÍ existen —`.gate`, `.paso.sel`— sólo porque viven en el CSS extraído de un
+# entregable. Un guardián que grita en falso se acaba ignorando, y entonces deja
+# de servir para lo que sí importa.
+CSS_FILES = [
+    RAIZ / "src/app/caminante/admin/ui/admin-css.ts",
+    RAIZ / "src/app/caminante/admin/ui/mi-alta-css.ts",
+    RAIZ / "src/app/caminante/admin/ui/expediente-css.ts",
+]
+CSS = CSS_FILES[0]
 MIOS = [
     "src/app/caminante/admin/plataforma",
     "src/app/caminante/admin/ui/Cajon.tsx",
+    # «Mi alta» y «Tu expediente»: las dos pantallas que NO son para la casa.
+    # Estuvieron fuera de esta lista hasta el 9 sep 2026, así que el guardián
+    # decía «0 sospechosas» sin haberlas mirado — el peor resultado posible: el
+    # de un candado que tranquiliza sin revisar nada.
+    "src/app/caminante/admin/mi-alta",
 ]
 
 # Clases nuestras, no del entregable: utilidades de Next/React o del panel viejo.
@@ -43,7 +58,7 @@ for dcf in DCS:
         for c in clases:
             enMarkup.setdefault(c, set()).add(tag)
 
-css = CSS.read_text()
+css = "\n".join(f.read_text(encoding="utf-8") for f in CSS_FILES if f.exists())
 enCss = set(re.findall(r"\.([a-zA-Z][\w-]*)", css))
 
 usadas = {}
