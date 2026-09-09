@@ -18,6 +18,7 @@ import {
   emailConfirmacionOperador,
   emailAvisoAdminOperador,
 } from "@/lib/operadores/emails";
+import { ACTIVIDADES } from "./actividades";
 
 const TIPOS = new Set(["montana", "mar", "cuevas", "naturaleza", "cultura", "mixta"]);
 const ANTIGUEDAD = new Set(["menos-1", "1-3", "3-10", "mas-10"]);
@@ -30,6 +31,9 @@ const clean = (v: FormDataEntryValue | null, max = 400): string =>
   String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 const cleanLargo = (v: FormDataEntryValue | null, max = 2000): string =>
   String(v ?? "").replace(/\r/g, "").trim().slice(0, max);
+
+/** Los slugs que el catálogo reconoce. Se calcula una vez. */
+const VALIDAS = new Set(ACTIVIDADES.map((a) => a.slug));
 
 export async function submitOperatorApplication(formData: FormData): Promise<void> {
   if (clean(formData.get("web"))) back("ok=1");
@@ -44,6 +48,21 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
 
   // Paso 2
   const tipo = clean(formData.get("tipo"), 20);
+
+  // ⚠️ LO QUE MANDA EL NAVEGADOR NO DECIDE QUÉ SE GUARDA. Llega como
+  // "senderismo,buceo" desde un input oculto, así que cualquiera puede mandar
+  // lo que quiera. Se cruza contra el catálogo y lo que no esté ahí se tira: un
+  // slug inventado crearía después una fila en `operator_activities` que ninguna
+  // pantalla sabe pintar y ningún documento sabe pedir — visible sólo el día que
+  // alguien no pudiera publicar y nadie supiera por qué.
+  const actividades = [
+    ...new Set(
+      clean(formData.get("actividades"), 400)
+        .split(",")
+        .map((x) => x.trim())
+        .filter((x) => VALIDAS.has(x)),
+    ),
+  ];
   const descripcion = cleanLargo(formData.get("descripcion"));
   const antiguedad = clean(formData.get("antiguedad"), 20);
   const salidasAno = clean(formData.get("salidasAno"), 40);
@@ -95,6 +114,7 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
     instagram: instagram || null,
     ciudad_estado: ciudadEstado,
     tipo_operacion: tipo,
+    actividades,
     descripcion,
     antiguedad,
     salidas_ano: salidasAno || null,

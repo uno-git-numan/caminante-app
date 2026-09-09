@@ -54,6 +54,8 @@ export type OperadoraPlataforma = {
   solicitud: {
     responsable: string | null; email: string; whatsapp: string | null;
     ciudadEstado: string | null; tipoOperacion: string | null;
+    /** Slugs del catálogo. De esto sale su expediente. */
+    actividades: string[];
     seguro: string | null; primerosAuxilios: string | null; ratioGuias: string | null;
   } | null;
   etapa: Etapa;
@@ -88,7 +90,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     sb
       .from("operator_applications")
       .select(
-        "id, operator_id, status, created_at, llamada_at, llamada_meet_url, responsable, email, whatsapp, ciudad_estado, tipo_operacion, seguro_rc, primeros_auxilios, ratio_guias",
+        "id, operator_id, status, created_at, llamada_at, llamada_meet_url, responsable, email, whatsapp, ciudad_estado, tipo_operacion, actividades, seguro_rc, primeros_auxilios, ratio_guias",
       ),
   ]);
 
@@ -99,6 +101,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     llamada_at: string | null; llamada_meet_url: string | null;
     responsable: string | null; email: string; whatsapp: string | null;
     ciudad_estado: string | null; tipo_operacion: string | null;
+    actividades: string[] | null;
     seguro_rc: string | null; primeros_auxilios: string | null; ratio_guias: string | null;
   };
 
@@ -236,6 +239,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
         ? {
             responsable: app.responsable, email: app.email, whatsapp: app.whatsapp,
             ciudadEstado: app.ciudad_estado, tipoOperacion: app.tipo_operacion,
+            actividades: app.actividades ?? [],
             seguro: app.seguro_rc, primerosAuxilios: app.primeros_auxilios,
             ratioGuias: app.ratio_guias,
           }

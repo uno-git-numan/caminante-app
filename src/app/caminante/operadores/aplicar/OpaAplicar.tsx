@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { submitOperatorApplication } from "@/lib/operadores/actions";
+import { ACTIVIDADES } from "@/lib/operadores/actividades";
 
 type Radio = { v: string; t: string };
 
@@ -76,6 +77,43 @@ function Cards({
 }
 
 
+/**
+ * Igual que `Cards` pero se pueden prender varias.
+ *
+ * Reusa EXACTAMENTE las clases del entregable (`.opa-cards`, `.opa-rc`, `.on`,
+ * `.bx`): visualmente es el mismo control, y lo que cambia es que aquí una
+ * elección no apaga a la anterior. No se inventó ninguna clase.
+ */
+function CardsMulti({
+  opciones,
+  valores,
+  alternar,
+}: {
+  opciones: Radio[];
+  valores: string[];
+  alternar: (v: string) => void;
+}) {
+  return (
+    <div className="opa-cards g3">
+      {opciones.map((o) => {
+        const on = valores.includes(o.v);
+        return (
+          <button
+            key={o.v}
+            type="button"
+            className={"opa-rc" + (on ? " on" : "")}
+            onClick={() => alternar(o.v)}
+            aria-pressed={on}
+          >
+            <span className="bx" />
+            <span><b>{o.t}</b></span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Nombre humano de cada campo, para poder DECIR qué falta en vez de solo
 // pintarlo de rojo abajo. Las claves son las que devuelve `faltantes()`.
 const ETIQUETA: Record<string, string> = {
@@ -85,6 +123,7 @@ const ETIQUETA: Record<string, string> = {
   whatsapp: "WhatsApp",
   ciudadEstado: "Dónde operas",
   tipo: "Qué tipo de experiencias operas",
+  actividades: "Qué actividades vas a ofrecer",
   descripcion: "Qué operas",
   antiguedad: "Antigüedad",
   salidasAno: "Salidas al año",
@@ -110,6 +149,7 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
   const [ciudadEstado, setCiudadEstado] = useState("");
   // Paso 2
   const [tipo, setTipo] = useState("");
+  const [actividades, setActividades] = useState<string[]>([]);
   const [descripcion, setDescripcion] = useState("");
   const [antiguedad, setAntiguedad] = useState("");
   const [salidasAno, setSalidasAno] = useState("");
@@ -148,6 +188,9 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
     }
     if (n === 2) {
       if (!tipo) f.push("tipo");
+      // Al menos una. De esta lista sale su expediente: sin ninguna actividad
+      // no hay documentos que pedirle y el alta se queda sin siguiente paso.
+      if (!actividades.length) f.push("actividades");
       if (!descripcion.trim()) f.push("descripcion");
       if (!antiguedad) f.push("antiguedad");
       if (!salidasAno) f.push("salidasAno");
@@ -292,6 +335,30 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
             <Cards opciones={TIPOS} valor={tipo} set={setTipo} cols="g3" />
             <input type="hidden" name="tipo" value={tipo} />
             <p className="errmsg">{"//"} Elige una opción</p>
+          </div>
+          {/* ⚠️ NO es la misma pregunta que «Tipo de operación», aunque se
+              parezcan. Aquélla describe el negocio y alimenta su perfil
+              público; ÉSTA decide qué documentos se le van a pedir, porque la
+              NOM-09 acredita guías POR MODALIDAD: quien está acreditado en
+              senderismo no lo está en buceo. El copy lo dice explícitamente
+              para que nadie sienta que contesta dos veces lo mismo. */}
+          <div className={"opa-fld" + err("actividades")}>
+            <span className="opa-lbl">Qué actividades vas a ofrecer <span className="req">*</span></span>
+            <CardsMulti
+              opciones={ACTIVIDADES.map((a) => ({ v: a.slug, t: a.nombre }))}
+              valores={actividades}
+              alternar={(v) =>
+                setActividades((prev) =>
+                  prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v],
+                )
+              }
+            />
+            <input type="hidden" name="actividades" value={actividades.join(",")} />
+            <p className="help">
+              Elige todas las que apliquen. De esto depende qué documentos te vamos a
+              pedir: cada actividad tiene los suyos. Puedes agregar más después.
+            </p>
+            <p className="errmsg">{"//"} Elige al menos una actividad</p>
           </div>
           <div className={"opa-fld" + err("descripcion")}>
             <label>Describe tus experiencias <span className="req">*</span></label>

@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { agendarLlamada } from "@/lib/admin/operadores-app-actions";
 import type { OperadoraPlataforma } from "@/lib/plataforma/operadoras";
 import { proveedorDeLiga } from "@/lib/plataforma/etapas";
+import { nombreDeActividad } from "@/lib/operadores/actividades";
 
 const F = ({ k, v }: { k: string; v: string | null }) =>
   v ? (
@@ -109,6 +110,12 @@ export default function SolicitudEnCajon({ o }: { o: OperadoraPlataforma }) {
         <F k="WhatsApp" v={s.whatsapp} />
         <F k="Desde" v={s.ciudadEstado} />
         <F k="Qué opera" v={s.tipoOperacion} />
+        {/* Lo que decide su expediente. Se pinta con el NOMBRE del catálogo, no
+            con el slug: «alta-montana» no le dice nada a quien va a la llamada. */}
+        <F
+          k="Actividades declaradas"
+          v={s.actividades.length ? s.actividades.map(nombreDeActividad).join(" · ") : null}
+        />
         <F k="Seguro de RC" v={s.seguro} />
         <F k="Primeros auxilios" v={s.primerosAuxilios} />
         <F k="Guías por persona" v={s.ratioGuias} />

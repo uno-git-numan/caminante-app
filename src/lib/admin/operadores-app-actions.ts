@@ -87,6 +87,7 @@ type App = {
   // Lo operativo que declaró: viaja a su perfil al aprobarlo.
   ciudad_estado: string | null;
   tipo_operacion: string | null;
+  actividades: string[] | null;
   antiguedad: string | null;
   salidas_ano: string | null;
   personas_salida: string | null;
@@ -105,7 +106,7 @@ async function cargar(id: string, permitidos: string[]): Promise<App | null> {
     .from("operator_applications")
     .select(
       "id, nombre_operadora, responsable, email, status, branding, operator_id, " +
-        "ciudad_estado, tipo_operacion, antiguedad, salidas_ano, personas_salida, " +
+        "ciudad_estado, tipo_operacion, actividades, antiguedad, salidas_ano, personas_salida, " +
         "seguro_rc, primeros_auxilios, ratio_guias, descripcion, instagram, whatsapp",
     )
     .eq("id", id)
@@ -253,6 +254,36 @@ export async function aprobarOperadorApp(id: string): Promise<Res> {
   if (panelErr) {
     console.error("aprobarOperadorApp panel:", panelErr);
     return { ok: false, error: "Se creó el operador pero no se pudo abrir su panel." };
+  }
+
+  // LO QUE DECLARÓ SE VUELVE SU EXPEDIENTE. Hasta aquí las actividades eran
+  // texto en la solicitud; a partir de aprobarla son filas con estado propio, y
+  // son las que deciden qué puede publicar.
+  //
+  // Nacen en `incompleta`, nunca en `aprobada`: aprobar a la OPERADORA no es
+  // aprobar su buceo. Ese permiso se gana documento por documento, y darlo aquí
+  // por barrer sería exactamente el candado global que la 0058 evitó.
+  //
+  // `onConflict` porque reaprobar una solicitud reencauzada no debe borrar el
+  // avance de una actividad que ya estaba en revisión.
+  const declaradas = (app.actividades ?? []).filter(Boolean);
+  if (declaradas.length) {
+    const { error: actErr } = await sb
+      .from("operator_activities")
+      .upsert(
+        declaradas.map((actividad) => ({ operator_id: alta.operatorId, actividad })),
+        { onConflict: "operator_id,actividad", ignoreDuplicates: true },
+      );
+    if (actErr) {
+      // No se aborta: la operadora ya existe y su panel ya está abierto. Pero se
+      // AVISA, porque sin estas filas su expediente sale vacío y parecería que
+      // no declaró nada — un silencio que costaría una llamada.
+      console.error("aprobarOperadorApp actividades:", actErr);
+      return {
+        ok: true,
+        aviso: "El operador quedó aprobado, pero no se sembraron sus actividades. Revísalas en su expediente.",
+      };
+    }
   }
 
   // Lo que nos dio para ser aprobado —desde cuándo opera, su seguro, su ratio de
