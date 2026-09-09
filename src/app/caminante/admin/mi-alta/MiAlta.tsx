@@ -249,17 +249,93 @@ export default function MiAlta({ datos }: { datos: Datos }) {
                 </span>
               </span>
             </div>
+            {/* ⚠️ `.gate` NO EXISTE EN NINGÚN ENTREGABLE. Sus 14 reglas están en
+                mi-alta-css.ts porque el extractor se trajo el CSS de la v5
+                completo, y ahí adentro venían las de la v2 —un bloque cuyo
+                markup la v5 ya había sustituido—. La clase casaba, la
+                estructura no: `.gate .gh` y `.gate .gb` esperan una cabecera y
+                un cuerpo, así que un `<b>` y un `<span>` sueltos salían sin una
+                sola regla encima. Lo que la v5 sí dibuja para estos seis es
+                `.mitad.armar` / `.mitad.cobrar` con su `.locks` de `.lk`
+                adentro, y es lo mismo que ya pinta la casa en `Candados.tsx`.
+                El contenedor `.gates` se queda: su rejilla de 1fr/1.55fr existe
+                justamente para estos dos grupos de tamaño distinto. */}
             <div className="gates">
-              {datos.candados.map((c) => (
-                <div key={c.clave} className={`gate${c.cumplido ? " ok" : ""}`}>
-                  <b>{c.nombre}</b>
-                  <span>{c.detalle}</span>
-                </div>
-              ))}
+              <Mitad
+                cual="armar"
+                titulo="Armar"
+                pie="Crear tu experiencia, subir fotos, escribir tu itinerario, poner cupos y precios. No necesita un solo dato fiscal."
+                candados={datos.paraArmar}
+              />
+              <Mitad
+                cual="cobrar"
+                titulo="Cobrar"
+                pie="Tus datos fiscales con tu CSD, y tu cuenta de cobro. Sin esto no publicamos: el cobro no tendría a dónde llegar."
+                candados={datos.paraCobrar}
+              />
             </div>
           </>
         ) : null}
       </div>
     </>
+  );
+}
+
+// LA PALOMA Y EL TACHE, tal cual los trae el entregable de la plataforma
+// (`design/plataforma/dc/plataforma.dc.html`, el bloque `.locks`). Son los
+// mismos dos SVG que dibuja `Candados.tsx` del lado de la casa: si aquí se
+// dibujaran de otra forma, el mismo candado se vería distinto según quién lo
+// mire, que es justo lo que `fetchMiAlta` se cuida de no permitir con los datos.
+const PALOMA = (
+  <svg className="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12.6l5.2 5.2L20 6.6" />
+  </svg>
+);
+const TACHE = (
+  <svg className="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+);
+
+// UNA DE LAS DOS MITADES. El reparto no se escribe aquí: sale de `bloquea`, en
+// `fetchMiAlta`. La cuenta del `.fr` tampoco — se cuenta de la lista que llega,
+// porque «1 de 1 y 2 de 5» es lo que decía la lámina y los datos reales reparten
+// 2 y 4. Un número de adorno en la pantalla del operador es un número que él
+// puede desmentir mirando sus propios candados.
+//
+// ⚠️ Sin `.own`: «Yo» y «Él» son la voz de la CASA. Aquí el dueño ya lo dice el
+// veredicto de arriba —«Te toca a ti: …»— y en esta pantalla el «Él» sería él.
+function Mitad({
+  cual, titulo, pie, candados,
+}: {
+  cual: "armar" | "cobrar";
+  titulo: string;
+  pie: string;
+  candados: Datos["candados"];
+}) {
+  const cumplidos = candados.filter((c) => c.cumplido).length;
+  return (
+    <div className={`mitad ${cual}`}>
+      <div className="mh">
+        <b>{titulo}</b>
+        <span className="fr">
+          {cumplidos} de {candados.length}
+        </span>
+        <small>{pie}</small>
+      </div>
+      <div className="mb">
+        <div className="locks">
+          {candados.map((c) => (
+            <span key={c.clave} className={`lk${c.cumplido ? " ok" : " no"}`}>
+              {c.cumplido ? PALOMA : TACHE}
+              <span className="g">
+                {c.nombre}
+                <small>{c.detalle}</small>
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
