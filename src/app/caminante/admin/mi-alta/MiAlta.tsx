@@ -66,19 +66,26 @@ export default function MiAlta({ datos }: { datos: Datos }) {
       </div>
 
       <div className="oppane paso-pane">
+        {/* ⚠️ Asomarse hacia ATRÁS no es lo mismo que asomarse hacia adelante.
+            Decirle «todavía no te toca» a alguien parado en el paso 3 sobre el
+            paso 1 —que ya pasó— le dice que va al revés de como va. */}
         {viendo !== aqui.indice ? (
           <p className="lectura">
             <s>{"//"}</s>
             <span className="g">
-              <b>Todavía no te toca este paso, y así se ve por dentro</b>
+              <b>
+                {viendo < aqui.indice
+                  ? "Este paso ya lo pasaste, y así se veía por dentro"
+                  : "Todavía no te toca este paso, y así se ve por dentro"}
+              </b>
               <span>{LECTURA[viendo]}</span>
             </span>
           </p>
         ) : null}
 
         {/* ── 01 · Nos conocemos ─────────────────────────────────────────── */}
-        {viendo === 0 ? (
-          aqui.indice === 0 && aqui.momento === 1 && s?.llamadaAt ? (
+        {viendo === 0 && aqui.indice === 0 ? (
+          aqui.momento === 1 && s?.llamadaAt ? (
             <>
               <div className="verdict si">
                 <span className="n">{"//"}</span>
@@ -113,15 +120,32 @@ export default function MiAlta({ datos }: { datos: Datos }) {
             </>
           ) : (
             <>
+              {/* ⚠️ Hay operadoras que NUNCA mandaron solicitud: se dieron de
+                  alta a mano y no pasaron por el embudo (Kéntro). Contarles que
+                  «tenemos tu solicitud» y prometerles una respuesta en tres días
+                  es hablarles de un trámite que no existe. El tablero de la casa
+                  ya distingue ese caso —dice «entró por fuera»— y aquí también. */}
               <div className="verdict casa">
                 <span className="n">{"//"}</span>
                 <span className="g">
-                  <b>Tenemos tu solicitud</b>
-                  <span>
-                    {s?.creadaAt ? `Llegó el ${fecha(s.creadaAt)}. ` : ""}
-                    La lee una persona, no un sistema, y te contestamos en un plazo de tres días
-                    hábiles. No hay nada que hagas mientras tanto.
-                  </span>
+                  {s ? (
+                    <>
+                      <b>Tenemos tu solicitud</b>
+                      <span>
+                        {s.creadaAt ? `Llegó el ${fecha(s.creadaAt)}. ` : ""}
+                        La lee una persona, no un sistema, y te contestamos en un plazo de tres
+                        días hábiles. No hay nada que hagas mientras tanto.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <b>Ya nos conocemos</b>
+                      <span>
+                        Tu alta la abrimos nosotros, así que este paso no aplica: no mandaste
+                        solicitud ni hace falta una llamada de arranque.
+                      </span>
+                    </>
+                  )}
                 </span>
               </div>
               <p className="xh4">Qué sigue</p>
