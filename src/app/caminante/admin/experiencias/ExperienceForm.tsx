@@ -902,7 +902,16 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
           <div className="ix-group">Operación</div>
           <div className="ix-list">
             <a href="#s13"><span className="n">13</span>Precio</a>
-            <a href="#s14"><span className="n">14</span>Fechas &amp; cupo</a>
+            {/* ⚠️ NO es un ancla. Las fechas NO se capturan en este formulario y
+                nunca se han capturado aquí: viven en Salidas, que es otra
+                pantalla. Hasta el 9 sep 2026 este renglón decía «14 Fechas &
+                cupo» y apuntaba a `#s14`, una sección que NO EXISTE — clicarlo
+                no hacía absolutamente nada. Prometer una sección inexistente es
+                peor que no ofrecerla: quien busca dónde poner su fecha se queda
+                dando vueltas en el formulario. */}
+            <a href="/caminante/admin/salidas" target="_blank" rel="noopener">
+              <span className="n">→</span>Fechas y cupo (en Salidas)
+            </a>
             <a href="#s15"><span className="n">15</span>Registro</a>
             <a href="#s16"><span className="n">16</span>Encuesta</a>
           </div>
@@ -922,8 +931,8 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
               </p>
               <p className="sd-hint" style={{ marginTop: 6 }}>
                 Las salidas no se dan de alta aquí — esta pantalla es la
-                experiencia, que no tiene fecha. Guarda primero y agrégalas desde
-                su ficha, en <b>Eventos</b>.
+                experiencia, que no tiene fecha. Guarda primero y agrégalas en{" "}
+                <b><a href="/caminante/admin/salidas" target="_blank" rel="noopener">Salidas</a></b>.
               </p>
             </div>
           ) : null}
@@ -943,7 +952,7 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
             </div></div>
           </details>
 
-          <p className="form-intro"><span className="sl">{"// Cómo funciona"}</span>Aquí armas la página de la experiencia en el diseño de la marca (el mismo de Ensenada y Hongos): portada, la experiencia en 3 puntos, guías, itinerario, inversión, mochila… Cada sección es opcional — si la dejas vacía, no aparece. Abajo está la operación: precio que se cobra, fechas y cupo, registro y encuesta. Guarda el borrador y usa &quot;Vista previa&quot; para verla tal cual la verá el viajero.</p>
+          <p className="form-intro"><span className="sl">{"// Cómo funciona"}</span>Aquí armas la página de la experiencia en el diseño de la marca (el mismo de Ensenada y Hongos): portada, la experiencia en 3 puntos, guías, itinerario, inversión, mochila… Cada sección es opcional — si la dejas vacía, no aparece. Abajo está la operación: precio que se cobra, registro y encuesta. Las fechas NO se capturan aquí — una experiencia es el producto, sin fecha; las salidas se dan de alta en Salidas. Guarda el borrador y usa &quot;Vista previa&quot; para verla tal cual la verá el viajero.</p>
 
           <ChecklistComunicacion
             slug={exp.slug}
@@ -1426,7 +1435,7 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
 
           {/* 11 · FECHAS (texto) */}
           <section className="card" id="s11">
-            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Próximas fechas</span><h2>Fechas — texto de la sección</h2><p className="desc">Solo el copy que rodea las tarjetas de fechas. Las tarjetas (fecha + &quot;Quedan N lugares&quot;) se llenan SOLAS desde las salidas de la sección &quot;Fechas &amp; cupo&quot;.</p></div>
+            <div className="sec-head"><span className="eyebrow"><span className="sl">{"//"}</span> Próximas fechas</span><h2>Fechas — aquí NO se dan de alta fechas</h2><p className="desc">Esta sección es <b>solo el texto</b> que rodea a las tarjetas de fechas: el título, la bajada y la línea de precio. Las tarjetas —la fecha real y el &quot;Quedan N lugares&quot;— se llenan solas.<br /><br />Una experiencia es el <b>producto</b> y no tiene fecha: la misma caminata puede salir en marzo y en octubre. Para dar de alta una salida, guarda esta experiencia y ve a <b><a href="/caminante/admin/salidas" target="_blank" rel="noopener">Salidas</a></b> en el menú del panel. Si no hay ninguna salida dada de alta, esta sección no aparece en la página.</p></div>
             <div className="row c2">
               <Field label="Título"><input type="text" value={v2.dates.title} placeholder="Elige tu" onChange={(e) => upd("dates", { title: e.target.value })} /></Field>
               <Field label="Remate"><input type="text" value={v2.dates.titleAccent} placeholder="domingo." onChange={(e) => upd("dates", { titleAccent: e.target.value })} /></Field>
