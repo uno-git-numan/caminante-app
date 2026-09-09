@@ -84,29 +84,62 @@ export async function subirDocumento(formData: FormData): Promise<Res> {
     return { ok: false, error: "No se pudo guardar el archivo." };
   }
 
-  // ⚠️ REEMPLAZAR LIMPIA EL RECHAZO. Si al volver a subir se dejara el `motivo`
-  // viejo, la pantalla mostraría el archivo nuevo con la razón por la que se
-  // rechazó el anterior — y quien lo lea creerá que su corrección no sirvió.
-  const { error } = await sb.from("operator_documents").upsert(
-    {
-      operator_id: operatorId,
-      actividad,
-      documento,
-      archivo_path: path,
-      archivo_nombre: file.name.slice(0, 200),
-      estado: "en_revision",
-      motivo: null,
-      vence_at: venceAt,
-      subido_at: new Date().toISOString(),
-      revisado_at: null,
-      revisado_por: null,
-    },
-    { onConflict: actividad === null ? "operator_id,documento" : "operator_id,actividad,documento" },
-  );
+  // ⚠️ NADA DE `upsert` CON `onConflict` AQUÍ, y la razón cuesta encontrarla:
+  // el índice de los documentos GENERALES es PARCIAL (`where actividad is null`,
+  // ver la 0058), y Postgres no puede inferir un índice parcial para un
+  // `ON CONFLICT (operator_id, documento)`. Falla con 42P10, «there is no unique
+  // or exclusion constraint matching the ON CONFLICT specification».
+  //
+  // Lo vicioso es CÓMO fallaba: el archivo YA estaba en el bucket cuando
+  // reventaba el insert, así que quedaba un objeto huérfano y la operadora
+  // veía «Todavía no lo has subido» después de una subida que se veía bien.
+  // Sólo salió al subir un PDF de verdad; `tsc` y el build no lo podían ver.
+  //
+  // Buscar y luego actualizar o insertar no depende de la forma del índice.
+  const base = sb
+    .from("operator_documents")
+    .select("id, archivo_path")
+    .eq("operator_id", operatorId)
+    .eq("documento", documento);
+  const { data: previa } = await (actividad === null
+    ? base.is("actividad", null)
+    : base.eq("actividad", actividad)
+  ).maybeSingle();
+
+  // REEMPLAZAR LIMPIA EL RECHAZO. Dejar el `motivo` viejo mostraría el archivo
+  // nuevo con la razón por la que se rechazó el anterior, y quien lo lea creerá
+  // que su corrección no sirvió.
+  const campos = {
+    archivo_path: path,
+    archivo_nombre: file.name.slice(0, 200),
+    estado: "en_revision",
+    motivo: null,
+    vence_at: venceAt,
+    subido_at: new Date().toISOString(),
+    revisado_at: null,
+    revisado_por: null,
+  };
+  const anterior = (previa as { id: string; archivo_path: string } | null) ?? null;
+  const { error } = anterior
+    ? await sb.from("operator_documents").update(campos).eq("id", anterior.id)
+    : await sb
+        .from("operator_documents")
+        .insert({ operator_id: operatorId, actividad, documento, ...campos });
+
   if (error) {
+    // ⚠️ SI LA FILA NO SE ESCRIBE, EL ARCHIVO NO SE QUEDA. Un objeto sin fila
+    // que lo apunte es basura invisible en un bucket privado: nadie lo ve,
+    // nadie lo borra, y cuenta para el límite de Storage.
+    await sb.storage.from(BUCKET).remove([path]);
     console.error("subirDocumento:", error);
     return { ok: false, error: "No se pudo registrar el documento." };
   }
+
+  // Y el archivo VIEJO tampoco: al reemplazar, ya no lo apunta nadie.
+  if (anterior?.archivo_path && anterior.archivo_path !== path) {
+    await sb.storage.from(BUCKET).remove([anterior.archivo_path]);
+  }
+
   revalidatePath(RUTA);
   return { ok: true };
 }
