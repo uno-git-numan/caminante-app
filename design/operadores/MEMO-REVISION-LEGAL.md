@@ -96,3 +96,10 @@ las del borrador anterior. El borrador v0 tenía números que ya no coincidían 
 la plataforma —prometía 10% donde el sistema cobra hasta 20%— y se corrigieron
 antes de mandarte esto. Si alguna operadora hubiera firmado el v0, se le habría
 cobrado de más que lo pactado.
+
+El 8 de septiembre, ya con el costo real de operar la plataforma medido, Luis
+rebajó la columna B (cuando la operadora trae a su propio cliente) a
+15/13/11/9/8 y agregó una comisión mínima de $250 por reserva. **Ninguna
+operadora ha firmado todavía**, así que el cambio no altera ningún trato vivo.
+Las dos columnas ahora comparten cortes y se publican como una sola tabla; un
+guardián automático detiene el despliegue si vuelven a separarse.

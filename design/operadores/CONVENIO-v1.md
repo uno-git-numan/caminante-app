@@ -9,6 +9,10 @@
 > - Las **tablas de comisión** ahora son las que el sistema cobra de verdad. Las
 >   del v0 estaban desfasadas: prometían 10% donde la plataforma cobra hasta
 >   20%. Ver la nota de la Cláusula Tercera.
+> - **Actualización del 8 de septiembre:** la columna B se rebajó a
+>   15/13/11/9/8 para que separarse de la A premie de verdad traer al cliente
+>   propio, y se agregó una **comisión mínima de $250** por reserva. Las dos
+>   columnas comparten cortes y se publican como una sola tabla.
 > - Se resolvieron con el sistema, no con opinión: **ventana de atribución (60
 >   días)** y **quién absorbe la comisión de Stripe (Caminante)**.
 > - Se agregó el **tope de 20%** como techo contractual, el **congelamiento de la
@@ -65,35 +69,42 @@ plataforma, conforme a las tablas siguientes. **Los tramos son marginales**:
 cada tasa aplica únicamente a la porción del precio comprendida en su rango, no
 al total. Así, subir el precio nunca reduce la comisión en pesos.
 
-**A · Cuando Caminante origina la venta** (su sitio, su boletín, sus redes, su
-audiencia):
+| Precio por persona (sin IVA) | **A ·** Caminante origina la venta | **B ·** El Operador origina la venta |
+|---|---|---|
+| Hasta $3,000 MXN | 20% | **15%** |
+| $3,001 – $8,000 | 18% | **13%** |
+| $8,001 – $15,000 | 16% | **11%** |
+| $15,001 – $40,000 | 14% | **9%** |
+| Más de $40,000 | 14% | **8%** |
 
-| Precio por persona | Comisión |
-|---|---|
-| Hasta $3,000 MXN | 20% |
-| $3,001 – $8,000 | 18% |
-| $8,001 – $15,000 | 16% |
-| Más de $15,000 | 14% |
+**A** aplica cuando la venta llega por el sitio, el boletín, las redes o la
+audiencia de Caminante. **B**, cuando el Operador dirige a su propio cliente a la
+plataforma (ver *Origen de la venta*, más abajo).
 
-**B · Cuando el Operador origina la venta** (dirige a su propio cliente a la
-plataforma):
+**Comisión mínima.** Cada reserva causa una comisión de al menos **$250 MXN**,
+sin que en ningún caso pueda exceder el techo del 20% del importe cobrado. El
+mínimo opera sobre la reserva completa, no sobre cada concepto por separado, y
+solo resulta aplicable en reservas menores a $1,667 MXN.
 
-| Precio por persona | Comisión |
-|---|---|
-| Hasta $3,000 MXN | 20% |
-| $3,001 – $8,000 | 17% |
-| $8,001 – $15,000 | 14% |
-| $15,001 – $40,000 | 11% |
-| Más de $40,000 | 8% |
-
-> ⚠️ **Nota para la revisión — no es redacción, es dinero.** El borrador v0
-> traía otras tablas: en el supuesto B prometía **10% plano** y en el A un tramo
-> de 12% arriba de $40,000. Ninguna de las dos coincidía con lo que la
-> plataforma calcula. Para una operadora vendiendo a $13,500 por persona, el v0
-> prometía 10% y el sistema cobra **16.84% efectivo**: en una salida de doce
-> personas son **$23,512 contra $13,966**. Estas tablas son las del sistema.
-> **Luis debe confirmar que son las que quiere ofrecer** antes de que alguien
-> firme.
+> **Nota de trazabilidad — cómo se fijó la columna B (8 sep 2026).** La columna B
+> es más baja que la A en cinco puntos porcentuales en todo el rango, y esa
+> diferencia es deliberada: es lo que la plataforma paga por que el Operador
+> traiga a su propio cliente. Antes de esta versión ambas columnas arrancaban en
+> 20% y en el ticket promedio se separaban 1.2 puntos, con lo que traer clientes
+> propios prácticamente no se premiaba.
+>
+> El piso lo fija el costo real de operar la plataforma —comisión bancaria,
+> infraestructura, timbrado y mensajería—, medido en **5.64%** del precio con el
+> volumen actual y **4.95%** a quinientas reservas mensuales. Con la columna B,
+> el margen más delgado de toda la tabla es de 4.2 puntos porcentuales, y
+> corresponde a un precio de $50,000 por persona que hoy no se comercializa. El
+> desglose, con la fuente y la fecha de cada precio, está en
+> `design/contabilidad/COSTOS-PLATAFORMA.md`.
+>
+> El borrador v0 (17 ago) prometía en el supuesto B un 10% plano que no coincidía
+> con lo que el sistema calculaba. Ambas tablas están hoy reconciliadas contra el
+> motor de cobro, y `scripts/invariantes.mjs` detiene el despliegue si vuelven a
+> separarse o si la columna B llegara a superar a la A en cualquier tramo.
 
 **Techo absoluto.** Ninguna tasa de ninguna tabla excederá el **20%**. Este
 techo es una obligación de Caminante frente al Operador y no puede rebasarse ni
@@ -330,7 +341,7 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 |---|---|---|
 | Ventana de atribución | **60 días naturales** | Es lo que el sistema aplica hoy (`ATRIB_DIAS`) |
 | Comisiones bancarias | **Las absorbe Caminante** | El payout es bruto − comisión, sin descontar Stripe |
-| Tablas de comisión | Las de la Cláusula Tercera | Reconciliadas contra el motor de cobro |
+| Tablas de comisión | Las de la Cláusula Tercera | Decididas por Luis el 8 sep contra el costo real de la plataforma; reconciliadas con el motor de cobro y protegidas por un invariante |
 | Quién factura al viajero | **NUMAN, como comercializadora** | Es lo único que el sistema sabe hacer hoy |
 
 ## Lo que sigue abierto, y de quién es la decisión
@@ -338,11 +349,10 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 | # | Pregunta | ¿Quién decide? |
 |---|---|---|
 | 1 | ¿Caminante se separa de NUMAN en su propia entidad? | **Luis** — es previa a todo lo demás |
-| 2 | ¿Las tablas de comisión son las que se quieren ofrecer? | **Luis** — el sistema cobra así, pero es su precio |
-| 3 | Tope de responsabilidad de Caminante | Abogado |
-| 4 | Sede de jurisdicción y mediación previa | Abogado, con preferencia de Luis |
-| 5 | Si NUMAN puede facturar el servicio turístico | Abogado y contador |
-| 6 | Si la indemnización de la Novena es oponible | Abogado |
+| 2 | Tope de responsabilidad de Caminante | Abogado |
+| 3 | Sede de jurisdicción y mediación previa | Abogado, con preferencia de Luis |
+| 4 | Si NUMAN puede facturar el servicio turístico | Abogado y contador |
+| 5 | Si la indemnización de la Novena es oponible | Abogado |
 
 ## Anexos que conviene tener
 

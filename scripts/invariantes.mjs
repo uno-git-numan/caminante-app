@@ -486,6 +486,67 @@ const REGLAS = [
       return null;
     },
   },
+  {
+    nombre: "La escala de plataforma nunca cobra más que la de venta",
+    comprueba() {
+      const src = leer("src/lib/operadores/comision.ts");
+      if (!src) return null; // ya lo reporta la regla del tope
+
+      // Cada escala, de su `const NOMBRE` hasta su PRIMER `];`. Mismo corte que
+      // usa la regla del tope, y por la misma razón: sin él, VENTA se traga el
+      // bloque de PLATAFORMA.
+      const escala = (nombre) => {
+        const desde = src.indexOf(`const ${nombre}`);
+        if (desde < 0) return null;
+        const hasta = src.indexOf("];", desde);
+        const bloque = src.slice(desde, hasta < 0 ? undefined : hasta);
+        return [...bloque.matchAll(/\[\s*(Infinity|[\d_]+)\s*,\s*(0?\.\d+)\s*\]/g)].map((m) => ({
+          tope: m[1] === "Infinity" ? Infinity : Number(m[1].replace(/_/g, "")),
+          tasa: Number(m[2]),
+        }));
+      };
+
+      const venta = escala("VENTA");
+      const plataforma = escala("PLATAFORMA");
+      if (!venta?.length || !plataforma?.length) {
+        return "No se pudieron leer las dos escalas de comision.ts. O cambió el formato de las tablas o una desapareció; revísalo a mano antes de deployar.";
+      }
+
+      // Los cortes tienen que ser los MISMOS en las dos escalas. Si no, comparar
+      // renglón contra renglón no significa nada — y el convenio, que las
+      // presenta como una sola tabla de dos columnas, estaría mintiendo.
+      if (venta.length !== plataforma.length) {
+        return `VENTA tiene ${venta.length} tramos y PLATAFORMA ${plataforma.length}. Las dos escalas tienen que compartir cortes: el convenio las publica como UNA tabla de dos columnas, y con cortes distintos ese renglón no existe.`;
+      }
+      for (let i = 0; i < venta.length; i++) {
+        if (venta[i].tope !== plataforma[i].tope) {
+          const f = (n) => (Number.isFinite(n) ? "$" + n.toLocaleString("es-MX") : "infinito");
+          return `El corte ${i + 1} no coincide: VENTA hasta ${f(venta[i].tope)} y PLATAFORMA hasta ${f(plataforma[i].tope)}. Las dos escalas comparten cortes a propósito.`;
+        }
+      }
+
+      // Y la de plataforma nunca puede cobrar más que la de venta.
+      for (let i = 0; i < venta.length; i++) {
+        if (plataforma[i].tasa > venta[i].tasa + 1e-9) {
+          return [
+            `En el tramo ${i + 1} PLATAFORMA cobra ${(plataforma[i].tasa * 100).toFixed(0)}% y VENTA ${(venta[i].tasa * 100).toFixed(0)}%.`,
+            "",
+            "Eso está al revés y le quita el sentido a tener dos escalas. VENTA se",
+            "cobra cuando Caminante ENTREGA el cliente —su audiencia, su contenido,",
+            "su canal— y PLATAFORMA cuando el operador trae al suyo y solo usa los",
+            "rieles. Si la segunda cobra igual o más, traer clientes propios deja de",
+            "premiarse y el operador no tiene por qué hacerlo.",
+            "",
+            "Ya pasó, y en silencio: hasta el 8 sep 2026 las dos escalas arrancaban",
+            "en 20% y solo se separaban 1.2 puntos en el ticket promedio. Nadie lo",
+            "vio porque cada tabla se revisaba sola; el problema solo aparece al",
+            "ponerlas una junto a la otra. Por eso este guardián las compara.",
+          ].join("\n");
+        }
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────
