@@ -103,6 +103,7 @@ em.ac{font-style:italic;color:var(--orange);font-weight:300;}
 .xp .points{display:flex;flex-direction:column;}
 .xp .pt{font-size:clamp(18px,2.3vw,21px);font-weight:500;line-height:1.4;padding:22px 0;border-top:1px solid var(--line);}
 .xp .pt:first-child{border-top:0;padding-top:0;}
+.sinfoto{background:var(--salvia);border-radius:var(--r);box-shadow:var(--shadow);aspect-ratio:4/5;}
 .mosaic{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:200px 200px;gap:10px;}
 .mosaic .m{position:relative;overflow:hidden;border-radius:14px;}
 .mosaic .m img{width:100%;height:100%;object-fit:cover;}
