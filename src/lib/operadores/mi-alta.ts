@@ -85,9 +85,23 @@ export async function fetchMiAlta(): Promise<MiAlta | null> {
       }
     : null;
 
-  // Sin operadora dada de alta, sólo hay solicitud: los estados 01 a 04 y el 07.
+  // ⚠️ EL RECORRIDO MANDA MIENTRAS LA SOLICITUD NO ESTÉ APROBADA.
+  //
+  // Antes bastaba con que existiera fila en `operators` para saltar a los
+  // estados 05-06, e ignorar el recorrido por completo. Con el flujo normal da
+  // igual —la fila se crea AL aprobar— pero se rompe en el caso que sí ocurre:
+  // una operadora aprobada por atajo, a la que hay que hacerle el alta de
+  // verdad. A Nomádika la aprobaron el 25 ago sin llamada, sin expediente y sin
+  // convenio; al reabrir su solicitud seguía viendo «puedes armar» en vez del
+  // paso 01, porque su fila existía desde entonces.
+  //
+  // Reabrir una solicitud es un acto deliberado de la casa. Cuando pasa, lo que
+  // la operadora ve es dónde va SU recorrido, no el rastro de una aprobación
+  // que se está rehaciendo.
   const fila = op as { id: string; estado: string; estado_motivo: string | null } | null;
-  if (!fila) {
+  const enRecorrido =
+    !!solicitud && ["pending", "calling", "docs", "rejected"].includes(solicitud.status);
+  if (!fila || enRecorrido) {
     if (!solicitud) return null;
     let estado: EstadoAlta = "recibida";
     if (solicitud.status === "rejected") estado = "no_esta_vez";

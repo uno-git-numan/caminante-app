@@ -135,9 +135,20 @@ const FUERA_DEL_OPERADOR: AdminSection[] = [
 // vista está en `comunidad/page.tsx`: con rol operador la bandeja no se
 // consulta. Si algún día vuelve a ser pantalla propia, vuelve a esta lista.
 
-export const ADMIN_NAV_DE_OPERADOR: AdminNavItem[] = ADMIN_NAV.filter(
-  (i) => !FUERA_DEL_OPERADOR.includes(i.key),
-);
+// «Mi alta» NO está en ADMIN_NAV y es a propósito: la casa no tiene alta que
+// seguir, y ponerla ahí con un filtro sería una sección que existe para todos y
+// se esconde para uno. Va como excepción explícita, igual que «Operador», y por
+// eso se lee de un vistazo que sólo el operador la ve.
+export const MI_ALTA_NAV: AdminNavItem = {
+  key: "panorama", // comparte activo con Panorama: es su puerta mientras el alta no termina
+  label: "Mi alta",
+  href: "/caminante/admin/mi-alta",
+};
+
+export const ADMIN_NAV_DE_OPERADOR: AdminNavItem[] = [
+  MI_ALTA_NAV,
+  ...ADMIN_NAV.filter((i) => !FUERA_DEL_OPERADOR.includes(i.key)),
+];
 
 export function navPara(rol: "admin" | "operador"): AdminNavItem[] {
   return rol === "operador" ? ADMIN_NAV_DE_OPERADOR : ADMIN_NAV;
