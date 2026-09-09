@@ -166,3 +166,81 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
       actividades.every((a) => a.estado === "aprobada"),
   };
 }
+
+// ── La cola de revisión de la casa ───────────────────────────────────────────
+
+export type PorRevisar = {
+  operatorId: string;
+  /** Documentos esperando veredicto. */
+  docs: {
+    id: string;
+    actividad: string | null;
+    /** Nombre legible: la casa no debería leer slugs. */
+    donde: string;
+    documento: string;
+    nombre: string;
+    archivoPath: string;
+    subidoAt: string;
+  }[];
+  /** Actividades que ya pidieron revisión. */
+  actividades: { actividad: string; nombre: string }[];
+};
+
+/**
+ * Lo que le toca revisar a la casa, de TODAS las operadoras, en dos consultas.
+ *
+ * No se trae el expediente completo de cada una: la casa no necesita ver lo que
+ * ya está resuelto, y hacerlo costaría una consulta por operadora en una tabla
+ * que crece con cada documento de cada actividad de cada quien.
+ */
+export async function fetchPorRevisar(): Promise<Map<string, PorRevisar>> {
+  const sb = createSupabaseAdminClient();
+  const [{ data: docs }, { data: acts }] = await Promise.all([
+    sb
+      .from("operator_documents")
+      .select("id, operator_id, actividad, documento, archivo_path, subido_at")
+      .eq("estado", "en_revision")
+      .order("subido_at"),
+    sb
+      .from("operator_activities")
+      .select("operator_id, actividad")
+      .eq("estado", "en_revision"),
+  ]);
+
+  const nombreDoc = (actividad: string | null, slug: string): string =>
+    (actividad === null
+      ? GENERALES.find((g) => g.slug === slug)
+      : requisitosDe(actividad).propios.find((d) => d.slug === slug)
+    )?.nombre ?? slug;
+
+  const out = new Map<string, PorRevisar>();
+  const dame = (id: string): PorRevisar => {
+    const ya = out.get(id);
+    if (ya) return ya;
+    const nuevo: PorRevisar = { operatorId: id, docs: [], actividades: [] };
+    out.set(id, nuevo);
+    return nuevo;
+  };
+
+  for (const d of (docs ?? []) as {
+    id: string; operator_id: string; actividad: string | null;
+    documento: string; archivo_path: string; subido_at: string;
+  }[]) {
+    dame(d.operator_id).docs.push({
+      id: d.id,
+      actividad: d.actividad,
+      donde: d.actividad === null ? "Lo general" : nombreDeActividad(d.actividad),
+      documento: d.documento,
+      nombre: nombreDoc(d.actividad, d.documento),
+      archivoPath: d.archivo_path,
+      subidoAt: d.subido_at,
+    });
+  }
+  for (const a of (acts ?? []) as { operator_id: string; actividad: string }[]) {
+    dame(a.operator_id).actividades.push({
+      actividad: a.actividad,
+      nombre: nombreDeActividad(a.actividad),
+    });
+  }
+  return out;
+}

@@ -14,8 +14,13 @@
 // quisiste publicar buceo»— porque necesita el candado de publicación, que
 // todavía no existe. Se transcribe con él, no antes: media pantalla que no
 // puede llegar a su estado es peor que ninguna.
+//
+// La subida va por `subirDocumento`, un server action con FormData: el archivo
+// no pasa por el cliente más que para elegirlo, y el `operator_id` NUNCA viaja
+// en el formulario — se resuelve de la sesión del lado del servidor.
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { subirDocumento, mandarARevision } from "@/lib/operadores/expediente-actions";
 import { ACTIVIDADES } from "@/lib/operadores/actividades";
 import type { ActividadEnPantalla, DocEnPantalla, Expediente as Datos } from "@/lib/operadores/expediente";
 
@@ -39,7 +44,7 @@ function Marca({ estado }: { estado: DocEnPantalla["estado"] }) {
   );
 }
 
-function Fila({ d }: { d: DocEnPantalla }) {
+function Fila({ d, actividad }: { d: DocEnPantalla; actividad: string | null }) {
   const clase =
     d.estado === "rechazado" ? " rech" : d.estado === "falta" || d.estado === "en_revision" ? " pend" : "";
   const dias = d.diasParaVencer;
@@ -73,11 +78,49 @@ function Fila({ d }: { d: DocEnPantalla }) {
           </span>
         ) : null}
       </span>
-      {/* La subida entra con las acciones; hoy la pantalla sólo dice la verdad
-          de lo que hay. Un botón que no hace nada enseña a no confiar en los
-          botones. */}
-      {d.cubiertoPorGeneral ? <span className="ac"><span className="mut">Ya está en Lo general</span></span> : null}
+      <span className="ac">
+        {d.cubiertoPorGeneral ? (
+          // Se muestra, no se re-pide: vive en Lo general y ahí se reemplaza.
+          <span className="mut">Ya está en Lo general</span>
+        ) : (
+          <SubirDoc actividad={actividad} doc={d} />
+        )}
+      </span>
     </div>
+  );
+}
+
+/**
+ * El control de subida de UNA fila.
+ *
+ * `vence` sale del catálogo a través de `venceAt`… no: sale de si el documento
+ * ya trae fecha o de si el catálogo dice que caduca. Aquí se usa lo segundo de
+ * forma indirecta —el servidor lo exige de todos modos— y se pide la fecha
+ * siempre que el documento tenga una o pueda tenerla, para no adivinar.
+ */
+function SubirDoc({ actividad, doc }: { actividad: string | null; doc: DocEnPantalla }) {
+  const [pendiente, arranca] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <form
+      action={(fd) =>
+        arranca(async () => {
+          fd.set("actividad", actividad ?? "");
+          fd.set("documento", doc.slug);
+          const r = await subirDocumento(fd);
+          setError(r.ok ? null : r.error);
+        })
+      }
+    >
+      <input type="file" name="archivo" accept="application/pdf,image/*" required disabled={pendiente} />
+      {/* La fecha se ofrece siempre que el documento pueda caducar. El servidor
+          la exige cuando el catálogo dice que sí; aquí no se adivina. */}
+      <input type="date" name="venceAt" defaultValue={doc.venceAt ?? ""} disabled={pendiente} />
+      <button className="btn btn-ghost btn-sm" disabled={pendiente}>
+        {pendiente ? "Subiendo…" : doc.estado === "falta" ? "Subir" : "Reemplazar"}
+      </button>
+      {error ? <span className="mut">{error}</span> : null}
+    </form>
   );
 }
 
@@ -118,18 +161,45 @@ function Carpeta({ a }: { a: ActividadEnPantalla }) {
       </button>
       <div className="ab">
         <div className="docs">
-          {a.propios.map((d) => <Fila key={d.slug} d={d} />)}
+          {a.propios.map((d) => <Fila key={d.slug} d={d} actividad={a.slug} />)}
         </div>
         {a.generales.length ? (
           <>
             <p className="xh4">Lo que ya cubriste en Lo general</p>
             <div className="docs">
-              {a.generales.map((d) => <Fila key={d.slug} d={d} />)}
+              {a.generales.map((d) => <Fila key={d.slug} d={d} actividad={a.slug} />)}
             </div>
           </>
         ) : null}
+        {a.estado === "incompleta" ? <Mandar a={a} /> : null}
       </div>
     </div>
+  );
+}
+
+/** «Ya está, revísenlo». Solo aparece mientras la actividad está incompleta. */
+function Mandar({ a }: { a: ActividadEnPantalla }) {
+  const [pendiente, arranca] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <p className="gnhint">
+      <button
+        className="btn btn-ghost btn-sm"
+        disabled={pendiente || a.faltan > 0}
+        onClick={() =>
+          arranca(async () => {
+            const r = await mandarARevision(a.slug);
+            setError(r.ok ? null : r.error);
+          })
+        }
+      >
+        {pendiente ? "Mandando…" : "Mandar a revisión"}
+      </button>{" "}
+      {a.faltan > 0
+        ? `Cuando estén los ${a.faltan} que faltan, aquí la mandas a revisar.`
+        : "Ya está completa. Nosotros la revisamos y te avisamos."}
+      {error ? <> · {error}</> : null}
+    </p>
   );
 }
 
@@ -203,7 +273,7 @@ export default function Expediente({ datos }: { datos: Datos }) {
               sube dos veces.
             </p>
             <div className="docs">
-              {datos.generales.map((d) => <Fila key={d.slug} d={d} />)}
+              {datos.generales.map((d) => <Fila key={d.slug} d={d} actividad={null} />)}
             </div>
           </div>
         </div>

@@ -1,6 +1,8 @@
 import { formatMXN } from "@/lib/admin/formato";
 import type { OperadoraPlataforma } from "@/lib/plataforma/operadoras";
 import Candados from "./Candados";
+import RevisarExpediente from "./RevisarExpediente";
+import type { PorRevisar } from "@/lib/operadores/expediente";
 
 // LA BIBLIOTECA DE OPERADORAS — una sola pregunta por renglón: ¿puede vender hoy?
 //
@@ -10,7 +12,7 @@ import Candados from "./Candados";
 // Lo que sí se distingue es DE QUIÉN es cada uno — así la ficha deja de ser un
 // diagnóstico y se vuelve una lista de pendientes con dueño.
 
-export default function Operadoras({ ops }: { ops: OperadoraPlataforma[] }) {
+export default function Operadoras({ ops, porRevisar }: { ops: OperadoraPlataforma[]; porRevisar: Map<string, PorRevisar> }) {
   const externas = ops.filter((o) => !o.esLaCasa);
   const casa = ops.filter((o) => o.esLaCasa);
 
@@ -133,6 +135,7 @@ export default function Operadoras({ ops }: { ops: OperadoraPlataforma[] }) {
                                 </span>
                               </div>
                               <Candados o={o} />
+                              <RevisarExpediente cola={porRevisar.get(o.id)} />
                               <p className="arr">
                                 <s>Arranque de comisión</s>
                                 {o.comisionDesde ? (
