@@ -48,7 +48,33 @@ const SITIO = "https://caminante.numanhub.com";
 
 // `operatorId` solo lo llena la aprobación: la tarjeta lo necesita para
 // ofrecer «Completar su expediente» sin esperar a que la página recargue.
-export type Res = { ok: boolean; error?: string; operatorId?: string };
+export type Res = {
+  ok: boolean;
+  error?: string;
+  operatorId?: string;
+  /**
+   * La acción sí ocurrió, pero el correo NO salió. Son dos cosas distintas y
+   * juntarlas fue el defecto: agendar una llamada y avisarle a la operadora son
+   * pasos separados, y el segundo puede fallar solo.
+   */
+  aviso?: string;
+};
+
+/**
+ * ⚠️ EL CORREO SE ESPERA Y SE MIRA. Antes iba con `.catch(console.error)` y su
+ * booleano se tiraba: `sendViaResend` devuelve `false` cuando Resend rechaza
+ * —sin lanzar— así que un correo que nunca salió dejaba la pantalla diciendo
+ * «invitación enviada». Es el mismo defecto de la encuesta: la marca era el
+ * acuse del INTENTO, no del envío.
+ */
+async function avisar(que: string, envio: Promise<boolean>): Promise<string | null> {
+  try {
+    return (await envio) ? null : `La ${que} NO salió. Revisa el correo y vuelve a intentar.`;
+  } catch (e) {
+    console.error(`${que}:`, e);
+    return `La ${que} NO salió (error al enviar). Revisa el correo y vuelve a intentar.`;
+  }
+}
 
 type App = {
   id: string;
@@ -125,14 +151,13 @@ export async function agendarLlamada(
   if (!cuando) return { ok: false, error: "Fecha inválida." };
 
   const sb = createSupabaseAdminClient();
+  // ⚠️ `llamada_enviada_at` NO se escribe aquí. La llamada queda agendada de
+  // inmediato —eso sí ocurrió— pero la marca de «ya le avisamos» sólo se pone
+  // si el correo de verdad salió. Escribirla junto con el resto la volvía el
+  // acuse del intento.
   const { error } = await sb
     .from("operator_applications")
-    .update({
-      status: "calling",
-      llamada_meet_url: url,
-      llamada_at: cuando.toISOString(),
-      llamada_enviada_at: new Date().toISOString(),
-    })
+    .update({ status: "calling", llamada_meet_url: url, llamada_at: cuando.toISOString() })
     .eq("id", id)
     .in("status", ["pending", "calling"]);
   if (error) {
@@ -140,11 +165,18 @@ export async function agendarLlamada(
     return { ok: false, error: "No se pudo guardar la llamada." };
   }
 
-  await emailInvitacionLlamada(app.email, app.responsable, url, cuando, mensaje, id).catch((e) =>
-    console.error("invitacion llamada:", e),
+  const aviso = await avisar(
+    "invitación",
+    emailInvitacionLlamada(app.email, app.responsable, url, cuando, mensaje, id),
   );
+  if (!aviso) {
+    await sb
+      .from("operator_applications")
+      .update({ llamada_enviada_at: new Date().toISOString() })
+      .eq("id", id);
+  }
   revalidatePath(PANEL);
-  return { ok: true };
+  return { ok: true, ...(aviso ? { aviso } : {}) };
 }
 
 // ── 2 · Pedir el expediente ──────────────────────────────────────────────────
@@ -180,11 +212,12 @@ export async function pedirExpediente(id: string, docs: string[], mensaje: strin
     return { ok: false, error: "No se pudo generar el expediente." };
   }
 
-  await emailPedirExpediente(app.email, app.responsable, url, lista.length, mensaje).catch((e) =>
-    console.error("pedir expediente:", e),
+  const avisoDocs = await avisar(
+    "petición de expediente",
+    emailPedirExpediente(app.email, app.responsable, url, lista.length, mensaje),
   );
   revalidatePath(PANEL);
-  return { ok: true, error: undefined };
+  return { ok: true, ...(avisoDocs ? { aviso: avisoDocs } : {}) };
 }
 
 // ── 3 · Aprobar ──────────────────────────────────────────────────────────────
@@ -277,9 +310,9 @@ export async function aprobarOperadorApp(id: string): Promise<Res> {
     return { ok: false, error: "No se pudo cerrar la solicitud." };
   }
 
-  await emailBienvenidaOperador(app.email, app.responsable).catch((e) => console.error("bienvenida:", e));
+  const avisoBien = await avisar("bienvenida", emailBienvenidaOperador(app.email, app.responsable));
   revalidatePath(PANEL);
-  return { ok: true, operatorId: alta.operatorId };
+  return { ok: true, operatorId: alta.operatorId, ...(avisoBien ? { aviso: avisoBien } : {}) };
 }
 
 // ── 4 · Rechazar ─────────────────────────────────────────────────────────────
@@ -303,7 +336,7 @@ export async function rechazarOperadorApp(id: string, motivo: string): Promise<R
     return { ok: false, error: "No se pudo actualizar la solicitud." };
   }
 
-  await emailRechazoOperador(app.email, app.responsable).catch((e) => console.error("rechazo:", e));
+  const avisoNo = await avisar("respuesta", emailRechazoOperador(app.email, app.responsable));
   revalidatePath(PANEL);
-  return { ok: true };
+  return { ok: true, ...(avisoNo ? { aviso: avisoNo } : {}) };
 }

@@ -8,6 +8,7 @@
 // (`operators.panel_activo`, podado a sus experiencias). Por eso la confirmación lo dice
 // con todas sus letras en vez de un «¿seguro?» genérico.
 import { useState } from "react";
+import type { Res } from "@/lib/admin/operadores-app-actions";
 import {
   agendarLlamada,
   pedirExpediente,
@@ -85,11 +86,12 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
   const [docs, setDocs] = useState<string[]>(DOCS_SUGERIDOS.slice(0, 3));
   const est = ESTADO[app.status] ?? { txt: app.status, cls: "c-sol" };
 
-  async function correr(tag: string, fn: () => Promise<{ ok: boolean; error?: string; operatorId?: string }>) {
+  async function correr(tag: string, fn: () => Promise<Res>) {
     setBusy(tag); setErr(null);
     try {
       const r = await fn();
       if (!r.ok) setErr(r.error || "No se pudo.");
+      else if (r.aviso) setErr(r.aviso); // la acción ocurrió; el correo no salió
       else if (tag === "ok") { setDone("ok"); setOpId(r.operatorId ?? null); }
       else if (tag === "no") setDone("no");
       else setPanel(null);

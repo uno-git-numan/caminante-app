@@ -56,6 +56,9 @@ export default function SolicitudEnCajon({ o }: { o: OperadoraPlataforma }) {
     const r = await agendarLlamada(o.solicitudId!, liga, cuando, msg);
     setYendo(false);
     if (!r.ok) { setErr(r.error ?? "No se pudo."); return; }
+    // La llamada quedó agendada aunque el correo no saliera: son dos cosas, y
+    // callar la segunda es lo que hacía que «invitación enviada» mintiera.
+    if (r.aviso) { setErr(r.aviso); router.refresh(); return; }
     setAbierto(false);
     // El tablero se lee del servidor: al agendar, la tarjeta se mueve sola de
     // la columna 01 a la 02. Sin esto habría que recargar a mano para verlo.

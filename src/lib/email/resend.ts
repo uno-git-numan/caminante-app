@@ -61,13 +61,19 @@ export async function sendViaResend(
     try {
       const r = await fetch("https://api.resend.com/emails", { method: "POST", headers, body });
       if (r.status === 200 || r.status === 201) return true;
+      // ⚠️ Un rechazo de Resend NO puede ser mudo. Devolvía `false` y ya: sin
+      // excepción, sin log, sin nada en Vercel — y quien llamaba casi siempre
+      // ignoraba el booleano. Un correo que nunca salió se veía idéntico a uno
+      // entregado. Al menos queda el rastro.
+      const detalle = await r.text().catch(() => "");
+      console.error("resend:", r.status, to, subject, detalle.slice(0, 300));
       // 429 (rate limit) o 5xx → esperar y reintentar
       if (r.status === 429 || r.status >= 500) {
         const ra = Number(r.headers.get("retry-after"));
         await sleep(ra > 0 ? ra * 1000 : 700 * (attempt + 1));
         continue;
       }
-      return false; // 4xx no recuperable (correo inválido, etc.)
+      return false; // 4xx no recuperable (correo inválido, adjunto rechazado…)
     } catch {
       await sleep(700 * (attempt + 1));
     }
