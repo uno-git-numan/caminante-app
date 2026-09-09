@@ -24,6 +24,19 @@ const EXACTAS = new Set<string>([
   "/caminante/admin/salidas", // la línea de tiempo de SUS salidas, ya podada
   "/caminante/admin/comunicacion",
   "/caminante/admin/experiencias/nueva",
+  // ⚠️ SU ALTA Y SU EXPEDIENTE. Estuvieron FUERA de esta lista desde que se
+  // construyeron: el nav le pintaba «Mi alta» al operador —resaltada, la
+  // primera— y el candado la rebotaba a `?aviso=solo_casa`. La única pantalla
+  // del panel hecha para él era la única que no podía abrir, y el aviso que
+  // recibía decía justo lo contrario de lo que pasaba: «esa sección es de la
+  // administración de Caminante». Se descubrió entrando como Kéntro; ni `tsc`
+  // ni el build podían verlo, porque compilar no es alcanzar.
+  //
+  // Van EXACTAS y no como prefijo, por la razón que ya está escrita abajo
+  // sobre `/admin/m/`: un prefijo aquí abriría de golpe cualquier sub-ruta que
+  // se cuelgue mañana de `mi-alta/`, sin que nadie vuelva a decidirlo.
+  "/caminante/admin/mi-alta",
+  "/caminante/admin/mi-alta/expediente",
 ]);
 
 // FUERA a propósito, y conviene saber por qué:
