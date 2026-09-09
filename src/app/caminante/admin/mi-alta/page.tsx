@@ -24,9 +24,15 @@ export const metadata: Metadata = {
 
 export default async function MiAltaPage() {
   const datos = await fetchMiAlta();
-  // Sin solicitud y sin operadora no hay recorrido que enseñar. Es el caso de
-  // la casa entrando a su propia URL: se va a su panorama y ya.
+  // Sin solicitud y sin operadora no hay recorrido que enseñar.
   if (!datos) redirect("/caminante/admin");
+  // ⚠️ LA CASA NO TIENE ALTA. Su fila en `operators` existe para atribuirse sus
+  // propias experiencias, no porque haya pasado por el embudo: no mandó
+  // solicitud, no tuvo llamada y no se firma un convenio consigo misma. Al
+  // entrar aquí veía su propia ficha y salía la contradicción «1 de 6 · puedes
+  // vender» —los candados en rojo y el veredicto en verde— porque para la casa
+  // `puedeCobrar` está resuelto aparte de los candados.
+  if (datos.operadora?.esLaCasa) redirect("/caminante/admin");
   const ORDINAL = ["primero", "segundo", "tercero", "cuarto"];
   const aqui = pasoDe(datos.estado);
 
