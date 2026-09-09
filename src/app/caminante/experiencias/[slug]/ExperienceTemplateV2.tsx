@@ -84,6 +84,15 @@ function Btn({ a }: { a: V2Action }) {
 }
 
 function Media({ media }: { media: V2Split["media"] }) {
+  // SIN FOTOS NO HAY MARCO. Un bloque de imagen recién creado nace con
+  // `images: []` y así se guarda; antes esto hacía `media.images[0].url` sobre
+  // un `undefined` y la página entera moría con «Application error», sin decir
+  // cuál bloque. Le pasó a Corral de Piedra el 9 sep 2026 en su vista previa.
+  //
+  // La alternativa —pintar un marco vacío— es peor: en la página pública sería
+  // un hueco gris que el viajero sí ve. Devolver null deja que el texto ocupe
+  // la fila, que es la verdad: todavía no hay foto.
+  if (!media.images?.length) return null;
   if (media.kind === "photo") {
     const im = media.images[0];
     return (
