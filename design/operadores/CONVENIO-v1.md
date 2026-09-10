@@ -192,6 +192,42 @@ Caminante.
    seguridad de un participante.
 9. Cumplir la **Ley Federal de Protección al Consumidor** frente al cliente
    final, en su carácter de prestador del servicio.
+10. **Suscribir el anexo de cada actividad que ofrezca** y cumplir lo que ese
+    anexo exija, en los términos del apartado siguiente.
+
+### Anexos por actividad
+
+Este convenio fija el marco de la relación. **Lo que se le exige al Operador
+cambia según la actividad que ofrezca**: una caminata y un descenso a una
+caverna no se acreditan igual, no se aseguran igual y no se rescatan igual.
+
+Por eso, para cada actividad que el Operador quiera ofrecer en la plataforma se
+suscribe un **anexo por actividad**, que forma parte integrante de este convenio
+y que precisa, para esa actividad y sólo para ella: la norma oficial aplicable,
+los documentos que integran el expediente, sus vigencias, y las condiciones
+mínimas de operación.
+
+Se aplican estas reglas:
+
+a. El anexo **no sustituye** este convenio ni lo contradice: lo detalla. En lo
+   comercial —comisión, cobro, pago, terminación— manda este convenio. En lo
+   técnico y de seguridad de una actividad, manda su anexo.
+
+b. **Cada actividad se aprueba y se suspende por separado.** Que una actividad
+   quede incompleta, vencida o suspendida no afecta a las demás: el Operador
+   sigue vendiendo las actividades cuyo anexo esté vigente y cuyo expediente
+   esté aprobado.
+
+c. El Operador **no puede publicar ni vender una experiencia de una actividad
+   cuyo anexo no haya suscrito**, o cuyo expediente no esté aprobado. La
+   plataforma lo impide técnicamente; esta cláusula lo dice también por escrito.
+
+d. Los anexos se publican, versionan y firman con el mismo procedimiento y los
+   mismos plazos que este convenio (Cláusula Décima segunda), y con la misma
+   firma electrónica (Cláusula Décima sexta).
+
+e. Las obligaciones de esta Cláusula Sexta aplican a **todas** las actividades,
+   estén o no repetidas en un anexo.
 
 ## Séptima · Obligaciones de Caminante
 
@@ -361,3 +397,8 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 - **Anexo B** — Documentos del expediente y sus vigencias.
 - **Anexo C** — Política de cancelación del Operador.
 - **Anexo D** — Aviso de privacidad y encargo de tratamiento.
+- **Anexo E** — **Anexos por actividad.** Uno por cada actividad del catálogo
+  (senderismo, alta montaña, buceo…). No se redactan a mano: se **generan** del
+  catálogo de actividades (`src/lib/operadores/actividades.ts`), que es la misma
+  fuente de la que sale el expediente que se le pide al Operador en pantalla.
+  Ver `design/operadores/ANEXO-ACTIVIDAD.md` — el marco, y por qué se genera.
