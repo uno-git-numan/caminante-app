@@ -18,6 +18,7 @@ import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { puedeEditarExperiencia, puedeEditarSlot } from "@/lib/auth/alcance";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
+import { actividadListaParaPublicar } from "@/lib/operadores/candado-actividad";
 
 export type AdminActionResult = { ok: true } | { ok: false; error: string };
 
@@ -312,7 +313,7 @@ export async function setExperienceStatus(input: {
   // El status vive en la columna Y dentro del jsonb data (lectores usan ambos).
   const { data: row } = await sb
     .from("experiences")
-    .select("data")
+    .select("data, operator_id, actividad")
     .eq("id", input.experienceId)
     .maybeSingle();
   if (!row) return fail("La experiencia no existe.");
@@ -327,6 +328,14 @@ export async function setExperienceStatus(input: {
           `Complétalo en el formulario de la experiencia.`,
       );
     }
+    // Y el candado por actividad: si la opera alguien más, su expediente de esa
+    // actividad tiene que estar aprobado. Aquí sí se BLOQUEA en vez de degradar
+    // a borrador —ya está en borrador— así que no se pierde nada por negarse.
+    const veredicto = await actividadListaParaPublicar(
+      (row as { operator_id: string | null }).operator_id,
+      (row as { actividad: string | null }).actividad,
+    );
+    if (!veredicto.ok) return fail(veredicto.mensaje);
   }
   const data = { ...(row.data as Record<string, unknown>), status: input.status };
   const { error } = await sb

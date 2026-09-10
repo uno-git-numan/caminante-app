@@ -231,6 +231,12 @@ export type Experience = {
   status: "draft" | "published";
   estado?: string; // estado de MX (dropdown del form) — liga experiencia ↔ página de destino
 
+  // De qué actividad es (slug de `@/lib/operadores/actividades`). No es una
+  // etiqueta: es lo que decide qué expediente se exige para publicarla, y por
+  // eso vive también en su propia columna (`experiences.actividad`, 0058) —
+  // dentro del jsonb no se podría preguntar «qué experiencias son de buceo».
+  actividad?: string | null;
+
   // === Diseño v2 (bespoke ensenada/hongos, data-driven) ===
   // Si `design === "v2"`, la página pública y la vista previa se renderizan
   // con ExperienceTemplateV2 desde `page.blocks` (el template legacy de las

@@ -244,3 +244,61 @@ export async function fetchPorRevisar(): Promise<Map<string, PorRevisar>> {
   }
   return out;
 }
+
+// ── Quién nos trajo aquí ─────────────────────────────────────────────────────
+
+/** El borrador que el candado de publicación detuvo, si lo hubo. */
+export type BorradorDelCandado = {
+  slug: string;
+  /** Cómo se llama, para poder decirlo: «Tu borrador «Cenote azul»…». */
+  titulo: string;
+  actividad: string;
+  nombreActividad: string;
+  /** `null` = ni siquiera la ha declarado; ahí la pantalla ofrece declararla. */
+  estado: EstadoActividad | null;
+};
+
+/**
+ * Resuelve el `?borrador=` con el que llega alguien rebotado por el candado.
+ *
+ * ⚠️ SE FILTRA POR DUEÑO. El slug viaja en la URL: sin `operator_id` esta
+ * pantalla enseñaría el título de la experiencia de otra operadora a quien
+ * escribiera el slug a mano. Devuelve `null` ante cualquier duda —que no salga
+ * la lámina es un detalle; filtrar un título ajeno no lo es.
+ */
+export async function fetchBorradorDelCandado(
+  operatorId: string,
+  slug: string | undefined,
+  actividad: string | undefined,
+): Promise<BorradorDelCandado | null> {
+  const s = (slug ?? "").trim();
+  const a = (actividad ?? "").trim();
+  if (!s || !a || !ACTIVIDADES.some((c) => c.slug === a)) return null;
+
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb
+    .from("experiences")
+    .select("slug, data")
+    .eq("slug", s)
+    .eq("operator_id", operatorId)
+    .maybeSingle();
+  if (!data) return null;
+
+  const d = (data.data ?? {}) as { cardTitle?: string; title?: string; titleAccent?: string };
+  const titulo = (d.cardTitle || [d.title, d.titleAccent].filter(Boolean).join(" ") || s).trim();
+
+  const { data: act } = await sb
+    .from("operator_activities")
+    .select("estado")
+    .eq("operator_id", operatorId)
+    .eq("actividad", a)
+    .maybeSingle();
+
+  return {
+    slug: data.slug as string,
+    titulo,
+    actividad: a,
+    nombreActividad: nombreDeActividad(a),
+    estado: ((act as { estado: string } | null)?.estado as EstadoActividad) ?? null,
+  };
+}

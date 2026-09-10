@@ -144,6 +144,38 @@ export async function subirDocumento(formData: FormData): Promise<Res> {
   return { ok: true };
 }
 
+/**
+ * Declarar una actividad = abrir su carpeta.
+ *
+ * Hasta ahora las actividades sólo nacían al aprobar la solicitud, con lo que
+ * declaró en ella. Pero una operadora crece: el día que quiera ofrecer buceo
+ * tiene que poder pedir su expediente sin que la casa le abra la puerta a mano.
+ *
+ * ⚠️ NACE `incompleta`, NUNCA `aprobada`. Declarar es decir «quiero ofrecer
+ * esto», no «ya puedo». Si naciera aprobada, cualquiera se habilitaría solo la
+ * alta montaña con un clic — que es exactamente el candado que existe para que
+ * nadie suba a una montaña con quien no acreditó nada.
+ *
+ * ⚠️ `ignoreDuplicates` porque volver a declarar algo que ya está en revisión
+ * —o aprobado— no puede tirarle el avance a `incompleta`.
+ */
+export async function declararActividad(actividad: string): Promise<Res> {
+  const operatorId = await operadorDelAlcance();
+  if (!operatorId) return { ok: false, error: "Solo una operadora declara sus actividades." };
+  if (!VALIDAS.has(actividad)) return { ok: false, error: "Esa actividad no existe." };
+
+  const sb = createSupabaseAdminClient();
+  const { error } = await sb
+    .from("operator_activities")
+    .upsert({ operator_id: operatorId, actividad }, { onConflict: "operator_id,actividad", ignoreDuplicates: true });
+  if (error) {
+    console.error("declararActividad:", error);
+    return { ok: false, error: "No se pudo declarar la actividad." };
+  }
+  revalidatePath(RUTA);
+  return { ok: true };
+}
+
 export async function mandarARevision(actividad: string): Promise<Res> {
   const operatorId = await operadorDelAlcance();
   if (!operatorId) return { ok: false, error: "Solo una operadora manda su expediente." };

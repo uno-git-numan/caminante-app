@@ -25,6 +25,7 @@ import { guardarComplementos, type ComplementoEdit } from "@/lib/experiences/com
 import type { ReglaResuelta } from "@/lib/operadores/regla";
 import CalculadoraPrecio from "./CalculadoraPrecio";
 import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
+import { ACTIVIDADES } from "@/lib/operadores/actividades";
 import { ESTADOS } from "@/lib/experiences/estados";
 import type { Experience, V2Image } from "@/lib/experiences/types";
 import {
@@ -456,6 +457,9 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("Borrador sin guardar");
   const [statusOk, setStatusOk] = useState(false);
+  // Se pidió publicar y el expediente de la actividad no dejó. La experiencia
+  // SÍ se guardó (completa, en borrador); esto es el porqué y el a dónde.
+  const [candado, setCandado] = useState<{ mensaje: string; ruta: string; nombre: string | null } | null>(null);
   const [autoSlug, setAutoSlug] = useState(!initial);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
   // Guarda anti-sobrescritura: cuando el slug ya existe, guardamos aquí la
@@ -724,8 +728,13 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
       return;
     }
     setPendienteSobrescribir(null);
-    setExp(filled);
+    // El estado que manda es el que DEVOLVIÓ el servidor, no el que se pidió: si
+    // el candado por actividad degradó la publicación a borrador, la pantalla
+    // tiene que quedar diciendo «Borrador». Reflejar `st` a ciegas dejaría el
+    // formulario afirmando que está publicada mientras el sitio no la muestra.
+    setExp({ ...filled, status: res.status });
     setSavedSlug(res.slug);
+    setCandado(res.candado ?? null);
     // Los complementos van DESPUÉS: necesitan la experiencia ya existente para
     // colgarse de su id. Si fallan, se avisa pero la experiencia ya se guardó.
     const rc = await guardarComplementos(res.slug, comps);
@@ -743,8 +752,14 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
     // así que una salida creada fuera del formulario moría en silencio al
     // siguiente guardado de la experiencia. Se quitó la puerta, no el candado.
     setSaving(false);
-    setStatusOk(true);
-    setStatus(st === "published" ? `✓ Experiencia publicada · ${t}` : `✓ Borrador guardado · ${t}`);
+    setStatusOk(!res.candado);
+    setStatus(
+      res.candado
+        ? `Tu borrador se guardó completo y te está esperando. ${res.candado.mensaje}`
+        : res.status === "published"
+          ? `✓ Experiencia publicada · ${t}`
+          : `✓ Borrador guardado · ${t}`,
+    );
   }
 
   async function onSubmit(st: Experience["status"]) {
@@ -1000,6 +1015,20 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
                 <input type="text" className="slugbox" value={effectiveSlug} placeholder="recoleccion-de-hongos" onChange={(e) => { setAutoSlug(false); set("slug", e.target.value); }} />
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAutoSlug(true)}>Regenerar</button>
               </div>
+            </Field>
+            {/* De qué actividad es. No es una etiqueta de catálogo: decide qué
+                expediente se exige para publicarla (0058). Por eso el hint dice
+                lo que cuesta, no lo que es. */}
+            <Field
+              label="Tipo de actividad"
+              hint="de esto depende qué papeles se piden en el expediente y cuándo se puede publicar"
+            >
+              <select value={exp.actividad ?? ""} onChange={(e) => set("actividad", e.target.value || null)}>
+                <option value="">— elige la actividad —</option>
+                {ACTIVIDADES.map((a) => (
+                  <option key={a.slug} value={a.slug}>{a.nombre}</option>
+                ))}
+              </select>
             </Field>
             <Field label="Estado" hint={exp.status === "published" ? "los cambios salen EN VIVO al dar Guardar cambios" : "no visible en la web hasta Publicar"}>
               {/* Solo informativo: el estado lo deciden los BOTONES de guardar
@@ -1740,7 +1769,11 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
 
       <div className="actionbar"><div className="inner">
         <span className={`status${statusOk ? " ok" : ""}`}>
-          {status}{savedSlug ? <> · <a href={`/caminante/admin/preview/${savedSlug}`} target="_blank" rel="noopener" style={{ textDecoration: "underline" }}>vista previa</a></> : null}
+          {status}
+          {/* El candado no se queda en un regaño: lleva al expediente de ESA
+              actividad, con el borrador a cuestas para poder volver solo. */}
+          {candado ? <> · <a href={candado.ruta} style={{ textDecoration: "underline" }}>Ir a mi expediente{candado.nombre ? ` de ${candado.nombre.toLowerCase()}` : ""}</a></> : null}
+          {savedSlug ? <> · <a href={`/caminante/admin/preview/${savedSlug}`} target="_blank" rel="noopener" style={{ textDecoration: "underline" }}>vista previa</a></> : null}
         </span>
         <div className="grp">
           {exp.status === "published" ? (

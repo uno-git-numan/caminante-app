@@ -12,7 +12,7 @@ import Link from "next/link";
 import AdminShell from "../../ui/AdminShell";
 import { EXPEDIENTE_CSS } from "../../ui/expediente-css";
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
-import { fetchExpediente } from "@/lib/operadores/expediente";
+import { fetchExpediente, fetchBorradorDelCandado } from "@/lib/operadores/expediente";
 import Expediente from "./Expediente";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function ExpedientePage() {
+export default async function ExpedientePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ borrador?: string; actividad?: string }>;
+}) {
   const alta = await fetchMiAlta();
   if (!alta) redirect("/caminante/admin");
   if (alta.operadora?.esLaCasa) redirect("/caminante/admin");
@@ -34,6 +38,12 @@ export default async function ExpedientePage() {
   if (!operatorId) redirect("/caminante/admin/mi-alta");
 
   const datos = await fetchExpediente(operatorId);
+
+  // ⚠️ EL BORRADOR SE RESUELVE CONTRA LA BASE Y CONTRA EL DUEÑO. El slug llega
+  // por query string, o sea que lo puede escribir cualquiera: sin filtrar por
+  // `operator_id` esta pantalla diría el título de una experiencia ajena.
+  const q = await searchParams;
+  const traido = await fetchBorradorDelCandado(operatorId, q.borrador, q.actividad);
 
   return (
     <AdminShell active="panorama">
@@ -56,7 +66,7 @@ export default async function ExpedientePage() {
           </p>
         </div>
       </div>
-      <Expediente datos={datos} />
+      <Expediente datos={datos} traido={traido} />
     </AdminShell>
   );
 }

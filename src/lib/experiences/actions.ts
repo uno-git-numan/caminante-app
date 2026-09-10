@@ -3,10 +3,20 @@
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { alcanceActual, esOperador, alcanzaSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { actividadListaParaPublicar, rutaDelCandado } from "@/lib/operadores/candado-actividad";
 import type { Experience } from "./types";
 
 export type SaveResult =
-  | { ok: true; slug: string; status: Experience["status"] }
+  | {
+      ok: true;
+      slug: string;
+      status: Experience["status"];
+      // Se pidió publicar y el expediente de esa actividad no lo permite: la
+      // experiencia SE GUARDÓ COMPLETA como borrador y aquí va por qué, más a
+      // dónde mandar a quien la escribió. Nunca se pierde trabajo por un
+      // candado.
+      candado?: { mensaje: string; ruta: string; nombre: string | null };
+    }
   // code "slug_exists": el slug ya existe y NO es el que se está editando →
   // guardar lo sobrescribiría. El form pide confirmación y reintenta con
   // allowOverwrite. Cualquier otro fallo va sin code.
@@ -83,12 +93,41 @@ export async function saveExperience(
   // vería en su panel, su funnel saldría con la marca de Caminante y —lo que no
   // tiene arreglo— la 0016 congela el operador AL VENDER, así que cualquier
   // reserva anterior a la asignación queda sin atribuir para siempre.
-  const row: Record<string, unknown> = { slug, status: exp.status, data: { ...exp, slug } };
+  // Quién la opera, resuelto YA (la fila que existe manda; si nace ahora y la
+  // crea un operador, es suya). El candado de actividad lo necesita antes de
+  // decidir el estado, y tomarlo del payload sería regalarle el bypass.
+  const dueño = previa ? dueñoPrevio : esOperador(alcance) ? alcance.operatorId : null;
+  const actividad = (exp.actividad ?? "").trim() || null;
+
+  // ⚠️ EL CANDADO NO TIRA EL TRABAJO. Si se pidió publicar y el expediente de
+  // esa actividad no está aprobado, la experiencia se guarda entera —igual de
+  // completa— pero en borrador, y se devuelve a dónde ir. Rechazar el guardado
+  // castigaría por intentar publicar, que es justo lo que queremos que hagan.
+  let status = exp.status;
+  let candado: { mensaje: string; ruta: string; nombre: string | null } | undefined;
+  if (exp.status === "published") {
+    const veredicto = await actividadListaParaPublicar(dueño, actividad);
+    if (!veredicto.ok) {
+      status = "draft";
+      candado = {
+        mensaje: veredicto.mensaje,
+        ruta: rutaDelCandado(slug, veredicto.actividad),
+        nombre: veredicto.nombre,
+      };
+    }
+  }
+
+  const row: Record<string, unknown> = {
+    slug,
+    status,
+    actividad,
+    data: { ...exp, slug, status, actividad },
+  };
   if (esOperador(alcance) && !previa) row.operator_id = alcance.operatorId;
 
   const { error } = await sb.from("experiences").upsert(row, { onConflict: "slug" });
   if (error) {
     return { ok: false, error: error.message };
   }
-  return { ok: true, slug, status: exp.status };
+  return candado ? { ok: true, slug, status, candado } : { ok: true, slug, status };
 }
