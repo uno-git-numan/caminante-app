@@ -64,6 +64,36 @@ export function leerClausulas(raw: readonly ClausulaGuardada[] | null | undefine
   return out;
 }
 
+/**
+ * El mismo lector, pero CONSERVANDO las cláusulas en blanco. Solo para el
+ * formulario del admin.
+ *
+ * ⚠️ POR QUÉ EXISTE. La lista del formulario se DERIVA de lo guardado, y
+ * `leerClausulas` tira lo que no tiene texto —correcto para el PDF y para el
+ * público, donde una cláusula vacía no dice nada—. Pero eso hacía imposible
+ * agregar una: «+ Agregar cláusula» mete `{texto: ""}`, el lector la tiraba en
+ * el mismo render, y el renglón no aparecía nunca. El botón existía y no hacía
+ * nada, sin error ni pista. Nadie podía escribir un deslinde a mano; las que
+ * hay en producción entraron por la fusión con IA.
+ *
+ * Lo vacío se filtra AL GUARDAR, que es donde toca: mientras se escribe, un
+ * renglón en blanco es un renglón que alguien está por llenar.
+ */
+export function leerClausulasEditables(
+  raw: readonly ClausulaGuardada[] | null | undefined,
+): Clausula[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((c) => {
+    if (typeof c === "string") return [{ texto: c, obligatoria: true, origen: "casa" as const }];
+    if (!c || typeof c !== "object") return [];
+    return [{
+      texto: typeof c.texto === "string" ? c.texto : "",
+      obligatoria: c.obligatoria !== false,
+      origen: ORIGENES.includes(c.origen as OrigenClausula) ? (c.origen as OrigenClausula) : "casa",
+    }];
+  });
+}
+
 /** Solo el texto, en orden — para el PDF y para donde no cabe el matiz. */
 export function textosDeClausulas(raw: readonly ClausulaGuardada[] | null | undefined): string[] {
   return leerClausulas(raw).map((c) => c.texto);

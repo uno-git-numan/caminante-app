@@ -16,7 +16,7 @@ import { emptyExperience, slugify } from "@/lib/experiences/empty";
 import PrellenarIA from "./PrellenarIA";
 import ChecklistComunicacion from "./ChecklistComunicacion";
 import { aplicarPrellenadoV2 } from "@/lib/ai/aplicar-prellenado";
-import { leerClausulas, etiquetaOrigen, type Clausula } from "@/lib/legal/clausulas";
+import { leerClausulas, leerClausulasEditables, etiquetaOrigen, type Clausula } from "@/lib/legal/clausulas";
 import { seccionesVisibles, CASILLAS_DESLINDE } from "@/lib/registration/estructura";
 import type { ContactoDueno } from "@/lib/experiences/empty";
 import type { SlotIA } from "@/lib/ai/prellenar";
@@ -496,7 +496,13 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
   const gallery = exp.gallery ?? [];
   // ⚠️ SIEMPRE por el lector único: lo guardado puede ser cadenas legadas u
   // objetos. Leerlo a mano aquí es como vuelve el bug de las dos formas.
-  const clausulas = leerClausulas(reg.waiverClauses);
+  //
+  // La variante EDITABLE conserva las cláusulas en blanco. `leerClausulas` las
+  // tira —bien para el PDF, fatal para un editor—: «+ Agregar cláusula» metía
+  // `{texto: ""}` y el renglón desaparecía en el mismo render, así que el botón
+  // no hacía nada y nadie podía escribir un deslinde a mano. Lo vacío se filtra
+  // al guardar, no al escribir.
+  const clausulas = leerClausulasEditables(reg.waiverClauses);
   const setClausulas = (v: Clausula[]) => setReg({ waiverClauses: v });
   const cats = fb.sections ?? [];
 
@@ -790,6 +796,10 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
     const nombre = exp.cardTitle?.trim() || heroCompleto;
     const filled: Experience = {
       ...exp, slug, status: st,
+      // Lo vacío se filtra AQUÍ, no mientras se escribe: un renglón en blanco es
+      // uno que alguien está por llenar, pero guardarlo dejaría cláusulas mudas
+      // en el jsonb que ningún lector pinta.
+      registration: { ...reg, waiverClauses: leerClausulas(reg.waiverClauses) },
       // El título del hero también nombra la experiencia (tarjetas, admin, notifs).
       title: heroTitle || exp.title,
       titleAccent: v2.hero.titleAccent || exp.titleAccent,
