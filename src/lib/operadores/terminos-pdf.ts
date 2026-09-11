@@ -92,24 +92,33 @@ class Hoja {
       this.y = A4[1] - MARGEN;
     }
   }
-  /** Parte el texto a mano: pdf-lib no envuelve, y un renglón largo se sale de la hoja. */
-  parrafo(txt: string, o: { size?: number; font?: PDFFont; color?: typeof LAGOON; x?: number; ancho?: number; interlinea?: number } = {}) {
-    const size = o.size ?? 10.5;
-    const font = o.font ?? this.reg;
-    const x = o.x ?? MARGEN;
-    const ancho = o.ancho ?? ANCHO;
-    const alto = o.interlinea ?? size * 1.55;
+  /**
+   * Parte el texto a mano: pdf-lib no envuelve y un renglón largo se sale.
+   *
+   * Separado del dibujo A PROPÓSITO: `aviso` necesita saber cuántos renglones
+   * van a salir ANTES de dibujar su recuadro. Con la altura a ojo, el recuadro
+   * cortaba la última línea por la mitad — y lo hacía justo en el aviso que
+   * dice «esto no es el convenio», que es el que no se puede leer a medias.
+   */
+  private envolver(txt: string, size: number, font: PDFFont, ancho: number): string[] {
+    const lineas: string[] = [];
     let linea = "";
     for (const palabra of txt.split(" ")) {
       const prueba = linea ? `${linea} ${palabra}` : palabra;
       if (font.widthOfTextAtSize(prueba, size) > ancho && linea) {
-        this.espacio(alto);
-        this.pagina.drawText(linea, { x, y: this.y, size, font, color: o.color ?? LAGOON });
-        this.y -= alto;
+        lineas.push(linea);
         linea = palabra;
       } else linea = prueba;
     }
-    if (linea) {
+    if (linea) lineas.push(linea);
+    return lineas;
+  }
+  parrafo(txt: string, o: { size?: number; font?: PDFFont; color?: typeof LAGOON; x?: number; ancho?: number; interlinea?: number } = {}) {
+    const size = o.size ?? 10.5;
+    const font = o.font ?? this.reg;
+    const x = o.x ?? MARGEN;
+    const alto = o.interlinea ?? size * 1.55;
+    for (const linea of this.envolver(txt, size, font, o.ancho ?? ANCHO)) {
       this.espacio(alto);
       this.pagina.drawText(linea, { x, y: this.y, size, font, color: o.color ?? LAGOON });
       this.y -= alto;
@@ -140,16 +149,31 @@ class Hoja {
     this.y -= o.encabezado ? 14 : 17;
   }
   aviso(titulo: string, cuerpo: string) {
-    const alto = 62;
-    this.espacio(alto + 10);
+    const anchoTexto = ANCHO - 28;
+    const lineasT = this.envolver(titulo, 10.5, this.reg, anchoTexto);
+    const lineasC = this.envolver(cuerpo, 9.5, this.reg, anchoTexto);
+    // 14 arriba + 12 abajo de aire. Medido, no a ojo.
+    const alto = 14 + lineasT.length * 16 + lineasC.length * 14.7 + 12;
+    // Si no cabe entero, se va completo a la siguiente hoja: un recuadro partido
+    // entre dos páginas se lee como dos avisos distintos.
+    if (this.y - alto < MARGEN + 24) {
+      this.pagina = this.doc.addPage(A4);
+      this.y = A4[1] - MARGEN;
+    }
     this.pagina.drawRectangle({
-      x: MARGEN, y: this.y - alto + 12, width: ANCHO, height: alto,
+      x: MARGEN, y: this.y - alto, width: ANCHO, height: alto,
       color: CREMA, borderColor: ARENA, borderWidth: 0.8,
     });
-    this.y -= 6;
-    this.parrafo(titulo, { size: 10.5, font: this.neg, x: MARGEN + 14, ancho: ANCHO - 28 });
-    this.parrafo(cuerpo, { size: 9.5, color: OLIVO, x: MARGEN + 14, ancho: ANCHO - 28 });
     this.y -= 14;
+    for (const l of lineasT) {
+      this.pagina.drawText(l, { x: MARGEN + 14, y: this.y, size: 10.5, font: this.reg, color: LAGOON });
+      this.y -= 16;
+    }
+    for (const l of lineasC) {
+      this.pagina.drawText(l, { x: MARGEN + 14, y: this.y, size: 9.5, font: this.reg, color: OLIVO });
+      this.y -= 14.7;
+    }
+    this.y -= 12 + 16;
   }
 }
 
@@ -192,6 +216,51 @@ export async function pdfDeTerminos(d: DatosTerminos): Promise<Uint8Array> {
     "Caminante es una plataforma: publicas tu experiencia, se cobra en línea, se firman los deslindes, " +
       "se lleva la lista de participantes y tienes tu panel. Caminante NO es operador turístico y no presta " +
       "el servicio de viaje: la experiencia —su diseño, su ejecución y su seguridad— es tuya.",
+  );
+
+  // ⚠️ ESTA SECCIÓN VA ANTES DE LOS NÚMEROS, y el orden es la decisión. Quien
+  // lee primero una comisión y después una lista de funciones está comparando un
+  // costo contra nada. Al revés, la comisión aterriza sobre algo que ya entendió.
+  //
+  // ⚠️ TODO LO DE AQUÍ ESTÁ EN PRODUCCIÓN, verificado el 11 de septiembre de
+  // 2026. Lo que está a medias —Connect, facturación con su CSD, dominio
+  // propio— NO se menciona: el guion de la llamada obliga a decirlo en vivo, y
+  // un PDF que promete y una llamada que desmiente es la peor combinación.
+  h.titulo("Lo que la plataforma hace por ti");
+  h.parrafo(
+    "No es una página con un botón de pagar. Es la operación completa de una salida, desde que alguien " +
+      "la ve hasta que regresa y te deja un testimonio.",
+    { color: OLIVO, size: 10 },
+  );
+  h.y -= 6;
+  for (const [titulo, detalle] of [
+    ["Tu experiencia se ve como merece",
+      "Página propia con el diseño de la marca: portada a sangre, itinerario, guías, qué incluye, qué llevar en la mochila, preguntas frecuentes. La armas tú desde un formulario, sin diseñador y sin programador, y puedes pre-llenarla con IA a partir del itinerario que ya tienes en PDF o en Word."],
+    ["Con tu logo y tus colores",
+      "Tus clientes compran en un portal vestido con tu marca, no con la nuestra."],
+    ["Cobras con tarjeta, en línea",
+      "Meses sin intereses según el banco, varios niveles de precio en la misma salida (habitación compartida o individual) y complementos que el cliente marca y se suman al total: el tren, una noche extra, un traslado."],
+    ["Los cupos se cuidan solos",
+      "Cada salida tiene su fecha y su cupo, se cierra sola cuando se llena y también cuando ya pasó. Puedes abrir salidas privadas con liga secreta para un grupo, y recibir solicitudes de fecha de quien quiere ir y no le queda ninguna."],
+    ["El deslinde se firma en línea, y es tuyo",
+      "Se genera con tus cláusulas y el viajero lo firma antes de viajar. Si ya tienes tu propia carta de deslinde, no la reemplazamos: se FUSIONA con la nuestra — donde las dos digan lo mismo se queda la tuya, lo que sólo tengas tú se agrega, y nunca se pierde cobertura."],
+    ["El expediente que necesitas en el cerro",
+      "Cada viajero llena sus datos, su contacto de emergencia y lo médico: alergias, padecimientos, dieta. Llegas a la salida con la lista imprimible y la ficha de cada persona, para poder leerle a un médico lo que declaró."],
+    ["Tu comunicación, armada",
+      "Un kit que toma tus fotos y arma las piezas para redes —post y story— con sus textos, y las publica directo a Instagram desde el panel. Más un flyer en PDF de cada experiencia, vertical y horizontal, y boletín por correo a tu gente."],
+    ["Después del viaje, mides",
+      "Encuesta de satisfacción que sale sola un día después de que termina cada salida, con calificación por partes del viaje y los testimonios que después usas para vender la siguiente."],
+    ["Tu panel, y también en el teléfono",
+      "Qué se vendió, quién va, cuánto entró, qué falta por firmar — por salida y en vivo. Desde la computadora y desde el celular."],
+  ] as [string, string][]) {
+    h.parrafo(titulo, { size: 11 });
+    h.parrafo(detalle, { size: 9.5, color: OLIVO, x: MARGEN + 14, ancho: ANCHO - 14 });
+    h.y -= 3;
+  }
+  h.parrafo(
+    "Todo esto ya está funcionando hoy, no es un plan. Lo que todavía estamos construyendo te lo decimos " +
+      "en la llamada, sin adornos — y ahí es donde queremos tus preguntas.",
+    { size: 9.5, color: OLIVO },
   );
 
   h.titulo("La comisión");
