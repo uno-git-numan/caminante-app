@@ -91,6 +91,7 @@ type App = {
   antiguedad: string | null;
   salidas_ano: string | null;
   personas_salida: string | null;
+  rango_precio: string | null;
   seguro_rc: string | null;
   primeros_auxilios: string | null;
   ratio_guias: string | null;
@@ -106,7 +107,7 @@ async function cargar(id: string, permitidos: string[]): Promise<App | null> {
     .from("operator_applications")
     .select(
       "id, nombre_operadora, responsable, email, status, branding, operator_id, " +
-        "ciudad_estado, tipo_operacion, actividades, antiguedad, salidas_ano, personas_salida, " +
+        "ciudad_estado, tipo_operacion, actividades, antiguedad, salidas_ano, personas_salida, rango_precio, " +
         "seguro_rc, primeros_auxilios, ratio_guias, descripcion, instagram, whatsapp",
     )
     .eq("id", id)
@@ -168,7 +169,13 @@ export async function agendarLlamada(
 
   const aviso = await avisar(
     "invitación",
-    emailInvitacionLlamada(app.email, app.responsable, url, cuando, mensaje, id),
+    emailInvitacionLlamada(app.email, app.responsable, url, cuando, mensaje, id, {
+      responsable: app.responsable,
+      operadora: app.nombre_operadora,
+      llamada: cuando,
+      actividades: app.actividades ?? [],
+      rangoPrecio: app.rango_precio,
+    }),
   );
   if (!aviso) {
     await sb

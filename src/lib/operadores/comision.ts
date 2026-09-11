@@ -242,6 +242,35 @@ export function comisionDeVenta(
 }
 
 /**
+ * LA TABLA DE DOS COLUMNAS — la forma en que el convenio publica las escalas.
+ *
+ * ⚠️ AQUÍ NO SE FUSIONA NADA, y es lo contrario de `tramosPara`. Fusionando, el
+ * último tramo de VENTA (14% de $15,000 en adelante) deja de coincidir con los
+ * dos de PLATAFORMA ($15,000–$40,000 al 9% y de ahí al 8%), y una tabla de dos
+ * columnas armada con esos renglones sale con huecos: «De $15,000 en adelante ·
+ * 14% · —» seguido de «De $15,000 a $40,000 · — · 9%». Se lee como un error de
+ * dedo, que es justo lo que la fusión quería evitar en la página pública, donde
+ * cada escala se pinta sola.
+ *
+ * Que los cortes coincidan renglón a renglón no es casualidad ni suerte: lo
+ * exige el invariante 18. Si algún día dejaran de compartirlos, esta función
+ * mentiría — y el invariante tumba el deploy antes.
+ */
+export function tablaDeComisiones(): { desde: number; hasta: number | null; venta: number; plataforma: number }[] {
+  let piso = 0;
+  return VENTA.map(([tope, tasaVenta], i) => {
+    const fila = {
+      desde: piso,
+      hasta: Number.isFinite(tope) ? tope : null,
+      venta: tasaVenta,
+      plataforma: PLATAFORMA[i][1],
+    };
+    piso = tope;
+    return fila;
+  });
+}
+
+/**
  * Para la página pública: los tramos tal como se comunican.
  *
  * ⚠️ Los tramos con la MISMA tasa se fusionan en un renglón. Las dos escalas

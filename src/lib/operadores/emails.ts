@@ -12,6 +12,7 @@
 
 import { sendViaResend } from "@/lib/email/resend";
 import { CDMX, enPalabras } from "@/lib/fecha/zona";
+import { pdfDeTerminos, type DatosTerminos } from "./terminos-pdf";
 
 const SITE = "https://caminante.numanhub.com";
 const ADMIN_EMAIL = "uno@numanhub.com";
@@ -140,6 +141,8 @@ export async function emailInvitacionLlamada(
   cuando: Date,
   mensaje: string,
   solicitudId: string,
+  /** Para el resumen de términos que viaja adjunto. */
+  terminos: DatosTerminos,
 ): Promise<boolean> {
   const n = firstName(responsable);
   const cuandoTxt = enPalabras(cuando, CDMX);
@@ -151,9 +154,21 @@ export async function emailInvitacionLlamada(
       p(`<b>${esc(cuandoTxt)}</b>, hora del centro de México. Te adjuntamos el evento para que se meta a tu calendario.`) +
       cuerpo +
       boton("Entrar a la llamada", meetUrl) +
+      p("Va adjunto un <b>resumen de términos</b> de dos páginas: la tabla de comisiones con tus propios números, qué te vamos a pedir y cómo se te paga. <b>Léelo antes y anota tus dudas</b> — la llamada rinde mucho más si llegas con las preguntas escritas. No es el convenio: ese es otro documento y se firma después.") +
       p("La liga también vive en tu panel, en «Mi alta»: si borras este correo, la llamada no se pierde. Si esa hora no te queda, respóndenos y la movemos."),
   );
-  const text = `Nos vemos el ${cuandoTxt}, ${n}.\n\n${cuandoTxt}, hora del centro de México.\nSon 30 minutos por video.\n\nLiga: ${meetUrl}\n\nSi esa hora no te queda, responde este correo y la movemos.\n\nCaminante by NUMAN · uno@numanhub.com`;
+  const text = `Nos vemos el ${cuandoTxt}, ${n}.\n\n${cuandoTxt}, hora del centro de México.\nSon 30 minutos por video.\n\nLiga: ${meetUrl}\n\nVa adjunto un resumen de términos de dos páginas. Léelo antes y anota tus dudas. No es el convenio.\n\nSi esa hora no te queda, responde este correo y la movemos.\n\nCaminante by NUMAN · uno@numanhub.com`;
+
+  // ⚠️ SI EL PDF FALLA, EL CORREO SALE IGUAL. La invitación a la llamada es lo
+  // que no puede perderse: alguien está esperando una hora y una liga. Un
+  // adjunto que no se pudo generar es un adjunto que se manda después, no una
+  // invitación que nunca llegó.
+  let resumen: Uint8Array | null = null;
+  try {
+    resumen = await pdfDeTerminos(terminos);
+  } catch (e) {
+    console.error("pdfDeTerminos:", e);
+  }
 
   const cal = ics({
     uid: `alta-${solicitudId}@caminante.numanhub.com`,
@@ -166,11 +181,20 @@ export async function emailInvitacionLlamada(
   return sendViaResend(to, `Tu llamada con Caminante · ${cuandoTxt}`, html, {
     ua: "caminante-operadores/1.0",
     text,
-    attachments: [{
-      filename: "llamada-caminante.ics",
-      content: Buffer.from(cal, "utf8").toString("base64"),
-      contentType: "text/calendar; method=REQUEST; charset=utf-8",
-    }],
+    attachments: [
+      {
+        filename: "llamada-caminante.ics",
+        content: Buffer.from(cal, "utf8").toString("base64"),
+        contentType: "text/calendar; method=REQUEST; charset=utf-8",
+      },
+      ...(resumen
+        ? [{
+            filename: "terminos-caminante.pdf",
+            content: Buffer.from(resumen).toString("base64"),
+            contentType: "application/pdf",
+          }]
+        : []),
+    ],
   });
 }
 
