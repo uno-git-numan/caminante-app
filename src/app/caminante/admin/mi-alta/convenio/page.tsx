@@ -33,7 +33,11 @@ export default async function ConvenioPage() {
   const [versiones, anexos, { data: op }, { data: firmas }] = await Promise.all([
     versionesConvenio(),
     estadoDeAnexos(operatorId),
-    sb.from("operators").select("nombre, razon_social, rfc, commission_pct").eq("id", operatorId).maybeSingle(),
+    // ⚠️ La columna es `name`, no `nombre`. Con el nombre equivocado PostgREST
+    // falla el SELECT ENTERO y devuelve null: la pantalla de firmar decía «tu
+    // operadora / sin capturar» con el RFC y la razón social capturados en la
+    // base. No revienta, miente — y miente en el documento que alguien firma.
+    sb.from("operators").select("name, razon_social, rfc, commission_pct").eq("id", operatorId).maybeSingle(),
     sb
       .from("operator_agreements")
       .select("version, firmado_at, firmante_nombre")
@@ -88,7 +92,7 @@ export default async function ConvenioPage() {
 
   const pct = o.commission_pct;
   const datos: DatosFirma = {
-    operadora: (o.razon_social as string) || (o.nombre as string) || "tu operadora",
+    operadora: (o.razon_social as string) || (o.name as string) || "tu operadora",
     rfc: (o.rfc as string) ?? null,
     // Sin comisión definida no se firma en blanco — `firmarConvenio` lo exige y
     // aquí se dice antes, para no dejarlo descubrirlo hasta el último clic.

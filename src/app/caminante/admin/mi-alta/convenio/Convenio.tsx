@@ -209,7 +209,24 @@ export default function Convenio({ datos }: { datos: DatosFirma }) {
     <>
       <p className="xh4" style={{ marginTop: 0 }}>El convenio</p>
       {datos.convenio ? (
-        <Bloque doc={datos.convenio} datos={datos} esAnexo={false} />
+        <>
+          {/* Sin comisión pactada el servidor se niega a registrar la firma:
+              sería firmar en blanco la cláusula que dice cuánto se cobra. Se
+              dice ARRIBA y no al último clic, porque no lo resuelve quien firma. */}
+          {datos.comision.startsWith("sin definir") ? (
+            <p className="calm">
+              <s>{"//"}</s>
+              <span className="g">
+                <b>Falta acordar tu comisión antes de que puedas firmar</b>
+                <span>
+                  El convenio dice por escrito cuánto retiene la plataforma, y esa cifra todavía no
+                  está pactada. Lo resolvemos nosotros contigo; no es algo que puedas capturar aquí.
+                </span>
+              </span>
+            </p>
+          ) : null}
+          <Bloque doc={datos.convenio} datos={datos} esAnexo={false} />
+        </>
       ) : (
         // Sin versión publicada el pendiente es de la CASA, y se dice así. Un
         // candado que le echa la culpa a quien no puede resolverlo es peor que
