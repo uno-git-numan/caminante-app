@@ -89,19 +89,36 @@ export async function estadoDeAnexos(operatorId: string): Promise<EstadoAnexo[]>
     });
 }
 
-/** ¿Esta actividad tiene su anexo al día? La pregunta que hará el candado. */
-export async function anexoAlDia(operatorId: string, actividad: string): Promise<boolean> {
+/**
+ * ¿Esta actividad tiene su anexo al día? La pregunta que hace el candado.
+ *
+ * ⚠️ `exigible` DISTINGUE «no firmó» DE «todavía no hay dónde firmar». Si la
+ * 0059 no está aplicada, la tabla no existe y la consulta falla: tratar eso como
+ * «no firmó» dejaría a las operadoras sin publicar por un papel que nadie les
+ * puede presentar — el candado inalcanzable que la 0050 vino a arreglar. Ante la
+ * duda, el candado no muerde.
+ */
+export async function anexoAlDia(
+  operatorId: string,
+  actividad: string,
+): Promise<{ firmado: boolean; exigible: boolean }> {
   const version = versionDelAnexo(actividad);
-  if (!version) return false;
+  if (!version) return { firmado: false, exigible: false };
   const sb = createSupabaseAdminClient();
-  const { data } = await sb
+  const { data, error } = await sb
     .from("operator_activity_annexes")
     .select("id")
     .eq("operator_id", operatorId)
     .eq("actividad", actividad)
     .eq("version", version)
     .maybeSingle();
-  return !!data;
+  if (error) {
+    // 42P01 = la tabla no existe. Cualquier otro error también se trata como
+    // «no se puede exigir»: negar el paso por un fallo nuestro es peor.
+    console.error("anexoAlDia:", error);
+    return { firmado: false, exigible: false };
+  }
+  return { firmado: !!data, exigible: true };
 }
 
 export type FirmaAnexo = {

@@ -37,6 +37,7 @@ const EXACTAS = new Set<string>([
   // se cuelgue mañana de `mi-alta/`, sin que nadie vuelva a decidirlo.
   "/caminante/admin/mi-alta",
   "/caminante/admin/mi-alta/expediente",
+  "/caminante/admin/mi-alta/convenio",
 ]);
 
 // FUERA a propósito, y conviene saber por qué:

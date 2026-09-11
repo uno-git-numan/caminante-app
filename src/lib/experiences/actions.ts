@@ -111,7 +111,7 @@ export async function saveExperience(
       status = "draft";
       candado = {
         mensaje: veredicto.mensaje,
-        ruta: rutaDelCandado(slug, veredicto.actividad),
+        ruta: rutaDelCandado(slug, veredicto.actividad, veredicto.motivo),
         nombre: veredicto.nombre,
       };
     }

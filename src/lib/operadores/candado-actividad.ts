@@ -18,9 +18,10 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ACTIVIDADES, nombreDeActividad, requisitosDe } from "./actividades";
+import { anexoAlDia } from "./subconvenio";
 import type { EstadoActividad } from "./expediente";
 
-export type MotivoCandado = "sin_actividad" | "no_declarada" | "no_aprobada";
+export type MotivoCandado = "sin_actividad" | "no_declarada" | "no_aprobada" | "sin_anexo";
 
 export type CandadoActividad =
   | { ok: true }
@@ -95,7 +96,26 @@ export async function actividadListaParaPublicar(
         `ofrecer, pero para publicar esta experiencia hace falta su expediente.`,
     };
   }
-  if (estado === "aprobada") return { ok: true };
+  if (estado === "aprobada") {
+    // El expediente está aprobado; falta el papel. Es la Cláusula Sexta del
+    // convenio dicha en código: «no puede publicar ni vender una experiencia de
+    // una actividad cuyo anexo no haya suscrito».
+    const anexo = await anexoAlDia(operatorId, slug);
+    if (anexo.exigible && !anexo.firmado) {
+      return {
+        ok: false,
+        motivo: "sin_anexo",
+        actividad: slug,
+        nombre,
+        estado,
+        documentos,
+        mensaje:
+          `Tu expediente de ${nombre.toLowerCase()} ya está aprobado. Falta firmar su anexo — ` +
+          `el documento que dice qué se te pide para esta actividad en particular. Son dos minutos.`,
+      };
+    }
+    return { ok: true };
+  }
 
   // `en_revision` no es un rechazo: es «ya lo mandaste, estamos en ello». Se
   // dice distinto porque del otro lado no hay nada que hacer.
@@ -118,7 +138,14 @@ export async function actividadListaParaPublicar(
  * Lleva el borrador consigo para que la pantalla del expediente pueda decir por
  * qué lo trajimos y devolverlo de una sola vez — «volvemos solos a tu borrador».
  */
-export function rutaDelCandado(slug: string, actividad: string | null): string {
+export function rutaDelCandado(
+  slug: string,
+  actividad: string | null,
+  motivo?: MotivoCandado,
+): string {
+  // Si lo único que falta es el papel, mandarlo al expediente sería mandarlo a
+  // una pantalla donde ya está todo en verde y no hay nada que hacer.
+  if (motivo === "sin_anexo") return "/caminante/admin/mi-alta/convenio";
   const q = new URLSearchParams({ borrador: slug });
   if (actividad) q.set("actividad", actividad);
   return `/caminante/admin/mi-alta/expediente?${q.toString()}`;
