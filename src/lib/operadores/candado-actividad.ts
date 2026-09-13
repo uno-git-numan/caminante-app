@@ -11,10 +11,22 @@ import "server-only";
 // senderismo que ya se revisó: lo aprobado sigue vendiendo. Por eso este candado
 // pregunta por UNA actividad y nunca por el expediente completo.
 //
-// ⚠️ LA CASA NO TIENE EXPEDIENTE. Las experiencias propias (`operator_id IS
-// NULL`) no pasan por aquí: no hay a quién pedirle papeles y bloquearlas sería
-// inventar un trámite que no existe. Su candado es otro —deslinde y encuesta,
-// `flujo-venta.ts`— y ese sí las cubre.
+// ⚠️ LA CASA NO TIENE EXPEDIENTE. No hay a quién pedirle papeles y bloquearla
+// sería inventar un trámite que no existe. Su candado es otro —deslinde y
+// encuesta, `flujo-venta.ts`— y ese sí la cubre.
+//
+// ⚠️⚠️ Y LA CASA NO ES `operator_id IS NULL`. Eso dio por hecho esta función al
+// escribirse, y era falso: la casa opera bajo su propia fila de `operators`
+// —«Numan · Caminante», la que lleva `es_la_casa = true`— igual que cualquier
+// otra operadora. Medido el 13 sep 2026: de las diez experiencias de la base,
+// NINGUNA tiene `operator_id` en NULL; siete cuelgan de esa fila. La exención
+// nunca se cumplió una sola vez: era código muerto.
+//
+// Lo que eso provocaba no se veía. Las cinco experiencias publicadas de la casa
+// pasaban el candado con «no_declarada» —la casa no declara actividades— así
+// que al siguiente «Guardar cambios (en vivo)» desde el formulario se
+// degradaban a BORRADOR y se caían del sitio. Con su mensaje, sí, pero nadie
+// espera que guardar un cambio de texto despublique la página.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ACTIVIDADES, nombreDeActividad, requisitosDe } from "./actividades";
@@ -43,6 +55,31 @@ export type CandadoActividad =
 const VALIDAS = new Set(ACTIVIDADES.map((a) => a.slug));
 
 /**
+ * ¿Esta operadora es la casa?
+ *
+ * ⚠️ ANTE LA DUDA, EL CANDADO SÍ MUERDE. Si la consulta falla no sabemos de
+ * quién es la experiencia, y las dos equivocaciones no cuestan lo mismo:
+ * bloquear a la casa por un parpadeo de la base es una molestia con mensaje
+ * claro y el borrador intacto; dejar pasar a una operadora sin expediente
+ * aprobado es que alguien suba a una montaña con quien no lo acreditó. Por eso
+ * este `false` por defecto, y no el «ante la duda no muerde» de `anexoAlDia`:
+ * allá la duda era «todavía no hay dónde firmar», aquí es «no sé quién eres».
+ */
+async function esLaCasa(operatorId: string): Promise<boolean> {
+  const sb = createSupabaseAdminClient();
+  const { data, error } = await sb
+    .from("operators")
+    .select("es_la_casa")
+    .eq("id", operatorId)
+    .maybeSingle();
+  if (error) {
+    console.error("esLaCasa:", error);
+    return false;
+  }
+  return (data as { es_la_casa: boolean | null } | null)?.es_la_casa === true;
+}
+
+/**
  * ¿Puede publicarse esta experiencia?
  *
  * `operatorId` sale de la fila de la experiencia (o de la sesión, si nace
@@ -54,6 +91,7 @@ export async function actividadListaParaPublicar(
   actividad: string | null | undefined,
 ): Promise<CandadoActividad> {
   if (!operatorId) return { ok: true };
+  if (await esLaCasa(operatorId)) return { ok: true };
 
   const slug = (actividad ?? "").trim();
   if (!slug || !VALIDAS.has(slug)) {
