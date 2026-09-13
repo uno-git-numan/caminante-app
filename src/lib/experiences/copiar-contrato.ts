@@ -26,6 +26,7 @@ export const LO_QUE_NO_VIAJA = [
   "la liga de pago de Stripe",
   "los captions del Kit",
   "las fechas escritas a mano",
+  "el PDF del deslinde de la otra experiencia",
 ] as const;
 
 /**
@@ -45,6 +46,13 @@ export const LO_QUE_NO_VIAJA = [
  * - **`kitCaptions`** — están escritos para la otra salida. Heredarlos pondría
  *   un caption sobre hongos en una experiencia de correr, y como el Kit los da
  *   por buenos, nadie los volvería a leer.
+ * - **`registration.waiverDocUrl`** — es el PDF del deslinde de LA OTRA
+ *   experiencia. Ya no se exige (el deslinde se genera solo en
+ *   `/caminante/deslinde/[slug]` a partir de las cláusulas), pero cuando está
+ *   presente MANDA sobre el generado: heredarlo haría que quien reserva la
+ *   experiencia nueva firmara, y descargara, el documento de la vieja. Las
+ *   CLÁUSULAS sí viajan —son del lugar y son justo lo que se quiere reusar—;
+ *   lo que no viaja es el papel ya armado de la otra salida.
  * - **`datesBadge` y el renglón «Fechas» de la portada** — son las fechas
  *   escritas A MANO. Las tarjetas de fechas de la página salen de las salidas
  *   reales (`/api/availability`) y por eso no hay que tocarlas; estas dos no, y
@@ -61,6 +69,10 @@ export function limpiarParaCopia(exp: Experience): Experience {
   copia.stripeLink = null;
   delete copia.kitCaptions;
   delete copia.datesBadge;
+
+  if (copia.registration) {
+    copia.registration = { ...copia.registration, waiverDocUrl: "" };
+  }
 
   if (Array.isArray(copia.heroMeta)) {
     copia.heroMeta = copia.heroMeta.map((m) =>
