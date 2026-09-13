@@ -270,6 +270,18 @@ export type Experience = {
   // nivel. Se muestran en la página; el cobro del nivel elegido se resuelve en el
   // checkout (server-side, por índice — nunca desde el cliente).
   priceTiers?: { label: string; amount: string }[];
+  // CUÁNTAS PERSONAS CABEN — el tope estándar de la experiencia.
+  //
+  // ⚠️ ES EL ÚNICO HOGAR DEL CUPO. Lo lee `availability.ts` para saber cuántos
+  // lugares quedan, y de él DERIVAN los dos lugares donde la página lo anuncia
+  // (tarifa y fechas). Se leía desde hace meses sin estar declarado aquí, así
+  // que el formulario no podía escribirlo: el cupo acabó viviendo como texto
+  // libre en el bloque de tarifa, y en «El fondo de la barranca» los dos textos
+  // ya se contradecían en producción. Ver `lib/experiences/cupo.ts`.
+  //
+  // Cada salida puede llevar el suyo (`slots.capacity_total`); este es el que
+  // rige cuando la salida no lo dice.
+  capacity?: number;
   // Mínimo de personas para que la experiencia salga (informa y valida el form
   // de "Solicitar nueva fecha"; vacío = se puede solicitar desde 1 persona).
   minPeople?: number;

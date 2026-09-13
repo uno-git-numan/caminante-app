@@ -30,6 +30,7 @@ import { ACTIVIDADES } from "@/lib/operadores/actividades";
 import { ESTADOS } from "@/lib/experiences/estados";
 import type { Experience, V2Image } from "@/lib/experiences/types";
 import type { Copiable } from "@/lib/experiences/copiar-contrato";
+import { CUPO_ESCRITO_A_MANO } from "@/lib/experiences/cupo";
 import {
   emptyV2Draft,
   emptyGuide,
@@ -1380,9 +1381,34 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
             </div>
             <div className="row c3">
               <Field label="Moneda / nota"><input type="text" value={v2.tariff.priceCur} placeholder="MXN · todo incluido" onChange={(e) => upd("tariff", { priceCur: e.target.value })} /></Field>
-              <Field label="Dato — etiqueta"><input type="text" value={v2.tariff.availK} placeholder="Cupo" onChange={(e) => upd("tariff", { availK: e.target.value })} /></Field>
-              <Field label="Dato — valor"><input type="text" value={v2.tariff.availV} placeholder="17 personas" onChange={(e) => upd("tariff", { availV: e.target.value })} /></Field>
+              <Field label="Cupo" hint="cuántas personas caben">
+                <input
+                  type="number"
+                  min={1}
+                  value={exp.capacity ?? ""}
+                  placeholder="16"
+                  onChange={(e) => set("capacity", e.target.value.trim() ? Number(e.target.value) : undefined)}
+                />
+              </Field>
+              <div />
             </div>
+            <p className="sd-hint" style={{ marginTop: -6, marginBottom: 12 }}>
+              Este número es el ÚNICO cupo: es el que la página anuncia en Inversión y en Fechas, y el
+              mismo que el sistema usa para saber cuántos lugares quedan. No lo escribas otra vez en
+              ningún texto — <b>si lo escribes en dos lados, tarde o temprano uno se queda viejo</b>.
+              Cada salida puede tener su propio cupo en <b>Salidas</b>; este es el estándar.
+            </p>
+
+            <div className="row c2">
+              <Field label="Otro dato — etiqueta" hint="lo que NO es el cupo"><input type="text" value={v2.tariff.availK} placeholder="Grupo mínimo" onChange={(e) => upd("tariff", { availK: e.target.value })} /></Field>
+              <Field label="Otro dato — valor"><input type="text" value={v2.tariff.availV} placeholder="8 personas" onChange={(e) => upd("tariff", { availV: e.target.value })} /></Field>
+            </div>
+            {CUPO_ESCRITO_A_MANO.test(`${v2.tariff.availK} ${v2.tariff.availV}`) ? (
+              <p className="sd-hint" style={{ marginTop: -6, marginBottom: 12, color: "var(--rust)" }}>
+                Ese par está anunciando un cupo. Quítalo de aquí y ponlo arriba, en <b>Cupo</b>: es el
+                número que además decide cuántos lugares se pueden vender.
+              </p>
+            ) : null}
 
             <AvisoPrecio />
 

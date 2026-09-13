@@ -4,6 +4,7 @@
 // Server component: la interactividad (logo SVG, nav al hacer scroll, drawer)
 // la da el script compartido inyectado al final (template-v2-script.ts).
 // Las fechas se pintan desde `slots` (disponibilidad en vivo), no del contenido.
+import { cupoDe, textoDeCupo, sinCupo } from "@/lib/experiences/cupo";
 import { Fragment } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type {
@@ -397,10 +398,13 @@ function TariffBlock({
   b,
   secnum,
   tiers,
+  cupo,
 }: {
   b: V2Tariff;
   secnum: string;
   tiers?: { label: string; amount: string }[];
+  /** Derivado de `data.capacity` — ver lib/experiences/cupo.ts. */
+  cupo: string | null;
 }) {
   const levels = (tiers ?? []).filter((t) => t.label?.trim() && t.amount?.trim());
   const lowest =
@@ -453,10 +457,22 @@ function TariffBlock({
               {b.price} {b.priceCur ? <span className="cur">{b.priceCur}</span> : null}
             </div>
           )}
+          {/* ⚠️ EL CUPO NO SE ESCRIBE, SE DERIVA. Este par clave/valor sigue
+              sirviendo para lo que NO es cupo («Grupo mínimo · 8 personas»,
+              «IVA incluido»), pero el cupo se pinta aparte y desde
+              `data.capacity`, que es el mismo número que decide qué se puede
+              vender. Tres lugares para el mismo dato ya se contradijeron en
+              producción; ver lib/experiences/cupo.ts. */}
           {b.availK || b.availV ? (
             <div className="avail">
               <span className="k">{b.availK}</span>
               <span className="v">{b.availV}</span>
+            </div>
+          ) : null}
+          {cupo ? (
+            <div className="avail">
+              <span className="k">Cupo</span>
+              <span className="v">{cupo}</span>
             </div>
           ) : null}
         </div>
@@ -584,12 +600,15 @@ function DatesBlock({
   slug,
   slots,
   grupoToken,
+  cupo,
 }: {
   b: V2Dates;
   secnum: string;
   slug: string;
   slots: SlotAvailabilityPublic[];
   grupoToken?: string | null;
+  /** Derivado de `data.capacity` — ver lib/experiences/cupo.ts. */
+  cupo: string | null;
 }) {
   const q = grupoToken ? `?grupo=${grupoToken}` : "";
   return (
@@ -617,7 +636,14 @@ function DatesBlock({
           ))}
         </div>
 
-        {b.priceLine ? <p className="price-line">{priceLineNodes(b.priceLine)}</p> : null}
+        {/* El cupo que alguien haya dejado escrito dentro de esta línea se
+            IGNORA y se vuelve a poner desde `data.capacity`. Aquí vivía la
+            mitad de la contradicción de «El fondo de la barranca». */}
+        {(() => {
+          const limpia = b.priceLine ? sinCupo(b.priceLine) : "";
+          const linea = [limpia, cupo ? `cupo ${cupo}` : ""].filter(Boolean).join(" · ");
+          return linea ? <p className="price-line">{priceLineNodes(linea)}</p> : null;
+        })()}
         {slots.length === 0 ? (
           // Sin fechas abiertas: solicitar una fecha ES el camino principal.
           <>
@@ -781,6 +807,8 @@ export default function ExperienceTemplateV2({
   // bloque de cierre usa lo que trae guardado.
   contactoOperador?: ContactoOperador | null;
 }) {
+  // El cupo, UNA sola vez y derivado: lo enseñan la tarifa y las fechas.
+  const cupoTexto = textoDeCupo(cupoDe(experience));
   const slug = experience.slug;
   // Entrada por rol en el nav de la experiencia (misma lógica que SiteChrome):
   // sin sesión → "Entrar"; caminante → "Mi espacio"; casa y operador → "Panel".
@@ -885,7 +913,7 @@ export default function ExperienceTemplateV2({
             el = <ItineraryBlock b={b} secnum={secnum} />;
             break;
           case "tariff":
-            el = <TariffBlock b={b} secnum={secnum} tiers={experience.priceTiers} />;
+            el = <TariffBlock b={b} secnum={secnum} tiers={experience.priceTiers} cupo={cupoTexto} />;
             break;
           case "checklist":
             el = <ChecklistBlock b={b} secnum={secnum} />;
@@ -897,7 +925,7 @@ export default function ExperienceTemplateV2({
             el = <PackingBlock b={b} secnum={secnum} />;
             break;
           case "dates":
-            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} grupoToken={grupoToken} />;
+            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} grupoToken={grupoToken} cupo={cupoTexto} />;
             break;
           case "closing":
             el = <ClosingBlock b={b} slug={slug} contactoOperador={contactoOperador ?? null} />;

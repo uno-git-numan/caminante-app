@@ -27,6 +27,41 @@ const hay = (rel) => existsSync(join(raiz, rel));
 /** @type {{nombre:string, comprueba:() => string|null}[]} */
 const REGLAS = [
   {
+    nombre: "El cupo no se escribe dos veces",
+    comprueba() {
+      // El cupo vive en `data.capacity` y TODO lo que lo enseña lo deriva
+      // (lib/experiences/cupo.ts). Esta regla vigila que el formulario y la
+      // plantilla no vuelvan a ofrecer escribirlo a mano.
+      //
+      // Nació de esto: el 13 sep 2026, publicada y en producción, «El fondo de
+      // la barranca» anunciaba «11 personas» en la tarifa y «cupo 12 personas»
+      // cuatro secciones más abajo. Ninguna de las dos era la que el sistema
+      // usaba para vender —`data.capacity` estaba VACÍA— así que el sitio
+      // prometía un número que nadie hacía cumplir. No revienta: miente.
+      const lector = "src/lib/experiences/cupo.ts";
+      if (!hay(lector)) {
+        return `Falta ${lector}, que es el lector único del cupo. Sin él cada pantalla vuelve a inventarse el suyo.`;
+      }
+      const plantilla = leer("src/app/caminante/experiencias/[slug]/ExperienceTemplateV2.tsx");
+      if (plantilla && !/cupoDe\(/.test(plantilla)) {
+        return [
+          "La plantilla pública ya no deriva el cupo de `data.capacity`.",
+          "Si el número vuelve a salir de un texto libre, la página puede prometer",
+          "un cupo distinto del que el sistema deja vender — y ya pasó.",
+        ].join("\n    ");
+      }
+      const form = leer("src/app/caminante/admin/experiencias/ExperienceForm.tsx");
+      if (form && !/exp\.capacity/.test(form)) {
+        return [
+          "El formulario dejó de capturar `capacity`.",
+          "Sin ese campo el cupo no tiene dónde vivir y vuelve al texto libre,",
+          "que es exactamente de donde lo sacamos.",
+        ].join("\n    ");
+      }
+      return null;
+    },
+  },
+  {
     nombre: "El middleware vive donde Next lo lee",
     comprueba() {
       const enSrc = hay("src/middleware.ts");
