@@ -968,6 +968,40 @@ export const ADMIN_CSS = `
   .adm .r-dato{font-size:10.5px;margin-bottom:1px;}
   .adm .r-tit{font-size:9px;margin-bottom:3px;}
   .adm .r-v a{text-decoration:none;color:#000;}
+
+  /* ── QUE LA HOJA QUEPA EN LA HOJA ────────────────────────────────────────
+     El roster salía cortado por la derecha: la columna «Deslinde» se perdía
+     a media palabra («Pendient…»), que es justo el dato por el que el guía
+     imprime esto. Tres causas sumadas, y las tres se arreglan aquí:
+
+     1 · «.tbl-wrap» tiene «overflow-x:auto». En pantalla eso da una barra para
+         arrastrar; al imprimir NO hay barra, el sobrante simplemente se RECORTA.
+         Es el mismo desenlace que el «overflow:hidden» de un flyer.
+     2 · «thead th» es «nowrap», así que «Alergias / condiciones / dieta» exige
+         su ancho completo en una línea y empuja la tabla más allá del papel.
+     3 · Sin «table-layout:fixed» el navegador reparte el ancho según el
+         contenido: un correo largo de una sola persona ensancha su columna y
+         se lleva a las demás por delante.
+
+     Y «break-inside:avoid» para que la ficha de alguien no quede partida entre
+     dos páginas: media ficha arriba y el contacto de emergencia en la
+     siguiente es peor que no imprimirla. */
+  @page{margin:12mm 10mm;}
+  .adm .tbl-wrap{overflow:visible !important;}
+  .adm table{table-layout:fixed;width:100%;}
+  .adm thead th{white-space:normal;padding:8px 7px;}
+  .adm tbody td{padding:9px 7px;word-break:break-word;overflow-wrap:anywhere;}
+  /* Nombre · Edad · Emergencia · Alergias · Contrató · Deslinde */
+  .adm #roster thead th:nth-child(1){width:19%;}
+  .adm #roster thead th:nth-child(2){width:7%;}
+  .adm #roster thead th:nth-child(3){width:23%;}
+  .adm #roster thead th:nth-child(4){width:27%;}
+  .adm #roster thead th:nth-child(5){width:11%;}
+  .adm #roster thead th:nth-child(6){width:13%;}
+  .adm tbody tr{break-inside:avoid;}
+  .adm tr.r-det{break-before:avoid;}
+  .adm .r-ficha{gap:6px 14px;}
+  .adm .r-v{word-break:break-word;overflow-wrap:anywhere;}
 }
 
 /* ══════ EL PANEL DE LA PLATAFORMA ══════════════════════════════════════════
