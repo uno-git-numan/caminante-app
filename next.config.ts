@@ -7,6 +7,18 @@ const nextConfig: NextConfig = {
   // la función, así que el archivo se declara aquí para que el trazado lo meta.
   outputFileTracingIncludes: {
     "/caminante": ["./public/landing/index.html"],
+    // Mismo caso, por la misma razón: el resumen de términos que viaja adjunto
+    // a la invitación a la llamada (`lib/operadores/terminos-pdf.ts`) embebe
+    // Geist leyéndola del disco, y `public/` no viaja dentro de la función.
+    //
+    // ⚠️ ESTE FALLO SERÍA MUDO. `emailInvitacionLlamada` atrapa el error del PDF
+    // a propósito —la invitación no puede perderse por un adjunto— así que sin
+    // esta línea el correo saldría igual, sin el resumen, y nadie se enteraría:
+    // en local funciona, porque en local sí está el archivo.
+    "/caminante/admin/**": [
+      "./public/landing/assets/fonts/Geist-VariableFont_wght.ttf",
+      "./public/landing/assets/fonts/GeistMono-VariableFont_wght.ttf",
+    ],
   },
   async rewrites() {
     return {
