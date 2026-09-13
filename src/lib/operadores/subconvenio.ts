@@ -148,6 +148,11 @@ export async function firmarAnexo(f: FirmaAnexo): Promise<{ ok: true } | { ok: f
     return { ok: false, error: "Falta declarar que puedes obligar a la empresa." };
   }
   if (!f.firmanteNombre.trim()) return { ok: false, error: "Falta el nombre de quien firma." };
+  // Mismo candado que en el convenio: sin correo la firma no identifica a nadie,
+  // y esta tabla tampoco se puede corregir. Ver `convenio-actions.ts`.
+  if (!f.firmanteEmail.trim()) {
+    return { ok: false, error: "No pudimos identificar tu sesión. Vuelve a entrar y firma de nuevo." };
+  }
 
   const doc = documentoDelAnexo(f.actividad);
   if (!doc) return { ok: false, error: "Esa actividad no existe." };

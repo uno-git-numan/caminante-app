@@ -34,7 +34,6 @@ export type DatosFirma = {
   operadora: string;
   rfc: string | null;
   comision: string;
-  email: string;
   convenio: DocFirmable | null;
   /** Un anexo por actividad declarada. Vacío = no ha declarado ninguna. */
   anexos: DocFirmable[];
@@ -113,7 +112,6 @@ function Firmar({ doc, datos, esAnexo }: { doc: DocFirmable; datos: DatosFirma; 
       <input type="hidden" name="hash" value={doc.hash} />
       <input type="hidden" name="version" value={doc.version} />
       <input type="hidden" name="actividad" value={esAnexo ? doc.clave : ""} />
-      <input type="hidden" name="email" value={datos.email} />
       <div className="sig" style={{ marginTop: 18 }}>
         <div className="tw">
           <span>Escribe tu nombre completo</span>

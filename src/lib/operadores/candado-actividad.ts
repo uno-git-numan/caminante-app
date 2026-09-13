@@ -150,3 +150,16 @@ export function rutaDelCandado(
   if (actividad) q.set("actividad", actividad);
   return `/caminante/admin/mi-alta/expediente?${q.toString()}`;
 }
+
+/**
+ * Cómo se llama esa liga.
+ *
+ * Vive PEGADA a `rutaDelCandado` a propósito: la etiqueta estaba escrita fija
+ * en el formulario («Ir a mi expediente…») y no miraba el motivo, así que con
+ * `sin_anexo` decía «expediente» y llevaba al convenio. El destino era el
+ * correcto; la promesa, no. Quien decide a dónde va decide cómo se llama.
+ */
+export function etiquetaDelCandado(nombre: string | null, motivo?: MotivoCandado): string {
+  const de = nombre ? ` de ${nombre.toLowerCase()}` : "";
+  return motivo === "sin_anexo" ? `Ir a firmar el anexo${de}` : `Ir a mi expediente${de}`;
+}

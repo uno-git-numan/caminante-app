@@ -128,6 +128,11 @@ export async function firmarConvenio(f: FirmaConvenio): Promise<{ ok: true } | {
     return { ok: false, error: "Falta declarar que puedes obligar a la empresa." };
   }
   if (!f.firmanteNombre.trim()) return { ok: false, error: "Falta el nombre de quien firma." };
+  // Sin correo no hay a quién atribuir la firma, y esta tabla es append-only:
+  // lo que entre mal no se corrige, se queda. Ver `convenio-actions.ts`.
+  if (!f.firmanteEmail.trim()) {
+    return { ok: false, error: "No pudimos identificar tu sesión. Vuelve a entrar y firma de nuevo." };
+  }
 
   const sb = createSupabaseAdminClient();
   const { data: ver } = await sb

@@ -3,7 +3,7 @@
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { alcanceActual, esOperador, alcanzaSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { actividadListaParaPublicar, rutaDelCandado } from "@/lib/operadores/candado-actividad";
+import { actividadListaParaPublicar, rutaDelCandado, etiquetaDelCandado } from "@/lib/operadores/candado-actividad";
 import type { Experience } from "./types";
 
 export type SaveResult =
@@ -15,7 +15,7 @@ export type SaveResult =
       // experiencia SE GUARDÓ COMPLETA como borrador y aquí va por qué, más a
       // dónde mandar a quien la escribió. Nunca se pierde trabajo por un
       // candado.
-      candado?: { mensaje: string; ruta: string; nombre: string | null };
+      candado?: { mensaje: string; ruta: string; nombre: string | null; etiqueta: string };
     }
   // code "slug_exists": el slug ya existe y NO es el que se está editando →
   // guardar lo sobrescribiría. El form pide confirmación y reintenta con
@@ -104,7 +104,7 @@ export async function saveExperience(
   // completa— pero en borrador, y se devuelve a dónde ir. Rechazar el guardado
   // castigaría por intentar publicar, que es justo lo que queremos que hagan.
   let status = exp.status;
-  let candado: { mensaje: string; ruta: string; nombre: string | null } | undefined;
+  let candado: { mensaje: string; ruta: string; nombre: string | null; etiqueta: string } | undefined;
   if (exp.status === "published") {
     const veredicto = await actividadListaParaPublicar(dueño, actividad);
     if (!veredicto.ok) {
@@ -113,6 +113,7 @@ export async function saveExperience(
         mensaje: veredicto.mensaje,
         ruta: rutaDelCandado(slug, veredicto.actividad, veredicto.motivo),
         nombre: veredicto.nombre,
+        etiqueta: etiquetaDelCandado(veredicto.nombre, veredicto.motivo),
       };
     }
   }

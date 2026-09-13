@@ -97,9 +97,6 @@ export default async function ConvenioPage() {
     // Sin comisión definida no se firma en blanco — `firmarConvenio` lo exige y
     // aquí se dice antes, para no dejarlo descubrirlo hasta el último clic.
     comision: pct == null ? "sin definir todavía" : `${pct}% sobre cada venta cobrada`,
-    // El correo de quien firma sale de SU SOLICITUD, no de un campo del
-    // formulario: es el mismo con el que entró al funnel.
-    email: alta.operadora?.solicitud?.email ?? "",
     convenio,
     anexos: docsAnexos,
   };

@@ -14,6 +14,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { operadorDelAlcance } from "@/lib/admin/queries";
+import { correoEnSesion } from "@/lib/auth/authorization";
 import { firmarConvenio } from "./convenio";
 import { firmarAnexo } from "./subconvenio";
 
@@ -31,10 +32,25 @@ async function rastro(): Promise<{ ip: string | null; userAgent: string | null }
   };
 }
 
-function leerFirmante(fd: FormData) {
+/**
+ * ⚠️ EL CORREO SALE DE LA SESIÓN, NO DEL FORMULARIO — misma razón que el
+ * `operatorId`, y por el mismo camino.
+ *
+ * Venía de un `<input type="hidden">` que la pantalla llenaba con el correo de
+ * la SOLICITUD del funnel. Kéntro nunca pasó por el funnel (se dio de alta a
+ * mano), así que el campo salía VACÍO y la firma se guardaba con
+ * `firmante_email: ''`: un rastro legal, append-only y por tanto imposible de
+ * corregir, sin nadie a quien atribuirlo. Medido en producción el 13 sep 2026.
+ *
+ * Y aunque estuviera lleno, un campo oculto lo pone el cliente: firmarías con
+ * el correo que quisieras. El de la sesión ya lo validó `getUser()` y es, además,
+ * el de la persona que de verdad está firmando — no el de quien llenó un
+ * formulario meses antes.
+ */
+async function leerFirmante(fd: FormData) {
   return {
     firmanteNombre: String(fd.get("nombre") ?? "").trim(),
-    firmanteEmail: String(fd.get("email") ?? "").trim(),
+    firmanteEmail: (await correoEnSesion()) ?? "",
     firmantePuesto: String(fd.get("puesto") ?? "").trim() || null,
     // Las dos casillas nacen sin marcar y el botón es aparte: nada se acepta
     // por omisión. Aquí sólo se leen; quien las exige es el servidor.
@@ -51,7 +67,7 @@ export async function firmarConvenioAction(fd: FormData): Promise<ResFirma> {
     operadorId: operatorId,
     version: String(fd.get("version") ?? ""),
     hashMostrado: String(fd.get("hash") ?? ""),
-    ...leerFirmante(fd),
+    ...(await leerFirmante(fd)),
     ...(await rastro()),
   });
   if (r.ok) revalidatePath(RUTA);
@@ -66,7 +82,7 @@ export async function firmarAnexoAction(fd: FormData): Promise<ResFirma> {
     operadorId: operatorId,
     actividad: String(fd.get("actividad") ?? ""),
     hashMostrado: String(fd.get("hash") ?? ""),
-    ...leerFirmante(fd),
+    ...(await leerFirmante(fd)),
     ...(await rastro()),
   });
   if (r.ok) {

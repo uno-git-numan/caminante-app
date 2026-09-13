@@ -459,7 +459,7 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
   const [statusOk, setStatusOk] = useState(false);
   // Se pidió publicar y el expediente de la actividad no dejó. La experiencia
   // SÍ se guardó (completa, en borrador); esto es el porqué y el a dónde.
-  const [candado, setCandado] = useState<{ mensaje: string; ruta: string; nombre: string | null } | null>(null);
+  const [candado, setCandado] = useState<{ mensaje: string; ruta: string; nombre: string | null; etiqueta: string } | null>(null);
   const [autoSlug, setAutoSlug] = useState(!initial);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
   // Guarda anti-sobrescritura: cuando el slug ya existe, guardamos aquí la
@@ -1780,9 +1780,12 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
       <div className="actionbar"><div className="inner">
         <span className={`status${statusOk ? " ok" : ""}`}>
           {status}
-          {/* El candado no se queda en un regaño: lleva al expediente de ESA
-              actividad, con el borrador a cuestas para poder volver solo. */}
-          {candado ? <> · <a href={candado.ruta} style={{ textDecoration: "underline" }}>Ir a mi expediente{candado.nombre ? ` de ${candado.nombre.toLowerCase()}` : ""}</a></> : null}
+          {/* El candado no se queda en un regaño: lleva a donde se resuelve —el
+              expediente de ESA actividad con el borrador a cuestas, o el convenio
+              si lo único que falta es firmar el anexo. La etiqueta la decide
+              `etiquetaDelCandado`, junto a la ruta: escrita aquí a mano decía
+              «expediente» y llevaba al convenio. */}
+          {candado ? <> · <a href={candado.ruta} style={{ textDecoration: "underline" }}>{candado.etiqueta}</a></> : null}
           {savedSlug ? <> · <a href={`/caminante/admin/preview/${savedSlug}`} target="_blank" rel="noopener" style={{ textDecoration: "underline" }}>vista previa</a></> : null}
         </span>
         <div className="grp">
