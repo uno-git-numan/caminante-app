@@ -5,6 +5,7 @@ import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { operadorDelAlcance } from "@/lib/admin/queries";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { ContactoDueno } from "@/lib/experiences/empty";
+import { experienciasCopiables } from "@/lib/experiences/copiar";
 import ExperienceForm from "../ExperienceForm";
 
 export const metadata = { title: "Crear experiencia · Admin" };
@@ -53,5 +54,9 @@ export default async function NuevaExperienciaPage() {
   const alc = await alcanceActual();
   const reglaComision = await reglaComisionDeOperador(esOperador(alc) ? alc.operatorId : null);
 
-  return <ExperienceForm dueno={dueno} reglaComision={reglaComision} />;
+  // De cuáles se puede partir. Se resuelve AQUÍ, en el servidor y con el
+  // alcance de quien mira: la casa ve todas, la operadora sólo las suyas.
+  const copiables = await experienciasCopiables();
+
+  return <ExperienceForm dueno={dueno} reglaComision={reglaComision} copiables={copiables} />;
 }

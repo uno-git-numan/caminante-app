@@ -14,6 +14,7 @@
 import { useMemo, useRef, useState } from "react";
 import { emptyExperience, slugify } from "@/lib/experiences/empty";
 import PrellenarIA from "./PrellenarIA";
+import PartirDeOtra from "./PartirDeOtra";
 import ChecklistComunicacion from "./ChecklistComunicacion";
 import { aplicarPrellenadoV2 } from "@/lib/ai/aplicar-prellenado";
 import { leerClausulas, leerClausulasEditables, etiquetaOrigen, type Clausula } from "@/lib/legal/clausulas";
@@ -28,6 +29,7 @@ import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
 import { ACTIVIDADES } from "@/lib/operadores/actividades";
 import { ESTADOS } from "@/lib/experiences/estados";
 import type { Experience, V2Image } from "@/lib/experiences/types";
+import type { Copiable } from "@/lib/experiences/copiar-contrato";
 import {
   emptyV2Draft,
   emptyGuide,
@@ -441,7 +443,7 @@ function SecToggle({ checked, onChange }: { checked: boolean; onChange: (v: bool
 }
 
 /* ---------- main ---------- */
-export default function ExperienceForm({ initial, initialSlots, initialComplementos, reglaComision, dueno }: { initial?: Experience; initialSlots?: InitialSlot[]; initialComplementos?: ComplementoEdit[]; reglaComision?: ReglaResuelta; dueno?: ContactoDueno }) {
+export default function ExperienceForm({ initial, initialSlots, initialComplementos, reglaComision, dueno, copiables }: { initial?: Experience; initialSlots?: InitialSlot[]; initialComplementos?: ComplementoEdit[]; reglaComision?: ReglaResuelta; dueno?: ContactoDueno; copiables?: Copiable[] }) {
   // Sin regla resuelta por el servidor, la escala de venta: es la más cara, y
   // sugerir con la barata prometería un neto que a veces no llegaría.
   const regla: ReglaResuelta = reglaComision ?? { regla: { tipo: "escala", escala: "venta" }, origen: "escala" };
@@ -570,6 +572,30 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
     setFechasIA(slotsIA.map((s) => s.label || s.startDate).filter(Boolean));
     setStatusOk(false);
     setStatus("Pre-llenado con IA — revisa antes de guardar");
+  }
+
+  // Partir de otra experiencia: se siembra TODO el formulario con la copia ya
+  // limpia que devolvió el servidor (ver `lib/experiences/copiar.ts`).
+  //
+  // ⚠️ `autoSlug` se vuelve a prender. La copia llega sin dirección y el título
+  // todavía es el de la original: con el slug libre, en cuanto se cambie el
+  // título la dirección lo sigue sola. Si nadie cambia el título, el slug acaba
+  // siendo el de la original y la guarda anti-sobrescritura para el guardado y
+  // pregunta — que es exactamente lo que debe pasar.
+  //
+  // Los complementos NO se copian: viven en su propia tabla, colgados del id de
+  // la experiencia, y esta todavía no existe.
+  function onCopiado(copia: Experience, origen: string) {
+    setExp(copia);
+    setV2(draftFromBlocks(copia.page, copia));
+    setComps([]);
+    setAutoSlug(true);
+    setSavedSlug(null);
+    setFechasIA([]);
+    setStatusOk(false);
+    setStatus(
+      `Partiste de «${origen}». Cambia el título y revisa el itinerario, el precio y las fotos antes de guardar — las fechas se dan de alta en Salidas.`,
+    );
   }
 
   // «Extraer con IA de mis PDFs» (ficha científica): manda los docs a
@@ -943,6 +969,9 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
         </nav>
 
         <div className="main">
+          {/* Las dos maneras de no empezar en blanco, juntas y sólo al crear:
+              de un PDF que mandó el operador, o de una salida que ya hicimos. */}
+          {!initial ? <PartirDeOtra opciones={copiables ?? []} onCopia={onCopiado} /> : null}
           {!initial ? <PrellenarIA onResult={onPrellenado} /> : null}
 
           {/* Las fechas ya no se capturan en este formulario, pero la IA sí las

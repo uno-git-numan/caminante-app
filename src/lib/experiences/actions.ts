@@ -1,9 +1,10 @@
 "use server";
 
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { alcanceActual, esOperador, alcanzaSlug } from "@/lib/auth/alcance";
+import { alcanceActual, esOperador, alcanzaSlug, puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { actividadListaParaPublicar, rutaDelCandado, etiquetaDelCandado } from "@/lib/operadores/candado-actividad";
+import { limpiarParaCopia } from "./copiar-contrato";
 import type { Experience } from "./types";
 
 export type SaveResult =
@@ -131,4 +132,33 @@ export async function saveExperience(
     return { ok: false, error: error.message };
   }
   return candado ? { ok: true, slug, status, candado } : { ok: true, slug, status };
+}
+
+/**
+ * Trae una experiencia existente para usarla de punto de partida.
+ *
+ * ⚠️ EL PERMISO SE CHECA AQUÍ, no en la pantalla que arma el selector. Una
+ * action es una URL: quien sepa el slug podría pedirla directo. `puedeEditarSlug`
+ * es el mismo gate que usa editar, y dice que sí a la casa siempre y a la
+ * operadora sólo sobre lo suyo.
+ */
+export async function copiarExperiencia(
+  slug: string,
+): Promise<{ ok: true; exp: Experience; origen: string } | { ok: false; error: string }> {
+  const limpio = (slug ?? "").trim();
+  if (!limpio) return { ok: false, error: "Falta decir de cuál partir." };
+  if (!(await puedeEditarSlug(limpio))) {
+    return { ok: false, error: "Esa experiencia no es tuya." };
+  }
+
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb
+    .from("experiences")
+    .select("data")
+    .eq("slug", limpio)
+    .maybeSingle();
+  const original = (data as { data: Experience | null } | null)?.data;
+  if (!original) return { ok: false, error: "No encontramos esa experiencia." };
+
+  return { ok: true, exp: limpiarParaCopia(original), origen: limpio };
 }
