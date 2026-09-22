@@ -8,8 +8,7 @@
 // cliente, como el resto del panel (ConvenioForm, OperadorForm).
 
 import { revalidatePath } from "next/cache";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { operadorDelAlcance } from "@/lib/admin/queries";
+import { operadoraObjetivo } from "@/lib/auth/alcance";
 
 /**
  * ¿Puede tocar el expediente de ESTA operadora?
@@ -19,14 +18,13 @@ import { operadorDelAlcance } from "@/lib/admin/queries";
  * en realidad ninguno de los dos lo podía hacer él. Un candado con dueño pero
  * sin puerta es peor que no tener candado.
  *
- * Ahora entra la casa —que opera para cualquiera— o la operadora SOBRE SÍ MISMA.
- * El `operadorId` viaja en un input oculto, así que compararlo contra el alcance
- * de la sesión es lo único que impide que uno abra el expediente de otro.
+ * La regla —la casa sobre cualquiera, la operadora sólo sobre sí misma— vive en
+ * `operadoraObjetivo` (alcance.ts), que es la MISMA que usa el expediente. Aquí
+ * estaba escrita aparte, y el expediente tenía otra: por eso la casa podía
+ * conectarle Stripe a una operadora pero no subirle un papel.
  */
 async function puedeTocarOperador(operadorId: string): Promise<boolean> {
-  if (!operadorId) return false;
-  if (await isCurrentUserAdmin()) return true;
-  return (await operadorDelAlcance()) === operadorId;
+  return !!operadorId && (await operadoraObjetivo(operadorId)) === operadorId;
 }
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { crearLinkOnboarding, refrescarEstado } from "@/lib/payments/connect";

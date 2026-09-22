@@ -6,15 +6,22 @@
 // y separarlas invita a que una cambie sin la otra. Lo que NO se comparte es la
 // autorización: cada función dice a quién deja pasar, en su primera línea.
 //
-// ⚠️ EL OPERADOR SALE DE LA SESIÓN, NUNCA DEL FORMULARIO. Si el `operatorId`
-// viniera del cliente, cualquiera podría subir un papel al expediente de otra
-// operadora —o peor, aprobarse el suyo—. `operadorDelAlcance()` lo resuelve del
-// lado del servidor y es la única fuente.
+// ⚠️ SOBRE QUÉ OPERADORA SE ACTÚA LO DECIDE LA SESIÓN, NO EL FORMULARIO.
+// El formulario puede DECIR una (`operadora`, un input oculto), pero quien
+// decide si esa petición vale es `operadoraObjetivo` (alcance.ts): la casa actúa
+// sobre la que diga, una operadora sólo sobre sí misma, y si los dos no
+// coinciden no se actúa sobre ninguna. Es la misma regla que ya usaba Connect.
+//
+// Hasta el 22 sep 2026 aquí sólo entraba la operadora sobre sí misma. Sonaba
+// seguro y dejó a Nomádika atorada sin que la casa pudiera subir un papel por
+// ella (design/mvp/MVP.md §1). Que la casa suba POR una operadora no es un
+// atajo: es onboarding, y queda registrado en `subido_por`.
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { operadorDelAlcance } from "@/lib/admin/queries";
+import { operadoraObjetivo } from "@/lib/auth/alcance";
+import { correoEnSesion } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ACTIVIDADES, GENERALES, requisitosDe } from "./actividades";
 
@@ -45,8 +52,8 @@ function pertenece(actividad: string | null, documento: string): boolean {
 // ── Lado de la operadora ─────────────────────────────────────────────────────
 
 export async function subirDocumento(formData: FormData): Promise<Res> {
-  const operatorId = await operadorDelAlcance();
-  if (!operatorId) return { ok: false, error: "Solo una operadora sube su expediente." };
+  const operatorId = await operadoraObjetivo(String(formData.get("operadora") ?? ""));
+  if (!operatorId) return { ok: false, error: "No hay una operadora sobre la que subir esto." };
 
   const cruda = String(formData.get("actividad") ?? "").trim();
   const actividad = cruda === "" ? null : cruda;
@@ -116,6 +123,10 @@ export async function subirDocumento(formData: FormData): Promise<Res> {
     motivo: null,
     vence_at: venceAt,
     subido_at: new Date().toISOString(),
+    // Quién lo subió, no de quién es. Cuando lo sube la casa por la operadora,
+    // el revisor tiene que poder verlo: un papel que subió Luis no lo revisó
+    // ella, y la conversación de «¿de dónde salió esto?» es distinta.
+    subido_por: (await correoEnSesion()) ?? null,
     revisado_at: null,
     revisado_por: null,
   };
@@ -159,9 +170,9 @@ export async function subirDocumento(formData: FormData): Promise<Res> {
  * ⚠️ `ignoreDuplicates` porque volver a declarar algo que ya está en revisión
  * —o aprobado— no puede tirarle el avance a `incompleta`.
  */
-export async function declararActividad(actividad: string): Promise<Res> {
-  const operatorId = await operadorDelAlcance();
-  if (!operatorId) return { ok: false, error: "Solo una operadora declara sus actividades." };
+export async function declararActividad(actividad: string, operadora?: string | null): Promise<Res> {
+  const operatorId = await operadoraObjetivo(operadora);
+  if (!operatorId) return { ok: false, error: "No hay una operadora sobre la que declarar esto." };
   if (!VALIDAS.has(actividad)) return { ok: false, error: "Esa actividad no existe." };
 
   const sb = createSupabaseAdminClient();
@@ -176,9 +187,9 @@ export async function declararActividad(actividad: string): Promise<Res> {
   return { ok: true };
 }
 
-export async function mandarARevision(actividad: string): Promise<Res> {
-  const operatorId = await operadorDelAlcance();
-  if (!operatorId) return { ok: false, error: "Solo una operadora manda su expediente." };
+export async function mandarARevision(actividad: string, operadora?: string | null): Promise<Res> {
+  const operatorId = await operadoraObjetivo(operadora);
+  if (!operatorId) return { ok: false, error: "No hay una operadora cuyo expediente mandar." };
   if (!VALIDAS.has(actividad)) return { ok: false, error: "Esa actividad no existe." };
 
   const sb = createSupabaseAdminClient();
@@ -291,6 +302,77 @@ export async function resolverActividad(
     return { ok: false, error: "No se pudo guardar la decisión." };
   }
   revalidatePath(RUTA);
+  revalidatePath("/caminante/admin/plataforma/comunidad");
+  return { ok: true };
+}
+
+// ── La dispensa: el brinco del candado, como objeto ──────────────────────────
+//
+// Hasta hoy, cuando Luis decía «publícala aunque falte el certificado, ya lo
+// estoy tramitando», el sistema lo dejaba pasar porque NO SE DABA CUENTA: el
+// candado sólo pregunta al guardar. La experiencia quedaba publicada por
+// accidente y se despublicaba sola al siguiente guardado. Una dispensa es esa
+// misma decisión pero escrita: quién, por qué, hasta cuándo — y vence sola.
+
+const DIAS_MAX_DISPENSA = 90;
+
+export async function otorgarDispensa(input: {
+  operadorId: string;
+  actividad: string;
+  motivo: string;
+  /** AAAA-MM-DD. Obligatoria: una dispensa sin fecha es un agujero con nombre. */
+  venceEl: string;
+}): Promise<Res> {
+  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo la casa dispensa." };
+  const quien = await correoEnSesion();
+  if (!quien) return { ok: false, error: "Sin sesión." };
+
+  const operadorId = input.operadorId.trim();
+  const actividad = input.actividad.trim();
+  const motivo = input.motivo.replace(/\s+/g, " ").trim();
+  if (!operadorId) return { ok: false, error: "Falta la operadora." };
+  if (!VALIDAS.has(actividad)) return { ok: false, error: "Esa actividad no existe." };
+  if (motivo.length < 10) return { ok: false, error: "Di por qué se dispensa, con al menos una frase." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.venceEl)) return { ok: false, error: "Falta hasta cuándo (una fecha)." };
+
+  // Vence al final de ese día en CDMX (UTC-6 todo el año).
+  const vence = new Date(`${input.venceEl}T23:59:59-06:00`);
+  const dias = (vence.getTime() - Date.now()) / 86_400_000;
+  if (!(dias > 0)) return { ok: false, error: "La fecha ya pasó: una dispensa nace vigente o no nace." };
+  if (dias > DIAS_MAX_DISPENSA) {
+    return { ok: false, error: `Máximo ${DIAS_MAX_DISPENSA} días. Si hace falta más, se renueva a conciencia.` };
+  }
+
+  const sb = createSupabaseAdminClient();
+  const { error } = await sb.from("operator_activity_dispensas").insert({
+    operator_id: operadorId,
+    actividad,
+    motivo,
+    autorizada_por: quien,
+    vence_at: vence.toISOString(),
+  });
+  if (error) {
+    console.error("otorgarDispensa:", error);
+    return { ok: false, error: "No se pudo registrar la dispensa." };
+  }
+  revalidatePath("/caminante/admin/plataforma/comunidad");
+  return { ok: true };
+}
+
+export async function revocarDispensa(id: string): Promise<Res> {
+  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo la casa revoca." };
+  const quien = await correoEnSesion();
+  if (!quien) return { ok: false, error: "Sin sesión." };
+  const sb = createSupabaseAdminClient();
+  const { error } = await sb
+    .from("operator_activity_dispensas")
+    .update({ revocada_at: new Date().toISOString(), revocada_por: quien })
+    .eq("id", id)
+    .is("revocada_at", null);
+  if (error) {
+    console.error("revocarDispensa:", error);
+    return { ok: false, error: "No se pudo revocar." };
+  }
   revalidatePath("/caminante/admin/plataforma/comunidad");
   return { ok: true };
 }

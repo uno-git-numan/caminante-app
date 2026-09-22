@@ -2,7 +2,8 @@ import { formatMXN } from "@/lib/admin/formato";
 import type { OperadoraPlataforma } from "@/lib/plataforma/operadoras";
 import Candados from "./Candados";
 import RevisarExpediente from "./RevisarExpediente";
-import type { PorRevisar } from "@/lib/operadores/expediente";
+import Dispensas from "./Dispensas";
+import type { DispensaEnPantalla, PorRevisar } from "@/lib/operadores/expediente";
 
 // LA BIBLIOTECA DE OPERADORAS — una sola pregunta por renglón: ¿puede vender hoy?
 //
@@ -12,7 +13,15 @@ import type { PorRevisar } from "@/lib/operadores/expediente";
 // Lo que sí se distingue es DE QUIÉN es cada uno — así la ficha deja de ser un
 // diagnóstico y se vuelve una lista de pendientes con dueño.
 
-export default function Operadoras({ ops, porRevisar }: { ops: OperadoraPlataforma[]; porRevisar: Map<string, PorRevisar> }) {
+export default function Operadoras({
+  ops,
+  porRevisar,
+  dispensas,
+}: {
+  ops: OperadoraPlataforma[];
+  porRevisar: Map<string, PorRevisar>;
+  dispensas: Map<string, DispensaEnPantalla[]>;
+}) {
   const externas = ops.filter((o) => !o.esLaCasa);
   const casa = ops.filter((o) => o.esLaCasa);
 
@@ -136,6 +145,18 @@ export default function Operadoras({ ops, porRevisar }: { ops: OperadoraPlatafor
                               </div>
                               <Candados o={o} />
                               <RevisarExpediente cola={porRevisar.get(o.id)} />
+                              {/* La casa sube POR ella. Es la puerta que faltaba
+                                  cuando una operadora se atora: el expediente
+                                  admite `?operadora=` sólo para la casa. */}
+                              <p className="arr">
+                                <s>Expediente</s>
+                                <span>
+                                  <a href={`/caminante/admin/mi-alta/expediente?operadora=${o.id}`}>
+                                    Abrir su expediente y subir por ella
+                                  </a>
+                                </span>
+                              </p>
+                              <Dispensas operadorId={o.id} lista={dispensas.get(o.id) ?? []} />
                               <p className="arr">
                                 <s>Arranque de comisión</s>
                                 {o.comisionDesde ? (

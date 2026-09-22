@@ -16,8 +16,11 @@
 // sección de la pantalla.
 //
 // La subida va por `subirDocumento`, un server action con FormData: el archivo
-// no pasa por el cliente más que para elegirlo, y el `operator_id` NUNCA viaja
-// en el formulario — se resuelve de la sesión del lado del servidor.
+// no pasa por el cliente más que para elegirlo. El `operator_id` sí puede viajar
+// (`operadora`, un input oculto) pero NO decide nada: `operadoraObjetivo` lo
+// compara contra la sesión del lado del servidor — la casa actúa sobre quien
+// diga, la operadora sólo sobre sí misma. Aquí `operadora` es null cuando la
+// operadora edita lo suyo y el id de ella cuando la casa sube POR ella.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -50,7 +53,7 @@ function Marca({ estado }: { estado: DocEnPantalla["estado"] }) {
   );
 }
 
-function Fila({ d, actividad }: { d: DocEnPantalla; actividad: string | null }) {
+function Fila({ d, actividad, operadora }: { d: DocEnPantalla; actividad: string | null; operadora: string | null }) {
   const clase =
     d.estado === "rechazado" ? " rech" : d.estado === "falta" || d.estado === "en_revision" ? " pend" : "";
   const dias = d.diasParaVencer;
@@ -89,7 +92,7 @@ function Fila({ d, actividad }: { d: DocEnPantalla; actividad: string | null }) 
           // Se muestra, no se re-pide: vive en Lo general y ahí se reemplaza.
           <span className="mut">Ya está en Lo general</span>
         ) : (
-          <SubirDoc actividad={actividad} doc={d} />
+          <SubirDoc operadora={operadora} actividad={actividad} doc={d} />
         )}
       </span>
     </div>
@@ -104,7 +107,7 @@ function Fila({ d, actividad }: { d: DocEnPantalla; actividad: string | null }) 
  * forma indirecta —el servidor lo exige de todos modos— y se pide la fecha
  * siempre que el documento tenga una o pueda tenerla, para no adivinar.
  */
-function SubirDoc({ actividad, doc }: { actividad: string | null; doc: DocEnPantalla }) {
+function SubirDoc({ actividad, doc, operadora }: { actividad: string | null; doc: DocEnPantalla; operadora: string | null }) {
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (
@@ -113,6 +116,7 @@ function SubirDoc({ actividad, doc }: { actividad: string | null; doc: DocEnPant
         arranca(async () => {
           fd.set("actividad", actividad ?? "");
           fd.set("documento", doc.slug);
+          fd.set("operadora", operadora ?? "");
           const r = await subirDocumento(fd);
           setError(r.ok ? null : r.error);
         })
@@ -130,7 +134,7 @@ function SubirDoc({ actividad, doc }: { actividad: string | null; doc: DocEnPant
   );
 }
 
-function Carpeta({ a }: { a: ActividadEnPantalla }) {
+function Carpeta({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
   const [abierta, setAbierta] = useState(a.estado !== "aprobada");
   const clase = a.estado === "aprobada" ? " aprob" : " inc";
   const total = a.propios.length;
@@ -167,24 +171,24 @@ function Carpeta({ a }: { a: ActividadEnPantalla }) {
       </button>
       <div className="ab">
         <div className="docs">
-          {a.propios.map((d) => <Fila key={d.slug} d={d} actividad={a.slug} />)}
+          {a.propios.map((d) => <Fila operadora={operadora} key={d.slug} d={d} actividad={a.slug} />)}
         </div>
         {a.generales.length ? (
           <>
             <p className="xh4">Lo que ya cubriste en Lo general</p>
             <div className="docs">
-              {a.generales.map((d) => <Fila key={d.slug} d={d} actividad={a.slug} />)}
+              {a.generales.map((d) => <Fila operadora={operadora} key={d.slug} d={d} actividad={a.slug} />)}
             </div>
           </>
         ) : null}
-        {a.estado === "incompleta" ? <Mandar a={a} /> : null}
+        {a.estado === "incompleta" ? <Mandar operadora={operadora} a={a} /> : null}
       </div>
     </div>
   );
 }
 
 /** «Ya está, revísenlo». Solo aparece mientras la actividad está incompleta. */
-function Mandar({ a }: { a: ActividadEnPantalla }) {
+function Mandar({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (
@@ -194,7 +198,7 @@ function Mandar({ a }: { a: ActividadEnPantalla }) {
         disabled={pendiente || a.faltan > 0}
         onClick={() =>
           arranca(async () => {
-            const r = await mandarARevision(a.slug);
+            const r = await mandarARevision(a.slug, operadora);
             setError(r.ok ? null : r.error);
           })
         }
@@ -214,7 +218,7 @@ function Mandar({ a }: { a: ActividadEnPantalla }) {
  * donde se ofrece —el mosaico de abajo y la lámina de llegada—, así que es un
  * solo componente: dos copias se habrían separado.
  */
-function Declarar({ slug, texto, clase }: { slug: string; texto: string; clase: string }) {
+function Declarar({ slug, texto, clase, operadora }: { slug: string; texto: string; clase: string; operadora: string | null }) {
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (
@@ -224,7 +228,7 @@ function Declarar({ slug, texto, clase }: { slug: string; texto: string; clase: 
         disabled={pendiente}
         onClick={() =>
           arranca(async () => {
-            const r = await declararActividad(slug);
+            const r = await declararActividad(slug, operadora);
             setError(r.ok ? null : r.error);
           })
         }
@@ -237,7 +241,7 @@ function Declarar({ slug, texto, clase }: { slug: string; texto: string; clase: 
 }
 
 /** Un mosaico del catálogo, en su estado «todavía no la declaras». */
-function Mosaico({ slug, nombre, documentos }: { slug: string; nombre: string; documentos: number }) {
+function Mosaico({ slug, nombre, documentos, operadora }: { slug: string; nombre: string; documentos: number; operadora: string | null }) {
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (
@@ -246,7 +250,7 @@ function Mosaico({ slug, nombre, documentos }: { slug: string; nombre: string; d
       disabled={pendiente}
       onClick={() =>
         arranca(async () => {
-          const r = await declararActividad(slug);
+          const r = await declararActividad(slug, operadora);
           setError(r.ok ? null : r.error);
         })
       }
@@ -273,7 +277,7 @@ function Mosaico({ slug, nombre, documentos }: { slug: string; nombre: string; d
  * declararla. Si ya está declarada, su carpeta ya está más abajo con su estado
  * real: repetirla aquí sería una segunda verdad que se despega de la primera.
  */
-function Traido({ t, generales }: { t: BorradorDelCandado; generales: DocEnPantalla[] }) {
+function Traido({ t, generales, operadora }: { t: BorradorDelCandado; generales: DocEnPantalla[]; operadora: string | null }) {
   const router = useRouter();
   const [abierta, setAbierta] = useState(true);
   const req = requisitosDe(t.actividad);
@@ -387,7 +391,7 @@ function Traido({ t, generales }: { t: BorradorDelCandado; generales: DocEnPanta
                   </>
                 ) : null}
                 <div className="salfoot">
-                  <Declarar
+                  <Declarar operadora={operadora}
                     slug={t.actividad}
                     clase="btn btn-orange btn-sm"
                     texto={`Declarar ${t.nombreActividad.toLowerCase()} y subir los documentos`}
@@ -402,14 +406,36 @@ function Traido({ t, generales }: { t: BorradorDelCandado; generales: DocEnPanta
   );
 }
 
-export default function Expediente({ datos, traido }: { datos: Datos; traido?: BorradorDelCandado | null }) {
+export default function Expediente({
+  datos,
+  traido,
+  porOtra,
+}: {
+  datos: Datos;
+  traido?: BorradorDelCandado | null;
+  /** La casa subiendo POR una operadora. Null cuando la operadora edita lo suyo. */
+  porOtra?: { id: string; nombre: string } | null;
+}) {
+  const operadora = porOtra?.id ?? null;
   const [abiertoGen, setAbiertoGen] = useState(true);
   const yaDeclaradas = new Set(datos.actividades.map((a) => a.slug));
   const genListos = datos.generales.length - datos.faltanGenerales;
 
   return (
     <>
-      {traido ? <Traido t={traido} generales={datos.generales} /> : null}
+      {porOtra ? (
+        // La casa está aquí POR alguien. Se dice arriba de todo y en cada acción
+        // queda registrado (`subido_por`): un papel que subió la casa no lo
+        // revisó la operadora, y eso se tiene que poder ver.
+        <p className="trajo" style={{ marginBottom: 14 }}>
+          <s>{"//"}</s>
+          <span>
+            <b>Estás en el expediente de {porOtra.nombre}, como la casa.</b>
+            Lo que subas o declares aquí queda a su nombre, y con el tuyo como quien lo subió.
+          </span>
+        </p>
+      ) : null}
+      {traido ? <Traido operadora={operadora} t={traido} generales={datos.generales} /> : null}
 
       <div className="expbar">
         <div className={"verdict " + (datos.completo ? "casa" : datos.vacio ? "casa" : "no")}>
@@ -474,12 +500,12 @@ export default function Expediente({ datos, traido }: { datos: Datos; traido?: B
               sube dos veces.
             </p>
             <div className="docs">
-              {datos.generales.map((d) => <Fila key={d.slug} d={d} actividad={null} />)}
+              {datos.generales.map((d) => <Fila operadora={operadora} key={d.slug} d={d} actividad={null} />)}
             </div>
           </div>
         </div>
 
-        {datos.actividades.map((a) => <Carpeta key={a.slug} a={a} />)}
+        {datos.actividades.map((a) => <Carpeta operadora={operadora} key={a.slug} a={a} />)}
       </div>
 
       <p className="xh4">Agregar una actividad</p>
@@ -495,7 +521,7 @@ export default function Expediente({ datos, traido }: { datos: Datos; traido?: B
               <span><b>{c.nombre}</b><small>Ya la declaraste</small></span>
             </button>
           ) : (
-            <Mosaico key={c.slug} slug={c.slug} nombre={c.nombre} documentos={c.documentos.length} />
+            <Mosaico operadora={operadora} key={c.slug} slug={c.slug} nombre={c.nombre} documentos={c.documentos.length} />
           ),
         )}
       </div>

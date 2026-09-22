@@ -35,8 +35,11 @@ import type { EstadoActividad } from "./expediente";
 
 export type MotivoCandado = "sin_actividad" | "no_declarada" | "no_aprobada" | "sin_anexo";
 
+/** Una dispensa vigente: el candado se abre, pero se dice en voz alta. */
+export type Dispensa = { motivo: string; autorizadaPor: string; venceAt: string };
+
 export type CandadoActividad =
-  | { ok: true }
+  | { ok: true; dispensa?: Dispensa }
   | {
       ok: false;
       motivo: MotivoCandado;
@@ -77,6 +80,29 @@ async function esLaCasa(operatorId: string): Promise<boolean> {
     return false;
   }
   return (data as { es_la_casa: boolean | null } | null)?.es_la_casa === true;
+}
+
+async function dispensaVigente(
+  sb: ReturnType<typeof createSupabaseAdminClient>,
+  operatorId: string,
+  actividad: string,
+): Promise<Dispensa | null> {
+  const { data, error } = await sb
+    .from("operator_activity_dispensas")
+    .select("motivo, autorizada_por, vence_at")
+    .eq("operator_id", operatorId)
+    .eq("actividad", actividad)
+    .is("revocada_at", null)
+    .gt("vence_at", new Date().toISOString())
+    .order("vence_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  // ⚠️ ANTE LA DUDA, NO HAY DISPENSA. Mismo criterio que `esLaCasa`: si no se
+  // pudo leer, el candado muerde. Abrirlo por un error de lectura sería dejar
+  // vender sin expediente por un parpadeo de la base.
+  if (error || !data) return null;
+  const r = data as { motivo: string; autorizada_por: string; vence_at: string };
+  return { motivo: r.motivo, autorizadaPor: r.autorizada_por, venceAt: r.vence_at };
 }
 
 /**
@@ -121,6 +147,19 @@ export async function actividadListaParaPublicar(
 
   const estado = (data as { estado: string } | null)?.estado as EstadoActividad | undefined;
 
+  // ── LA DISPENSA ────────────────────────────────────────────────────────────
+  // Si el expediente no alcanza, ¿la casa lo dispensó por escrito? Se pregunta
+  // ANTES de los veredictos y sólo cuando haría falta: con la actividad aprobada
+  // y su anexo firmado, la dispensa sobra y no se enseña.
+  //
+  // ⚠️ Vigente = no revocada y con `vence_at` en el futuro. Nunca «existe una».
+  // Una dispensa vencida es exactamente igual a no tenerla: eso es lo que la
+  // hace una excepción y no un agujero (0060).
+  if (estado !== "aprobada") {
+    const d = await dispensaVigente(sb, operatorId, slug);
+    if (d) return { ok: true, dispensa: d };
+  }
+
   if (!estado) {
     return {
       ok: false,
@@ -140,6 +179,8 @@ export async function actividadListaParaPublicar(
     // una actividad cuyo anexo no haya suscrito».
     const anexo = await anexoAlDia(operatorId, slug);
     if (anexo.exigible && !anexo.firmado) {
+      const d = await dispensaVigente(sb, operatorId, slug);
+      if (d) return { ok: true, dispensa: d };
       return {
         ok: false,
         motivo: "sin_anexo",

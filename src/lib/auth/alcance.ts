@@ -158,6 +158,33 @@ export async function alcanzaSlot(a: Alcance | null, slotId: string): Promise<bo
 // Caminante y mandar el boletín siguen exigiendo `isCurrentUserAdmin()`. Son
 // dinero, identidad de la marca o administración de la plataforma.
 
+/**
+ * SOBRE QUÉ OPERADORA ACTÚA ESTA SESIÓN.
+ *
+ * Es la respuesta única a una pregunta que se hacía en dos lugares con dos
+ * reglas distintas — y que en un tercero no se hacía. `connect-actions.ts`
+ * dejaba pasar a la casa o a la operadora sobre sí misma; el expediente
+ * (`expediente-actions.ts`) sólo aceptaba a la operadora, con lo que la casa no
+ * podía subir un papel por nadie. Resultado real (Nomádika, sep 2026): una
+ * operadora atorada y una casa que tampoco la podía destrabar. Ver
+ * design/mvp/MVP.md §1.
+ *
+ *   · La CASA actúa sobre la operadora que diga (`pedida`). Sin decir cuál, no
+ *     actúa sobre ninguna: adivinar sería peor.
+ *   · Una OPERADORA actúa sólo sobre sí misma. Si el formulario trae otro id
+ *     —viaja en un `<input hidden>`, cambiarlo es abrir el inspector— la
+ *     respuesta es «ninguna», no «la suya»: escribir en silencio sobre otra
+ *     fila de la que pidió es la forma de que un bug parezca que funcionó.
+ *   · Sin sesión, ninguna.
+ */
+export async function operadoraObjetivo(pedida: string | null | undefined): Promise<string | null> {
+  const a = await alcanceActual();
+  if (!a) return null;
+  const id = (pedida ?? "").trim();
+  if (esOperador(a)) return !id || id === a.operatorId ? a.operatorId : null;
+  return id || null;
+}
+
 /** ¿Puede escribir sobre esta experiencia (por slug)? */
 export async function puedeEditarSlug(slug: string): Promise<boolean> {
   const a = await alcanceActual();

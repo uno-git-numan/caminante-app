@@ -85,23 +85,27 @@ export async function fetchMiAlta(): Promise<MiAlta | null> {
       }
     : null;
 
-  // ⚠️ EL RECORRIDO MANDA MIENTRAS LA SOLICITUD NO ESTÉ APROBADA.
+  // ⚠️ LA FILA MANDA (Luis, 22 sep 2026). Dos verdades hablaban del mismo hecho
+  // —«¿esta persona ya es operadora?»— y esta función le creía a la equivocada.
   //
-  // Antes bastaba con que existiera fila en `operators` para saltar a los
-  // estados 05-06, e ignorar el recorrido por completo. Con el flujo normal da
-  // igual —la fila se crea AL aprobar— pero se rompe en el caso que sí ocurre:
-  // una operadora aprobada por atajo, a la que hay que hacerle el alta de
-  // verdad. A Nomádika la aprobaron el 25 ago sin llamada, sin expediente y sin
-  // convenio; al reabrir su solicitud seguía viendo «puedes armar» en vez del
-  // paso 01, porque su fila existía desde entonces.
+  // `operators` dice si hay una operadora viva; `operator_applications` cuenta
+  // cómo llegó. Hasta hoy, mientras la solicitud estuviera en el embudo
+  // (pendiente, llamada, documentos), se devolvía `operadora: null` AUNQUE la
+  // fila existiera y estuviera activa — y `operadora: null` es lo que la página
+  // del expediente usa para rebotar. Así quedó Nomádika: aprobada por atajo el
+  // 25 ago, su solicitud reabierta a `calling`, su fila activa. No podía subir un
+  // solo documento, y como sin actividad declarada no se publica, el candado la
+  // mandaba… al expediente. Un lazo sin salida. Y la casa tampoco podía subir por
+  // ella. Ver design/mvp/MVP.md §1.
   //
-  // Reabrir una solicitud es un acto deliberado de la casa. Cuando pasa, lo que
-  // la operadora ve es dónde va SU recorrido, no el rastro de una aprobación
-  // que se está rehaciendo.
+  // Desde aquí: si hay fila ACTIVA, es operadora y su alta se lee de sus seis
+  // candados; el embudo se muestra como historia, no como puerta. El recorrido
+  // sólo manda cuando no hay fila, o la que hay no está activa (baja,
+  // suspendida): ahí sí, lo único que existe es la solicitud.
   const fila = op as { id: string; estado: string; estado_motivo: string | null } | null;
   const enRecorrido =
     !!solicitud && ["pending", "calling", "docs", "rejected"].includes(solicitud.status);
-  if (!fila || enRecorrido) {
+  if (!fila || (enRecorrido && fila.estado !== "activa")) {
     if (!solicitud) return null;
     let estado: EstadoAlta = "recibida";
     if (solicitud.status === "rejected") estado = "no_esta_vez";

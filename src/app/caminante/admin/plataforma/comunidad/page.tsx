@@ -8,7 +8,7 @@ import Pipeline from "./Pipeline";
 import Vistas from "./Vistas";
 import OperadorAppCard, { type OpAppView } from "./OperadorAppCard";
 import AccesoCard from "./AccesoCard";
-import { fetchPorRevisar } from "@/lib/operadores/expediente";
+import { fetchPorRevisar, fetchDispensas } from "@/lib/operadores/expediente";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Comunidad · Caminante plataforma" };
@@ -53,7 +53,7 @@ export default async function ComunidadPlataformaPage() {
   const sb = createSupabaseAdminClient();
   // `porRevisar` entra al mismo Promise.all: es lo que espera veredicto de
   // TODAS las operadoras, en dos consultas, no una por ficha.
-  const [ops, apps, wl, porRevisar] = await Promise.all([
+  const [ops, apps, wl, porRevisar, dispensas] = await Promise.all([
     fetchOperadorasPlataforma(),
     sb
       .from("operator_applications")
@@ -64,6 +64,7 @@ export default async function ComunidadPlataformaPage() {
       .order("created_at", { ascending: false }),
     sb.from("admin_whitelist").select("email, is_active, note").eq("is_active", false),
       fetchPorRevisar(),
+      fetchDispensas(),
   ]);
 
   const solicitudes = (apps.data ?? []) as unknown as OpRow[];
@@ -95,7 +96,7 @@ export default async function ComunidadPlataformaPage() {
         pipeline={enPipeline}
         operadoras={ops.length}
         vistaPipeline={<Pipeline ops={ops} />}
-        vistaOperadoras={<Operadoras ops={ops} porRevisar={porRevisar} />}
+        vistaOperadoras={<Operadoras ops={ops} porRevisar={porRevisar} dispensas={dispensas} />}
         vistaSolicitudes={
           <>
             <div className="sec-head" style={{ marginTop: 18 }}>

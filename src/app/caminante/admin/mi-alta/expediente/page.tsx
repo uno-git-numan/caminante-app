@@ -2,9 +2,12 @@
 // siempre. Es la misma pantalla vista desde dos momentos.
 //
 // Cuelga de `mi-alta/` a propósito: sólo tiene sentido para quien está dándose
-// de alta o manteniendo lo suyo. La casa no entra, por la misma razón que no
-// entra a «Mi alta» — no pasó por el embudo y no firma un convenio consigo
-// misma.
+// de alta o manteniendo lo suyo. La casa no tiene expediente propio —no pasó por
+// el embudo y no firma un convenio consigo misma— pero SÍ entra aquí POR una
+// operadora (`?operadora=<id>`): es onboarding. Hasta el 22 sep 2026 la casa
+// era rebotada sin más, y cuando el candado mandaba a una operadora atorada a
+// esta pantalla y la pantalla la rebotaba también, nadie podía subir un papel
+// por nadie (design/mvp/MVP.md §1).
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -12,7 +15,7 @@ import Link from "next/link";
 import AdminShell from "../../ui/AdminShell";
 import { EXPEDIENTE_CSS } from "../../ui/expediente-css";
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
-import { fetchExpediente, fetchBorradorDelCandado } from "@/lib/operadores/expediente";
+import { fetchExpediente, fetchBorradorDelCandado, nombreDeOperadora } from "@/lib/operadores/expediente";
 import Expediente from "./Expediente";
 
 export const dynamic = "force-dynamic";
@@ -24,25 +27,42 @@ export const metadata: Metadata = {
 export default async function ExpedientePage({
   searchParams,
 }: {
-  searchParams: Promise<{ borrador?: string; actividad?: string }>;
+  searchParams: Promise<{ borrador?: string; actividad?: string; operadora?: string }>;
 }) {
   const alta = await fetchMiAlta();
   if (!alta) redirect("/caminante/admin");
-  if (alta.operadora?.esLaCasa) redirect("/caminante/admin");
+  const q = await searchParams;
 
-  // ⚠️ SIN OPERADORA NO HAY EXPEDIENTE, y no es un error: quien mandó su
-  // solicitud y todavía no la aprobamos no tiene fila en `operators`, así que
-  // tampoco tiene dónde colgar documentos. Mandarlo a «Mi alta» le enseña el
-  // paso donde SÍ está, en vez de una pantalla vacía que parecería rota.
-  const operatorId = alta.operadora?.id;
-  if (!operatorId) redirect("/caminante/admin/mi-alta");
+  // ¿De quién es el expediente que se pinta? De la operadora en sesión — o, si
+  // quien entra es la casa, de la que pidió por query string. La casa sin decir
+  // por quién no tiene nada que ver aquí: va a Comunidad, donde están todas.
+  //
+  // ⚠️ Que la casa PUEDA decir cualquier id no es un hueco: es la casa. Lo que
+  // sí se comprueba es que exista, para no pintar un expediente en blanco de
+  // nadie con cara de «está vacío».
+  let operatorId: string;
+  let porOtra: { id: string; nombre: string } | null = null;
+  if (alta.operadora?.esLaCasa) {
+    const pedida = (q.operadora ?? "").trim();
+    const nombre = pedida ? await nombreDeOperadora(pedida) : null;
+    if (!pedida || !nombre) redirect("/caminante/admin/plataforma/comunidad");
+    operatorId = pedida;
+    porOtra = { id: pedida, nombre };
+  } else {
+    // ⚠️ SIN OPERADORA NO HAY EXPEDIENTE, y no es un error: quien mandó su
+    // solicitud y todavía no la aprobamos no tiene fila en `operators`, así que
+    // tampoco tiene dónde colgar documentos. Mandarlo a «Mi alta» le enseña el
+    // paso donde SÍ está, en vez de una pantalla vacía que parecería rota.
+    const propia = alta.operadora?.id;
+    if (!propia) redirect("/caminante/admin/mi-alta");
+    operatorId = propia;
+  }
 
   const datos = await fetchExpediente(operatorId);
 
   // ⚠️ EL BORRADOR SE RESUELVE CONTRA LA BASE Y CONTRA EL DUEÑO. El slug llega
   // por query string, o sea que lo puede escribir cualquiera: sin filtrar por
   // `operator_id` esta pantalla diría el título de una experiencia ajena.
-  const q = await searchParams;
   const traido = await fetchBorradorDelCandado(operatorId, q.borrador, q.actividad);
 
   return (
@@ -62,11 +82,15 @@ export default async function ExpedientePage({
             que es propio de una actividad vive en su carpeta. Nada se sube dos veces.
           </p>
           <p className="desc" style={{ marginTop: 10 }}>
-            <Link href="/caminante/admin/mi-alta">Volver a Mi alta</Link>
+            {porOtra ? (
+              <Link href="/caminante/admin/plataforma/comunidad">Volver a Comunidad</Link>
+            ) : (
+              <Link href="/caminante/admin/mi-alta">Volver a Mi alta</Link>
+            )}
           </p>
         </div>
       </div>
-      <Expediente datos={datos} traido={traido} />
+      <Expediente datos={datos} traido={traido} porOtra={porOtra} />
     </AdminShell>
   );
 }

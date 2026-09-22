@@ -302,3 +302,69 @@ export async function fetchBorradorDelCandado(
     estado: ((act as { estado: string } | null)?.estado as EstadoActividad) ?? null,
   };
 }
+
+// ── Por quién ────────────────────────────────────────────────────────────────
+
+/**
+ * El nombre de una operadora, o null si no existe. Lo usa la casa al entrar al
+ * expediente de alguien por query string: sin esto se pintaría un expediente en
+ * blanco de nadie, con cara de «está vacío».
+ */
+export async function nombreDeOperadora(operatorId: string): Promise<string | null> {
+  const sb = createSupabaseAdminClient();
+  const { data, error } = await sb.from("operators").select("name").eq("id", operatorId).maybeSingle();
+  if (error || !data) return null;
+  return (data as { name: string | null }).name || "Operadora";
+}
+
+// ── Dispensas ────────────────────────────────────────────────────────────────
+
+export type DispensaEnPantalla = {
+  id: string;
+  actividad: string;
+  nombre: string;
+  motivo: string;
+  autorizadaPor: string;
+  autorizadaAt: string;
+  venceAt: string;
+  /** Vigente hoy: no revocada y sin vencer. Lo demás se enseña como historia. */
+  vigente: boolean;
+  revocadaAt: string | null;
+};
+
+/**
+ * Las dispensas de TODAS las operadoras, en una consulta, para la ficha de la
+ * casa. Se traen también las vencidas y revocadas: una dispensa es una decisión
+ * con nombre y fecha, y su historia es justo lo que hay que poder ver.
+ */
+export async function fetchDispensas(): Promise<Map<string, DispensaEnPantalla[]>> {
+  const sb = createSupabaseAdminClient();
+  const { data, error } = await sb
+    .from("operator_activity_dispensas")
+    .select("id, operator_id, actividad, motivo, autorizada_por, autorizada_at, vence_at, revocada_at")
+    .order("autorizada_at", { ascending: false });
+  // Tabla sin migrar (0060) o error: sin dispensas. El candado lee aparte y
+  // también falla cerrado, así que esto sólo afecta a lo que se pinta.
+  if (error || !data) return new Map();
+  const ahora = Date.now();
+  const out = new Map<string, DispensaEnPantalla[]>();
+  for (const r of data as {
+    id: string; operator_id: string; actividad: string; motivo: string;
+    autorizada_por: string; autorizada_at: string; vence_at: string; revocada_at: string | null;
+  }[]) {
+    const lista = out.get(r.operator_id) ?? [];
+    lista.push({
+      id: r.id,
+      actividad: r.actividad,
+      nombre: nombreDeActividad(r.actividad),
+      motivo: r.motivo,
+      autorizadaPor: r.autorizada_por,
+      autorizadaAt: r.autorizada_at,
+      venceAt: r.vence_at,
+      vigente: !r.revocada_at && new Date(r.vence_at).getTime() > ahora,
+      revocadaAt: r.revocada_at,
+    });
+    out.set(r.operator_id, lista);
+  }
+  return out;
+}
