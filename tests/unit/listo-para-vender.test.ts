@@ -3,6 +3,7 @@
 // cuando se cablee a las tres puertas.
 import { describe, expect, it } from "vitest";
 import {
+  COLUMNAS_GATE,
   csdVigente,
   diasParaVencerCsd,
   operadorListo,
@@ -64,10 +65,19 @@ describe("operadorListo", () => {
     expect(operadorListo(completo, HOY)).toEqual({ ok: true, faltantes: [] });
   });
 
-  it("commission_pct en NULL bloquea: con cargo en su cuenta Numan retendría cero", () => {
-    const r = operadorListo({ ...completo, commission_pct: null }, HOY);
+  it("commission_pct en NULL NO bloquea si hay fecha de arranque: cobra la escala", () => {
+    // Corregido el 22 sep 2026. El candado exigía un porcentaje PLANO y eso era
+    // falso desde que existe la escala: las 12 ventas de Nomádika tenían
+    // `commission_pct` NULL y retuvieron $301.72 cada una, no cero. Bloquear ahí
+    // habría detenido a toda operadora sin trato negociado — el caso normal.
+    const porEscala = { ...completo, commission_pct: null, comision_desde: "2026-08-28T00:00:00Z" };
+    expect(operadorListo(porEscala, HOY)).toEqual({ ok: true, faltantes: [] });
+  });
+
+  it("sin porcentaje Y sin fecha de arranque sí bloquea: ahí el fee sería cero de verdad", () => {
+    const r = operadorListo({ ...completo, commission_pct: null, comision_desde: null }, HOY);
     expect(r.ok).toBe(false);
-    expect(r.faltantes.join(" ")).toMatch(/comisión pactada/i);
+    expect(r.faltantes.join(" ")).toMatch(/no genera comisión/i);
   });
 
   it("exige los DOS archivos del CSD, y los nombra", () => {
@@ -90,5 +100,14 @@ describe("operadorListo", () => {
     const r = operadorListo({ stripe_account_id: "acct_x" }, HOY);
     expect(r.ok).toBe(false);
     expect(r.faltantes).toHaveLength(6);
+  });
+
+  it("el select del gate pide TODAS las columnas que el gate lee", () => {
+    // Un campo ausente llega como `undefined` y el gate lo reporta faltante
+    // aunque en la base esté lleno. `comision_desde` entró al gate el 22 sep y
+    // por poco se queda fuera de COLUMNAS_GATE.
+    for (const c of ["commission_pct", "comision_desde", "convenio_firmado_at", "csd_key_path", "tipo_persona"]) {
+      expect(COLUMNAS_GATE).toContain(c);
+    }
   });
 });

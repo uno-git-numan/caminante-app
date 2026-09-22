@@ -35,6 +35,8 @@ type PagoVivo = {
   amount_mxn: number;
   provider_ref: string | null;
   method: string | null;
+  /** Por dónde entró (0061). Decide cómo se deshace. */
+  canal_cobro: string | null;
 };
 
 /**
@@ -52,7 +54,7 @@ async function pagosDe(
   if (!reservationIds.length) return [];
   const { data } = await sb
     .from("payments")
-    .select("id, reservation_id, amount_mxn, provider_ref, method, status")
+    .select("id, reservation_id, amount_mxn, provider_ref, method, status, canal_cobro")
     .in("reservation_id", reservationIds)
     .eq("status", "paid");
   return ((data ?? []) as (PagoVivo & { status: string })[]).map((p) => ({
@@ -61,6 +63,7 @@ async function pagosDe(
     amount_mxn: Number(p.amount_mxn || 0),
     provider_ref: p.provider_ref,
     method: p.method,
+    canal_cobro: p.canal_cobro ?? "casa",
   }));
 }
 
@@ -108,10 +111,29 @@ async function devolver(
 
   try {
     const stripe = getStripeServerClient();
+    // ⚠️ UN COBRO POR CONNECT SE DESHACE ENTERO O NO SE DESHACE.
+    //
+    // En un cargo con destino el dinero ya se partió en dos: la mayor parte se
+    // transfirió a la cuenta de la operadora y la comisión se quedó en Numan.
+    // Un refund pelón devuelve al cliente desde la cuenta de Numan y deja lo
+    // demás donde está: la operadora se queda con el dinero de un viaje que no
+    // pasó, y Numan con una comisión sobre una venta que se deshizo — y además
+    // paga la devolución de su bolsa.
+    //
+    //   · `reverse_transfer` jala de vuelta lo transferido.
+    //   · `refund_application_fee` devuelve la comisión, en proporción a lo
+    //     reembolsado. Va junto: quedarse la comisión de una venta cancelada es
+    //     cobrar por un servicio que no se prestó.
+    //
+    // Los dos son inertes en un cobro de la casa, pero no se mandan igual: un
+    // parámetro que no aplica es una pregunta abierta para quien lea esto en un
+    // año. Se mandan sólo donde significan algo.
+    const porConnect = pago.canal_cobro === "connect";
     const refund = await stripe.refunds.create({
       payment_intent: pago.provider_ref,
       amount: toStripeAmount(pago.amount_mxn),
-      metadata: { origen: "caminante", reembolso_id: fila.id as string },
+      ...(porConnect ? { reverse_transfer: true, refund_application_fee: true } : {}),
+      metadata: { origen: "caminante", reembolso_id: fila.id as string, canal: pago.canal_cobro ?? "casa" },
     });
     await sb.from("reembolsos").update({ stripe_refund_id: refund.id }).eq("id", fila.id);
 

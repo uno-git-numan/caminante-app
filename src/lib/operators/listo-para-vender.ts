@@ -3,13 +3,13 @@
 // La regla de la casa es la misma que la del deslinde (caso Enyd, 9 jul): si el
 // flujo no está completo, NO SE VENDE. Aquí el flujo es el del operador externo:
 // para que su experiencia cobre por Connect y facture a su nombre tienen que
-// existir cuatro cosas, y las cuatro son verificables — ninguna es una casilla
+// existir cinco cosas, y las cinco son verificables — ninguna es una casilla
 // de honor.
 //
-// Lo consultan los mismos tres lugares que hoy consultan `deslindeListo`:
-//   1. publicar desde el formulario
-//   2. publicar desde el dashboard
-//   3. cobrar
+// Lo consulta `candadosDe` (`lib/experiences/candados-venta.ts`), que es la
+// única puerta de publicar y cobrar. ⚠️ Hasta el 22 sep 2026 este encabezado
+// prometía tres lugares y NADIE lo llamaba en ninguno: era documentación que se
+// leía como garantía. Hoy el invariante #20 lo vigila.
 //
 // ⚠️ SOLO aplica a experiencias CON operador externo en Connect. Las propias de
 // Caminante siguen por el camino de siempre y este gate no las toca: un operador
@@ -22,7 +22,9 @@
 // justo para que no pueda usarse por error. Si Connect leyera una y el reporte de
 // payout la otra, el checkout cobraría un porcentaje y el corte mostraría otro:
 // un bug de dinero silencioso, del que nadie se entera hasta que un operador
-// reclama. Y `commission_pct` en NULL bloquea la venta (condición 5, abajo).
+// reclama. Lo que NO es cierto —y este archivo lo daba por hecho— es que
+// `commission_pct` en NULL signifique «sin comisión»: con NULL cobra la escala
+// por tramos. Ver la condición 5.
 
 export type OperadorFlujo = {
   ok: boolean;
@@ -45,6 +47,8 @@ export type OperadorParaGate = {
   tipo_persona?: string | null;
   convenio_firmado_at?: string | null;
   commission_pct?: number | null;
+  /** Desde cuándo genera comisión (0047). Sin fecha, la escala no le cobra nada. */
+  comision_desde?: string | null;
 };
 
 // Las columnas que hay que pedirle a PostgREST para poder evaluar el gate.
@@ -52,7 +56,7 @@ export type OperadorParaGate = {
 // fuera una columna: un campo ausente llega como `undefined` y el gate lo
 // reportaría como faltante aunque en la base estuviera lleno.
 export const COLUMNAS_GATE =
-  "stripe_account_id,stripe_charges_enabled,csd_cer_path,csd_key_path,csd_vence_at,rfc,razon_social,regimen_fiscal,cp_fiscal,tipo_persona,convenio_firmado_at,commission_pct";
+  "stripe_account_id,stripe_charges_enabled,csd_cer_path,csd_key_path,csd_vence_at,rfc,razon_social,regimen_fiscal,cp_fiscal,tipo_persona,convenio_firmado_at,commission_pct,comision_desde";
 
 // Un operador solo entra al camino nuevo cuando tiene cuenta conectada. Sin
 // ella opera por el flujo de siempre (Numan cobra y le transfiere a mano), y
@@ -155,20 +159,26 @@ export function operadorListo(
     faltantes.push("El convenio con el operador no está firmado. Sin él la comisión y las responsabilidades no son exigibles.");
   }
 
-  // 5 · Comisión pactada. ⚠️ ESTE ES EL CANDADO QUE MÁS DINERO CUIDA.
+  // 5 · Comisión RESUELTA. ⚠️ ESTE ES EL CANDADO QUE MÁS DINERO CUIDA.
   //
-  // Con cargo directo el dinero entra a la cuenta del operador y lo ÚNICO que se
-  // queda Numan es el `application_fee`, que sale de `commission_pct`. En NULL no
-  // hay nada que retener: la venta se cobraría perfecta, el cliente viajaría
-  // contento y Numan ganaría CERO, sin un solo error en pantalla. Y como la
-  // atribución se congela en la venta (0016), tampoco se puede cobrar después.
+  // Lo que Numan retiene de una venta por Connect es el `application_fee`. Si
+  // sale cero, la venta se cobra perfecta, el cliente viaja contento y Numan
+  // gana NADA, sin un solo error en pantalla — y como la atribución se congela
+  // al vender (0016), tampoco se puede cobrar después.
   //
-  // Por eso NULL bloquea aquí y no se trata como 0. Comprobado el 18 ago: los dos
-  // operadores de la base (Kéntro y Numan · Caminante) tienen `commission_pct` en
-  // NULL — sin este candado, el primero que conectara Stripe vendería gratis.
-  if (op?.commission_pct === null || op?.commission_pct === undefined) {
+  // ⚠️ PERO «RESUELTA» NO ES «PLANA». Este candado exigía `commission_pct` no
+  // nulo, y eso era falso desde que existe la escala: con NULL, la regla de la
+  // casa cobra por tramos (ver `reglaComisionDeOperador`). Las 12 ventas de
+  // Nomádika —`commission_pct` en NULL— retuvieron $301.72 cada una, no cero.
+  // El candado le decía «sin definir» a una comisión que llevaba semanas
+  // cobrándose, y habría bloqueado a la primera operadora sin trato negociado,
+  // que es el caso NORMAL.
+  //
+  // Lo que sí deja el fee en cero es no tener `comision_desde`: sin esa fecha
+  // la operadora no genera comisión sobre nada (0047). Eso es lo que se exige.
+  if (op?.commission_pct == null && !op?.comision_desde?.trim()) {
     faltantes.push(
-      "El operador no tiene comisión pactada (“% por definir”). Con cargo directo el cobro entra a su cuenta y Numan no retendría nada: hay que capturarla en el convenio antes de vender.",
+      "El operador no genera comisión todavía: no tiene un porcentaje pactado ni fecha de arranque. Con el cobro a su nombre, Numan no retendría nada. Se define en su ficha antes de vender.",
     );
   }
 

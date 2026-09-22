@@ -175,11 +175,45 @@ export async function finalizeSelfServeCheckout(
   const platformFee = session.metadata?.platform_fee_mxn
     ? Number(session.metadata.platform_fee_mxn)
     : null;
+
+  // ── EL DOMICILIO DEL PESO (0061) ───────────────────────────────────────────
+  // Por dónde entró se decide AL COBRAR y viaja en la metadata; aquí sólo se
+  // escribe. Volver a preguntárselo a la ficha de la operadora sería leer un
+  // dato de hoy para describir un cobro de ayer: si mañana conecta Stripe, los
+  // pagos viejos empezarían a decir que entraron por Connect.
+  const canalCobro = session.metadata?.canal_cobro === "connect" ? "connect" : "casa";
+  const connectAccount = (session.metadata?.connect_account ?? "").trim() || null;
+  const feeRetenido = session.metadata?.fee_retenido_mxn
+    ? Number(session.metadata.fee_retenido_mxn)
+    : null;
+  // La transferencia hacia la cuenta conectada, para poder conciliar contra el
+  // estado de cuenta de Stripe. Sólo existe en un cargo con destino.
+  const transferId =
+    typeof session.payment_intent === "object" && session.payment_intent
+      ? ((session.payment_intent as { transfer_data?: { destination?: string } | null }).transfer_data
+          ? ((session.payment_intent as unknown as { latest_charge?: { transfer?: string } }).latest_charge?.transfer ?? null)
+          : null)
+      : null;
+
+  // ⚠️ `canal_cobro = 'connect'` SIN CUENTA lo rechaza la base (0061), y está
+  // bien que lo haga: un pago que dice haber entrado a la cuenta de alguien sin
+  // decir cuál no se puede conciliar ni revertir. Si la metadata viniera a
+  // medias, se registra como «casa» —que es lo que se puede sostener— y se
+  // avisa, en vez de perder el pago por un check.
+  const canalReal = canalCobro === "connect" && !connectAccount ? "casa" : canalCobro;
+  if (canalReal !== canalCobro) {
+    console.error("[finalize] canal connect sin cuenta en la metadata; se registra como casa", providerRef);
+  }
+
   const { error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,
     contact_id: contact.id,
     amount_mxn: amountPaid,
     ...(platformFee != null && Number.isFinite(platformFee) ? { platform_fee_mxn: platformFee } : {}),
+    canal_cobro: canalReal,
+    ...(canalReal === "connect" ? { stripe_account_id: connectAccount } : {}),
+    ...(transferId ? { transfer_id: transferId } : {}),
+    ...(feeRetenido != null && Number.isFinite(feeRetenido) ? { fee_retenido_mxn: feeRetenido } : {}),
     status: "paid",
     method: "stripe",
     provider_ref: providerRef,

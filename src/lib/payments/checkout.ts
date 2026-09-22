@@ -19,6 +19,8 @@ import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availa
 import { candadosDe } from "@/lib/experiences/candados-venta";
 import { fetchComplementos, resolverElegidos } from "@/lib/experiences/complementos";
 import { comisionDeVenta, sinIva, type Regla } from "@/lib/operadores/comision";
+import { planDeCobro, paraStripe } from "@/lib/payments/connect-cobro";
+import { COLUMNAS_GATE, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
 import { reglaComisionDeOperador } from "@/lib/operadores/regla";
 import { ATRIB_COOKIE, escalaPara, leerAtribucion } from "@/lib/operadores/atribucion";
 import type { Experience } from "@/lib/experiences/types";
@@ -172,6 +174,27 @@ export async function createCheckout(formData: FormData) {
     regla,
   );
 
+  // ── POR DÓNDE ENTRA EL DINERO ───────────────────────────────────────────────
+  //
+  // Con la operadora en Connect y lista, la venta se cobra a SU nombre y Stripe
+  // le transfiere todo menos la comisión (ver connect-cobro.ts). Sin eso, el
+  // camino de siempre, intacto. `candadosDe` ya la verificó arriba; esto vuelve
+  // a preguntar porque decide a dónde va el dinero, y esa decisión no puede
+  // depender de que alguien más haya preguntado antes.
+  const cobradoTotal =
+    perPerson * numPeople +
+    complementosElegidos.reduce((n, c) => n + c.precioUnitario * (c.porPersona ? numPeople : 1), 0);
+
+  let plan = planDeCobro(null, comision.monto, cobradoTotal);
+  if (operatorId) {
+    const { data: opRow } = await sb
+      .from("operators")
+      .select(`stripe_account_id,${COLUMNAS_GATE}`)
+      .eq("id", operatorId)
+      .maybeSingle();
+    plan = planDeCobro((opRow as OperadorParaGate | null) ?? null, comision.monto, cobradoTotal);
+  }
+
   const origin = await getOrigin();
   const title =
     [experience.title, experience.titleAccent].filter(Boolean).join(" ").trim() ||
@@ -204,6 +227,18 @@ export async function createCheckout(formData: FormData) {
       regla.tipo === "plano" ? `${origenRegla}:${regla.pct}` : `escala:${regla.escala}`,
     tier_label: tierLabel,
     slot_visibility: (slot.visibility as string | null) ?? "public",
+    // POR DÓNDE ENTRÓ. Viaja a la metadata para que el webhook lo escriba en
+    // `payments` sin volver a decidirlo: lo que se cobró manda sobre lo que hoy
+    // diga la ficha de la operadora, que mañana puede cambiar.
+    canal_cobro: plan.canal,
+    ...(plan.canal === "connect"
+      ? {
+          connect_account: plan.cuenta,
+          // Comisión + IVA. Es lo que Stripe retiene y el total del CFDI que
+          // Caminante le va a emitir a la operadora.
+          fee_retenido_mxn: String(plan.retenidoMxn),
+        }
+      : {}),
     // CONGELADO: id + nombre + precio unitario de cada complemento al momento
     // de pagar. Si mañana sube el tren, esta reserva conserva lo que se cobró.
     ...(complementosElegidos.length
@@ -254,7 +289,7 @@ export async function createCheckout(formData: FormData) {
         })),
       ],
       metadata,
-      payment_intent_data: { metadata },
+      payment_intent_data: { metadata, ...paraStripe(plan) },
       phone_number_collection: { enabled: true },
       success_url: `${origin}/caminante/reserva/exito?slug=${encodeURIComponent(slug)}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/caminante/reservar/${slug}?error=cancelado${backQ}`,
