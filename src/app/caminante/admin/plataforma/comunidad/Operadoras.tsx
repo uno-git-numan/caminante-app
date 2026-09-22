@@ -144,6 +144,22 @@ export default function Operadoras({
                                 </span>
                               </div>
                               <Candados o={o} />
+                              {/* Tarea #103. No es candado: no bloquea vender. Pero
+                                  una marca a medias apaga su portal y viste el
+                                  funnel de Caminante en vez de suyo — y nadie se
+                                  entera hasta que ella lo ve. */}
+                              <p className="arr">
+                                <s>Marca</s>
+                                {o.marca.completa ? (
+                                  <span>Completa: su portal y su funnel se ven suyos.</span>
+                                ) : (
+                                  <span>
+                                    <b>Incompleta:</b> le falta {o.marca.faltan.join(", ")}. Mientras, su
+                                    portal y su funnel se ven de Caminante con su nombre.{" "}
+                                    <a href={`/caminante/admin/mi-alta/marca?operadora=${o.id}`}>Capturarla por ella</a>
+                                  </span>
+                                )}
+                              </p>
                               <RevisarExpediente cola={porRevisar.get(o.id)} />
                               {/* La casa sube POR ella. Es la puerta que faltaba
                                   cuando una operadora se atora: el expediente

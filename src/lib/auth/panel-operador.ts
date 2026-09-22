@@ -44,6 +44,11 @@ const EXACTAS = new Set<string>([
   // esto no se movió: la operadora no podía conectar su propia cuenta. Ahora
   // tiene su puerta (design/mvp/MVP.md, Fase 1.3).
   "/caminante/admin/mi-alta/cobrar",
+  // Su marca: logo, colores, «powered by». marca.ts la describía como la
+  // tercera superficie de captura («Configurar marca en el panel») y esa
+  // pantalla nunca existió: la marca sólo se capturaba al aplicar o en el alta
+  // por la casa. Sin puerta, «te falta el color de acento» era un reproche.
+  "/caminante/admin/mi-alta/marca",
 ]);
 
 // FUERA a propósito, y conviene saber por qué:

@@ -257,9 +257,29 @@ export default function MiAlta({ datos }: { datos: Datos }) {
                       ? "Leer y firmar el convenio"
                       : "Ver mi convenio y los anexos de mis actividades"}
                   </Link>
+                  {" · "}
+                  <Link href="/caminante/admin/mi-alta/cobrar">Mi cuenta de cobro y datos fiscales</Link>
                 </span>
               </span>
             </div>
+            {/* Tarea #103. La marca no es candado —no bloquea vender— pero a
+                medias apaga el portal y viste el funnel de Caminante, y nadie
+                se entera hasta que lo ve. Se dice aquí, con su puerta. */}
+            {datos.operadora && !datos.operadora.marca.completa ? (
+              <div className="verdict no" style={{ marginTop: 12 }}>
+                <span className="n">{"//"}</span>
+                <span className="g">
+                  <b>Tu marca está a medias: te falta {datos.operadora.marca.faltan.join(", ")}</b>
+                  <span>
+                    Mientras, tu portal y la reserva de tus clientes se ven de Caminante con tu nombre.
+                    Son dos colores.
+                  </span>
+                  <span style={{ marginTop: 8 }}>
+                    <Link href="/caminante/admin/mi-alta/marca">Completar mi marca</Link>
+                  </span>
+                </span>
+              </div>
+            ) : null}
             {/* ⚠️ `.gate` NO EXISTE EN NINGÚN ENTREGABLE. Sus 14 reglas están en
                 mi-alta-css.ts porque el extractor se trajo el CSS de la v5
                 completo, y ahí adentro venían las de la v2 —un bloque cuyo
@@ -336,15 +356,36 @@ function Mitad({
       </div>
       <div className="mb">
         <div className="locks">
-          {candados.map((c) => (
-            <span key={c.clave} className={`lk${c.cumplido ? " ok" : " no"}`}>
-              {c.cumplido ? PALOMA : TACHE}
-              <span className="g">
-                {c.nombre}
-                <small>{c.detalle}</small>
+          {candados.map((c) => {
+            // CADA CANDADO QUE LE TOCA A ELLA LLEVA SU PUERTA. «Falta tu CSD» sin
+            // un lugar a dónde ir se leía como un reproche: CSD y Connect vivían
+            // sólo en la pantalla de la casa hasta el 22 sep 2026.
+            const puerta =
+              !c.cumplido && c.toca === "operadora"
+                ? c.clave === "convenio"
+                  ? "/caminante/admin/mi-alta/convenio"
+                  : c.clave === "csd" || c.clave === "connect"
+                    ? "/caminante/admin/mi-alta/cobrar"
+                    : null
+                : null;
+            return (
+              <span key={c.clave} className={`lk${c.cumplido ? " ok" : " no"}`}>
+                {c.cumplido ? PALOMA : TACHE}
+                <span className="g">
+                  {c.nombre}
+                  <small>
+                    {c.detalle}
+                    {puerta ? (
+                      <>
+                        {" · "}
+                        <Link href={puerta}>Resolverlo</Link>
+                      </>
+                    ) : null}
+                  </small>
+                </span>
               </span>
-            </span>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

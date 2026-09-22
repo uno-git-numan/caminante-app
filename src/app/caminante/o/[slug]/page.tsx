@@ -1,12 +1,19 @@
 // PORTAL WHITE-LABEL del operador — /caminante/o/[slug]. La cara pública del
 // operador vestida con SU marca (override de CSS vars vía themeCssFor):
 // su logo, sus colores, sus experiencias. Caminante = «powered by» discreto.
-// Sin branding capturado (o migración 0030 sin aplicar) ⇒ 404: el portal solo
-// existe cuando el onboarding lo vistió.
+//
+// ⚠️ SIN MARCA COMPLETA NO HAY 404: hay portal en colores de Caminante con el
+// nombre del operador. Hasta el 22 sep 2026 esto hacía `notFound()` sin tema, y
+// como el tema exigía los dos colores, quitarles a Kéntro y a Nomádika los
+// colores semilla que nadie aprobó apagó sus dos portales enteros sin un solo
+// error (design/mvp/FEATURES.md §H). Una marca a medias degrada; no apaga.
+// Lo único que sigue cerrando el portal es `is_public = false`, la misma regla
+// que su perfil.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchOperatorThemeBySlug, themeCssFor } from "@/lib/operators/branding";
+import { marcaLista } from "@/lib/operators/marca";
 import { experienceTitle } from "@/lib/admin/queries";
 import { BRAND_WORD } from "@/lib/experiences/brand-svg";
 import type { Experience } from "@/lib/experiences/types";
@@ -75,6 +82,7 @@ export default async function PortalOperadorPage({ params }: Params) {
   const theme = await fetchOperatorThemeBySlug(slug);
   if (!theme) notFound();
   const b = theme.branding;
+  const vestido = marcaLista(b);
 
   const sb = createSupabaseAdminClient();
   const { data } = await sb
@@ -95,7 +103,7 @@ export default async function PortalOperadorPage({ params }: Params) {
 
   return (
     <div className="opw">
-      <style dangerouslySetInnerHTML={{ __html: OPW_CSS + themeCssFor(".opw", b) }} />
+      <style dangerouslySetInnerHTML={{ __html: OPW_CSS + (vestido && b ? themeCssFor(".opw", b) : "") }} />
 
       <header className="opw-hero">
         {heroFoto ? (
@@ -105,7 +113,7 @@ export default async function PortalOperadorPage({ params }: Params) {
           </div>
         ) : null}
         <div className="opw-topbar">
-          {b.logoDarkUrl || b.logoUrl ? (
+          {b?.logoDarkUrl || b?.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img className="opw-logo" src={b.logoDarkUrl || b.logoUrl} alt={theme.name} />
           ) : (
@@ -155,7 +163,7 @@ export default async function PortalOperadorPage({ params }: Params) {
             {[theme.razonSocial, theme.legal?.domicilio].filter(Boolean).join(" · ")}
           </div>
         ) : null}
-        {b.footerLine ? <div className="legal">{b.footerLine}</div> : null}
+        {b?.footerLine ? <div className="legal">{b.footerLine}</div> : null}
         <a className="opw-powered" href="/caminante" aria-label="Powered by NMN Caminante">
           powered by
           <span dangerouslySetInnerHTML={{ __html: BRAND_WORD }} />

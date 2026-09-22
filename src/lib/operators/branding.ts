@@ -5,6 +5,7 @@
 // base. Sin tema (branding null o columna sin migrar) todo se ve Caminante:
 // compat total, cero riesgo para las páginas propias.
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { marcaLista } from "@/lib/operators/marca";
 
 // ── Contrato (operators.branding jsonb) ──────────────────────────────────────
 export type OperatorBranding = {
@@ -41,7 +42,15 @@ export type OperatorTheme = {
   operatorId: string;
   slug: string | null;
   name: string;
-  branding: OperatorBranding;
+  /**
+   * La marca tal como está capturada, o null si no hay nada. PUEDE ESTAR A
+   * MEDIAS (logo sin colores): quien viste una superficie pregunta
+   * `marcaCompleta` —o `marcaLista(branding)`— y sin ella pinta Caminante con el
+   * nombre/logo del operador. Nunca decide con `branding != null`.
+   */
+  branding: OperatorBranding | null;
+  /** Los dos colores válidos. Es `marcaLista(branding)`, ya resuelto. */
+  marcaCompleta: boolean;
   legal: OperatorLegal | null;
   /** Razón social del emisor (columna plana). El pie del portal la muestra. */
   razonSocial: string | null;
@@ -155,19 +164,19 @@ export async function fetchOperatorTheme(operatorId: string | null): Promise<Ope
       .maybeSingle();
     if (error || !data) return null; // columna sin migrar o fila ausente ⇒ sin tema
     const r = data as Row;
-    // ⚠️ EL MÍNIMO SON LOS DOS COLORES, NO EL LOGO — igual que `marcaLista` en
-    // marca.ts, que es la fuente única del contrato. Este candado SÍ exigía
-    // logo, y como aquí no falla nada visible, un operador con paleta y sin
-    // logo se quedaba sin tema en silencio: ni la pantalla truena ni el panel
-    // avisa. Exigirlo aquí además tapaba desde arriba un bug de la superficie
-    // (el portal pintaba `src=""`, que el navegador resuelve como la propia
-    // página); ese hoyo se cerró donde vive, en /caminante/o/[slug].
-    if (!r.branding?.colors?.primary || !r.branding?.colors?.accent) return null;
+    // ⚠️ UNA MARCA A MEDIAS NO ES «SIN TEMA». Hasta el 22 sep 2026 esto devolvía
+    // null si faltaba un color, y como el portal /caminante/o/[slug] hace 404
+    // sin tema, quitarle a Kéntro y a Nomádika los colores semilla que nadie
+    // aprobó APAGÓ sus dos portales enteros, sin un solo error. El tema se
+    // devuelve siempre que la operadora exista; `marcaCompleta` dice si se
+    // puede vestir, y cada superficie degrada a Caminante + su nombre/logo.
+    // El mínimo sigue siendo los dos colores (marca.ts), no el logo.
     return {
       operatorId: r.id,
       slug: r.slug,
       name: r.name,
-      branding: r.branding,
+      branding: r.branding ?? null,
+      marcaCompleta: marcaLista(r.branding),
       legal: r.legal ?? null,
       razonSocial: r.razon_social ?? null,
     };

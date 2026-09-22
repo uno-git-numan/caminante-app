@@ -2,6 +2,8 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { convenioAlDia, leerEstado, versionesConvenio } from "@/lib/operadores/convenio";
 import type { Candado, Etapa } from "./etapas";
+import { color, marcaLista } from "@/lib/operators/marca";
+import type { OperatorBranding } from "@/lib/operators/branding";
 
 // Reexportados para no mover cada llamada: lo puro vive en `etapas.ts`.
 export { ETAPAS } from "./etapas";
@@ -40,6 +42,13 @@ export type OperadoraPlataforma = {
   puedeCobrar: boolean;
   experienciasPublicadas: number;
   experienciasBorrador: number;
+  /**
+   * La marca, para avisar cuando está a medias (tarea #103). NO es un candado:
+   * no bloquea vender. Pero una marca incompleta apaga superficies enteras sin
+   * decirlo —los dos portales estuvieron en 404 por eso— y el aviso es lo que
+   * evita que se vuelva permanente por olvido.
+   */
+  marca: { completa: boolean; faltan: string[] };
   vendidoMes: number;
   vendidoHistorico: number;
   /** De su solicitud, si entró por el funnel. NULL = se dio de alta a mano. */
@@ -81,7 +90,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     sb
       .from("operators")
       .select(
-        "id, slug, name, es_la_casa, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, created_at",
+        "id, slug, name, es_la_casa, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, branding, created_at",
       ),
     sb.from("experiences").select("id, status, operator_id"),
     sb.from("reservations").select("experience_id, status, total_amount_mxn, created_at"),
@@ -192,6 +201,14 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     ];
 
     const cumplidos = candados.filter((c) => c.cumplido).length;
+
+    const b = (o.branding ?? null) as OperatorBranding | null;
+    const faltanMarca = [
+      !color(b?.colors?.primary) ? "color principal" : null,
+      !color(b?.colors?.accent) ? "color de acento" : null,
+      !b?.logoUrl ? "logo" : null,
+    ].filter((x): x is string => !!x);
+    const marca = { completa: marcaLista(b), faltan: faltanMarca };
     // Dos preguntas distintas, y la primera se contesta mucho antes que la
     // segunda. Nomádika hoy no puede ninguna de las dos, pero le falta UNA cosa
     // para armar y tres para cobrar: decirle «2 de 6» esconde justo eso.
@@ -222,6 +239,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       comisionDesde: (o.comision_desde as string) ?? null,
       candados,
       cumplidos,
+      marca,
       // La casa no tiene candados que cumplir: se vende a sí misma.
       // La casa no tiene candados: se le mide por si tiene algo publicado.
       puedeArmar: esLaCasa ? true : puedeArmar,
