@@ -42,39 +42,3 @@ export async function createProviderAction(formData: FormData) {
 
   redirect("/caminante/admin/providers?created=1");
 }
-
-export async function createListingAction(formData: FormData) {
-  await requireAdminOrRedirect();
-
-  const providerId = val(formData, "provider_id");
-  const type = val(formData, "type");
-  const title = val(formData, "title");
-  const description = val(formData, "description");
-  const destination = val(formData, "destination");
-  const vibe = val(formData, "vibe");
-  const difficulty = val(formData, "difficulty");
-  const status = val(formData, "status") || "draft";
-
-  if (!providerId || !type || !title) {
-    redirect("/caminante/admin/listings?error=missing_fields");
-  }
-
-  const supabase = createSupabaseAdminClient();
-
-  const { error } = await supabase.from("listings").insert({
-    provider_id: providerId,
-    type,
-    title,
-    description: description || null,
-    destination: destination || null,
-    vibe: vibe || null,
-    difficulty: difficulty || null,
-    status,
-  });
-
-  if (error) {
-    redirect(`/caminante/admin/listings?error=${encodeURIComponent(error.message)}`);
-  }
-
-  redirect("/caminante/admin/listings?created=1");
-}

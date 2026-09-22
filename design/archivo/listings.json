@@ -1,0 +1,28 @@
+[
+    {
+        "id": "ce98ccf9-0b78-4176-bdac-75f41f4d659e",
+        "provider_id": "003eb649-840a-4d57-8e7e-77bb2f7d699d",
+        "type": "activity",
+        "title": "Test Activity Chihuahua",
+        "description": "Actividad de prueba para validar inventario.",
+        "destination": "Chihuahua",
+        "vibe": "adventure",
+        "difficulty": "moderate",
+        "status": "published",
+        "created_at": "2026-03-08T19:34:31.050586+00:00",
+        "updated_at": "2026-03-08T19:34:31.050586+00:00"
+    },
+    {
+        "id": "14c3fbe9-d820-4d9e-b5b1-555bcef81b6e",
+        "provider_id": "414fb1b5-f73d-4e04-9d55-36b285299f10",
+        "type": "activity",
+        "title": "Test Activity Chihuahua",
+        "description": "Actividad de prueba para validar inventario.",
+        "destination": "Chihuahua",
+        "vibe": "adventure",
+        "difficulty": "moderate",
+        "status": "published",
+        "created_at": "2026-03-08T19:34:56.12475+00:00",
+        "updated_at": "2026-03-08T19:34:56.12475+00:00"
+    }
+]

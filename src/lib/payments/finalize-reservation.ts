@@ -1,9 +1,12 @@
 // Finaliza el pago de una RESERVA (experiencia-directa, esquema 0007).
 //
-// ⚠️ NO confundir con finalize.ts (finalizeSucceededPaymentIntent): ese opera sobre
-// el esquema marketplace DORMIDO (trips/bookings, nunca aplicado a esta base). Este
-// camino opera sobre contacts → reservations → payments y es el bueno para el cobro
-// por persona vía Stripe Payment Link. Se dispara con checkout.session.completed.
+// Este camino opera sobre contacts → reservations → payments y es el bueno para el
+// cobro por persona vía Stripe Payment Link. Se dispara con checkout.session.completed.
+//
+// (Hasta el 22 sep 2026 convivía con `finalize.ts`, el esquema marketplace
+// «dormido» de trips/bookings: siete rutas y dos libs consultando cuatro tablas
+// que nunca existieron en esta base. Se eliminó entero — no había datos que
+// migrar — y el webhook dejó de escuchar `payment_intent.succeeded`.)
 //
 // Idempotente por payments.provider_ref (unique) — Stripe reintenta el webhook y el
 // usuario puede pagar/cerrar varias veces; solo se registra un pago por PaymentIntent.

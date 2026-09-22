@@ -5,7 +5,7 @@
 // que viene no estaría en la lista y nacería visible para todos los operadores,
 // sin que nadie lo decidiera. Aquí nace CERRADA y hay que abrirla a mano.
 //
-// El panel tiene 31 rutas. Trece son de administración de la plataforma —el
+// El panel tiene 27 rutas. Once son de administración de la plataforma —el
 // dinero global, la facturación, las solicitudes de otros operadores, los
 // convenios, el cobro manual— y no tienen ninguna lectura sensata «filtrada a lo
 // suyo»: simplemente no son suyas. No están aquí.
@@ -68,8 +68,8 @@ const EXACTAS = new Set<string>([
 //     con rol operador la bandeja ni se consulta ni se pinta. Es el mismo
 //     principio de siempre —podar en el origen, no esconder con CSS— aplicado
 //     una capa más adentro porque la URL ya no distingue.
-//   · operadores · payouts · facturación · proveedores · listings ·
-//     soporte · cobro · accesos · social-cola — administración de la plataforma.
+//   · operadores · facturación · proveedores · cobro · accesos · social-cola —
+//     administración de la plataforma.
 
 /** Prefijos con parámetro: `/caminante/admin/eventos/<slug>`, etc. */
 const PREFIJOS = [
