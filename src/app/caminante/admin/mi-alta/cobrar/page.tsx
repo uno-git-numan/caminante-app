@@ -20,6 +20,7 @@ import { fetchMiAlta } from "@/lib/operadores/mi-alta";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { COLUMNAS_GATE, operadorListo, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
+import { refrescarEstado } from "@/lib/payments/connect";
 import CobrosPanel from "../../operadores/cobros/CobrosPanel";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ type Row = OperadorParaGate & {
 export default async function CobrarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ operadora?: string }>;
+  searchParams: Promise<{ operadora?: string; stripe?: string }>;
 }) {
   const alta = await fetchMiAlta();
   if (!alta) redirect("/caminante/admin");
@@ -59,6 +60,13 @@ export default async function CobrarPage({
     if (!propia) redirect("/caminante/admin/mi-alta");
     operatorId = propia;
   }
+
+  // ⚠️ VOLVER DE STRIPE NO SIGNIFICA QUE TERMINÓ. Stripe lo dice explícito: el
+  // `return_url` se dispara igual si abandonó a medias. Por eso al volver se le
+  // pregunta a Stripe en qué va de verdad, en vez de creerle al redirect — es
+  // el mismo criterio que `operadorListo`, que lee `charges_enabled` de Stripe
+  // y no lo que nosotros creamos.
+  if (q.stripe === "volvio") await refrescarEstado(operatorId).catch(() => {});
 
   const sb = createSupabaseAdminClient();
   const { data } = await sb

@@ -131,7 +131,18 @@ export async function crearLinkOnboarding(
   if (!alta.ok) return alta;
 
   const base = origen?.startsWith("https://") ? origen : CANONICAL;
-  const vuelta = `${base}/caminante/operador/cobros`;
+  // ⚠️ ESTA RUTA TIENE QUE EXISTIR, Y NO EXISTÍA. Apuntaba a
+  // `/caminante/operador/cobros`, que es el PERFIL PÚBLICO del operador
+  // (`/caminante/operador/[slug]`) con «cobros» de slug: 404 comprobado el
+  // 22 sep 2026. O sea que quien terminaba su alta de Stripe —el momento de
+  // mayor confianza de todo el onboarding— aterrizaba en una página de error.
+  //
+  // La página de cobros del operador vive en `mi-alta/cobrar` desde hoy; la de
+  // la casa, en `admin/operadores/cobros`. Se manda a la del operador porque
+  // quien acaba de hacer su KYC es él. Nadie lo notó porque Connect nunca se
+  // había usado: el primer operador en conectarse habría sido el primero en
+  // ver el 404.
+  const vuelta = `${base}/caminante/admin/mi-alta/cobrar`;
 
   const stripe = getStripeServerClient();
   try {
