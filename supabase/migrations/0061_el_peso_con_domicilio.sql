@@ -55,7 +55,7 @@ comment on column public.payments.canal_cobro is
 comment on column public.payments.stripe_account_id is
   'La cuenta conectada (acct_…) que recibió la transferencia. Obligatoria cuando canal_cobro = connect: sin ella no se puede conciliar ni revertir.';
 comment on column public.payments.transfer_id is
-  'El id de la transferencia (tr_…) que Stripe creó hacia la cuenta conectada. Para conciliar contra el estado de cuenta.';
+  'El id de la transferencia (tr_…) hacia la cuenta conectada, para rastrear el movimiento. ⚠️ NO leer su monto para conciliar: transfer.amount es el BRUTO (Stripe transfiere todo y luego le carga la comisión a esa cuenta). Lo que recibió la operadora es amount_mxn - fee_retenido_mxn.';
 comment on column public.payments.fee_retenido_mxn is
   'Lo que Stripe retuvo como application_fee = comisión + IVA. NO es el ingreso de la casa (eso es platform_fee_mxn, sin IVA): es el total del CFDI que Caminante le emite a la operadora.';
 

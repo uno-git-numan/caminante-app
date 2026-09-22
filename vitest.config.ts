@@ -26,7 +26,10 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["tests/unit/**/*.test.ts"],
+    // `tests/e2e/` entra en la misma corrida pero sus pruebas se saltan solas
+    // si no está `PROBAR_CONNECT=1` con una llave de prueba: cobran de verdad
+    // contra Stripe. Se prenden a mano, nunca en CI por accidente.
+    include: ["tests/unit/**/*.test.ts", "tests/e2e/**/*.test.ts"],
     environment: "node",
     // Sin reloj real: las pruebas de vigencia pasan `hoy` explícito. Si alguna
     // dependiera de la fecha de la máquina, fallaría un día y nadie sabría por qué.

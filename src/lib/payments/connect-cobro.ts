@@ -41,6 +41,20 @@
 // `platform_fee_mxn` sigue guardando la comisión SIN IVA: ése es el ingreso de
 // la casa, y es el número con el que cuadra el corte. Lo retenido se deriva.
 //
+// ⚠️ EL `transfer.amount` NO ES LO QUE RECIBIÓ LA OPERADORA. Probado contra
+// Stripe en test el 22 sep 2026, con una venta de $1,750 y $350 de comisión:
+//
+//   transfer.amount .............. $1,750.00   ← el BRUTO. Engaña.
+//   saldo de la cuenta conectada .. $1,400.00   ← lo que de verdad recibió
+//   application_fee ............... $350.00     cobrado contra esa cuenta
+//
+// Stripe transfiere el bruto y después le carga la comisión a la cuenta
+// conectada; el saldo es el neto. Quien concilie leyendo `transfer.amount` va a
+// reportarle a la operadora $350 de más por venta. Para conciliar se usa
+// `fee_retenido_mxn` (lo nuestro) contra `amount_mxn` (lo cobrado): la resta es
+// lo suyo. El `transfer_id` se guarda para poder rastrear el movimiento, no
+// para leer su monto.
+//
 // ⚠️ UN SOLO MOTOR. El monto sale del mismo `comisionDeVenta` que ya congela
 // `platform_fee_mxn` desde julio. Dos caminos de cobro, una sola aritmética: si
 // alguna vez divergen, el corte deja de cuadrar con el banco y nadie se entera
