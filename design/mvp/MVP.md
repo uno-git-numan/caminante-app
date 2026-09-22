@@ -376,3 +376,41 @@ prender F0**, no después del primer timbrado.
 ### P4 — las mentiras conocidas
 16. `seats_taken`.
 17. Aviso de marca incompleta (#103).
+
+---
+
+## 9 · Lo hecho (22 sep 2026)
+
+Cinco commits en `deploy/caminante-site`, los cinco con build verde en Vercel.
+Nada promovido a producción todavía: **la 0060 se aplica primero**.
+
+| Commit | Qué cerró |
+|---|---|
+| `8663233` | El marketplace muerto: `trips`/`bookings`/`listings`, 7 rutas y 2 libs sobre 4 tablas que no existen, más 2 stubs |
+| `e1673c8` | Las primeras pruebas del repo: 64 sobre comisión, cupo, copia, gate de Connect, marca, flujo y convenio |
+| `227f386` | §1 entero: la fila manda, la casa sube por la operadora, la dispensa como objeto (0060) |
+| `2490b29` | §5.2: `candadosDe`, una puerta para las tres, + invariante #20 |
+| `4088e22` | §H: la marca a medias degrada en vez de apagar; `mi-alta/marca` y `mi-alta/cobrar` |
+| `d7cac0c` | Los tres correos que faltaban después de aprobar |
+
+**Lo que cambia para una operadora:** puede completar su expediente sola (o la
+casa por ella), conectar su Stripe y subir su CSD desde su panel, capturar su
+marca, y cada candado que le toca lleva su puerta. Y se entera por correo
+cuando algo avanza.
+
+**Lo que cambia para el dinero:** la caja pregunta por los tres candados, no
+por uno. ⚠️ Al promover, `correr-entre-volcanes` deja de vender hasta que
+exista su dispensa — a propósito: hoy vende porque el sistema no se dio cuenta.
+
+### Lo que sigue bloqueado, y en quién
+
+| Bloqueo | Quién |
+|---|---|
+| Aplicar la 0060 (`sha256 e84fa259…60b2`) | Luis |
+| Fecha de la dispensa de Kéntro (máx. 90 días) | Luis |
+| Staging: proyecto Supabase aparte + llaves | Luis |
+| Connect habilitado en Stripe + `crear-webhook-connect.sh` | Luis |
+| Texto del convenio cerrado por el abogado | Luis |
+| Vercel Pro · Supabase Pro · Resend Pro | Luis |
+| La bifurcación de cobro por Connect | yo, en cuanto haya staging |
+| El guion E2E «Operadora Cero» | yo, en cuanto haya staging |
