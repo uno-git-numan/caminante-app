@@ -12,6 +12,7 @@ import type { Experience } from "@/lib/experiences/types";
 // Los formateadores puros viven en ./formato y NO se re-exportan desde aquí:
 // re-exportarlos dejaría el mismo hoyo, un componente cliente importándolos
 // de un módulo que arrastra next/headers.
+import { repartoTotal } from "@/lib/payments/lo-que-recibe";
 import { cdmxDay, formatDiaMes, formatFechaCorta, iniciales, metodoLabel } from "./formato";
 
 // Zona horaria de negocio: cortes de mes y "próximas salidas" se calculan aquí.
@@ -56,8 +57,26 @@ export type UpcomingSlot = {
 };
 
 export type OverviewKpis = {
+  /**
+   * ⚠️ PARA UN OPERADOR ESTO ES LO QUE RECIBE, NO LO QUE SE COBRÓ.
+   *
+   * Una venta de $1,750 le deja $1,400: Stripe retiene la comisión de la
+   * plataforma antes de depositarle. Su panel tiene que decir el mismo número
+   * que su cuenta de Stripe — si dijera el bruto, reclamaría $350 por venta que
+   * nunca fueron suyos, y tendría razón en reclamar porque se lo enseñamos
+   * nosotros. Para la casa, bruto y neto son lo mismo: no se cobra a sí misma.
+   *
+   * `cobradoBruto` y `retenidoPlataforma` acompañan para poder desglosarlo,
+   * igual que Stripe: bruto, comisiones, neto.
+   */
   ingresosTotal: number;
   ingresosMes: number;
+  /** Lo que pagaron los clientes, antes de la comisión. */
+  cobradoBruto: number;
+  cobradoBrutoMes: number;
+  /** Lo que retuvo la plataforma (comisión + IVA). Cero para la casa. */
+  retenidoPlataforma: number;
+  retenidoPlataformaMes: number;
   mesLabel: string;
   ingresosPorExperiencia: { nombre: string; monto: number }[];
   ultimosPagos: PagoLinea[];
@@ -115,6 +134,8 @@ type PayRow = {
   reservation_id: string;
   contact_id: string | null;
   amount_mxn: number;
+  platform_fee_mxn?: number | null;
+  fee_retenido_mxn?: number | null;
   status: string;
   method: string | null;
   paid_at: string | null;
@@ -194,7 +215,13 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
     sb
       .from("reservations")
       .select("id, experience_id, slot_id, contact_id, num_people, total_amount_mxn, status"),
-    sb.from("payments").select("reservation_id, contact_id, amount_mxn, status, method, paid_at"),
+    // `platform_fee_mxn` y `fee_retenido_mxn` no son decoración: sin ellas el
+    // reparto no se puede hacer y el operador vería el bruto (ver OverviewKpis).
+    sb
+      .from("payments")
+      .select(
+        "reservation_id, contact_id, amount_mxn, status, method, paid_at, platform_fee_mxn, fee_retenido_mxn",
+      ),
     sb.from("registrations").select("reservation_id, contact_id, signed_at"),
     sb
       .from("experience_feedback")
@@ -239,11 +266,16 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
     .filter((p) => p.status === "paid")
     .sort((a, b) => (b.paid_at || "").localeCompare(a.paid_at || ""));
 
-  const hoyMesCdmx = cdmxDay(new Date()).slice(0, 7);
-  const ingresosTotal = paidPays.reduce((s, p) => s + Number(p.amount_mxn || 0), 0);
-  const ingresosMes = paidPays
-    .filter((p) => p.paid_at && cdmxDay(p.paid_at).slice(0, 7) === hoyMesCdmx)
-    .reduce((s, p) => s + Number(p.amount_mxn || 0), 0);
+  const hoyMesCdmx = cdmxDay(new Date());
+  const delMes = (p: PayRow) => p.paid_at && cdmxDay(p.paid_at).slice(0, 7) === hoyMesCdmx.slice(0, 7);
+
+  // ⚠️ EL BRUTO NO ES EL INGRESO DE UN OPERADOR. Ver `lo-que-recibe.ts`: de
+  // $1,750 le llegan $1,400. La casa sí ve el bruto —no se cobra comisión a sí
+  // misma— y por eso el reparto sólo se aplica cuando hay `operatorId`.
+  const repartoHist = repartoTotal(paidPays);
+  const repartoMes = repartoTotal(paidPays.filter(delMes));
+  const ingresosTotal = operatorId ? repartoHist.recibeOperadora : repartoHist.cobrado;
+  const ingresosMes = operatorId ? repartoMes.recibeOperadora : repartoMes.cobrado;
   const mesLabel = new Date().toLocaleDateString("es-MX", {
     timeZone: TZ,
     month: "long",
@@ -424,6 +456,10 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
     kpis: {
       ingresosTotal,
       ingresosMes,
+      cobradoBruto: repartoHist.cobrado,
+      cobradoBrutoMes: repartoMes.cobrado,
+      retenidoPlataforma: operatorId ? repartoHist.retenido : 0,
+      retenidoPlataformaMes: operatorId ? repartoMes.retenido : 0,
       mesLabel,
       ingresosPorExperiencia,
       ultimosPagos,
@@ -773,7 +809,13 @@ export async function fetchReservas(f: ReservasFiltro = {}): Promise<{
     sb.from("contacts").select("id, full_name, email, phone, city"),
     sb.from("experiences").select("id, slug, data, operator_id"),
     sb.from("experience_slots").select("id, label, starts_at"),
-    sb.from("payments").select("reservation_id, contact_id, amount_mxn, status, method, paid_at"),
+    // `platform_fee_mxn` y `fee_retenido_mxn` no son decoración: sin ellas el
+    // reparto no se puede hacer y el operador vería el bruto (ver OverviewKpis).
+    sb
+      .from("payments")
+      .select(
+        "reservation_id, contact_id, amount_mxn, status, method, paid_at, platform_fee_mxn, fee_retenido_mxn",
+      ),
     sb.from("registrations").select("reservation_id, signed_at, participants, minors"),
   ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [
     {

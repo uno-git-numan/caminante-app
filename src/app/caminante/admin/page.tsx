@@ -255,14 +255,32 @@ export default async function AdminHomePage({
         </div>
 
         <div className="kpis">
-          {/* KPI 1 · Ingresos */}
+          {/* KPI 1 · Ingresos
+              ⚠️ Para un operador este número es LO QUE RECIBE, no lo que se
+              cobró: Stripe le retiene la comisión antes de depositarle. Se
+              desglosa como lo desglosa Stripe —bruto, comisiones, neto— para
+              que el panel y su cuenta digan lo mismo. Que haya algo retenido es
+              lo que distingue a un operador de la casa; no hace falta preguntar
+              el rol otra vez. */}
           <div className="kpi glass xhead" data-x="kx1">
             <div className="k-lbl">
-              Ingresos del mes <span className="chev2">▾</span>
+              {kpis.retenidoPlataformaMes > 0 ? "Recibes este mes" : "Ingresos del mes"}{" "}
+              <span className="chev2">▾</span>
             </div>
             <div className="k-val">{formatMXN(kpis.ingresosMes)}</div>
             <div className="k-sub">
-              Histórico: <b>{formatMXN(kpis.ingresosTotal)}</b>
+              {kpis.retenidoPlataformaMes > 0 ? (
+                <>
+                  De {formatMXN(kpis.cobradoBrutoMes)} cobrados, menos{" "}
+                  {formatMXN(kpis.retenidoPlataformaMes)} de comisión.
+                  <br />
+                  Histórico recibido: <b>{formatMXN(kpis.ingresosTotal)}</b>
+                </>
+              ) : (
+                <>
+                  Histórico: <b>{formatMXN(kpis.ingresosTotal)}</b>
+                </>
+              )}
             </div>
             <div className="spark">
               {kpis.sparkMeses.map((m, i) => (
