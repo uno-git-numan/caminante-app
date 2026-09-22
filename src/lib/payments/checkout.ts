@@ -16,7 +16,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
-import { deslindeListo } from "@/lib/experiences/flujo-venta";
+import { candadosDe } from "@/lib/experiences/candados-venta";
 import { fetchComplementos, resolverElegidos } from "@/lib/experiences/complementos";
 import { comisionDeVenta, sinIva, type Regla } from "@/lib/operadores/comision";
 import { reglaComisionDeOperador } from "@/lib/operadores/regla";
@@ -60,7 +60,7 @@ export async function createCheckout(formData: FormData) {
 
   const { data: expRow } = await sb
     .from("experiences")
-    .select("id, data, operator_id")
+    .select("id, data, operator_id, actividad")
     .eq("slug", slug)
     .maybeSingle();
   if (!expRow) redirect(`/caminante/experiencias/${slug}`);
@@ -68,10 +68,18 @@ export async function createCheckout(formData: FormData) {
   const experienceId = expRow.id as string;
   if (!experience) redirect(back("experiencia"));
 
-  // REGLA: NO SE COBRA sin registro y deslinde completo. Defensa en profundidad:
-  // aunque algo se cuele publicado sin deslinde (como pasó con Hacienda San
-  // Andrés, caso Enyd 9 jul), el dinero no entra sin el flujo legal completo.
-  if (!deslindeListo(experience).ok) redirect(back("deslinde"));
+  // REGLA: NO SE COBRA sin los candados de venta — deslinde completo (caso Enyd,
+  // 9 jul), expediente de la actividad aprobado (o dispensado por escrito) y
+  // quien opera listo para cobrar. Defensa en profundidad: aunque algo se cuele
+  // publicado, el dinero no entra. Hasta el 22 sep 2026 aquí sólo se preguntaba
+  // por el deslinde; `correr-entre-volcanes` vendió con el expediente incompleto
+  // porque la caja nunca preguntó (design/mvp/MVP.md §5.2).
+  const venta = await candadosDe("vender", {
+    data: experience,
+    operator_id: (expRow.operator_id as string | null) ?? null,
+    actividad: (expRow.actividad as string | null) ?? null,
+  });
+  if (!venta.ok) redirect(back(venta.motivo));
 
   const { data: slot } = await sb
     .from("experience_slots")

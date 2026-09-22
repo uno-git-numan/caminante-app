@@ -38,6 +38,12 @@ const EXACTAS = new Set<string>([
   "/caminante/admin/mi-alta",
   "/caminante/admin/mi-alta/expediente",
   "/caminante/admin/mi-alta/convenio",
+  // Conectar Stripe y subir el CSD vivían SOLO en `/admin/operadores/cobros`,
+  // que es de la casa. La página lo decía desde el 18 ago: «cuando la F3.2
+  // aterrice, esto se mueve a la superficie del operador». La F3.2 aterrizó y
+  // esto no se movió: la operadora no podía conectar su propia cuenta. Ahora
+  // tiene su puerta (design/mvp/MVP.md, Fase 1.3).
+  "/caminante/admin/mi-alta/cobrar",
 ]);
 
 // FUERA a propósito, y conviene saber por qué:

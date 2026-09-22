@@ -27,6 +27,61 @@ const hay = (rel) => existsSync(join(raiz, rel));
 /** @type {{nombre:string, comprueba:() => string|null}[]} */
 const REGLAS = [
   {
+    nombre: "Los candados de venta viven en una sola puerta",
+    comprueba() {
+      // Publicar desde el formulario, publicar desde el tablero y cobrar son
+      // TRES puertas hacia lo mismo. Cada una preguntaba por su cuenta qué
+      // candados aplicaban, y así se separaron sin que nadie lo decidiera:
+      // el candado por actividad estaba en las dos de publicar y NO en la
+      // caja, y `operadorListo` prometía en su encabezado estar en las tres y
+      // no estaba en ninguna. `correr-entre-volcanes` vendió con el expediente
+      // de senderismo incompleto porque nadie preguntó al cobrar (22 sep 2026,
+      // design/mvp/MVP.md §5.2).
+      //
+      // Desde entonces las cuatro puertas (las dos de publicar, la caja, y la
+      // página de reservar que avisa antes del submit) llaman SOLO a
+      // `candadosDe` (lib/experiences/candados-venta.ts). Esta regla vigila que
+      // ninguna vuelva a importar un candado suelto y que ninguna deje de
+      // llamar a la puerta única.
+      const puertas = [
+        "src/lib/payments/checkout.ts",
+        "src/app/caminante/reservar/[slug]/page.tsx",
+        "src/lib/experiences/actions.ts",
+        "src/lib/admin/eventos-actions.ts",
+      ];
+      const sueltos = ["deslindeListo", "listaParaPublicar", "actividadListaParaPublicar", "operadorListo"];
+      if (!hay("src/lib/experiences/candados-venta.ts")) {
+        return "Falta lib/experiences/candados-venta.ts, la puerta única de los candados de venta.";
+      }
+      for (const rel of puertas) {
+        const src = leer(rel);
+        if (!src) return `Falta ${rel}: es una de las puertas de venta y esta regla la vigila.`;
+        if (!/\bcandadosDe\(/.test(src)) {
+          return [
+            `${rel} ya no llama a candadosDe().`,
+            "Es una de las puertas de venta. Sin la puerta única, esa puerta",
+            "vuelve a preguntar por su cuenta —o a no preguntar— y los tres",
+            "candados se separan otra vez sin que nadie lo decida.",
+          ].join("\n    ");
+        }
+        // Sólo se miran los IMPORTS: un comentario que mencione `deslindeListo`
+        // no es una llamada, y una llamada sin import no compila.
+        const imports = src.match(/^import[^;]*;/gm) ?? [];
+        for (const imp of imports) {
+          const suelto = sueltos.find((n) => new RegExp(`\\b${n}\\b`).test(imp));
+          if (suelto) {
+            return [
+              `${rel} importa \`${suelto}\` directo.`,
+              "Los candados de venta se preguntan por candadosDe() y por nada más:",
+              "importar uno suelto es el primer paso para olvidar los otros dos.",
+            ].join("\n    ");
+          }
+        }
+      }
+      return null;
+    },
+  },
+  {
     nombre: "El cupo no se escribe dos veces",
     comprueba() {
       // El cupo vive en `data.capacity` y TODO lo que lo enseña lo deriva

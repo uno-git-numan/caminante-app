@@ -3,7 +3,8 @@
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { alcanceActual, esOperador, alcanzaSlug, puedeEditarSlug } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { actividadListaParaPublicar, rutaDelCandado, etiquetaDelCandado } from "@/lib/operadores/candado-actividad";
+import { rutaDelCandado, etiquetaDelCandado } from "@/lib/operadores/candado-actividad";
+import { candadosDe } from "./candados-venta";
 import { limpiarParaCopia } from "./copiar-contrato";
 import type { Experience } from "./types";
 
@@ -100,22 +101,44 @@ export async function saveExperience(
   const dueño = previa ? dueñoPrevio : esOperador(alcance) ? alcance.operatorId : null;
   const actividad = (exp.actividad ?? "").trim() || null;
 
-  // ⚠️ EL CANDADO NO TIRA EL TRABAJO. Si se pidió publicar y el expediente de
-  // esa actividad no está aprobado, la experiencia se guarda entera —igual de
-  // completa— pero en borrador, y se devuelve a dónde ir. Rechazar el guardado
-  // castigaría por intentar publicar, que es justo lo que queremos que hagan.
+  // ⚠️ EL CANDADO NO TIRA EL TRABAJO. Si se pidió publicar y algún candado de
+  // venta está cerrado —deslinde o encuesta, expediente de la actividad, o
+  // quien opera sin estar listo para cobrar— la experiencia se guarda entera,
+  // igual de completa, pero en borrador, y se devuelve a dónde ir. Rechazar el
+  // guardado castigaría por intentar publicar, que es justo lo que queremos.
+  //
+  // Los tres candados salen de `candadosDe`, la misma puerta que usan el
+  // tablero y la caja. Aquí antes sólo se preguntaba por la actividad (el
+  // deslinde lo checaba el formulario, del lado del cliente — o sea, un POST
+  // directo lo brincaba).
   let status = exp.status;
   let candado: { mensaje: string; ruta: string; nombre: string | null; etiqueta: string } | undefined;
   if (exp.status === "published") {
-    const veredicto = await actividadListaParaPublicar(dueño, actividad);
+    const veredicto = await candadosDe("publicar", { data: { ...exp, slug }, operator_id: dueño, actividad });
     if (!veredicto.ok) {
       status = "draft";
-      candado = {
-        mensaje: veredicto.mensaje,
-        ruta: rutaDelCandado(slug, veredicto.actividad, veredicto.motivo),
-        nombre: veredicto.nombre,
-        etiqueta: etiquetaDelCandado(veredicto.nombre, veredicto.motivo),
-      };
+      candado =
+        veredicto.motivo === "actividad" && veredicto.candado
+          ? {
+              mensaje: veredicto.mensaje,
+              ruta: rutaDelCandado(slug, veredicto.candado.actividad, veredicto.candado.motivo),
+              nombre: veredicto.candado.nombre,
+              etiqueta: etiquetaDelCandado(veredicto.candado.nombre, veredicto.candado.motivo),
+            }
+          : veredicto.motivo === "operadora"
+            ? {
+                mensaje: veredicto.mensaje,
+                ruta: "/caminante/admin/mi-alta/cobrar",
+                nombre: null,
+                etiqueta: "Ir a Cobrar (Stripe, CSD y datos fiscales)",
+              }
+            : {
+                // Lo que falta está en este mismo formulario.
+                mensaje: veredicto.mensaje,
+                ruta: `/caminante/admin/experiencias/${slug}`,
+                nombre: null,
+                etiqueta: "Revisar el formulario",
+              };
     }
   }
 

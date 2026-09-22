@@ -17,8 +17,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { puedeEditarExperiencia, puedeEditarSlot } from "@/lib/auth/alcance";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
-import { listaParaPublicar } from "@/lib/experiences/flujo-venta";
-import { actividadListaParaPublicar } from "@/lib/operadores/candado-actividad";
+import { candadosDe } from "@/lib/experiences/candados-venta";
 
 export type AdminActionResult = { ok: true } | { ok: false; error: string };
 
@@ -320,22 +319,22 @@ export async function setExperienceStatus(input: {
   // REGLA DE LUIS: nada se publica sin TODO prendido — deslinde completo (caso
   // Enyd, 9 jul) y encuesta activa (caso hongos, 3 ago). Este camino antes no
   // validaba nada y era el bypass del gate del formulario.
+  // Los tres candados de venta, por la misma puerta que el formulario y la
+  // caja (`candadosDe`). Aquí se BLOQUEA en vez de degradar a borrador —ya está
+  // en borrador— así que no se pierde nada por negarse.
   if (input.status === "published") {
-    const flujo = listaParaPublicar(row.data as import("@/lib/experiences/types").Experience);
-    if (!flujo.ok) {
+    const veredicto = await candadosDe("publicar", {
+      data: row.data as import("@/lib/experiences/types").Experience,
+      operator_id: (row as { operator_id: string | null }).operator_id,
+      actividad: (row as { actividad: string | null }).actividad,
+    });
+    if (!veredicto.ok) {
       return fail(
-        `No se puede publicar todavía: ${flujo.faltantes.join(" ")} ` +
-          `Complétalo en el formulario de la experiencia.`,
+        veredicto.motivo === "flujo"
+          ? `No se puede publicar todavía: ${veredicto.mensaje} Complétalo en el formulario de la experiencia.`
+          : veredicto.mensaje,
       );
     }
-    // Y el candado por actividad: si la opera alguien más, su expediente de esa
-    // actividad tiene que estar aprobado. Aquí sí se BLOQUEA en vez de degradar
-    // a borrador —ya está en borrador— así que no se pierde nada por negarse.
-    const veredicto = await actividadListaParaPublicar(
-      (row as { operator_id: string | null }).operator_id,
-      (row as { actividad: string | null }).actividad,
-    );
-    if (!veredicto.ok) return fail(veredicto.mensaje);
   }
   const data = { ...(row.data as Record<string, unknown>), status: input.status };
   const { error } = await sb

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cleanGrupoToken, fetchSlotAvailability } from "@/lib/experiences/availability";
-import { deslindeListo } from "@/lib/experiences/flujo-venta";
+import { candadosDe } from "@/lib/experiences/candados-venta";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { fetchThemeForExperience } from "@/lib/operators/branding";
 import type { Experience } from "@/lib/experiences/types";
@@ -23,6 +23,11 @@ const errorMsgs: Record<string, string> = {
   cancelado: "Cancelaste el pago. Cuando quieras, aquí seguimos.",
   stripe: "No pudimos abrir el pago. Inténtalo de nuevo en un momento.",
   deslinde: "Estamos terminando de preparar esta experiencia. Escríbenos y te avisamos en cuanto abra.",
+  // Los tres candados de venta (`candadosDe`), con el mismo tono: al viajero
+  // no se le explica el expediente de nadie, se le dice que aún no abre.
+  flujo: "Estamos terminando de preparar esta experiencia. Escríbenos y te avisamos en cuanto abra.",
+  actividad: "Esta experiencia todavía no abre la reserva en línea. Escríbenos y te avisamos en cuanto esté lista.",
+  operadora: "Esta experiencia todavía no abre la reserva en línea. Escríbenos y te avisamos en cuanto esté lista.",
 };
 
 export default async function ReservarPage({
@@ -44,7 +49,7 @@ export default async function ReservarPage({
   const sb = createSupabaseAdminClient();
   const { data: expRow } = await sb
     .from("experiences")
-    .select("id, data, status")
+    .select("id, data, status, operator_id, actividad")
     .eq("slug", slug)
     .maybeSingle();
   if (!expRow || expRow.status !== "published") notFound();
@@ -107,7 +112,15 @@ export default async function ReservarPage({
   const tema = await fetchThemeForExperience(slug);
 
   const errMsg = error ? errorMsgs[error] ?? decodeURIComponent(error) : null;
-  const deslindeOk = deslindeListo(experience).ok;
+  // Los tres candados de venta, los mismos que va a preguntar `createCheckout`:
+  // mejor un aviso claro aquí que fallar después del submit.
+  const deslindeOk = (
+    await candadosDe("vender", {
+      data: experience,
+      operator_id: (expRow.operator_id as string | null) ?? null,
+      actividad: (expRow.actividad as string | null) ?? null,
+    })
+  ).ok;
   // Rótulo del subtítulo de la cabecera móvil: el estado (liga con la página de
   // destino) y si no, la línea de la tarjeta. Nunca un lugar inventado.
   const lugar = experience?.estado || experience?.cardPloc || "";
@@ -133,9 +146,8 @@ export default async function ReservarPage({
       ) : null}
 
       <div className="mt-8">
-        {!deslindeListo(experience).ok ? (
-          // REGLA: sin deslinde completo NO se vende. Mejor un aviso claro aquí
-          // que fallar después del submit (createCheckout rebota igual).
+        {!deslindeOk ? (
+          // REGLA: sin los candados de venta NO se vende (createCheckout rebota igual).
           <div className="rounded-2xl border border-sand bg-white p-6 text-sm text-olive">
             Estamos terminando de preparar esta experiencia — todavía no abre la reserva en línea.{" "}
             <a href="mailto:uno@numanhub.com" className="font-semibold text-lagoon underline">
