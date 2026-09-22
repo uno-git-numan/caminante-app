@@ -1,5 +1,6 @@
 import { getStripeServerClient } from "@/lib/payments/stripe";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { emailStripeListo } from "@/lib/operadores/emails";
 
 // Stripe Connect · alta y estado de la cuenta del operador.
 //
@@ -230,13 +231,27 @@ export async function guardarEstado(
   // última: se sella solo si estaba vacía. Stripe puede apagar y volver a
   // encender los cobros (un documento que vence, una revisión); si se
   // re-escribiera, se perdería cuándo empezó de verdad a operar.
-  if (chargesEnabled && !(await yaSellado(operadorId))) {
+  const primeraVez = chargesEnabled && !(await yaSellado(operadorId));
+  if (primeraVez) {
     patch.stripe_onboarded_at = new Date().toISOString();
   }
 
   const sb = createSupabaseAdminClient();
   const { error } = await sb.from("operators").update(patch).eq("id", operadorId);
   if (error) return { ok: false, error: error.message };
+
+  // ⚠️ SÓLO LA PRIMERA VEZ, y por eso cuelga del mismo sello. Stripe apaga y
+  // vuelve a encender los cobros (un documento que vence, una revisión), y esto
+  // lo escribe el webhook `account.updated`: sin esa condición, cada vaivén
+  // mandaría otra vez «¡ya puedes cobrar!» y el correo dejaría de significar
+  // algo. Un fallo al enviar no tumba el guardado: el estado ya es verdad.
+  if (primeraVez) {
+    const { data } = await sb.from("operators").select("email, name").eq("id", operadorId).maybeSingle();
+    const op = data as { email: string | null; name: string | null } | null;
+    if (op?.email) {
+      await emailStripeListo(op.email, op.name).catch((e) => console.error("emailStripeListo:", e));
+    }
+  }
 
   return { ok: true, data: estado };
 }

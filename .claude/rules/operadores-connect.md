@@ -54,8 +54,11 @@ cuando Stripe ya lo apagó.
 ## El gate: `lib/operators/listo-para-vender.ts`
 
 `operadorListo(op)` es el espejo de `deslindeListo` (ver `rules/experiencias.md`):
-si el flujo no está completo, **no se vende**. Cinco condiciones, todas
-verificables — ninguna es casilla de honor:
+si el flujo no está completo, **no se vende**. ⚠️ Hasta el 22 sep 2026 **nadie lo
+llamaba en ninguna puerta** aunque su encabezado prometiera tres; hoy lo llama
+`candadosDe` (`lib/experiences/candados-venta.ts`), que es la única puerta de
+publicar y cobrar. Cinco condiciones, todas verificables — ninguna es casilla
+de honor:
 
 1. `stripe_charges_enabled` — lo dice **Stripe**, no nosotros. Lo escribe el
    webhook `account.updated`; que exista la cuenta no significa KYC completo.
@@ -79,7 +82,10 @@ una columna, llega `undefined` y el gate la reporta faltante estando llena.
 | Alta de cuenta, Account Links, estado | `lib/payments/connect.ts` |
 | Acciones del panel | `lib/payments/connect-actions.ts` |
 | Gate | `lib/operators/listo-para-vender.ts` |
-| Pantallas de onboarding | `admin/operadores/cobros/` |
+| Pantallas de onboarding (casa, todas) | `admin/operadores/cobros/` |
+| Cobrar, marca y expediente (la operadora, lo suyo; la casa por ella con `?operadora=`) | `admin/mi-alta/cobrar/`, `admin/mi-alta/marca/`, `admin/mi-alta/expediente/` |
+| Los candados de venta, UNA puerta para publicar×2 y cobrar | `lib/experiences/candados-venta.ts` (invariante #20) |
+| Dispensa del candado de actividad (con dueño y caducidad) | `operator_activity_dispensas` (0060), `lib/operadores/candado-actividad.ts` |
 | Convenio y datos fiscales | `admin/operadores/ConvenioForm.tsx` |
 | Perfil público | `admin/operadores/OperadorForm.tsx` → `/caminante/operador/<slug>` |
 | Portal con su marca | `lib/operators/branding.ts` → `/caminante/o/<slug>` |

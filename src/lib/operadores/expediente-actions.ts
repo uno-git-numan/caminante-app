@@ -23,7 +23,8 @@ import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { operadoraObjetivo } from "@/lib/auth/alcance";
 import { correoEnSesion } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { ACTIVIDADES, GENERALES, requisitosDe } from "./actividades";
+import { ACTIVIDADES, GENERALES, nombreDeActividad, requisitosDe } from "./actividades";
+import { emailActividadAprobada, emailExpedienteDevuelto } from "./emails";
 
 const BUCKET = "expedientes";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -228,6 +229,21 @@ export async function mandarARevision(actividad: string, operadora?: string | nu
 
 // ── Lado de la casa ──────────────────────────────────────────────────────────
 
+/**
+ * A quién le escribimos por su expediente.
+ *
+ * ⚠️ Un correo que no sale NO tumba la revisión. El veredicto ya está guardado
+ * y es lo que manda; quedarse sin avisar es malo, pero devolver un error
+ * después de haber escrito en la base sería peor: el admin volvería a apretar
+ * y la fila ya estaba resuelta.
+ */
+async function correoDe(operatorId: string): Promise<{ email: string; nombre: string | null } | null> {
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb.from("operators").select("email, name").eq("id", operatorId).maybeSingle();
+  const r = data as { email: string | null; name: string | null } | null;
+  return r?.email ? { email: r.email, nombre: r.name } : null;
+}
+
 export async function resolverDocumento(id: string, aprobado: boolean, motivo?: string): Promise<Res> {
   if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo admin." };
   const razon = (motivo ?? "").trim();
@@ -248,6 +264,31 @@ export async function resolverDocumento(id: string, aprobado: boolean, motivo?: 
     console.error("resolverDocumento:", error);
     return { ok: false, error: "No se pudo guardar la revisión." };
   }
+
+  // Un rechazo se AVISA. Sin esto el papel se quedaba en rojo dentro de una
+  // pantalla a la que ella no tenía por qué volver a entrar ese día, y el
+  // expediente se paraba sin que nadie supiera por qué.
+  if (!aprobado) {
+    const { data: doc } = await sb
+      .from("operator_documents")
+      .select("operator_id, actividad, documento")
+      .eq("id", id)
+      .maybeSingle();
+    const d = doc as { operator_id: string; actividad: string | null; documento: string } | null;
+    if (d) {
+      const quien = await correoDe(d.operator_id);
+      const catalogo =
+        d.actividad === null
+          ? GENERALES.find((g) => g.slug === d.documento)
+          : requisitosDe(d.actividad).propios.find((x) => x.slug === d.documento);
+      if (quien) {
+        await emailExpedienteDevuelto(quien.email, quien.nombre, catalogo?.nombre ?? d.documento, razon).catch((e) =>
+          console.error("emailExpedienteDevuelto:", e),
+        );
+      }
+    }
+  }
+
   revalidatePath(RUTA);
   return { ok: true };
 }
@@ -301,6 +342,18 @@ export async function resolverActividad(
     console.error("resolverActividad:", error);
     return { ok: false, error: "No se pudo guardar la decisión." };
   }
+
+  // El veredicto se AVISA, en los dos sentidos. Aprobar sin decirlo es dejarla
+  // esperando algo que ya pasó; devolver sin decirlo es peor.
+  const quien = await correoDe(operatorId);
+  if (quien) {
+    const nombre = nombreDeActividad(actividad);
+    const correo = aprobada
+      ? emailActividadAprobada(quien.email, quien.nombre, nombre)
+      : emailExpedienteDevuelto(quien.email, quien.nombre, `Tu expediente de ${nombre.toLowerCase()}`, razon);
+    await correo.catch((e) => console.error("aviso de actividad:", e));
+  }
+
   revalidatePath(RUTA);
   revalidatePath("/caminante/admin/plataforma/comunidad");
   return { ok: true };

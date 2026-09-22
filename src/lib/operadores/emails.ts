@@ -244,3 +244,65 @@ export async function emailRechazoOperador(to: string, responsable: string | nul
   const text = `Gracias por escribirnos, ${n}.\n\nPor ahora no vamos a avanzar con tu solicitud. El programa es chico y curado.\n\nSi cambia algo de lo que faltaba, vuelve a aplicar: lo leemos otra vez con gusto.\n\nCaminante by NUMAN · uno@numanhub.com`;
   return enviar(to, "Sobre tu solicitud para operar con Caminante", html, text);
 }
+
+// ── El ciclo después de aprobar ──────────────────────────────────────────────
+//
+// Los seis de arriba cubren el EMBUDO: aplicar, llamada, expediente, alta o no.
+// Después de eso el sistema se quedaba mudo, y justo ahí es donde la pelota va
+// y viene: le aprobamos una actividad, le devolvemos un papel, Stripe la
+// habilita. Nada de eso llegaba a su correo — tenía que entrar a adivinar. Un
+// paso que avanza sin avisar es un paso que nadie ve avanzar.
+
+// 7 · Su actividad quedó APROBADA: ya puede publicar de eso.
+export async function emailActividadAprobada(
+  to: string,
+  responsable: string | null,
+  actividad: string,
+): Promise<boolean> {
+  const n = firstName(responsable);
+  const a = esc(actividad.toLowerCase());
+  const html = shell(
+    h1(`Tu expediente de ${a} está aprobado, ${n}.`) +
+      p(`Ya puedes publicar y vender experiencias de ${a}. Lo revisamos documento por documento: de esto depende que nadie se lastime en una montaña, y por eso tarda.`) +
+      p("Tus otras actividades siguen su propio camino — que una esté a medias no detiene a las demás.") +
+      boton("Armar mi experiencia", `${SITE}/caminante/admin/experiencias/nueva`),
+  );
+  const text = `Tu expediente de ${actividad.toLowerCase()} está aprobado, ${n}.\n\nYa puedes publicar y vender experiencias de esa actividad.\n\n${SITE}/caminante/admin/experiencias/nueva\n\nCaminante by NUMAN · uno@numanhub.com`;
+  return enviar(to, `Tu expediente de ${actividad.toLowerCase()} está aprobado`, html, text);
+}
+
+// 8 · Algo de su expediente necesita corrección.
+//
+// ⚠️ SIEMPRE CON EL MOTIVO. Un «no» mudo deja a alguien sin saber qué corregir,
+// y es lo que convierte una revisión en una discusión. La base lo exige con un
+// check; este correo lo repite porque es donde ella lo va a leer.
+export async function emailExpedienteDevuelto(
+  to: string,
+  responsable: string | null,
+  que: string,
+  motivo: string,
+): Promise<boolean> {
+  const n = firstName(responsable);
+  const html = shell(
+    h1(`Una cosa de tu expediente, ${n}.`) +
+      p(`<b>${esc(que)}</b> necesita corrección:`) +
+      p(esc(motivo)) +
+      p("Lo demás que ya subiste se queda como está. Cuando lo reemplaces, lo volvemos a revisar.") +
+      boton("Ir a mi expediente", `${SITE}/caminante/admin/mi-alta/expediente`),
+  );
+  const text = `Una cosa de tu expediente, ${n}.\n\n${que} necesita corrección: ${motivo}\n\nLo demás se queda como está. Reemplázalo y lo revisamos otra vez:\n${SITE}/caminante/admin/mi-alta/expediente\n\nCaminante by NUMAN · uno@numanhub.com`;
+  return enviar(to, "Un documento de tu expediente necesita corrección", html, text);
+}
+
+// 9 · Stripe la habilitó: su cuenta ya cobra.
+export async function emailStripeListo(to: string, responsable: string | null): Promise<boolean> {
+  const n = firstName(responsable);
+  const html = shell(
+    h1(`Tu cuenta ya puede cobrar, ${n}.`) +
+      p("Stripe terminó de verificarte. A partir de ahora el dinero de tus ventas entra <b>a tu cuenta</b>, y Caminante retiene sólo su comisión.") +
+      p("Si Stripe te vuelve a pedir algo más adelante —un documento que vence, una revisión— te avisamos igual: tu panel siempre dice lo que Stripe dice, no lo que nosotros creemos.") +
+      boton("Ver mi cuenta de cobro", `${SITE}/caminante/admin/mi-alta/cobrar`),
+  );
+  const text = `Tu cuenta ya puede cobrar, ${n}.\n\nStripe terminó de verificarte: el dinero de tus ventas entra a tu cuenta y Caminante retiene sólo su comisión.\n\n${SITE}/caminante/admin/mi-alta/cobrar\n\nCaminante by NUMAN · uno@numanhub.com`;
+  return enviar(to, "Tu cuenta de Stripe ya está lista", html, text);
+}

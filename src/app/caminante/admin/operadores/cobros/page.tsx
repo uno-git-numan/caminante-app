@@ -11,7 +11,11 @@
 //      pantalla "del operador" sin ese modelo sería fingir un aislamiento que no
 //      hay.
 //
-// Cuando la F3.2 aterrice, esto se mueve tal cual a la superficie del operador.
+// La F3.2 aterrizó el 24 ago y esto NO se movió: durante un mes la operadora
+// no pudo conectar su propia cuenta ni subir su CSD, y dos de sus seis
+// candados apuntaban a una pantalla que no podía abrir. Desde el 22 sep 2026
+// vive también en `/caminante/admin/mi-alta/cobrar` (una sola fila: la suya),
+// con el MISMO `CobrosPanel`. Ésta sigue siendo la vista de la casa, con todas.
 //
 // El paso del CSD guarda los DOS archivos que entrega el SAT (.cer y .key), cada
 // uno en su columna desde la 0038. Lo que NO pasa por aquí es su contraseña: va
