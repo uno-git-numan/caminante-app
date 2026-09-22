@@ -49,8 +49,27 @@ export async function POST(request: Request) {
     }
   }
   if (!event) {
+    // ⚠️ DECIR CON CUÁNTOS SECRETOS SE INTENTÓ, no sólo que falló.
+    //
+    // El modo de falla que este endpoint tiene y que no se ve: el segundo
+    // secreto (`_CONNECT`) es opcional en el código, así que si falta, TODO
+    // evento de cuenta conectada rebota con 400 idéntico al de una firma
+    // inválida — y desde el otro lado sólo se ve «verification failed». El
+    // gate se queda creyendo que un operador puede cobrar cuando Stripe ya lo
+    // apagó, que es justo lo que el segundo endpoint existe para evitar.
+    //
+    // Y hay una trampa de despliegue que lo hace probable: Vercel captura las
+    // env vars AL CONSTRUIR. Agregar el secreto y no reconstruir deja el
+    // endpoint vivo sin él, sin ninguna señal.
+    //
+    // No se filtra nada: sólo CUÁNTOS secretos había configurados.
+    const diagnostico =
+      secretos.length === 1
+        ? "Solo hay 1 secreto configurado. Si este evento viene de una cuenta conectada, falta STRIPE_WEBHOOK_SECRET_CONNECT en el entorno (y recuerda que Vercel captura las env al construir: hay que reconstruir)."
+        : `Se intentó con ${secretos.length} secretos y ninguno verificó.`;
+    console.error("[webhook] firma no verificada ·", diagnostico);
     return NextResponse.json(
-      { error: `Webhook signature verification failed: ${ultimoError}` },
+      { error: `Webhook signature verification failed: ${ultimoError}`, diagnostico },
       { status: 400 },
     );
   }
