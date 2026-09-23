@@ -44,12 +44,24 @@ create unique index if not exists participant_withdrawals_uniq
 alter table public.participant_withdrawals enable row level security;
 
 -- La baja de Nala, ya decidida. Idempotente.
+--
+-- ⚠️ VA GUARDADA POR `where exists`, y no es cosmético: este INSERT apunta a una
+-- reserva de PRODUCCIÓN por UUID. Sobre una base limpia —staging, CI, un
+-- restore— la llave foránea reventaba y el juego de migraciones se detenía aquí
+-- (comprobado el 23 sep 2026 levantando `caminante-staging` desde cero). Un
+-- backfill de datos no puede impedir que el esquema se reconstruya.
+--
+-- Donde la reserva existe hace exactamente lo de antes; donde no, no hace nada.
 insert into public.participant_withdrawals
   (reservation_id, dependent_id, full_name, motivo, decidido_por)
-values
-  ('71b676f1-dfe1-4ec0-98ee-317afe2c495e',
-   '6516a980-1263-4bf8-867b-9760a6487be8',
-   'Nala poza',
-   'No se paga su lugar: la reserva es de 2 y se capturaron 3 participantes.',
-   'Luis · 27 ago 2026')
+select
+  '71b676f1-dfe1-4ec0-98ee-317afe2c495e'::uuid,
+  '6516a980-1263-4bf8-867b-9760a6487be8'::uuid,
+  'Nala poza',
+  'No se paga su lugar: la reserva es de 2 y se capturaron 3 participantes.',
+  'Luis · 27 ago 2026'
+where exists (
+  select 1 from public.reservations
+   where id = '71b676f1-dfe1-4ec0-98ee-317afe2c495e'::uuid
+)
 on conflict do nothing;
