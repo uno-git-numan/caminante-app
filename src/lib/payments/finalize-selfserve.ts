@@ -15,6 +15,7 @@ import { findOrCreateContact } from "@/lib/crm/contacts";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
 import { capiPurchase } from "@/lib/meta/capi";
 import { notifyConfirmacionCompra } from "@/lib/notifications/notify-customer";
+import { emailPrimeraVenta } from "@/lib/operadores/emails";
 
 export type FinalizeSelfServeResult = {
   handled: boolean; // false = no es una sesión self-serve (sin metadata.self_serve)
@@ -288,6 +289,19 @@ export async function finalizeSelfServeCheckout(
     }),
   ]);
 
+  // ⚠️ SÓLO EN EL PRIMER REGISTRO (`!payErr`). Un reintento del webhook no es
+  // una venta nueva, y «tu primera venta» dos veces convierte la felicitación
+  // en un bug a la vista de la operadora.
+  if (!payErr && operatorId) {
+    await avisarPrimeraVenta(sb, {
+      operatorId,
+      experiencia: nombreExperiencia,
+      personas: numPeople,
+      montoMxn: amountPaid,
+      retenidoMxn: canalReal === "connect" && feeRetenido != null ? feeRetenido : null,
+    }).catch(() => {});
+  }
+
   // Meta Conversions API — Purchase server-side (la señal de dinero). SOLO en el
   // primer registro (!payErr) para no doblar en reintentos del webhook; event_id =
   // PaymentIntent id da dedup con el pixel del navegador. Best-effort: nunca tira
@@ -314,4 +328,69 @@ export async function finalizeSelfServeCheckout(
   }
 
   return { handled: true, paymentRecorded: !payErr, reservationId };
+}
+
+/**
+ * «Tu primera venta» — el correo que cierra el alta de una operadora.
+ *
+ * Hasta aquí todo fue papeles: expediente, anexo, convenio, Stripe. Éste es el
+ * primero que dice que la máquina sirvió, y por eso va una sola vez.
+ *
+ * Qué es «la primera»: que esta reserva sea la ÚNICA pagada a su nombre. Se
+ * cuenta contra la base en vez de guardar una bandera, porque una bandera es un
+ * segundo lugar donde vive el mismo hecho — y el hecho ya está escrito en
+ * `reservations.operator_id`, congelado al vender (0016).
+ *
+ * ⚠️ NUNCA A LA CASA. Numan opera bajo su propia fila de `operators`; darle la
+ * bienvenida a su primera venta cuando lleva setenta sería ridículo.
+ *
+ * Best-effort de principio a fin: esto corre dentro del webhook de Stripe, y un
+ * correo que no sale jamás puede costar un pago que sí entró.
+ */
+async function avisarPrimeraVenta(
+  sb: SupabaseClient,
+  v: {
+    operatorId: string;
+    experiencia: string;
+    personas: number;
+    montoMxn: number;
+    retenidoMxn: number | null;
+  },
+): Promise<void> {
+  const { data, error } = await sb
+    .from("operators")
+    .select("email, name, es_la_casa")
+    .eq("id", v.operatorId)
+    .maybeSingle();
+  if (error || !data) return;
+  const op = data as { email: string | null; name: string; es_la_casa: boolean | null };
+  if (op.es_la_casa === true || !op.email?.trim()) return;
+
+  const { count, error: errCount } = await sb
+    .from("reservations")
+    .select("id", { count: "exact", head: true })
+    .eq("operator_id", v.operatorId)
+    .eq("status", "paid");
+  // Ante la duda, no se manda. Equivocarse hacia el silencio cuesta un correo
+  // que no llegó; hacia el ruido, una felicitación falsa por la venta 31.
+  if (errCount || count !== 1) return;
+
+  // El nombre de pila sale de quien mandó la solicitud; si no hay solicitud
+  // —una operadora dada de alta a mano— el correo saluda con el nombre de la
+  // operadora, que es mejor que un «hola» pelón.
+  const { data: app } = await sb
+    .from("operator_applications")
+    .select("responsable")
+    .eq("operator_id", v.operatorId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const responsable = (app as { responsable: string | null } | null)?.responsable ?? op.name;
+
+  await emailPrimeraVenta(op.email, responsable, {
+    experiencia: v.experiencia,
+    personas: v.personas,
+    montoMxn: v.montoMxn,
+    retenidoMxn: v.retenidoMxn,
+  });
 }

@@ -306,3 +306,119 @@ export async function emailStripeListo(to: string, responsable: string | null): 
   const text = `Tu cuenta ya puede cobrar, ${n}.\n\nStripe terminó de verificarte: el dinero de tus ventas entra a tu cuenta y Caminante retiene sólo su comisión.\n\n${SITE}/caminante/admin/mi-alta/cobrar\n\nCaminante by NUMAN · uno@numanhub.com`;
   return enviar(to, "Tu cuenta de Stripe ya está lista", html, text);
 }
+
+/**
+ * Cuándo aplica el convenio, dicho una sola vez.
+ *
+ * Vive aparte porque la misma frase va en el HTML y en el texto plano, y
+ * escribirla dos veces es cómo una de las dos se queda vieja. Además es la que
+ * decide si esto suena a urgencia o a aviso: decir «hasta que firmes no
+ * vendes» cuando faltan treinta días es asustar de gratis.
+ */
+export function fraseDeVigencia(dias: number): string {
+  if (dias <= 0) {
+    return "Ya está vigente: hasta que lo firmes, tus experiencias no pueden publicarse ni cobrar.";
+  }
+  return `Entra en vigor en ${dias} ${dias === 1 ? "día" : "días"}. Hasta entonces sigues vendiendo normal; después de esa fecha hace falta la firma.`;
+}
+
+// 10 · El convenio ya se puede firmar.
+//
+// ⚠️ ES EL ÚNICO CANDADO QUE ELLA NO PUEDE EMPUJAR SOLA. Los otros cinco
+// dependen de que suba algo, complete algo o Stripe la verifique; éste depende
+// de que la casa publique un texto. Mientras no hay texto, su panel le dice
+// «La casa no ha publicado el convenio» y no hay nada que hacer — así que el
+// día que sí lo hay, enterarse no puede depender de que se le ocurra entrar.
+//
+// Dos formas, porque no piden lo mismo (`convenio.ts`, DIAS_DE_AVISO = 30):
+//   · Ya exigible → hasta que firme no vende. Se dice sin rodeos.
+//   · Por venir   → tiene días. Se dice cuántos y desde cuándo aplica, para que
+//     nadie descubra la fecha el día que le cayó encima.
+export async function emailConvenioPorFirmar(
+  to: string,
+  responsable: string | null,
+  v: { titulo: string; version: string; dias: number },
+): Promise<boolean> {
+  const n = firstName(responsable);
+  const url = `${SITE}/caminante/admin/mi-alta/convenio`;
+  const yaAplica = v.dias <= 0;
+  const cuando = fraseDeVigencia(v.dias);
+  const html = shell(
+    h1(`Ya puedes firmar tu convenio, ${n}.`) +
+      p(`Publicamos <b>${esc(v.titulo)}</b> (${esc(v.version)}). Es el documento que pone por escrito la comisión, quién responde de qué y cómo se cobra.`) +
+      p(cuando) +
+      p("Léelo completo antes de aceptar. La firma queda con el sello del texto EXACTO que viste en pantalla, así que si algo te hace ruido, contéstanos este correo antes de firmar y no después.") +
+      boton("Leer y firmar", url),
+  );
+  const text = `Ya puedes firmar tu convenio, ${n}.\n\nPublicamos ${v.titulo} (${v.version}). ${cuando}\n\nLéelo completo antes de aceptar; si algo te hace ruido, contéstanos antes de firmar.\n\n${url}\n\nCaminante by NUMAN · uno@numanhub.com`;
+  return enviar(to, yaAplica ? "Tu convenio ya se puede firmar" : `Tu convenio nuevo entra en vigor en ${v.dias} días`, html, text);
+}
+
+const pesos = (x: number) =>
+  `$${x.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/**
+ * DÓNDE ESTÁ EL DINERO HOY. La frase que más cuidado pide de todo este archivo.
+ *
+ * Con Connect el cobro entró a la cuenta de la operadora y Caminante retuvo su
+ * comisión: el dinero YA ES SUYO. Por el camino de la casa entró a la cuenta de
+ * Numan y hay que transferírselo. Decir «ya es tuyo» en el segundo caso es
+ * mentir sobre dónde está su dinero, y es la clase de mentira que se descubre
+ * cuando ella va a buscarlo y no está.
+ *
+ * Una sola función para las dos versiones —HTML y texto plano— porque la
+ * primera vez esto se escribió dos veces, que es exactamente cómo una de las
+ * dos se queda diciendo lo que ya no es cierto.
+ */
+export function fraseDelDinero(
+  montoMxn: number,
+  retenidoMxn: number | null,
+): { html: string; texto: string } {
+  if (retenidoMxn != null) {
+    const cola = `El dinero entró a tu cuenta de Stripe; Caminante retuvo ${pesos(retenidoMxn)} de comisión más su IVA.`;
+    return {
+      html: `Se cobraron ${pesos(montoMxn)}. El dinero entró <b>a tu cuenta de Stripe</b>; Caminante retuvo ${pesos(retenidoMxn)} de comisión más su IVA.`,
+      texto: `Se cobraron ${pesos(montoMxn)}. ${cola}`,
+    };
+  }
+  const cola = "Este cobro entró por la cuenta de Caminante, así que tu parte te la transferimos — la vas a ver en tu corte.";
+  return {
+    html: `Se cobraron ${pesos(montoMxn)}. ${cola}`,
+    texto: `Se cobraron ${pesos(montoMxn)}. ${cola}`,
+  };
+}
+
+// 11 · Su PRIMERA venta.
+//
+// Es el correo que cierra el alta: hasta aquí todo fue papeles y promesas, y
+// éste dice que la máquina funcionó. Va UNA sola vez, en la primera venta de la
+// operadora, y nunca a la casa.
+//
+// ⚠️ LOS NÚMEROS NO SE ADORNAN. Si el cobro entró por Connect, el dinero ya es
+// suyo y se dice cuánto retuvimos; si entró por la casa, el dinero está en la
+// cuenta de Numan y se le va a transferir — decir «ya es tuyo» en ese caso
+// sería mentir sobre dónde está el dinero hoy.
+export async function emailPrimeraVenta(
+  to: string,
+  responsable: string | null,
+  v: {
+    experiencia: string;
+    personas: number;
+    montoMxn: number;
+    /** Lo que Stripe retuvo (comisión + IVA). Sólo cuando el cobro fue por Connect. */
+    retenidoMxn: number | null;
+  },
+): Promise<boolean> {
+  const n = firstName(responsable);
+  const gente = `${v.personas} ${v.personas === 1 ? "persona" : "personas"}`;
+  const dinero = fraseDelDinero(v.montoMxn, v.retenidoMxn);
+  const html = shell(
+    h1(`Tu primera venta, ${n}.`) +
+      p(`Alguien acaba de pagar <b>${esc(v.experiencia)}</b> para ${gente}.`) +
+      p(dinero.html) +
+      p("En tu panel está quién viene, su deslinde firmado y sus datos de contacto. Cuando la salida termine, la encuesta sale sola a las 24 horas.") +
+      boton("Ver mi salida", `${SITE}/caminante/admin/salidas`),
+  );
+  const text = `Tu primera venta, ${n}.\n\nAlguien acaba de pagar ${v.experiencia} para ${gente}.\n\n${dinero.texto}\n\nEn tu panel está quién viene y su deslinde firmado.\n\n${SITE}/caminante/admin/salidas\n\nCaminante by NUMAN · uno@numanhub.com`;
+  return enviar(to, "Tu primera venta en Caminante", html, text);
+}
