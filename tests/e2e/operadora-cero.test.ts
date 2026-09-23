@@ -10,14 +10,16 @@
 // ⚠️ NO CORRE SOLA Y NUNCA CONTRA PRODUCCIÓN. Escribe y borra filas, así que
 // pide que le nombres el ambiente:
 //
-//   PROBAR_E2E=1 STAGING_URL=https://<ref>.supabase.co STAGING_SERVICE_KEY=… npm test
+//   PROBAR_E2E=1 npm test
 //
 // y se niega en seco si la URL es la de producción. La guarda es la misma idea
 // que la de `scripts/aplicar-migraciones.mjs`: el ref de producción vive
 // escrito aquí para que no baste con un dedazo.
 //
+// `STAGING_URL` y `STAGING_SERVICE_KEY` salen del entorno o de `.env.local`.
 // La llave es la `service_role` de staging: dashboard → Settings → API Keys →
-// «Legacy anon, service_role» → Reveal. No vive en ningún archivo del repo.
+// «Legacy anon, service_role» → Reveal → Copy. `.env.local` está en
+// .gitignore; si algún día hay que rehacerla, se saca de ahí otra vez.
 //
 // ✅ Corrido contra `caminante-staging` el 23 sep 2026: 11 de 11, dos veces
 // seguidas. Y probado que PUEDE fallar: revirtiendo la regla de la fila en
@@ -28,10 +30,27 @@
 // se le dice quién entró. Todo lo demás —`fetchMiAlta`, `candadosDe`,
 // `operadorListo`, `planDeCobro`— es el código que corre en producción,
 // hablando con Postgres de verdad.
+import { readFileSync, existsSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const URL_STAGING = process.env.STAGING_URL ?? "";
-const LLAVE = process.env.STAGING_SERVICE_KEY ?? "";
+// Las dos señas del ambiente salen del entorno y, si no están ahí, de
+// `.env.local` —donde ya viven las de producción y donde nadie las va a
+// commitear (`.env*` está en .gitignore)—. Así `PROBAR_E2E=1 npm test` basta,
+// en vez de pegarle una llave de 219 caracteres a cada corrida.
+function delEntorno(nombre: string): string {
+  const directo = process.env[nombre];
+  if (directo?.trim()) return directo.trim();
+  const ruta = new URL("../../.env.local", import.meta.url).pathname;
+  if (!existsSync(ruta)) return "";
+  for (const linea of readFileSync(ruta, "utf8").split("\n")) {
+    const m = linea.match(/^([A-Z_]+)=(.*)$/);
+    if (m?.[1] === nombre) return m[2].trim();
+  }
+  return "";
+}
+
+const URL_STAGING = delEntorno("STAGING_URL");
+const LLAVE = delEntorno("STAGING_SERVICE_KEY");
 const PRODUCCION = "hnyoahirxmzkshivgvnm";
 
 const prendida =
