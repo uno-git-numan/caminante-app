@@ -1,34 +1,45 @@
--- Caminante initial schema (Sprint 1 foundation)
--- Run in Supabase SQL editor after project creation.
+-- Caminante · esquema inicial
+--
+-- ⚠️ ESTE ARCHIVO SE CORRIGIÓ EL 23 SEP 2026. Lo que decía antes NUNCA existió
+-- en producción y hacía imposible reconstruir la base desde cero.
+--
+-- La 0001 original levantaba un marketplace entero —`profiles`, `user_roles`,
+-- `trips`, `trip_items`, `bookings`, `participants`,
+-- `provider_commercial_profiles`, `listing_availability_slots` y una `payments`
+-- con `trip_id`— del andamio de Sprint 1. De todo eso, producción sólo tuvo
+-- jamás dos tablas: `providers` y `listings`. Las otras ocho vivían únicamente
+-- en este archivo.
+--
+-- Mientras la base no se reconstruyera, la mentira era gratis. Dejó de serlo al
+-- levantar staging: la `payments` de aquí (con `trip_id`) se adelantaba a la de
+-- la 0007 (con `reservation_id`), y el `create table if not exists` de la 0007
+-- la saltaba EN SILENCIO — el índice siguiente tronaba con «column
+-- reservation_id does not exist» y la base entera se quedaba a medias en la
+-- séptima migración de sesenta.
+--
+-- Corregirla no es reescribir historia: es alinearla con la historia real. Lo
+-- que sigue es exactamente lo que producción tiene hoy en estas dos tablas
+-- (verificado columna por columna contra PostgREST el 23 sep 2026). Quien corra
+-- las migraciones desde cero ahora llega al mismo esquema, sin pasos a mano.
+--
+-- Las 0004 y 0005 eran RLS e índices de esas ocho tablas: quedaron vacías por
+-- la misma razón, y lo dicen en su encabezado.
 
 create extension if not exists "uuid-ossp";
 
-create type public.app_role as enum (
-  'traveler',
-  'participant',
-  'operator',
-  'admin',
-  'agent'
-);
-
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PROVEEDORES Y FICHAS — el andamio del marketplace que sí sobrevivió
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Siguen en pie porque el panel las lee (`/caminante/admin/providers`) y
+-- `listings` guarda dos renglones reales. No se confundan con las tablas de
+-- hoy: la oferta viva son `experiences` (0006) y sus salidas (0007), y los
+-- operadores externos viven en `operators` (0016). Mientras estas dos no se
+-- migren y se retiren, se quedan aquí tal cual están.
 create type public.listing_type as enum (
   'activity',
   'transport',
   'accommodation',
   'package'
-);
-
-create type public.booking_mode as enum (
-  'instant',
-  'request'
-);
-
-create type public.booking_status as enum (
-  'pending_request',
-  'confirmed',
-  'rejected',
-  'cancelled',
-  'completed'
 );
 
 create type public.provider_api_mode as enum (
@@ -42,30 +53,6 @@ create type public.provider_approval_state as enum (
   'rejected'
 );
 
-create type public.payment_status as enum (
-  'pending',
-  'paid',
-  'failed',
-  'refunded',
-  'partially_refunded'
-);
-
-create table if not exists public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  full_name text,
-  phone text,
-  locale text default 'es-MX',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.user_roles (
-  user_id uuid not null references auth.users(id) on delete cascade,
-  role public.app_role not null,
-  created_at timestamptz not null default now(),
-  primary key (user_id, role)
-);
-
 create table if not exists public.providers (
   id uuid primary key default gen_random_uuid(),
   legal_name text not null,
@@ -75,19 +62,6 @@ create table if not exists public.providers (
   approval_state public.provider_approval_state not null default 'applied',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
-);
-
-create table if not exists public.provider_commercial_profiles (
-  id uuid primary key default gen_random_uuid(),
-  provider_id uuid not null references public.providers(id) on delete cascade,
-  take_rate_pct numeric(5,2) not null,
-  risk_mode_default text not null,
-  risk_uplift_pct numeric(5,2) not null default 0,
-  holdback_pct numeric(5,2),
-  holdback_release_rule text,
-  pricing_mode text not null,
-  effective_from timestamptz not null default now(),
-  created_at timestamptz not null default now()
 );
 
 create table if not exists public.listings (
@@ -104,103 +78,7 @@ create table if not exists public.listings (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists public.listing_availability_slots (
-  id uuid primary key default gen_random_uuid(),
-  listing_id uuid not null references public.listings(id) on delete cascade,
-  starts_at timestamptz not null,
-  ends_at timestamptz not null,
-  capacity_total integer not null,
-  capacity_available integer not null,
-  source_mode public.provider_api_mode not null default 'portal',
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.trips (
-  id uuid primary key default gen_random_uuid(),
-  owner_user_id uuid not null references auth.users(id),
-  title text not null,
-  destination text,
-  start_date date,
-  end_date date,
-  status text not null default 'draft',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.trip_items (
-  id uuid primary key default gen_random_uuid(),
-  trip_id uuid not null references public.trips(id) on delete cascade,
-  listing_id uuid not null references public.listings(id),
-  booking_mode public.booking_mode not null,
-  starts_at timestamptz,
-  ends_at timestamptz,
-  quantity integer not null default 1,
-  price_mxn numeric(12,2) not null,
-  status text not null default 'draft',
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.bookings (
-  id uuid primary key default gen_random_uuid(),
-  trip_item_id uuid not null references public.trip_items(id) on delete cascade,
-  provider_id uuid not null references public.providers(id),
-  status public.booking_status not null,
-  confirmation_deadline_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists public.participants (
-  id uuid primary key default gen_random_uuid(),
-  trip_id uuid not null references public.trips(id) on delete cascade,
-  user_id uuid references auth.users(id) on delete set null,
-  display_name text not null,
-  join_status text not null default 'invited',
-  permission_level text not null default 'baseline',
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.payments (
-  id uuid primary key default gen_random_uuid(),
-  trip_id uuid not null references public.trips(id) on delete cascade,
-  payer_user_id uuid references auth.users(id),
-  amount_mxn numeric(12,2) not null,
-  status public.payment_status not null default 'pending',
-  provider_ref text,
-  paid_at timestamptz,
-  created_at timestamptz not null default now()
-);
-
--- RLS baseline
-alter table public.profiles enable row level security;
-alter table public.user_roles enable row level security;
+-- RLS prendida sin policies = sólo service-role, que es la convención de la
+-- casa. `listings` recibe su única policy de lectura pública en la 0003.
 alter table public.providers enable row level security;
 alter table public.listings enable row level security;
-alter table public.trips enable row level security;
-alter table public.trip_items enable row level security;
-alter table public.bookings enable row level security;
-alter table public.participants enable row level security;
-alter table public.payments enable row level security;
-
-create policy "profiles_select_own" on public.profiles
-for select to authenticated
-using (auth.uid() = id);
-
-create policy "profiles_update_own" on public.profiles
-for update to authenticated
-using (auth.uid() = id)
-with check (auth.uid() = id);
-
-create policy "trips_select_member" on public.trips
-for select to authenticated
-using (
-  owner_user_id = auth.uid()
-  or exists (
-    select 1 from public.participants p
-    where p.trip_id = trips.id and p.user_id = auth.uid()
-  )
-);
-
-create policy "trips_insert_owner" on public.trips
-for insert to authenticated
-with check (owner_user_id = auth.uid());

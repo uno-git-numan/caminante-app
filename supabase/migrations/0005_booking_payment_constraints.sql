@@ -1,59 +1,13 @@
--- Booking + payment constraints and RLS for traveler flow
+-- 0005 · VACÍA A PROPÓSITO (corregida el 23 sep 2026)
+--
+-- Índices y policies de `bookings` y de la `payments` vieja — marketplace que
+-- producción nunca tuvo (ver la 0001).
+--
+-- Su único contenido con descendencia era el índice único de `provider_ref`
+-- para que un webhook repetido no cobrara dos veces. Esa idea sigue viva: la
+-- 0007 crea `payments_provider_ref_unique` sobre la `payments` de verdad, la de
+-- `reservation_id`. No se perdió nada al vaciar esto.
+--
+-- Se conserva el archivo con su número para no mover la numeración.
 
--- Idempotency for payment intents
-create unique index if not exists payments_provider_ref_unique
-on public.payments (provider_ref)
-where provider_ref is not null;
-
--- One booking per trip_item in this MVP slice
-create unique index if not exists bookings_trip_item_unique
-on public.bookings (trip_item_id);
-
--- Traveler read/write access for bookings related to owned/member trips
-alter table public.bookings enable row level security;
-
-create policy "bookings_select_member" on public.bookings
-for select to authenticated
-using (
-  exists (
-    select 1
-    from public.trip_items ti
-    join public.trips t on t.id = ti.trip_id
-    left join public.participants p on p.trip_id = t.id
-    where ti.id = bookings.trip_item_id
-      and (t.owner_user_id = auth.uid() or p.user_id = auth.uid())
-  )
-);
-
-create policy "bookings_insert_owner" on public.bookings
-for insert to authenticated
-with check (
-  exists (
-    select 1
-    from public.trip_items ti
-    join public.trips t on t.id = ti.trip_id
-    where ti.id = bookings.trip_item_id
-      and t.owner_user_id = auth.uid()
-  )
-);
-
-create policy "bookings_update_owner" on public.bookings
-for update to authenticated
-using (
-  exists (
-    select 1
-    from public.trip_items ti
-    join public.trips t on t.id = ti.trip_id
-    where ti.id = bookings.trip_item_id
-      and t.owner_user_id = auth.uid()
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.trip_items ti
-    join public.trips t on t.id = ti.trip_id
-    where ti.id = bookings.trip_item_id
-      and t.owner_user_id = auth.uid()
-  )
-);
+select 1;

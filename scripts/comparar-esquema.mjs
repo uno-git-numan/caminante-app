@@ -53,6 +53,13 @@ if (!stagingUrl || !stagingKey) {
   process.exit(1);
 }
 
+// ⚠️ EL PROYECTO DE PRODUCCIÓN NO ES SÓLO DE CAMINANTE. Ahí viven también las
+// tablas de la app de numan (`numan_*`) y las de Coach (`coach_*`): 123 tablas en
+// total, de las cuales 43 son de Caminante. Staging es de Caminante y nada más,
+// así que sin este filtro la comparación reportaría ochenta tablas «faltantes»
+// que no le tocan y ahogaría la única diferencia que sí importa.
+const AJENAS = /^(numan_|coach_)/;
+
 async function esquema(url, key) {
   const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/`, {
     headers: { apikey: key, Authorization: `Bearer ${key}` },
@@ -61,6 +68,7 @@ async function esquema(url, key) {
   const d = await r.json();
   const tablas = {};
   for (const [nombre, def] of Object.entries(d.definitions ?? {})) {
+    if (AJENAS.test(nombre)) continue;
     tablas[nombre] = new Set(Object.keys(def.properties ?? {}));
   }
   return tablas;
