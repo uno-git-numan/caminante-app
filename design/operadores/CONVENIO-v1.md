@@ -137,34 +137,63 @@ retroactivamente. La fecha de arranque se hace constar en la carátula.
 
 ## Cuarta · Cobro, retención y pago
 
-1. Caminante cobra al cliente el importe total de la reserva.
-2. Del importe cobrado, Caminante **retiene** la comisión más su IVA.
-3. El remanente se transfiere al Operador **a los 7 días naturales posteriores
-   al regreso** de la salida correspondiente.
-4. La retención constituye el pago de la comisión; las partes acuerdan que la
-   factura que Caminante emita por ese concepto se salda por **compensación**
-   contra el importe adeudado al Operador, sin necesidad de transferencia
-   adicional.
-5. Caminante entregará al Operador el desglose de cada liquidación: reservas
-   cobradas, comisión retenida, IVA e importe neto.
+> 🔸 **Reescrita el 23 sep 2026, y pendiente de revisión.** La versión anterior
+> describía un solo mecanismo —Caminante cobra todo y transfiere el remanente a
+> mano— y hoy hay dos. El cambio no es de redacción: con el cobro a nombre del
+> Operador, **su parte del dinero nunca pasa por la cuenta de Caminante**, y eso
+> mueve quién tiene el dinero y cuándo. Lo que hay que decidir va marcado.
 
-6. **Las comisiones bancarias y de procesamiento de pago las absorbe
-   Caminante.** No se descuentan del importe que se liquida al Operador: su
-   liquidación es el importe cobrado menos la comisión de plataforma y su IVA,
-   sin más deducciones.
+**1 · Las dos formas de cobrar.** El cobro se hace por una de dos vías, según si
+el Operador tiene cuenta de cobro conectada a la plataforma:
 
-🔸 *Para la revisión.* **Actualizado el 23 sep 2026: Stripe Connect ya no está
-«en construcción».** Está construido y probado de punta a punta contra Stripe:
-el cobro entra **a nombre del Operador** (cargo con destino, `on_behalf_of`),
-Stripe divide el importe **en el momento del cobro** y retiene para Caminante
-`comisión + IVA de la comisión`. Medido con una venta real de prueba de $1,750:
-$350.00 retenidos, $1,400.00 a la cuenta del Operador.
+**(a) Cobro a nombre del Operador** *(cuando tiene cuenta conectada)*. El cargo
+se genera desde la plataforma pero **a nombre del Operador**, que es quien
+aparece como comercio en el estado de cuenta del cliente y quien presta el
+servicio. El procesador divide el importe **en el mismo acto del cobro**: la
+comisión de Caminante más su IVA se queda con Caminante, y el resto entra
+**directamente a la cuenta del Operador**. Caminante no recibe, ni retiene en su
+poder, la parte del Operador.
 
-La pregunta al abogado ya no es si el cambio *vendrá*, sino si esta redacción
-—«su liquidación es el importe cobrado menos la comisión de plataforma y su
-IVA, sin más deducciones»— describe correctamente un cobro que **nunca pasa por
-la cuenta de Caminante**. Siguen conviviendo los dos mecanismos: quien no ha
-conectado su cuenta cobra por el camino viejo y se le transfiere a mano.
+**(b) Cobro por cuenta de Caminante** *(mientras no tenga cuenta conectada)*.
+Caminante cobra el importe total, retiene su comisión más el IVA, y **transfiere
+el remanente al Operador a los 7 días naturales posteriores al regreso** de la
+salida correspondiente.
+
+**2 · La retención es la misma en las dos.** En ambos casos Caminante retiene
+únicamente su comisión más el IVA que le corresponda, y esa retención constituye
+el pago de dicha comisión: la factura que Caminante emita por ese concepto
+(Cláusula Décima tercera) se salda contra ella, sin transferencia adicional.
+
+**3 · Sin más deducciones.** Las comisiones bancarias y de procesamiento de pago
+**las absorbe Caminante**. No se descuentan de lo que recibe el Operador: su
+parte es el importe cobrado menos la comisión de plataforma y su IVA, y nada más.
+
+**4 · Desglose.** Caminante entregará al Operador, por cada salida, el desglose
+que permita conciliar: reservas cobradas, comisión retenida, IVA, importe neto y
+la vía por la que entró cada cobro.
+
+**5 · Momento en que el Operador dispone del dinero.** En la vía (b) dispone de
+él al recibir la transferencia. En la vía (a) el importe entra a su cuenta al
+momento del cobro y queda sujeto al calendario de pagos de su propio procesador,
+que **no lo fija Caminante**.
+
+🔸 **DECISIÓN PENDIENTE, y es de Luis antes que del abogado.** En la vía (a) el
+Operador puede tener el dinero **antes de que la salida ocurra**, y la versión
+anterior de esta cláusula lo retenía hasta 7 días después del regreso. Son dos
+políticas distintas de riesgo, no dos redacciones:
+
+- Si se deja así, quien cancela obliga a jalar el dinero de vuelta de la cuenta
+  del Operador. El sistema ya lo hace —el reembolso va con reversión de la
+  transferencia y devolución proporcional de la comisión— pero **si el Operador
+  ya retiró y gastó ese dinero, su cuenta queda en negativo** y la diferencia la
+  tiene que cubrir alguien. Esta cláusula tiene que decir quién.
+- Si se prefiere el comportamiento viejo, el procesador permite fijarle a la
+  cuenta conectada un retraso de pago. Es configuración, no obra, pero cambia lo
+  que se le promete al Operador y por eso se decide aquí y no en el código.
+
+🔸 *Para la revisión: confirmar que describir la vía (a) como cobro «a nombre
+del Operador» es correcto para efectos de quién percibe el ingreso, dado que el
+cargo lo origina la plataforma.*
 
 ## Quinta · Devoluciones, cancelaciones y contracargos
 
@@ -391,11 +420,9 @@ en la plataforma**; mientras no lo esté, sus experiencias no pueden cobrar.
   el timbrador), gateada a la espera de la cuenta y del CSD. Esta cláusula no
   describe una intención: describe lo que el sistema hace cuando se prenda.
 
-⚠️ **La Cláusula Cuarta todavía habla del mecanismo viejo** —«Caminante cobra al
-cliente el importe total»— y con el cobro a nombre del Operador eso dejó de ser
-exacto. Esa cláusula necesita el mismo tratamiento; no se tocó aquí porque es
-una decisión aparte sobre cómo se describe el flujo del dinero, no sobre quién
-factura.
+La **Cláusula Cuarta** quedó alineada con esto el mismo día: describe las dos
+vías de cobro y dice, en la vía a nombre del Operador, que su parte nunca pasa
+por la cuenta de Caminante. Las dos cláusulas hay que leerlas juntas.
 
 ## Décima cuarta · Confidencialidad
 
@@ -448,6 +475,7 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 | 4 | ~~Si NUMAN puede facturar el servicio turístico~~ → **decidido: no lo factura.** Queda confirmar el IVA del reparto y la clave de producto de la comisión | Contador |
 | 4b | Si Caminante debe retener ISR e IVA a operadoras persona física (régimen de plataformas tecnológicas) | **Contador** — Nomádika es persona física |
 | 5 | Si la indemnización de la Novena es oponible | Abogado |
+| 6 | **Con cobro a nombre del Operador, ¿el dinero le llega antes de la salida, o se le fija un retraso de pago?** Y si cancela habiendo retirado, ¿quién cubre el negativo | **Luis** — es política de riesgo; el retraso es configuración, no obra |
 
 ## Anexos que conviene tener
 
