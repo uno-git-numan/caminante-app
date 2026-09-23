@@ -32,9 +32,19 @@ Convenio de prestación de servicios de plataforma que celebran, por una parte,
 **«el Operador»**), representado por [___], quien declara contar con facultades
 suficientes para obligarlo.
 
-🔸 *Hoy Caminante y NUMAN son la misma entidad. Este convenio sólo tiene sentido
-jurídico cuando estén separadas; mientras tanto, la comisión de NUMAN es un
-asiento contable interno.*
+✅ *Resuelto por Luis el 23 sep 2026: **Caminante y NUMAN son dos entidades
+legales distintas.** El convenio se firma entre el Operador y Caminante, y la
+comisión es un ingreso real entre partes independientes — no un asiento contable
+interno, que era la duda que bloqueaba todo lo demás.*
+
+🔸 ⚠️ **Y eso le pone nombre y RFC a una cosa que hoy el sistema tiene de otro
+modo.** La única identidad fiscal cargada para la casa es
+**NUMAN HUB · RFC NHU250826CS8 · régimen 601**, y es la que el timbrador usaría
+para emitir el CFDI de la comisión. Si quien cobra la comisión es Caminante,
+hace falta **el RFC de Caminante**, su razón social y su régimen, y son tres
+datos que Luis tiene que dar antes de que se emita el primer CFDI de comisión.
+No es obra: el sistema ya guarda un hogar fiscal por operadora y la casa es una
+más. Es el dato lo que falta.
 
 ---
 
@@ -177,19 +187,18 @@ la vía por la que entró cada cobro.
 momento del cobro y queda sujeto al calendario de pagos de su propio procesador,
 que **no lo fija Caminante**.
 
-🔸 **DECISIÓN PENDIENTE, y es de Luis antes que del abogado.** En la vía (a) el
-Operador puede tener el dinero **antes de que la salida ocurra**, y la versión
-anterior de esta cláusula lo retenía hasta 7 días después del regreso. Son dos
-políticas distintas de riesgo, no dos redacciones:
+**6 · El Operador dispone de su parte antes de la salida, a propósito.**
+*(Decidido por Luis el 23 sep 2026.)* En la vía (a) no se le fija retraso de
+pago: **tener el dinero disponible antes de la fecha es, muchas veces, lo que le
+permite operar** —anticipos de hospedaje, transporte, guías—, y retenerlo hasta
+después del regreso trasladaría ese costo al Operador sin necesidad.
 
-- Si se deja así, quien cancela obliga a jalar el dinero de vuelta de la cuenta
-  del Operador. El sistema ya lo hace —el reembolso va con reversión de la
-  transferencia y devolución proporcional de la comisión— pero **si el Operador
-  ya retiró y gastó ese dinero, su cuenta queda en negativo** y la diferencia la
-  tiene que cubrir alguien. Esta cláusula tiene que decir quién.
-- Si se prefiere el comportamiento viejo, el procesador permite fijarle a la
-  cuenta conectada un retraso de pago. Es configuración, no obra, pero cambia lo
-  que se le promete al Operador y por eso se decide aquí y no en el código.
+La contrapartida se dice aquí y se ejecuta en la Cláusula Quinta: **si procede
+una devolución, el Operador reintegra su parte**, aunque ya la haya dispuesto.
+El sistema la jala de vuelta de su cuenta automáticamente; si para entonces no
+hay saldo, la cuenta queda en descubierto y el adeudo es del Operador, quien
+podrá cubrirlo por transferencia o por compensación contra liquidaciones
+futuras.
 
 🔸 *Para la revisión: confirmar que describir la vía (a) como cobro «a nombre
 del Operador» es correcto para efectos de quién percibe el ingreso, dado que el
@@ -200,14 +209,39 @@ cargo lo origina la plataforma.*
 El Operador fija su política de cancelación, que se publica en la página de la
 experiencia y obliga a las partes frente al cliente.
 
-Cuando proceda una devolución, Caminante reintegra al cliente el importe que
-corresponda y **la comisión se ajusta en la misma proporción**. Si la devolución
-ocurre después de haberse liquidado al Operador, éste reintegrará a Caminante la
-parte correspondiente o se compensará contra liquidaciones futuras.
+Cuando proceda una devolución, se reintegra al cliente el importe que
+corresponda y **la comisión de Caminante se ajusta en la misma proporción**: la
+comisión sigue a lo que el cliente efectivamente pagó. Si se devuelve todo, se
+devuelve toda la comisión; si el Operador retiene una parte conforme a su
+política, Caminante conserva su comisión únicamente sobre esa parte.
+
+Si la devolución ocurre después de que el Operador dispuso de su parte, éste la
+reintegrará a Caminante, por transferencia o por compensación contra
+liquidaciones futuras (Cláusula Cuarta, punto 6).
+
+**El costo de procesamiento de una venta que se deshace no lo devuelve el
+procesador de pagos.** [🔸 *Decidir a cargo de quién queda.* Hoy la Cláusula
+Cuarta dice que Caminante absorbe los costos de procesamiento sin distinguir el
+caso de una cancelación, así que hoy los absorbe Caminante. **Medido sobre los
+20 pagos conciliados del histórico: de $215,400.00 cobrados, el procesador se
+quedó $10,331.87, el 4.80%** — $83.94 en una venta de $1,750. Es lo que
+Caminante pierde por cada cancelación, además de devolver su comisión.]
 
 Los **contracargos** derivados de la prestación del servicio son por cuenta del
 Operador; los derivados de fallas de la plataforma o del cobro, por cuenta de
 Caminante.
+
+⚠️ **Esta cláusula promete hoy más de lo que el sistema sabe hacer.** Permite al
+Operador fijar una política de cancelación con devoluciones parciales —«50% si
+cancelas con siete días»— y la devolución que el sistema ejecuta es **entera o
+ninguna**: `reembolsarPersona` devuelve el pago completo, no una fracción. O se
+construye la devolución parcial antes de firmar esto con alguien, o la cláusula
+dice que por ahora las devoluciones son totales. Lo segundo es una promesa más
+chica y verdadera; lo primero es obra.
+
+*Referencia de cómo lo resuelve Airbnb, por si ayuda a redactar: su comisión
+sigue a lo que el huésped acabó pagando. Una devolución total devuelve también
+la comisión; una parcial ajusta ambas en proporción.*
 
 ## Sexta · Obligaciones del Operador
 
@@ -469,13 +503,15 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 
 | # | Pregunta | ¿Quién decide? |
 |---|---|---|
-| 1 | ¿Caminante se separa de NUMAN en su propia entidad? | **Luis** — es previa a todo lo demás |
+| 1 | ~~¿Caminante se separa de NUMAN?~~ → **resuelto: son dos entidades distintas.** Falta el RFC, razón social y régimen de Caminante para emitir el CFDI de comisión | **Luis** — es un dato, no una obra |
 | 2 | Tope de responsabilidad de Caminante | Abogado |
 | 3 | Sede de jurisdicción y mediación previa | Abogado, con preferencia de Luis |
 | 4 | ~~Si NUMAN puede facturar el servicio turístico~~ → **decidido: no lo factura.** Queda confirmar el IVA del reparto y la clave de producto de la comisión | Contador |
 | 4b | Si Caminante debe retener ISR e IVA a operadoras persona física (régimen de plataformas tecnológicas) | **Contador** — Nomádika es persona física |
 | 5 | Si la indemnización de la Novena es oponible | Abogado |
-| 6 | **Con cobro a nombre del Operador, ¿el dinero le llega antes de la salida, o se le fija un retraso de pago?** Y si cancela habiendo retirado, ¿quién cubre el negativo | **Luis** — es política de riesgo; el retraso es configuración, no obra |
+| 6 | ~~¿Retraso de pago al Operador?~~ → **resuelto: sin retraso.** Dispone de su parte antes de la salida porque es lo que le permite operar; si hay devolución, reintegra | Luis, 23 sep |
+| 7 | **El costo de procesamiento de una venta cancelada no lo devuelve el procesador: $83.94 en una venta de $1,750 (4.80% medido). ¿A cargo de quién queda?** | **Luis** — hoy lo absorbe Caminante por omisión, no por decisión |
+| 8 | La Quinta permite devoluciones parciales y el sistema sólo sabe devolver el 100%. ¿Se construye, o la cláusula promete menos? | **Luis** — una es obra, la otra es una línea |
 
 ## Anexos que conviene tener
 
