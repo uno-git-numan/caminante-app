@@ -70,16 +70,33 @@ export async function finalizeRefund(
   const total = devuelto >= cobrado - 0.01;
 
   // ⚠️ `payments.status` tiene un CHECK que solo acepta
-  // pending | paid | failed | refunded (0007_crm_experience_direct.sql:122).
-  // Un reembolso PARCIAL no cabe ahí todavía: escribir otro valor reventaría el
-  // update y el reembolso se perdería sin dejar rastro. Hasta que la migración
-  // agregue `refunded_mxn`, el parcial NO cambia el status —que sería mentira en
-  // los dos sentidos— y se reporta para que un humano lo concilie.
+  // pending | paid | failed | refunded (0007_crm_experience_direct.sql:122), y
+  // un parcial no es ninguno de los dos extremos. Por eso el monto devuelto NO
+  // vive en el status: vive en `refunded_mxn` (0063), y el status sólo cambia
+  // cuando ya no queda nada por devolver.
+  //
+  // Esto decía antes «hasta que la migración agregue refunded_mxn… concíliese a
+  // mano», y esa migración llegó el 23 sep 2026 con las devoluciones parciales.
+  //
+  // ⚠️ SE ESCRIBE LO QUE STRIPE DICE, NO LO QUE SUMAMOS. `charge.amount_refunded`
+  // es el ACUMULADO del cargo, así que se asigna en vez de sumarse: si este
+  // webhook llega dos veces —Stripe reintenta— asignar es inerte y sumar
+  // duplicaría. Es la misma razón por la que el pago se identifica por su
+  // PaymentIntent y no por un contador nuestro.
+  const { error: errMonto } = await sb
+    .from("payments")
+    .update({ refunded_mxn: devuelto })
+    .eq("id", pago.id);
+  if (errMonto) {
+    console.error("finalizeRefund (refunded_mxn):", errMonto.message);
+    return { handled: false };
+  }
+
   if (!total) {
-    console.warn(
-      `finalizeRefund: reembolso PARCIAL de ${devuelto} sobre ${cobrado} (pago ${pago.id}). ` +
-        "No se puede representar todavía: el pago sigue como 'paid'. Concíliese a mano.",
-    );
+    // El dinero que se quedó sigue siendo ingreso, y la reserva sigue cancelada
+    // por el camino de siempre: devolver una parte es el desenlace de una
+    // cancelación con política, no un descuento a alguien que sí viene.
+    await cerrarReembolsoDelPanel(sb, pago.id as string);
     return { handled: true, reembolsoTotal: false, paymentId: pago.id as string };
   }
 

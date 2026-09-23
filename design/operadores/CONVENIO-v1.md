@@ -231,17 +231,21 @@ Los **contracargos** derivados de la prestación del servicio son por cuenta del
 Operador; los derivados de fallas de la plataforma o del cobro, por cuenta de
 Caminante.
 
-⚠️ **Esta cláusula promete hoy más de lo que el sistema sabe hacer.** Permite al
-Operador fijar una política de cancelación con devoluciones parciales —«50% si
-cancelas con siete días»— y la devolución que el sistema ejecuta es **entera o
-ninguna**: `reembolsarPersona` devuelve el pago completo, no una fracción. O se
-construye la devolución parcial antes de firmar esto con alguien, o la cláusula
-dice que por ahora las devoluciones son totales. Lo segundo es una promesa más
-chica y verdadera; lo primero es obra.
+✅ **La devolución parcial ya está construida** (23 sep 2026), así que esta
+cláusula dejó de prometer lo que el sistema no hacía. Y el reparto no lo calcula
+Caminante: se le pide al procesador, que lo hace en proporción y en las dos
+patas. **Medido**, sobre esta venta: un reembolso de $875 devolvió $175 de
+comisión y bajó $700 del saldo del Operador.
 
-*Referencia de cómo lo resuelve Airbnb, por si ayuda a redactar: su comisión
-sigue a lo que el huésped acabó pagando. Una devolución total devuelve también
-la comisión; una parcial ajusta ambas en proporción.*
+*Es la misma regla que aplica Airbnb —su comisión sigue a lo que el huésped
+acabó pagando— y por eso se redactó así.*
+
+📄 **Los escenarios completos, con los importes de cada peso en cada caso, están
+en `ESCENARIOS-DINERO.md`**, al lado de este archivo. Ahí están las cinco
+preguntas que quedan para la conversación con el abogado, y la que más pesa no
+es un número: **si el Operador no reintegra, ¿Caminante le devuelve al cliente
+de su bolsa y lo persigue después?** Esa decisión define si Caminante es
+intermediaria o garante.
 
 ## Sexta · Obligaciones del Operador
 
@@ -511,7 +515,10 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 | 5 | Si la indemnización de la Novena es oponible | Abogado |
 | 6 | ~~¿Retraso de pago al Operador?~~ → **resuelto: sin retraso.** Dispone de su parte antes de la salida porque es lo que le permite operar; si hay devolución, reintegra | Luis, 23 sep |
 | 7 | **El costo de procesamiento de una venta cancelada no lo devuelve el procesador: $83.94 en una venta de $1,750 (4.80% medido). ¿A cargo de quién queda?** | **Luis** — hoy lo absorbe Caminante por omisión, no por decisión |
-| 8 | La Quinta permite devoluciones parciales y el sistema sólo sabe devolver el 100%. ¿Se construye, o la cláusula promete menos? | **Luis** — una es obra, la otra es una línea |
+| 8 | ~~¿Se construye la devolución parcial?~~ → **resuelta: construida** (0063, falta aplicarla en producción) | Luis, 23 sep |
+| 9 | **Si el Operador no reintegra lo devuelto, ¿Caminante le devuelve al cliente de su bolsa y lo persigue después?** Define si es intermediaria o garante | **Abogado** — la más importante de todas. Ver ESCENARIOS-DINERO.md |
+| 10 | ¿Penalización al Operador que cancela, como hace Airbnb? ¿Y qué cuenta como fuerza mayor en montaña? | Luis, con el abogado |
+| 11 | Ahora que el cargo es a nombre del Operador, ¿los contracargos siguen siendo suyos? | Abogado |
 
 ## Anexos que conviene tener
 

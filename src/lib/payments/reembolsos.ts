@@ -33,11 +33,17 @@ type PagoVivo = {
   id: string;
   reservation_id: string | null;
   amount_mxn: number;
+  /** Lo que YA se devolvió de este pago, sumando parciales (0063). */
+  refunded_mxn: number;
   provider_ref: string | null;
   method: string | null;
   /** Por dónde entró (0061). Decide cómo se deshace. */
   canal_cobro: string | null;
 };
+
+/** Lo que todavía se le puede devolver a este pago. */
+const porDevolver = (p: PagoVivo): number =>
+  Math.round((p.amount_mxn - (p.refunded_mxn || 0)) * 100) / 100;
 
 /**
  * Los pagos que TODAVÍA se pueden devolver de estas reservas.
@@ -54,13 +60,14 @@ async function pagosDe(
   if (!reservationIds.length) return [];
   const { data } = await sb
     .from("payments")
-    .select("id, reservation_id, amount_mxn, provider_ref, method, status, canal_cobro")
+    .select("id, reservation_id, amount_mxn, refunded_mxn, provider_ref, method, status, canal_cobro")
     .in("reservation_id", reservationIds)
     .eq("status", "paid");
   return ((data ?? []) as (PagoVivo & { status: string })[]).map((p) => ({
     id: p.id,
     reservation_id: p.reservation_id,
     amount_mxn: Number(p.amount_mxn || 0),
+    refunded_mxn: Number(p.refunded_mxn || 0),
     provider_ref: p.provider_ref,
     method: p.method,
     canal_cobro: p.canal_cobro ?? "casa",
@@ -71,9 +78,37 @@ async function pagosDe(
 async function devolver(
   sb: ReturnType<typeof createSupabaseAdminClient>,
   pago: PagoVivo,
-  ctx: { slotId: string | null; motivo: string; origen: "persona" | "salida"; quien: string | null },
+  ctx: {
+    slotId: string | null;
+    motivo: string;
+    origen: "persona" | "salida";
+    quien: string | null;
+    /**
+     * Cuánto devolver. Sin él, todo lo que quede.
+     *
+     * ⚠️ NO SE PARTE EL REPARTO A MANO. En un cargo con destino basta pedirle a
+     * Stripe el parcial con `reverse_transfer` y `refund_application_fee`: él
+     * reparte en proporción, en las dos patas. Medido el 23 sep 2026 sobre una
+     * venta de $1,750 con $350 de comisión — un refund de $875 devolvió $175 de
+     * comisión y bajó $700 del saldo de la operadora. Calcularlo aquí sería
+     * duplicar una regla que ya vive donde se ejecuta.
+     */
+    monto?: number;
+  },
 ): Promise<{ monto: number; aviso: string | null }> {
-  if (pago.amount_mxn <= 0) return { monto: 0, aviso: null };
+  const restante = porDevolver(pago);
+  if (restante <= 0) return { monto: 0, aviso: null };
+
+  // Sin monto, todo lo que queda. Con monto, nunca más de lo que queda: pedir
+  // de más lo rechazaría Stripe, pero para entonces el libro ya diría otra cosa.
+  const pedido = ctx.monto == null ? restante : Math.round(ctx.monto * 100) / 100;
+  if (pedido <= 0) return { monto: 0, aviso: "El monto a devolver tiene que ser mayor que cero." };
+  if (pedido > restante) {
+    return {
+      monto: 0,
+      aviso: `De ese cobro sólo quedan $${restante.toLocaleString("es-MX")} por devolver y se pidieron $${pedido.toLocaleString("es-MX")}.`,
+    };
+  }
   if (!pago.provider_ref || pago.method !== "stripe") {
     return {
       monto: 0,
@@ -90,7 +125,7 @@ async function devolver(
       payment_id: pago.id,
       reservation_id: pago.reservation_id,
       slot_id: ctx.slotId,
-      monto_mxn: pago.amount_mxn,
+      monto_mxn: pedido,
       motivo: ctx.motivo || null,
       origen: ctx.origen,
       cancela_reserva: true,
@@ -131,7 +166,7 @@ async function devolver(
     const porConnect = pago.canal_cobro === "connect";
     const refund = await stripe.refunds.create({
       payment_intent: pago.provider_ref,
-      amount: toStripeAmount(pago.amount_mxn),
+      amount: toStripeAmount(pedido),
       ...(porConnect ? { reverse_transfer: true, refund_application_fee: true } : {}),
       metadata: { origen: "caminante", reembolso_id: fila.id as string, canal: pago.canal_cobro ?? "casa" },
     });
@@ -148,7 +183,7 @@ async function devolver(
     if (refund.status === "succeeded") {
       await marcarYCerrar(sb, pago.id);
     }
-    return { monto: pago.amount_mxn, aviso: null };
+    return { monto: pedido, aviso: null };
   } catch (e) {
     // El reembolso queda 'fallido' Y CON EL MOTIVO. Así el libro dice por qué
     // esa persona no recibió su dinero, en vez de callarse.
@@ -175,6 +210,21 @@ async function quienEsLaCasa(): Promise<{ ok: true; quien: string | null } | { o
 export async function reembolsarPersona(
   reservationId: string,
   motivo: string,
+  /**
+   * Cuánto devolver, en pesos. Sin él, todo lo que quede del cobro.
+   *
+   * Existe por la Cláusula Quinta del convenio: el Operador fija su política de
+   * cancelación y casi ninguna devuelve el 100% —«50% si cancelas con siete
+   * días»—. Hasta el 23 sep 2026 esto sólo sabía devolver todo, así que el
+   * convenio prometía algo que la caja no podía ejecutar.
+   *
+   * ⚠️ UN PARCIAL CANCELA LA RESERVA IGUAL. Devolver una parte es el desenlace
+   * de una cancelación, no un descuento: quien recibe el 50% de vuelta ya no
+   * viene, y su lugar se libera. Si algún día hace falta devolver dinero SIN
+   * cancelar —una queja, un ajuste— es otra operación y necesita su propia
+   * puerta; no se cuela por aquí.
+   */
+  montoParcial?: number,
 ): Promise<ResultadoReembolso> {
   const auth = await quienEsLaCasa();
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -192,6 +242,16 @@ export async function reembolsarPersona(
   if (!pagos.length) {
     return { ok: false, error: "Esa reserva no tiene ningún pago vivo que devolver." };
   }
+  // ⚠️ UN MONTO PARA VARIOS COBROS NO SIGNIFICA NADA. Si la reserva tiene dos
+  // pagos vivos, «devuelve $500» no dice de cuál ni en qué proporción, y
+  // repartirlo por nuestra cuenta sería inventar la respuesta. Se para y se
+  // dice; devolver todo sí es inequívoco y sigue funcionando.
+  if (montoParcial != null && pagos.length > 1) {
+    return {
+      ok: false,
+      error: `Esa reserva tiene ${pagos.length} cobros vivos: un monto parcial no dice de cuál. Devuélvelos completos, o hazlo uno por uno desde Stripe.`,
+    };
+  }
 
   const avisos: string[] = [];
   let monto = 0;
@@ -202,6 +262,7 @@ export async function reembolsarPersona(
       motivo,
       origen: "persona",
       quien: auth.quien,
+      monto: montoParcial,
     });
     if (r.aviso) avisos.push(r.aviso);
     if (r.monto > 0) { monto += r.monto; n += 1; }
