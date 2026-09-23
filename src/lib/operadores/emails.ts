@@ -1,27 +1,29 @@
 // Correos del FUNNEL DE OPERADORES.
 //
-// ⚠️ REUSAN EL ARMAZÓN QUE YA EXISTE, a propósito. Claude Design no entregó un
-// HTML de correo para este funnel, y NO se le pidió: el cascarón de
-// `lib/embajadores/emails.ts` ya sobrevivió Gmail y Apple Mail de verdad (el
-// remitente «Luis · Caminante» que saca los correos de Promociones, el sello a
-// 4× para que no se vea desvaído, y el aplanado de tablas que arregló el corte
-// en iPhone). Diseñar uno nuevo sería un segundo sistema de correo divergiendo
-// del primero, y las lecciones caras habría que volver a aprenderlas.
+// ⚠️ EL MARCO NO VIVE AQUÍ: está en `lib/email/plantilla.ts`, compartido con
+// los correos de embajadores. Hasta el 23 sep 2026 cada módulo traía su propia
+// copia del mismo cascarón, y la consecuencia no fue teórica — se arregló en
+// uno la divergencia entre el HTML y el texto plano y el otro se quedó con el
+// bug intacto. Dos copias del mismo marco es aprender cada lección dos veces.
 //
-// Lo único propio es el rótulo del encabezado y el copy.
+// Lo propio de este archivo es el rótulo, el saludo por omisión y el copy.
 
 import { sendViaResend } from "@/lib/email/resend";
+import {
+  type Bloque,
+  boton,
+  esc,
+  h1,
+  LAGOON,
+  marco,
+  p,
+  parrafosDe,
+} from "@/lib/email/plantilla";
 import { CDMX, enPalabras } from "@/lib/fecha/zona";
 import { pdfDeTerminos, type DatosTerminos } from "./terminos-pdf";
 
 const SITE = "https://caminante.numanhub.com";
 const ADMIN_EMAIL = "uno@numanhub.com";
-
-const CREMA = "#fbfbf7";
-const LAGOON = "#3e4836";
-const ARENA = "#d4cec6";
-const OLIVO = "#776f67";
-const NARANJA = "#ff5d36";
 
 const firstName = (full: string | null): string => {
   if (!full) return "hola";
@@ -29,93 +31,10 @@ const firstName = (full: string | null): string => {
   return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
 };
 
-const esc = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-/**
- * UN BLOQUE DEL CORREO, EN SUS DOS IDIOMAS A LA VEZ.
- *
- * ⚠️ ESTO NACIÓ DE UN BUG MEDIDO. Cada correo se escribía dos veces —el HTML y
- * el `text` de respaldo, a mano— y las dos copias llevaban meses separándose:
- *
- *   · La confirmación de solicitud perdía en texto su tercer párrafo, que es la
- *     línea más amable del correo («no dejamos a nadie en visto»).
- *   · La invitación a la llamada y la petición de expediente **ignoraban el
- *     mensaje personalizado** en texto: si la casa escribía algo propio, quien
- *     leía en texto plano recibía el genérico. Dos correos distintos con el
- *     mismo asunto.
- *
- * Nadie lo notó porque el texto plano no se ve al mandarlo: lo ven los clientes
- * que no pintan HTML, los lectores de pantalla y el filtro de spam. Un respaldo
- * que nadie mira es un respaldo que se pudre.
- *
- * Desde aquí hay UN solo texto: el plano se DERIVA del mismo bloque. No se
- * puede escribir uno sin el otro, que es la única forma de que no diverjan.
- */
-type Bloque = { html: string; texto: string };
-
-/** El HTML de un párrafo, en plano: sin etiquetas y con las entidades de vuelta. */
-export const aTexto = (html: string): string =>
-  html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&middot;/g, "·")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
-    .trim();
-
-function shell(bloques: Bloque[]): { html: string; texto: string } {
-  const inner = bloques.map((b) => b.html).join("");
-  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"></head>
-<body style="margin:0;padding:0;background:${CREMA};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREMA};"><tr><td align="center" style="padding:32px 16px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;background:#ffffff;border:1px solid ${ARENA};border-radius:18px;overflow:hidden;">
-<tr><td style="padding:32px 36px 8px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-<div style="font-size:12px;letter-spacing:3px;color:${OLIVO};text-transform:uppercase;">Caminante &middot; Operadores</div></td></tr>
-${inner}
-<tr><td style="padding:14px 36px 30px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-<div style="border-top:1px solid ${ARENA};padding-top:18px;font-size:13px;line-height:1.6;color:${OLIVO};">¿Dudas? Responde este correo y te contestamos.</div></td></tr>
-</table>
-<div style="max-width:540px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:${OLIVO};padding:18px 8px;">Caminante by NUMAN &middot; uno@numanhub.com</div>
-</td></tr></table></body></html>`;
-  // El pie va en los dos, igual que en el marco: quien lee en texto plano
-  // también tiene que saber a quién le está contestando.
-  const texto =
-    bloques.map((b) => b.texto).filter(Boolean).join("\n\n") +
-    "\n\n¿Dudas? Responde este correo y te contestamos.\n\nCaminante by NUMAN · uno@numanhub.com";
-  return { html, texto };
-}
-
-const p = (t: string): Bloque => ({
-  html: `<tr><td style="padding:0 36px 8px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"><p style="margin:0 0 10px;font-size:16px;line-height:1.6;color:${LAGOON};">${t}</p></td></tr>`,
-  texto: aTexto(t),
-});
-const h1 = (t: string): Bloque => ({
-  html: `<tr><td style="padding:16px 36px 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"><h1 style="margin:0 0 14px;font-size:26px;line-height:1.25;color:${LAGOON};font-weight:600;">${t}</h1></td></tr>`,
-  texto: aTexto(t),
-});
-/** Botón grande. Debajo SIEMPRE va la liga en texto plano: si el botón no carga
- *  —cliente que bloquea estilos, modo texto— el correo sigue sirviendo. */
-const boton = (texto: string, url: string): Bloque => ({
-  html: `<tr><td style="padding:10px 36px 4px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-<a href="${url}" style="display:inline-block;background:${NARANJA};color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:14px 26px;border-radius:999px;">${texto}</a>
-</td></tr>
-<tr><td style="padding:6px 36px 12px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-<div style="font-size:12px;line-height:1.6;color:${OLIVO};word-break:break-all;">O copia esta liga: ${url}</div></td></tr>`,
-  texto: `${texto}:\n${url}`,
-});
-
-/** Varios párrafos a partir de un mensaje escrito a mano. */
-const parrafosDe = (mensaje: string): Bloque[] =>
-  mensaje
-    .trim()
-    .split(/\n{2,}/)
-    .map((t) => p(esc(t).replace(/\n/g, "<br>")));
+const shell = (bloques: Bloque[]) => marco("Operadores", bloques);
 
 const enviar = (to: string, subject: string, correo: { html: string; texto: string }) =>
   sendViaResend(to, subject, correo.html, { ua: "caminante-operadores/1.0", text: correo.texto });
-
 
 // 1 · Confirmación a quien acaba de aplicar.
 export async function emailConfirmacionOperador(to: string, responsable: string | null): Promise<boolean> {

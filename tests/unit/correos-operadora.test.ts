@@ -8,7 +8,8 @@
 //
 // Por eso viven fuera de las plantillas y por eso tienen prueba.
 import { describe, expect, it } from "vitest";
-import { aTexto, fraseDelDinero, fraseDeVigencia } from "@/lib/operadores/emails";
+import { fraseDelDinero, fraseDeVigencia } from "@/lib/operadores/emails";
+import { aTexto, marco, p } from "@/lib/email/plantilla";
 
 describe("dónde está el dinero de la primera venta", () => {
   it("con Connect: es suyo, y se dice cuánto retuvimos", () => {
@@ -86,5 +87,33 @@ describe("el texto plano se saca del HTML, no se escribe aparte", () => {
   // justo el texto que esa persona quería que se leyera.
   it("un <b> escrito a mano se lee, no se borra", () => {
     expect(aTexto("dice &lt;b&gt;así&lt;/b&gt; textual")).toBe("dice <b>así</b> textual");
+  });
+});
+
+// La regla del marco compartido: si un bloque está en el HTML, está en el texto.
+// Es lo que impedía que la bienvenida de embajadores perdiera su última línea
+// («Tu comunidad ya quiere vivir esto. Tráela.») sólo para quien lee en plano.
+describe("el marco no deja caer bloques", () => {
+  it("cada párrafo del HTML aparece en el texto", () => {
+    const lineas = ["Primero.", "Segundo.", "Y el tercero, que es el que se perdía."];
+    const c = marco("Operadores", lineas.map((t) => p(t)));
+    for (const l of lineas) {
+      expect(c.html).toContain(l);
+      expect(c.texto).toContain(l);
+    }
+  });
+
+  it("el pie va en los dos: quien lee en plano también sabe a quién contesta", () => {
+    const c = marco("Programa de embajadores", [p("hola")]);
+    expect(c.texto).toContain("Responde este correo");
+    expect(c.texto).toContain("uno@numanhub.com");
+  });
+
+  it("el rótulo es lo único que cambia entre los dos funnels", () => {
+    const a = marco("Operadores", [p("x")]).html;
+    const b = marco("Programa de embajadores", [p("x")]).html;
+    expect(a.replace("Caminante &middot; Operadores", "@@")).toBe(
+      b.replace("Caminante &middot; Programa de embajadores", "@@"),
+    );
   });
 });
