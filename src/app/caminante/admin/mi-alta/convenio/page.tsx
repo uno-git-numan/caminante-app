@@ -37,7 +37,7 @@ export default async function ConvenioPage() {
     // falla el SELECT ENTERO y devuelve null: la pantalla de firmar decía «tu
     // operadora / sin capturar» con el RFC y la razón social capturados en la
     // base. No revienta, miente — y miente en el documento que alguien firma.
-    sb.from("operators").select("name, razon_social, rfc, commission_pct").eq("id", operatorId).maybeSingle(),
+    sb.from("operators").select("name, razon_social, rfc, commission_pct, comision_desde").eq("id", operatorId).maybeSingle(),
     sb
       .from("operator_agreements")
       .select("version, firmado_at, firmante_nombre")
@@ -90,13 +90,30 @@ export default async function ConvenioPage() {
     }];
   });
 
-  const pct = o.commission_pct;
+  // QUÉ TRATO SE FIRMA. Esto leía sólo `commission_pct` y, en NULL, decía «sin
+  // definir todavía» y bloqueaba la firma. Pero NULL no es «sin comisión»:
+  // con `comision_desde` puesta cobra la escala de la casa, y así se le han
+  // cobrado a Nomádika sus 12 ventas. La única operadora que ya generó comisión
+  // era justo la que no podía firmar. Ver la 0062.
+  const pct = o.commission_pct == null ? null : Number(o.commission_pct);
+  const arranca = !!(o.comision_desde as string | null);
+  const comision: DatosFirma["comision"] =
+    pct != null
+      ? { tipo: "plano", texto: `${pct}% sobre cada venta cobrada` }
+      : arranca
+        ? {
+            tipo: "escala",
+            // No se promete una sola escala: cuál aplica lo decide cada venta,
+            // según quién trajo al cliente. Decir «15%» aquí sería prometer un
+            // número que el cobro no cumple.
+            texto: "la tabla de la casa, por tramos — baja conforme sube el precio",
+          }
+        : { tipo: "sin-definir", texto: "sin definir todavía" };
+
   const datos: DatosFirma = {
     operadora: (o.razon_social as string) || (o.name as string) || "tu operadora",
     rfc: (o.rfc as string) ?? null,
-    // Sin comisión definida no se firma en blanco — `firmarConvenio` lo exige y
-    // aquí se dice antes, para no dejarlo descubrirlo hasta el último clic.
-    comision: pct == null ? "sin definir todavía" : `${pct}% sobre cada venta cobrada`,
+    comision,
     convenio,
     anexos: docsAnexos,
   };

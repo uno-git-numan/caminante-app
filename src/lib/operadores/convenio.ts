@@ -155,10 +155,31 @@ export async function firmarConvenio(f: FirmaConvenio): Promise<{ ok: true } | {
     .maybeSingle();
   if (!op) return { ok: false, error: "No encontramos la operadora." };
   const o = op as Record<string, unknown>;
-  if (o.commission_pct == null) {
-    // Firmar un convenio que no dice cuánto se cobra sería firmar en blanco.
-    return { ok: false, error: "Falta definir la comisión antes de firmar." };
+
+  // ⚠️ QUÉ TRATO SE ESTÁ FIRMANDO. Esto decía «Falta definir la comisión antes
+  // de firmar» en cuanto `commission_pct` venía en NULL, y daba por hecho que
+  // NULL significa «sin comisión». Es falso desde que existe la escala —el
+  // mismo error que la 0047 corrigió en el gate de venta— y dejaba sin poder
+  // firmar justo a la única operadora que ya generó comisión: Nomádika lleva 12
+  // ventas cobradas por escala, a $301.72 cada una.
+  //
+  // Lo que se congela es el TIPO de trato, no un número, porque para la escala
+  // no hay un número que congelar: es una tabla marginal, y además cuál de las
+  // dos escalas aplica lo decide CADA VENTA según quién trajo al cliente
+  // (`escalaPara`). Escribirle un 20% plano a quien venía por escala le
+  // cambiaría el trato hacia arriba —$566 de más en una venta de $21,000— el
+  // día que firma, y en silencio. Ver la 0062.
+  const pactada = o.commission_pct == null ? null : Number(o.commission_pct);
+  const generaComision = pactada != null || !!(o.comision_desde as string | null);
+  if (!generaComision) {
+    // Ni porcentaje pactado ni fecha de arranque: no hay trato que firmar.
+    // Firmar así sería firmar en blanco.
+    return {
+      ok: false,
+      error: "Falta definir la comisión antes de firmar: ni un porcentaje pactado ni una fecha de arranque.",
+    };
   }
+  const reglaFirmada = pactada != null ? "plano" : "escala";
 
   const { error } = await sb.from("operator_agreements").insert({
     operator_id: f.operadorId,
@@ -169,7 +190,9 @@ export async function firmarConvenio(f: FirmaConvenio): Promise<{ ok: true } | {
     firmante_puesto: f.firmantePuesto?.trim() || null,
     facultades_declaradas: true,
     aceptado: true,
-    comision_pct: o.commission_pct,
+    comision_regla: reglaFirmada,
+    // NULL a propósito cuando va por escala: ahí no hay una tasa, hay una tabla.
+    comision_pct: pactada,
     comision_desde: o.comision_desde ?? null,
     entidad_snapshot: {
       razon_social: o.razon_social ?? null,

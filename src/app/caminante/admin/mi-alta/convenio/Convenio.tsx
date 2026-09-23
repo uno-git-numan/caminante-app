@@ -33,7 +33,13 @@ export type DocFirmable = {
 export type DatosFirma = {
   operadora: string;
   rfc: string | null;
-  comision: string;
+  /**
+   * Qué trato se firma. Es un OBJETO y no una frase porque antes era una frase
+   * que además hacía de bandera (`startsWith("sin definir")`): el texto decidía
+   * si la pantalla bloqueaba. Cambiarle una palabra al copy habría desarmado el
+   * candado sin que nadie lo notara.
+   */
+  comision: { tipo: "plano" | "escala" | "sin-definir"; texto: string };
   convenio: DocFirmable | null;
   /** Un anexo por actividad declarada. Vacío = no ha declarado ninguna. */
   anexos: DocFirmable[];
@@ -128,7 +134,7 @@ function Firmar({ doc, datos, esAnexo }: { doc: DocFirmable; datos: DatosFirma; 
           <span className="f"><span>Firma por</span><b>{datos.operadora}</b></span>
           <span className="f"><span>RFC</span><b className="mono">{datos.rfc ?? "sin capturar"}</b></span>
           <span className="f"><span>Fecha</span><b className="mono">{fecha(new Date().toISOString())}</b></span>
-          <span className="f"><span>Comisión pactada</span><b>{datos.comision}</b></span>
+          <span className="f"><span>Comisión pactada</span><b>{datos.comision.texto}</b></span>
         </div>
         <Casilla nombre="aceptado" marcada={leido} onToggle={setLeido}>
           Leí {esAnexo ? "el anexo" : "el convenio"} completo y lo acepto a nombre de {datos.operadora}.
@@ -211,7 +217,7 @@ export default function Convenio({ datos }: { datos: DatosFirma }) {
           {/* Sin comisión pactada el servidor se niega a registrar la firma:
               sería firmar en blanco la cláusula que dice cuánto se cobra. Se
               dice ARRIBA y no al último clic, porque no lo resuelve quien firma. */}
-          {datos.comision.startsWith("sin definir") ? (
+          {datos.comision.tipo === "sin-definir" ? (
             <p className="calm">
               <s>{"//"}</s>
               <span className="g">

@@ -41,15 +41,32 @@ export async function reglaComisionDeOperador(
   const sb = createSupabaseAdminClient();
 
   // El convenio MÁS RECIENTE que haya firmado. Si firmó v1 y luego v2, manda v2.
+  //
+  // ⚠️ SE LEEN LAS DOS COLUMNAS. `comision_pct` a solas miente: viene en NULL
+  // cuando lo que se firmó fue la ESCALA, y esta función lo leía como «no firmó
+  // nada» y seguía de largo al siguiente eslabón. Con la escala firmada el
+  // resultado era el mismo por casualidad —la escala otra vez— pero por el
+  // camino equivocado: `origen` decía «escala» donde debía decir «convenio», y
+  // ese dato es el que la pantalla usa para decirle a alguien si lo suyo ya
+  // está firmado. Ver la 0062.
   const { data: firma } = await sb
     .from("operator_agreements")
-    .select("comision_pct, firmado_at")
+    .select("comision_regla, comision_pct, firmado_at")
     .eq("operator_id", operatorId)
     .order("firmado_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const firmada = (firma as { comision_pct: number | null } | null)?.comision_pct;
-  if (firmada != null) return { regla: { tipo: "plano", pct: Number(firmada) }, origen: "convenio" };
+  const f = firma as { comision_regla: string | null; comision_pct: number | null } | null;
+  if (f?.comision_regla === "escala") {
+    // Cuál de las dos escalas NO se congela: la decide cada venta según quién
+    // trajo al cliente (`escalaPara`). El checkout la recalcula; aquí se
+    // devuelve «venta», que es la cara y por lo tanto la prudente para sugerir
+    // un precio.
+    return { regla: { tipo: "escala", escala: "venta" }, origen: "convenio" };
+  }
+  if (f?.comision_pct != null) {
+    return { regla: { tipo: "plano", pct: Number(f.comision_pct) }, origen: "convenio" };
+  }
 
   const { data: op } = await sb
     .from("operators")
