@@ -16,6 +16,14 @@
 // que la de `scripts/aplicar-migraciones.mjs`: el ref de producción vive
 // escrito aquí para que no baste con un dedazo.
 //
+// La llave es la `service_role` de staging: dashboard → Settings → API Keys →
+// «Legacy anon, service_role» → Reveal. No vive en ningún archivo del repo.
+//
+// ✅ Corrido contra `caminante-staging` el 23 sep 2026: 11 de 11, dos veces
+// seguidas. Y probado que PUEDE fallar: revirtiendo la regla de la fila en
+// `mi-alta.ts` —el bug de Nomádika— el paso 02 se pone en rojo con «expected
+// null not to be null», que es exactamente lo que tiene que decir.
+//
 // Lo único simulado es la SESIÓN (`correoEnSesion`): no hay navegador, así que
 // se le dice quién entró. Todo lo demás —`fetchMiAlta`, `candadosDe`,
 // `operadorListo`, `planDeCobro`— es el código que corre en producción,
