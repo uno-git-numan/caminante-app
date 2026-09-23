@@ -153,10 +153,18 @@ retroactivamente. La fecha de arranque se hace constar en la carátula.
    liquidación es el importe cobrado menos la comisión de plataforma y su IVA,
    sin más deducciones.
 
-🔸 *Para la revisión: hoy la liquidación se hace por transferencia manual. Está
-en construcción el pago automatizado por Stripe Connect, en el que el importe se
-divide en el momento del cobro. Confirmar si el cambio de mecanismo exige
-modificar esta cláusula o cabe en su redacción actual.*
+🔸 *Para la revisión.* **Actualizado el 23 sep 2026: Stripe Connect ya no está
+«en construcción».** Está construido y probado de punta a punta contra Stripe:
+el cobro entra **a nombre del Operador** (cargo con destino, `on_behalf_of`),
+Stripe divide el importe **en el momento del cobro** y retiene para Caminante
+`comisión + IVA de la comisión`. Medido con una venta real de prueba de $1,750:
+$350.00 retenidos, $1,400.00 a la cuenta del Operador.
+
+La pregunta al abogado ya no es si el cambio *vendrá*, sino si esta redacción
+—«su liquidación es el importe cobrado menos la comisión de plataforma y su
+IVA, sin más deducciones»— describe correctamente un cobro que **nunca pasa por
+la cuenta de Caminante**. Siguen conviviendo los dos mecanismos: quien no ha
+conectado su cuenta cobra por el camino viejo y se le transfiere a mano.
 
 ## Quinta · Devoluciones, cancelaciones y contracargos
 
@@ -331,13 +339,29 @@ turístico prestado, por el importe neto liquidado.
 Ambas partes se obligan a mantener vigente su situación fiscal y a entregarse la
 documentación que requieran para cumplir sus obligaciones.
 
-🔸 **Ésta es la pregunta 4 del memo, y es la que más aprieta.** Se redactó como
-el sistema funciona hoy —un solo emisor, NUMAN— y no como decía el v0, que
-ponía al Operador facturando al viajero. Necesitamos criterio sobre si NUMAN
-puede facturar un servicio turístico que no presta, y qué implica para el IVA de
-ambas partes. Está en construcción la facturación multi-emisor, que permitiría
-que cada operadora timbre con su propio sello; la respuesta a esta pregunta
-decide si esa obra es opcional o urgente.
+🔸 **Ésta es la pregunta 4 del memo, y es la que más aprieta.**
+
+⚠️ **ESTE ARTICULADO YA NO DESCRIBE EL MODELO DECIDIDO, y hay que reescribirlo
+antes de mandárselo al abogado.** Se redactó como un solo emisor —NUMAN factura
+al viajero— y el 22 sep 2026 Luis decidió lo contrario, el modelo Airbnb: **el
+Operador le factura al cliente (o a público en general) el servicio, y Caminante
+factura ÚNICAMENTE su comisión de plataforma, al Operador.** Es además el modelo
+que el código ya implementa: la retención de Stripe (`comisión + IVA`) es
+exactamente el total del CFDI que Caminante le emite al Operador, así que las
+dos facturas cierran a cero.
+
+Dos hechos que el abogado necesita saber y que apuntan al mismo lado:
+
+1. **El SAT no tiene registrada a NUMAN en turismo.** Las 15 actividades de su
+   CSF son de medios y software. Facturar un servicio turístico que además no
+   presta es justo lo que el modelo Airbnb evita.
+2. La facturación multi-emisor (Facturapi, una organización por emisor) está
+   escrita y gateada; espera la cuenta y el CSD.
+
+La pregunta que queda, entonces, ya no es si NUMAN *puede* facturar el viaje,
+sino **confirmar que el reparto Airbnb es correcto para el IVA de ambas partes**
+y qué clave de producto le corresponde a la comisión de plataforma (servicio de
+intermediación, no organización de viajes).
 
 ## Décima cuarta · Confidencialidad
 
