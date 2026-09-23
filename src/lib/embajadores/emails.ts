@@ -9,7 +9,7 @@
 // intacta. Tres de estos cuatro correos perdían en texto su último párrafo —y
 // en dos de ellos ese párrafo era el que importaba.
 //
-// Lo propio de este archivo es el rótulo, el saludo por omisión y el copy.
+// Lo propio de este archivo es el rótulo y el copy.
 import { sendViaResend } from "@/lib/email/resend";
 import {
   type Bloque,
@@ -22,16 +22,11 @@ import {
   marco,
   OLIVO,
   p,
+  saludo,
 } from "@/lib/email/plantilla";
 
 const SITE = "https://caminante.numanhub.com";
 const ADMIN_EMAIL = "uno@numanhub.com";
-
-const firstName = (full: string | null): string => {
-  if (!full) return "caminante";
-  const n = full.trim().split(/\s+/)[0] || "caminante";
-  return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
-};
 
 const shell = (bloques: Bloque[]) => marco("Programa de embajadores", bloques);
 
@@ -44,9 +39,9 @@ const liga = (url: string, texto: string) =>
 
 // 1 · Confirmación al aplicante (al enviar el formulario).
 export async function emailConfirmacionAplicacion(to: string, nombre: string | null): Promise<boolean> {
-  const n = firstName(nombre);
+  const n = saludo(nombre);
   const correo = shell([
-    h1(`Recibimos tu aplicación, ${n}.`),
+    h1(`Recibimos tu aplicación${n}.`),
     p("Gracias por querer caminar con nosotros. El programa es curado: leemos cada aplicación con calma y con cuidado."),
     p("Si tu perfil hace clic, te escribimos para agendar una llamada de 30 minutos y platicar. Si no por ahora, también te lo decimos — no dejamos a nadie en visto."),
     // Este párrafo NO llegaba al texto plano. Ahora sale del mismo bloque.
@@ -57,9 +52,9 @@ export async function emailConfirmacionAplicacion(to: string, nombre: string | n
 
 // 2 · Bienvenida (al APROBAR).
 export async function emailBienvenidaEmbajador(to: string, nombre: string | null): Promise<boolean> {
-  const n = firstName(nombre);
+  const n = saludo(nombre);
   const correo = shell([
-    h1(`Bienvenido al programa, ${n}.`),
+    h1(`Bienvenido al programa${n}.`),
     p("Tu aplicación nos hizo clic. <strong>Ya eres parte del programa de embajadores de Caminante.</strong>"),
     p("El siguiente paso: te escribimos por WhatsApp para agendar una llamada de 30 minutos — ahí platicamos cómo trabaja el programa, eliges tu primera experiencia y firmamos el convenio (con la hoja de costeo a la vista, como debe ser)."),
     // ⚠️ Esta línea se perdía entera en texto plano, y es la que dice de qué se
@@ -71,9 +66,9 @@ export async function emailBienvenidaEmbajador(to: string, nombre: string | null
 
 // 3 · "Por ahora no" (al RECHAZAR) — amable, deja la puerta abierta.
 export async function emailRechazoAplicacion(to: string, nombre: string | null): Promise<boolean> {
-  const n = firstName(nombre);
+  const n = saludo(nombre);
   const correo = shell([
-    h1(`Gracias por aplicar, ${n}.`),
+    h1(`Gracias por aplicar${n}.`),
     p("Leímos tu aplicación con cuidado. Por ahora no vamos a avanzar — el programa arranca con muy pocas manos y estamos eligiendo perfiles que empatan con las experiencias que tenemos abiertas hoy."),
     p("Esto no es un no definitivo: el catálogo crece y el programa también. Si tu comunidad o tu proyecto cambian, nos encantará leerte de nuevo."),
     // ⚠️ En un correo de rechazo, ÉSTA es la línea que deja la puerta abierta —

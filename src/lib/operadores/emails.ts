@@ -6,7 +6,7 @@
 // uno la divergencia entre el HTML y el texto plano y el otro se quedó con el
 // bug intacto. Dos copias del mismo marco es aprender cada lección dos veces.
 //
-// Lo propio de este archivo es el rótulo, el saludo por omisión y el copy.
+// Lo propio de este archivo es el rótulo y el copy.
 
 import { sendViaResend } from "@/lib/email/resend";
 import {
@@ -18,18 +18,13 @@ import {
   marco,
   p,
   parrafosDe,
+  saludo,
 } from "@/lib/email/plantilla";
 import { CDMX, enPalabras } from "@/lib/fecha/zona";
 import { pdfDeTerminos, type DatosTerminos } from "./terminos-pdf";
 
 const SITE = "https://caminante.numanhub.com";
 const ADMIN_EMAIL = "uno@numanhub.com";
-
-const firstName = (full: string | null): string => {
-  if (!full) return "hola";
-  const n = full.trim().split(/\s+/)[0] || "hola";
-  return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
-};
 
 const shell = (bloques: Bloque[]) => marco("Operadores", bloques);
 
@@ -38,9 +33,9 @@ const enviar = (to: string, subject: string, correo: { html: string; texto: stri
 
 // 1 · Confirmación a quien acaba de aplicar.
 export async function emailConfirmacionOperador(to: string, responsable: string | null): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const correo = shell([
-    h1(`Recibimos tu solicitud, ${n}.`),
+    h1(`Recibimos tu solicitud${n}.`),
     p("Gracias por querer operar con nosotros. El programa es curado: leemos cada solicitud con calma, sobre todo el paso de cómo cuidas a la gente."),
     p("Si hace clic, te escribimos para agendar una llamada de 30 minutos. Ahí cerramos números y te decimos con claridad qué existe hoy en la plataforma y qué está en camino."),
     p("Si no es por ahora, también te lo decimos — no dejamos a nadie en visto."),
@@ -115,7 +110,7 @@ export async function emailInvitacionLlamada(
   /** Para el resumen de términos que viaja adjunto. */
   terminos: DatosTerminos,
 ): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const cuandoTxt = enPalabras(cuando, CDMX);
   // ⚠️ AQUÍ VIVÍA LA DIVERGENCIA MÁS CARA. El mensaje escrito a mano se pintaba
   // en el HTML y NO viajaba al texto plano, que decía siempre el genérico: dos
@@ -124,7 +119,7 @@ export async function emailInvitacionLlamada(
     ? parrafosDe(mensaje)
     : [p("Son 30 minutos por video: nos cuentas cómo operas, cerramos números y te decimos con claridad qué existe hoy en la plataforma y qué está en camino.")];
   const correo = shell([
-    h1(`Nos vemos el ${esc(cuandoTxt)}, ${n}.`),
+    h1(`Nos vemos el ${esc(cuandoTxt)}${n}.`),
     p(`<b>${esc(cuandoTxt)}</b>, hora del centro de México. Te adjuntamos el evento para que se meta a tu calendario.`),
     ...cuerpo,
     boton("Entrar a la llamada", meetUrl),
@@ -179,14 +174,14 @@ export async function emailPedirExpediente(
   cuantos: number,
   mensaje: string,
 ): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   // Mismo caso que la invitación: el mensaje propio tiene que llegar por los dos
   // caminos, o quien lee en texto plano recibe otro correo.
   const cuerpo = mensaje.trim()
     ? parrafosDe(mensaje)
     : [p(`Para darte de alta necesitamos ${cuantos} documentos. Se suben en un link privado; se guarda solo y puedes volver cuando quieras.`)];
   const correo = shell([
-    h1(`Tu expediente, ${n}.`),
+    h1(`Tu expediente${n}.`),
     ...cuerpo,
     boton("Subir mis documentos", url),
     p("Si algo te falta o está en trámite, dilo ahí mismo: varios se resuelven. La liga vence en 30 días."),
@@ -196,9 +191,9 @@ export async function emailPedirExpediente(
 
 // 5 · Bienvenida (al APROBAR).
 export async function emailBienvenidaOperador(to: string, responsable: string | null): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const correo = shell([
-    h1(`Bienvenida, ${n}.`),
+    h1(`Bienvenida${n}.`),
     p("Tu operadora ya está dada de alta. Vamos a armar tu primera experiencia juntos y su primera salida va acompañada."),
     p("Te escribimos por WhatsApp para agendar el alta: marca, colores y tus experiencias."),
     boton("Entrar a la plataforma", `${SITE}/caminante/entrar`),
@@ -208,9 +203,9 @@ export async function emailBienvenidaOperador(to: string, responsable: string | 
 
 // 6 · «Por ahora no», amable y con la puerta abierta.
 export async function emailRechazoOperador(to: string, responsable: string | null): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const correo = shell([
-    h1(`Gracias por escribirnos, ${n}.`),
+    h1(`Gracias por escribirnos${n}.`),
     p("Por ahora no vamos a avanzar con tu solicitud. No es un juicio sobre tu trabajo: el programa es chico y curado, y este año estamos cuidando mucho con quién y a qué ritmo crecemos."),
     p("Si cambia algo de lo que te faltaba —el seguro, las certificaciones, los permisos— vuelve a aplicar. Lo leemos otra vez con gusto."),
   ]);
@@ -231,10 +226,10 @@ export async function emailActividadAprobada(
   responsable: string | null,
   actividad: string,
 ): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const a = esc(actividad.toLowerCase());
   const correo = shell([
-    h1(`Tu expediente de ${a} está aprobado, ${n}.`),
+    h1(`Tu expediente de ${a} está aprobado${n}.`),
     p(`Ya puedes publicar y vender experiencias de ${a}. Lo revisamos documento por documento: de esto depende que nadie se lastime en una montaña, y por eso tarda.`),
     p("Tus otras actividades siguen su propio camino — que una esté a medias no detiene a las demás."),
     boton("Armar mi experiencia", `${SITE}/caminante/admin/experiencias/nueva`),
@@ -253,9 +248,9 @@ export async function emailExpedienteDevuelto(
   que: string,
   motivo: string,
 ): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const correo = shell([
-    h1(`Una cosa de tu expediente, ${n}.`),
+    h1(`Una cosa de tu expediente${n}.`),
     p(`<b>${esc(que)}</b> necesita corrección:`),
     p(esc(motivo)),
     p("Lo demás que ya subiste se queda como está. Cuando lo reemplaces, lo volvemos a revisar."),
@@ -266,9 +261,9 @@ export async function emailExpedienteDevuelto(
 
 // 9 · Stripe la habilitó: su cuenta ya cobra.
 export async function emailStripeListo(to: string, responsable: string | null): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const correo = shell([
-    h1(`Tu cuenta ya puede cobrar, ${n}.`),
+    h1(`Tu cuenta ya puede cobrar${n}.`),
     p("Stripe terminó de verificarte. A partir de ahora el dinero de tus ventas entra <b>a tu cuenta</b>, y Caminante retiene sólo su comisión."),
     p("Si Stripe te vuelve a pedir algo más adelante —un documento que vence, una revisión— te avisamos igual: tu panel siempre dice lo que Stripe dice, no lo que nosotros creemos."),
     boton("Ver mi cuenta de cobro", `${SITE}/caminante/admin/mi-alta/cobrar`),
@@ -308,12 +303,12 @@ export async function emailConvenioPorFirmar(
   responsable: string | null,
   v: { titulo: string; version: string; dias: number },
 ): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const url = `${SITE}/caminante/admin/mi-alta/convenio`;
   const yaAplica = v.dias <= 0;
   const cuando = fraseDeVigencia(v.dias);
   const correo = shell([
-    h1(`Ya puedes firmar tu convenio, ${n}.`),
+    h1(`Ya puedes firmar tu convenio${n}.`),
     p(`Publicamos <b>${esc(v.titulo)}</b> (${esc(v.version)}). Es el documento que pone por escrito la comisión, quién responde de qué y cómo se cobra.`),
     p(cuando),
     p("Léelo completo antes de aceptar. La firma queda con el sello del texto EXACTO que viste en pantalla, así que si algo te hace ruido, contéstanos este correo antes de firmar y no después."),
@@ -367,11 +362,11 @@ export async function emailPrimeraVenta(
     retenidoMxn: number | null;
   },
 ): Promise<boolean> {
-  const n = firstName(responsable);
+  const n = saludo(responsable);
   const gente = `${v.personas} ${v.personas === 1 ? "persona" : "personas"}`;
   const dinero = fraseDelDinero(v.montoMxn, v.retenidoMxn);
   const correo = shell([
-    h1(`Tu primera venta, ${n}.`),
+    h1(`Tu primera venta${n}.`),
     p(`Alguien acaba de pagar <b>${esc(v.experiencia)}</b> para ${gente}.`),
     p(dinero),
     p("En tu panel está quién viene, su deslinde firmado y sus datos de contacto. Cuando la salida termine, la encuesta sale sola a las 24 horas."),

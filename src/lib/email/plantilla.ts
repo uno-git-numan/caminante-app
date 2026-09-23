@@ -63,6 +63,30 @@ export const aTexto = (html: string): string =>
     .replace(/&amp;/g, "&")
     .trim();
 
+/**
+ * EL NOMBRE DE PILA CON SU COMA — O NADA.
+ *
+ * Los trece encabezados de estos dos funnels terminan igual: «Recibimos tu
+ * solicitud, Renata.» Sin nombre, el respaldo era un saludo metido en el hueco
+ * del nombre, y salía a media frase: «Recibimos tu solicitud, hola.» en
+ * operadoras y «Recibimos tu aplicación, caminante.» en embajadores. Es de esas
+ * cosas que se leen como un error de máquina justo en el primer correo que
+ * alguien recibe de nosotros.
+ *
+ * Sin nombre no hay coma: «Recibimos tu solicitud.» Una frase completa dice
+ * menos, pero no dice nada raro.
+ *
+ * ⚠️ Y VA ESCAPADO. El nombre sale de un formulario público —`responsable` en
+ * la solicitud de operadora, `nombre` en la de embajador— y se interpolaba
+ * crudo en el `<h1>`. Es el mismo agujero que tenían los cinco campos del aviso
+ * al admin, en el encabezado esta vez.
+ */
+export function saludo(nombre: string | null | undefined): string {
+  const pila = (nombre ?? "").trim().split(/\s+/)[0] ?? "";
+  if (!pila) return "";
+  return `, ${esc(pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase())}`;
+}
+
 export const p = (t: string): Bloque => ({
   html: `<tr><td style="padding:0 36px 8px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"><p style="margin:0 0 10px;font-size:16px;line-height:1.6;color:${LAGOON};">${t}</p></td></tr>`,
   texto: aTexto(t),

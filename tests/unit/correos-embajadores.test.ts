@@ -54,13 +54,17 @@ describe("nada se queda sólo en el HTML", () => {
     expect(ultimo().texto).not.toContain("<a href");
   });
 
-  // Sin nombre, este funnel saluda «caminante» y el de operadoras «hola». Se
-  // deja como está —es copy, no un bug— pero queda afirmado: si alguien cambia
-  // el respaldo, se entera aquí y no en la bandeja de quien lo recibe.
-  // (Sí queda raro a media frase: «Recibimos tu aplicación, caminante.»)
-  it("sin nombre saluda «caminante», tal cual, en minúscula", async () => {
+  // Sin nombre no hay coma. Antes el respaldo era un saludo metido en el hueco
+  // del nombre y salía a media frase: «Recibimos tu aplicación, caminante.»
+  it("sin nombre, la frase cierra sola: ni coma ni saludo de relleno", async () => {
     await emailConfirmacionAplicacion("x@y.z", null);
-    expect(ultimo().texto).toContain("Recibimos tu aplicación, caminante.");
+    expect(ultimo().texto).toContain("Recibimos tu aplicación.");
+    expect(ultimo().texto).not.toContain("caminante.\n");
+  });
+
+  it("con nombre, la coma y el nombre de pila", async () => {
+    await emailConfirmacionAplicacion("x@y.z", "renata de la paz");
+    expect(ultimo().texto).toContain("Recibimos tu aplicación, Renata.");
   });
 });
 

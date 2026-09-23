@@ -9,7 +9,7 @@
 // Por eso viven fuera de las plantillas y por eso tienen prueba.
 import { describe, expect, it } from "vitest";
 import { fraseDelDinero, fraseDeVigencia } from "@/lib/operadores/emails";
-import { aTexto, marco, p } from "@/lib/email/plantilla";
+import { aTexto, marco, p, saludo } from "@/lib/email/plantilla";
 
 describe("dónde está el dinero de la primera venta", () => {
   it("con Connect: es suyo, y se dice cuánto retuvimos", () => {
@@ -115,5 +115,30 @@ describe("el marco no deja caer bloques", () => {
     expect(a.replace("Caminante &middot; Operadores", "@@")).toBe(
       b.replace("Caminante &middot; Programa de embajadores", "@@"),
     );
+  });
+});
+
+// El saludo por omisión: un respaldo que sale a media frase se lee como un
+// error de máquina justo en el primer correo que alguien recibe de nosotros.
+describe("el nombre de pila del encabezado", () => {
+  it("sin nombre no hay coma: la frase cierra sola", () => {
+    for (const vacio of [null, undefined, "", "   "]) {
+      expect(saludo(vacio)).toBe("");
+    }
+  });
+
+  it("con nombre completo, sólo el de pila y capitalizado", () => {
+    expect(saludo("renata de la paz")).toBe(", Renata");
+    expect(saludo("  ADRIANA  RUIZ ")).toBe(", Adriana");
+  });
+
+  // El nombre sale de un formulario público y se interpolaba CRUDO en el <h1>.
+  it("un nombre con etiquetas no se vuelve HTML", () => {
+    expect(saludo("<b>Ana")).toBe(", &lt;b&gt;ana");
+  });
+
+  it("así se lee el encabezado, con y sin nombre", () => {
+    expect(`Recibimos tu solicitud${saludo("Renata Paz")}.`).toBe("Recibimos tu solicitud, Renata.");
+    expect(`Recibimos tu solicitud${saludo(null)}.`).toBe("Recibimos tu solicitud.");
   });
 });
