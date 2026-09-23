@@ -325,43 +325,77 @@ Caminante podrá actualizar este convenio. Las modificaciones se clasifican en:
 
 ## Décima tercera · Facturación
 
-**Al viajero.** Caminante emite el CFDI al cliente final, a nombre de NUMAN, por
-el importe total de la reserva, en su carácter de comercializadora. El Operador
-autoriza expresamente esa emisión.
+> 🔸 **Reescrita el 23 sep 2026 al modelo decidido, y pendiente de revisión.** La
+> versión anterior ponía a NUMAN facturando el viaje al cliente, que es lo
+> contrario de lo que se decidió el 22 sep. Lo que sigue describe el modelo
+> Airbnb y coincide con lo que el sistema ya hace; **el criterio fiscal sigue
+> siendo del abogado y del contador**, y lo que hay que confirmar va marcado.
 
-**Al Operador.** Caminante emite CFDI al Operador por la comisión más su IVA. Esa
-factura se salda por compensación contra el importe adeudado al Operador,
-conforme a la Cláusula Cuarta.
+**1 · Del Operador al viajero.** El servicio turístico lo presta el Operador y lo
+factura el Operador. Emite el CFDI al cliente final por el importe total de la
+reserva, con su propio Certificado de Sello Digital y bajo su propio régimen. Si
+el cliente no solicita comprobante, el Operador lo incorpora a su factura global
+a público en general.
 
-**Del Operador a Caminante.** El Operador emite CFDI a NUMAN por el servicio
-turístico prestado, por el importe neto liquidado.
+Caminante pone a su disposición la herramienta de autofacturación y los datos de
+cada reserva, y **no emite ese comprobante ni responde por él**.
 
-Ambas partes se obligan a mantener vigente su situación fiscal y a entregarse la
-documentación que requieran para cumplir sus obligaciones.
+**2 · De Caminante al Operador.** Caminante emite CFDI al Operador **únicamente
+por su comisión de plataforma**, más el IVA que corresponda. Esa comisión es el
+único ingreso de Caminante derivado de la operación.
 
-🔸 **Ésta es la pregunta 4 del memo, y es la que más aprieta.**
+**3 · La retención es el pago de esa factura.** El importe retenido al momento
+del cobro (Cláusula Cuarta) equivale exactamente al total de ese CFDI —comisión
+más IVA—, de modo que ambos importes se saldan entre sí sin transferencia
+adicional. Caminante entregará el desglose que permita conciliarlos reserva por
+reserva.
 
-⚠️ **ESTE ARTICULADO YA NO DESCRIBE EL MODELO DECIDIDO, y hay que reescribirlo
-antes de mandárselo al abogado.** Se redactó como un solo emisor —NUMAN factura
-al viajero— y el 22 sep 2026 Luis decidió lo contrario, el modelo Airbnb: **el
-Operador le factura al cliente (o a público en general) el servicio, y Caminante
-factura ÚNICAMENTE su comisión de plataforma, al Operador.** Es además el modelo
-que el código ya implementa: la retención de Stripe (`comisión + IVA`) es
-exactamente el total del CFDI que Caminante le emite al Operador, así que las
-dos facturas cierran a cero.
+**4 · Caminante no factura el servicio turístico.** No lo presta ni lo
+comercializa por cuenta propia: su papel es de intermediación tecnológica y de
+cobro, conforme a la Cláusula Segunda.
 
-Dos hechos que el abogado necesita saber y que apuntan al mismo lado:
+🔸 *Confirmar la clave de producto y servicio que corresponde a la comisión:
+servicios de intermediación, no organización de viajes. Hoy el timbrador trae
+por omisión la **90121500** —agencias y operadores de viajes—, que describe el
+viaje y no la intermediación. Es configurable por entorno
+(`FACTURAPI_CLAVE_PROD_SERV`), así que cambiarla no requiere obra.*
 
-1. **El SAT no tiene registrada a NUMAN en turismo.** Las 15 actividades de su
-   CSF son de medios y software. Facturar un servicio turístico que además no
-   presta es justo lo que el modelo Airbnb evita.
-2. La facturación multi-emisor (Facturapi, una organización por emisor) está
-   escrita y gateada; espera la cuenta y el CSD.
+**5 · Retenciones de ley.** Si conforme a la legislación fiscal vigente Caminante
+queda obligada, por intermediar y cobrar por cuenta del Operador, a efectuar
+retenciones de ISR e IVA y a emitir los comprobantes correspondientes, lo hará y
+lo reflejará en el desglose de cada liquidación.
 
-La pregunta que queda, entonces, ya no es si NUMAN *puede* facturar el viaje,
-sino **confirmar que el reparto Airbnb es correcto para el IVA de ambas partes**
-y qué clave de producto le corresponde a la comisión de plataforma (servicio de
-intermediación, no organización de viajes).
+🔸 **Pregunta para el contador, y es la que más aprieta de esta cláusula:** si
+Caminante cae en el régimen de plataformas tecnológicas cuando el Operador es
+persona física. Nomádika lo es. De la respuesta depende si hay que retener ISR e
+IVA y emitir CFDI de retenciones, o no. *El sistema nace con ese componente
+existente y en cero: prenderlo es un cambio de configuración, no de obra.*
+
+**6 · Vigencia de la situación fiscal.** Ambas partes se obligan a mantener
+vigente su situación fiscal y a entregarse la documentación que requieran para
+cumplir sus obligaciones. En particular, el Operador mantendrá **vigente su CSD
+en la plataforma**; mientras no lo esté, sus experiencias no pueden cobrar.
+
+---
+
+**Por qué esta redacción y no la anterior**, para quien la revise:
+
+- **El SAT no tiene registrada a NUMAN en turismo.** Las quince actividades de su
+  Constancia de Situación Fiscal son de medios y software. Facturar un servicio
+  turístico que además no presta es justo lo que este modelo evita.
+- **Las dos facturas cierran a cero.** Lo que Stripe retiene en el cobro es, al
+  peso, el total del CFDI que Caminante emite al Operador. Con una venta de
+  $1,750: $350.00 retenidos —$301.72 de comisión y $48.28 de IVA— y $1,400.00 a
+  la cuenta del Operador.
+- **La facturación multi-emisor ya está escrita** (una organización por emisor en
+  el timbrador), gateada a la espera de la cuenta y del CSD. Esta cláusula no
+  describe una intención: describe lo que el sistema hace cuando se prenda.
+
+⚠️ **La Cláusula Cuarta todavía habla del mecanismo viejo** —«Caminante cobra al
+cliente el importe total»— y con el cobro a nombre del Operador eso dejó de ser
+exacto. Esa cláusula necesita el mismo tratamiento; no se tocó aquí porque es
+una decisión aparte sobre cómo se describe el flujo del dinero, no sobre quién
+factura.
 
 ## Décima cuarta · Confidencialidad
 
@@ -402,7 +436,7 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 | Ventana de atribución | **60 días naturales** | Es lo que el sistema aplica hoy (`ATRIB_DIAS`) |
 | Comisiones bancarias | **Las absorbe Caminante** | El payout es bruto − comisión, sin descontar Stripe |
 | Tablas de comisión | Las de la Cláusula Tercera | Decididas por Luis el 8 sep contra el costo real de la plataforma; reconciliadas con el motor de cobro y protegidas por un invariante |
-| Quién factura al viajero | **NUMAN, como comercializadora** | Es lo único que el sistema sabe hacer hoy |
+| Quién factura al viajero | **El Operador, con su propio CSD** | Decisión de Luis, 22 sep: modelo Airbnb. Caminante factura sólo su comisión. Ver la Décima tercera |
 
 ## Lo que sigue abierto, y de quién es la decisión
 
@@ -411,7 +445,8 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 | 1 | ¿Caminante se separa de NUMAN en su propia entidad? | **Luis** — es previa a todo lo demás |
 | 2 | Tope de responsabilidad de Caminante | Abogado |
 | 3 | Sede de jurisdicción y mediación previa | Abogado, con preferencia de Luis |
-| 4 | Si NUMAN puede facturar el servicio turístico | Abogado y contador |
+| 4 | ~~Si NUMAN puede facturar el servicio turístico~~ → **decidido: no lo factura.** Queda confirmar el IVA del reparto y la clave de producto de la comisión | Contador |
+| 4b | Si Caminante debe retener ISR e IVA a operadoras persona física (régimen de plataformas tecnológicas) | **Contador** — Nomádika es persona física |
 | 5 | Si la indemnización de la Novena es oponible | Abogado |
 
 ## Anexos que conviene tener
