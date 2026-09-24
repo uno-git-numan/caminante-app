@@ -17,11 +17,29 @@ import { COOKIE_SOMBRERO, operadorasPropias } from "@/lib/auth/sombrero";
 
 const PANEL = "https://caminante.numanhub.com/caminante/admin";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const destino = new URL("/caminante/admin", req.url);
+
+  // ⚠️ UNA PRECARGA NO CAMBIA NADA. Esto ya pasó, en producción: la pastilla
+  // usaba `<Link>`, que precarga al pasar el mouse, y la precarga ejecutaba
+  // este handler — la cookie se iba a Kéntro mientras la pantalla seguía
+  // diciendo Caminante. El sombrero puesto y el sombrero escrito, distintos,
+  // que es lo único que este diseño no se podía permitir.
+  //
+  // La pastilla ya usa `<a>` pelado, así que hoy nada lo precarga. Este candado
+  // se queda igual: es la clase de efecto que no debe depender de que el
+  // llamador se porte bien, porque quien ponga un `<Link>` aquí el mes que
+  // viene no va a saber nada de esto.
+  const h = req.headers;
+  if (h.get("next-router-prefetch") || h.get("rsc") || h.get("purpose") === "prefetch" || h.get("sec-purpose")?.includes("prefetch")) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   if ((await getCurrentRole()) !== "admin") {
     return NextResponse.redirect(destino);
   }

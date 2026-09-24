@@ -207,7 +207,21 @@ export default async function AdminShell({
                       el sombrero de numan, que es donde corresponde. */}
                   {propias.length ? (
                     propias.map((o) => (
-                      <Link
+                      // ⚠️ `<a>` PELADO Y NO `<Link>`, y es la diferencia entre
+                      // que funcione y que MIENTA. Del otro lado hay un route
+                      // handler, no una página: `<Link>` hace navegación de
+                      // cliente, pide el payload RSC, recibe el redirect a la
+                      // ruta en la que ya está y se queda callado. Y `<Link>`
+                      // PRECARGA al pasar el mouse, y esa precarga sí ejecuta
+                      // el handler — así que la cookie cambiaba a Kéntro
+                      // mientras la pantalla seguía diciendo Caminante. O sea:
+                      // el sombrero puesto y el sombrero escrito, distintos,
+                      // que es justo lo único que este diseño no se podía
+                      // permitir. Con `<a>` es navegación del navegador: la
+                      // cookie se escribe, el redirect aterriza y TODO el
+                      // servidor se vuelve a dibujar con los datos nuevos, que
+                      // es lo que cambiar de sombrero significa.
+                      <a
                         key={o.id}
                         href={`/caminante/admin/sombrero/${o.slug}`}
                         className={
@@ -215,7 +229,7 @@ export default async function AdminShell({
                         }
                       >
                         {o.nombre}
-                      </Link>
+                      </a>
                     ))
                   ) : (
                     <Link

@@ -730,6 +730,67 @@ const REGLAS = [
       return null;
     },
   },
+
+  // ── 23 · Cambiar de sombrero es una navegación de verdad ───────────────────
+  {
+    nombre: "La pastilla de sombreros no usa <Link>",
+    comprueba() {
+      // Del otro lado de esos chips hay un ROUTE HANDLER, no una página: pone
+      // la cookie del sombrero y redirige. `<Link>` hace navegación de cliente
+      // —pide el payload RSC— y además PRECARGA al pasar el mouse.
+      //
+      // ⚠️ YA PASÓ EN PRODUCCIÓN, el 24 sep 2026, el mismo día que salió. El
+      // clic no hacía nada visible (el router pedía RSC, recibía un redirect a
+      // la ruta en la que ya estaba y se callaba) pero la PRECARGA sí ejecutaba
+      // el handler. Resultado: la cookie en Kéntro y la pantalla diciendo
+      // Caminante. El sombrero puesto y el sombrero escrito, distintos — que es
+      // lo único que este diseño no se podía permitir, porque su única defensa
+      // contra «leí un número creyendo que era de la otra» es que la etiqueta
+      // diga la verdad.
+      //
+      // Con `<a>` pelado es navegación del navegador: la cookie se escribe, el
+      // redirect aterriza y todo el servidor se vuelve a dibujar, que es lo que
+      // cambiar de sombrero significa.
+      const rel = "src/app/caminante/admin/ui/AdminShell.tsx";
+      const f = join(raiz, rel);
+      if (!existsSync(f)) {
+        return `No encontré ${rel}. Si la cabecera del panel se movió, este guardián tiene que apuntar a su nueva casa.`;
+      }
+      const txt = readFileSync(f, "utf8");
+      const AGUJA = "/caminante/admin/sombrero/";
+      let i = txt.indexOf(AGUJA);
+      if (i === -1) {
+        return [
+          `${rel} ya no enlaza a ${AGUJA}.`,
+          "",
+          "Si la pastilla de sombreros se quitó o se movió, este guardián sobra y",
+          "se borra a mano. Si sigue ahí con otra forma, hay que reapuntarlo: la",
+          "regla de fondo es que un efecto de escritura no puede colgar de un",
+          "`<Link>`, porque `<Link>` precarga.",
+        ].join("\n");
+      }
+      while (i !== -1) {
+        // Hacia atrás hasta la etiqueta que abre: la primera `<` con nombre.
+        const antes = txt.slice(Math.max(0, i - 400), i);
+        const m = [...antes.matchAll(/<([A-Za-z][A-Za-z0-9]*)/g)].pop();
+        const etiqueta = m ? m[1] : "(ninguna)";
+        if (etiqueta !== "a") {
+          return [
+            `En ${rel} el enlace a ${AGUJA} va dentro de <${etiqueta}>, no de <a>.`,
+            "",
+            "Del otro lado hay un route handler que ESCRIBE una cookie. `<Link>`",
+            "hace navegación de cliente y precarga al pasar el mouse: el clic no",
+            "hace nada visible y la precarga sí cambia el sombrero. Eso deja la",
+            "cookie en una operadora y la etiqueta de la pantalla en otra.",
+            "",
+            "Pasó el 24 sep 2026, el día que salió. Tiene que ser `<a>` pelado.",
+          ].join("\n");
+        }
+        i = txt.indexOf(AGUJA, i + 1);
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────
