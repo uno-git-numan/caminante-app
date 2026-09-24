@@ -45,6 +45,11 @@ export type Etapa =
 export function etapaDe(o: {
   /** El status de su solicitud en el embudo, si pasó por él. */
   solicitud: string | null;
+  /**
+   * Su fila de operadora está ACTIVA. Con fila activa el embudo es historia,
+   * no puerta —la misma regla que Mi alta desde el 22 sep 2026—.
+   */
+  filaActiva: boolean;
   /** Lo PAGADO este mes. Una reserva cancelada o solicitada no es venta. */
   vendidoMes: number;
   /** La fecha de su última venta PAGADA, o null si nunca ha vendido. */
@@ -54,9 +59,16 @@ export function etapaDe(o: {
   esLaCasa: boolean;
   ahora?: Date;
 }): Etapa {
-  if (o.solicitud === "rejected") return "se_salieron";
-  if (o.solicitud === "pending") return "llego";
-  if (o.solicitud === "calling") return "en_llamada";
+  // ⚠️ LA FILA MANDA. Nomádika tiene fila activa desde el 25 ago y vende, pero
+  // su solicitud quedó reabierta en «calling»: el tablero la tenía en «02 En
+  // llamada · videollamada 9 sep, agendada» quince días después de la llamada,
+  // mientras su Mi alta —que ya aplicaba esta regla— la ponía en su expediente.
+  // Dos pantallas de la misma operadora contando dos pasos distintos.
+  if (!o.filaActiva) {
+    if (o.solicitud === "rejected") return "se_salieron";
+    if (o.solicitud === "pending") return "llego";
+    if (o.solicitud === "calling") return "en_llamada";
+  }
   if (o.vendidoMes > 0) return "vendiendo";
   // ⚠️ «DORMIDO» ES HABER VENDIDO Y DEJAR DE VENDER. Hasta el 24 sep 2026 se
   // decidía por la antigüedad de la FILA, así que Kéntro —que nunca ha vendido

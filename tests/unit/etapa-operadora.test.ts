@@ -12,7 +12,7 @@ import { etapaDe } from "@/lib/plataforma/etapas";
 
 const AHORA = new Date("2026-09-24T12:00:00Z");
 const haceDias = (n: number) => new Date(AHORA.getTime() - n * 86_400_000).toISOString();
-const base = { solicitud: null, vendidoMes: 0, ultimaVenta: null, cumplidos: 3, esLaCasa: false, ahora: AHORA };
+const base = { solicitud: null, filaActiva: true, vendidoMes: 0, ultimaVenta: null, cumplidos: 3, esLaCasa: false, ahora: AHORA };
 
 describe("etapaDe", () => {
   it("EL CASO KÉNTRO: nunca vendió y tiene 3 de 6 ⇒ en su alta, NO dormida", () => {
@@ -46,9 +46,16 @@ describe("etapaDe", () => {
     expect(etapaDe({ ...base, esLaCasa: true, ultimaVenta: haceDias(200) })).toBe("expediente");
   });
 
-  it("la solicitud manda mientras está en el embudo", () => {
-    expect(etapaDe({ ...base, solicitud: "pending" })).toBe("llego");
-    expect(etapaDe({ ...base, solicitud: "calling" })).toBe("en_llamada");
-    expect(etapaDe({ ...base, solicitud: "rejected", vendidoMes: 900 })).toBe("se_salieron");
+  it("la solicitud manda mientras NO hay fila activa", () => {
+    const sinFila = { ...base, filaActiva: false };
+    expect(etapaDe({ ...sinFila, solicitud: "pending" })).toBe("llego");
+    expect(etapaDe({ ...sinFila, solicitud: "calling" })).toBe("en_llamada");
+    expect(etapaDe({ ...sinFila, solicitud: "rejected", vendidoMes: 900 })).toBe("se_salieron");
+  });
+
+  it("EL CASO NOMÁDIKA: fila activa y solicitud reabierta en «calling» ⇒ NO está en llamada", () => {
+    // Quince días después de su llamada, el tablero la seguía teniendo ahí.
+    expect(etapaDe({ ...base, solicitud: "calling" })).toBe("expediente");
+    expect(etapaDe({ ...base, solicitud: "pending" })).toBe("expediente");
   });
 });

@@ -2,6 +2,8 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchOperadorasPlataforma, type OperadoraPlataforma } from "@/lib/plataforma/operadoras";
 import { correoEnSesion } from "@/lib/auth/authorization";
+import { fetchDispensas, fetchExpediente, type DispensaEnPantalla, type Expediente as ExpedienteReal } from "./expediente";
+import { terminosDe, type BloqueTerminos } from "./terminos";
 
 // MI ALTA — la misma ficha que ve la casa, contada desde el otro lado.
 //
@@ -48,6 +50,24 @@ export type MiAlta = {
   /** Estado de la operadora: activa, suspendida, en_salida, baja. */
   estadoOperadora: string | null;
   estadoMotivo: string | null;
+  /**
+   * Su expediente real: generales y actividades, cada documento con su estado.
+   * `null` mientras no hay fila de operadora (todavía está en el embudo).
+   *
+   * ⚠️ Hasta el 24 sep 2026 el paso 02 contaba los documentos de la SOLICITUD
+   * (`operator_applications.expediente`), un arreglo del embudo viejo que para
+   * una operadora dada de alta a mano no existe. Kéntro veía el paso vacío con
+   * senderismo declarado y cero documentos subidos.
+   */
+  expediente: ExpedienteReal | null;
+  /** Las actividades que vende sin expediente aprobado, con dueño y caducidad. */
+  dispensas: DispensaEnPantalla[];
+  /**
+   * El resumen de términos, el mismo que viajó en PDF con la invitación a la
+   * llamada, para releerlo en el paso 01. Sale de la solicitud si la hubo —es
+   * lo que se le mandó— y si no, de su fila de operadora.
+   */
+  terminos: BloqueTerminos[];
 };
 
 type Expediente = { nombre?: string; archivo?: string | null }[];
@@ -88,11 +108,14 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
   const sb = createSupabaseAdminClient();
   const [{ data: op }, { data: apps }] = await Promise.all([
     sb.from("operators")
-      .select("id, estado, estado_motivo")
+      .select("id, estado, estado_motivo, name, legal")
       .eq("email", email)
       .maybeSingle(),
+    // Los cinco últimos campos son los mismos con los que la invitación a la
+    // llamada arma su PDF (`agendarLlamada`): así lo que se relee aquí es lo que
+    // se mandó, y no una versión recalculada con otros datos.
     sb.from("operator_applications")
-      .select("id, status, created_at, llamada_at, llamada_meet_url, expediente, motivo_publico, reabre_at")
+      .select("id, status, created_at, llamada_at, llamada_meet_url, expediente, motivo_publico, reabre_at, responsable, nombre_operadora, actividades, rango_precio")
       .ilike("email", email)
       .order("created_at", { ascending: false })
       .limit(1),
@@ -151,11 +174,25 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
     return {
       estado, operadora: null, candados: [], paraArmar: [], paraCobrar: [], miTurno: [],
       solicitud, estadoOperadora: null, estadoMotivo: null,
+      expediente: null,
+      dispensas: [],
+      terminos: terminosDe({
+        responsable: (a?.responsable as string | null) ?? null,
+        operadora: (a?.nombre_operadora as string | null) ?? null,
+        llamada: a?.llamada_at ? new Date(a.llamada_at as string) : null,
+        actividades: Array.isArray(a?.actividades) ? (a.actividades as string[]) : [],
+        rangoPrecio: (a?.rango_precio as string | null) ?? null,
+      }),
     };
   }
 
-  const todas = await fetchOperadorasPlataforma();
+  const [todas, expediente, dispensasDeTodas] = await Promise.all([
+    fetchOperadorasPlataforma(),
+    fetchExpediente(fila.id),
+    fetchDispensas(),
+  ]);
   const mia = todas.find((o) => o.id === fila.id) ?? null;
+  const dispensas = dispensasDeTodas.get(fila.id) ?? [];
   const candados = mia?.candados ?? [];
   const paraArmar = candados.filter((c) => c.bloquea === "armar");
   const paraCobrar = candados.filter((c) => c.bloquea === "cobrar");
@@ -163,12 +200,37 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
 
   let estado: EstadoAlta;
   if (fila.estado !== "activa") estado = "suspendida";
-  else if (mia?.puedeCobrar) estado = "listo";
+  // ⚠️ EL EXPEDIENTE VA ANTES QUE LOS CANDADOS (Luis, 24 sep 2026: «mi
+  // expediente debe de salir no completado aún»). El paso se leía sólo de los
+  // seis candados, y el expediente no es uno de ellos: se lo saltaba. Kéntro y
+  // Nomádika —cero documentos las dos— aparecían en el paso 03 o 04 con el 02
+  // marcado «ya lo pasaste».
+  //
+  // Una DISPENSA no completa el expediente. Deja vender mientras tanto, y eso
+  // se dice dentro del paso; pero el paso sigue abierto, porque lo está.
+  else if (!mia?.esLaCasa && !expediente.completo) {
+    estado = !expediente.vacio && expediente.faltanTotal === 0 ? "revision" : "expediente";
+  } else if (mia?.puedeCobrar) estado = "listo";
   else if (mia?.puedeArmar) estado = "armando";
   else estado = "por_firmar";
+
+  // Sin solicitud (alta a mano), el resumen sale de su fila: su nombre y las
+  // actividades que declaró. Sin fecha de llamada ni rango de precio, porque
+  // no hay de dónde sacarlos — y el resumen ya sabe no inventar un ejemplo.
+  const legal = (op as { legal?: { responsable?: string | null } | null } | null)?.legal ?? null;
+  const terminos = terminosDe({
+    responsable: (a?.responsable as string | null) ?? legal?.responsable ?? null,
+    operadora: (a?.nombre_operadora as string | null) ?? (op as { name?: string | null } | null)?.name ?? null,
+    llamada: a?.llamada_at ? new Date(a.llamada_at as string) : null,
+    actividades: Array.isArray(a?.actividades)
+      ? (a.actividades as string[])
+      : expediente.actividades.map((x) => x.slug),
+    rangoPrecio: (a?.rango_precio as string | null) ?? null,
+  });
 
   return {
     estado, operadora: mia, candados, paraArmar, paraCobrar, miTurno,
     solicitud, estadoOperadora: fila.estado, estadoMotivo: fila.estado_motivo,
+    expediente, dispensas, terminos,
   };
 }

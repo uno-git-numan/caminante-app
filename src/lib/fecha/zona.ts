@@ -43,3 +43,22 @@ export function enPalabras(d: Date, zona: string = CDMX): string {
   }).format(d);
   return `${dia}, ${hora} h`;
 }
+
+/**
+ * Una fecha SIN HORA (columna `date`, «2026-12-31») en palabras.
+ *
+ * ⚠️ NO SE PASA TAL CUAL A `new Date()`. «2026-12-31» se lee como medianoche
+ * UTC, y en la Ciudad de México esa medianoche todavía es el día 30: una póliza
+ * que vence el 31 decía que vencía el 30. Fijarla a mediodía UTC la deja en el
+ * mismo día en cualquier zona de México. La pantalla del expediente ya lo hacía
+ * así, en su propio archivo; al necesitarlo una segunda pantalla se muda aquí.
+ */
+export function diaEnPalabras(ymd: string): string {
+  return new Date(ymd.slice(0, 10) + "T12:00:00Z").toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+

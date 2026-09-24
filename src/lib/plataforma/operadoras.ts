@@ -90,7 +90,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     sb
       .from("operators")
       .select(
-        "id, slug, name, es_la_casa, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, branding, created_at",
+        "id, slug, name, es_la_casa, estado, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, branding, created_at",
       ),
     sb.from("experiences").select("id, status, operator_id"),
     sb.from("reservations").select("experience_id, status, total_amount_mxn, created_at"),
@@ -226,6 +226,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     // realidad siempre termina desincronizado.
     const etapa = etapaDe({
       solicitud: app?.status ?? null,
+      filaActiva: o.estado === "activa",
       vendidoMes,
       ultimaVenta,
       cumplidos,

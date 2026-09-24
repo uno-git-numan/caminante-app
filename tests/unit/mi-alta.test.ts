@@ -15,6 +15,12 @@ const estado = vi.hoisted(() => ({
   operadoras: [] as unknown[],
   /** El correo con el que está dada de alta la operadora que se pide por id. */
   correoDeFila: null as string | null,
+  /**
+   * Su expediente. Por omisión COMPLETO, para que las pruebas de «la fila
+   * manda» sigan probando lo que probaban —cómo los candados deciden el paso—
+   * sin que el expediente se les cruce. Las del expediente lo abren a propósito.
+   */
+  expediente: null as null | Record<string, unknown>,
 }));
 
 vi.mock("@/lib/auth/authorization", () => ({
@@ -58,6 +64,18 @@ vi.mock("@/lib/supabase/admin", () => ({
   }),
 }));
 
+// El expediente y las dispensas se simulan: su lógica tiene sus propias pruebas
+// y aquí sólo importa qué le dicen a `fetchMiAlta`.
+vi.mock("@/lib/operadores/expediente", () => ({
+  fetchExpediente: async () => estado.expediente,
+  fetchDispensas: async () => new Map(),
+}));
+
+const expedienteCompleto = {
+  generales: [], actividades: [{ slug: "senderismo", nombre: "Senderismo", estado: "aprobada", propios: [], generales: [], faltan: 0 }],
+  faltanGenerales: 0, faltanTotal: 0, proximo: null, vencidos: [], porVencer: [], vacio: false, completo: true,
+};
+
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
 
 const solicitud = (status: string) => ({
@@ -90,6 +108,7 @@ beforeEach(() => {
   estado.solicitud = null;
   estado.operadoras = [];
   estado.correoDeFila = null;
+  estado.expediente = expedienteCompleto;
 });
 
 describe("fetchMiAlta — la fila manda", () => {
@@ -191,3 +210,75 @@ describe("fetchMiAlta(porOperadora) — leer el alta de otra", () => {
     expect(a?.operadora?.id).toBe("op-nomadika");
   });
 });
+
+// ── EL EXPEDIENTE VA ANTES QUE LOS CANDADOS ────────────────────────────────
+//
+// Luis, 24 sep 2026: «mi expediente debe de salir no completado aún». El paso
+// se leía sólo de los seis candados, y el expediente no es uno de ellos: Kéntro
+// y Nomádika —cero documentos las dos— salían en el 03 o el 04 con el 02
+// marcado «ya lo pasaste».
+describe("fetchMiAlta — el expediente abierto manda sobre los candados", () => {
+  const conCandados = (puedeArmar: boolean, puedeCobrar: boolean) => ({
+    ...operadoraSinCandados, puedeArmar, puedeCobrar,
+  });
+
+  it("EL CASO KÉNTRO: fila activa, actividad declarada y cero documentos ⇒ paso 02", async () => {
+    estado.fila = filaActiva;
+    estado.operadoras = [conCandados(true, false)];
+    estado.expediente = { ...expedienteCompleto, faltanTotal: 9, completo: false };
+    expect((await fetchMiAlta())?.estado).toBe("expediente");
+  });
+
+  it("aunque tenga los seis candados: el expediente abierto no se brinca", async () => {
+    // Vender con dispensa es posible; eso no convierte el expediente en hecho.
+    estado.fila = filaActiva;
+    estado.operadoras = [conCandados(true, true)];
+    estado.expediente = { ...expedienteCompleto, faltanTotal: 3, completo: false };
+    expect((await fetchMiAlta())?.estado).toBe("expediente");
+  });
+
+  it("EL CASO NOMÁDIKA: ni una actividad declarada ⇒ paso 02, no «en revisión»", async () => {
+    // Sin actividades no hay nada que revisar: faltanTotal podría salir en cero
+    // y eso NO es «entregaste todo».
+    estado.fila = filaActiva;
+    estado.operadoras = [conCandados(true, false)];
+    estado.expediente = { ...expedienteCompleto, actividades: [], faltanTotal: 0, vacio: true, completo: false };
+    expect((await fetchMiAlta())?.estado).toBe("expediente");
+  });
+
+  it("entregó todo y falta que lo revisemos ⇒ paso 02, en revisión", async () => {
+    estado.fila = filaActiva;
+    estado.operadoras = [conCandados(true, false)];
+    estado.expediente = { ...expedienteCompleto, faltanTotal: 0, completo: false };
+    expect((await fetchMiAlta())?.estado).toBe("revision");
+  });
+
+  it("expediente completo ⇒ ahora sí mandan los candados", async () => {
+    estado.fila = filaActiva;
+    estado.operadoras = [conCandados(true, false)];
+    estado.expediente = expedienteCompleto;
+    expect((await fetchMiAlta())?.estado).toBe("armando");
+  });
+
+  it("la casa no tiene expediente que seguir", async () => {
+    estado.fila = filaActiva;
+    estado.operadoras = [{ ...conCandados(true, true), esLaCasa: true }];
+    estado.expediente = { ...expedienteCompleto, vacio: true, completo: false };
+    expect((await fetchMiAlta())?.estado).toBe("listo");
+  });
+});
+
+describe("fetchMiAlta — el resumen de términos", () => {
+  it("sin solicitud (alta a mano) sale de sus actividades declaradas, sin inventar fecha ni rango", async () => {
+    estado.fila = filaActiva;
+    estado.operadoras = [operadoraSinCandados];
+    estado.expediente = { ...expedienteCompleto };
+    const r = await fetchMiAlta();
+    const texto = (r?.terminos ?? []).map((b) => ("texto" in b ? b.texto : "titulo" in b ? b.titulo : "")).join("\n");
+    expect(texto).toContain("Resumen de términos");
+    expect(texto).toContain("Para tu llamada");           // sin fecha: no hay de dónde sacarla
+    expect(texto).not.toContain("Declaraste un rango");  // sin rango: no hay ejemplo inventado
+    expect(texto).toContain("Senderismo");                // la actividad que declaró
+  });
+});
+

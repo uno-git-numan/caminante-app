@@ -22,6 +22,7 @@
 // diga, la operadora sólo sobre sí misma. Aquí `operadora` es null cuando la
 // operadora edita lo suyo y el id de ella cuando la casa sube POR ella.
 
+import { diaEnPalabras } from "@/lib/fecha/zona";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { subirDocumento, mandarARevision, declararActividad } from "@/lib/operadores/expediente-actions";
@@ -33,8 +34,8 @@ import type {
   Expediente as Datos,
 } from "@/lib/operadores/expediente";
 
-const fecha = (iso: string) =>
-  new Date(iso + "T12:00:00Z").toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+// `vence_at` es `date`: ver `diaEnPalabras` para por qué no va directo a `new Date()`.
+const fecha = diaEnPalabras;
 
 /** El palomeo, el reloj o la cruz. Va como SVG inline, igual que el entregable. */
 function Marca({ estado }: { estado: DocEnPantalla["estado"] }) {

@@ -16,8 +16,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { PASOS, pasoDe } from "@/lib/operadores/pasos";
 import type { MiAlta as Datos } from "@/lib/operadores/mi-alta";
-import { CDMX, enPalabras } from "@/lib/fecha/zona";
+import { CDMX, diaEnPalabras, enPalabras } from "@/lib/fecha/zona";
 import Copiar from "./Copiar";
+import ResumenTerminos from "./ResumenTerminos";
+import type { DocEnPantalla } from "@/lib/operadores/expediente";
 
 const LECTURA: string[] = [
   "Lo único que te pedimos aquí es llegar a la llamada. No hay documentos ni formularios, y no hay nada que preparar.",
@@ -52,6 +54,28 @@ export default function MiAlta({
   const s = datos.solicitud;
   const liga = (ruta: string) =>
     porOtra ? `${ruta}?operadora=${encodeURIComponent(porOtra)}` : ruta;
+
+  // EL RESUMEN DE TÉRMINOS, DESPLEGABLE. Es el mismo documento que viaja en
+  // PDF con la invitación a la llamada —misma lista de bloques, ver
+  // `lib/operadores/terminos.ts`— para que se pueda releer sin buscar el
+  // correo (Luis, 24 sep 2026). Usa el `details.fold` de la lámina, el mismo
+  // de «Ver lo que mandé».
+  const plegableTerminos = (antesDeLaLlamada: boolean) =>
+    datos.terminos.length ? (
+      <details className="fold" style={{ marginTop: 16 }}>
+        <summary>
+          <b>Resumen de términos</b>
+          <span className="mut">
+            {antesDeLaLlamada
+              ? "Llegó con la invitación · léelo antes y anota tus dudas"
+              : "Lo que se habló en la llamada, para releerlo cuando quieras"}
+          </span>
+        </summary>
+        <div className="fb">
+          <ResumenTerminos bloques={datos.terminos} />
+        </div>
+      </details>
+    ) : null;
 
   return (
     <>
@@ -135,6 +159,7 @@ export default function MiAlta({
                   </div>
                 </div>
               ) : null}
+              {plegableTerminos(true)}
               <p className="gnhint" style={{ maxWidth: "74ch" }}>
                 Este paso no tiene un solo documento ni un solo formulario, y por eso no tiene
                 botones más que los de la llamada. Cuando hablemos, te decimos qué sigue y lo verás
@@ -212,8 +237,49 @@ export default function MiAlta({
           )
         ) : null}
 
+        {/* ── 01 · ya pasado ──────────────────────────────────────────────
+            ⚠️ HASTA EL 24 SEP 2026 UN PASO PASADO SÓLO ENSEÑABA SU FRASE DE
+            PRESENTACIÓN («Lo único que te pedimos aquí es llegar a la
+            llamada…»). O sea que al volver a él no se veía nada de lo que pasó
+            ahí. Lo que pasó en el 01 es la llamada, y lo que queda de ella es
+            el resumen de términos: aquí se puede releer.
+            Se ve igual para toda operadora, venga del embudo o de un alta a
+            mano: la llamada se tuvo. La fecha sólo sale si está registrada —no
+            se inventa—. */}
+        {viendo === 0 && aqui.indice > 0 ? (
+          <>
+            <div className="verdict si">
+              <span className="n">{"//"}</span>
+              <span className="g">
+                <b>
+                  {s?.llamadaAt
+                    ? `Tuvimos la llamada el ${enPalabras(new Date(s.llamadaAt))}`
+                    : "Ya tuvimos la llamada"}
+                </b>
+                <span>
+                  Ahí vimos qué operas y cómo cobra la plataforma. Abajo está el resumen de términos,
+                  para que lo vuelvas a leer cuando quieras.
+                </span>
+              </span>
+            </div>
+            {plegableTerminos(false)}
+          </>
+        ) : null}
+
         {/* ── 02 · Tu expediente ─────────────────────────────────────────── */}
-        {viendo === 1 && aqui.indice === 1 && s ? (
+        {/* EL EXPEDIENTE REAL, SIEMPRE QUE HAY OPERADORA. Se ve al picar el
+            paso esté donde esté —antes, en él o después—, porque es la lista
+            de lo que hay que subir y su estado, y eso no deja de ser cierto
+            por mirarlo desde otro paso. Transcrito de la lámina v5 (#p2): la
+            barra «N de M», las filas `.doc` y `.doc.pend` con sus dos íconos,
+            y los veredictos de cada momento. */}
+        {viendo === 1 && datos.expediente ? (
+          <Expediente02
+            e={datos.expediente}
+            dispensas={datos.dispensas.filter((d) => d.vigente)}
+            liga={liga}
+          />
+        ) : viendo === 1 && aqui.indice === 1 && s ? (
           <>
             {/* ⚠️ La lámina dice «ocho documentos». En la app la lista NO es
                 fija: se escribe al pedir el expediente y cambia por actividad
@@ -262,17 +328,28 @@ export default function MiAlta({
         ) : null}
 
         {/* ── 03 y 04 · lo que ya cuentan los candados ───────────────────── */}
-        {viendo >= 2 && aqui.indice >= 2 && viendo === aqui.indice ? (
+        {/* ⚠️ SE VE DESDE CUALQUIER PASO, no sólo cuando es el actual. Aquí
+            viven las ligas al cobro, a la marca y a los documentos: con el
+            expediente abierto la operadora está en el 02, y si esto sólo se
+            pintara estando en el 03 o el 04 se quedaba sin cómo llegar a su
+            marca. La lámina lo promete arriba de cada paso: «así se ve por
+            dentro».
+            Y el veredicto sale de los candados (`puedeArmar`/`puedeCobrar`),
+            no del número de paso: antes, estando en el 02, habría dicho
+            «Puedes armar» sin preguntarle a nadie si era cierto. */}
+        {viendo >= 2 && datos.operadora ? (
           <>
-            <div className={datos.estado === "listo" ? "verdict si" : "verdict no"}>
+            <div className={datos.operadora.puedeCobrar ? "verdict si" : "verdict no"}>
               <span className="n">{datos.candados.filter((c) => c.cumplido).length}/6</span>
               <span className="g">
                 <b>
-                  {datos.estado === "por_firmar"
-                    ? "Falta tu firma del convenio"
-                    : datos.estado === "listo"
-                      ? "Puedes vender"
-                      : "Puedes armar, todavía no cobrar"}
+                  {datos.operadora.puedeCobrar
+                    ? "Puedes vender"
+                    : datos.operadora.puedeArmar
+                      ? "Puedes armar, todavía no cobrar"
+                      : datos.candados.some((c) => c.clave === "convenio" && !c.cumplido)
+                        ? "Falta tu firma del convenio"
+                        : "Todavía no puedes armar"}
                 </b>
                 <span>
                   {datos.miTurno.length
@@ -389,6 +466,200 @@ export default function MiAlta({
 // mismos dos SVG que dibuja `Candados.tsx` del lado de la casa: si aquí se
 // dibujaran de otra forma, el mismo candado se vería distinto según quién lo
 // mire, que es justo lo que `fetchMiAlta` se cuida de no permitir con los datos.
+// Los dos íconos de la fila de documento, tal cual la lámina v5 (#p2): la
+// palomita en olivo para lo que ya se entregó y el «+» en arena para lo que
+// falta. Llevan `.st`, que es la clase que `.doc` les da tamaño — distinta de
+// la `.m` de los candados.
+const DOC_ENTREGADO = (
+  <svg className="st" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12.6l5.2 5.2L20 6.6" />
+  </svg>
+);
+const DOC_FALTA = (
+  <svg className="st" viewBox="0 0 24 24" fill="none" stroke="var(--sand)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+const ESTADO_DOC: Record<DocEnPantalla["estado"], string> = {
+  falta: "sin archivo",
+  en_revision: "subido · en revisión",
+  aprobado: "aprobado",
+  rechazado: "rechazado",
+};
+
+function FilaDoc({ d, subir }: { d: DocEnPantalla; subir: string }) {
+  const pend = d.estado === "falta" || d.estado === "rechazado";
+  return (
+    <div className={`doc${pend ? " pend" : ""}`}>
+      {pend ? DOC_FALTA : DOC_ENTREGADO}
+      <span className="nm">
+        <b>{d.nombre}</b>
+        <small>{d.porQue}</small>
+      </span>
+      <span className="fl">
+        {d.estado === "falta" ? <span className="mut">sin archivo</span> : ESTADO_DOC[d.estado]}
+        {/* Un rechazo nunca va mudo: el motivo dice qué corregir. */}
+        {d.estado === "rechazado" && d.motivo ? (
+          <>
+            <br />
+            <span className="mut">{d.motivo}</span>
+          </>
+        ) : null}
+        {d.venceAt && d.estado !== "falta" ? (
+          <span className={`venc${(d.diasParaVencer ?? 99) <= 30 ? " pronto" : ""}`}>
+            <s>{"//"}</s>
+            {(d.diasParaVencer ?? 0) < 0 ? "Venció el " : "Vence el "}
+            {/* `vence_at` es `date`: con `fecha()` salía un día antes. */}
+            {diaEnPalabras(d.venceAt)}
+          </span>
+        ) : null}
+      </span>
+      <span className="ac">
+        {pend ? (
+          <Link className="btn btn-orange btn-sm" href={subir}>
+            {d.estado === "rechazado" ? "Reemplazar" : "Subir"}
+          </Link>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+function Expediente02({
+  e,
+  dispensas,
+  liga,
+}: {
+  e: NonNullable<Datos["expediente"]>;
+  dispensas: Datos["dispensas"];
+  liga: (ruta: string) => string;
+}) {
+  const subir = liga("/caminante/admin/mi-alta/expediente");
+  // Lo que se pinta dentro de una actividad pero VIVE en Lo general no se
+  // cuenta dos veces: se pide una sola vez.
+  const todos = [...e.generales, ...e.actividades.flatMap((a) => a.propios)];
+  const total = todos.length;
+  const entregados = total - e.faltanTotal;
+  const pct = total ? Math.round((entregados / total) * 100) : 0;
+
+  return (
+    <>
+      {e.completo ? (
+        <div className="verdict si">
+          <span className="n">
+            {total}/{total}
+          </span>
+          <span className="g">
+            <b>Tu expediente quedó completo y revisado</b>
+            <span>
+              Este paso se queda abierto para consultar lo que entregaste: tu póliza, tus permisos y
+              las certificaciones de tus guías, con sus vigencias.
+            </span>
+          </span>
+        </div>
+      ) : e.vacio ? (
+        <div className="verdict no">
+          <span className="n">{"//"}</span>
+          <span className="g">
+            <b>Todavía no declaras qué actividades haces</b>
+            <span>
+              La lista de documentos depende de eso: a una operadora de montaña no se le pide lo de
+              buceo. Declara tus actividades y te pedimos sólo lo que te toca.
+            </span>
+          </span>
+        </div>
+      ) : e.faltanTotal === 0 ? (
+        <div className="verdict casa">
+          <span className="n">{"//"}</span>
+          <span className="g">
+            <b>Entregaste todo. Ahora nos toca a nosotros</b>
+            <span>
+              Los revisa una persona y tarda entre tres y cinco días hábiles. No falta nada tuyo y no
+              hay nada que puedas apurar desde aquí.
+            </span>
+          </span>
+        </div>
+      ) : (
+        <div className="verdict no">
+          <span className="n">
+            {entregados}/{total}
+          </span>
+          <span className="g">
+            <b>
+              Te faltan {e.faltanTotal} {e.faltanTotal === 1 ? "documento" : "documentos"}
+            </b>
+            <span>
+              Van todos en paralelo y se guardan solos: puedes dejarlo a medias y volver cuando
+              quieras.
+            </span>
+          </span>
+        </div>
+      )}
+
+      {/* ⚠️ UNA DISPENSA NO COMPLETA EL EXPEDIENTE, y por eso se dice aquí y no
+          en su lugar. Deja vender mientras tanto —con dueño y caducidad—; sin
+          este renglón, «te faltan 9 documentos» se leería como «estás
+          bloqueada» cuando la operadora está vendiendo. */}
+      {dispensas.map((d) => (
+        <p key={d.id} className="cmstop">
+          <s>{"//"}</s>
+          <span>
+            Vendes <b>{d.nombre.toLowerCase()}</b> con una dispensa hasta el{" "}
+            <b>{fecha(d.venceAt)}</b>. Te deja vender mientras tanto; el expediente sigue abierto.
+          </span>
+        </p>
+      ))}
+
+      <div className="card pad" style={{ marginTop: 14 }}>
+        <div className="docbar">
+          <span className="fr">
+            {entregados} de {total}
+          </span>
+          <span className="bar">
+            <i style={{ width: `${pct}%` }} />
+          </span>
+          <span className="mut" style={{ fontSize: 12 }}>
+            Se guarda solo · puedes dejarlo a medias
+          </span>
+        </div>
+
+        <p className="xh4" style={{ marginTop: 6 }}>
+          Lo general · se entrega una sola vez
+        </p>
+        <div className="docs">
+          {e.generales.map((d) => (
+            <FilaDoc key={`g-${d.slug}`} d={d} subir={subir} />
+          ))}
+        </div>
+
+        {e.actividades.map((a) => (
+          <div key={a.slug}>
+            <p className="xh4" style={{ marginTop: 22 }}>
+              {a.nombre}
+            </p>
+            {a.propios.length ? (
+              <div className="docs">
+                {a.propios.map((d) => (
+                  <FilaDoc key={`${a.slug}-${d.slug}`} d={d} subir={subir} />
+                ))}
+              </div>
+            ) : (
+              <p className="gnhint">Esta actividad no pide documentos propios.</p>
+            )}
+          </div>
+        ))}
+
+        <div className="salfoot" style={{ marginTop: 16 }}>
+          <Link className="btn btn-orange btn-sm" href={subir}>
+            {e.faltanTotal > 0 || e.vacio ? "Subir los documentos" : "Ver el expediente"}
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+}
+
 const PALOMA = (
   <svg className="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 12.6l5.2 5.2L20 6.6" />

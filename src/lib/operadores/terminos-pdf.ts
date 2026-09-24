@@ -23,8 +23,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { IVA, MINIMO_POR_RESERVA, TOPE, comisionPara, pesos, tablaDeComisiones } from "./comision";
-import { ACTIVIDADES, GENERALES, nombreDeActividad, requisitosDe } from "./actividades";
+import { terminosDe, type DatosTerminos } from "./terminos";
+
+// El tipo sigue saliendo de aquí para quien ya lo importaba de este archivo.
+export type { DatosTerminos };
 
 // La paleta de la marca, la misma de los correos.
 const LAGOON = rgb(0.24, 0.28, 0.21);
@@ -37,39 +39,9 @@ const A4: [number, number] = [595.28, 841.89];
 const MARGEN = 56;
 const ANCHO = A4[0] - MARGEN * 2;
 
-export type DatosTerminos = {
-  responsable: string | null;
-  operadora: string | null;
-  /** Cuándo es la llamada. `null` si todavía no está agendada. */
-  llamada: Date | null;
-  /** Slugs del catálogo que declaró. Puede venir vacío. */
-  actividades: string[];
-  /** Tal como lo capturó en la solicitud: «$5,001 a $15,000 MXN». */
-  rangoPrecio: string | null;
-};
 
-/** Para las tablas: sin «MXN» en cada celda, que se dice una vez arriba. */
-const miles = (n: number): string => "$" + Math.round(n).toLocaleString("es-MX");
 
-const fecha = (d: Date) =>
-  d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Mexico_City" });
 
-/**
- * Los dos extremos de la banda de precio que declaró, si se pueden leer.
- *
- * ⚠️ SI NO SE PUEDEN LEER, NO HAY EJEMPLO. El campo es texto libre en la
- * solicitud; adivinar un monto para poner un ejemplo sería inventarle a alguien
- * cuánto va a cobrar, en un documento que va a leer antes de decidir.
- */
-function bandaDe(rango: string | null): [number, number] | null {
-  if (!rango) return null;
-  const montos = [...rango.matchAll(/\$\s?([\d,]+)/g)]
-    .map((m) => Number(m[1].replace(/,/g, "")))
-    .filter((n) => Number.isFinite(n) && n > 0);
-  if (montos.length !== 2) return null;
-  const [a, b] = montos;
-  return a < b ? [a, b] : null;
-}
 
 /** Escritor secuencial: lleva el cursor y salta de página cuando se acaba. */
 class Hoja {
@@ -192,175 +164,22 @@ export async function pdfDeTerminos(d: DatosTerminos): Promise<Uint8Array> {
   const fMono = await doc.embedFont(mono, { subset: true });
   const h = new Hoja(doc, fReg, fReg, fMono);
 
-  const quien = (d.operadora || d.responsable || "").trim();
-
-  h.parrafo("CAMINANTE · OPERADORES", { size: 8.5, color: OLIVO });
-  h.y -= 8;
-  h.parrafo("Resumen de términos", { size: 26, interlinea: 30 });
-  h.parrafo(
-    d.llamada ? `Para tu llamada del ${fecha(d.llamada)}` : "Para tu llamada",
-    { size: 13, color: NARANJA },
-  );
-  if (quien) h.parrafo(quien, { size: 11, color: OLIVO });
-  h.y -= 10;
-
-  h.aviso(
-    "Esto no es el convenio.",
-    "Es un resumen para que llegues a la llamada sabiendo de qué vamos a hablar. El convenio es otro " +
-      "documento, más largo y más preciso, y se firma después en tu panel. Si algo de aquí y algo de allá " +
-      "se contradicen, manda el convenio.",
-  );
-
-  h.titulo("Qué es Caminante y qué no");
-  h.parrafo(
-    "Caminante es una plataforma: publicas tu experiencia, se cobra en línea, se firman los deslindes, " +
-      "se lleva la lista de participantes y tienes tu panel. Caminante NO es operador turístico y no presta " +
-      "el servicio de viaje: la experiencia —su diseño, su ejecución y su seguridad— es tuya.",
-  );
-
-  // ⚠️ ESTA SECCIÓN VA ANTES DE LOS NÚMEROS, y el orden es la decisión. Quien
-  // lee primero una comisión y después una lista de funciones está comparando un
-  // costo contra nada. Al revés, la comisión aterriza sobre algo que ya entendió.
-  //
-  // ⚠️ TODO LO DE AQUÍ ESTÁ EN PRODUCCIÓN, verificado el 11 de septiembre de
-  // 2026. Lo que está a medias —Connect, facturación con su CSD, dominio
-  // propio— NO se menciona: el guion de la llamada obliga a decirlo en vivo, y
-  // un PDF que promete y una llamada que desmiente es la peor combinación.
-  h.titulo("Lo que la plataforma hace por ti");
-  h.parrafo(
-    "No es una página con un botón de pagar. Es la operación completa de una salida, desde que alguien " +
-      "la ve hasta que regresa y te deja un testimonio.",
-    { color: OLIVO, size: 10 },
-  );
-  h.y -= 6;
-  for (const [titulo, detalle] of [
-    ["Tu experiencia se ve como merece",
-      "Página propia con el diseño de la marca: portada a sangre, itinerario, guías, qué incluye, qué llevar en la mochila, preguntas frecuentes. La armas tú desde un formulario, sin diseñador y sin programador, y puedes pre-llenarla con IA a partir del itinerario que ya tienes en PDF o en Word."],
-    ["Con tu logo y tus colores",
-      "Tus clientes compran en un portal vestido con tu marca, no con la nuestra."],
-    ["Cobras con tarjeta, en línea",
-      "Meses sin intereses según el banco, varios niveles de precio en la misma salida (habitación compartida o individual) y complementos que el cliente marca y se suman al total: el tren, una noche extra, un traslado."],
-    ["Los cupos se cuidan solos",
-      "Cada salida tiene su fecha y su cupo, se cierra sola cuando se llena y también cuando ya pasó. Puedes abrir salidas privadas con liga secreta para un grupo, y recibir solicitudes de fecha de quien quiere ir y no le queda ninguna."],
-    ["El deslinde se firma en línea, y es tuyo",
-      "Se genera con tus cláusulas y el viajero lo firma antes de viajar. Si ya tienes tu propia carta de deslinde, no la reemplazamos: se FUSIONA con la nuestra — donde las dos digan lo mismo se queda la tuya, lo que sólo tengas tú se agrega, y nunca se pierde cobertura."],
-    ["El expediente que necesitas en el cerro",
-      "Cada viajero llena sus datos, su contacto de emergencia y lo médico: alergias, padecimientos, dieta. Llegas a la salida con la lista imprimible y la ficha de cada persona, para poder leerle a un médico lo que declaró."],
-    ["Tu comunicación, armada",
-      "Un kit que toma tus fotos y arma las piezas para redes —post y story— con sus textos, y las publica directo a Instagram desde el panel. Más un flyer en PDF de cada experiencia, vertical y horizontal, y boletín por correo a tu gente."],
-    ["Después del viaje, mides",
-      "Encuesta de satisfacción que sale sola un día después de que termina cada salida, con calificación por partes del viaje y los testimonios que después usas para vender la siguiente."],
-    ["Tu panel, y también en el teléfono",
-      "Qué se vendió, quién va, cuánto entró, qué falta por firmar — por salida y en vivo. Desde la computadora y desde el celular."],
-  ] as [string, string][]) {
-    h.parrafo(titulo, { size: 11 });
-    h.parrafo(detalle, { size: 9.5, color: OLIVO, x: MARGEN + 14, ancho: ANCHO - 14 });
-    h.y -= 3;
+  // ⚠️ EL TEXTO NO VIVE AQUÍ: vive en `terminos.ts`, que también alimenta la
+  // versión que se lee en Mi alta. Esto sólo lo dibuja, bloque por bloque, con
+  // la misma tinta de siempre.
+  for (const b of terminosDe(d)) {
+    if (b.t === "parrafo") {
+      h.parrafo(b.texto, {
+        size: b.size,
+        interlinea: b.interlinea,
+        color: b.color === "olivo" ? OLIVO : b.color === "naranja" ? NARANJA : undefined,
+        ...(b.sangria ? { x: MARGEN + 14, ancho: ANCHO - 14 } : {}),
+      });
+    } else if (b.t === "titulo") h.titulo(b.texto);
+    else if (b.t === "aviso") h.aviso(b.titulo, b.cuerpo);
+    else if (b.t === "fila") h.fila(b.celdas[0], b.celdas[1], b.celdas[2], { encabezado: b.encabezado });
+    else h.y -= b.alto;
   }
-  h.parrafo(
-    "Todo esto ya está funcionando hoy, no es un plan. Lo que todavía estamos construyendo te lo decimos " +
-      "en la llamada, sin adornos — y ahí es donde queremos tus preguntas.",
-    { size: 9.5, color: OLIVO },
-  );
-
-  h.titulo("La comisión");
-  h.parrafo(
-    "Se calcula por tramos sobre el precio de cada boleto, sin IVA, y no es una tasa plana: cada pedazo del " +
-      "precio paga su tasa. Hay dos escalas, y lo que las separa es quién trajo al cliente.",
-    { color: OLIVO, size: 10 },
-  );
-  h.y -= 6;
-  h.fila("Tramo del precio por persona", "Te lo traemos", "Lo traes tú", { encabezado: true });
-  // ⚠️ `tablaDeComisiones()` y no `tramosPara()`: la segunda fusiona los tramos
-  // de tasa igual y una tabla de dos columnas armada con eso sale con huecos.
-  for (const t of tablaDeComisiones()) {
-    h.fila(
-      t.hasta ? `De ${miles(t.desde)} a ${miles(t.hasta)}` : `De ${miles(t.desde)} en adelante`,
-      `${Math.round(t.venta * 100)}%`,
-      `${Math.round(t.plataforma * 100)}%`,
-    );
-  }
-  h.y -= 6;
-  h.parrafo(
-    `Todos los montos en pesos mexicanos. Mínimo ${pesos(MINIMO_POR_RESERVA)} por reserva, y nunca más del ${Math.round(TOPE * 100)}% de lo cobrado — ` +
-      `el mínimo no puede volverse una tasa alta en una venta chica. Más IVA (${Math.round(IVA * 100)}%) sobre la comisión.`,
-    { size: 9.5, color: OLIVO },
-  );
-
-  const banda = bandaDe(d.rangoPrecio);
-  if (banda) {
-    h.titulo("Tu caso, con los números que nos diste");
-    h.parrafo(`Declaraste un rango de ${d.rangoPrecio}. Con esa banda:`, { size: 10, color: OLIVO });
-    h.y -= 4;
-    h.fila("Precio del boleto", "Te lo traemos", "Lo traes tú", { encabezado: true });
-    for (const precio of banda) {
-      const cv = comisionPara(precio, "venta");
-      const cp = comisionPara(precio, "plataforma");
-      h.fila(
-        `Si cobras ${miles(precio)}, te quedan`,
-        miles(precio - cv.monto),
-        miles(precio - cp.monto),
-      );
-    }
-    h.parrafo(
-      "Sobre el precio sin IVA y antes de tus propios costos. La comisión efectiva baja conforme sube el " +
-        "boleto, porque los tramos de arriba pagan menos.",
-      { size: 9.5, color: OLIVO },
-    );
-  }
-
-  h.titulo("Cómo se te paga");
-  h.parrafo(
-    "El cliente le paga a Caminante. De lo cobrado se retiene la comisión más su IVA, y el resto se te " +
-      "transfiere a los 7 días naturales de que regresa la salida, con el desglose de cada liquidación. " +
-      "Las comisiones bancarias y de procesamiento las absorbe Caminante: no se te descuentan.",
-  );
-
-  h.titulo("Qué te vamos a pedir");
-  h.parrafo(
-    `Un expediente, y se revisa uno por uno. Son ${GENERALES.length} documentos generales que se entregan ` +
-      "una sola vez y sirven para todo, más los propios de cada actividad que quieras ofrecer — porque una " +
-      "caminata y un descenso a una caverna no se acreditan igual.",
-  );
-  const declaradas = d.actividades.filter((a) => ACTIVIDADES.some((c) => c.slug === a));
-  if (declaradas.length) {
-    h.y -= 4;
-    for (const a of declaradas) {
-      const n = requisitosDe(a).propios.length;
-      h.parrafo(`·  ${nombreDeActividad(a)} — ${n} ${n === 1 ? "documento propio" : "documentos propios"}`, { size: 10 });
-    }
-    h.parrafo(
-      "Cada actividad se aprueba por separado, y lo aprobado ya puede vender aunque las demás sigan a medias.",
-      { size: 9.5, color: OLIVO },
-    );
-  } else {
-    h.parrafo(
-      "En la llamada definimos cuáles son las tuyas; de ahí sale tu lista exacta.",
-      { size: 9.5, color: OLIVO },
-    );
-  }
-
-  h.titulo("Lee esto y anota tus dudas");
-  h.parrafo(
-    "La llamada son 30 minutos y rinden mucho más si llegas con las preguntas escritas. Estas son las que " +
-      "casi siempre salen; si alguna te falta clara, anótala:",
-    { color: OLIVO, size: 10 },
-  );
-  h.y -= 4;
-  for (const q of [
-    "¿Quién trae a mis clientes, y por lo tanto qué escala me aplica?",
-    "¿Qué pasa si una salida se cancela o alguien pide reembolso?",
-    "¿Quién factura al viajero, y quién factura la comisión?",
-    "¿Cuánto tarda en revisarse mi expediente, y qué pasa mientras tanto?",
-    "¿Qué se ve con mi marca y qué se ve con la de Caminante?",
-    "¿Cómo salgo si un día ya no quiero estar?",
-  ]) h.parrafo(`·  ${q}`, { size: 10 });
-
-  h.y -= 12;
-  h.parrafo(
-    `Generado el ${fecha(new Date())} · Caminante by NUMAN · uno@numanhub.com`,
-    { size: 8.5, color: OLIVO },
-  );
 
   return doc.save();
 }
