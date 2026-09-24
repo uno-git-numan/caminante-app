@@ -131,12 +131,21 @@ export async function reenviarEncuestaTodos(): Promise<void> {
 
 // ── Deslindes ─────────────────────────────────────────────────────────────
 
-async function enviarDeslinde(p: { email: string | null; nombre: string; experiencia: string; slug: string; reservationId: string }): Promise<boolean> {
+async function enviarDeslinde(p: {
+  email: string | null;
+  nombre: string;
+  experiencia: string;
+  slug: string;
+  reservationId: string;
+  /** Para vestir el recordatorio con la marca de quien opera. */
+  operatorId?: string | null;
+}): Promise<boolean> {
   if (!p.email) return false;
   return notifyDeslindePendiente({
     email: p.email,
     nombre: p.nombre,
     experiencia: p.experiencia,
+    operatorId: p.operatorId ?? null,
     deslindeUrl: `${SITE}/caminante/registro/${p.slug}?reserva=${p.reservationId}`,
   });
 }

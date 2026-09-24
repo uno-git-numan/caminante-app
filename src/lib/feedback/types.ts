@@ -22,6 +22,8 @@ export type FeedbackContext = {
   testimonialPrompt: string;
   voiceSub: string; // subtítulo del paso testimonio (data-driven por experiencia)
   feedbackVersion: string;
+  /** El operador dueño de la experiencia, para vestir la encuesta con su marca. */
+  operatorId: string | null;
 };
 
 // Copys ATEMPORALES por defecto (sirven a cualquier entorno: mar, bosque, montaña…).

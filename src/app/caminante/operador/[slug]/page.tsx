@@ -14,6 +14,8 @@ import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import PubStyles from "../../ui/pub/PubStyles";
 import PubShell from "../../ui/pub/PubShell";
 import { OPF_CSS } from "./opf-css";
+import { fetchOperatorThemeBySlug } from "@/lib/operators/branding";
+import WhiteLabelStyles, { wlDoc } from "../../ui/wl/WhiteLabelStyles";
 import OperadorMovil from "./OperadorMovil";
 
 // Sello COMPLETO de Caminante en sus colores verdaderos (olive/sand/orange) —
@@ -58,7 +60,10 @@ export default async function OperadorPage({
   const { slug } = await params;
   // ?draft=1 (solo admin): vista previa aunque el perfil no sea público aún.
   const esDraft = (await searchParams).draft === "1" && (await isCurrentUserAdmin());
-  const op = await fetchOperatorProfile(slug, { includeDraft: esDraft });
+  const [op, tema] = await Promise.all([
+    fetchOperatorProfile(slug, { includeDraft: esDraft }),
+    fetchOperatorThemeBySlug(slug),
+  ]);
   if (!op) notFound();
   const m = op.metrics;
 
@@ -83,8 +88,21 @@ export default async function OperadorPage({
     <>
       <PubStyles />
       <div className="pub-no">
-    <div className="opf">
+    {/* ⚠️ ESTA ES LA PÁGINA DE ELLA. De todas las superficies del funnel es la
+        única que habla de la operadora y no del viaje, así que verla con los
+        colores de Caminante era lo más raro de todo: su perfil, con la cara de
+        otro. Se viste con su propia marca, por slug.
+        OPF_CSS tiene dos nombres propios que themeCssFor no emite —--lagoon y
+        --ink— y van puenteados abajo; sin eso los títulos y el texto seguirían
+        en el verde de la casa. */}
+    <div className={`opf${wlDoc(tema) ? ` ${wlDoc(tema)}` : ""}`}>
       <style dangerouslySetInnerHTML={{ __html: OPF_CSS }} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: ".opf.wl-doc.wl-doc{--lagoon:var(--olive);--ink:var(--charcoal);}",
+        }}
+      />
+      <WhiteLabelStyles theme={tema} />
       {esDraft && !op.isPublic ? (
         <div style={{ background: "#ff5d36", color: "#fff", textAlign: "center", padding: "10px 16px", fontSize: 13, fontWeight: 600 }}>
           Vista previa — este perfil aún NO es público. Publícalo desde el panel.

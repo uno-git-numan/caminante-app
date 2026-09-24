@@ -239,6 +239,8 @@ export async function registrarPagoManual(input: TransferenciaInput): Promise<Tr
     ? await notifyConfirmacionCompra({
         email,
         nombre: nombre || contact.full_name || "",
+        // El comprobante se viste de quien opera el viaje (white-label F1).
+        operatorId: exp.operator_id ?? null,
         experiencia: nombreExp,
         salida: slot.label || "",
         personas,

@@ -8,6 +8,8 @@ import type { Metadata } from "next";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Experience } from "@/lib/experiences/types";
 import { buildDeslinde, ENTIDAD } from "@/lib/legal/deslinde-doc";
+import { fetchOperatorTheme } from "@/lib/operators/branding";
+import WhiteLabelStyles, { wlDoc } from "../../ui/wl/WhiteLabelStyles";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,25 @@ async function getExp(slug: string): Promise<Experience | null> {
   return (data?.data as Experience | undefined) ?? null;
 }
 
+/**
+ * El operador DUEÑO de la experiencia. Es de quien se viste el documento.
+ *
+ * Se pregunta aparte si es la casa: `OperatorTheme` no lo trae, y sin eso el
+ * encabezado diría «Opera Numan · Caminante» en los documentos de la casa, que
+ * es ruido — ahí la marca del documento ES Caminante.
+ */
+async function temaDe(slug: string) {
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb.from("experiences").select("operator_id").eq("slug", slug).maybeSingle();
+  const opId = (data as { operator_id: string | null } | null)?.operator_id ?? null;
+  if (!opId) return { tema: null, esLaCasa: true };
+  const [tema, { data: fila }] = await Promise.all([
+    fetchOperatorTheme(opId),
+    sb.from("operators").select("es_la_casa").eq("id", opId).maybeSingle(),
+  ]);
+  return { tema, esLaCasa: (fila as { es_la_casa: boolean | null } | null)?.es_la_casa === true };
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const doc = buildDeslinde(await getExp(slug));
@@ -45,6 +66,21 @@ const CSS = `
 .dsld .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding-bottom:14px;border-bottom:1.5px solid #d9d2c6;}
 .dsld .brand .mark{height:24px;}
 .dsld .brand .mark svg{height:100%;width:auto;display:block;}
+/* ── WHITE-LABEL ────────────────────────────────────────────────────────────
+   Esta hoja tiene vocabulario PROPIO (--lagoon, --ink, --gray) y themeCssFor
+   no lo emite: emite --olive, --charcoal, --ink-soft. Sin este puente el
+   deslinde quedaba a medias —fondo y acento del operador, títulos y botón
+   todavía del verde de Caminante—, que se ve peor que no vestirlo.
+   Especificidad (0,3,0): gana sobre .dsld y sobre .wl-doc.wl-doc. Inerte
+   cuando no hay marca, porque entonces la clase no se pone. */
+.dsld.wl-doc.wl-doc{--lagoon:var(--olive);--ink:var(--charcoal);--gray:var(--ink-soft);}
+/* El logo del operador, cuando lo hay. Se respeta su alto para que un logo
+   apaisado no se estire. */
+.dsld .brand .oplogo{height:26px;width:auto;display:block;}
+/* ⚠️ «vía Caminante» NO es cortesía: este documento lo firma alguien y tiene
+   que poder saber quién responde. La entidad completa sigue en la caja de
+   datos; esto es el rastro visible arriba. */
+.dsld .brand .via{font-family:"Geist",system-ui,sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gray);margin-top:7px;}
 .dsld .mark .g1{fill:var(--olive);}.dsld .mark .g2{fill:var(--sand);}.dsld .mark .g3{fill:var(--orange);}.dsld .mark .gw{fill:var(--ink);}
 .dsld .tag{font-family:"Geist",system-ui,sans-serif;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gray);margin-top:6px;}
 .dsld .hmeta{font-family:"Geist",system-ui,sans-serif;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);text-align:right;line-height:1.7;white-space:nowrap;}
@@ -71,12 +107,16 @@ const CSS = `
 
 export default async function DeslindePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const doc = buildDeslinde(await getExp(slug));
+  const [doc, quien] = await Promise.all([getExp(slug).then(buildDeslinde), temaDe(slug)]);
   if (!doc) notFound();
+  // La casa no se viste de sí misma: su marca ES la de este documento.
+  const tema = quien.esLaCasa ? null : quien.tema;
+  const logo = tema?.branding?.logoDarkUrl || tema?.branding?.logoUrl || null;
 
   return (
-    <div className="dsld">
+    <div className={`dsld${wlDoc(tema) ? ` ${wlDoc(tema)}` : ""}`}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <WhiteLabelStyles theme={tema} />
       <div className="bar">
         {/* Regla app-first: camino de vuelta visible (nunca depender del back del navegador) */}
         <a href={`/caminante/experiencias/${slug}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "#637154", textDecoration: "none", fontFamily: '"Geist",system-ui,sans-serif', marginRight: 4 }}>← Volver</a>
@@ -85,8 +125,25 @@ export default async function DeslindePage({ params }: { params: Promise<{ slug:
 
       <header className="dhead">
         <div className="brand">
-          <div className="mark" dangerouslySetInnerHTML={{ __html: WORD }} />
-          <div className="tag">Nature + Movement by Numan</div>
+          {/* ⚠️ EL SELLO DE CAMINANTE SE PINTA CON LAS VARIABLES DEL TEMA
+              (.mark .g1{fill:var(--olive)}…), así que vestido saldría el
+              wordmark CAMINANTE con los colores de otra marca — un logo ajeno
+              mal pintado. Cuando la operadora tiene el suyo, va el suyo; y
+              debajo, quién presta la plataforma. */}
+          {logo ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="oplogo" src={logo} alt={tema?.name ?? ""} />
+              <div className="via">{tema?.name} · vía Caminante</div>
+            </>
+          ) : (
+            <>
+              <div className="mark" dangerouslySetInnerHTML={{ __html: WORD }} />
+              <div className="tag">
+                {tema ? `Opera ${tema.name}` : "Nature + Movement by Numan"}
+              </div>
+            </>
+          )}
         </div>
         <div className="hmeta">
           Carta de responsabilidad<br />y deslinde · {doc.version}

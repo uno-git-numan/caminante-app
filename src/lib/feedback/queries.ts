@@ -12,13 +12,17 @@ export async function fetchFeedbackByToken(
   const { data: fb } = await sb
     .from("experience_feedback")
     .select(
-      "token, status, location_label, feedback_version, contacts(full_name), experiences(data)",
+      // `operator_id` viaja para poder vestir la encuesta con la marca de quien
+      // operó el viaje: quien contesta acaba de viajar con ELLA, no con
+      // Caminante, y una encuesta que se ve de otra marca se siente de otro.
+      "token, status, location_label, feedback_version, contacts(full_name), experiences(data, operator_id)",
     )
     .eq("token", token)
     .maybeSingle();
   if (!fb) return null;
 
   const experience = (fb.experiences as { data?: Experience } | null)?.data;
+  const operatorId = (fb.experiences as { operator_id?: string | null } | null)?.operator_id ?? null;
   const cfg = experience?.feedback;
   const fullName = (fb.contacts as { full_name?: string } | null)?.full_name ?? "";
   const sections: FeedbackSection[] = cfg?.sections ?? [];
@@ -37,5 +41,6 @@ export async function fetchFeedbackByToken(
     testimonialPrompt: cfg?.testimonialPrompt || "El primer día vimos…",
     voiceSub: cfg?.voiceSub?.trim() || DEFAULT_VOICE_SUB,
     feedbackVersion: (fb.feedback_version as string) || cfg?.version || "v1",
+    operatorId,
   };
 }

@@ -14,6 +14,8 @@ export type DeslindePendiente = {
   // uno quisiera— el link se le manda por aquí, a mano.
   telefono: string | null;
   slug: string;
+  /** El operador dueño, para vestir el recordatorio con su marca. */
+  operatorId: string | null;
   experiencia: string;
   salidaLabel: string;
 };
@@ -34,13 +36,17 @@ export async function fetchDeslindesPendientes(): Promise<DeslindePendiente[]> {
     // Encuesta — las otras dos ya estaban podadas y esta se coló igual. Se poda
     // por experiencia, que es donde cuelga todo lo demás.
     const operatorId = await operadorDelAlcance();
-    const activo = new Map<string, { slug: string; nombre: string }>();
+    const activo = new Map<string, { slug: string; nombre: string; operatorId: string | null }>();
     for (const e of (exps.data ?? []) as {
       id: string; slug: string; data: Experience; operator_id: string | null;
     }[]) {
       if (operatorId && e.operator_id !== operatorId) continue;
       if (e.data?.registration?.active) {
-        activo.set(e.id, { slug: e.slug, nombre: experienceTitle(e.data, e.slug) });
+        activo.set(e.id, {
+          slug: e.slug,
+          nombre: experienceTitle(e.data, e.slug),
+          operatorId: e.operator_id,
+        });
       }
     }
     const firmados = new Set((regs.data ?? []).map((r) => (r as { reservation_id: string }).reservation_id));
@@ -64,6 +70,7 @@ export async function fetchDeslindesPendientes(): Promise<DeslindePendiente[]> {
         email: c?.email ?? null,
         telefono: c?.phone ?? null,
         slug: exp.slug,
+        operatorId: exp.operatorId,
         experiencia: exp.nombre,
         salidaLabel: (r.slot_id && labelBySlot.get(r.slot_id)) || "",
       });

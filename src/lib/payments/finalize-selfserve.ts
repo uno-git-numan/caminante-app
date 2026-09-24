@@ -271,6 +271,8 @@ export async function finalizeSelfServeCheckout(
     notifyConfirmacionCompra({
       email,
       nombre: fullName,
+      // Para que el comprobante se vea de quien opera el viaje, no de la casa.
+      operatorId,
       experiencia: nombreExperiencia,
       salida: session.metadata?.slot_label || "",
       personas: numPeople,
