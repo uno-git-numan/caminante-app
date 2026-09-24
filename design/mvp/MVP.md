@@ -331,12 +331,12 @@ prender F0**, no después del primer timbrado.
 |---|------|--------|-----------|
 | 1 | Solicitar y ser aprobada | ✅ | — |
 | 2 | Entrar a su panel podado | ✅ | — |
-| 3 | **Subir el expediente** | 🔴 roto | el lazo cerrado (§1) |
+| 3 | **Subir el expediente** | ✅ | la fila manda sobre el embudo (§1) |
 | 4 | Firmar convenio + anexo | 🔴 bloqueado | no hay texto publicado |
 | 5 | Crear / editar su experiencia | ✅ | — |
-| 6 | Publicarla | 🟠 frágil | candado en 2 de 3 puertas |
-| 7 | **Que el cobro entre a SU cuenta** | 🔴 **sin construir** | la bifurcación A3 (§5.1) |
-| 8 | Que se le liquide | 🔴 no existe | `operator_payables` vacía |
+| 6 | Publicarla | ✅ | `candadosDe`: una puerta para las tres (invariante #20) |
+| 7 | **Que el cobro entre a SU cuenta** | ✅ | cargo con destino, probado E2E contra Stripe |
+| 8 | Que se le liquide | ✅ | `operator_liquidaciones` (0066) + su pantalla. `operator_payables` NO era la tabla: es la dirección contraria |
 | 9 | **Que el cliente reciba su CFDI** | 🔴 apagado | F0: Facturapi + CSD (§6) |
 | 10 | Operar el viaje | ✅ | — |
 
@@ -374,8 +374,23 @@ prender F0**, no después del primer timbrado.
 15. Decidir qué pasa con los 62 pagos históricos en «por-emitir».
 
 ### P4 — las mentiras conocidas
-16. `seats_taken`.
-17. Aviso de marca incompleta (#103).
+16. ~~`seats_taken`~~ → **hecho el 23 sep.** Mentía en 6 de 14 salidas; se borró
+    junto con `seats_available` (0065) y el invariante #21 impide que vuelva.
+17. ~~Aviso de marca incompleta (#103)~~ → **ya estaba hecho** desde el commit
+    `4088e22`: el aviso vive en la ficha de la casa (`Operadoras.tsx`) y en
+    `MiAlta.tsx`, con liga para capturarla por ella. Verificado el 24 sep con
+    datos reales: Kéntro y Nomádika salen incompletas y la casa no aparece —
+    toma otra rama, porque su marca es el sitio mismo. Esta lista estaba vieja.
+
+### P4 bis — las que aparecieron después
+18. ~~`platform_fee_pct_frozen`~~ → **borrada el 24 sep** (0068). Cero valores en
+    70 pagos, cero lecturas en `src/`.
+19. ~~El Panorama decía «cobrada $0» y «por cobrar $3,620.64»~~ → **arreglado el
+    24 sep.** Ninguna de las dos era cierta: la comisión entra en el mismo cobro
+    por los dos canales. Y `devengada` era histórica con etiqueta de mes.
+20. ~~«CFDI por emitir: 0»~~ → estaba escrito a mano y se contradecía con su
+    propio pie. Ahora es un hueco marcado: el CFDI de la comisión a la operadora
+    no tiene tabla.
 
 ---
 

@@ -1,0 +1,34 @@
+-- 0068 · ADIÓS A `payments.platform_fee_pct_frozen`
+--
+-- ⚠️ ESTA MIGRACIÓN BORRA UNA COLUMNA. Va aparte y con autorización explícita,
+-- como manda la regla de la casa. Antes de correrla, lo que se verificó.
+--
+-- La 0061 ya la había declarado muerta y le puso un comentario para que nadie la
+-- usara mientras tanto, dejando el borrado para su propia migración. Ésta es.
+--
+-- Medido en producción el 24 sep 2026, justo antes de escribir esto:
+--
+--   · 70 pagos en la tabla. Filas con un valor: **CERO**. Nunca se escribió.
+--   · Referencias en `src/` y en `scripts/`: **CERO**. Nunca se leyó.
+--   · En `supabase/migrations/` sólo aparece en su propio historial: la 0032 que
+--     la creó, la 0039 y la 0061 que explican por qué no sirve.
+--
+-- Qué era: el duplicado del porcentaje de comisión, hermano de los que la 0037
+-- borró de `operators` (`platform_fee_pct`, `stripe_fee_bearer`). Aquel borrado
+-- existió para que la comisión tuviera UN solo hogar y no pudiera leerse la
+-- equivocada por error; éste se quedó vivo y nadie lo notó.
+--
+-- ⚠️ Y NO ES INOFENSIVA POR ESTAR VACÍA. Una columna que se llama
+-- «el porcentaje congelado de la comisión» invita a usarla: quien escriba
+-- mañana un corte la va a encontrar antes que a `platform_fee_mxn`, y va a
+-- obtener NULL en el 100% de los renglones — o peor, si alguien la rellena «para
+-- que sirva», habrá dos porcentajes y el checkout cobrará uno mientras el corte
+-- muestra el otro. Ése es el bug de dinero silencioso que la 0037 fue a matar.
+--
+-- La comisión de una venta vive en `payments.platform_fee_mxn`, en pesos y
+-- congelada al cobrar. El porcentaje que la produjo no se guarda a propósito:
+-- con la escala por tramos NO EXISTE un porcentaje único que describa la venta
+-- —20% del primer tramo, 18% del segundo— así que guardar «el %» sería guardar
+-- un número que no significa nada.
+
+alter table public.payments drop column if exists platform_fee_pct_frozen;
