@@ -1257,4 +1257,28 @@ export const ADMIN_CSS = `
    ganarle en especificidad al ajuste, venga en la hoja que venga y en el
    orden que venga; mi-alta-css y expediente-css son generados y no se tocan. */
 @media(max-width:640px){.adm .docs .doc{grid-template-columns:20px 1fr;row-gap:8px}.adm .docs .doc .fl,.adm .docs .doc .ac{grid-column:2}.adm .docs .doc .ac{justify-content:flex-start}}
+
+/* LA CABECERA DEL PANEL EN TELÉFONO (Luis, 24 sep 2026). Sólo el índice
+   /caminante/admin redirige al panel-app; Mi alta, el expediente y Cobrar
+   sirven el DOM de escritorio, y su cabecera —logo, «Modo admin», la pastilla
+   numan/Caminante/Kéntro y los chips de acción— no cabía en una fila: 827px de
+   ancho en un iPhone de 390, con scroll horizontal en toda la página. Medido
+   en producción con un marco de 390px. Aquí se apila: marca en una fila, la
+   pastilla en la suya (se desliza si no cabe), los chips en la tercera con
+   «Salir» a la derecha, y el nav (que ya se deslizaba) con el mismo margen. La
+   cabecera deja de ser pegajosa: con tres filas se comía un tercio de la
+   pantalla. Probado antes de subir inyectando estas reglas en ese marco:
+   ancho de página 386px, sin nada que se salga. */
+@media(max-width:640px){
+.adm .ahead{position:static}
+.adm .ahead .top{flex-wrap:wrap;gap:10px 12px;padding:10px 14px}
+.adm .ahead .brand{flex:1 1 100%;flex-wrap:wrap;gap:8px 12px;min-width:0}
+.adm .ahead .mode{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.1em}
+.adm .ahead .brand .hatwrap{flex:1 1 100%;border-left:0;padding-left:0;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.adm .hat{flex:0 0 auto}
+.adm .hat a,.adm .hat button{padding:7px 12px;font-size:11px;letter-spacing:.12em}
+.adm .qa{flex:1 1 100%;flex-wrap:wrap;gap:8px}
+.adm .qa form{margin-left:auto}
+.adm .nav,.adm .navnote{padding-left:14px;padding-right:14px}
+}
 `;
