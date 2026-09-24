@@ -34,6 +34,48 @@ export type Etapa =
   | "dormido"
   | "se_salieron";
 
+/**
+ * EN QUÉ COLUMNA DEL PIPELINE VA UNA OPERADORA. Se DEDUCE, nunca se mueve a
+ * mano: un tablero cuyas columnas hay que mantener sincronizadas con la
+ * realidad siempre termina desincronizado.
+ *
+ * Es función pura y vive aquí —no en `operadoras.ts`, que es server-only—
+ * para poder probarla sin base.
+ */
+export function etapaDe(o: {
+  /** El status de su solicitud en el embudo, si pasó por él. */
+  solicitud: string | null;
+  /** Lo PAGADO este mes. Una reserva cancelada o solicitada no es venta. */
+  vendidoMes: number;
+  /** La fecha de su última venta PAGADA, o null si nunca ha vendido. */
+  ultimaVenta: string | null;
+  /** De los seis candados, cuántos están en verde. */
+  cumplidos: number;
+  esLaCasa: boolean;
+  ahora?: Date;
+}): Etapa {
+  if (o.solicitud === "rejected") return "se_salieron";
+  if (o.solicitud === "pending") return "llego";
+  if (o.solicitud === "calling") return "en_llamada";
+  if (o.vendidoMes > 0) return "vendiendo";
+  // ⚠️ «DORMIDO» ES HABER VENDIDO Y DEJAR DE VENDER. Hasta el 24 sep 2026 se
+  // decidía por la antigüedad de la FILA, así que Kéntro —que nunca ha vendido
+  // y está a medio darse de alta— salía como «lleva dos meses sin vender,
+  // preguntarle si sigue». Quien nunca vendió no dejó de hacerlo: está en su
+  // alta, y su lugar es la columna de su alta.
+  //
+  // Y va ANTES que «listo»: el caso para el que existe esta columna es la
+  // operadora con los seis candados en verde que un día dejó de vender. Con
+  // «listo» primero, esa operadora no habría caído nunca aquí.
+  if (!o.esLaCasa && o.ultimaVenta) {
+    const ahora = (o.ahora ?? new Date()).getTime();
+    const dias = Math.floor((ahora - new Date(o.ultimaVenta).getTime()) / 86_400_000);
+    if (dias > 60) return "dormido";
+  }
+  if (o.cumplidos === 6) return "listo";
+  return "expediente";
+}
+
 export const ETAPAS: { clave: Etapa; num: string; nombre: string; como: string }[] = [
   { clave: "llego", num: "01", nombre: "Llegó", como: "Automática · cae la solicitud" },
   { clave: "en_llamada", num: "02", nombre: "En llamada", como: "A mano · se agenda" },

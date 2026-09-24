@@ -115,7 +115,6 @@ export default async function AdminShell({
 }) {
   const rol = (await getCurrentRole()) === "operador" ? "operador" : "admin";
   const alcance = await alcanceActual();
-  const items = navPara(rol);
 
   // Los badges cuentan solicitudes de la PLATAFORMA. Un operador ni ve esa
   // sección, así que ni se consultan — tres consultas menos por pantalla.
@@ -144,6 +143,9 @@ export default async function AdminShell({
     rol === "admin"
       ? await Promise.all([operadorasPropias(), sombreroPuesto()])
       : [[], null];
+  // «Mi alta» aparece en el nav de la casa sólo si el sombrero es de una
+  // operadora que tiene alta. Se calcula aquí y no arriba porque depende de él.
+  const items = navPara(rol, sombrero === "operadora" && !!puesto && !puesto.esLaCasa);
   const nav = sombrero === "plataforma" ? NAV_PLATAFORMA : items;
 
   return (

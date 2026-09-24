@@ -152,6 +152,13 @@ export const ADMIN_NAV_DE_OPERADOR: AdminNavItem[] = [
   ...ADMIN_NAV.filter((i) => !FUERA_DEL_OPERADOR.includes(i.key)),
 ];
 
-export function navPara(rol: "admin" | "operador"): AdminNavItem[] {
-  return rol === "operador" ? ADMIN_NAV_DE_OPERADOR : ADMIN_NAV;
+/**
+ * @param conAlta — la casa trae puesto el sombrero de una operadora que SÍ
+ *   tiene alta (Kéntro, hoy). Ahí «Mi alta» deja de ser «la casa no tiene alta
+ *   que seguir» y pasa a ser justo lo que se está mirando: el alta de ella,
+ *   recorrida como la recorre ella. Sin sombrero, o con el de la casa, no sale.
+ */
+export function navPara(rol: "admin" | "operador", conAlta = false): AdminNavItem[] {
+  if (rol === "operador") return ADMIN_NAV_DE_OPERADOR;
+  return conAlta ? [MI_ALTA_NAV, ...ADMIN_NAV] : ADMIN_NAV;
 }

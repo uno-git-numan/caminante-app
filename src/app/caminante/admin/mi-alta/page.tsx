@@ -15,6 +15,7 @@ import AdminShell from "../ui/AdminShell";
 import { MI_ALTA_CSS } from "../ui/mi-alta-css";
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
+import { sombreroPuesto } from "@/lib/auth/sombrero";
 import MiAlta from "./MiAlta";
 import { pasoDe } from "@/lib/operadores/pasos";
 
@@ -50,12 +51,67 @@ export default async function MiAltaPage({
   let porOtra: { id: string; nombre: string } | null = null;
   if (propia.operadora?.esLaCasa) {
     const pedida = ((await searchParams).operadora ?? "").trim();
-    const nombre = pedida ? await nombreDeOperadora(pedida) : null;
-    if (!pedida || !nombre) redirect("/caminante/admin/plataforma/comunidad");
+
+    // SIN `?operadora=`, EL SOMBRERO DICE DE QUIÉN. Con el de Kéntro puesto,
+    // «Mi alta» es la de Kéntro: es lo que el nav ofrece y lo que se espera.
+    //
+    // ⚠️ PERO SE ESCRIBE EN LA URL, no se lee de la cookie y ya. De aquí salen
+    // actos —subir documentos, declarar actividades, conectar Stripe— y un acto
+    // nunca se decide con el sombrero (invariante #22). Redirigir a
+    // `?operadora=<id>` hace que cada liga de esta pantalla, y cada acción que
+    // cuelgue de ella, lleve el id EXPLÍCITO. La cookie sólo eligió el default,
+    // una vez, y a la vista.
+    if (!pedida) {
+      const puesto = await sombreroPuesto();
+      if (puesto && !puesto.esLaCasa) {
+        redirect(`/caminante/admin/mi-alta?operadora=${encodeURIComponent(puesto.id)}`);
+      }
+      redirect("/caminante/admin/plataforma/comunidad");
+    }
+
+    const nombre = await nombreDeOperadora(pedida);
+    if (!nombre) redirect("/caminante/admin/plataforma/comunidad");
     const suya = await fetchMiAlta(pedida);
     if (!suya) redirect("/caminante/admin/plataforma/comunidad");
     datos = suya;
     porOtra = { id: pedida, nombre };
+  }
+
+  // ⚠️ LA CASA NO TIENE ALTA, TAMPOCO VISTA POR OTRA. Con `?operadora=` de la
+  // fila de la casa (Caminante, mientras cargue `es_la_casa`), esta pantalla
+  // pintaba la contradicción de siempre: los candados en rojo y «puedes
+  // vender» en verde. Se dice en vez de pintarse mal, y en vez de rebotar —un
+  // rebote sin explicación fue justo lo que Luis reportó de esta pantalla—.
+  if (datos.operadora?.esLaCasa) {
+    return (
+      <AdminShell active="panorama">
+        <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS }} />
+        <div className="sec-head">
+          <div>
+            <span className="eyebrow">
+              <span className="sl">{"//"}</span> Alta de {porOtra?.nombre ?? "la casa"}
+            </span>
+            <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
+              Esta operadora <em className="ac">no tiene alta.</em>
+            </h2>
+          </div>
+        </div>
+        <div className="verdict casa">
+          <span className="n">{"//"}</span>
+          <span className="g">
+            <b>Es la operadora de la casa: no pasó por el embudo</b>
+            <span>
+              No mandó solicitud, no firma convenio consigo misma y hoy no paga comisión, así que
+              no hay seis candados que seguir. Cuando Druidas exista y esta operadora cobre por su
+              cuenta y pague comisión, su alta aparecerá aquí sola.
+            </span>
+            <span style={{ marginTop: 8 }}>
+              <Link href="/caminante/admin/plataforma/comunidad">Ver a las operadoras</Link>
+            </span>
+          </span>
+        </div>
+      </AdminShell>
+    );
   }
 
   const ORDINAL = ["primero", "segundo", "tercero", "cuarto"];

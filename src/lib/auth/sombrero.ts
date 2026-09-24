@@ -30,7 +30,17 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
     lector no puedan discrepar. */
 export const COOKIE_SOMBRERO = "sombrero_operadora";
 
-export type OperadoraPropia = { id: string; slug: string; nombre: string };
+export type OperadoraPropia = {
+  id: string;
+  slug: string;
+  nombre: string;
+  /**
+   * La que hoy carga `es_la_casa` (Caminante). No tiene alta: su fila existe
+   * para atribuirse lo suyo y los seis candados no le aplican. Cuando Druidas
+   * exista y Caminante pague comisión, esto se apaga y su alta aparece sola.
+   */
+  esLaCasa: boolean;
+};
 
 /**
  * Las operadoras que tienen sombrero, en el orden en que se dieron de alta.
@@ -46,14 +56,20 @@ export const operadorasPropias = cache(async (): Promise<OperadoraPropia[]> => {
   const sb = createSupabaseAdminClient();
   const { data, error } = await sb
     .from("operators")
-    .select("id, slug, name")
+    .select("id, slug, name, es_la_casa")
     .eq("propia", true)
     .neq("estado", "baja")
     .order("created_at");
   if (error) return [];
-  return ((data ?? []) as { id: string; slug: string | null; name: string | null }[])
-    .filter((o): o is { id: string; slug: string; name: string | null } => !!o.slug)
-    .map((o) => ({ id: o.id, slug: o.slug, nombre: o.name || "Operadora" }));
+  type Fila = { id: string; slug: string | null; name: string | null; es_la_casa: boolean | null };
+  return ((data ?? []) as Fila[])
+    .filter((o): o is Fila & { slug: string } => !!o.slug)
+    .map((o) => ({
+      id: o.id,
+      slug: o.slug,
+      nombre: o.name || "Operadora",
+      esLaCasa: o.es_la_casa === true,
+    }));
 });
 
 /**

@@ -1,7 +1,7 @@
 import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { convenioAlDia, leerEstado, versionesConvenio } from "@/lib/operadores/convenio";
-import type { Candado, Etapa } from "./etapas";
+import { etapaDe, type Candado, type Etapa } from "./etapas";
 import { faltanDeMarca, marcaLista } from "@/lib/operators/marca";
 import type { OperatorBranding } from "@/lib/operators/branding";
 
@@ -131,9 +131,19 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     const publicadas = mias.filter((e) => e.status === "published");
     const misExpIds = new Set(mias.map((e) => e.id));
     const misReservas = reservas.filter((r) => r.experience_id && misExpIds.has(r.experience_id));
-    const vendidoMes = misReservas
+    // ⚠️ SÓLO LO PAGADO ES UNA VENTA — la misma regla que Panorama. Hasta el 24
+    // sep 2026 aquí se sumaba cualquier reserva, así que una cancelada o una
+    // apenas solicitada mandaba a una operadora a «Vendiendo». Dos pantallas
+    // de la misma plataforma contando «vendido» con dos reglas distintas es la
+    // forma más rápida de que un día no cuadren y nadie sepa cuál creer.
+    const pagadas = misReservas.filter((r) => r.status === "paid");
+    const vendidoMes = pagadas
       .filter((r) => r.created_at >= desdeMes)
       .reduce((a, r) => a + Number(r.total_amount_mxn ?? 0), 0);
+    const ultimaVenta = pagadas.reduce<string | null>(
+      (m, r) => (r.created_at && (!m || r.created_at > m) ? r.created_at : m),
+      null,
+    );
 
     const conv = convenioAlDia(
       estadoConvenio,
@@ -214,14 +224,13 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     // La etapa se DEDUCE del estado real, no de un campo que alguien mueve a
     // mano. Un tablero cuyas columnas hay que mantener sincronizadas con la
     // realidad siempre termina desincronizado.
-    let etapa: Etapa;
-    if (app?.status === "rejected") etapa = "se_salieron";
-    else if (app?.status === "pending") etapa = "llego";
-    else if (app?.status === "calling") etapa = "en_llamada";
-    else if (vendidoMes > 0) etapa = "vendiendo";
-    else if (cumplidos === 6) etapa = "listo";
-    else if (!esLaCasa && dias(o.created_at as string) > 60) etapa = "dormido";
-    else etapa = "expediente";
+    const etapa = etapaDe({
+      solicitud: app?.status ?? null,
+      vendidoMes,
+      ultimaVenta,
+      cumplidos,
+      esLaCasa,
+    });
 
     return {
       id,
@@ -242,7 +251,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       experienciasPublicadas: publicadas.length,
       experienciasBorrador: mias.length - publicadas.length,
       vendidoMes,
-      vendidoHistorico: misReservas.reduce((a, r) => a + Number(r.total_amount_mxn ?? 0), 0),
+      vendidoHistorico: pagadas.reduce((a, r) => a + Number(r.total_amount_mxn ?? 0), 0),
       solicitudAt: app?.created_at ?? null,
       solicitudStatus: app?.status ?? null,
       llamadaAt: app?.llamada_at ?? null,
