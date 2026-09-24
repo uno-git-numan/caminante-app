@@ -127,7 +127,6 @@ export async function crearSalida(input: {
       price_mxn: input.priceMxn ?? null,
       status: "open",
       visibility: "public",
-      seats_taken: 0,
     })
     .select("id")
     .single();

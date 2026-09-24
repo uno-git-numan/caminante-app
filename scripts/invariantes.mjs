@@ -117,6 +117,51 @@ const REGLAS = [
     },
   },
   {
+    nombre: "Cuántos van se cuenta, no se lleva en un contador",
+    comprueba() {
+      // `experience_slots.seats_taken` era un contador que sólo movía el
+      // registro —la venta self-serve nunca lo tocó— así que llevaba meses
+      // desfasado: medido el 23 sep 2026, **6 de 14 salidas** con el número
+      // equivocado. «Domingo 26 jul» decía 0 con 18 personas dentro. Y
+      // `seats_available`, generada restándolo, heredaba la mentira.
+      //
+      // No revienta: MIENTE. Y no se arregla poniéndolo al día — un segundo
+      // lugar donde vive el mismo hecho se desincroniza el primer día que
+      // alguien escribe en uno solo. La 0065 borró las dos columnas; esta regla
+      // impide que vuelvan por la puerta de atrás.
+      const src = join(raiz, "src");
+      if (!existsSync(src)) return null;
+      const malos = [];
+      (function barrer(d) {
+        for (const e of readdirSync(d, { withFileTypes: true })) {
+          const f = join(d, e.name);
+          if (e.isDirectory()) barrer(f);
+          else if (/\.(ts|tsx)$/.test(e.name)) {
+            // ⚠️ SE MIRA EL CÓDIGO, NO LOS COMENTARIOS. Media docena de
+            // archivos explican en prosa por qué estas columnas ya no están, y
+            // esa memoria es justo lo que queremos que sobreviva: una regla que
+            // la castigara empujaría a borrar la explicación.
+            const codigo = readFileSync(f, "utf8")
+              .replace(/\/\*[\s\S]*?\*\//g, "")
+              .replace(/^\s*\/\/.*$/gm, "");
+            if (/seats_(taken|available)/.test(codigo)) {
+              malos.push(f.slice(raiz.length + 1));
+            }
+          }
+        }
+      })(src);
+      if (malos.length) {
+        return [
+          `Volvió el contador de lugares en: ${malos.join(", ")}`,
+          "Cuántos van se cuenta desde `reservations` (fetchSlotAvailability),",
+          "que es lo que ve el viajero. Un contador aparte se desfasa el primer",
+          "día que un camino escribe y el otro no — y ya pasó, en 6 de 14 salidas.",
+        ].join("\n    ");
+      }
+      return null;
+    },
+  },
+  {
     nombre: "El middleware vive donde Next lo lee",
     comprueba() {
       const enSrc = hay("src/middleware.ts");

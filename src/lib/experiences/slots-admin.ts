@@ -26,7 +26,12 @@ export type AdminSlot = {
   priceMxn: number | null;
   status: string;
   visibility: string; // 'public' | 'private' (privada = grupo con link cerrado)
-  seatsTaken: number;
+  // AQUI ESTABA `seatsTaken` Y NO LO LEIA NADIE. Salia de la columna
+  // `seats` + `_taken`, que llevaba meses desfasada —6 de 14 salidas
+  // equivocadas el 23 sep 2026— porque solo la movia el registro y no la venta
+  // self-serve. Cuantos van se cuenta desde `reservations`
+  // (`fetchSlotAvailability`), que es lo que ve el viajero. Devolver el otro
+  // numero era ofrecer la mentira a quien se le ocurriera usarla. Ver la 0065.
 };
 
 async function experienceIdBySlug(
@@ -46,7 +51,7 @@ export async function fetchSlotsForAdmin(slug: string): Promise<AdminSlot[]> {
   if (!expId) return [];
   const { data } = await sb
     .from("experience_slots")
-    .select("id, label, starts_at, ends_at, capacity_total, price_mxn, status, visibility, seats_taken")
+    .select("id, label, starts_at, ends_at, capacity_total, price_mxn, status, visibility")
     .eq("experience_id", expId)
     .order("starts_at", { ascending: true });
   return (data ?? []).map((s) => {
@@ -60,7 +65,6 @@ export async function fetchSlotsForAdmin(slug: string): Promise<AdminSlot[]> {
       priceMxn: (r.price_mxn as number) ?? null,
       status: (r.status as string) ?? "open",
       visibility: (r.visibility as string) ?? "public",
-      seatsTaken: (r.seats_taken as number) ?? 0,
     };
   });
 }

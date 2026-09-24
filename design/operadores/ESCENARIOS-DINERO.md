@@ -78,8 +78,9 @@ que se deshizo.
 *Medido: la reversión completa dejó el saldo de la operadora exactamente como
 estaba antes de la venta.*
 
-🔸 **PREGUNTA 1 PARA EL ABOGADO.** Hoy ese −$83.94 lo absorbe Caminante **por
-omisión**: la Cláusula Cuarta dice que absorbe los costos de procesamiento, sin
+🔸 **PREGUNTA 1 PARA EL ABOGADO** *(Luis la mandó explícitamente a esta mesa el
+23 sep 2026: es de redacción, no de criterio propio)*. Hoy ese −$83.94 lo
+absorbe Caminante **por omisión**: la Cláusula Cuarta dice que absorbe los costos de procesamiento, sin
 distinguir el caso de una venta cancelada. Las opciones que hay que redactar:
 
 - **(a) Lo absorbe Caminante**, como hoy. Simple, y a volumen se vuelve un costo
@@ -200,7 +201,7 @@ Para que no se redacte una cláusula que prometa esto:
 
 | # | Pregunta | Quién |
 |---|---|---|
-| 1 | ¿De quién es el costo de procesar una venta cancelada ($83.94 por venta de $1,750)? | Luis, con el abogado |
+| 1 | **¿De quién es el costo de procesar una venta cancelada** ($83.94 por venta de $1,750)? Las tres redacciones están en el escenario 2 | **ABOGADO** — Luis lo mandó a la mesa el 23 sep en vez de resolverlo a ojo |
 | 2 | ¿La cláusula dice algo del margen que cae en una devolución parcial? | Luis |
 | 3 | Si el Operador no reintegra, ¿Caminante le devuelve al cliente y persigue después? **Define si es intermediaria o garante.** | **Abogado** — es la más importante |
 | 4 | ¿Penalización al Operador que cancela, como hace Airbnb? ¿Y qué es fuerza mayor? | Luis, con el abogado |

@@ -149,7 +149,6 @@ export async function approveSlotRequest(input: AprobarInput): Promise<AprobarRe
       status: "open",
       visibility: input.visibility,
       access_token: accessToken,
-      seats_taken: 0,
     })
     .select("id")
     .single();

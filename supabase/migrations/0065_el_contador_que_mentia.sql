@@ -1,0 +1,52 @@
+-- 0065 · EL CONTADOR DE LUGARES QUE MENTÍA
+--
+-- ⚠️ ESTA MIGRACIÓN BORRA DOS COLUMNAS. Va aparte y con autorización explícita,
+-- como manda la regla de la casa. Antes de correrla, lo que se midió.
+--
+-- `experience_slots.seats_taken` es un contador: alguien se registra, se le suma.
+-- Pero el cupo de verdad NO sale de ahí — sale de contar `reservations`
+-- (`fetchSlotAvailability`), que es lo que el sitio le enseña al viajero y lo
+-- que decide si una salida está llena.
+--
+-- Y sólo lo movía UN camino, el registro; la venta self-serve nunca lo tocó. Así
+-- que llevaba meses desfasado sin que nadie se enterara. Medido el 23 sep 2026,
+-- 6 de 14 salidas con el número equivocado:
+--
+--     Domingo 26 jul  ·  seats_taken = 0   ·  reservas pagadas = 18
+--     Sep 19–20       ·  seats_taken = 0   ·  reservas pagadas = 12
+--     Ago 29-30       ·  seats_taken = 0   ·  reservas pagadas = 11
+--     Oct 8–11        ·  seats_taken = 0   ·  reservas pagadas = 10
+--     Jun 12-15       ·  seats_taken = 8   ·  reservas pagadas = 9
+--     Jun 26-27       ·  seats_taken = 1   ·  reservas pagadas = 0
+--
+-- `seats_available` se genera restándolo (`capacity_total - seats_taken`), así
+-- que heredaba la mentira completa.
+--
+-- ⚠️ Y NO SE ARREGLA PONIÉNDOLO AL DÍA. Un segundo lugar donde vive el mismo
+-- hecho se desincroniza el primer día que alguien escribe en uno solo. Además
+-- era un lee-suma-escribe: dos personas registrándose a la vez se pisaban.
+--
+-- ─────────────────────────────────────────────────────────────────────────────
+-- POR QUÉ SE PUEDE BORRAR SIN PERDER NADA
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Se verificó que nadie dependa de ellas antes de escribir esto:
+--
+--   · Lo que ve el viajero («N lugares disponibles», «agotada») sale de
+--     `registration/queries.ts`, que lo toma de `fetchSlotAvailability` —
+--     derivado de `reservations`—, NO de estas columnas.
+--   · `rentabilidad.ts` ya lo dice en su encabezado: «seats_taken NO se usa:
+--     está en 0 en las salidas self-serve».
+--   · `fetchSlotsForAdmin` devolvía `seatsTaken` y ningún componente lo pintaba:
+--     era una mentira ofrecida a quien se le ocurriera usarla.
+--   · `seats_available` no aparece en un solo `select` del código.
+--
+-- La red contra el sobrecupo nunca fue este contador: es el CHECK de capacidad
+-- de la 0007 sobre `reservations`, que sigue en pie y no se toca.
+--
+-- El código dejó de escribirlas y de leerlas en el mismo ciclo que esta
+-- migración, no después.
+
+-- El orden importa: `seats_available` se genera a partir de `seats_taken`, así
+-- que la generada se va primero o la otra no se deja.
+alter table public.experience_slots drop column if exists seats_available;
+alter table public.experience_slots drop column if exists seats_taken;

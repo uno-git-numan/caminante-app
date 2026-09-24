@@ -514,7 +514,7 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 | 4b | Si Caminante debe retener ISR e IVA a operadoras persona física (régimen de plataformas tecnológicas) | **Contador** — Nomádika es persona física |
 | 5 | Si la indemnización de la Novena es oponible | Abogado |
 | 6 | ~~¿Retraso de pago al Operador?~~ → **resuelto: sin retraso.** Dispone de su parte antes de la salida porque es lo que le permite operar; si hay devolución, reintegra | Luis, 23 sep |
-| 7 | **El costo de procesamiento de una venta cancelada no lo devuelve el procesador: $83.94 en una venta de $1,750 (4.80% medido). ¿A cargo de quién queda?** | **Luis** — hoy lo absorbe Caminante por omisión, no por decisión |
+| 7 | **El costo de procesamiento de una venta cancelada no lo devuelve el procesador: $83.94 en una venta de $1,750 (4.80% medido). ¿A cargo de quién queda?** | **ABOGADO**, por decisión de Luis (23 sep): se lleva a la mesa en vez de resolverse a ojo. Hoy lo absorbe Caminante por omisión, no por decisión. Las tres redacciones posibles están en ESCENARIOS-DINERO.md §2 |
 | 8 | ~~¿Se construye la devolución parcial?~~ → **resuelta: construida** (0063, falta aplicarla en producción) | Luis, 23 sep |
 | 9 | **Si el Operador no reintegra lo devuelto, ¿Caminante le devuelve al cliente de su bolsa y lo persigue después?** Define si es intermediaria o garante | **Abogado** — la más importante de todas. Ver ESCENARIOS-DINERO.md |
 | 10 | ¿Penalización al Operador que cancela, como hace Airbnb? ¿Y qué cuenta como fuerza mayor en montaña? | Luis, con el abogado |

@@ -230,24 +230,25 @@ export async function submitRegistration(
       reservationId = created.id as string;
       createdReservation = true;
 
-      // Cupo: solo al CREAR la reserva (reusar no re-incrementa). El check de
-      // capacidad del 0007 es la red de seguridad contra el race del sobrecupo.
-      if (slotId) {
-        const { data: slotNow } = await sb
-          .from("experience_slots")
-          .select("seats_taken")
-          .eq("id", slotId)
-          .single();
-        const { error: seatError } = await sb
-          .from("experience_slots")
-          .update({ seats_taken: ((slotNow?.seats_taken as number) ?? 0) + numPeople })
-          .eq("id", slotId);
-        if (seatError) {
-          // Sobrecupo: revertir la reserva recién creada y avisar
-          await sb.from("reservations").delete().eq("id", reservationId);
-          return { ok: false, error: "Esa salida se llenó justo ahora. Elige otra fecha." };
-        }
-      }
+      // ⚠️ AQUÍ SE LLEVABA UN CONTADOR, Y MENTÍA. Este bloque leía `seats_taken`,
+      // le sumaba y lo escribía de vuelta. El cupo de verdad NO sale de ahí:
+      // sale de contar `reservations` (`fetchSlotAvailability`), que es lo que
+      // el sitio le enseña al viajero y lo que decide si una salida está llena.
+      //
+      // El contador sólo lo movía ESTE camino —el registro— y no el de la venta
+      // self-serve, así que llevaba meses desfasado sin que nadie se enterara:
+      // medido el 23 sep 2026, **6 de 14 salidas** tenían el número equivocado.
+      // «Domingo 26 jul» decía 0 con 18 personas dentro; «Jun 26-27» decía 1 con
+      // ninguna. Y `seats_available`, que se genera restándolo, heredaba la
+      // mentira entera.
+      //
+      // No se arregla poniéndolo al día: se arregla quitándolo. Un segundo lugar
+      // donde vive el mismo hecho se desincroniza el primer día que alguien
+      // escribe en uno solo — y además esto era un lee-suma-escribe, o sea una
+      // carrera esperando a dos personas registrándose a la vez.
+      //
+      // La red contra el sobrecupo no era este `update`: es el CHECK de
+      // capacidad de la 0007 sobre `reservations`, que sigue en pie.
     }
   }
 
