@@ -337,6 +337,8 @@ export const MI_ALTA_CSS = String.raw`
 .adm .paso.now .n{border-color:var(--charcoal);background:var(--charcoal);color:#fff}
 .adm .paso.now .g .st{color:var(--orange)}
 .adm .paso.next{background:rgba(201,183,156,.13);border-style:dashed;border-color:rgba(201,183,156,.9)}
+/* lámina «Panel Operadora»: el paso que viene, con el texto apagado */
+.adm .paso.next .g b,.adm .paso.next .g small{color:var(--ink-soft)}
 .adm .paso.next .g b,.adm .paso.next .g small{color:var(--ink-soft)}
 .adm .paso.sel{outline:2px solid var(--orange);outline-offset:2px}
 .adm .lectura{display:flex;gap:13px;align-items:flex-start;padding:13px 16px;border-radius:12px;border:1px dashed var(--sand);background:rgba(201,183,156,.16);margin-bottom:16px}

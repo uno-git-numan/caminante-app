@@ -32,6 +32,8 @@ export type OperadoraPlataforma = {
   nombre: string;
   iniciales: string;
   esLaCasa: boolean;
+  /** Cuándo firmó el convenio, o null. El riel de Mi alta dice «Firmado el …». */
+  convenioFirmadoAt: string | null;
   rfc: string | null;
   comisionPct: number | null;
   comisionDesde: string | null;
@@ -242,6 +244,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       nombre,
       iniciales: inic(nombre),
       esLaCasa,
+      convenioFirmadoAt: (o.convenio_firmado_at as string | null) ?? null,
       rfc: (o.rfc as string) ?? null,
       comisionPct: o.commission_pct != null ? Number(o.commission_pct) : null,
       comisionDesde: (o.comision_desde as string) ?? null,

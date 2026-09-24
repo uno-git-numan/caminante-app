@@ -14,21 +14,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { PASOS, pasoDe } from "@/lib/operadores/pasos";
+import { AQUI_ESTAS, FIRMADO_EL, LECTURA_PASO, PASOS, TODAVIA_NO, pasoDe } from "@/lib/operadores/pasos";
 import type { MiAlta as Datos } from "@/lib/operadores/mi-alta";
-import { CDMX, enPalabras } from "@/lib/fecha/zona";
+import { CDMX } from "@/lib/fecha/zona";
 import Copiar from "./Copiar";
 import ResumenTerminos from "./ResumenTerminos";
 import RenglonDoc from "./RenglonDoc";
 import type { SolicitudEnviada } from "@/lib/operadores/mi-alta";
 import { ANTIGUEDAD, PRIMEROS, SEGURO, TIPOS, etiqueta } from "@/lib/operadores/solicitud-opciones";
 
-const LECTURA: string[] = [
-  "Lo único que te pedimos aquí es llegar a la llamada. No hay documentos ni formularios, y no hay nada que preparar.",
-  "Aquí te vamos a pedir papeles de tu operación. La lista depende de lo que hagas y la escribimos nosotros; van todos en paralelo, y puedes dejarlo a medias y volver.",
-  "Aquí firmas el convenio: tu comisión por escrito y quién responde por qué. Es una firma, y es lo único que bloquea todo lo demás.",
-  "Aquí ya construyes. Tu experiencia y tu cobro avanzan al mismo tiempo y sin orden: puedes escribirla completa antes de tocar un solo dato fiscal.",
-];
+
+const hora = (iso: string) =>
+  new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: CDMX });
 
 const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString("es-MX", {
@@ -53,6 +50,7 @@ export default function MiAlta({
 }) {
   const aqui = pasoDe(datos.estado);
   const [viendo, setViendo] = useState(aqui.indice);
+  const firmadoEl = datos.operadora?.convenioFirmadoAt ?? null;
   const s = datos.solicitud;
   const liga = (ruta: string) =>
     porOtra ? `${ruta}?operadora=${encodeURIComponent(porOtra)}` : ruta;
@@ -90,185 +88,104 @@ export default function MiAlta({
           // para un paso terminado es `done`, y tiene sus cuatro reglas.
           const hecho = i < aqui.indice;
           const actual = i === aqui.indice;
+          // Lámina «Panel Operadora»: done / now / next, y una sola línea de
+          // estado en lugar de las dos pastillas de momentos de la v5.
+          const estado = hecho
+            ? i === 2 && firmadoEl
+              ? FIRMADO_EL + fecha(firmadoEl)
+              : p.cerrado
+            : actual
+              ? AQUI_ESTAS
+              : TODAVIA_NO;
           return (
             <div
               key={p.n}
-              className={`paso${actual ? " now" : ""}${hecho ? " done" : ""}${viendo === i ? " sel" : ""}`}
+              className={`paso ${hecho ? "done" : actual ? "now" : "next"}${viendo === i ? " sel" : ""}`}
             >
               <button className="phead" onClick={() => setViendo(i)}>
-                <span className="n">{p.n}</span>
+                <span className="n">{hecho ? <span className="pal" /> : p.n}</span>
                 <span className="g">
                   <b>{p.titulo}</b>
                   <small>{p.resumen}</small>
+                  <span className="st">{estado}</span>
                 </span>
               </button>
-              <div className="subs">
-                {p.momentos.map((m, k) => (
-                  <button key={m} className={actual && aqui.momento === k ? "on" : undefined} disabled>
-                    {m}
-                  </button>
-                ))}
-              </div>
             </div>
           );
         })}
       </div>
 
       <div className="oppane paso-pane">
-        {/* ⚠️ Asomarse hacia ATRÁS no es lo mismo que asomarse hacia adelante.
-            Decirle «todavía no te toca» a alguien parado en el paso 3 sobre el
-            paso 1 —que ya pasó— le dice que va al revés de como va. */}
-        {viendo !== aqui.indice ? (
+        {/* El aviso sólo va al asomarse a un paso que VIENE (lámina «Panel
+            Operadora»). Uno que ya pasó enseña lo que pasó, sin encabezado: la
+            v5 le ponía «Este paso ya lo pasaste, y así se veía por dentro» y
+            debajo sólo la frase de presentación. */}
+        {viendo > aqui.indice && viendo >= 1 ? (
           <p className="lectura">
             <s>{"//"}</s>
             <span className="g">
-              <b>
-                {viendo < aqui.indice
-                  ? "Este paso ya lo pasaste, y así se veía por dentro"
-                  : "Todavía no te toca este paso, y así se ve por dentro"}
-              </b>
-              <span>{LECTURA[viendo]}</span>
+              <b>Todavía no te toca este paso, y así se ve por dentro</b>
+              <span>{LECTURA_PASO[viendo as 1 | 2 | 3]}</span>
             </span>
           </p>
         ) : null}
 
-        {/* ── 01 · Nos conocemos ─────────────────────────────────────────── */}
-        {viendo === 0 && aqui.indice === 0 ? (
-          aqui.momento === 1 && s?.llamadaAt ? (
-            <>
+        {/* ── 01 · Nos conocemos ─────────────────────────────────────────────
+            Transcrito de la lámina «Panel Operadora» (recurso bf8eb7a0 · Paso1).
+            Un solo bloque con dos veredictos: «Nos conocimos el …» cuando la
+            llamada ya se tuvo, «Tenemos tu solicitud» con la tarjeta de la
+            llamada mientras no. Debajo, siempre, «Ver lo que mandé».
+            ⚠️ El resumen de términos NO está en la lámina: lo pidió Luis (24 sep
+            2026) para releer lo que llegó con la invitación. Va al final.
+            ⚠️ «La llamada ya se tuvo» = la operadora ya pasó de este paso. Con
+            fila activa la fila manda: aunque su solicitud diga otra cosa, el
+            paso quedó cerrado. La fecha sólo sale si está registrada. */}
+        {viendo === 0 ? (
+          <>
+            {aqui.indice > 0 ? (
               <div className="verdict si">
                 <span className="n">{"//"}</span>
                 <span className="g">
-                  <b>Tu llamada es el {enPalabras(new Date(s.llamadaAt))}</b>
-                  <span>
-                    Media hora, por video, hora del centro de México. Si no te queda, respóndenos
-                    el correo y la movemos. Es lo único que te pedimos en este paso.
-                  </span>
+                  <b>{s?.llamadaAt ? `Nos conocimos el ${fecha(s.llamadaAt)}` : "Nos conocimos"}</b>
+                  <span>{s ? "Este paso quedó cerrado. Aquí sigue tu solicitud tal como la mandaste, por si quieres releerla." : "Este paso quedó cerrado."}</span>
                 </span>
               </div>
-              {s.meetUrl ? (
-                <div className="card pad" style={{ boxShadow: "none" }}>
-                  <span className="subtitle">La liga de la llamada</span>
-                  <Copiar url={s.meetUrl} />
-                  <p className="gnhint" style={{ maxWidth: "70ch" }}>
-                    La liga vive aquí, no sólo en el correo. Si borras el correo, la llamada no se
-                    pierde.
-                  </p>
-                  <div className="salfoot">
-                    <a className="btn btn-orange btn-sm" href={s.meetUrl} target="_blank" rel="noreferrer">
-                      Entrar a la llamada
-                    </a>
-                  </div>
-                </div>
-              ) : null}
-              <LoQueMande e={s.enviada} creadaAt={s.creadaAt} />
-              {plegableTerminos(true)}
-              <p className="gnhint" style={{ maxWidth: "74ch" }}>
-                Este paso no tiene un solo documento ni un solo formulario, y por eso no tiene
-                botones más que los de la llamada. Cuando hablemos, te decimos qué sigue y lo verás
-                en el paso 2.
-              </p>
-            </>
-          ) : (
-            <>
-              {/* ⚠️ Hay operadoras que NUNCA mandaron solicitud: se dieron de
-                  alta a mano y no pasaron por el embudo (Kéntro). Contarles que
-                  «tenemos tu solicitud» y prometerles una respuesta en tres días
-                  es hablarles de un trámite que no existe. El tablero de la casa
-                  ya distingue ese caso —dice «entró por fuera»— y aquí también. */}
+            ) : (
               <div className="verdict casa">
                 <span className="n">{"//"}</span>
                 <span className="g">
-                  {s ? (
-                    <>
-                      <b>Tenemos tu solicitud</b>
-                      <span>
-                        {s.creadaAt ? `Llegó el ${fecha(s.creadaAt)}. ` : ""}
-                        La lee una persona, no un sistema, y te contestamos en un plazo de tres
-                        días hábiles. No hay nada que hagas mientras tanto.
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <b>Ya nos conocemos</b>
-                      <span>
-                        Tu alta la abrimos nosotros, así que este paso no aplica: no mandaste
-                        solicitud ni hace falta una llamada de arranque.
-                      </span>
-                    </>
-                  )}
+                  <b>Tenemos tu solicitud</b>
+                  <span>
+                    {s?.creadaAt ? `Llegó el ${fecha(s.creadaAt)}. ` : ""}
+                    {"La lee una persona, no un sistema. Lo único que te pedimos en este paso es llegar a la llamada: no hay documentos ni formularios."}
+                  </span>
                 </span>
               </div>
-              {/* Como la lámina en s1: lo que mandó, justo debajo de «Tenemos tu solicitud». */}
-              {s ? <LoQueMande e={s.enviada} creadaAt={s.creadaAt} /> : null}
-              <p className="xh4">Qué sigue</p>
-              <div className="cmfan" style={{ marginTop: 0 }}>
-                <div className="r">
-                  <span className="no">01</span>
-                  <span>
-                    Te escribimos para agendar una llamada
-                    <small>
-                      Media hora, por video. Sirve para entender qué operas y contarte cómo cobra la
-                      plataforma.
-                    </small>
-                  </span>
-                </div>
-                <div className="r">
-                  <span className="no">02</span>
-                  <span>
-                    Te pedimos un expediente
-                    <small>
-                      Documentos de tu operación. La lista depende de lo que hagas y la escribimos
-                      nosotros.
-                    </small>
-                  </span>
-                </div>
-                <div className="r">
-                  <span className="no">03</span>
-                  <span>
-                    Revisamos y te decimos
-                    <small>
-                      Sí o no, con razones. Si es que sí, firmas el convenio y puedes empezar a
-                      armar el mismo día.
-                    </small>
-                  </span>
-                </div>
-              </div>
-              <p className="gnhint" style={{ maxWidth: "74ch" }}>
-                El panel se ve casi todo apagado a propósito: es una casa en obra, no una puerta en
-                la cara.
-              </p>
-            </>
-          )
-        ) : null}
+            )}
 
-        {/* ── 01 · ya pasado ──────────────────────────────────────────────
-            ⚠️ HASTA EL 24 SEP 2026 UN PASO PASADO SÓLO ENSEÑABA SU FRASE DE
-            PRESENTACIÓN («Lo único que te pedimos aquí es llegar a la
-            llamada…»). O sea que al volver a él no se veía nada de lo que pasó
-            ahí. Lo que pasó en el 01 es la llamada, y lo que queda de ella es
-            el resumen de términos: aquí se puede releer.
-            Se ve igual para toda operadora, venga del embudo o de un alta a
-            mano: la llamada se tuvo. La fecha sólo sale si está registrada —no
-            se inventa—. */}
-        {viendo === 0 && aqui.indice > 0 ? (
-          <>
-            <div className="verdict si">
-              <span className="n">{"//"}</span>
-              <span className="g">
-                <b>
-                  {s?.llamadaAt
-                    ? `Tuvimos la llamada el ${enPalabras(new Date(s.llamadaAt))}`
-                    : "Ya tuvimos la llamada"}
-                </b>
-                <span>
-                  Ahí vimos qué operas y cómo cobra la plataforma. Abajo está lo que mandaste al
-                  aplicar y el resumen de términos, para que los vuelvas a leer cuando quieras.
+            {aqui.indice === 0 && s?.llamadaAt && s.meetUrl ? (
+              <div className="card pad" style={{ boxShadow: "none", marginTop: 14 }}>
+                <span className="subtitle">
+                  Tu llamada · {fecha(s.llamadaAt)}, {hora(s.llamadaAt)} h
                 </span>
-              </span>
-            </div>
+                <Copiar url={s.meetUrl} />
+                <p className="gnhint" style={{ maxWidth: "70ch" }}>
+                  La liga vive aquí, no sólo en el correo. Si borras el correo, la llamada no se
+                  pierde.
+                </p>
+                <div className="salfoot">
+                  <a className="btn btn-orange btn-sm" href={s.meetUrl} target="_blank" rel="noreferrer">
+                    Entrar a la llamada
+                  </a>
+                </div>
+              </div>
+            ) : null}
+
             {s ? <LoQueMande e={s.enviada} creadaAt={s.creadaAt} /> : null}
-            {plegableTerminos(false)}
+
+            {/* El resumen llega con la invitación: antes de agendar la llamada
+                todavía no existe para ella. */}
+            {aqui.indice > 0 || aqui.momento === 1 ? plegableTerminos(aqui.indice === 0) : null}
           </>
         ) : null}
 
@@ -502,7 +419,6 @@ function Acepto({ si }: { si: boolean }) {
 }
 
 function LoQueMande({ e, creadaAt }: { e: SolicitudEnviada; creadaAt: string }) {
-  const tres = e.aceptaCobro && e.aceptaDeslinde && e.aceptaEncuesta;
   return (
     <details className="fold" style={{ marginTop: 16 }}>
       <summary>
@@ -512,10 +428,9 @@ function LoQueMande({ e, creadaAt }: { e: SolicitudEnviada; creadaAt: string }) 
       </summary>
       <div className="fb">
         <p className="gnhint" style={{ maxWidth: "74ch", marginTop: 0 }}>
-          Esto es lo que declaraste el día que la mandaste, y queda congelado así: es el registro de
-          lo que dijiste ese día, no un formulario que se sigue editando. Si algo salió con un
+          Es el registro de lo que declaraste ese día, y queda congelado así. Si algo salió con un
           error, escríbenos y lo anotamos antes de revisarla. Lo que sí vas a poder editar cuando
-          termine tu alta es <b>tu perfil</b>, que es otra cosa: es tu página, la que ve el viajero.
+          termine tu alta es <b>tu perfil</b>: tu página, la que ve el viajero.
         </p>
         <div className="solgrid">
           <div className="pf">
@@ -560,7 +475,6 @@ function LoQueMande({ e, creadaAt }: { e: SolicitudEnviada; creadaAt: string }) 
           <div className="pf">
             <div className="ph">
               <b>Lo que aceptó al mandarla</b>
-              {tres ? <span className="qk">los tres aceptados</span> : null}
             </div>
             <Renglon k="Cobro por la plataforma" v={<Acepto si={e.aceptaCobro} />} />
             <Renglon k="Deslinde de responsabilidad" v={<Acepto si={e.aceptaDeslinde} />} />
@@ -584,13 +498,11 @@ function LoQueMande({ e, creadaAt }: { e: SolicitudEnviada; creadaAt: string }) 
           </>
         ) : null}
         {e.conociste ? (
-          <div style={{ marginTop: 12 }}>
-            <div className="pf">
-              <div className="ph">
-                <b>Cómo nos conoció</b>
-              </div>
-              <Renglon k="Por" v={e.conociste} />
+          <div className="pf" style={{ marginTop: 12 }}>
+            <div className="ph">
+              <b>Cómo nos conoció</b>
             </div>
+            <Renglon k="Por" v={e.conociste} />
           </div>
         ) : null}
       </div>

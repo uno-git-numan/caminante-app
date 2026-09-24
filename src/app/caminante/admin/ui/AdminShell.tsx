@@ -264,7 +264,9 @@ export default async function AdminShell({
                   Puedes armar
                 </span>
               ) : null}
-              <span className="chip c-full">
+              {/* Ámbar, no rojo: la lámina lo pinta como advertencia (`warning`),
+                  no como error. Todavía no poder cobrar es un estado del alta. */}
+              <span className="chip c-sol">
                 <span className="cd" />
                 Todavía no puedes cobrar
               </span>

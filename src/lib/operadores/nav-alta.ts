@@ -2,8 +2,9 @@
 // no termina su alta, y qué le dice cada una cuando la pica.
 //
 // Transcrito del script de la lámina v5 (design/panel-operador/dc/Operador Mi
-// Alta v5.html): tres estados, las seis secciones y sus «susurros». Los textos
-// se copiaron del archivo con un script, no se teclearon.
+// Alta v5.html), con los textos de la lámina nueva «Panel Operadora» (24 sep
+// 2026): tres estados, las seis secciones y sus «susurros». Los textos se
+// copiaron de los archivos con un script, no se teclearon.
 //
 //   cerrado      → las seis punteadas. Sólo «Mi alta».
 //   experiencias → se prende Experiencias al firmar el convenio (puede armar).
@@ -38,43 +39,43 @@ export const SECCIONES_ALTA: Seccion[] = [
     href: "/caminante/admin",
     prefijos: [],
     exacta: true,
-    dice: ["Panorama se abre cuando puedas vender", "Aquí verás tus ventas, tus reservas y tu dinero del mes. Mientras no haya una venta, no habría nada que mostrarte."],
+    dice: ["Panorama se abre cuando puedas vender", "Aquí verás tus ventas, tus reservas y tu dinero del mes."],
   },
   {
     nombre: "Experiencias",
     href: "/caminante/admin/eventos",
     prefijos: ["/caminante/admin/eventos", "/caminante/admin/experiencias/", "/caminante/admin/preview/"],
-    dice: ["Experiencias se abre al firmar el convenio", "Es lo primero que se prende, y sólo necesita tu firma. Desde ahí armas tus experiencias en borrador, con fotos, itinerario y precios, sin darnos un solo dato fiscal."],
+    dice: ["Experiencias se abre al firmar el convenio", "Es lo primero que se prende, y sólo necesita tu firma."],
   },
   {
     nombre: "Comunicación",
     href: "/caminante/admin/comunicacion",
     prefijos: ["/caminante/admin/comunicacion", "/caminante/admin/kit/", "/caminante/admin/social/"],
-    dice: ["Comunicación se abre cuando puedas vender", "Es donde le escribes a la gente que te reservó. Sin reservas todavía no tiene a quién escribirle."],
+    dice: ["Comunicación se abre cuando puedas vender", "Es donde le escribes a la gente que te reservó."],
   },
   {
     nombre: "Comunidad",
     href: "/caminante/admin/comunidad",
     prefijos: ["/caminante/admin/comunidad"],
-    dice: ["Comunidad se abre cuando puedas vender", "Aquí vive quien ya te compró y quien te sigue. Se llena con tu primera venta."],
+    dice: ["Comunidad se abre cuando puedas vender", "Aquí vive quien ya te compró y quien te sigue."],
   },
   {
     nombre: "Salidas",
     href: "/caminante/admin/salidas",
     prefijos: ["/caminante/admin/salidas", "/caminante/admin/roster/", "/caminante/admin/print/", "/caminante/admin/encuesta"],
-    dice: ["Salidas se abre cuando puedas vender", "Es el calendario de tus fechas y sus lugares. Para abrir una fecha a la venta primero tiene que poder cobrarse."],
+    dice: ["Salidas se abre cuando puedas vender", "Es el calendario de tus fechas y sus lugares."],
   },
   {
     nombre: "Pagos",
     href: "/caminante/admin/pagos",
     prefijos: ["/caminante/admin/pagos"],
-    dice: ["Pagos se abre al conectar tus cobros", "Aquí ves lo que te entra, lo que retiene la plataforma y cuándo cae cada depósito. Necesita tu cuenta verificada y tu CSD cargado."],
+    dice: ["Pagos se abre al conectar tus cobros", "Aquí ves lo que te entra y cuándo cae cada depósito."],
   },
 ];
 
 export const NOTA_NAV: Record<Exclude<EstadoNav, "abierto">, string> = {
   cerrado: "Las seis secciones se abren cuando termines tu alta. Pícalas y te digo qué le falta a cada una.",
-  experiencias: "Experiencias se prendió al firmar tu convenio. Las otras cinco se abren cuando puedas cobrar; pícalas y te digo qué falta.",
+  experiencias: "Experiencias se prendió con tu firma. Las otras cinco se abren cuando puedas cobrar; pícalas y te digo qué falta.",
 };
 
 export function estadoNav(o: {
