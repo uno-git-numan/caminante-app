@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { puedeEditarExperiencia } from "@/lib/auth/alcance";
-import { operadorDelAlcance } from "@/lib/admin/queries";
+import { operadoraQueMiro } from "@/lib/admin/queries";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resendSurveyEmail } from "@/lib/feedback/send";
 import { fetchDeslindesPendientes } from "@/lib/registration/pending";
@@ -88,7 +88,7 @@ async function pendientesEncuesta(experienceId?: string) {
   // ⚠️ Sin `experienceId` esto es «TODAS las experiencias». Para un operador,
   // «todas» son las suyas — si no, un clic en «Reenviar a todos» le escribiría
   // a los clientes de la casa desde su panel.
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
   if (operatorId && !experienceId) {
     const { data: mias } = await sb.from("experiences").select("id").eq("operator_id", operatorId);
     const ids = ((mias ?? []) as { id: string }[]).map((e) => e.id);

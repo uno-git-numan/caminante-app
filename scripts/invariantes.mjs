@@ -682,6 +682,54 @@ const REGLAS = [
       return null;
     },
   },
+
+  // ── 22 · Firmar no es mirar ────────────────────────────────────────────────
+  {
+    nombre: "Un acto nunca se decide con el sombrero",
+    comprueba() {
+      // El panel de la casa tiene una pastilla de sombreros: mirándolo por
+      // Caminante se ve Caminante, por Kéntro se ve Kéntro. Eso lo resuelve
+      // `operadoraQueMiro()`, que sabe de la cookie.
+      //
+      // `operadorDelAlcance()` contesta otra pregunta —QUIÉN SOY— y por eso no
+      // sabe de la cookie. Los actos se resuelven con ésa: firmar un convenio y
+      // ser dueño de una experiencia nueva.
+      //
+      // ⚠️ ESTO ESTUVO A UN PASO DE PASAR. Al construir el sombrero (24 sep
+      // 2026) el primer plan era que `operadorDelAlcance` devolviera el
+      // sombrero y ya: catorce llamadas arregladas de un golpe. Dos de esas
+      // catorce eran `firmarConvenioAction` —que habría dejado a la casa
+      // firmando el convenio de otra empresa con sólo traer un sombrero
+      // puesto— y el dueño de una experiencia nueva, que es atribución, que es
+      // dinero, y que se congela al vender. Ninguna de las dos habría fallado:
+      // habrían funcionado, en silencio, a nombre de quien no era.
+      const actos = [
+        ["src/lib/operadores/convenio-actions.ts", "firmar el convenio"],
+        ["src/app/caminante/admin/experiencias/nueva/page.tsx", "el dueño de una experiencia nueva"],
+      ];
+      for (const [rel, que] of actos) {
+        const f = join(raiz, rel);
+        if (!existsSync(f)) {
+          return `No encontré ${rel}. Si se movió, este guardián tiene que apuntar a su nueva casa.`;
+        }
+        if (readFileSync(f, "utf8").includes("operadoraQueMiro")) {
+          return [
+            `${rel} usa \`operadoraQueMiro()\`, y ahí se decide ${que}.`,
+            "",
+            "`operadoraQueMiro()` contesta QUÉ ESTOY MIRANDO y depende de una",
+            "cookie de vista. `operadorDelAlcance()` contesta QUIÉN SOY. Un acto",
+            "—una firma, una atribución— se resuelve con la segunda, siempre.",
+            "",
+            "Con la primera, la casa con el sombrero de Caminante puesto firmaría",
+            "el convenio de Caminante, o crearía experiencias a su nombre, sin que",
+            "nada falle y sin que nadie lo decida. La atribución además se congela",
+            "al vender y no se rellena hacia atrás (0016).",
+          ].join("\n");
+        }
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

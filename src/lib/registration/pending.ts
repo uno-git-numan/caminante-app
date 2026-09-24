@@ -3,7 +3,7 @@
 // (registrations). Alimenta el recordatorio por correo desde el panel.
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
-import { experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
+import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
 import type { Experience } from "@/lib/experiences/types";
 
 export type DeslindePendiente = {
@@ -35,7 +35,7 @@ export async function fetchDeslindesPendientes(): Promise<DeslindePendiente[]> {
     // («Recordar deslinde a …»), y es la TERCERA consulta de la pantalla de
     // Encuesta — las otras dos ya estaban podadas y esta se coló igual. Se poda
     // por experiencia, que es donde cuelga todo lo demás.
-    const operatorId = await operadorDelAlcance();
+    const operatorId = await operadoraQueMiro();
     const activo = new Map<string, { slug: string; nombre: string; operatorId: string | null }>();
     for (const e of (exps.data ?? []) as {
       id: string; slug: string; data: Experience; operator_id: string | null;

@@ -6,6 +6,7 @@
 // Si algo pasa de ~500 filas, mover esa agregación a una vista/RPC en Postgres.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { sombreroPuesto } from "@/lib/auth/sombrero";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
@@ -196,17 +197,45 @@ export function armarPodadera(
   };
 }
 
-/** El id de operador del alcance actual, o null si es la casa (o no hay sesión). */
+/**
+ * QUIÉN SOY. El id de operador del alcance actual, o null si es la casa (o no
+ * hay sesión).
+ *
+ * ⚠️ ESTA ES LA PREGUNTA DE IDENTIDAD, y por eso NO sabe nada del sombrero.
+ * Quien firma un convenio y quien es dueño de una experiencia nueva se
+ * resuelven con esto: son actos, y un acto no puede depender de una cookie de
+ * vista. Con el sombrero de Caminante puesto, la casa sigue sin ser Caminante —
+ * si esto devolviera el sombrero, `firmarConvenioAction` dejaría a la casa
+ * firmando el convenio de otra.
+ */
 export async function operadorDelAlcance(): Promise<string | null> {
   const a = await alcanceActual();
   return esOperador(a) ? a.operatorId : null;
+}
+
+/**
+ * QUÉ ESTOY MIRANDO. El operador por el que se recortan las LISTAS del panel.
+ *
+ * Para un operador externo es el mismo de siempre: lo suyo. Para la casa es el
+ * sombrero que trae puesto, que es lo que hace que el panel de Caminante enseñe
+ * Caminante y el de Kéntro enseñe Kéntro — y que la operación de Nomádika, que
+ * no es de la casa, no se vea desde ninguno de los dos.
+ *
+ * Son dos preguntas y por eso son dos funciones. Una sola que contestara las
+ * dos es el error clásico: empieza recortando una lista y termina decidiendo a
+ * nombre de quién se firma.
+ */
+export async function operadoraQueMiro(): Promise<string | null> {
+  const propio = await operadorDelAlcance();
+  if (propio) return propio;
+  return (await sombreroPuesto())?.id ?? null;
 }
 
 // ── Panorama ─────────────────────────────────────────────────────────────
 
 export async function fetchAdminOverview(): Promise<AdminOverview> {
   const sb = createSupabaseAdminClient();
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
   let [exps, slots, resvs, pays, regs, fbs, contacts] = (await Promise.all([
     sb.from("experiences").select("id, slug, status, data, operator_id"),
     sb
@@ -572,7 +601,7 @@ export async function fetchEventos(): Promise<EventoResumen[]> {
 
   // Poda: un operador solo lista SUS experiencias. Todo lo que sigue (salidas,
   // ingresos, personas) se calcula recorriendo `exps`, así que basta con esto.
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
   const exps = operatorId
     ? todasLasExps.filter((e) => e.operator_id === operatorId)
     : todasLasExps;
@@ -622,7 +651,7 @@ export async function fetchEventoDetalle(slug: string): Promise<EventoDetalle | 
   // Devolver null (y no una versión recortada) es lo correcto: la página ya sabe
   // tratar el null como «no encontrada», y así el slug ajeno ni siquiera
   // confirma que existe.
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
   if (operatorId && (exp.operator_id as string | null) !== operatorId) return null;
 
   const data = (exp.data as Partial<Experience> | null) ?? null;
@@ -845,7 +874,7 @@ export async function fetchReservas(f: ReservasFiltro = {}): Promise<{
   // también el catálogo de experiencias del filtro de arriba — si no, el selector
   // seguiría ofreciendo viajes ajenos que luego no devuelven nada, que es la
   // forma más rápida de que alguien piense que el panel está roto.
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
   const misExpIds = operatorId
     ? new Set(exps.filter((e) => e.operator_id === operatorId).map((e) => e.id))
     : null;
@@ -996,7 +1025,7 @@ export async function fetchPersonas(q = ""): Promise<PersonaAdmin[]> {
   // una de sus salidas — y se filtra la lista de CONTACTOS, no nada más las
   // reservas: si solo filtras las reservas, la persona sigue apareciendo con su
   // teléfono y su correo, en cero, y eso ya es el directorio completo de Luis.
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
   let contactsVisibles = contacts;
   let resvsVisibles = resvs;
   if (operatorId) {
@@ -1211,7 +1240,7 @@ export async function fetchRoster(slotId: string): Promise<Roster | null> {
   // el grupo necesita la lista completa de su grupo, incluidas las plazas que
   // vendió la casa.
   if (slot) {
-    const operatorId = await operadorDelAlcance();
+    const operatorId = await operadoraQueMiro();
     if (operatorId) {
       const { data: exp } = await sb
         .from("experiences")
@@ -1509,7 +1538,7 @@ export async function fetchEncuestaAdmin(): Promise<EncuestaAdmin> {
 
   // Poda: las respuestas de SUS experiencias. Los testimonios llevan nombre y
   // texto libre de la persona, así que esto no es solo una métrica ajena.
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
   const misExpIds = operatorId
     ? new Set(exps.filter((e) => e.operator_id === operatorId).map((e) => e.id))
     : null;
@@ -1763,7 +1792,7 @@ export async function fetchDinero(): Promise<DineroAdmin> {
   // y —esto importa— el catálogo de `operators`, que trae el `commission_pct` de
   // todos: dejarlo pasar entero le enseñaría a Kéntro el trato de Kéntro y el de
   // los demás en la misma pantalla.
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
   let paysVisibles = pays;
   let resvsVisibles = resvs;
   let expsVisibles = exps;
@@ -1992,7 +2021,7 @@ export async function fetchSalidasParaLinkAbierto(): Promise<SalidaLinkAbierto[]
     // recoger respuestas de un viaje de la casa. Es el recordatorio de que podar
     // la consulta principal de una pantalla no basta: hay que recorrer TODAS las
     // que esa pantalla dispara.
-    const operatorId = await operadorDelAlcance();
+    const operatorId = await operadoraQueMiro();
     let visibles = slots as unknown as { experience_id: string }[];
     if (operatorId) {
       const { data: mias } = await sb

@@ -22,7 +22,7 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
-import { experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
+import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
 import { cdmxDay, formatDiaMes } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -189,7 +189,7 @@ type Snap = Record<string, unknown>;
 
 export async function fetchSalidas(): Promise<LineaDeSalidas> {
   const sb = createSupabaseAdminClient();
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
 
   const [{ data: expsRaw }, { data: slotsRaw }, { data: resvsRaw }, { data: regsRaw }, { data: fbsRaw }] =
     await Promise.all([

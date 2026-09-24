@@ -9,7 +9,7 @@
 // lo dice el banco, no un arrastre.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
+import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
 import { iniciales } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
 import type { EtapaId } from "@/lib/comunidad/etapas";
@@ -43,7 +43,7 @@ const ORIGEN: Record<string, string> = {
 
 export async function fetchTablero(): Promise<Tablero> {
   const sb = createSupabaseAdminClient();
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
 
   const [{ data: cards }, { data: exps }, { data: slots }, { data: contacts }] = await Promise.all([
     sb.from("crm_cards").select("*").order("stage_changed_at", { ascending: true }),

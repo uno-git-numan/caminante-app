@@ -12,6 +12,7 @@ import {
 import { headers } from "next/headers";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
+import { operadorasPropias, sombreroPuesto } from "@/lib/auth/sombrero";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_CSS } from "./admin-css";
 
@@ -137,6 +138,12 @@ export default async function AdminShell({
   // misma cabecera con la que el layout decide el alcance del operador.
   const ruta = (await headers()).get("x-ruta");
   const sombrero = sombreroDeRuta(ruta);
+  // Las operadoras que la casa opera (0069). Vacío antes de que la migración se
+  // aplique: ahí la pastilla vuelve a ser la de dos chips de siempre.
+  const [propias, puesto] =
+    rol === "admin"
+      ? await Promise.all([operadorasPropias(), sombreroPuesto()])
+      : [[], null];
   const nav = sombrero === "plataforma" ? NAV_PLATAFORMA : items;
 
   return (
@@ -153,8 +160,17 @@ export default async function AdminShell({
             />
             {/* Que la etiqueta diga de QUIÉN es el panel. Un operador tiene que
                 saber de un vistazo que está viendo lo suyo y no todo. */}
+            {/* ⚠️ EL SOMBRERO SE DICE SIEMPRE. La cookie cambia QUÉ DATOS se
+                ven sin cambiar la URL, así que la misma dirección puede
+                enseñar dos cosas. Eso es tolerable sólo si está a la vista en
+                todas las pantallas: si no, un día lees un número de Kéntro
+                creyendo que es de Caminante y nada te avisa. */}
             <span className="mode">
-              {esOperador(alcance) ? alcance.nombre : "Modo admin"}
+              {esOperador(alcance)
+                ? alcance.nombre
+                : sombrero === "operadora" && puesto
+                  ? `Modo admin · ${puesto.nombre}`
+                  : "Modo admin"}
             </span>
             {/* LA PASTILLA · sólo la casa.
                 ⚠️ LOS DOS NOMBRES ESTABAN AL REVÉS hasta el 24 sep 2026.
@@ -180,9 +196,35 @@ export default async function AdminShell({
                   >
                     numan
                   </Link>
-                  <Link href="/caminante/admin" className={sombrero === "operadora" ? "on" : undefined}>
-                    Caminante
-                  </Link>
+                  {/* Un chip por operadora propia. Hasta el 24 sep 2026 era uno
+                      solo y fijo, porque la casa era UNA operadora; hoy son dos
+                      —Caminante y Kéntro, las dos de Druidas— y el panel de
+                      cada una enseña lo suyo. El chip activo se marca por el
+                      sombrero PUESTO y no por la ruta, porque la ruta es la
+                      misma para las dos: lo que cambia es qué se ve.
+                      ⚠️ Nomádika no tiene chip y no es un olvido: su operación
+                      no es de la casa. Sus números y su expediente se ven con
+                      el sombrero de numan, que es donde corresponde. */}
+                  {propias.length ? (
+                    propias.map((o) => (
+                      <Link
+                        key={o.id}
+                        href={`/caminante/admin/sombrero/${o.slug}`}
+                        className={
+                          sombrero === "operadora" && puesto?.id === o.id ? "on" : undefined
+                        }
+                      >
+                        {o.nombre}
+                      </Link>
+                    ))
+                  ) : (
+                    <Link
+                      href="/caminante/admin"
+                      className={sombrero === "operadora" ? "on" : undefined}
+                    >
+                      Caminante
+                    </Link>
+                  )}
                 </span>
               </span>
             ) : null}

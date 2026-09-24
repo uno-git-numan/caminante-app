@@ -11,7 +11,7 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
-import { experienceTitle, operadorDelAlcance } from "@/lib/admin/queries";
+import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
 import { iniciales } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -71,7 +71,7 @@ const claveCiudad = (c: string) =>
 
 export async function fetchBiblioteca(): Promise<Biblioteca> {
   const sb = createSupabaseAdminClient();
-  const operatorId = await operadorDelAlcance();
+  const operatorId = await operadoraQueMiro();
 
   const [{ data: contacts }, { data: exps }, { data: slots }, { data: resvs }, { data: fbs }] =
     await Promise.all([
