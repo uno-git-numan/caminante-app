@@ -15,15 +15,25 @@ import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { marcaDeFormData } from "@/lib/operators/marca";
 import {
+  ANTIGUEDAD as OP_ANTIGUEDAD,
+  PRIMEROS as OP_PRIMEROS,
+  SEGURO as OP_SEGURO,
+  TIPOS as OP_TIPOS,
+  codigos,
+} from "./solicitud-opciones";
+import {
   emailConfirmacionOperador,
   emailAvisoAdminOperador,
 } from "@/lib/operadores/emails";
 import { ACTIVIDADES } from "./actividades";
 
-const TIPOS = new Set(["montana", "mar", "cuevas", "naturaleza", "cultura", "mixta"]);
-const ANTIGUEDAD = new Set(["menos-1", "1-3", "3-10", "mas-10"]);
-const SEGURO = new Set(["vigente", "vence-pronto", "tramite", "no"]);
-const PRIMEROS = new Set(["todos", "algunos", "botiquin", "no"]);
+// Los códigos válidos salen de la misma lista que dibuja el formulario: un
+// código nuevo en el formulario que el servidor no conociera rebotaría la
+// solicitud con «error=operacion» sin que nadie supiera por qué.
+const TIPOS = codigos(OP_TIPOS);
+const ANTIGUEDAD = codigos(OP_ANTIGUEDAD);
+const SEGURO = codigos(OP_SEGURO);
+const PRIMEROS = codigos(OP_PRIMEROS);
 
 const back = (q: string): never => redirect(`/caminante/operadores/aplicar?${q}`);
 

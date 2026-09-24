@@ -27,6 +27,31 @@ export type EstadoAlta =
   | "no_esta_vez"     // 07 · rechazada
   | "suspendida";     // fuera del alta: dejó de vender, sigue operando
 
+export type SolicitudEnviada = {
+  nombreOperadora: string | null;
+  responsable: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  ciudadEstado: string | null;
+  /** Códigos: la palabra sale de `solicitud-opciones.ts`, la misma del formulario. */
+  tipo: string | null;
+  antiguedad: string | null;
+  salidasAno: string | null;
+  personasSalida: string | null;
+  rangoPrecio: string | null;
+  descripcion: string | null;
+  seguro: string | null;
+  primeros: string | null;
+  ratioGuias: string | null;
+  aceptaCobro: boolean;
+  aceptaDeslinde: boolean;
+  aceptaEncuesta: boolean;
+  incidentes: string | null;
+  porque: string | null;
+  conociste: string | null;
+};
+
 export type MiAlta = {
   estado: EstadoAlta;
   operadora: OperadoraPlataforma | null;
@@ -46,6 +71,12 @@ export type MiAlta = {
     documentosSubidos: number;
     motivoPublico: string | null;
     reabreAt: string | null;
+    /**
+     * Lo que mandó al aplicar, tal cual y congelado: es el registro de lo que
+     * dijo ese día, no un formulario que se sigue editando. Se relee en el paso
+     * 01 («Ver lo que mandé»).
+     */
+    enviada: SolicitudEnviada;
   } | null;
   /** Estado de la operadora: activa, suspendida, en_salida, baja. */
   estadoOperadora: string | null;
@@ -71,6 +102,12 @@ export type MiAlta = {
 };
 
 type Expediente = { nombre?: string; archivo?: string | null }[];
+
+/** Texto o null: una cadena vacía de la base no se enseña como dato. */
+const txt = (v: unknown): string | null => {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s ? s : null;
+};
 
 /** El correo con el que está dada de alta una operadora. Sin él no hay alta. */
 async function correoDeOperadora(operatorId: string): Promise<string | null> {
@@ -115,7 +152,9 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
     // llamada arma su PDF (`agendarLlamada`): así lo que se relee aquí es lo que
     // se mandó, y no una versión recalculada con otros datos.
     sb.from("operator_applications")
-      .select("id, status, created_at, llamada_at, llamada_meet_url, expediente, motivo_publico, reabre_at, responsable, nombre_operadora, actividades, rango_precio")
+      // Una sola cadena literal: el cliente tipado de Supabase no sabe leer un
+      // select armado con `+` y lo trata como error.
+      .select("id, status, created_at, llamada_at, llamada_meet_url, expediente, motivo_publico, reabre_at, responsable, nombre_operadora, actividades, rango_precio, email, whatsapp, instagram, ciudad_estado, tipo_operacion, antiguedad, salidas_ano, personas_salida, descripcion, seguro_rc, primeros_auxilios, ratio_guias, acepta_cobro, acepta_deslinde, acepta_encuesta, incidentes, porque, conociste")
       .ilike("email", email)
       .order("created_at", { ascending: false })
       .limit(1),
@@ -134,6 +173,29 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
         documentosSubidos: exp.filter((d) => d.archivo).length,
         motivoPublico: (a.motivo_publico as string | null) ?? null,
         reabreAt: (a.reabre_at as string | null) ?? null,
+        enviada: {
+          nombreOperadora: txt(a.nombre_operadora),
+          responsable: txt(a.responsable),
+          email: txt(a.email),
+          whatsapp: txt(a.whatsapp),
+          instagram: txt(a.instagram),
+          ciudadEstado: txt(a.ciudad_estado),
+          tipo: txt(a.tipo_operacion),
+          antiguedad: txt(a.antiguedad),
+          salidasAno: txt(a.salidas_ano),
+          personasSalida: txt(a.personas_salida),
+          rangoPrecio: txt(a.rango_precio),
+          descripcion: txt(a.descripcion),
+          seguro: txt(a.seguro_rc),
+          primeros: txt(a.primeros_auxilios),
+          ratioGuias: txt(a.ratio_guias),
+          aceptaCobro: a.acepta_cobro === true,
+          aceptaDeslinde: a.acepta_deslinde === true,
+          aceptaEncuesta: a.acepta_encuesta === true,
+          incidentes: txt(a.incidentes),
+          porque: txt(a.porque),
+          conociste: txt(a.conociste),
+        },
       }
     : null;
 

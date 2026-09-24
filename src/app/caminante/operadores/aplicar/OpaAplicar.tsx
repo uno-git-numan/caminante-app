@@ -17,35 +17,11 @@
 import { useEffect, useState } from "react";
 import { submitOperatorApplication } from "@/lib/operadores/actions";
 import { ACTIVIDADES } from "@/lib/operadores/actividades";
+import { ANTIGUEDAD, PRIMEROS, SEGURO, TIPOS, type Opcion } from "@/lib/operadores/solicitud-opciones";
 
-type Radio = { v: string; t: string };
-
-const TIPOS: Radio[] = [
-  { v: "montana", t: "Montaña y senderismo" },
-  { v: "mar", t: "Mar y buceo" },
-  { v: "cuevas", t: "Cuevas y cañones" },
-  { v: "naturaleza", t: "Naturaleza y observación" },
-  { v: "cultura", t: "Cultura y comunidades" },
-  { v: "mixta", t: "Mixta" },
-];
-const ANTIGUEDAD: Radio[] = [
-  { v: "menos-1", t: "Menos de 1 año" },
-  { v: "1-3", t: "1–3 años" },
-  { v: "3-10", t: "3–10 años" },
-  { v: "mas-10", t: "Más de 10" },
-];
-const SEGURO: Radio[] = [
-  { v: "vigente", t: "Sí, vigente" },
-  { v: "vence-pronto", t: "Sí, pero vence pronto" },
-  { v: "tramite", t: "En trámite" },
-  { v: "no", t: "No" },
-];
-const PRIMEROS: Radio[] = [
-  { v: "todos", t: "Todos certificados" },
-  { v: "algunos", t: "Algunos" },
-  { v: "botiquin", t: "No, pero llevamos botiquín" },
-  { v: "no", t: "No" },
-];
+// Las opciones viven en `lib/operadores/solicitud-opciones.ts`: las mismas
+// palabras se leen después en Mi alta y en la tarjeta de la casa.
+type Radio = Opcion;
 
 function Cards({
   opciones,

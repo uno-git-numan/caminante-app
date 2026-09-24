@@ -282,3 +282,22 @@ describe("fetchMiAlta — el resumen de términos", () => {
   });
 });
 
+describe("fetchMiAlta — «Ver lo que mandé»", () => {
+  it("la solicitud llega congelada: los códigos tal cual y los tres compromisos", async () => {
+    estado.fila = filaActiva;
+    estado.operadoras = [operadoraSinCandados];
+    estado.solicitud = {
+      ...solicitud("pending"),
+      nombre_operadora: "Kéntro", responsable: "Luis", email: "uno+kentro@numanhub.com",
+      tipo_operacion: "montana", antiguedad: "1-3", seguro_rc: "vigente", primeros_auxilios: "todos",
+      rango_precio: "$5,001 a $15,000 MXN", descripcion: "  Caminatas de un día.  ",
+      instagram: "", acepta_cobro: true, acepta_deslinde: true, acepta_encuesta: true,
+    };
+    const e = (await fetchMiAlta())?.solicitud?.enviada;
+    expect(e?.tipo).toBe("montana");            // el código; la palabra la pone la pantalla
+    expect(e?.descripcion).toBe("Caminatas de un día.");
+    expect(e?.instagram).toBeNull();            // una cadena vacía no se enseña como dato
+    expect(e?.aceptaCobro && e?.aceptaDeslinde && e?.aceptaEncuesta).toBe(true);
+  });
+});
+

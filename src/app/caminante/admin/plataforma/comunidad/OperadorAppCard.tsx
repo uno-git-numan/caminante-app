@@ -10,25 +10,26 @@
 import { useState } from "react";
 import type { Res } from "@/lib/admin/operadores-app-actions";
 import {
+  ANTIGUEDAD,
+  PRIMEROS as OP_PRIMEROS,
+  SEGURO as OP_SEGURO,
+  TIPOS,
+} from "@/lib/operadores/solicitud-opciones";
+import {
   agendarLlamada,
   pedirExpediente,
   aprobarOperadorApp,
   rechazarOperadorApp,
 } from "@/lib/admin/operadores-app-actions";
 
-const TIPO: Record<string, string> = {
-  montana: "Montaña", mar: "Mar", cuevas: "Cuevas",
-  naturaleza: "Naturaleza", cultura: "Cultura", mixta: "Mixta",
-};
-const SEGURO: Record<string, string> = {
-  vigente: "Vigente", "vence-pronto": "Vence pronto", tramite: "En trámite", no: "Sin seguro",
-};
-const PRIMEROS: Record<string, string> = {
-  todos: "Todos los guías", algunos: "Algunos guías", botiquin: "Solo botiquín", no: "No",
-};
-const ANTIG: Record<string, string> = {
-  "menos-1": "Menos de 1 año", "1-3": "1 a 3 años", "3-10": "3 a 10 años", "mas-10": "Más de 10 años",
-};
+// Las palabras de cada respuesta salen de la misma lista que el formulario.
+// Aquí había otras («Montaña», «Vence pronto», «Sin seguro»): la casa leía una
+// cosa y la operadora había elegido otra.
+const aMapa = (l: { v: string; t: string }[]) => Object.fromEntries(l.map((o) => [o.v, o.t]));
+const TIPO: Record<string, string> = aMapa(TIPOS);
+const SEGURO: Record<string, string> = aMapa(OP_SEGURO);
+const PRIMEROS: Record<string, string> = aMapa(OP_PRIMEROS);
+const ANTIG: Record<string, string> = aMapa(ANTIGUEDAD);
 const ESTADO: Record<string, { txt: string; cls: string }> = {
   pending: { txt: "Sin revisar", cls: "c-sol" },
   calling: { txt: "Llamada agendada", cls: "c-sol" },

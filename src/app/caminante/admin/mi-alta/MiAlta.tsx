@@ -20,6 +20,8 @@ import { CDMX, diaEnPalabras, enPalabras } from "@/lib/fecha/zona";
 import Copiar from "./Copiar";
 import ResumenTerminos from "./ResumenTerminos";
 import type { DocEnPantalla } from "@/lib/operadores/expediente";
+import type { SolicitudEnviada } from "@/lib/operadores/mi-alta";
+import { ANTIGUEDAD, PRIMEROS, SEGURO, TIPOS, etiqueta } from "@/lib/operadores/solicitud-opciones";
 
 const LECTURA: string[] = [
   "Lo único que te pedimos aquí es llegar a la llamada. No hay documentos ni formularios, y no hay nada que preparar.",
@@ -159,6 +161,7 @@ export default function MiAlta({
                   </div>
                 </div>
               ) : null}
+              <LoQueMande e={s.enviada} creadaAt={s.creadaAt} />
               {plegableTerminos(true)}
               <p className="gnhint" style={{ maxWidth: "74ch" }}>
                 Este paso no tiene un solo documento ni un solo formulario, y por eso no tiene
@@ -196,6 +199,8 @@ export default function MiAlta({
                   )}
                 </span>
               </div>
+              {/* Como la lámina en s1: lo que mandó, justo debajo de «Tenemos tu solicitud». */}
+              {s ? <LoQueMande e={s.enviada} creadaAt={s.creadaAt} /> : null}
               <p className="xh4">Qué sigue</p>
               <div className="cmfan" style={{ marginTop: 0 }}>
                 <div className="r">
@@ -257,11 +262,12 @@ export default function MiAlta({
                     : "Ya tuvimos la llamada"}
                 </b>
                 <span>
-                  Ahí vimos qué operas y cómo cobra la plataforma. Abajo está el resumen de términos,
-                  para que lo vuelvas a leer cuando quieras.
+                  Ahí vimos qué operas y cómo cobra la plataforma. Abajo está lo que mandaste al
+                  aplicar y el resumen de términos, para que los vuelvas a leer cuando quieras.
                 </span>
               </span>
             </div>
+            {s ? <LoQueMande e={s.enviada} creadaAt={s.creadaAt} /> : null}
             {plegableTerminos(false)}
           </>
         ) : null}
@@ -466,6 +472,131 @@ export default function MiAlta({
 // mismos dos SVG que dibuja `Candados.tsx` del lado de la casa: si aquí se
 // dibujaran de otra forma, el mismo candado se vería distinto según quién lo
 // mire, que es justo lo que `fetchMiAlta` se cuida de no permitir con los datos.
+// «VER LO QUE MANDÉ» — la solicitud, congelada, tal cual la lámina v5 (#p1,
+// momento s1): `details.fold` con `.solgrid` de dos `.pf` y sus `.pfr`, las
+// citas en `.solp` y los tres compromisos como `.chip.c-paid`. Las palabras de
+// cada respuesta son las del formulario (`solicitud-opciones.ts`), no otras.
+const fechaCorta = (iso: string) =>
+  new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric", timeZone: CDMX });
+
+function Renglon({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div className="pfr">
+      <span className="k">{k}</span>
+      <span className="v">{v ?? <span className="mut">—</span>}</span>
+      <span className="t" />
+    </div>
+  );
+}
+
+function Acepto({ si }: { si: boolean }) {
+  return si ? (
+    <span className="chip c-paid">
+      <span className="cd" />
+      Aceptado
+    </span>
+  ) : (
+    <span className="mut">No lo aceptó</span>
+  );
+}
+
+function LoQueMande({ e, creadaAt }: { e: SolicitudEnviada; creadaAt: string }) {
+  const tres = e.aceptaCobro && e.aceptaDeslinde && e.aceptaEncuesta;
+  return (
+    <details className="fold" style={{ marginTop: 16 }}>
+      <summary>
+        <b>Ver lo que mandé</b>
+        <span className="fr">{fechaCorta(creadaAt)}</span>
+        <span className="mut">Tu solicitud, como la escribiste</span>
+      </summary>
+      <div className="fb">
+        <p className="gnhint" style={{ maxWidth: "74ch", marginTop: 0 }}>
+          Esto es lo que declaraste el día que la mandaste, y queda congelado así: es el registro de
+          lo que dijiste ese día, no un formulario que se sigue editando. Si algo salió con un
+          error, escríbenos y lo anotamos antes de revisarla. Lo que sí vas a poder editar cuando
+          termine tu alta es <b>tu perfil</b>, que es otra cosa: es tu página, la que ve el viajero.
+        </p>
+        <div className="solgrid">
+          <div className="pf">
+            <div className="ph">
+              <b>Quién es</b>
+            </div>
+            <Renglon k="Operadora" v={e.nombreOperadora} />
+            <Renglon k="Responsable" v={e.responsable} />
+            <Renglon k="Correo" v={e.email} />
+            <Renglon k="WhatsApp" v={e.whatsapp} />
+            <Renglon k="Instagram" v={e.instagram} />
+            <Renglon k="Desde" v={e.ciudadEstado} />
+          </div>
+          <div className="pf">
+            <div className="ph">
+              <b>Qué opera</b>
+            </div>
+            <Renglon k="Tipo de operación" v={etiqueta(TIPOS, e.tipo)} />
+            <Renglon k="Antigüedad" v={etiqueta(ANTIGUEDAD, e.antiguedad)} />
+            <Renglon k="Salidas al año" v={e.salidasAno} />
+            <Renglon k="Personas por salida" v={e.personasSalida} />
+            <Renglon k="Rango de precio" v={e.rangoPrecio} />
+          </div>
+        </div>
+        {e.descripcion ? (
+          <>
+            <p className="xh4" style={{ marginTop: 20 }}>
+              Cómo describiste tu operación
+            </p>
+            <p className="solp">«{e.descripcion}»</p>
+          </>
+        ) : null}
+        <div className="solgrid" style={{ marginTop: 20 }}>
+          <div className="pf">
+            <div className="ph">
+              <b>Cómo cuida a su gente</b>
+            </div>
+            <Renglon k="Seguro de responsabilidad civil" v={etiqueta(SEGURO, e.seguro)} />
+            <Renglon k="Primeros auxilios" v={etiqueta(PRIMEROS, e.primeros)} />
+            <Renglon k="Guías por persona" v={e.ratioGuias} />
+          </div>
+          <div className="pf">
+            <div className="ph">
+              <b>Lo que aceptó al mandarla</b>
+              {tres ? <span className="qk">los tres aceptados</span> : null}
+            </div>
+            <Renglon k="Cobro por la plataforma" v={<Acepto si={e.aceptaCobro} />} />
+            <Renglon k="Deslinde de responsabilidad" v={<Acepto si={e.aceptaDeslinde} />} />
+            <Renglon k="Encuesta de satisfacción" v={<Acepto si={e.aceptaEncuesta} />} />
+          </div>
+        </div>
+        {e.incidentes ? (
+          <>
+            <p className="xh4" style={{ marginTop: 20 }}>
+              Lo que contestaste sobre incidentes
+            </p>
+            <p className="solp">«{e.incidentes}»</p>
+          </>
+        ) : null}
+        {e.porque ? (
+          <>
+            <p className="xh4" style={{ marginTop: 20 }}>
+              Por qué Caminante
+            </p>
+            <p className="solp">«{e.porque}»</p>
+          </>
+        ) : null}
+        {e.conociste ? (
+          <div style={{ marginTop: 12 }}>
+            <div className="pf">
+              <div className="ph">
+                <b>Cómo nos conoció</b>
+              </div>
+              <Renglon k="Por" v={e.conociste} />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
 // Los dos íconos de la fila de documento, tal cual la lámina v5 (#p2): la
 // palomita en olivo para lo que ya se entregó y el «+» en arena para lo que
 // falta. Llevan `.st`, que es la clase que `.doc` les da tamaño — distinta de
