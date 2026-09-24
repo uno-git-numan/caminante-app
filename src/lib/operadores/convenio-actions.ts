@@ -70,7 +70,12 @@ export async function firmarConvenioAction(fd: FormData): Promise<ResFirma> {
     ...(await leerFirmante(fd)),
     ...(await rastro()),
   });
-  if (r.ok) revalidatePath(RUTA);
+  if (r.ok) {
+    revalidatePath(RUTA);
+    // Desde el 24 sep 2026 también se firma DENTRO del paso 03 de Mi alta
+    // (lámina «Panel Operadora»): sin esto el riel seguía diciendo «por firmar».
+    revalidatePath("/caminante/admin/mi-alta");
+  }
   return r;
 }
 
@@ -89,6 +94,7 @@ export async function firmarAnexoAction(fd: FormData): Promise<ResFirma> {
     revalidatePath(RUTA);
     // El anexo abre la puerta de publicar esa actividad: la pantalla del
     // expediente y el tablero de la casa tienen que enterarse el mismo día.
+    revalidatePath("/caminante/admin/mi-alta");
     revalidatePath("/caminante/admin/mi-alta/expediente");
     revalidatePath("/caminante/admin/plataforma/comunidad");
   }

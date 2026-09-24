@@ -34,6 +34,8 @@ export type OperadoraPlataforma = {
   esLaCasa: boolean;
   /** Cuándo firmó el convenio, o null. El riel de Mi alta dice «Firmado el …». */
   convenioFirmadoAt: string | null;
+  /** Persona física o moral, o null si no lo ha dicho. Decide quién firma. */
+  tipoPersona: "fisica" | "moral" | null;
   rfc: string | null;
   comisionPct: number | null;
   comisionDesde: string | null;
@@ -93,7 +95,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     sb
       .from("operators")
       .select(
-        "id, slug, name, es_la_casa, estado, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, branding, created_at",
+        "id, slug, name, es_la_casa, estado, tipo_persona, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, branding, created_at",
       ),
     sb.from("experiences").select("id, status, operator_id"),
     sb.from("reservations").select("experience_id, status, total_amount_mxn, created_at"),
@@ -245,6 +247,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       iniciales: inic(nombre),
       esLaCasa,
       convenioFirmadoAt: (o.convenio_firmado_at as string | null) ?? null,
+      tipoPersona: o.tipo_persona === "fisica" || o.tipo_persona === "moral" ? o.tipo_persona : null,
       rfc: (o.rfc as string) ?? null,
       comisionPct: o.commission_pct != null ? Number(o.commission_pct) : null,
       comisionDesde: (o.comision_desde as string) ?? null,

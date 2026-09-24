@@ -169,3 +169,29 @@ export async function guardarFiscales(formData: FormData): Promise<ConnectAction
   revalidatePath(RUTA);
   return { ok: true };
 }
+
+/**
+ * «¿Quién firma?» — persona física o moral, SOLA.
+ *
+ * Existe aparte de `guardarFiscales` porque ésa escribe los cinco campos
+ * fiscales a la vez: llamarla con sólo la persona habría puesto en NULL el RFC,
+ * la razón social, el régimen y el código postal de quien ya los capturó. Lo
+ * pide el paso 03 de Mi alta (lámina «Panel Operadora»), antes de firmar,
+ * porque cambia qué documento sostiene la firma: la identificación, o el acta y
+ * el poder del representante.
+ */
+export async function guardarTipoPersona(
+  operadorId: string,
+  tipo: "fisica" | "moral",
+): Promise<ConnectActionResult> {
+  const id = (operadorId ?? "").trim();
+  if (!(await puedeTocarOperador(id))) return { ok: false, error: "No autorizado." };
+  if (!id) return { ok: false, error: "Falta el operador." };
+  if (tipo !== "fisica" && tipo !== "moral") return { ok: false, error: "Persona física o moral." };
+  const sb = createSupabaseAdminClient();
+  const { error } = await sb.from("operators").update({ tipo_persona: tipo }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(RUTA);
+  revalidatePath("/caminante/admin/mi-alta");
+  return { ok: true };
+}

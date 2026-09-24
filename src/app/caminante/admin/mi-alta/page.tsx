@@ -16,6 +16,7 @@ import { MI_ALTA_CSS } from "../ui/mi-alta-css";
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { sombreroPuesto } from "@/lib/auth/sombrero";
+import { datosDeFirma } from "@/lib/operadores/datos-firma";
 import MiAlta from "./MiAlta";
 import { pasoDe } from "@/lib/operadores/pasos";
 
@@ -114,6 +115,16 @@ export default async function MiAltaPage({
     );
   }
 
+  // LA FIRMA VA DENTRO DEL PASO 03 (lámina «Panel Operadora»). Sólo se arma
+  // para la operadora sobre sí misma: la casa no firma por nadie —firmar es un
+  // acto, y un acto no se decide con el sombrero (invariante #22)—, así que
+  // actuando por otra el paso 03 dice quién firma en vez de ofrecer un botón
+  // que rebotaría.
+  const firma =
+    !porOtra && datos.operadora && !datos.operadora.esLaCasa
+      ? await datosDeFirma(datos.operadora.id)
+      : null;
+
   const ORDINAL = ["primero", "segundo", "tercero", "cuarto"];
   const aqui = pasoDe(datos.estado);
 
@@ -158,7 +169,7 @@ export default async function MiAltaPage({
           ) : null}
         </div>
       </div>
-      <MiAlta datos={datos} porOtra={porOtra?.id ?? null} />
+      <MiAlta datos={datos} porOtra={porOtra?.id ?? null} firma={firma} />
     </AdminShell>
   );
 }

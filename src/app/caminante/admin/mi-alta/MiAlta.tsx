@@ -12,7 +12,8 @@
 // letras —«es una casa en obra, no una puerta en la cara»—. Poder asomarse a lo
 // que viene es lo que hace que el apagón no se lea como un portazo.
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AQUI_ESTAS, FIRMADO_EL, LECTURA_PASO, PASOS, TODAVIA_NO, pasoDe } from "@/lib/operadores/pasos";
 import type { MiAlta as Datos } from "@/lib/operadores/mi-alta";
@@ -20,6 +21,8 @@ import { CDMX } from "@/lib/fecha/zona";
 import Copiar from "./Copiar";
 import ResumenTerminos from "./ResumenTerminos";
 import RenglonDoc from "./RenglonDoc";
+import Convenio, { type DatosFirma } from "./convenio/Convenio";
+import { guardarTipoPersona } from "@/lib/payments/connect-actions";
 import type { SolicitudEnviada } from "@/lib/operadores/mi-alta";
 import { ANTIGUEDAD, PRIMEROS, SEGURO, TIPOS, etiqueta } from "@/lib/operadores/solicitud-opciones";
 
@@ -35,8 +38,11 @@ const fecha = (iso: string) =>
 export default function MiAlta({
   datos,
   porOtra = null,
+  firma = null,
 }: {
   datos: Datos;
+  /** Lo que se firma en el paso 03, y si ya se firmó. `null` actuando por otra. */
+  firma?: DatosFirma | null;
   /**
    * El id de la operadora cuando quien mira es la casa actuando por ella.
    *
@@ -261,7 +267,12 @@ export default function MiAlta({
             Y el veredicto sale de los candados (`puedeArmar`/`puedeCobrar`),
             no del número de paso: antes, estando en el 02, habría dicho
             «Puedes armar» sin preguntarle a nadie si era cierto. */}
-        {viendo >= 2 && datos.operadora ? (
+        {/* ── 03 · El convenio (lámina «Panel Operadora») ───────────────── */}
+        {viendo === 2 ? (
+          <Paso03 datos={datos} firma={firma} porOtra={porOtra} irAPaso4={() => setViendo(3)} />
+        ) : null}
+
+        {viendo === 3 && datos.operadora ? (
           <>
             <div className={datos.operadora.puedeCobrar ? "verdict si" : "verdict no"}>
               <span className="n">{datos.candados.filter((c) => c.cumplido).length}/6</span>
@@ -390,6 +401,173 @@ export default function MiAlta({
 // mismos dos SVG que dibuja `Candados.tsx` del lado de la casa: si aquí se
 // dibujaran de otra forma, el mismo candado se vería distinto según quién lo
 // mire, que es justo lo que `fetchMiAlta` se cuida de no permitir con los datos.
+// ── PASO 03 · EL CONVENIO ─────────────────────────────────────────────────
+//
+// Transcrito de la lámina «Panel Operadora» (recurso bf8eb7a0 · Paso3). Los
+// textos se copiaron del archivo con un script; dos se ajustan al dato real y
+// se dice cuáles:
+//   · «Firmas a nombre de Nomádika…» → el nombre de ESTA operadora, y «tu
+//     identificación ya está en Lo general» sólo si de verdad la subió.
+//   · «el poder del representante, aquí» → en nuestro catálogo el poder va CON
+//     el acta, en Lo general («Acta constitutiva y poder del representante»);
+//     pedirlo aquí otra vez sería pedir el mismo papel dos veces.
+//
+// ⚠️ LA FIRMA ES LA DE SIEMPRE: el componente de `mi-alta/convenio`, con su
+// versión y la huella del texto leído, no una copia. Y sólo se ofrece a la
+// operadora sobre sí misma: actuando por otra, la casa ve quién firma, no un
+// botón que rebotaría (invariante #22).
+const IcoFirmado = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "0 0 auto" }}>
+    <path d="M4 12.6l5.2 5.2L20 6.6" />
+  </svg>
+);
+
+function QuienFirma({ op, porOtra }: { op: NonNullable<Datos["operadora"]>; porOtra: string | null }) {
+  const [pendiente, arranca] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const elegir = (tipo: "fisica" | "moral") =>
+    arranca(async () => {
+      setError(null);
+      const r = await guardarTipoPersona(porOtra ?? op.id, tipo);
+      if (r.ok) router.refresh();
+      else setError(r.error ?? "No se pudo guardar.");
+    });
+  return (
+    <>
+      <div className="opts">
+        {([["fisica", "Persona física"], ["moral", "Persona moral"]] as const).map(([v, t]) => (
+          <button
+            key={v}
+            type="button"
+            className={"opt" + (op.tipoPersona === v ? " on" : "")}
+            disabled={pendiente}
+            onClick={() => elegir(v)}
+          >
+            <i />
+            {t}
+          </button>
+        ))}
+      </div>
+      {error ? <p className="gnhint">{error}</p> : null}
+    </>
+  );
+}
+
+function Paso03({
+  datos,
+  firma,
+  porOtra,
+  irAPaso4,
+}: {
+  datos: Datos;
+  firma: DatosFirma | null;
+  porOtra: string | null;
+  irAPaso4: () => void;
+}) {
+  const op = datos.operadora;
+  if (!op) return null;
+  const f = firma?.convenio?.firmado ?? null;
+  const firmadoAt = f?.firmadoAt ?? op.convenioFirmadoAt;
+
+  if (firmadoAt) {
+    const detalle = [
+      f?.firmanteNombre ? `${f.firmanteNombre}, por ${firma?.operadora ?? op.nombre}` : null,
+      op.rfc ? `RFC ${op.rfc}` : null,
+      firma ? `comisión: ${firma.comision.texto}` : null,
+      f?.version ? `versión ${f.version}` : null,
+    ].filter(Boolean).join(" · ");
+    return (
+      <div>
+        <div className="sigdone">
+          <IcoFirmado />
+          <span className="g">
+            <b>Firmado el {fecha(firmadoAt)}</b>
+            {detalle ? <span>{detalle}</span> : null}
+          </span>
+          {f?.version ? <span className="chip c-paid">v{f.version}</span> : null}
+        </div>
+        <div className="ahora" style={{ marginTop: 14 }}>
+          <span className="lb">{"// "}Se abrió tu catálogo</span>
+          <h3>
+            Experiencias ya está prendida: <em>arma la tuya.</em>
+          </h3>
+          <p>Tu firma es lo único que hacía falta. Desde hoy puedes escribir tu experiencia, subir fotos y poner precios, mientras resuelves lo de cobrar en el paso 4, en el orden que quieras.</p>
+          <div className="salfoot">
+            <button type="button" className="btn btn-orange" onClick={irAPaso4}>
+              Ir a armar y cobrar
+            </button>
+          </div>
+        </div>
+        <details className="fold" style={{ marginTop: 14 }}>
+          <summary>
+            <b>El convenio que firmaste</b>
+            {f?.version ? <span className="fr">v{f.version}</span> : null}
+            <span className="mut">{fecha(firmadoAt)}</span>
+          </summary>
+          <div className="fb">
+            {firma ? (
+              <Convenio datos={firma} />
+            ) : (
+              <p className="gnhint">El texto firmado lo lee ella desde su panel.</p>
+            )}
+          </div>
+        </details>
+      </div>
+    );
+  }
+
+  const idSubida = datos.expediente?.generales.find((g) => g.slug === "id-responsable");
+  const acta = datos.expediente?.generales.find((g) => g.slug === "acta-constitutiva");
+  return (
+    <div>
+      <p className="xh4" style={{ marginTop: 0 }}>¿Quién firma?</p>
+      <QuienFirma op={op} porOtra={porOtra} />
+      {op.tipoPersona === "fisica" ? (
+        <p className="calm">
+          <s>{"//"}</s>
+          <span className="g">
+            <b>Con tu identificación basta</b>
+            <span>
+              Firmas a nombre de {op.nombre}, que eres tú: no hay una sociedad de por medio. Tu identificación{" "}
+              {idSubida && idSubida.estado !== "falta" ? "ya está" : "va"} en Lo general.
+            </span>
+          </span>
+        </p>
+      ) : op.tipoPersona === "moral" ? (
+        <>
+          <p className="calm">
+            <s>{"//"}</s>
+            <span className="g">
+              <b>Una sociedad firma con acta y poder</b>
+              <span>
+                El acta constitutiva y el poder del representante van en Lo general. El nombre de quien firma tiene que ser el mismo del poder. Sin él la firma no obliga a la sociedad.
+              </span>
+            </span>
+          </p>
+          {acta ? (
+            <div className="docs" style={{ marginTop: 12 }}>
+              <RenglonDoc d={acta} actividad={null} operadora={porOtra} />
+            </div>
+          ) : null}
+        </>
+      ) : null}
+      <p className="xh4">El convenio completo</p>
+      {firma ? (
+        <Convenio datos={firma} />
+      ) : (
+        <p className="calm">
+          <s>{"//"}</s>
+          <span className="g">
+            <b>La firma la hace ella, desde su panel</b>
+            <span>Firmar es un acto de la operadora: la casa no firma por nadie.</span>
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 // «VER LO QUE MANDÉ» — la solicitud, congelada, tal cual la lámina v5 (#p1,
 // momento s1): `details.fold` con `.solgrid` de dos `.pf` y sus `.pfr`, las
 // citas en `.solp` y los tres compromisos como `.chip.c-paid`. Las palabras de
