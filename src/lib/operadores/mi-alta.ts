@@ -4,6 +4,8 @@ import { fetchOperadorasPlataforma, type OperadoraPlataforma } from "@/lib/plata
 import { correoEnSesion } from "@/lib/auth/authorization";
 import { fetchDispensas, fetchExpediente, type DispensaEnPantalla, type Expediente as ExpedienteReal } from "./expediente";
 import { terminosDe, type BloqueTerminos } from "./terminos";
+import { experienceTitle } from "@/lib/admin/queries";
+import { nombreDeActividad } from "./actividades";
 
 // MI ALTA — la misma ficha que ve la casa, contada desde el otro lado.
 //
@@ -94,6 +96,13 @@ export type MiAlta = {
   /** Las actividades que vende sin expediente aprobado, con dueño y caducidad. */
   dispensas: DispensaEnPantalla[];
   /**
+   * Sus experiencias, para la mitad «Armar» del paso 04 (lámina «Panel
+   * Operadora»). No es un segundo editor: la lista lleva al de siempre.
+   */
+  experiencias: { slug: string; titulo: string; estado: string; actividad: string | null }[];
+  /** Sus datos fiscales, para la mitad «Cobrar». Vacío = sin capturar. */
+  fiscal: { rfc: string | null; razonSocial: string | null; regimen: string | null; cp: string | null };
+  /**
    * El resumen de términos, el mismo que viajó en PDF con la invitación a la
    * llamada, para releerlo en el paso 01. Sale de la solicitud si la hubo —es
    * lo que se le mandó— y si no, de su fila de operadora.
@@ -145,7 +154,7 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
   const sb = createSupabaseAdminClient();
   const [{ data: op }, { data: apps }] = await Promise.all([
     sb.from("operators")
-      .select("id, estado, estado_motivo, name, legal")
+      .select("id, estado, estado_motivo, name, legal, rfc, razon_social, regimen_fiscal, cp_fiscal")
       .eq("email", email)
       .maybeSingle(),
     // Los cinco últimos campos son los mismos con los que la invitación a la
@@ -238,6 +247,8 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
       solicitud, estadoOperadora: null, estadoMotivo: null,
       expediente: null,
       dispensas: [],
+      experiencias: [],
+      fiscal: { rfc: null, razonSocial: null, regimen: null, cp: null },
       terminos: terminosDe({
         responsable: (a?.responsable as string | null) ?? null,
         operadora: (a?.nombre_operadora as string | null) ?? null,
@@ -248,11 +259,20 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
     };
   }
 
-  const [todas, expediente, dispensasDeTodas] = await Promise.all([
+  const [todas, expediente, dispensasDeTodas, { data: exps }] = await Promise.all([
     fetchOperadorasPlataforma(),
     fetchExpediente(fila.id),
     fetchDispensas(),
+    sb.from("experiences").select("slug, status, data, actividad").eq("operator_id", fila.id),
   ]);
+  const experiencias = ((exps ?? []) as { slug: string; status: string; data: Record<string, unknown> | null; actividad: string | null }[])
+    .map((e) => ({
+      slug: e.slug,
+      titulo: experienceTitle(e.data as never, e.slug),
+      estado: e.status,
+      // El nombre, no el slug: «Senderismo y caminata», no «senderismo».
+      actividad: e.actividad ? nombreDeActividad(e.actividad) : null,
+    }));
   const mia = todas.find((o) => o.id === fila.id) ?? null;
   const dispensas = dispensasDeTodas.get(fila.id) ?? [];
   const candados = mia?.candados ?? [];
@@ -293,6 +313,12 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
   return {
     estado, operadora: mia, candados, paraArmar, paraCobrar, miTurno,
     solicitud, estadoOperadora: fila.estado, estadoMotivo: fila.estado_motivo,
-    expediente, dispensas, terminos,
+    expediente, dispensas, terminos, experiencias,
+    fiscal: {
+      rfc: txt((op as Record<string, unknown> | null)?.rfc),
+      razonSocial: txt((op as Record<string, unknown> | null)?.razon_social),
+      regimen: txt((op as Record<string, unknown> | null)?.regimen_fiscal),
+      cp: txt((op as Record<string, unknown> | null)?.cp_fiscal),
+    },
   };
 }

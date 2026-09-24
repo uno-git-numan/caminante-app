@@ -380,4 +380,17 @@ export const MI_ALTA_CSS = String.raw`
 .adm .paso .n .pal{display:block;width:11px;height:6px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);margin-top:-2px}
 .adm .paso .subs button.hecho{border-color:rgba(99,113,84,.5);background:rgba(99,113,84,.1);color:var(--olive-d);font-weight:600}
 .adm .paso .subs button .palm{display:inline-block;width:8px;height:4.5px;border-left:1.8px solid currentColor;border-bottom:1.8px solid currentColor;transform:rotate(-45deg);margin-right:7px;vertical-align:2px}
+
+/* lámina «Panel Operadora» · paso 04: la tira de los seis y los campos fiscales.
+   En la lámina son GLOBALES. En el panel .fldrow y .fk sólo existían dentro de
+   .embed y .subh sólo en la hoja del expediente, que Mi alta no carga: fuera de
+   esos contextos habrían salido sin estilo. Copiadas del archivo, con .adm. */
+.adm .subh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:16px 0 9px}
+.adm .subh b{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--charcoal)}
+.adm .subh small{font-size:11.5px;color:var(--ink-soft);line-height:1.5;flex:1 1 220px}
+.adm .seis{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.adm .six{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 11px 5px 8px;border-radius:999px;border:1px dashed rgba(201,183,156,.95);color:var(--ink-soft);background:#fff}
+.adm .six .st{width:13px;height:13px}
+.adm .six.ok{border-style:solid;border-color:rgba(99,113,84,.45);background:rgba(99,113,84,.08);color:var(--olive-d)}
+.adm .seis .fr{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--charcoal)}
 `;

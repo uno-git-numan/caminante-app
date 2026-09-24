@@ -272,135 +272,13 @@ export default function MiAlta({
           <Paso03 datos={datos} firma={firma} porOtra={porOtra} irAPaso4={() => setViendo(3)} />
         ) : null}
 
-        {viendo === 3 && datos.operadora ? (
-          <>
-            <div className={datos.operadora.puedeCobrar ? "verdict si" : "verdict no"}>
-              <span className="n">{datos.candados.filter((c) => c.cumplido).length}/6</span>
-              <span className="g">
-                <b>
-                  {datos.operadora.puedeCobrar
-                    ? "Puedes vender"
-                    : datos.operadora.puedeArmar
-                      ? "Puedes armar, todavía no cobrar"
-                      : datos.candados.some((c) => c.clave === "convenio" && !c.cumplido)
-                        ? "Falta tu firma del convenio"
-                        : "Todavía no puedes armar"}
-                </b>
-                <span>
-                  {datos.miTurno.length
-                    ? `Te toca a ti: ${datos.miTurno.map((c) => c.nombre).join(" y ")}.`
-                    : "No falta nada tuyo. Lo que queda lo hacemos nosotros."}
-                </span>
-                {/* El candado decía «falta tu firma» y no había a dónde ir: la
-                    pantalla de firmar existía sin una sola puerta que llevara
-                    a ella. Un pendiente sin destino se lee como un reproche. */}
-                <span style={{ marginTop: 8 }}>
-                  {/* ⚠️ EL CONVENIO NO SE ABRE POR ELLA, Y NO ES UN OLVIDO.
-                      `mi-alta/convenio` es la única sub-pantalla del alta que
-                      NO acepta `?operadora=`: firmar es un acto de ella, y una
-                      pantalla donde la casa pudiera apretar «Acepto» a nombre
-                      de alguien más es justo la que no queremos construir. Así
-                      que actuando por otra no se ofrece la liga —ofrecerla
-                      sería mandar a un rebote sin explicación— y en su lugar se
-                      dice por qué. Todo lo demás del alta sí se puede hacer por
-                      ella: expediente, cobro y marca. */}
-                  {porOtra ? (
-                    <span className="mut">La firma del convenio la hace ella desde su panel</span>
-                  ) : (
-                    <Link href={liga("/caminante/admin/mi-alta/convenio")}>
-                      {datos.estado === "por_firmar"
-                        ? "Leer y firmar el convenio"
-                        : "Ver mi convenio y los anexos de mis actividades"}
-                    </Link>
-                  )}
-                  {" · "}
-                  <Link href={liga("/caminante/admin/mi-alta/cobrar")}>Mi cuenta de cobro y datos fiscales</Link>
-                  {" · "}
-                  {/* ⚠️ EL EXPEDIENTE TAMBIÉN VA AQUÍ, no sólo en el paso 02.
-                      Su puerta del 02 vive dentro del panel de ese paso, y ese
-                      panel deja de dibujarse en cuanto el alta avanza: para una
-                      operadora que ya va en el 04 —Nomádika, hoy— el expediente
-                      quedaba otra vez sin una sola liga en toda la pantalla. Y
-                      no es una pantalla de sólo lectura: un documento se vence,
-                      se rechaza o se agrega al declarar una actividad nueva.
-                      Tampoco hay candado que lleve a él: los seis son comisión,
-                      convenio, CSD, Connect, panel y experiencia. */}
-                  <Link href={liga("/caminante/admin/mi-alta/expediente")}>Mis documentos</Link>
-                  {" · "}
-                  {/* ⚠️ LA MARCA SE OFRECE, NO SÓLO SE RECLAMA. Hasta el 24 sep
-                      2026 sólo aparecía en el aviso de abajo, o sea únicamente
-                      cuando estaba a medias — y en cuanto se completaba
-                      desaparecía de esta pantalla, sin manera de volver a verla
-                      ni de cambiarla desde aquí. Una cosa que sólo existe
-                      cuando está mal es una cosa que nadie elige hacer: se
-                      descubre al ser regañado. Aquí va siempre, junto al
-                      convenio y al cobro, porque los tres son lo que se hace
-                      mientras se arma. */}
-                  <Link href={liga("/caminante/admin/mi-alta/marca")}>
-                    {datos.operadora?.marca.completa ? "Mi marca" : "Poner mi marca"}
-                  </Link>
-                </span>
-              </span>
-            </div>
-            {/* Tarea #103. La marca no es candado —no bloquea vender— pero a
-                medias apaga el portal y viste el funnel de Caminante, y nadie
-                se entera hasta que lo ve. Se dice aquí, con su puerta. */}
-            {datos.operadora && !datos.operadora.marca.completa ? (
-              <div className="verdict no" style={{ marginTop: 12 }}>
-                <span className="n">{"//"}</span>
-                <span className="g">
-                  <b>Tu marca está a medias: te falta {datos.operadora.marca.faltan.join(", ")}</b>
-                  <span>
-                    Mientras, tu portal y la reserva de tus clientes se ven de Caminante con tu nombre.
-                    Son dos colores.
-                  </span>
-                  <span style={{ marginTop: 8 }}>
-                    <Link href={liga("/caminante/admin/mi-alta/marca")}>Completar mi marca</Link>
-                  </span>
-                </span>
-              </div>
-            ) : null}
-            {/* ⚠️ `.gate` NO EXISTE EN NINGÚN ENTREGABLE. Sus 14 reglas están en
-                mi-alta-css.ts porque el extractor se trajo el CSS de la v5
-                completo, y ahí adentro venían las de la v2 —un bloque cuyo
-                markup la v5 ya había sustituido—. La clase casaba, la
-                estructura no: `.gate .gh` y `.gate .gb` esperan una cabecera y
-                un cuerpo, así que un `<b>` y un `<span>` sueltos salían sin una
-                sola regla encima. Lo que la v5 sí dibuja para estos seis es
-                `.mitad.armar` / `.mitad.cobrar` con su `.locks` de `.lk`
-                adentro, y es lo mismo que ya pinta la casa en `Candados.tsx`.
-                El contenedor `.gates` se queda: su rejilla de 1fr/1.55fr existe
-                justamente para estos dos grupos de tamaño distinto. */}
-            <div className="gates">
-              <Mitad
-                cual="armar"
-                titulo="Armar"
-                pie="Crear tu experiencia, subir fotos, escribir tu itinerario, poner cupos y precios. No necesita un solo dato fiscal."
-                candados={datos.paraArmar}
-                liga={liga}
-                conFirma={porOtra ? null : "/caminante/admin/mi-alta/convenio"}
-              />
-              <Mitad
-                cual="cobrar"
-                titulo="Cobrar"
-                pie="Tus datos fiscales con tu CSD, y tu cuenta de cobro. Sin esto no publicamos: el cobro no tendría a dónde llegar."
-                candados={datos.paraCobrar}
-                liga={liga}
-                conFirma={porOtra ? null : "/caminante/admin/mi-alta/convenio"}
-              />
-            </div>
-          </>
-        ) : null}
+        {/* ── 04 · Armar y cobrar (lámina «Panel Operadora») ──────────────── */}
+        {viendo === 3 ? <Paso04 datos={datos} firma={firma} liga={liga} /> : null}
       </div>
     </>
   );
 }
 
-// LA PALOMA Y EL TACHE, tal cual los trae el entregable de la plataforma
-// (`design/plataforma/dc/plataforma.dc.html`, el bloque `.locks`). Son los
-// mismos dos SVG que dibuja `Candados.tsx` del lado de la casa: si aquí se
-// dibujaran de otra forma, el mismo candado se vería distinto según quién lo
-// mire, que es justo lo que `fetchMiAlta` se cuida de no permitir con los datos.
 // ── PASO 03 · EL CONVENIO ─────────────────────────────────────────────────
 //
 // Transcrito de la lámina «Panel Operadora» (recurso bf8eb7a0 · Paso3). Los
@@ -564,6 +442,198 @@ function Paso03({
           </span>
         </p>
       )}
+    </div>
+  );
+}
+
+// ── PASO 04 · ARMAR Y COBRAR ──────────────────────────────────────────────
+//
+// Transcrito de la lámina «Panel Operadora» (recurso bf8eb7a0 · Paso4): la
+// tira de los seis, «Ya puedes vender» cuando aplica, y las dos mitades.
+// Textos copiados del archivo por script. Lo que NO se transcribió, y por qué:
+//   · el mini formulario de experiencia de «Armar» → Luis eligió (24 sep) sus
+//     experiencias con su estado y el editor de siempre: dos editores de la
+//     misma experiencia terminan guardando cosas distintas;
+//   · el formulario incrustado de la cuenta de cobro («Titular + CLABE») → el
+//     alta de la cuenta dentro de la plataforma es otra obra, y depende de la
+//     cláusula del procesador (CONVENIO-v1.md, Cuarta §7); mientras, se enseña
+//     el estado y la puerta a la pantalla de cobro;
+//   · «el resto llega a tu cuenta dos días hábiles después de la salida» → el
+//     plazo de pago está abierto con el abogado; no se promete;
+//   · «uno para armar y cinco para cobrar» → nuestros seis no se reparten así.
+const SixIco = ({ ok }: { ok: boolean }) =>
+  ok ? (
+    <svg className="st" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 12.6l5.2 5.2L20 6.6" />
+    </svg>
+  ) : (
+    <svg className="st" viewBox="0 0 24 24" fill="none" stroke="var(--sand)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+
+function Paso04({
+  datos,
+  firma,
+  liga,
+}: {
+  datos: Datos;
+  firma: DatosFirma | null;
+  liga: (ruta: string) => string;
+}) {
+  const op = datos.operadora;
+  if (!op) return null;
+  // «Armar» se prende al firmar el convenio, como el nav del alta.
+  const firmado = !!(firma?.convenio?.firmado || op.convenioFirmadoAt);
+  const lectura = !firmado;
+  const n6 = datos.candados.filter((c) => c.cumplido).length;
+  const publicadas = datos.experiencias.filter((e) => e.estado === "published");
+  const f = datos.fiscal;
+  const fiscalOK = !!(f.rfc && f.razonSocial && f.regimen && f.cp);
+  const csdOK = datos.candados.find((c) => c.clave === "csd")?.cumplido ?? false;
+  const cuentaOK = datos.candados.find((c) => c.clave === "connect")?.cumplido ?? false;
+  const cobrarN = [fiscalOK, csdOK, cuentaOK].filter(Boolean).length;
+  const comision = datos.candados.find((c) => c.clave === "comision")?.detalle ?? "";
+  const armarEstado = lectura ? "Cuando firmes" : publicadas.length ? "Publicada" : "Ya puedes";
+
+  return (
+    <div>
+      {datos.estado === "listo" ? (
+        <div className="win" style={{ marginBottom: 16 }}>
+          <span className="lb">{"// "}{op.nombre}</span>
+          <p style={{ fontSize: "clamp(20px,2.6vw,27px)", fontWeight: 200, letterSpacing: "-.02em", lineHeight: 1.2, maxWidth: "26ch" }}>
+            Ya puedes vender. 6 de 6.
+          </p>
+          <div className="row">
+            <div>
+              <span className="big">6/6</span>
+              <p className="gnhint" style={{ maxWidth: "none" }}>Cerraste los seis.</p>
+            </div>
+            <div>
+              <span className="big">{publicadas.length}</span>
+              <p className="gnhint" style={{ maxWidth: "none" }}>
+                {publicadas.length === 1
+                  ? `«${publicadas[0].titulo}» publicada. Ya se puede comprar.`
+                  : "Publicadas. Ya se pueden comprar."}
+              </p>
+            </div>
+            <div>
+              <span className="big">{comision}</span>
+              <p className="gnhint" style={{ maxWidth: "none" }}>Retiene la plataforma de cada venta.</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="seis">
+        {datos.candados.map((c) => (
+          <span key={c.clave} className={"six" + (c.cumplido ? " ok" : "")}>
+            <SixIco ok={c.cumplido} />
+            {c.nombre}
+          </span>
+        ))}
+        <span className="fr">{n6} de 6</span>
+      </div>
+
+      <div className="mitades" style={{ marginTop: 16 }}>
+        <div className="mitad armar">
+          <div className="mh">
+            <b>Armar</b>
+            <span className="fr">{armarEstado}</span>
+            <small>Crear tu experiencia, escribir tu itinerario, poner cupos y precios. No necesita un solo dato fiscal.</small>
+          </div>
+          <div className="mb">
+            {datos.experiencias.length ? (
+              <div className="docs">
+                {datos.experiencias.map((e) => (
+                  <div key={e.slug} className={"doc" + (e.estado === "published" ? "" : " pend")}>
+                    <SixIco ok={e.estado === "published"} />
+                    <span className="nm">
+                      <b>{e.titulo}</b>
+                      {e.actividad ? <small>{e.actividad}</small> : null}
+                    </span>
+                    <span className="fl">
+                      <span className="mut">{e.estado === "published" ? "Publicada" : "Borrador"}</span>
+                    </span>
+                    <span className="ac">
+                      {!lectura ? (
+                        <Link className="btn btn-ghost btn-sm" href={`/caminante/admin/experiencias/${e.slug}`}>
+                          Abrir
+                        </Link>
+                      ) : null}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="gnhint" style={{ marginTop: 0 }}>Todavía no tienes experiencias.</p>
+            )}
+            {lectura ? (
+              <p className="gnhint">Se prende en cuanto firmes el convenio.</p>
+            ) : (
+              <div className="salfoot">
+                <Link className="btn btn-orange btn-sm" href="/caminante/admin/experiencias/nueva">
+                  Crear una experiencia
+                </Link>
+              </div>
+            )}
+            {/* La marca no es de la lámina: Luis pidió (24 sep) que se ofrezca
+                en el alta, y es de «armar» —cómo se ve lo suyo—. */}
+            <p className="gnhint">
+              <Link href={liga("/caminante/admin/mi-alta/marca")}>
+                {op.marca.completa ? "Mi marca" : "Poner mi marca"}
+              </Link>
+              {" · "}
+              {op.marca.completa
+                ? "Tu portal y la reserva de tus clientes se ven con tus colores."
+                : `Te falta ${op.marca.faltan.join(", ")}. Mientras, se ven de Caminante con tu nombre.`}
+            </p>
+          </div>
+        </div>
+
+        <div className="mitad cobrar">
+          <div className="mh">
+            <b>Cobrar</b>
+            <span className="fr" style={cobrarN === 3 ? { color: "var(--olive-d)" } : undefined}>
+              {lectura ? "Esto se te va a pedir" : cobrarN === 3 ? "Listo" : `Falta ${3 - cobrarN} de 3`}
+            </span>
+            <small>Tus datos fiscales, tu CSD y tu cuenta de cobro. Sin esto no publicamos: el cobro no tendría a dónde llegar.</small>
+          </div>
+          <div className="mb">
+            <div className="subh" style={{ marginTop: 0 }}>
+              <b>Datos fiscales</b>
+              {fiscalOK ? (
+                <span className="chip c-paid"><span className="cd" />Completos</span>
+              ) : null}
+            </div>
+            <div className="pf">
+              <Renglon k="RFC" v={f.rfc} />
+              <Renglon k="Razón social" v={f.razonSocial} />
+              <Renglon k="Régimen fiscal" v={f.regimen} />
+              <Renglon k="Código postal fiscal" v={f.cp} />
+            </div>
+            <div className="subh">
+              <b>Certificado de Sello Digital</b>
+              <small>Con él timbramos las facturas de tus viajeros a tu nombre.</small>
+            </div>
+            <p className="gnhint" style={{ marginTop: 0 }}>{csdOK ? "Cargado." : "Sin cargar."}</p>
+            <div className="subh">
+              <b>Cuenta de cobro</b>
+              {cuentaOK ? (
+                <span className="chip c-paid"><span className="cd" />Verificada</span>
+              ) : null}
+            </div>
+            <p className="gnhint" style={{ marginTop: 0 }}>
+              {cuentaOK ? "Verificada: tus ventas pueden entrar a tu nombre." : "Sin conectar."}
+            </p>
+            <div className="salfoot">
+              <Link className="btn btn-orange btn-sm" href={liga("/caminante/admin/mi-alta/cobrar")}>
+                {cobrarN === 3 ? "Ver mis datos de cobro" : "Completar mis datos de cobro"}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -822,88 +892,5 @@ function Expediente02({
         </div>
       </div>
     </>
-  );
-}
-
-const PALOMA = (
-  <svg className="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 12.6l5.2 5.2L20 6.6" />
-  </svg>
-);
-const TACHE = (
-  <svg className="m" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 6l12 12M18 6L6 18" />
-  </svg>
-);
-
-// UNA DE LAS DOS MITADES. El reparto no se escribe aquí: sale de `bloquea`, en
-// `fetchMiAlta`. La cuenta del `.fr` tampoco — se cuenta de la lista que llega,
-// porque «1 de 1 y 2 de 5» es lo que decía la lámina y los datos reales reparten
-// 2 y 4. Un número de adorno en la pantalla del operador es un número que él
-// puede desmentir mirando sus propios candados.
-//
-// ⚠️ Sin `.own`: «Yo» y «Él» son la voz de la CASA. Aquí el dueño ya lo dice el
-// veredicto de arriba —«Te toca a ti: …»— y en esta pantalla el «Él» sería él.
-function Mitad({
-  cual, titulo, pie, candados, liga, conFirma,
-}: {
-  cual: "armar" | "cobrar";
-  titulo: string;
-  pie: string;
-  candados: Datos["candados"];
-  /** El constructor de ligas del padre, para que el `?operadora=` no se pierda
-      aquí adentro. Se pasa en vez de rehacerlo: dos constructores del mismo
-      enlace son dos lugares donde se puede olvidar el parámetro. */
-  liga: (ruta: string) => string;
-  /** La puerta del convenio, o `null` cuando la casa actúa por otra: firmar es
-      de ella y esa pantalla no acepta `?operadora=`. El candado se sigue
-      viendo en rojo; lo que no aparece es un «Resolverlo» que rebota. */
-  conFirma: string | null;
-}) {
-  const cumplidos = candados.filter((c) => c.cumplido).length;
-  return (
-    <div className={`mitad ${cual}`}>
-      <div className="mh">
-        <b>{titulo}</b>
-        <span className="fr">
-          {cumplidos} de {candados.length}
-        </span>
-        <small>{pie}</small>
-      </div>
-      <div className="mb">
-        <div className="locks">
-          {candados.map((c) => {
-            // CADA CANDADO QUE LE TOCA A ELLA LLEVA SU PUERTA. «Falta tu CSD» sin
-            // un lugar a dónde ir se leía como un reproche: CSD y Connect vivían
-            // sólo en la pantalla de la casa hasta el 22 sep 2026.
-            const puerta =
-              !c.cumplido && c.toca === "operadora"
-                ? c.clave === "convenio"
-                  ? conFirma
-                  : c.clave === "csd" || c.clave === "connect"
-                    ? liga("/caminante/admin/mi-alta/cobrar")
-                    : null
-                : null;
-            return (
-              <span key={c.clave} className={`lk${c.cumplido ? " ok" : " no"}`}>
-                {c.cumplido ? PALOMA : TACHE}
-                <span className="g">
-                  {c.nombre}
-                  <small>
-                    {c.detalle}
-                    {puerta ? (
-                      <>
-                        {" · "}
-                        <Link href={puerta}>Resolverlo</Link>
-                      </>
-                    ) : null}
-                  </small>
-                </span>
-              </span>
-            );
-          })}
-        </div>
-      </div>
-    </div>
   );
 }
