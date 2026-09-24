@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import AdminShell from "../../ui/AdminShell";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -87,7 +88,16 @@ export default async function RecursosPlataformaPage() {
           <div className="cu">
             <span className="lb">Salió</span>
             <span className="n hole">sin registrar</span>
-            <p className="sub">Los proveedores de la plataforma. Todavía no viven en la base.</p>
+            <p className="sub">
+              Los proveedores de la plataforma. Todavía no viven en la base.{" "}
+              {/* Lo que SÍ sale y sí tiene dónde vivir desde la 0066: lo que se
+                  le transfiere a cada operadora. La liga va aquí y no en la nav
+                  porque esto es parte de la misma cuenta — y una pestaña más
+                  arriba es una pestaña que hay que acordarse de visitar. */}
+              <Link href="/caminante/admin/plataforma/recursos/liquidaciones">
+                Lo que se le transfiere a las operadoras sí →
+              </Link>
+            </p>
           </div>
           <span className="op">−</span>
           <div className="cu">
