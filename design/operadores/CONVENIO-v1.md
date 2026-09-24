@@ -204,6 +204,75 @@ futuras.
 del Operador» es correcto para efectos de quién percibe el ingreso, dado que el
 cargo lo origina la plataforma.*
 
+**7 · El procesador de pagos.**
+
+> 🔸 **Agregada el 24 sep 2026, y pendiente de revisión. Es un requisito del
+> procesador, no una preferencia nuestra.** Luis decidió que la operadora dé de
+> alta su cuenta de cobro **dentro de la plataforma**, sin salir a la página del
+> procesador y sin que éste aparezca en pantalla: captura sus datos con
+> nosotros y nosotros se los enviamos. El procesador lo permite (cuentas
+> conectadas en las que la plataforma recaba la información), **pero con dos
+> condiciones que sólo se cumplen aquí, en el convenio:**
+>
+> 1. **Tiene que haber una relación contractual directa entre el procesador y
+>    cada Operador.** El Operador debe aceptar **expresamente** el contrato de
+>    cuentas conectadas del procesador, con un **enlace** a él, antes de recibir
+>    un solo cobro. La plataforma registra la aceptación (fecha y dirección IP)
+>    y se la informa al procesador.
+> 2. **Hay divulgaciones que deben ser claras y visibles:** quiénes son los
+>    bancos adquirentes del procesador, y que el procesador trata los datos del
+>    Operador según su propio aviso de privacidad (con enlace).
+>
+> O sea: **en la pantalla puede no aparecer; en el convenio tiene que estar.**
+> El procesador publica un texto modelo en español para esto, en
+> https://docs.stripe.com/connect/updating-service-agreements — conviene
+> compararlo contra la redacción de abajo.
+
+El cobro de las reservas se procesa a través de un **procesador de pagos
+tercero** —a la fecha, **Stripe**—, que es quien presta al Operador el servicio
+de procesamiento de pagos y de depósito a su cuenta bancaria. Para recibir
+cobros por la vía (a), el Operador:
+
+a) **Acepta el Contrato de Cuentas Conectadas del procesador**, que incluye sus
+   Términos de Servicio y que el procesador puede modificar de tiempo en tiempo,
+   y reconoce que la aceptación de este convenio conlleva la aceptación de dicho
+   contrato. El enlace vigente es https://stripe.com/connect-account/legal/full.
+
+b) **Se obliga a proporcionar a Caminante información completa y verídica**
+   sobre sí mismo y su negocio —identidad, datos fiscales, domicilio, cuenta
+   bancaria y los documentos que el procesador solicite para verificarlo— y
+   **autoriza a Caminante a compartirla con el procesador**, junto con la
+   información de las operaciones relacionadas con el servicio de
+   procesamiento.
+
+c) **Reconoce** que el procesador trata sus datos conforme a su propio aviso de
+   privacidad (https://stripe.com/privacy) y que las operaciones se liquidan a
+   través de los bancos adquirentes del procesador
+   (https://stripe.com/legal/acquirer-disclosure).
+
+d) Acepta que, **si no entrega la información que el procesador requiera** o
+   ésta resulta falsa, el procesador puede suspender los depósitos a su cuenta,
+   y Caminante puede suspender la venta por la vía (a) hasta que se regularice.
+
+Caminante **no almacena** el número completo de la cuenta bancaria del Operador
+ni las imágenes de sus identificaciones: los recaba en la plataforma y los
+transmite directamente al procesador.
+
+🔸 *Para la revisión:*
+*— ¿Basta con que la mención y el enlace estén **en el convenio**, sin aparecer en
+la pantalla de alta de la cuenta de cobro? El procesador pide consentimiento
+«expreso»; la firma electrónica del convenio (Décima sexta) lo registra con
+fecha, IP y huella del texto.*
+*— Con este modelo **la plataforma responde ante el procesador por los saldos
+negativos** de las cuentas conectadas (contracargos, devoluciones que el
+Operador no cubra, fraude). Se cruza con la pregunta 9 (intermediaria o
+garante) y la 11 (contracargos): conviene resolverlas juntas.*
+*— Costo: con este modelo el procesador le cobra **a la plataforma** una cuota
+por cada cuenta activa en el mes y una comisión por cada depósito al Operador
+(en México, según su tabla publicada: MXN 35 por cuenta activa al mes y
+0.25% + MXN 12 por depósito). La Cuarta §3 dice que Caminante absorbe los
+costos de procesamiento; confirmar que eso incluye éstos.*
+
 ## Quinta · Devoluciones, cancelaciones y contracargos
 
 El Operador fija su política de cancelación, que se publica en la página de la
@@ -519,6 +588,9 @@ competentes de **[Ciudad de México]**, renunciando a cualquier otro fuero.
 | 9 | **Si el Operador no reintegra lo devuelto, ¿Caminante le devuelve al cliente de su bolsa y lo persigue después?** Define si es intermediaria o garante | **Abogado** — la más importante de todas. Ver ESCENARIOS-DINERO.md |
 | 10 | ¿Penalización al Operador que cancela, como hace Airbnb? ¿Y qué cuenta como fuerza mayor en montaña? | Luis, con el abogado |
 | 11 | Ahora que el cargo es a nombre del Operador, ¿los contracargos siguen siendo suyos? | Abogado |
+| 12 | **El procesador de pagos exige que cada Operador acepte expresamente su contrato, con enlace, y dos divulgaciones visibles (bancos adquirentes y su aviso de privacidad).** Luis quiere que el procesador no aparezca en pantalla. ¿Basta con que esté en el convenio? Redacción propuesta en la Cuarta §7 | **Abogado** |
+| 13 | **Con la cuenta de cobro dada de alta por la plataforma, Caminante responde ante el procesador por los saldos negativos** del Operador (contracargos, devoluciones no cubiertas, fraude) | **Abogado**, junto con la 9 y la 11 |
+| 14 | Los datos bancarios e identificaciones del Operador pasan por la plataforma hacia el procesador. Confirmar la base legal y el aviso de privacidad aplicable (se transmiten, no se almacenan) | Abogado |
 
 ## Anexos que conviene tener
 

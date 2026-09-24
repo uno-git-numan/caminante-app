@@ -71,6 +71,17 @@ quién aceptó, cuándo, y desde qué dirección IP, en una tabla que **solo per
 insertar** (no se puede editar ni borrar un registro de firma). ¿Basta para el
 Código de Comercio, o hace falta un tercero certificador?
 
+**7 · El procesador de pagos, sin que aparezca en pantalla.** *(Agregada el 24
+sep 2026.)* Luis decidió que la operadora dé de alta su cuenta de cobro dentro
+de la plataforma y que el procesador (Stripe) no aparezca en la interfaz. El
+procesador lo permite, pero exige: **(a)** una relación contractual directa con
+cada operadora, que acepta **expresamente** su contrato de cuentas conectadas
+**con un enlace**; **(b)** divulgar de forma clara y visible sus bancos
+adquirentes y su aviso de privacidad. ¿Basta con que eso viva en el convenio
+(Cuarta §7) y no en la pantalla? Y con este modelo **la plataforma responde por
+los saldos negativos** de las operadoras ante el procesador: ¿cómo lo
+trasladamos a ellas? Se cruza con las preguntas 9 y 11 de CONVENIO-v1.md.
+
 ---
 
 ## Lo que NO estamos preguntando (ya está decidido por el negocio)
