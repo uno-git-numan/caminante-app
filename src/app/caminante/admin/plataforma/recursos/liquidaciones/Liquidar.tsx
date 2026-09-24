@@ -103,7 +103,7 @@ export default function Liquidar({
       if (r.ok) {
         setAviso({
           tipo: "ok",
-          texto: `Quedó registrada: ${pesos(r.monto)} sobre ${r.pagos} ${r.pagos === 1 ? "cobro" : "cobros"}.`,
+          texto: `${pesos(r.monto)} sobre ${r.pagos} ${r.pagos === 1 ? "cobro" : "cobros"}.`,
         });
         setReferencia("");
         setNotas("");
@@ -216,7 +216,7 @@ export default function Liquidar({
         ) : null}
       </div>
 
-      <p className="note" style={{ marginTop: 14 }}>
+      <p className="mnybridge" style={{ marginTop: 14 }}>
         <s>{"//"}</s>
         <span>
           La referencia es lo que permite cuadrar contra el estado de cuenta, y lo que impide
@@ -264,10 +264,16 @@ export default function Liquidar({
       </div>
 
       {aviso ? (
-        <p className={`note ${aviso.tipo === "ok" ? "ok" : "falta"}`} style={{ marginTop: 14 }}>
-          <s>{"//"}</s>
-          <span>{aviso.texto}</span>
-        </p>
+        <div
+          className={`verdict ${aviso.tipo === "ok" ? "si" : "no"}`}
+          style={{ marginTop: 14, marginBottom: 0 }}
+        >
+          <span className="n">{"//"}</span>
+          <span className="g">
+            <b>{aviso.tipo === "ok" ? "Quedó registrada" : "No se registró"}</b>
+            <span>{aviso.texto}</span>
+          </span>
+        </div>
       ) : null}
     </div>
   );

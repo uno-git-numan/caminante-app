@@ -135,14 +135,16 @@ export default async function LiquidacionesPage() {
               {/* ⚠️ Un sobrepago se DICE. Taparlo con un max(0) lo haría
                   desaparecer de la pantalla y nadie lo perseguiría. */}
               {s.pagadoDeMasMxn > 0 ? (
-                <p className="note falta" style={{ marginTop: 10 }}>
-                  <s>{"//"}</s>
-                  <span>
-                    Se le transfirió <b>{formatMXN(s.pagadoDeMasMxn)} más</b> de lo que le tocaba.
-                    Puede ser una liquidación capturada de más, o una devolución posterior a la
-                    transferencia. No se descuenta solo: hay que mirarlo.
+                <div className="verdict no" style={{ marginTop: 10 }}>
+                  <span className="n">{"//"}</span>
+                  <span className="g">
+                    <b>Se le transfirió {formatMXN(s.pagadoDeMasMxn)} más de lo que le tocaba</b>
+                    <span>
+                      Puede ser una liquidación capturada de más, o una devolución posterior a la
+                      transferencia. No se descuenta solo: hay que mirarlo.
+                    </span>
                   </span>
-                </p>
+                </div>
               ) : null}
 
               <Liquidar
