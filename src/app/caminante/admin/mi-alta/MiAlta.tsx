@@ -259,6 +259,19 @@ export default function MiAlta({ datos }: { datos: Datos }) {
                   </Link>
                   {" · "}
                   <Link href="/caminante/admin/mi-alta/cobrar">Mi cuenta de cobro y datos fiscales</Link>
+                  {" · "}
+                  {/* ⚠️ LA MARCA SE OFRECE, NO SÓLO SE RECLAMA. Hasta el 24 sep
+                      2026 sólo aparecía en el aviso de abajo, o sea únicamente
+                      cuando estaba a medias — y en cuanto se completaba
+                      desaparecía de esta pantalla, sin manera de volver a verla
+                      ni de cambiarla desde aquí. Una cosa que sólo existe
+                      cuando está mal es una cosa que nadie elige hacer: se
+                      descubre al ser regañado. Aquí va siempre, junto al
+                      convenio y al cobro, porque los tres son lo que se hace
+                      mientras se arma. */}
+                  <Link href="/caminante/admin/mi-alta/marca">
+                    {datos.operadora?.marca.completa ? "Mi marca" : "Poner mi marca"}
+                  </Link>
                 </span>
               </span>
             </div>

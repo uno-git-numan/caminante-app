@@ -6,6 +6,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cleanAdjust, type TeamMember } from "@/lib/operators/public";
 import OperadorForm from "./OperadorForm";
 import ConvenioForm from "./ConvenioForm";
+import MarcaResumen from "./MarcaResumen";
+import type { OperatorBranding } from "@/lib/operators/branding";
 import type { OperadorLegal } from "@/lib/operators/convenio-actions";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,8 @@ type Row = {
   legal: unknown;
   rfc: string | null;
   razon_social: string | null;
+  branding: OperatorBranding | null;
+  es_la_casa: boolean | null;
 };
 
 export default async function OperadoresAdminPage() {
@@ -34,7 +38,7 @@ export default async function OperadoresAdminPage() {
   const { data } = await sb
     .from("operators")
     .select(
-      "id, name, slug, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public, commission_pct, legal, rfc, razon_social",
+      "id, name, slug, bio, photo_url, photo_adjust, hero_photo_url, hero_adjust, instagram, team, is_public, commission_pct, legal, rfc, razon_social, branding, es_la_casa",
     )
     // Se listan todas menos las dadas de baja: una suspendida sigue operando
     // lo que ya vendió y tiene que poder verse.
@@ -62,8 +66,11 @@ export default async function OperadoresAdminPage() {
       ) : (
         rows.map((r) => (
           <div key={r.id}>
-          {/* Primero el convenio (cobrar y facturar), luego el perfil público
-              (lo que ve el viajero). Son dos momentos distintos del alta. */}
+          {/* Primero el convenio (cobrar y facturar), luego su marca (cómo se
+              ve lo suyo) y al final el perfil público (lo que ve el viajero en
+              Caminante). Son tres momentos distintos del alta, y la marca está
+              en medio porque es de las dos cosas: administrativa al capturarla,
+              pública en cuanto viste una pantalla. */}
           <ConvenioForm
             id={r.id}
             nombre={r.name}
@@ -71,6 +78,13 @@ export default async function OperadoresAdminPage() {
             legal={(r.legal as OperadorLegal | null) ?? null}
             rfcActual={r.rfc ?? ""}
             razonSocialActual={r.razon_social ?? ""}
+          />
+          <MarcaResumen
+            id={r.id}
+            nombre={r.name}
+            slug={r.slug ?? null}
+            branding={r.branding ?? null}
+            esLaCasa={r.es_la_casa === true}
           />
           <OperadorForm
             operador={{

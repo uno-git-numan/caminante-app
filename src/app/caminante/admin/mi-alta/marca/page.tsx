@@ -84,7 +84,16 @@ export default async function MarcaPage({
           </p>
           <p className="desc" style={{ marginTop: 10 }}>
             {porOtra ? (
-              <Link href="/caminante/admin/plataforma/comunidad">Volver a Comunidad</Link>
+              // ⚠️ DOS PUERTAS, DOS SALIDAS. La casa llega aquí desde Comunidad
+              // («Capturarla por ella») y, desde el 24 sep 2026, también desde
+              // la ficha de la sección Operador. Un solo «Volver a Comunidad»
+              // sería mentira para la mitad de quienes lo leen, así que se
+              // ofrecen las dos en vez de adivinar de dónde vino.
+              <>
+                <Link href="/caminante/admin/plataforma/comunidad">Volver a Comunidad</Link>
+                {" · "}
+                <Link href="/caminante/admin/operadores">Ficha del operador</Link>
+              </>
             ) : (
               <Link href="/caminante/admin/mi-alta">Volver a Mi alta</Link>
             )}

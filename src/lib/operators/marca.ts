@@ -100,3 +100,24 @@ export function marcaDeFormData(fd: FormData): OperatorBranding | null {
 export function marcaLista(b: OperatorBranding | null | undefined): boolean {
   return !!(b && color(b.colors?.primary) && color(b.colors?.accent));
 }
+
+/**
+ * Qué le falta a una marca, en palabras, para decírselo a quien la captura.
+ *
+ * ⚠️ ES MÁS EXIGENTE QUE `marcaLista` Y ESO ES A PROPÓSITO: incluye el logo,
+ * que NO es requisito para vestir —dos colores bastan— pero sí es lo que hace
+ * que su portal deje de mostrar el sello de Caminante. Una lista que sólo
+ * nombrara lo que bloquea diría «no te falta nada» a quien todavía no se ve a
+ * sí misma en su propio portal.
+ *
+ * Vive aquí, y no en la pantalla que lo pregunta, porque lo preguntan dos: el
+ * tablero de operadoras de la casa y la ficha del perfil. Escrito dos veces,
+ * la primera vez que alguien agregue un requisito lo agregaría en una sola.
+ */
+export function faltanDeMarca(b: OperatorBranding | null | undefined): string[] {
+  return [
+    !color(b?.colors?.primary) ? "color principal" : null,
+    !color(b?.colors?.accent) ? "color de acento" : null,
+    !b?.logoUrl ? "logo" : null,
+  ].filter((x): x is string => !!x);
+}

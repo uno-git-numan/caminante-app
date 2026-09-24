@@ -2,7 +2,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { convenioAlDia, leerEstado, versionesConvenio } from "@/lib/operadores/convenio";
 import type { Candado, Etapa } from "./etapas";
-import { color, marcaLista } from "@/lib/operators/marca";
+import { faltanDeMarca, marcaLista } from "@/lib/operators/marca";
 import type { OperatorBranding } from "@/lib/operators/branding";
 
 // Reexportados para no mover cada llamada: lo puro vive en `etapas.ts`.
@@ -203,12 +203,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     const cumplidos = candados.filter((c) => c.cumplido).length;
 
     const b = (o.branding ?? null) as OperatorBranding | null;
-    const faltanMarca = [
-      !color(b?.colors?.primary) ? "color principal" : null,
-      !color(b?.colors?.accent) ? "color de acento" : null,
-      !b?.logoUrl ? "logo" : null,
-    ].filter((x): x is string => !!x);
-    const marca = { completa: marcaLista(b), faltan: faltanMarca };
+    const marca = { completa: marcaLista(b), faltan: faltanDeMarca(b) };
     // Dos preguntas distintas, y la primera se contesta mucho antes que la
     // segunda. Nomádika hoy no puede ninguna de las dos, pero le falta UNA cosa
     // para armar y tres para cobrar: decirle «2 de 6» esconde justo eso.
