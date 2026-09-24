@@ -224,6 +224,25 @@ quedaron todas en `unico`: aplicarla no movió ni un número.
 ⚠️ Ojo con los dos ejes: **`tipo`** (fijo/variable/buffer) decide el EQUILIBRIO;
 **`modo`** decide CÓMO se calcula el monto. No se deducen uno del otro.
 
+## El panel de operadora (24 sep 2026)
+
+⚠️ **numan es el SOFTWARE; Caminante es una OPERADORA** (de Druidas, igual que
+Kéntro; Nomádika es la única externa). La pastilla de la cabecera es un
+**sombrero por operadora** (cookie, 0069 `operators.propia`): cambia QUÉ SE
+MIRA, nunca QUIÉN SOY (invariantes #22 y #23). Esto corrige la sección de
+abajo, que decía «Caminante es la PLATAFORMA; NUMAN es una operadora».
+
+**Mi alta** está en producción con los cuatro pasos de la lámina «Panel
+Operadora» (nos conocemos · expediente por actividad en acordeones · convenio
+con firma dentro · armar y cobrar con los seis candados), el panel punteado
+mientras el alta no cierra (#24), la casa actuando por cada operadora con
+`?operadora=`, y **sin la palabra «Stripe» en ninguna pantalla** (#25). El alta
+de la cuenta de cobro DENTRO de la plataforma está construida y **apagada**
+(`COBRO_EN_PLATAFORMA`, ver `.claude/rules/operadores-connect.md`).
+
+Documentación de handover: Notion «Caminante · Panel de operadora: alta,
+expediente y cobro (sistema)» y el doc homónimo en Drive `numan/CAMINANTE/`.
+
 ## El panel de la PLATAFORMA (28 ago 2026)
 
 **Caminante es la PLATAFORMA; NUMAN es una operadora — la propia.** Una pastilla
