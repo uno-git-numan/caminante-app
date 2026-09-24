@@ -1216,4 +1216,22 @@ export const ADMIN_CSS = `
 .adm .cmc.sleep .cmnext{background:rgba(201,183,156,.3);color:#7a5f2a}
 .adm .cmc.sleep .cmnext s,.adm .cmc.sleep .cmnext b{color:#8a6d1f}
 .adm .cmc.sleep .age{color:#8a6d1f;font-weight:700}
+
+/* EL NAV DEL ALTA · punteado mientras la operadora no termina su alta (lámina v5).
+   Vivía en mi-alta-css y expediente-css, que sólo se cargan en esas pantallas;
+   la cabecera se dibuja en todo el panel, y en Experiencias salía sin estilo. */
+.adm .nav .fut{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;font-size:13.5px;font-weight:500;color:var(--sand);padding:7px 13px;border-radius:999px;border:1px dashed rgba(201,183,156,.9);background:transparent;cursor:not-allowed;-webkit-user-select:none;user-select:none}
+.adm .nav .fut .dt{width:7px;height:7px;border-radius:999px;border:1.25px solid var(--sand);flex:0 0 auto}
+.adm .navnote{display:flex;align-items:baseline;gap:.5em;padding:0 22px 12px;font-size:11.5px;line-height:1.55;color:var(--ink-soft)}
+.adm .navnote s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--sand)}
+.adm .nav .fut.liv{color:var(--charcoal);border-style:solid;border-color:var(--line);background:#fff;cursor:pointer}
+.adm .nav .fut.liv .dt{background:var(--olive);border-color:var(--olive)}
+.adm .nav .fut.liv:hover{border-color:var(--olive);color:var(--olive-d)}
+.adm .nav .fut.nuevo{border-color:rgba(99,113,84,.55);box-shadow:0 0 0 3px rgba(99,113,84,.12)}
+.adm .susurro{display:none;align-items:flex-start;gap:12px;margin:0 22px 14px;padding:12px 15px;border-radius:12px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow)}
+.adm .susurro.on{display:flex}
+.adm .susurro s{text-decoration:none;font-family:var(--mono);font-weight:700;color:var(--orange);flex:0 0 auto;padding-top:2px}
+.adm .susurro .g{flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.6;color:var(--ink-soft)}
+.adm .susurro .g b{display:block;font-size:13.5px;font-weight:600;color:var(--charcoal);margin-bottom:3px}
+.adm .susurro .x{border:0;background:transparent;font-family:var(--mono);font-size:15px;color:var(--sand);flex:0 0 auto;padding:0 2px}
 `;

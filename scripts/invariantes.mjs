@@ -791,6 +791,41 @@ const REGLAS = [
       return null;
     },
   },
+
+  // ── 24 · El alta cierra secciones en sus DOS puertas ───────────────────────
+  {
+    nombre: "El candado del alta está en el layout y en la cabecera",
+    comprueba() {
+      // Mientras la operadora no termina su alta, las seis secciones rebotan a
+      // Mi alta (lámina v5, 24 sep 2026). Next NO vuelve a correr el layout al
+      // navegar con clics entre páginas del panel: con el candado sólo en el
+      // layout, escribir la URL rebotaba pero un clic entraba. Con él sólo en
+      // la cabecera, las pantallas que no la dibujan quedaban abiertas.
+      //
+      // Por eso son dos puertas con UNA función (`rebotaDelAlta`). Si una la
+      // pierde, el candado sigue pareciendo puesto y ya no lo está.
+      const puertas = [
+        "src/app/caminante/admin/layout.tsx",
+        "src/app/caminante/admin/ui/AdminShell.tsx",
+      ];
+      for (const rel of puertas) {
+        const f = join(raiz, rel);
+        if (!existsSync(f)) return `No encontré ${rel}. Si se movió, este guardián tiene que apuntar a su nueva casa.`;
+        const txt = readFileSync(f, "utf8").replace(/\/\/.*$/gm, "");
+        if (!/await\s+rebotaDelAlta\(/.test(txt)) {
+          return [
+            `${rel} ya no llama a \`rebotaDelAlta\`.`,
+            "",
+            "El candado del alta necesita las dos puertas: el layout cubre la URL",
+            "escrita a mano y la cabecera cubre la navegación con clics, que el",
+            "layout no ve. Con una sola, la operadora entra a una sección que en",
+            "el nav se ve punteada.",
+          ].join("\n");
+        }
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

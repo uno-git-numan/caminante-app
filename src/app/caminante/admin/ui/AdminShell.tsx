@@ -10,6 +10,9 @@ import {
   type AdminSection,
 } from "./nav";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { candadoDeAlta, rebotaDelAlta } from "@/lib/operadores/nav-alta-servidor";
+import NavAlta from "./NavAlta";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { operadorasPropias, sombreroPuesto } from "@/lib/auth/sombrero";
@@ -148,6 +151,14 @@ export default async function AdminShell({
   const items = navPara(rol, sombrero === "operadora" && !!puesto && !puesto.esLaCasa);
   const nav = sombrero === "plataforma" ? NAV_PLATAFORMA : items;
 
+  // EL ALTA CIERRA SECCIONES. El layout lo revisa en la carga completa; aquí se
+  // revisa en cada navegación con clics, que el layout no ve. Misma función.
+  if (await rebotaDelAlta(ruta)) redirect("/caminante/admin/mi-alta");
+  const candado = sombrero === "operadora" ? await candadoDeAlta() : null;
+  // Mientras el alta no cierra, la cabecera es la de la lámina: «Mi alta» y las
+  // seis punteadas, y a la derecha lo que puede y lo que todavía no.
+  const enAlta = candado && candado.estado !== "abierto" ? candado : null;
+
   return (
     <div className="adm">
       <style dangerouslySetInnerHTML={{ __html: ADMIN_CSS }} />
@@ -245,6 +256,25 @@ export default async function AdminShell({
               </span>
             ) : null}
           </div>
+          {enAlta ? (
+            <div className="qa">
+              {enAlta.estado === "experiencias" ? (
+                <span className="chip c-paid">
+                  <span className="cd" />
+                  Puedes armar
+                </span>
+              ) : null}
+              <span className="chip c-full">
+                <span className="cd" />
+                Todavía no puedes cobrar
+              </span>
+              <form action={signOut}>
+                <button type="submit" className="btn btn-glass btn-sm" title="Cerrar sesión">
+                  Salir
+                </button>
+              </form>
+            </div>
+          ) : (
           <div className="qa">
             {/* Pagos («Reservas» hasta que dejó de ser pestaña) se entra desde
                 Recursos, que es de la casa. El operador no ve Recursos, así que
@@ -271,7 +301,14 @@ export default async function AdminShell({
               </button>
             </form>
           </div>
+          )}
         </div>
+        {enAlta ? (
+          <NavAlta
+            estado={enAlta.estado as "cerrado" | "experiencias"}
+            enMiAlta={!!ruta?.startsWith("/caminante/admin/mi-alta")}
+          />
+        ) : (
         <nav className="nav">
           {nav.map((it) =>
             it.href ? (
@@ -320,6 +357,7 @@ export default async function AdminShell({
             {ADMIN_NAV_OPERADOR.label}
           </Link>
         </nav>
+        )}
       </header>
       <div className="page">{children}</div>
       <script dangerouslySetInnerHTML={{ __html: TOGGLE_JS }} />

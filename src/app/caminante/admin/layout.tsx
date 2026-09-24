@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { rutaDeOperador } from "@/lib/auth/panel-operador";
+import { rebotaDelAlta } from "@/lib/operadores/nav-alta-servidor";
 
 // LA PUERTA DEL PANEL.
 //
@@ -34,11 +35,20 @@ export default async function AdminLayout({
     redirect("/caminante?error=not_admin");
   }
 
+  const ruta = (await headers()).get("x-ruta");
   if (rol === "operador") {
-    const ruta = (await headers()).get("x-ruta");
     if (!rutaDeOperador(ruta)) {
       redirect("/caminante/admin?aviso=solo_casa");
     }
+  }
+
+  // EL ALTA CIERRA SECCIONES (lámina v5, Luis 24 sep 2026): mientras la
+  // operadora no la termine, las seis secciones rebotan a Mi alta — también
+  // escribiendo la URL. Aplica igual a la casa con el sombrero de una operadora
+  // en su alta. Esto cubre la carga completa; la navegación con clics la cubre
+  // la cabecera, porque Next no vuelve a correr este layout entre páginas.
+  if (await rebotaDelAlta(ruta)) {
+    redirect("/caminante/admin/mi-alta");
   }
 
   return <>{children}</>;
