@@ -12,7 +12,9 @@ import { etapaDe } from "@/lib/plataforma/etapas";
 
 const AHORA = new Date("2026-09-24T12:00:00Z");
 const haceDias = (n: number) => new Date(AHORA.getTime() - n * 86_400_000).toISOString();
-const base = { solicitud: null, filaActiva: true, vendidoMes: 0, ultimaVenta: null, cumplidos: 3, esLaCasa: false, ahora: AHORA };
+// Expediente completo por omisión: las pruebas de arriba prueban ventas y
+// candados, no el expediente. Las del expediente lo abren a propósito.
+const base = { solicitud: null, filaActiva: true, expedienteCompleto: true, vendidoMes: 0, ultimaVenta: null, cumplidos: 3, esLaCasa: false, ahora: AHORA };
 
 describe("etapaDe", () => {
   it("EL CASO KÉNTRO: nunca vendió y tiene 3 de 6 ⇒ en su alta, NO dormida", () => {
@@ -57,5 +59,17 @@ describe("etapaDe", () => {
     // Quince días después de su llamada, el tablero la seguía teniendo ahí.
     expect(etapaDe({ ...base, solicitud: "calling" })).toBe("expediente");
     expect(etapaDe({ ...base, solicitud: "pending" })).toBe("expediente");
+  });
+
+  it("EL CASO NOMÁDIKA: vende con dispensa y el expediente está abierto ⇒ Expediente, NO Vendiendo", () => {
+    expect(etapaDe({ ...base, expedienteCompleto: false, vendidoMes: 7000, ultimaVenta: haceDias(5), cumplidos: 4 })).toBe("expediente");
+  });
+
+  it("expediente abierto con los seis candados ⇒ Expediente, NO «listo para vender»", () => {
+    expect(etapaDe({ ...base, expedienteCompleto: false, cumplidos: 6 })).toBe("expediente");
+  });
+
+  it("la casa no tiene expediente que seguir", () => {
+    expect(etapaDe({ ...base, esLaCasa: true, expedienteCompleto: false, vendidoMes: 900 })).toBe("vendiendo");
   });
 });

@@ -2,6 +2,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { convenioAlDia, leerEstado, versionesConvenio } from "@/lib/operadores/convenio";
 import { etapaDe, type Candado, type Etapa } from "./etapas";
+import { expedientesCompletos } from "@/lib/operadores/expediente";
 import { faltanDeMarca, marcaLista } from "@/lib/operators/marca";
 import type { OperatorBranding } from "@/lib/operators/branding";
 
@@ -86,7 +87,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
   const ahora = new Date();
   const desdeMes = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1)).toISOString();
 
-  const [{ data: ops }, { data: exps }, { data: resv }, { data: apps }] = await Promise.all([
+  const [{ data: ops }, { data: exps }, { data: resv }, { data: apps }, completos] = await Promise.all([
     sb
       .from("operators")
       .select(
@@ -101,6 +102,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       .select(
         "id, operator_id, status, created_at, llamada_at, llamada_meet_url, responsable, email, whatsapp, ciudad_estado, tipo_operacion, actividades, seguro_rc, primeros_auxilios, ratio_guias",
       ),
+    expedientesCompletos(),
   ]);
 
   type Exp = { id: string; status: string; operator_id: string | null };
@@ -227,6 +229,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     const etapa = etapaDe({
       solicitud: app?.status ?? null,
       filaActiva: o.estado === "activa",
+      expedienteCompleto: completos.get(id) ?? false,
       vendidoMes,
       ultimaVenta,
       cumplidos,

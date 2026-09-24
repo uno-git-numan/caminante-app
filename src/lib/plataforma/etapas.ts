@@ -50,6 +50,8 @@ export function etapaDe(o: {
    * no puerta —la misma regla que Mi alta desde el 22 sep 2026—.
    */
   filaActiva: boolean;
+  /** Su expediente está completo y aprobado (`armarExpediente(...).completo`). */
+  expedienteCompleto: boolean;
   /** Lo PAGADO este mes. Una reserva cancelada o solicitada no es venta. */
   vendidoMes: number;
   /** La fecha de su última venta PAGADA, o null si nunca ha vendido. */
@@ -69,6 +71,12 @@ export function etapaDe(o: {
     if (o.solicitud === "pending") return "llego";
     if (o.solicitud === "calling") return "en_llamada";
   }
+  // ⚠️ EXPEDIENTE ABIERTO ⇒ EXPEDIENTE, AUNQUE VENDA (Luis, 24 sep 2026).
+  // Nomádika vende con una dispensa y no tiene ni una actividad declarada: el
+  // tablero la ponía en «Vendiendo» mientras su Mi alta la ponía en el paso 02.
+  // Una dispensa deja vender; no convierte el expediente en hecho. Y es la
+  // única: fuera de Nomádika no debe haber otra operadora vendiendo así.
+  if (!o.esLaCasa && !o.expedienteCompleto) return "expediente";
   if (o.vendidoMes > 0) return "vendiendo";
   // ⚠️ «DORMIDO» ES HABER VENDIDO Y DEJAR DE VENDER. Hasta el 24 sep 2026 se
   // decidía por la antigüedad de la FILA, así que Kéntro —que nunca ha vendido

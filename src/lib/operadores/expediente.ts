@@ -110,8 +110,50 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
       .select("actividad, documento, estado, motivo, vence_at")
       .eq("operator_id", operatorId),
   ]);
+  return armarExpediente(
+    (acts ?? []) as { actividad: string; estado: string; motivo: string | null }[],
+    (docs ?? []) as Fila[],
+  );
+}
 
-  const filas = (docs ?? []) as Fila[];
+/**
+ * Si el expediente de cada operadora está COMPLETO, en dos consultas para
+ * todas. Lo usa el tablero de la plataforma, que antes no lo sabía y ponía en
+ * «Vendiendo» a quien vendía con dispensa sin un solo documento.
+ *
+ * ⚠️ NO TIENE SU PROPIA REGLA: arma cada expediente con `armarExpediente`, la
+ * misma función que usa Mi alta. Si el tablero decidiera «completo» a su modo,
+ * tarde o temprano la ficha de la casa y la de la operadora dirían cosas
+ * distintas del mismo expediente.
+ */
+export async function expedientesCompletos(): Promise<Map<string, boolean>> {
+  const sb = createSupabaseAdminClient();
+  const [{ data: acts, error: e1 }, { data: docs, error: e2 }] = await Promise.all([
+    sb.from("operator_activities").select("operator_id, actividad, estado, motivo"),
+    sb.from("operator_documents").select("operator_id, actividad, documento, estado, motivo, vence_at"),
+  ]);
+  // Sin poder leer, nadie se da por completo: el tablero la deja en su
+  // expediente en vez de mandarla a «Vendiendo» por un error de red.
+  if (e1 || e2) return new Map();
+  type ConOp<T> = T & { operator_id: string };
+  const porOp = new Map<string, { acts: ConOp<{ actividad: string; estado: string; motivo: string | null }>[]; docs: ConOp<Fila>[] }>();
+  const de = (id: string) => {
+    if (!porOp.has(id)) porOp.set(id, { acts: [], docs: [] });
+    return porOp.get(id)!;
+  };
+  for (const a of (acts ?? []) as ConOp<{ actividad: string; estado: string; motivo: string | null }>[]) de(a.operator_id).acts.push(a);
+  for (const d of (docs ?? []) as ConOp<Fila>[]) de(d.operator_id).docs.push(d);
+  const out = new Map<string, boolean>();
+  for (const [id, x] of porOp) out.set(id, armarExpediente(x.acts, x.docs).completo);
+  return out;
+}
+
+/** El expediente de UNA operadora a partir de sus filas. Puro: sin base. */
+export function armarExpediente(
+  acts: { actividad: string; estado: string; motivo: string | null }[],
+  docs: Fila[],
+): Expediente {
+  const filas = docs;
   // Clave compuesta: `null` de actividad se escribe "" para poder indexar.
   const porClave = new Map(filas.map((f) => [`${f.actividad ?? ""}|${f.documento}`, f]));
   const general = (slug: string) => porClave.get(`|${slug}`);
@@ -121,8 +163,7 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
   // ⚠️ Se recorre lo DECLARADO en la base, no el catálogo entero. El catálogo
   // dice qué existe; la fila dice qué eligió esta operadora. Recorrer el
   // catálogo le pediría papeles de actividades que nunca dijo que hacía.
-  const declaradas = ((acts ?? []) as { actividad: string; estado: string; motivo: string | null }[])
-    .filter((a) => ACTIVIDADES.some((c) => c.slug === a.actividad));
+  const declaradas = acts.filter((a) => ACTIVIDADES.some((c) => c.slug === a.actividad));
 
   const actividades: ActividadEnPantalla[] = declaradas.map((a) => {
     const req = requisitosDe(a.actividad);
