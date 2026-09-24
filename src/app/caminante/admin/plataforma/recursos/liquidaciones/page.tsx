@@ -38,7 +38,7 @@ export default async function LiquidacionesPage() {
     sb.from("operators").select("id, name, slug"),
     sb
       .from("operator_liquidaciones")
-      .select("id, operator_id, monto_mxn, metodo, referencia, pagado_el, notas, registrado_por, cancelada_at, cancelada_motivo")
+      .select("id, operator_id, monto_mxn, metodo, referencia, pagado_el, notas, registrado_por, diferencia_mxn, diferencia_motivo, cancelada_at, cancelada_motivo")
       .order("pagado_el", { ascending: false }),
   ]);
 
@@ -48,6 +48,7 @@ export default async function LiquidacionesPage() {
   const conDeuda = saldos.filter((s) => s.porLiquidarMxn > 0 || s.pagadoDeMasMxn > 0);
   const totalPorLiquidar = saldos.reduce((a, s) => a + s.porLiquidarMxn, 0);
   const totalLiquidado = saldos.reduce((a, s) => a + s.liquidadoMxn, 0);
+  const totalConcedido = saldos.reduce((a, s) => a + s.concedidoMxn, 0);
   const historial = (hechas ?? []) as Record<string, unknown>[];
 
   return (
@@ -83,6 +84,16 @@ export default async function LiquidacionesPage() {
             <span className="k-val">{formatMXN(totalLiquidado)}</span>
             <p className="k-sub">Transferencias registradas, sin contar las canceladas.</p>
           </div>
+          {totalConcedido > 0 ? (
+            <div className="card kpi">
+              <span className="k-lbl">Concesiones</span>
+              <span className="k-val">{formatMXN(totalConcedido)}</span>
+              <p className="k-sub">
+                Transferido por encima de lo calculado, con su motivo escrito. No es un sobrepago:
+                es un acuerdo, y por eso no reescribe la comisión congelada de esas ventas.
+              </p>
+            </div>
+          ) : null}
           <div className="card kpi">
             <span className="k-lbl">Por Connect</span>
             <span className="k-val hole">no aplica</span>
@@ -116,6 +127,9 @@ export default async function LiquidacionesPage() {
                 <b>{nombreDe.get(s.operatorId) ?? "operadora"}</b> · le toca{" "}
                 {formatMXN(s.devengadoMxn)} · se le ha pagado {formatMXN(s.liquidadoMxn)} ·{" "}
                 <b>falta {formatMXN(s.porLiquidarMxn)}</b>
+                {s.concedidoMxn > 0 ? (
+                  <> · más {formatMXN(s.concedidoMxn)} de concesiones acordadas</>
+                ) : null}
               </p>
 
               {/* ⚠️ Un sobrepago se DICE. Taparlo con un max(0) lo haría
@@ -171,6 +185,7 @@ export default async function LiquidacionesPage() {
                   <th>Cómo</th>
                   <th>Referencia</th>
                   <th className="num right">Monto</th>
+                  <th className="num right">Difiere</th>
                   <th>Quién lo apuntó</th>
                 </tr>
               </thead>
@@ -201,6 +216,17 @@ export default async function LiquidacionesPage() {
                         <s>{formatMXN(Number(l.monto_mxn))}</s>
                       ) : (
                         <b>{formatMXN(Number(l.monto_mxn))}</b>
+                      )}
+                    </td>
+                    <td className="num right">
+                      {Number(l.diferencia_mxn || 0) !== 0 ? (
+                        <>
+                          <b>{formatMXN(Number(l.diferencia_mxn))}</b>
+                          <br />
+                          <small>{(l.diferencia_motivo as string) ?? "sin motivo"}</small>
+                        </>
+                      ) : (
+                        "—"
                       )}
                     </td>
                     <td>{(l.registrado_por as string) || "—"}</td>

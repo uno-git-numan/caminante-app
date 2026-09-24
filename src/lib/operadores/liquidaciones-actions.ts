@@ -48,6 +48,17 @@ export async function registrarLiquidacion(entrada: {
   referencia?: string | null;
   notas?: string | null;
   pagos: string[];
+  /**
+   * Por qué la transferencia difiere de lo que saldan esos cobros.
+   *
+   * ⚠️ SIN ESTO, UNA DIFERENCIA NO SE REGISTRA. Es la pieza que faltaba cuando
+   * la primera liquidación real no cuadró: Luis había acordado menos comisión
+   * con Nomádika por ser su primera experiencia, así que le transfirió $1,328.33
+   * más de lo calculado. Las dos salidas malas eran reescribir la comisión
+   * congelada —que es inmutable a propósito (0032)— o forzar el monto en
+   * silencio. La buena es ésta: se registra la diferencia y se dice por qué.
+   */
+  diferenciaMotivo?: string | null;
 }): Promise<ResultadoLiquidacion> {
   const auth = await soloLaCasa();
   if (!auth.ok) return auth;
@@ -79,14 +90,23 @@ export async function registrarLiquidacion(entrada: {
 
   const neto = Math.round(entrada.pagos.reduce((a, id) => a + (disponibles.get(id) ?? 0), 0) * 100) / 100;
 
-  // ⚠️ SI EL MONTO NO CUADRA, NO SE AJUSTA: SE PARA. Ajustarlo a la fuerza sería
-  // tapar un desfase, y un desfase en dinero de otra persona se avisa. Puede ser
-  // un dedazo, o puede ser que la transferencia real fue distinta — y en ese caso
-  // hay que decidirlo mirando el banco, no aquí.
-  if (Math.abs(neto - monto) > 0.01) {
+  // ⚠️ SI EL MONTO NO CUADRA, NO SE AJUSTA Y NO SE CALLA: SE DECLARA.
+  //
+  // El monto puede diferir legítimamente de lo calculado —una comisión menor
+  // acordada, un adelanto, una retención— y la primera liquidación real fue
+  // justo uno de esos casos. Lo que no puede pasar es que difiera en silencio:
+  // un monto que no corresponde a lo que salda, registrado sin explicación, es
+  // un descuadre que aparece meses después conciliando.
+  //
+  // Así que la diferencia se acepta con su motivo y sin él no. La base lo exige
+  // igual (check `liquidacion_diferencia_explicada`, 0067), para que no dependa
+  // de que esta acción sea el único camino.
+  const diferencia = Math.round((monto - neto) * 100) / 100;
+  const motivo = entrada.diferenciaMotivo?.trim() ?? "";
+  if (Math.abs(diferencia) > 0.01 && motivo.length < 10) {
     return {
       ok: false,
-      error: `Esos pagos suman $${neto.toLocaleString("es-MX", { minimumFractionDigits: 2 })} y capturaste $${monto.toLocaleString("es-MX", { minimumFractionDigits: 2 })}. Si la transferencia fue por otra cantidad, ajusta qué pagos cubre: no se registra un monto que no corresponda a lo que salda.`,
+      error: `Esos cobros saldan $${neto.toLocaleString("es-MX", { minimumFractionDigits: 2 })} y la transferencia fue de $${monto.toLocaleString("es-MX", { minimumFractionDigits: 2 })}: una diferencia de $${Math.abs(diferencia).toLocaleString("es-MX", { minimumFractionDigits: 2 })}. Se puede registrar, pero hay que decir por qué —una comisión menor acordada, un adelanto, un ajuste—. Sin motivo no queda constancia de si fue un acuerdo o un dedazo.`,
     };
   }
 
@@ -100,6 +120,8 @@ export async function registrarLiquidacion(entrada: {
       referencia: entrada.referencia?.trim() || null,
       pagado_el: entrada.pagadoEl,
       notas: entrada.notas?.trim() || null,
+      diferencia_mxn: Math.abs(diferencia) > 0.01 ? diferencia : 0,
+      diferencia_motivo: Math.abs(diferencia) > 0.01 ? motivo : null,
       registrado_por: auth.quien,
     })
     .select("id")

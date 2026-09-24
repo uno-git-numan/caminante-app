@@ -6,10 +6,15 @@
 // apunta que salió. Por eso el botón dice «Registrar» y no «Pagar»: un botón
 // que promete mover dinero y no lo mueve es peor que no tener botón.
 //
-// El monto NO se captura a mano: se suma de los pagos que marcas. Capturarlo
-// aparte sería un segundo número que puede no cuadrar con el primero, y el
-// servidor rechaza los que no cuadran — así que pedirlo dos veces sólo serviría
-// para que alguien se equivoque.
+// El monto se sugiere sumando los cobros que marcas, pero SE PUEDE CAMBIAR: la
+// primera liquidación real no cuadró con lo calculado —Luis había acordado
+// menos comisión con Nomádika por ser su primera experiencia— y bloquearla
+// habría sido impedir registrar lo que de verdad pasó.
+//
+// ⚠️ LO QUE NO SE PUEDE ES DIFERIR EN SILENCIO. En cuanto el monto se separa de
+// lo calculado aparece el campo del motivo y sin él no se registra, aquí y en
+// la base (0067). Un descuadre con explicación es un dato; sin ella es un
+// misterio que alguien va a intentar resolver en seis meses.
 
 import { useMemo, useState, useTransition } from "react";
 import { registrarLiquidacion } from "@/lib/operadores/liquidaciones-actions";
@@ -54,16 +59,25 @@ export default function Liquidar({
   const [metodo, setMetodo] = useState<"transferencia" | "efectivo" | "otro">("transferencia");
   const [referencia, setReferencia] = useState("");
   const [notas, setNotas] = useState("");
+  // null = «el monto es la suma de lo marcado». Un número = lo capturaste tú.
+  const [montoManual, setMontoManual] = useState<string | null>(null);
+  const [difMotivo, setDifMotivo] = useState("");
   const [aviso, setAviso] = useState<{ tipo: "ok" | "mal"; texto: string } | null>(null);
   const [enviando, empezar] = useTransition();
 
-  const total = useMemo(
+  const calculado = useMemo(
     () =>
       Math.round(
         pendientes.filter((p) => elegidos.has(p.paymentId)).reduce((a, p) => a + p.netoMxn, 0) * 100,
       ) / 100,
     [pendientes, elegidos],
   );
+  const total =
+    montoManual === null || montoManual.trim() === ""
+      ? calculado
+      : Math.round((Number(montoManual) || 0) * 100) / 100;
+  const diferencia = Math.round((total - calculado) * 100) / 100;
+  const hayDiferencia = Math.abs(diferencia) > 0.01;
 
   const alternar = (id: string) =>
     setElegidos((prev) => {
@@ -84,6 +98,7 @@ export default function Liquidar({
         referencia: referencia || null,
         notas: notas || null,
         pagos: [...elegidos],
+        diferenciaMotivo: hayDiferencia ? difMotivo : null,
       });
       if (r.ok) {
         setAviso({
@@ -92,6 +107,8 @@ export default function Liquidar({
         });
         setReferencia("");
         setNotas("");
+        setMontoManual(null);
+        setDifMotivo("");
       } else {
         setAviso({ tipo: "mal", texto: r.error });
       }
@@ -172,12 +189,48 @@ export default function Liquidar({
         </label>
       </div>
 
+      <div className="mini-form" style={{ marginTop: 12 }}>
+        <label>
+          <span className="k-lbl">Monto real de la transferencia</span>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={montoManual ?? calculado.toFixed(2)}
+            onChange={(e) => setMontoManual(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+        </label>
+        {hayDiferencia ? (
+          <label style={{ flex: "2 1 320px" }}>
+            <span className="k-lbl">
+              Por qué difiere {pesos(Math.abs(diferencia))} ({diferencia > 0 ? "de más" : "de menos"})
+            </span>
+            <input
+              type="text"
+              value={difMotivo}
+              onChange={(e) => setDifMotivo(e.target.value)}
+              placeholder="p. ej. menos comisión acordada por ser su primera experiencia"
+            />
+          </label>
+        ) : null}
+      </div>
+
       <p className="note" style={{ marginTop: 14 }}>
         <s>{"//"}</s>
         <span>
           La referencia es lo que permite cuadrar contra el estado de cuenta, y lo que impide
           apuntar dos veces la misma transferencia. No es obligatoria, pero sin ella la
           conciliación es a ojo.
+          {hayDiferencia ? (
+            <>
+              {" "}
+              <b>
+                La diferencia se guarda como tal, con su motivo: no reescribe la comisión de esas
+                ventas —que está congelada a propósito— ni aparece como sobrepago.
+              </b>
+            </>
+          ) : null}
         </span>
       </p>
 
@@ -192,17 +245,18 @@ export default function Liquidar({
         }}
       >
         <div>
-          <span className="k-lbl">Suma de lo marcado</span>
+          <span className="k-lbl">Lo que se transfirió</span>
           <div className="k-val">{pesos(total)}</div>
           <p className="k-sub" style={{ margin: 0 }}>
-            {elegidos.size} de {pendientes.length} {pendientes.length === 1 ? "cobro" : "cobros"}.
-            Es el monto que se registra: no se captura aparte.
+            {elegidos.size} de {pendientes.length} {pendientes.length === 1 ? "cobro" : "cobros"}{" "}
+            saldan {pesos(calculado)}.
+            {hayDiferencia ? null : " Si transferiste otra cantidad, cámbialo abajo."}
           </p>
         </div>
         <button
           type="button"
           className="btn btn-orange"
-          disabled={enviando || total <= 0}
+          disabled={enviando || total <= 0 || (hayDiferencia && difMotivo.trim().length < 10)}
           onClick={enviar}
         >
           {enviando ? "Registrando…" : "Registrar la transferencia"}

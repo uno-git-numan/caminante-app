@@ -42,8 +42,20 @@ export type SaldoDeOperadora = {
   operatorId: string;
   /** Lo que le toca de todo lo cobrado por la casa, histórico. */
   devengadoMxn: number;
-  /** Lo que ya se le transfirió (liquidaciones no canceladas). */
+  /**
+   * Lo que de lo transferido SALDA deuda (liquidaciones no canceladas, sin
+   * contar las diferencias declaradas). Ver `concedidoMxn`.
+   */
   liquidadoMxn: number;
+  /**
+   * Lo transferido POR ENCIMA de lo calculado, con su motivo escrito (0067).
+   *
+   * ⚠️ No salda deuda, y por eso va aparte: si se contara como pago, el saldo
+   * diría que se le pagó de más cuando lo que hubo fue una concesión acordada.
+   * Nomádika, 18 sep 2026: $1,328.33 de menos comisión por ser su primera
+   * experiencia.
+   */
+  concedidoMxn: number;
   /** Lo que falta. Nunca negativo: si sale, es que se le pagó de más y se dice. */
   porLiquidarMxn: number;
   /** Los pagos concretos que faltan, para poder armar la transferencia. */
@@ -101,7 +113,7 @@ export async function saldosDeOperadoras(
         .select("id, reservation_id, amount_mxn, refunded_mxn, platform_fee_mxn, canal_cobro, status, paid_at")
         .eq("status", "paid")
         .eq("canal_cobro", "casa"),
-      sb.from("operator_liquidaciones").select("id, operator_id, monto_mxn, cancelada_at"),
+      sb.from("operator_liquidaciones").select("id, operator_id, monto_mxn, diferencia_mxn, cancelada_at"),
       sb.from("operator_liquidacion_pagos").select("payment_id"),
     ]);
 
@@ -140,11 +152,18 @@ export async function saldosDeOperadoras(
     }
   }
 
+  // ⚠️ LO QUE SALDA DEUDA ES EL MONTO MENOS LA DIFERENCIA DECLARADA. Contar la
+  // transferencia completa haría que una concesión apareciera como sobrepago —
+  // que es justo lo que pasó con la primera liquidación real y lo que la 0067
+  // vino a resolver.
   const liquidado = new Map<string, number>();
+  const concedido = new Map<string, number>();
   for (const l of (liqs ?? []) as Record<string, unknown>[]) {
     if (l.cancelada_at) continue;
     const id = l.operator_id as string;
-    liquidado.set(id, r2((liquidado.get(id) ?? 0) + Number(l.monto_mxn || 0)));
+    const dif = Number(l.diferencia_mxn || 0);
+    liquidado.set(id, r2((liquidado.get(id) ?? 0) + Number(l.monto_mxn || 0) - dif));
+    concedido.set(id, r2((concedido.get(id) ?? 0) + dif));
   }
 
   const externas = ((ops ?? []) as { id: string; es_la_casa: boolean | null }[])
@@ -159,6 +178,7 @@ export async function saldosDeOperadoras(
       operatorId: o.id,
       devengadoMxn: dev,
       liquidadoMxn: liq,
+      concedidoMxn: concedido.get(o.id) ?? 0,
       porLiquidarMxn: Math.max(0, diferencia),
       // ⚠️ SE DICE, NO SE ESCONDE. Si se le transfirió más de lo que le tocaba
       // —una liquidación capturada de más, o una devolución posterior a la
