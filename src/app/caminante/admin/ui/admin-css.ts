@@ -1246,4 +1246,15 @@ export const ADMIN_CSS = `
 .adm .flink:hover{color:var(--orange);border-color:rgba(255,93,54,.6)}
 .adm .doc.rech{background:rgba(255,93,54,.05);box-shadow:inset 3px 0 0 var(--orange)}
 @media(max-width:640px){.adm .upfecha .ac{width:100%}}
+
+/* ⚠️ EL RENGLÓN DE DOCUMENTO EN TELÉFONO. La lámina «Panel Operadora» trae dos
+   reglas para .doc: la de una columna bajo @media(max-width:640px), y más
+   abajo un ajuste de escritorio («la celda de archivo respira», cuatro
+   columnas) SIN media query. Por cascada, ese ajuste pisa la de teléfono y en
+   un iPhone las cuatro columnas —160px + 200px mínimos— desbordan la pantalla.
+   Pasaba igual en la pantalla del expediente. Luis decidió arreglarlo aquí y
+   no en la lámina (24 sep 2026). Va con tres clases (.adm .docs .doc) para
+   ganarle en especificidad al ajuste, venga en la hoja que venga y en el
+   orden que venga; mi-alta-css y expediente-css son generados y no se tocan. */
+@media(max-width:640px){.adm .docs .doc{grid-template-columns:20px 1fr;row-gap:8px}.adm .docs .doc .fl,.adm .docs .doc .ac{grid-column:2}.adm .docs .doc .ac{justify-content:flex-start}}
 `;
