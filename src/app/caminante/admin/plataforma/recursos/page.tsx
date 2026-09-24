@@ -170,11 +170,18 @@ export default async function RecursosPlataformaPage() {
           </div>
           <div className="card kpi">
             <span className="k-lbl">CFDI por emitir</span>
-            <span className="k-val">0</span>
+            {/* ⚠️ ESTE «0» ESTABA ESCRITO A MANO, y se contradecía con su propio
+                pie: decía cero mientras el texto de abajo decía «comisión
+                devengada sin CFDI». No hay de dónde derivarlo — `cfdi_invoices`
+                es por pago y guarda el CFDI del CLIENTE; el de la comisión a la
+                operadora no tiene tabla todavía. Así que se dibuja como hueco,
+                igual que los otros tres de esta pantalla: se dice en vez de
+                rellenarse. */}
+            <span className="k-val hole">sin registrar</span>
             <p className="k-sub">
               {d.comision.devengada === 0
                 ? "No hay comisión que facturar."
-                : "Comisión devengada sin CFDI."}
+                : `Hay ${formatMXN(d.comision.cobrada)} de comisión sin facturar, y el CFDI que Caminante le emite a la operadora todavía no tiene dónde vivir. Facturación sigue apagada.`}
             </p>
           </div>
         </div>
