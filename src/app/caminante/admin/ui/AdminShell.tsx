@@ -137,7 +137,7 @@ export default async function AdminShell({
   // misma cabecera con la que el layout decide el alcance del operador.
   const ruta = (await headers()).get("x-ruta");
   const sombrero = sombreroDeRuta(ruta);
-  const nav = sombrero === "caminante" ? NAV_PLATAFORMA : items;
+  const nav = sombrero === "plataforma" ? NAV_PLATAFORMA : items;
 
   return (
     <div className="adm">
@@ -156,11 +156,18 @@ export default async function AdminShell({
             <span className="mode">
               {esOperador(alcance) ? alcance.nombre : "Modo admin"}
             </span>
-            {/* LA PASTILLA · sólo la casa. Caminante es la plataforma —cobra
-                comisión y administra operadoras— y NUMAN es la operadora
-                propia, la que vende lo suyo. Son DOS y no van a crecer: «ver el
-                panel como lo ve tal operadora» es otra cosa y vive en su ficha.
-                Una pastilla por operadora sería inservible con veinte.
+            {/* LA PASTILLA · sólo la casa.
+                ⚠️ LOS DOS NOMBRES ESTABAN AL REVÉS hasta el 24 sep 2026.
+                Decían «Caminante» a la plataforma y «NUMAN» a la operadora
+                propia, y es al contrario: **numan es el software** —cobra
+                comisión y administra operadoras— y **Caminante es la
+                operadora**, la que tiene los viajes. Las rutas no se movieron:
+                `/plataforma` siempre fue la vista de la plataforma y `/admin`
+                siempre fue la de la operadora; lo único que estaba mal era la
+                palabra encima, que es lo que se lee todos los días.
+                «Ver el panel como lo ve tal operadora» sigue siendo otra cosa
+                y todavía no existe: hoy con sombrero de operadora el panel NO
+                está filtrado a nadie —muestra todas las operadoras juntas—.
                 Un operador externo entra directo a lo suyo y esto no existe
                 para él. */}
             {rol === "admin" ? (
@@ -169,12 +176,12 @@ export default async function AdminShell({
                 <span className="hat">
                   <Link
                     href={RAIZ_PLATAFORMA}
-                    className={sombrero === "caminante" ? "cam on" : "cam"}
+                    className={sombrero === "plataforma" ? "cam on" : "cam"}
                   >
-                    Caminante
+                    numan
                   </Link>
-                  <Link href="/caminante/admin" className={sombrero === "numan" ? "on" : undefined}>
-                    NUMAN
+                  <Link href="/caminante/admin" className={sombrero === "operadora" ? "on" : undefined}>
+                    Caminante
                   </Link>
                 </span>
               </span>

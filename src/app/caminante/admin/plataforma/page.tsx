@@ -7,7 +7,11 @@ import { fetchPanoramaPlataforma } from "@/lib/plataforma/panorama";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Panorama · Caminante plataforma" };
 
-// PANORAMA DE LA PLATAFORMA — el sombrero Caminante.
+// PANORAMA DE LA PLATAFORMA — el sombrero de numan.
+//
+// ⚠️ Hasta el 24 sep 2026 esta vista se llamaba «el sombrero Caminante» en toda
+// la prosa del panel. Era al revés: numan es el software que cobra comisión y
+// Caminante es la operadora que tiene los viajes. La ruta nunca cambió.
 //
 // Diseño de design/plataforma/dc/plataforma.dc.html, sección #panorama.
 //

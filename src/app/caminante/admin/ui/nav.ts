@@ -17,10 +17,10 @@ export type AdminSection =
   | "recursos"
   | "operador"
   | "encuesta"
-  // ── El sombrero CAMINANTE · la plataforma ──────────────────────────────
-  // Claves aparte de las de NUMAN aunque tres etiquetas se repitan. Son
-  // pantallas distintas con la misma palabra: «Experiencias» con el sombrero
-  // NUMAN son las mías, con el de Caminante son las de TODAS las operadoras.
+  // ── El sombrero de LA PLATAFORMA (numan) ───────────────────────────────
+  // Claves aparte de las de la operadora aunque tres etiquetas se repitan. Son
+  // pantallas distintas con la misma palabra: «Experiencias» con el sombrero de
+  // la operadora son las de Caminante, con el de numan son las de TODAS.
   // Compartir clave habría hecho que el nav de un sombrero se marcara solo
   // estando en el otro.
   | "pl-panorama"
@@ -74,7 +74,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
 //
 // Los dos son paralelos a propósito: Panorama, Experiencias, Comunidad y
 // Recursos están en los dos y en el mismo orden. Lo que cambia no es dónde
-// vive cada cosa, es la unidad. Con el sombrero NUMAN, Comunidad son los
+// vive cada cosa, es la unidad. Con el sombrero de Caminante (la operadora), Comunidad son los
 // clientes; con el de Caminante, son las operadoras. Que la misma persona no
 // tenga que reaprender el panel al cambiarse el sombrero es el punto entero.
 export const NAV_PLATAFORMA: AdminNavItem[] = [
@@ -84,7 +84,7 @@ export const NAV_PLATAFORMA: AdminNavItem[] = [
   { key: "pl-recursos", label: "Recursos", href: "/caminante/admin/plataforma/recursos" },
 ];
 
-/** Rutas del sombrero Caminante. Todo lo demás del panel es el sombrero NUMAN. */
+/** Rutas del sombrero de numan (la plataforma). Todo lo demás del panel es el sombrero de Caminante (la operadora). */
 export const RAIZ_PLATAFORMA = "/caminante/admin/plataforma";
 
 /**
@@ -95,8 +95,10 @@ export const RAIZ_PLATAFORMA = "/caminante/admin/plataforma";
  * vería perfectamente normal — el mismo tipo de error silencioso que tuvo el
  * chrome del panel enseñando 14 rutas de 27.
  */
-export function sombreroDeRuta(pathname: string | null | undefined): "caminante" | "numan" {
-  return pathname?.startsWith(RAIZ_PLATAFORMA) ? "caminante" : "numan";
+export function sombreroDeRuta(
+  pathname: string | null | undefined,
+): "plataforma" | "operadora" {
+  return pathname?.startsWith(RAIZ_PLATAFORMA) ? "plataforma" : "operadora";
 }
 
 // «Operador» va aparte porque se dibuja a la DERECHA del nav y con ícono, no en

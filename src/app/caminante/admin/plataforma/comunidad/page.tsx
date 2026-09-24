@@ -15,7 +15,7 @@ export const metadata = { title: "Comunidad · Caminante plataforma" };
 
 // COMUNIDAD DE LA PLATAFORMA — la gente de Caminante son las OPERADORAS.
 //
-// Es el paralelo exacto de Comunidad en el sombrero NUMAN, donde la gente son
+// Es el paralelo exacto de Comunidad en el sombrero de la operadora, donde la gente son
 // los clientes. Misma forma, misma posición en el nav, otra unidad: al cambiar
 // de sombrero no hay que reaprender dónde vive nada.
 //
@@ -25,7 +25,7 @@ export const metadata = { title: "Comunidad · Caminante plataforma" };
 //   Operadoras  — quién ya está, y si puede vender hoy.
 //
 // Las solicitudes de CLIENTE (pedir una fecha, un grupo privado) NO viven aquí:
-// son de quien opera, y su lugar es el CRM del sombrero NUMAN.
+// son de quien opera, y su lugar es el CRM del sombrero de la operadora.
 
 const TZ = "America/Mexico_City";
 const fmt = (iso: string) =>
@@ -84,7 +84,7 @@ export default async function ComunidadPlataformaPage() {
               Aquí la gente <em className="ac">son las operadoras.</em>
             </h1>
             <p className="desc">
-              El mismo lugar que en el sombrero NUMAN y la misma forma, con otra unidad. Lo que un
+              El mismo lugar que en el sombrero de la operadora y la misma forma, con otra unidad. Lo que un
               cliente es allá, una operadora lo es aquí: alguien que llega, avanza y se queda.
             </p>
           </div>

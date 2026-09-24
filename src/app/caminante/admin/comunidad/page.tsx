@@ -49,7 +49,7 @@ export default async function ComunidadPage() {
   if (!(await puedeEntrarAlPanel())) redirect("/caminante/login?next=/caminante/admin/comunidad");
 
   // Lo que espera respuesta se consulta siempre: ya no trae nada de la
-  // plataforma —eso se fue al Pipeline del sombrero Caminante— sino sólo lo de
+  // plataforma —eso se fue al Pipeline del sombrero de numan (la plataforma)— sino sólo lo de
   // quien opera, que es suyo.
   const esCasa = (await getCurrentRole()) === "admin";
   const [d, tablero, solicitudes] = await Promise.all([

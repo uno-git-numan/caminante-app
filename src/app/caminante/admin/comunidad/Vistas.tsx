@@ -4,7 +4,7 @@
 //
 // Fueron tres un rato. «Solicitudes» desapareció: la mitad de lo que traía no
 // era de NUMAN sino de la plataforma —aprobar operadoras— y se fue al Pipeline
-// del sombrero Caminante; la otra mitad —el cliente que pide fecha, el
+// del sombrero de numan (la plataforma); la otra mitad —el cliente que pide fecha, el
 // embajador que quiere traer gente— se subió ARRIBA del tablero, que es donde
 // va a acabar convertida en tarjeta. Una bandeja aparte es una pestaña que hay
 // que acordarse de visitar. Se cambia sin recargar y sin

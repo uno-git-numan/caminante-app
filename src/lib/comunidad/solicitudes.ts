@@ -5,7 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 //
 // Antes esto cargaba CUATRO cosas y las metía en una sola bandeja. Dos de ellas
 // no eran de NUMAN sino de la plataforma —quién quiere operar sobre Caminante y
-// a quién se le abre el panel— y se mudaron al Pipeline del sombrero Caminante.
+// a quién se le abre el panel— y se mudaron al Pipeline del sombrero de numan (la plataforma).
 // Aprobar una operadora es de la casa; no es algo que una operadora haga.
 //
 // Aquí se queda lo que sí es de quien opera: el cliente que pide una fecha o un

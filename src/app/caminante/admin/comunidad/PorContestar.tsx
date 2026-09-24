@@ -6,7 +6,7 @@ import type { EmbRow, SolRow, Solicitudes as Datos } from "@/lib/comunidad/solic
 //
 // Era una pestaña propia («Solicitudes») con cuatro tipos revueltos. Dos no
 // eran de NUMAN sino de la plataforma —quién quiere operar sobre Caminante y a
-// quién se le abre el panel— y se fueron al Pipeline del sombrero Caminante.
+// quién se le abre el panel— y se fueron al Pipeline del sombrero de numan (la plataforma).
 //
 // Lo que queda sí es de quien opera, y por eso vive PEGADO al tablero en vez de
 // en una bandeja aparte: un cliente que pide una fecha es una tarjeta del CRM
