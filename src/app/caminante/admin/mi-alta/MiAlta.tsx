@@ -304,6 +304,17 @@ export default function MiAlta({
                   {" · "}
                   <Link href={liga("/caminante/admin/mi-alta/cobrar")}>Mi cuenta de cobro y datos fiscales</Link>
                   {" · "}
+                  {/* ⚠️ EL EXPEDIENTE TAMBIÉN VA AQUÍ, no sólo en el paso 02.
+                      Su puerta del 02 vive dentro del panel de ese paso, y ese
+                      panel deja de dibujarse en cuanto el alta avanza: para una
+                      operadora que ya va en el 04 —Nomádika, hoy— el expediente
+                      quedaba otra vez sin una sola liga en toda la pantalla. Y
+                      no es una pantalla de sólo lectura: un documento se vence,
+                      se rechaza o se agrega al declarar una actividad nueva.
+                      Tampoco hay candado que lleve a él: los seis son comisión,
+                      convenio, CSD, Connect, panel y experiencia. */}
+                  <Link href={liga("/caminante/admin/mi-alta/expediente")}>Mis documentos</Link>
+                  {" · "}
                   {/* ⚠️ LA MARCA SE OFRECE, NO SÓLO SE RECLAMA. Hasta el 24 sep
                       2026 sólo aparecía en el aviso de abajo, o sea únicamente
                       cuando estaba a medias — y en cuanto se completaba
