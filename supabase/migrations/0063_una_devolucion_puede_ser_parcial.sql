@@ -46,13 +46,29 @@ comment on index public.reembolsos_uno_en_vuelo_por_pago is
 -- ─────────────────────────────────────────────────────────────────────────────
 -- LO DEVUELTO, ACUMULADO
 -- ─────────────────────────────────────────────────────────────────────────────
--- `payments.refunded_mxn` existe desde antes y NUNCA se escribió: es una de las
--- columnas que este repo llama «escritas que nadie lee», al revés. Con parciales
--- deja de ser decorativa — es lo que dice cuánto queda por devolver, y sin ella
--- la única forma de saberlo sería sumar `reembolsos` en cada consulta.
+-- `payments.refunded_mxn` existe desde antes, la LEE el panel de rentabilidad
+-- (`rentabilidad.ts:213`, el renglón «reembolsado») y casi nadie la escribe.
+-- Con parciales deja de ser opcional: es lo que dice cuánto queda por devolver,
+-- y sin ella habría que sumar `reembolsos` en cada consulta.
 --
--- El default 0 es la verdad para los 62 pagos que existen: ninguno tiene
--- devolución confirmada.
+-- ⚠️ Y AL APLICAR ESTO SALIÓ QUE LAS TRES FUENTES NO CUADRAN. Medido en
+-- producción el 23 sep 2026, lo devuelto según quien se le pregunte:
+--
+--     payments.status = 'refunded'  →  $39,450.00  (8 pagos)
+--     payments.refunded_mxn         →  $10,200.00  (3 pagos)   ← la que lee el panel
+--     libro de reembolsos           →  $31,800.00  (6 filas)
+--
+-- Los seis reembolsos confirmados dejaron su pago en `refunded` pero con
+-- `refunded_mxn` en CERO, y hay un pago devuelto entero que sigue en `paid`
+-- —cuenta como ingreso y como devolución a la vez—.
+--
+-- ⚠️ ESTA MIGRACIÓN NO LO CUADRA, A PROPÓSITO. Rellenar esos nueve renglones es
+-- decidir cuál de las tres fuentes tiene razón, y eso es una decisión de Luis
+-- sobre dinero ya cobrado, no un `update` que se cuela en una migración de
+-- esquema. Queda medido y dicho.
+--
+-- El `set default 0` y el relleno de abajo sólo tocan los NULL, así que no
+-- reescriben ninguno de esos nueve.
 alter table public.payments
   alter column refunded_mxn set default 0;
 
