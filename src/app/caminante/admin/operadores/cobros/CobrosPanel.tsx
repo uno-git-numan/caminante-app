@@ -29,9 +29,17 @@ export type OperadorCobros = {
 export default function CobrosPanel({
   operador: o,
   faltantes,
+  altaEnPlataforma,
 }: {
   operador: OperadorCobros;
   faltantes: string[];
+  /**
+   * El alta de la cuenta DENTRO de la plataforma (mi-alta/cobrar/AltaCobro).
+   * Cuando viene, sustituye al botón que manda al enlace de verificación: la
+   * operadora captura aquí y no sale. Lo decide la página por cuenta y por
+   * bandera (alta-cobro.ts); este panel sólo pinta lo que le den.
+   */
+  altaEnPlataforma?: React.ReactNode;
 }) {
   const [ocupado, setOcupado] = useState("");
   const [estado, setEstado] = useState("");
@@ -156,7 +164,9 @@ export default function CobrosPanel({
 
       {/* ── Paso 1 · Conecta tu cuenta ─────────────────────────────── */}
       <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>1 · Conecta su cuenta de cobro</h3>
-      {!o.stripeAccountId ? (
+      {altaEnPlataforma ? (
+        altaEnPlataforma
+      ) : !o.stripeAccountId ? (
         <>
           <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
             Crea su cuenta de cobro y lo lleva a verificarla: identificación, RFC y CLABE. Esos datos

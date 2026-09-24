@@ -21,7 +21,9 @@ import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { COLUMNAS_GATE, operadorListo, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
 import { refrescarEstado } from "@/lib/payments/connect";
+import { altaCobroEnPlataforma, erroresDeVerificacion, traducirPendientes } from "@/lib/payments/alta-cobro";
 import CobrosPanel from "../../operadores/cobros/CobrosPanel";
+import AltaCobro from "./AltaCobro";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -68,6 +70,22 @@ export default async function CobrarPage({
   // y no lo que nosotros creamos.
   if (q.stripe === "volvio") await refrescarEstado(operatorId).catch(() => {});
 
+  // ⚠️ EL ALTA DENTRO DE LA PLATAFORMA SE DECIDE POR CUENTA, NO SÓLO POR
+  // BANDERA. Con la bandera prendida se pregunta a Stripe quién recaba los
+  // requisitos de ESTA cuenta: una que ya salió al enlace de verificación
+  // (Express) se sigue completando por su enlace, porque el tipo de cuenta no
+  // se cambia. Sin cuenta todavía, manda la bandera. Ver alta-cobro.ts.
+  const enPlataforma = altaCobroEnPlataforma();
+  let recauda: boolean | null = null;
+  let errores: { campo: string; mensaje: string }[] = [];
+  if (enPlataforma && q.stripe !== "volvio") {
+    const e = await refrescarEstado(operatorId).catch(() => null);
+    if (e?.ok) {
+      recauda = e.data.recaudaLaPlataforma;
+      errores = erroresDeVerificacion(e.data.errores);
+    }
+  }
+
   const sb = createSupabaseAdminClient();
   const { data } = await sb
     .from("operators")
@@ -76,6 +94,8 @@ export default async function CobrarPage({
     .maybeSingle();
   const r = data as Row | null;
   if (!r) redirect("/caminante/admin/mi-alta");
+
+  const altaAqui = enPlataforma && (!r.stripe_account_id || recauda === true);
 
   return (
     <AdminShell active="panorama">
@@ -123,6 +143,28 @@ export default async function CobrarPage({
           csdVenceAt: r.csd_vence_at ?? null,
         }}
         faltantes={operadorListo(r).faltantes}
+        altaEnPlataforma={
+          altaAqui ? (
+            <AltaCobro
+              llavePublica={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""}
+              operadora={{
+                id: r.id,
+                nombre: r.name,
+                email: r.email ?? "",
+                tipoPersona: r.tipo_persona === "fisica" || r.tipo_persona === "moral" ? r.tipo_persona : "",
+                rfc: r.rfc ?? "",
+                razonSocial: r.razon_social ?? "",
+                cpFiscal: r.cp_fiscal ?? "",
+                convenioFirmado: Boolean(r.convenio_firmado_at),
+                tieneCuenta: Boolean(r.stripe_account_id),
+                verificada: Boolean(r.stripe_charges_enabled),
+                recibeDepositos: Boolean(r.stripe_payouts_enabled),
+                pendientes: traducirPendientes(pendientesDe(r.stripe_requirements)),
+                errores,
+              }}
+            />
+          ) : undefined
+        }
       />
     </AdminShell>
   );

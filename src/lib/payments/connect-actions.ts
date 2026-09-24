@@ -27,7 +27,8 @@ async function puedeTocarOperador(operadorId: string): Promise<boolean> {
   return !!operadorId && (await operadoraObjetivo(operadorId)) === operadorId;
 }
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { crearLinkOnboarding, refrescarEstado } from "@/lib/payments/connect";
+import { crearLinkOnboarding, refrescarEstado, completarAltaCobro, type TokensDeAlta } from "@/lib/payments/connect";
+import { erroresDeVerificacion, traducirPendientes, type ErrorDeVerificacion } from "@/lib/payments/alta-cobro";
 
 const RUTA = "/caminante/admin/operadores/cobros";
 
@@ -194,4 +195,61 @@ export async function guardarTipoPersona(
   revalidatePath(RUTA);
   revalidatePath("/caminante/admin/mi-alta");
   return { ok: true };
+}
+
+export type ResAltaCobro =
+  | { ok: true; verificada: boolean; pendientes: string[]; errores: ErrorDeVerificacion[] }
+  | { ok: false; error: string };
+
+/**
+ * El alta de la cuenta de cobro DENTRO de la plataforma: recibe los tokens que
+ * Stripe.js hizo en el navegador de la operadora y los manda. Ver
+ * `completarAltaCobro` y alta-cobro.ts.
+ *
+ * ⚠️ EXIGE EL CONVENIO FIRMADO. En pantalla no aparece el contrato del
+ * procesador (decisión de Luis, 24 sep 2026); la aceptación que Stripe pide
+ * vive en la Cuarta §7 del convenio. Sin firma no hay nada aceptado, y dar de
+ * alta la cuenta sería sellar un `tos_acceptance` que no respalda ningún
+ * documento. El candado va aquí, en el servidor, aunque la pantalla también
+ * lo enseñe: una pantalla se puede saltar; una acción no.
+ */
+export async function completarAltaCobroAction(
+  operadorId: string,
+  tokens: TokensDeAlta,
+): Promise<ResAltaCobro> {
+  const id = (operadorId ?? "").trim();
+  if (!(await puedeTocarOperador(id))) return { ok: false, error: "No autorizado." };
+  if (!id) return { ok: false, error: "Falta el operador." };
+
+  const sb = createSupabaseAdminClient();
+  const { data } = await sb.from("operators").select("convenio_firmado_at").eq("id", id).maybeSingle();
+  if (!(data as { convenio_firmado_at?: string | null } | null)?.convenio_firmado_at) {
+    return { ok: false, error: "Primero firma tu convenio: ahí está lo que aceptas al abrir tu cuenta de cobro." };
+  }
+
+  const t: TokensDeAlta = {
+    accountToken: soloToken(tokens.accountToken, "ctoken_"),
+    personTokens: (tokens.personTokens ?? []).map((p) => soloToken(p, "ptoken_")).filter((p): p is string => !!p),
+    bankToken: soloToken(tokens.bankToken, "btok_"),
+  };
+  const r = await completarAltaCobro(id, t);
+  if (!r.ok) return { ok: false, error: r.error };
+  revalidatePath(RUTA);
+  revalidatePath("/caminante/admin/mi-alta");
+  revalidatePath("/caminante/admin/mi-alta/cobrar");
+  return {
+    ok: true,
+    verificada: r.data.chargesEnabled,
+    pendientes: traducirPendientes(r.data.pendientes),
+    errores: erroresDeVerificacion(r.data.errores),
+  };
+}
+
+// Lo que llega del cliente tiene que PARECER un token de Stripe. No es
+// seguridad —el token ya es de un solo uso y de nuestra cuenta— sino la
+// garantía de que por aquí no entra un dato personal por error: un RFC o una
+// CLABE en crudo no empiezan con `ctoken_`, y se descartan sin leerse.
+function soloToken(v: string | undefined, prefijo: string): string | undefined {
+  const s = (v ?? "").trim();
+  return s.startsWith(prefijo) && /^[a-z]+_[A-Za-z0-9]+$/.test(s) ? s : undefined;
 }

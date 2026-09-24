@@ -136,3 +136,42 @@ Kéntro. Pendiente de Luis cómo se salda.
 - **Especificidad del CSS del portal**: una regla base como `.opw a{color:…}`
   (0-1-1) le gana a una clase sola (0-1-0). Todo texto sobre foto va prefijado con
   el scope, y el velo sobre la imagen es obligatorio.
+
+## El alta de la cuenta DENTRO de la plataforma (24 sep 2026, APAGADA)
+
+Luis: «No menciones Stripe en el front end… que pongan todo y nosotros
+mandamos a Stripe.» Construido y **apagado**: se prende con
+`COBRO_EN_PLATAFORMA=1` en Vercel, y sólo cuando el abogado cierre la Cuarta
+§7 del convenio (pendiente 12 de `CONVENIO-v1.md`): la aceptación del contrato
+de cuentas conectadas que Stripe exige no aparece en pantalla, vive en el
+convenio firmado. Prenderla antes sería sellar un `tos_acceptance` sin respaldo.
+
+| | |
+|---|---|
+| Bandera, CLABE, traducción de `requirements`, `recaudaLaPlataforma` | `lib/payments/alta-cobro.ts` (puro, con pruebas) |
+| Crear con propiedades de control / completar con tokens | `lib/payments/connect.ts` (`crearCuentaConectada`, `completarAltaCobro`) |
+| La acción (exige convenio firmado; sólo acepta `ctoken_`/`ptoken_`/`btok_`) | `lib/payments/connect-actions.ts` → `completarAltaCobroAction` |
+| La pantalla | `admin/mi-alta/cobrar/AltaCobro.tsx`, montada por `cobrar/page.tsx` en el paso 1 de `CobrosPanel` |
+
+**Cómo funciona.** La operadora captura en nuestra pantalla; Stripe.js hace
+tokens en SU navegador (`account`, `person`, `bank_account`; la identificación
+sube directo a `uploads.stripe.com` con la llave publicable) y el servidor sólo
+recibe los tokens. **Ni un dato personal pasa por Caminante ni se guarda.** La
+cuenta se crea con `controller` (sin dashboard, la plataforma recaba
+requisitos, paga comisiones y responde por saldos negativos), `business_type`
+según `tipo_persona`, MCC 4722 y el token; la CLABE va como `external_account`.
+Lo que Stripe siga pidiendo (`requirements.currently_due`) se traduce con
+`traducirPendientes` y se vuelve a pedir en la misma pantalla.
+
+⚠️ **Se decide POR CUENTA, no sólo por bandera.** El tipo de dashboard es
+inmutable: una cuenta que ya salió al enlace (Express) se sigue completando por
+su enlace aunque la bandera esté prendida. `refrescarEstado` devuelve
+`recaudaLaPlataforma` leyendo `controller.requirement_collection`.
+
+⚠️ **Con la bandera apagada NADA cambia**: cuenta Express + Account Links, como
+siempre. La prueba `alta-cobro.test.ts` lo afirma.
+
+**Falta para prenderla:** el abogado (Cuarta §7), `COBRO_EN_PLATAFORMA=1` +
+rebuild en Vercel, y probarla en modo test con la Operadora Cero (Stripe da
+valores de prueba: DOB `1901-01-01`, RFC `000000000`, `address_full_match`,
+CLABE `000000001234567897`, archivo `file_identity_document_success`).

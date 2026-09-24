@@ -1,6 +1,7 @@
 import { getStripeServerClient } from "@/lib/payments/stripe";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emailStripeListo } from "@/lib/operadores/emails";
+import { altaCobroEnPlataforma, MCC_TURISMO, recaudaLaPlataforma } from "./alta-cobro";
 
 // Stripe Connect · alta y estado de la cuenta del operador.
 //
@@ -60,6 +61,12 @@ async function leerOperador(operadorId: string): Promise<OperadorConnect | null>
  */
 export async function crearCuentaConectada(
   operadorId: string,
+  /**
+   * Token de cuenta hecho en el navegador (Stripe.js) con los datos de la
+   * operadora y `tos_shown_and_accepted`. Sólo lo manda el alta EN LA
+   * PLATAFORMA; el camino de siempre (Express + link) no lo usa.
+   */
+  accountToken?: string,
 ): Promise<ConnectResult<{ accountId: string; creada: boolean }>> {
   const op = await leerOperador(operadorId);
   if (!op) return { ok: false, error: "Ese operador no existe." };
@@ -71,33 +78,57 @@ export async function crearCuentaConectada(
   }
 
   const stripe = getStripeServerClient();
+  const comun = {
+    country: PAIS,
+    email: op.email,
+    capabilities: {
+      card_payments: { requested: true as const },
+      transfers: { requested: true as const },
+    },
+    // `tipo_persona` puede venir en NULL (el operador aún no lo capturó). Se
+    // omite en vez de adivinar: Stripe se lo pregunta en su propio flujo, y
+    // mandar "individual" por defecto a una S.A. de C.V. le pediría el KYC
+    // equivocado y habría que empezar de cero.
+    ...(op.tipo_persona === "moral"
+      ? { business_type: "company" as const }
+      : op.tipo_persona === "fisica"
+        ? { business_type: "individual" as const }
+        : {}),
+    business_profile: {
+      name: op.name ?? undefined,
+      url: op.slug ? `${CANONICAL}/caminante/o/${op.slug}` : undefined,
+    },
+    // Para resolver el operador desde un evento de cuenta conectada sin
+    // depender de una consulta inversa.
+    metadata: { operator_id: op.id },
+  };
   let account;
   try {
-    account = await stripe.accounts.create({
-      type: "express",
-      country: PAIS,
-      email: op.email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      // `tipo_persona` puede venir en NULL (el operador aún no lo capturó). Se
-      // omite en vez de adivinar: Stripe se lo pregunta en su propio flujo, y
-      // mandar "individual" por defecto a una S.A. de C.V. le pediría el KYC
-      // equivocado y habría que empezar de cero.
-      ...(op.tipo_persona === "moral"
-        ? { business_type: "company" as const }
-        : op.tipo_persona === "fisica"
-          ? { business_type: "individual" as const }
-          : {}),
-      business_profile: {
-        name: op.name ?? undefined,
-        url: op.slug ? `${CANONICAL}/caminante/o/${op.slug}` : undefined,
-      },
-      // Para resolver el operador desde un evento de cuenta conectada sin
-      // depender de una consulta inversa.
-      metadata: { operator_id: op.id },
-    });
+    // ⚠️ DOS FORMAS DE CUENTA, Y LA FORMA ES PARA SIEMPRE (el dashboard no se
+    // cambia después). Con la bandera apagada, Express + link a Stripe, como
+    // hasta hoy. Prendida, una cuenta sin dashboard en la que LA PLATAFORMA
+    // recaba los requisitos, paga las comisiones y responde por los saldos
+    // negativos —es lo que permite que la operadora no salga de aquí—, y los
+    // datos llegan en el token; el giro y el sitio, que no pueden ir en un
+    // token, se ponen directo. Ver alta-cobro.ts.
+    account = altaCobroEnPlataforma()
+      ? await stripe.accounts.create({
+          ...comun,
+          controller: {
+            stripe_dashboard: { type: "none" },
+            fees: { payer: "application" },
+            losses: { payments: "application" },
+            requirement_collection: "application",
+          },
+          business_profile: {
+            ...comun.business_profile,
+            mcc: MCC_TURISMO,
+            url: comun.business_profile.url ?? CANONICAL,
+            product_description: "Experiencias guiadas en naturaleza, reservadas por Caminante.",
+          },
+          ...(accountToken ? { account_token: accountToken } : {}),
+        })
+      : await stripe.accounts.create({ type: "express", ...comun });
   } catch (error) {
     return { ok: false, error: `Stripe no pudo crear la cuenta: ${(error as Error).message}` };
   }
@@ -171,6 +202,10 @@ export type EstadoConnect = {
   /** Requisitos con fecha límite: si no se cumplen, Stripe corta los cobros. */
   fechaLimite: number | null;
   detallesEnviados: boolean;
+  /** Por qué algo sigue pendiente (RFC que no cuadra, documento ilegible). */
+  errores: { requirement?: string; reason?: string; code?: string }[];
+  /** ¿La cuenta la llena la plataforma? Decide qué pantalla ve la operadora. */
+  recaudaLaPlataforma: boolean;
 };
 
 /**
@@ -210,12 +245,14 @@ export async function guardarEstado(
     payouts_enabled?: boolean;
     details_submitted?: boolean;
     requirements?: unknown;
+    controller?: { requirement_collection?: string | null } | null;
   },
 ): Promise<ConnectResult<EstadoConnect>> {
   const req = (account.requirements ?? {}) as {
     currently_due?: string[];
     past_due?: string[];
     eventually_due?: string[];
+    errors?: { requirement?: string; reason?: string; code?: string }[];
     disabled_reason?: string | null;
     current_deadline?: number | null;
   };
@@ -231,6 +268,8 @@ export async function guardarEstado(
     pendientes: [...new Set([...(req.past_due ?? []), ...(req.currently_due ?? [])])],
     fechaLimite: req.current_deadline ?? null,
     detallesEnviados: Boolean(account.details_submitted),
+    errores: req.errors ?? [],
+    recaudaLaPlataforma: recaudaLaPlataforma(account),
   };
 
   const patch: Record<string, unknown> = {
@@ -291,4 +330,81 @@ export async function operadorDeCuenta(accountId: string): Promise<string | null
     .eq("stripe_account_id", accountId)
     .maybeSingle();
   return (data as { id?: string } | null)?.id ?? null;
+}
+
+// ── El alta EN LA PLATAFORMA: recibir los tokens y mandarlos ─────────────────
+
+export type TokensDeAlta = {
+  /** Datos de la cuenta (física: la persona; moral: la empresa) + aceptación. */
+  accountToken?: string;
+  /** Moral: el representante legal y cada dueño de 25% o más. */
+  personTokens?: string[];
+  /** La cuenta bancaria (CLABE), como token. */
+  bankToken?: string;
+};
+
+/**
+ * Manda a Stripe lo que la operadora capturó en la pantalla de cobro.
+ *
+ * ⚠️ AQUÍ NO LLEGA NI UN DATO PERSONAL: llegan TOKENS. El nombre, la fecha de
+ * nacimiento, el RFC, la CLABE y la identificación los tokenizó Stripe.js en
+ * el navegador de la operadora; este servidor sólo ve `ctoken_…`, `ptoken_…`
+ * y `btok_…`, de un solo uso, y no tiene nada que guardar. Es la razón de
+ * hacerlo con tokens y no con un formulario normal: la regla 8 (los datos
+ * personales no salen a herramientas externas) se cumple porque nunca entran.
+ *
+ * Es re-entrante: si la cuenta no existe, se crea con el token; si existe, se
+ * actualiza. Stripe sólo reemplaza lo que el token trae, así que la operadora
+ * puede volver a completar únicamente lo que falte. Y una cuenta que ya salió
+ * a Stripe (Express) se rechaza: sus datos los recaba Stripe, no nosotros.
+ */
+export async function completarAltaCobro(
+  operadorId: string,
+  tokens: TokensDeAlta,
+): Promise<ConnectResult<EstadoConnect>> {
+  if (!altaCobroEnPlataforma()) {
+    return { ok: false, error: "El alta dentro de la plataforma todavía no está prendida." };
+  }
+  if (!tokens.accountToken && !tokens.personTokens?.length && !tokens.bankToken) {
+    return { ok: false, error: "No llegó nada que enviar." };
+  }
+
+  const stripe = getStripeServerClient();
+  const op = await leerOperador(operadorId);
+  if (!op) return { ok: false, error: "Ese operador no existe." };
+
+  let accountId = op.stripe_account_id;
+  try {
+    if (!accountId) {
+      // Sin cuenta todavía: se crea CON el token, que es la única forma de que
+      // la aceptación del contrato (`tos_shown_and_accepted`) quede sellada con
+      // fecha, IP y navegador de quien aceptó.
+      if (!tokens.accountToken) {
+        return { ok: false, error: "Faltan los datos de la cuenta para darla de alta." };
+      }
+      const alta = await crearCuentaConectada(operadorId, tokens.accountToken);
+      if (!alta.ok) return alta;
+      accountId = alta.data.accountId;
+    } else {
+      const cuenta = await stripe.accounts.retrieve(accountId);
+      if (!recaudaLaPlataforma(cuenta)) {
+        return { ok: false, error: "Esta cuenta se completa por su propio enlace, no desde aquí." };
+      }
+      if (tokens.accountToken) {
+        await stripe.accounts.update(accountId, { account_token: tokens.accountToken });
+      }
+    }
+    for (const person_token of tokens.personTokens ?? []) {
+      await stripe.accounts.createPerson(accountId, { person_token });
+    }
+    if (tokens.bankToken) {
+      // Un token de cuenta bancaria vale como `external_account`; sustituye a
+      // la anterior de la misma moneda, que es lo que se quiere al corregir.
+      await stripe.accounts.update(accountId, { external_account: tokens.bankToken });
+    }
+  } catch (error) {
+    return { ok: false, error: `No se pudieron enviar los datos: ${(error as Error).message}` };
+  }
+
+  return refrescarEstado(operadorId);
 }

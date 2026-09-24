@@ -112,6 +112,9 @@ export async function POST(request: Request) {
           payouts_enabled: account.payouts_enabled,
           details_submitted: account.details_submitted,
           requirements: account.requirements,
+          // Quién recaba los requisitos (la plataforma, o Stripe): decide qué
+          // pantalla ve la operadora. Ver alta-cobro.ts.
+          controller: account.controller ?? null,
         });
       }
     }
