@@ -138,12 +138,14 @@ export default async function PanoramaPlataformaPage() {
             </p>
           </div>
           <div className="card kpi">
-            <span className="k-lbl">Comisión por cobrar</span>
-            <span className="k-val">{formatMXN(d.comision.porCobrar)}</span>
+            <span className="k-lbl">Comisión que se quedó</span>
+            <span className="k-val">{formatMXN(d.comision.cobrada)}</span>
             <p className="k-sub">
-              {d.comision.porCobrar === 0
-                ? "Nada devengado, nada por cobrar, ningún CFDI pendiente."
-                : "Devengada y todavía sin cobrar a la operadora."}
+              {d.comision.devengada === 0
+                ? "Ninguna operadora ha generado comisión todavía."
+                : d.comision.concedida > 0
+                  ? `De ${formatMXN(d.comision.devengada)} devengados, ${formatMXN(d.comision.concedida)} se devolvieron al liquidar.`
+                  : "La comisión entra en el mismo cobro: no hay nada por cobrarle a nadie."}
             </p>
             <p className="zl">
               <s>{"//"}</s>

@@ -29,8 +29,36 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 export type PanoramaPlataforma = {
   /** Lo que corrió por la plataforma. NO es ingreso de la casa. */
   gmv: { mes: Dinero; historico: Dinero };
-  /** Lo único que la casa gana. */
-  comision: { devengada: number; cobrada: number; porCobrar: number };
+  /**
+   * Lo único que la casa gana.
+   *
+   * ⚠️ LAS TRES DECÍAN MENTIRAS DISTINTAS hasta el 24 sep 2026:
+   *
+   *   · `cobrada` estaba clavada en 0 «porque operator_payables está vacía» —
+   *     pero esa tabla es la dirección contraria (lo que la operadora le debe a
+   *     Caminante). La comisión ya está en la cuenta de la casa en LOS DOS
+   *     canales: con `casa` cobró todo y transfirió el resto, con Connect Stripe
+   *     la retuvo en el cobro. Nunca fue una cuenta por cobrar.
+   *   · `porCobrar` repetía la devengada, o sea que la pantalla decía que
+   *     alguien nos debía $3,620.64 que ya teníamos.
+   *   · `devengada` sumaba TODO el histórico y Recursos la pintaba con la
+   *     etiqueta «· Septiembre». Hoy coincide por casualidad —toda la comisión
+   *     es de septiembre— y en octubre habría mostrado el dinero de septiembre
+   *     con el rótulo de octubre.
+   */
+  comision: {
+    /** Congelada en los pagos, histórico. */
+    devengada: number;
+    devengadaMes: number;
+    /** Devuelta a la operadora como concesión declarada (0067). */
+    concedida: number;
+    concedidaMes: number;
+    /** Lo que de verdad se quedó la casa: devengada − concedida. */
+    cobrada: number;
+    cobradaMes: number;
+    /** Lo que una operadora le debe a Caminante (`operator_payables`). */
+    porCobrar: number;
+  };
   operadoras: { externas: number; vendiendoEsteMes: number; nombres: string[] };
   /** La fecha desde la que la primera operadora puede generar comisión. */
   primerArranque: string | null;
@@ -42,18 +70,32 @@ export type PanoramaPlataforma = {
 
 type Dinero = { monto: number; reservas: number };
 
+const r2 = (x: number) => Math.round(x * 100) / 100;
+
 export async function fetchPanoramaPlataforma(): Promise<PanoramaPlataforma> {
   const sb = createSupabaseAdminClient();
   const ahora = new Date();
   const desdeMes = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1)).toISOString();
 
-  const [{ data: ops }, { data: resv }, { data: pagos }, { count: solicitudes }] = await Promise.all([
+  const [
+    { data: ops },
+    { data: resv },
+    { data: pagos },
+    { count: solicitudes },
+    { data: liqs },
+    { data: deudas },
+  ] = await Promise.all([
     sb.from("operators").select("id, name, es_la_casa, comision_desde"),
     sb
       .from("reservations")
       .select("id, status, total_amount_mxn, created_at, commission_pct, experiences(operator_id)"),
     sb.from("payments").select("reservation_id, amount_mxn, status, paid_at, platform_fee_mxn"),
     sb.from("slot_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
+    // Las concesiones: comisión que se devolvió al liquidar, con su motivo (0067).
+    sb.from("operator_liquidaciones").select("diferencia_mxn, pagado_el, cancelada_at"),
+    // Lo que una operadora le debe a Caminante. Sigue vacía, y por eso el
+    // «por cobrar» es cero — pero ahora se DERIVA en vez de suponerse.
+    sb.from("operator_payables").select("monto_mxn, estado"),
   ]);
 
   type Op = { id: string; name: string; es_la_casa: boolean; comision_desde: string | null };
@@ -88,6 +130,10 @@ export async function fetchPanoramaPlataforma(): Promise<PanoramaPlataforma> {
   };
 
   let devengada = 0;
+  // ⚠️ EL CORTE DEL MES ES LA PREGUNTA QUE RECURSOS EXISTE PARA CONTESTAR
+  // («¿cómo cerró el mes?»), y hasta hoy la tarjeta decía «· Septiembre» sobre
+  // un número histórico. Se lleva aparte para que la etiqueta no mienta.
+  let devengadaMes = 0;
   const vendiendo = new Set<string>();
   for (const p of ((pagos ?? []) as Pago[]).filter((p) => p.status === "paid" && p.paid_at)) {
     const r = p.reservation_id ? porReserva.get(p.reservation_id) : undefined;
@@ -106,8 +152,33 @@ export async function fetchPanoramaPlataforma(): Promise<PanoramaPlataforma> {
           ? (Number(p.amount_mxn ?? 0) * Number(r.commission_pct)) / 100
           : 0;
     devengada += congelado;
-    if ((p.paid_at as string) >= desdeMes) vendiendo.add(dueño);
+    if ((p.paid_at as string) >= desdeMes) {
+      devengadaMes += congelado;
+      vendiendo.add(dueño);
+    }
   }
+
+  // ── LO QUE SE DEVOLVIÓ AL LIQUIDAR ────────────────────────────────────────
+  // Una concesión es comisión que la casa generó y no se quedó (0067). No se
+  // resta de `platform_fee_mxn` —ésa está congelada a propósito— así que el
+  // ingreso real sólo se ve restándola aquí.
+  let concedida = 0;
+  let concedidaMes = 0;
+  for (const l of (liqs ?? []) as { diferencia_mxn: number | null; pagado_el: string | null; cancelada_at: string | null }[]) {
+    if (l.cancelada_at) continue;
+    const d = Number(l.diferencia_mxn || 0);
+    if (d <= 0) continue; // una diferencia negativa no es una concesión: es un ajuste a favor
+    concedida += d;
+    if ((l.pagado_el ?? "") >= desdeMes.slice(0, 10)) concedidaMes += d;
+  }
+
+  // ── LO QUE DE VERDAD NOS DEBEN ────────────────────────────────────────────
+  // `operator_payables` es la dirección «la operadora le debe a Caminante».
+  // Sigue vacía, así que esto da cero — pero ahora es un cero DERIVADO, no uno
+  // escrito a mano que no sabría cambiar el día que deje de ser cierto.
+  const porCobrar = ((deudas ?? []) as { monto_mxn: number | null; estado: string }[])
+    .filter((d) => d.estado === "por_pagar")
+    .reduce((a, d) => a + Number(d.monto_mxn || 0), 0);
 
   const externas = operadoras.filter((o) => !o.es_la_casa);
   const arranques = externas.map((o) => o.comision_desde).filter(Boolean).sort() as string[];
@@ -117,11 +188,17 @@ export async function fetchPanoramaPlataforma(): Promise<PanoramaPlataforma> {
       mes: suma(pagadas.filter((r) => r.created_at >= desdeMes)),
       historico: suma(pagadas),
     },
-    // Cobrada y por cobrar viven en `operator_payables`, que hoy está vacía y no
-    // se rellena sola: se llena cuando se le cobra a una operadora. Mientras no
-    // exista ese movimiento, lo honesto es cero — no repetir la devengada aquí,
-    // que las haría ver iguales para siempre.
-    comision: { devengada, cobrada: 0, porCobrar: devengada },
+    comision: {
+      devengada: r2(devengada),
+      devengadaMes: r2(devengadaMes),
+      concedida: r2(concedida),
+      concedidaMes: r2(concedidaMes),
+      // Lo que se quedó la casa. La comisión entra en el cobro —por los dos
+      // canales— y lo único que la baja es lo que se devolvió al liquidar.
+      cobrada: r2(devengada - concedida),
+      cobradaMes: r2(devengadaMes - concedidaMes),
+      porCobrar: r2(porCobrar),
+    },
     operadoras: {
       externas: externas.length,
       vendiendoEsteMes: vendiendo.size,

@@ -81,8 +81,8 @@ export default async function RecursosPlataformaPage() {
         <div className="cuenta">
           <div className="cu">
             <span className="lb">Entró</span>
-            <span className="n">{formatMXN(d.comision.cobrada)}</span>
-            <p className="sub">Comisión cobrada en {mes}.</p>
+            <span className="n">{formatMXN(d.comision.cobradaMes)}</span>
+            <p className="sub">Comisión que se quedó la casa en {mes}.</p>
           </div>
           <span className="op">−</span>
           <div className="cu">
@@ -108,10 +108,10 @@ export default async function RecursosPlataformaPage() {
           <span className="op">=</span>
           <div className="cu res">
             <span className="lb">Queda</span>
-            <span className="n">{formatMXN(d.comision.cobrada)}</span>
+            <span className="n">{formatMXN(d.comision.cobradaMes)}</span>
             <p className="sub">
-              {d.comision.cobrada === 0
-                ? "Todavía no ha entrado una sola comisión."
+              {d.comision.cobradaMes === 0
+                ? "Todavía no ha entrado una sola comisión este mes."
                 : "Sin restarle lo que sale ni lo que se declara."}
             </p>
           </div>
@@ -132,28 +132,40 @@ export default async function RecursosPlataformaPage() {
           </span>{" "}
           Lo que entra
         </p>
-        <p className="subtitle">Comisión devengada, cobrada y por cobrar, y el CFDI de cada operadora.</p>
+        <p className="subtitle">
+          Lo que generaron las ventas, lo que se devolvió al liquidar, lo que se quedó la casa y el
+          CFDI de cada operadora.
+        </p>
 
         <div className="kpis">
           <div className="card kpi">
             <span className="k-lbl">Devengada · {mesCap}</span>
-            <span className="k-val">{formatMXN(d.comision.devengada)}</span>
+            <span className="k-val">{formatMXN(d.comision.devengadaMes)}</span>
             <p className="k-sub">
               Comisión generada por reservas posteriores a la fecha de arranque de cada operadora.
+              {d.comision.devengada !== d.comision.devengadaMes
+                ? ` Histórico: ${formatMXN(d.comision.devengada)}.`
+                : ""}
             </p>
           </div>
           <div className="card kpi">
-            <span className="k-lbl">Cobrada · {mesCap}</span>
-            <span className="k-val">{formatMXN(d.comision.cobrada)}</span>
-            <p className="k-sub">Lo que ya entró a la cuenta de Caminante.</p>
+            <span className="k-lbl">Concedida · {mesCap}</span>
+            <span className="k-val">{formatMXN(d.comision.concedidaMes)}</span>
+            <p className="k-sub">
+              {d.comision.concedidaMes === 0
+                ? "No se devolvió comisión al liquidar este mes."
+                : "Comisión devuelta a la operadora al liquidar, con su motivo escrito. No reescribe la comisión congelada de esas ventas."}
+            </p>
           </div>
           <div className="card kpi">
-            <span className="k-lbl">Por cobrar</span>
-            <span className="k-val">{formatMXN(d.comision.porCobrar)}</span>
+            <span className="k-lbl">Se quedó · {mesCap}</span>
+            <span className="k-val">{formatMXN(d.comision.cobradaMes)}</span>
             <p className="k-sub">
+              Lo devengado menos lo concedido. La comisión entra en el cobro por los dos canales,
+              así que no hay nada «por cobrar»:{" "}
               {d.comision.porCobrar === 0
-                ? "Ninguna operadora me debe nada."
-                : "Devengada y todavía sin cobrar."}
+                ? "ninguna operadora le debe nada a Caminante."
+                : `hoy sí, ${formatMXN(d.comision.porCobrar)} en operator_payables.`}
             </p>
           </div>
           <div className="card kpi">
