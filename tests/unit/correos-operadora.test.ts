@@ -14,7 +14,7 @@ import { aTexto, marco, p, saludo } from "@/lib/email/plantilla";
 describe("dónde está el dinero de la primera venta", () => {
   it("con Connect: es suyo, y se dice cuánto retuvimos", () => {
     const f = fraseDelDinero(1750, 350);
-    expect(f).toContain("a tu cuenta de Stripe");
+    expect(f).toContain("a tu cuenta de cobro");
     expect(f).toContain("$350.00");
     expect(f).toContain("$1,750.00");
     expect(f).not.toContain("transferimos");
@@ -25,7 +25,7 @@ describe("dónde está el dinero de la primera venta", () => {
     expect(f).toContain("transferimos");
     // La afirmación que importa. Decirle «entró a tu cuenta» cuando el dinero
     // está en la de Numan es la mentira que se descubre cuando va a buscarlo.
-    expect(f).not.toContain("tu cuenta de Stripe");
+    expect(f).not.toContain("tu cuenta de cobro");
     expect(f).not.toContain("retuvo");
   });
 

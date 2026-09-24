@@ -61,7 +61,7 @@ export default function CobrosPanel({
     setEstado("");
     const r = await refrescarConexion(o.id);
     setOcupado("");
-    setEstado(r.ok ? "✓ Estado actualizado desde Stripe" : `Error: ${r.error}`);
+    setEstado(r.ok ? "✓ Estado actualizado" : `Error: ${r.error}`);
     if (r.ok) window.location.reload();
   }
 
@@ -133,7 +133,7 @@ export default function CobrosPanel({
           faltante dice qué hacer y en qué paso. */}
       {listo ? (
         <p className="mut" style={{ fontSize: 13, margin: "8px 0 0", color: "var(--forest)" }}>
-          <b>Listo para vender a su nombre.</b> Sus cobros entran a su cuenta de Stripe y Numan
+          <b>Listo para vender a su nombre.</b> Sus cobros entran a su cuenta de cobro y Numan
           retiene {o.commissionPct}% como comisión.
         </p>
       ) : !o.stripeAccountId ? (
@@ -155,12 +155,12 @@ export default function CobrosPanel({
       )}
 
       {/* ── Paso 1 · Conecta tu cuenta ─────────────────────────────── */}
-      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>1 · Conecta su cuenta de Stripe</h3>
+      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>1 · Conecta su cuenta de cobro</h3>
       {!o.stripeAccountId ? (
         <>
           <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
-            Crea su cuenta y lo manda al flujo de Stripe: identificación, RFC y CLABE. Los datos de
-            verificación los captura él directo en Stripe — nosotros no los vemos ni los guardamos.
+            Crea su cuenta de cobro y lo lleva a verificarla: identificación, RFC y CLABE. Esos datos
+            van directo a verificación — nosotros no los vemos ni los guardamos.
           </p>
           <button
             type="button"
@@ -168,7 +168,7 @@ export default function CobrosPanel({
             onClick={conectar}
             disabled={ocupado !== "" || !o.email}
           >
-            {ocupado === "stripe" ? "Abriendo Stripe…" : "Conectar Stripe"}
+            {ocupado === "stripe" ? "Abriendo…" : "Conectar la cuenta de cobro"}
           </button>
           {!o.email ? (
             <p className="mut" style={{ fontSize: 12, margin: "6px 0 0" }}>
@@ -187,7 +187,7 @@ export default function CobrosPanel({
           {o.pendientes.length > 0 ? (
             <div style={{ margin: "0 0 10px" }}>
               <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
-                Lo que Stripe todavía le pide (tal cual lo nombra Stripe):
+                Lo que todavía falta para verificar la cuenta:
               </p>
               <ul style={{ fontSize: 12, margin: "4px 0 0", paddingLeft: 18 }}>
                 {o.pendientes.map((p) => (
@@ -198,7 +198,7 @@ export default function CobrosPanel({
           ) : null}
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn btn-sm" onClick={conectar} disabled={ocupado !== ""}>
-              {ocupado === "stripe" ? "Abriendo Stripe…" : "Continuar en Stripe"}
+              {ocupado === "stripe" ? "Abriendo…" : "Continuar la verificación"}
             </button>
             <button type="button" className="btn btn-sm" onClick={refrescar} disabled={ocupado !== ""}>
               {ocupado === "refrescar" ? "Preguntando…" : "Refrescar estado"}

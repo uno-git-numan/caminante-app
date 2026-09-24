@@ -826,6 +826,60 @@ const REGLAS = [
       return null;
     },
   },
+
+  // ── 25 · La operadora no lee «Stripe» ─────────────────────────────────────
+  {
+    nombre: "Ninguna pantalla ni correo de la operadora nombra a Stripe",
+    comprueba() {
+      // Luis, 24 sep 2026: «No menciones Stripe en el front end, el usuario no
+      // debe saber que existe una pasarela de pagos externa a Caminante». Había
+      // 19 menciones que una operadora podía leer —el botón «Conectar Stripe»,
+      // el candado «Stripe Connect», «tu cuenta de Stripe» en los correos—.
+      //
+      // ⚠️ EN EL CONVENIO SÍ VA, y no es contradicción: Stripe exige que cada
+      // operadora acepte su contrato con enlace (CONVENIO-v1.md, Cuarta §7).
+      // Este guardián mira pantallas y correos, no el texto legal.
+      //
+      // Se ignoran comentarios e identificadores (`pedirLinkStripe`,
+      // `emailStripeListo`…): lo que importa es lo que se LEE.
+      const archivos = [];
+      const recorre = (dir) => {
+        for (const e of readdirSync(join(raiz, dir), { withFileTypes: true })) {
+          const rel = dir + "/" + e.name;
+          if (e.isDirectory()) recorre(rel);
+          else if (/\.tsx?$/.test(e.name)) archivos.push(rel);
+        }
+      };
+      recorre("src/app/caminante/admin/mi-alta");
+      archivos.push(
+        "src/app/caminante/admin/ui/NavAlta.tsx",
+        "src/app/caminante/admin/operadores/cobros/CobrosPanel.tsx",
+        "src/lib/operadores/emails.ts",
+        "src/lib/operators/listo-para-vender.ts",
+        "src/lib/operadores/nav-alta.ts",
+        "src/lib/operadores/pasos.ts",
+      );
+      const hallazgos = [];
+      for (const rel of archivos) {
+        const f = join(raiz, rel);
+        if (!existsSync(f)) continue;
+        const txt = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+        for (const m of txt.matchAll(/["'>`][^"'<`\n]*Stripe[^"'<`\n]*/g)) {
+          if (/pedirLinkStripe|emailStripeListo|paraStripe|STRIPE_|stripe\./.test(m[0])) continue;
+          hallazgos.push(`${rel}: ${m[0].slice(0, 90)}`);
+        }
+      }
+      if (!hallazgos.length) return null;
+      return [
+        "Una pantalla o un correo que ve la operadora dice «Stripe»:",
+        ...hallazgos.map((h) => "  · " + h),
+        "",
+        "Luis decidió que la operadora no sepa que existe una pasarela externa:",
+        "se dice «tu cuenta de cobro». Stripe sólo se nombra en el convenio,",
+        "porque su contrato lo exige (CONVENIO-v1.md, Cuarta §7).",
+      ].join("\n");
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

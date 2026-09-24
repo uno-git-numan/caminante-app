@@ -264,11 +264,11 @@ export async function emailStripeListo(to: string, responsable: string | null): 
   const n = saludo(responsable);
   const correo = shell([
     h1(`Tu cuenta ya puede cobrar${n}.`),
-    p("Stripe terminó de verificarte. A partir de ahora el dinero de tus ventas entra <b>a tu cuenta</b>, y Caminante retiene sólo su comisión."),
-    p("Si Stripe te vuelve a pedir algo más adelante —un documento que vence, una revisión— te avisamos igual: tu panel siempre dice lo que Stripe dice, no lo que nosotros creemos."),
+    p("Tu cuenta de cobro quedó verificada. A partir de ahora el dinero de tus ventas entra <b>a tu cuenta</b>, y Caminante retiene sólo su comisión."),
+    p("Si más adelante hace falta algo más —un documento que vence, una revisión— te avisamos igual: tu panel siempre dice el estado real de tu cuenta, no lo que nosotros creemos."),
     boton("Ver mi cuenta de cobro", `${SITE}/caminante/admin/mi-alta/cobrar`),
   ]);
-  return enviar(to, "Tu cuenta de Stripe ya está lista", correo);
+  return enviar(to, "Tu cuenta de cobro ya está lista", correo);
 }
 
 /**
@@ -336,7 +336,7 @@ const pesos = (x: number) =>
  */
 export function fraseDelDinero(montoMxn: number, retenidoMxn: number | null): string {
   if (retenidoMxn != null) {
-    return `Se cobraron ${pesos(montoMxn)}. El dinero entró <b>a tu cuenta de Stripe</b>; Caminante retuvo ${pesos(retenidoMxn)} de comisión más su IVA.`;
+    return `Se cobraron ${pesos(montoMxn)}. El dinero entró <b>a tu cuenta de cobro</b>; Caminante retuvo ${pesos(retenidoMxn)} de comisión más su IVA.`;
   }
   return `Se cobraron ${pesos(montoMxn)}. Este cobro entró por la cuenta de Caminante, así que tu parte te la transferimos — la vas a ver en tu corte.`;
 }

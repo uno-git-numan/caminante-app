@@ -185,7 +185,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
       },
       {
         clave: "connect",
-        nombre: "Stripe Connect",
+        nombre: "Cuenta de cobro",
         cumplido: o.stripe_charges_enabled === true,
         detalle: o.stripe_charges_enabled === true ? "Cuenta verificada" : "Sin conectar",
         toca: "casa",

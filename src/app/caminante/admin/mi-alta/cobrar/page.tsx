@@ -89,7 +89,7 @@ export default async function CobrarPage({
             Tu cuenta de cobro <em className="ac">y tus datos fiscales.</em>
           </h2>
           <p className="desc">
-            Conecta tu cuenta de Stripe para que el dinero de tus ventas entre <b>a tu nombre</b> y
+            Conecta tu cuenta de cobro para que el dinero de tus ventas entre <b>a tu nombre</b> y
             Caminante retenga sólo su comisión. Tus datos fiscales y tu CSD son para que tú le factures
             a tu cliente. Mientras esto no esté completo, tus experiencias no cobran por aquí.
           </p>

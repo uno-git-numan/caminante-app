@@ -105,7 +105,7 @@ export function operadorListo(
   // significa que ya pueda cobrar — el KYC puede seguir incompleto.
   if (!op?.stripe_charges_enabled) {
     faltantes.push(
-      "Stripe todavía no habilita los cobros de este operador: le falta completar su verificación (sección “Conecta tu cuenta”).",
+      "Su cuenta de cobro todavía no está verificada: le falta completar la verificación (sección “Conecta tu cuenta”).",
     );
   }
 

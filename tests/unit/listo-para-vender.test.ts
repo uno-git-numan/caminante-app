@@ -93,7 +93,7 @@ describe("operadorListo", () => {
 
   it("lo que Stripe dice manda sobre lo que nosotros creemos", () => {
     const r = operadorListo({ ...completo, stripe_charges_enabled: false }, HOY);
-    expect(r.faltantes[0]).toMatch(/Stripe todavía no habilita/);
+    expect(r.faltantes[0]).toMatch(/cuenta de cobro todavía no está verificada/);
   });
 
   it("con todo vacío enumera las seis faltas, una por condición", () => {
