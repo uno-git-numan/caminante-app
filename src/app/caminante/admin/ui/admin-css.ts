@@ -1234,4 +1234,16 @@ export const ADMIN_CSS = `
 .adm .susurro .g{flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.6;color:var(--ink-soft)}
 .adm .susurro .g b{display:block;font-size:13.5px;font-weight:600;color:var(--charcoal);margin-bottom:3px}
 .adm .susurro .x{border:0;background:transparent;font-family:var(--mono);font-size:15px;color:var(--sand);flex:0 0 auto;padding:0 2px}
+
+/* EL RENGLÓN DE DOCUMENTO · lámina «Panel Operadora» (24 sep 2026). El cuadrito
+   de fecha que aparece al elegir un archivo que caduca, la liga al archivo
+   subido y el renglón rechazado. Copiado de la lámina con el prefijo .adm. */
+.adm .upfecha{grid-column:1/-1;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-top:6px;padding:12px 14px;border:1px solid var(--olive);border-radius:10px;background:rgba(99,113,84,.06)}
+.adm .upfecha .g{flex:1 1 240px;min-width:0;font-size:12.5px;line-height:1.55;color:var(--ink-soft)}
+.adm .upfecha .g b{display:block;color:var(--charcoal);font-weight:600;font-family:var(--mono);font-size:12px;margin-bottom:3px;overflow-wrap:anywhere}
+.adm .upfecha .ac{display:flex;gap:8px}
+.adm .flink{color:var(--charcoal);text-decoration:none;border-bottom:1px dashed var(--sand);overflow-wrap:anywhere}
+.adm .flink:hover{color:var(--orange);border-color:rgba(255,93,54,.6)}
+.adm .doc.rech{background:rgba(255,93,54,.05);box-shadow:inset 3px 0 0 var(--orange)}
+@media(max-width:640px){.adm .upfecha .ac{width:100%}}
 `;

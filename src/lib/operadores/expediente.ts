@@ -31,6 +31,12 @@ export type DocEnPantalla = {
   diasParaVencer: number | null;
   /** Se pinta dentro de una actividad pero VIVE en Lo general: no se re-pide. */
   cubiertoPorGeneral: boolean;
+  /**
+   * Si caduca, según el catálogo. Con esto la pantalla sabe si, al elegir el
+   * archivo, tiene que pedir la fecha antes de subir (lámina «Panel Operadora»)
+   * — en vez de enseñar siempre un campo de fecha que casi nadie necesitaba.
+   */
+  caduca: boolean;
 };
 
 export type ActividadEnPantalla = {
@@ -92,6 +98,7 @@ function pintar(d: Documento, fila: Fila | undefined, cubierto: boolean): DocEnP
     // que no existe no «vence», falta, que es un problema distinto.
     diasParaVencer: fila?.vence_at ? diasHasta(fila.vence_at) : null,
     cubiertoPorGeneral: cubierto,
+    caduca: d.vence,
   };
 }
 

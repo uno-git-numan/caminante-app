@@ -15,17 +15,19 @@
 // llegó rebotado, con `?borrador=&actividad=`: es una lámina de llegada, no una
 // sección de la pantalla.
 //
-// La subida va por `subirDocumento`, un server action con FormData: el archivo
+// La subida va por `subirDocumento` (desde `../RenglonDoc.tsx`, el renglón que
+// comparte con Mi alta), un server action con FormData: el archivo
 // no pasa por el cliente más que para elegirlo. El `operator_id` sí puede viajar
 // (`operadora`, un input oculto) pero NO decide nada: `operadoraObjetivo` lo
 // compara contra la sesión del lado del servidor — la casa actúa sobre quien
 // diga, la operadora sólo sobre sí misma. Aquí `operadora` es null cuando la
 // operadora edita lo suyo y el id de ella cuando la casa sube POR ella.
 
+import RenglonDoc from "../RenglonDoc";
 import { diaEnPalabras } from "@/lib/fecha/zona";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { subirDocumento, mandarARevision, declararActividad } from "@/lib/operadores/expediente-actions";
+import { mandarARevision, declararActividad, quitarActividad } from "@/lib/operadores/expediente-actions";
 import { ACTIVIDADES, requisitosDe } from "@/lib/operadores/actividades";
 import type {
   ActividadEnPantalla,
@@ -54,86 +56,9 @@ function Marca({ estado }: { estado: DocEnPantalla["estado"] }) {
   );
 }
 
-function Fila({ d, actividad, operadora }: { d: DocEnPantalla; actividad: string | null; operadora: string | null }) {
-  const clase =
-    d.estado === "rechazado" ? " rech" : d.estado === "falta" || d.estado === "en_revision" ? " pend" : "";
-  const dias = d.diasParaVencer;
-  const vencido = dias !== null && dias < 0;
-  const pronto = dias !== null && dias >= 0 && dias <= 30;
-  return (
-    <div className={"doc" + clase}>
-      <Marca estado={d.estado} />
-      <span className="nm">
-        <b>{d.nombre}</b>
-        <small>{d.porQue}</small>
-      </span>
-      <span className="fl">
-        {d.estado === "falta" ? (
-          <span className="mut">Todavía no lo has subido</span>
-        ) : d.estado === "en_revision" ? (
-          <span className="mut">Lo estamos revisando. No hay nada que hacer de tu lado.</span>
-        ) : d.estado === "rechazado" ? (
-          // Un rechazo SIEMPRE dice por qué. La base lo obliga con un check, y
-          // aquí se pinta: un «no» mudo deja a alguien sin saber qué corregir.
-          <span className="mut">{d.motivo}</span>
-        ) : (
-          <span className="mut">Aprobado</span>
-        )}
-        {d.venceAt ? (
-          <span className={"venc" + (vencido ? " vencido" : pronto ? " pronto" : "")}>
-            <s>{"//"}</s>
-            {vencido
-              ? `Venció el ${fecha(d.venceAt)}`
-              : `Vence el ${fecha(d.venceAt)}${pronto ? ` · en ${dias} días` : ""}`}
-          </span>
-        ) : null}
-      </span>
-      <span className="ac">
-        {d.cubiertoPorGeneral ? (
-          // Se muestra, no se re-pide: vive en Lo general y ahí se reemplaza.
-          <span className="mut">Ya está en Lo general</span>
-        ) : (
-          <SubirDoc operadora={operadora} actividad={actividad} doc={d} />
-        )}
-      </span>
-    </div>
-  );
-}
-
-/**
- * El control de subida de UNA fila.
- *
- * `vence` sale del catálogo a través de `venceAt`… no: sale de si el documento
- * ya trae fecha o de si el catálogo dice que caduca. Aquí se usa lo segundo de
- * forma indirecta —el servidor lo exige de todos modos— y se pide la fecha
- * siempre que el documento tenga una o pueda tenerla, para no adivinar.
- */
-function SubirDoc({ actividad, doc, operadora }: { actividad: string | null; doc: DocEnPantalla; operadora: string | null }) {
-  const [pendiente, arranca] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  return (
-    <form
-      action={(fd) =>
-        arranca(async () => {
-          fd.set("actividad", actividad ?? "");
-          fd.set("documento", doc.slug);
-          fd.set("operadora", operadora ?? "");
-          const r = await subirDocumento(fd);
-          setError(r.ok ? null : r.error);
-        })
-      }
-    >
-      <input type="file" name="archivo" accept="application/pdf,image/*" required disabled={pendiente} />
-      {/* La fecha se ofrece siempre que el documento pueda caducar. El servidor
-          la exige cuando el catálogo dice que sí; aquí no se adivina. */}
-      <input type="date" name="venceAt" defaultValue={doc.venceAt ?? ""} disabled={pendiente} />
-      <button className="btn btn-ghost btn-sm" disabled={pendiente}>
-        {pendiente ? "Subiendo…" : doc.estado === "falta" ? "Subir" : "Reemplazar"}
-      </button>
-      {error ? <span className="mut">{error}</span> : null}
-    </form>
-  );
-}
+// El renglón de documento vive en `../RenglonDoc.tsx`: es el mismo que usa el
+// paso 02 de Mi alta. Aquí había otro —con el selector de archivo, la fecha y
+// el botón a la vista— y subir costaba cuatro pasos.
 
 function Carpeta({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
   const [abierta, setAbierta] = useState(a.estado !== "aprobada");
@@ -172,19 +97,95 @@ function Carpeta({ a, operadora }: { a: ActividadEnPantalla; operadora: string |
       </button>
       <div className="ab">
         <div className="docs">
-          {a.propios.map((d) => <Fila operadora={operadora} key={d.slug} d={d} actividad={a.slug} />)}
+          {a.propios.map((d) => <RenglonDoc operadora={operadora} key={d.slug} d={d} actividad={a.slug} />)}
         </div>
         {a.generales.length ? (
           <>
             <p className="xh4">Lo que ya cubriste en Lo general</p>
             <div className="docs">
-              {a.generales.map((d) => <Fila operadora={operadora} key={d.slug} d={d} actividad={a.slug} />)}
+              {a.generales.map((d) => <RenglonDoc operadora={operadora} key={d.slug} d={d} actividad={a.slug} />)}
             </div>
           </>
         ) : null}
         {a.estado === "incompleta" ? <Mandar operadora={operadora} a={a} /> : null}
+        {a.estado !== "aprobada" ? <Quitar operadora={operadora} a={a} /> : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * Sacar de la lista una actividad declarada por error (Luis, 24 sep 2026:
+ * «si me equivoqué y puse cañonismo, la quiero eliminar»).
+ *
+ * ⚠️ NO ESTÁ EN LA LÁMINA: ninguna de las versiones dibuja cómo se quita una
+ * actividad. Va con piezas que ya existen —el botón fantasma y el recuadro
+ * `.motivo` de la lámina para la confirmación— y sin inventar clases.
+ *
+ * La confirmación va EN LA PANTALLA y no con `confirm()` del navegador: dice
+ * cuántos documentos se van a borrar, que es lo único que duele de quitarla.
+ * Lo que no se puede quitar (aprobada, con anexo, con experiencias, con
+ * dispensa) lo decide el servidor y lo explica.
+ */
+function Quitar({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const [pendiente, arranca] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const subidos = a.propios.filter((d) => d.estado !== "falta").length;
+
+  if (!confirmar) {
+    return (
+      <p className="gnhint">
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => {
+            setError(null);
+            setConfirmar(true);
+          }}
+        >
+          Quitar esta actividad
+        </button>{" "}
+        Si la declaraste por error, sácala de tu lista.
+      </p>
+    );
+  }
+  return (
+    <p className="motivo" style={{ marginTop: 12 }}>
+      <s>{"//"}</s>
+      <span>
+        <b>¿Quitar {a.nombre} de tu lista?</b>
+        {subidos
+          ? `Se borran también ${subidos === 1 ? "el documento que subiste" : `los ${subidos} documentos que subiste`} para ella. `
+          : "No has subido nada para ella, así que no se pierde nada. "}
+        Lo de Lo general no se toca.
+        <span style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <button
+            className="btn btn-orange btn-sm"
+            disabled={pendiente}
+            onClick={() =>
+              arranca(async () => {
+                const r = await quitarActividad(a.slug, operadora);
+                if (r.ok) setConfirmar(false);
+                else setError(r.error);
+              })
+            }
+          >
+            {pendiente ? "Quitando…" : "Sí, quitarla"}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            disabled={pendiente}
+            onClick={() => {
+              setConfirmar(false);
+              setError(null);
+            }}
+          >
+            Cancelar
+          </button>
+        </span>
+        {error ? <span style={{ display: "block", marginTop: 8 }}>{error}</span> : null}
+      </span>
+    </p>
   );
 }
 
@@ -501,7 +502,7 @@ export default function Expediente({
               sube dos veces.
             </p>
             <div className="docs">
-              {datos.generales.map((d) => <Fila operadora={operadora} key={d.slug} d={d} actividad={null} />)}
+              {datos.generales.map((d) => <RenglonDoc operadora={operadora} key={d.slug} d={d} actividad={null} />)}
             </div>
           </div>
         </div>

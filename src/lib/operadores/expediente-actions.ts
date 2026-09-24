@@ -157,6 +157,92 @@ export async function subirDocumento(formData: FormData): Promise<Res> {
 }
 
 /**
+ * Quitar una actividad declarada por error = cerrar su carpeta, con lo que traía.
+ *
+ * Luis, 24 sep 2026: «si me equivoqué y puse cañonismo, y no iba, la quiero
+ * eliminar de mi lista». Declarar era de un clic y no había vuelta atrás: la
+ * carpeta se quedaba para siempre pidiendo tres documentos de algo que la
+ * operadora no hace, y su expediente nunca se podía completar.
+ *
+ * ⚠️ SÓLO SE QUITA LO QUE NO SOSTIENE NADA. Se niega, diciendo por qué, si:
+ *   · ya está APROBADA — la aprobó una persona de la casa; darla de baja es
+ *     suspenderla, y eso lo decide la casa, no un clic;
+ *   · ya ACEPTÓ SU ANEXO — `anexo_aceptado_at` es el recibo de un acto legal y
+ *     vive en esta fila: borrarla borraría el recibo;
+ *   · alguna EXPERIENCIA suya dice ser de esta actividad — el candado de
+ *     publicación pregunta por ella, y la experiencia quedaría apuntando a nada;
+ *   · tiene una DISPENSA vigente — la otorgó la casa con nombre y fecha.
+ *
+ * Lo que se lleva: sus documentos PROPIOS (filas y archivos). Los de Lo
+ * general no se tocan: son de la operadora, no de la actividad.
+ */
+export async function quitarActividad(actividad: string, operadora?: string | null): Promise<Res> {
+  const operatorId = await operadoraObjetivo(operadora);
+  if (!operatorId) return { ok: false, error: "No hay una operadora sobre la que quitar esto." };
+  if (!VALIDAS.has(actividad)) return { ok: false, error: "Esa actividad no existe." };
+  const nombre = nombreDeActividad(actividad);
+
+  const sb = createSupabaseAdminClient();
+  const [{ data: act, error: e1 }, { data: exps, error: e2 }, { data: disps, error: e3 }] = await Promise.all([
+    sb.from("operator_activities").select("id, estado, anexo_aceptado_at")
+      .eq("operator_id", operatorId).eq("actividad", actividad).maybeSingle(),
+    sb.from("experiences").select("id").eq("operator_id", operatorId).eq("actividad", actividad),
+    sb.from("operator_activity_dispensas").select("id, vence_at, revocada_at")
+      .eq("operator_id", operatorId).eq("actividad", actividad),
+  ]);
+  // Sin poder verificar, no se borra: un «no pude revisar» no es un «no hay nada».
+  if (e1 || e2 || e3) return { ok: false, error: "No pude revisar qué depende de esta actividad. Intenta de nuevo." };
+  const fila = act as { id: string; estado: string; anexo_aceptado_at: string | null } | null;
+  if (!fila) return { ok: false, error: `${nombre} no está en tu lista.` };
+
+  if (fila.estado === "aprobada") {
+    return { ok: false, error: `${nombre} ya está aprobada. Si ya no la vas a operar, escríbenos y la suspendemos: no se quita con un clic.` };
+  }
+  if (fila.anexo_aceptado_at) {
+    return { ok: false, error: `Ya aceptaste el anexo de ${nombre}. Ese recibo no se borra; si ya no la vas a operar, escríbenos.` };
+  }
+  const nExp = ((exps ?? []) as unknown[]).length;
+  if (nExp > 0) {
+    return { ok: false, error: `${nExp === 1 ? "Una experiencia tuya dice" : `${nExp} experiencias tuyas dicen`} ser de ${nombre}. Cámbiales la actividad o bórralas, y después la quitas.` };
+  }
+  const ahora = Date.now();
+  const vigente = ((disps ?? []) as { vence_at: string; revocada_at: string | null }[])
+    .some((d) => !d.revocada_at && new Date(d.vence_at).getTime() > ahora);
+  if (vigente) {
+    return { ok: false, error: `${nombre} vende con una dispensa que otorgó la casa. Mientras esté vigente no se quita.` };
+  }
+
+  // Primero las FILAS, después los archivos. Si fallara lo segundo quedaría un
+  // objeto sin fila —invisible e inofensivo—; al revés quedaría una fila
+  // apuntando a un archivo que ya no existe, y la pantalla mentiría.
+  const { data: docs, error: e4 } = await sb
+    .from("operator_documents").select("id, archivo_path")
+    .eq("operator_id", operatorId).eq("actividad", actividad);
+  if (e4) return { ok: false, error: "No pude leer sus documentos. No se quitó nada." };
+  const rutas = ((docs ?? []) as { archivo_path: string | null }[]).map((d) => d.archivo_path).filter((x): x is string => !!x);
+
+  const { error: e5 } = await sb.from("operator_documents").delete()
+    .eq("operator_id", operatorId).eq("actividad", actividad);
+  if (e5) {
+    console.error("quitarActividad documentos:", e5);
+    return { ok: false, error: "No se pudieron quitar sus documentos. No se quitó nada." };
+  }
+  const { error: e6 } = await sb.from("operator_activities").delete().eq("id", fila.id);
+  if (e6) {
+    console.error("quitarActividad actividad:", e6);
+    return { ok: false, error: "Se quitaron sus documentos pero no la actividad. Vuelve a intentarlo." };
+  }
+  if (rutas.length) {
+    const { error: e7 } = await sb.storage.from(BUCKET).remove(rutas);
+    if (e7) console.error("quitarActividad archivos (quedan huérfanos, sin fila):", e7);
+  }
+
+  revalidatePath(RUTA);
+  revalidatePath("/caminante/admin/mi-alta");
+  return { ok: true };
+}
+
+/**
  * Declarar una actividad = abrir su carpeta.
  *
  * Hasta ahora las actividades sólo nacían al aprobar la solicitud, con lo que

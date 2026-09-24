@@ -16,10 +16,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { PASOS, pasoDe } from "@/lib/operadores/pasos";
 import type { MiAlta as Datos } from "@/lib/operadores/mi-alta";
-import { CDMX, diaEnPalabras, enPalabras } from "@/lib/fecha/zona";
+import { CDMX, enPalabras } from "@/lib/fecha/zona";
 import Copiar from "./Copiar";
 import ResumenTerminos from "./ResumenTerminos";
-import type { DocEnPantalla } from "@/lib/operadores/expediente";
+import RenglonDoc from "./RenglonDoc";
 import type { SolicitudEnviada } from "@/lib/operadores/mi-alta";
 import { ANTIGUEDAD, PRIMEROS, SEGURO, TIPOS, etiqueta } from "@/lib/operadores/solicitud-opciones";
 
@@ -284,6 +284,7 @@ export default function MiAlta({
             e={datos.expediente}
             dispensas={datos.dispensas.filter((d) => d.vigente)}
             liga={liga}
+            porOtra={porOtra}
           />
         ) : viendo === 1 && aqui.indice === 1 && s ? (
           <>
@@ -597,74 +598,17 @@ function LoQueMande({ e, creadaAt }: { e: SolicitudEnviada; creadaAt: string }) 
   );
 }
 
-// Los dos íconos de la fila de documento, tal cual la lámina v5 (#p2): la
-// palomita en olivo para lo que ya se entregó y el «+» en arena para lo que
-// falta. Llevan `.st`, que es la clase que `.doc` les da tamaño — distinta de
-// la `.m` de los candados.
-const DOC_ENTREGADO = (
-  <svg className="st" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 12.6l5.2 5.2L20 6.6" />
-  </svg>
-);
-const DOC_FALTA = (
-  <svg className="st" viewBox="0 0 24 24" fill="none" stroke="var(--sand)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 5v14M5 12h14" />
-  </svg>
-);
-
-const ESTADO_DOC: Record<DocEnPantalla["estado"], string> = {
-  falta: "sin archivo",
-  en_revision: "subido · en revisión",
-  aprobado: "aprobado",
-  rechazado: "rechazado",
-};
-
-function FilaDoc({ d, subir }: { d: DocEnPantalla; subir: string }) {
-  const pend = d.estado === "falta" || d.estado === "rechazado";
-  return (
-    <div className={`doc${pend ? " pend" : ""}`}>
-      {pend ? DOC_FALTA : DOC_ENTREGADO}
-      <span className="nm">
-        <b>{d.nombre}</b>
-        <small>{d.porQue}</small>
-      </span>
-      <span className="fl">
-        {d.estado === "falta" ? <span className="mut">sin archivo</span> : ESTADO_DOC[d.estado]}
-        {/* Un rechazo nunca va mudo: el motivo dice qué corregir. */}
-        {d.estado === "rechazado" && d.motivo ? (
-          <>
-            <br />
-            <span className="mut">{d.motivo}</span>
-          </>
-        ) : null}
-        {d.venceAt && d.estado !== "falta" ? (
-          <span className={`venc${(d.diasParaVencer ?? 99) <= 30 ? " pronto" : ""}`}>
-            <s>{"//"}</s>
-            {(d.diasParaVencer ?? 0) < 0 ? "Venció el " : "Vence el "}
-            {/* `vence_at` es `date`: con `fecha()` salía un día antes. */}
-            {diaEnPalabras(d.venceAt)}
-          </span>
-        ) : null}
-      </span>
-      <span className="ac">
-        {pend ? (
-          <Link className="btn btn-orange btn-sm" href={subir}>
-            {d.estado === "rechazado" ? "Reemplazar" : "Subir"}
-          </Link>
-        ) : null}
-      </span>
-    </div>
-  );
-}
-
 function Expediente02({
   e,
   dispensas,
   liga,
+  porOtra,
 }: {
   e: NonNullable<Datos["expediente"]>;
   dispensas: Datos["dispensas"];
   liga: (ruta: string) => string;
+  /** La operadora por la que actúa la casa; `null` si es ella misma. */
+  porOtra: string | null;
 }) {
   const subir = liga("/caminante/admin/mi-alta/expediente");
   // Lo que se pinta dentro de una actividad pero VIVE en Lo general no se
@@ -760,7 +704,7 @@ function Expediente02({
         </p>
         <div className="docs">
           {e.generales.map((d) => (
-            <FilaDoc key={`g-${d.slug}`} d={d} subir={subir} />
+            <RenglonDoc key={`g-${d.slug}`} d={d} actividad={null} operadora={porOtra} />
           ))}
         </div>
 
@@ -772,7 +716,7 @@ function Expediente02({
             {a.propios.length ? (
               <div className="docs">
                 {a.propios.map((d) => (
-                  <FilaDoc key={`${a.slug}-${d.slug}`} d={d} subir={subir} />
+                  <RenglonDoc key={`${a.slug}-${d.slug}`} d={d} actividad={a.slug} operadora={porOtra} />
                 ))}
               </div>
             ) : (
