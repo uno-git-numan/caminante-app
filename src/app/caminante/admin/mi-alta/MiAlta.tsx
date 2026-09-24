@@ -31,10 +31,27 @@ const fecha = (iso: string) =>
     day: "numeric", month: "long", year: "numeric", timeZone: CDMX,
   });
 
-export default function MiAlta({ datos }: { datos: Datos }) {
+export default function MiAlta({
+  datos,
+  porOtra = null,
+}: {
+  datos: Datos;
+  /**
+   * El id de la operadora cuando quien mira es la casa actuando por ella.
+   *
+   * ⚠️ TIENE QUE VIAJAR EN TODAS LAS LIGAS DE ESTA PANTALLA. Cada sub-pantalla
+   * (expediente, convenio, cobro, marca) resuelve por su cuenta a quién toca:
+   * con `?operadora=` a ella, y sin él a quien tiene la sesión. Una sola liga
+   * que se le olvide el parámetro deja a la casa capturando EN SU PROPIA FILA
+   * a media alta ajena, sin que nada falle.
+   */
+  porOtra?: string | null;
+}) {
   const aqui = pasoDe(datos.estado);
   const [viendo, setViendo] = useState(aqui.indice);
   const s = datos.solicitud;
+  const liga = (ruta: string) =>
+    porOtra ? `${ruta}?operadora=${encodeURIComponent(porOtra)}` : ruta;
 
   return (
     <>
@@ -225,6 +242,20 @@ export default function MiAlta({ datos }: { datos: Datos }) {
                     </span>
                   </>
                 )}
+                {/* ⚠️ EL PASO 02 NO TENÍA PUERTA. Decía «te faltan N
+                    documentos» y no llevaba a ningún lado: el expediente existe
+                    en `mi-alta/expediente` y esta pantalla —la que cuenta los
+                    documentos— era la única del recorrido que no enlazaba a su
+                    propio paso. El 04 sí lleva a convenio, cobro y marca. Se
+                    descubrió cuando la casa quiso subir por una operadora y
+                    tuvo que teclear la URL. */}
+                <span style={{ marginTop: 8 }}>
+                  <Link href={liga("/caminante/admin/mi-alta/expediente")}>
+                    {s.documentosSubidos >= s.documentosPedidos
+                      ? "Ver el expediente"
+                      : "Subir los documentos"}
+                  </Link>
+                </span>
               </span>
             </div>
           </>
@@ -252,13 +283,26 @@ export default function MiAlta({ datos }: { datos: Datos }) {
                     pantalla de firmar existía sin una sola puerta que llevara
                     a ella. Un pendiente sin destino se lee como un reproche. */}
                 <span style={{ marginTop: 8 }}>
-                  <Link href="/caminante/admin/mi-alta/convenio">
-                    {datos.estado === "por_firmar"
-                      ? "Leer y firmar el convenio"
-                      : "Ver mi convenio y los anexos de mis actividades"}
-                  </Link>
+                  {/* ⚠️ EL CONVENIO NO SE ABRE POR ELLA, Y NO ES UN OLVIDO.
+                      `mi-alta/convenio` es la única sub-pantalla del alta que
+                      NO acepta `?operadora=`: firmar es un acto de ella, y una
+                      pantalla donde la casa pudiera apretar «Acepto» a nombre
+                      de alguien más es justo la que no queremos construir. Así
+                      que actuando por otra no se ofrece la liga —ofrecerla
+                      sería mandar a un rebote sin explicación— y en su lugar se
+                      dice por qué. Todo lo demás del alta sí se puede hacer por
+                      ella: expediente, cobro y marca. */}
+                  {porOtra ? (
+                    <span className="mut">La firma del convenio la hace ella desde su panel</span>
+                  ) : (
+                    <Link href={liga("/caminante/admin/mi-alta/convenio")}>
+                      {datos.estado === "por_firmar"
+                        ? "Leer y firmar el convenio"
+                        : "Ver mi convenio y los anexos de mis actividades"}
+                    </Link>
+                  )}
                   {" · "}
-                  <Link href="/caminante/admin/mi-alta/cobrar">Mi cuenta de cobro y datos fiscales</Link>
+                  <Link href={liga("/caminante/admin/mi-alta/cobrar")}>Mi cuenta de cobro y datos fiscales</Link>
                   {" · "}
                   {/* ⚠️ LA MARCA SE OFRECE, NO SÓLO SE RECLAMA. Hasta el 24 sep
                       2026 sólo aparecía en el aviso de abajo, o sea únicamente
@@ -269,7 +313,7 @@ export default function MiAlta({ datos }: { datos: Datos }) {
                       descubre al ser regañado. Aquí va siempre, junto al
                       convenio y al cobro, porque los tres son lo que se hace
                       mientras se arma. */}
-                  <Link href="/caminante/admin/mi-alta/marca">
+                  <Link href={liga("/caminante/admin/mi-alta/marca")}>
                     {datos.operadora?.marca.completa ? "Mi marca" : "Poner mi marca"}
                   </Link>
                 </span>
@@ -288,7 +332,7 @@ export default function MiAlta({ datos }: { datos: Datos }) {
                     Son dos colores.
                   </span>
                   <span style={{ marginTop: 8 }}>
-                    <Link href="/caminante/admin/mi-alta/marca">Completar mi marca</Link>
+                    <Link href={liga("/caminante/admin/mi-alta/marca")}>Completar mi marca</Link>
                   </span>
                 </span>
               </div>
@@ -310,12 +354,16 @@ export default function MiAlta({ datos }: { datos: Datos }) {
                 titulo="Armar"
                 pie="Crear tu experiencia, subir fotos, escribir tu itinerario, poner cupos y precios. No necesita un solo dato fiscal."
                 candados={datos.paraArmar}
+                liga={liga}
+                conFirma={porOtra ? null : "/caminante/admin/mi-alta/convenio"}
               />
               <Mitad
                 cual="cobrar"
                 titulo="Cobrar"
                 pie="Tus datos fiscales con tu CSD, y tu cuenta de cobro. Sin esto no publicamos: el cobro no tendría a dónde llegar."
                 candados={datos.paraCobrar}
+                liga={liga}
+                conFirma={porOtra ? null : "/caminante/admin/mi-alta/convenio"}
               />
             </div>
           </>
@@ -350,12 +398,20 @@ const TACHE = (
 // ⚠️ Sin `.own`: «Yo» y «Él» son la voz de la CASA. Aquí el dueño ya lo dice el
 // veredicto de arriba —«Te toca a ti: …»— y en esta pantalla el «Él» sería él.
 function Mitad({
-  cual, titulo, pie, candados,
+  cual, titulo, pie, candados, liga, conFirma,
 }: {
   cual: "armar" | "cobrar";
   titulo: string;
   pie: string;
   candados: Datos["candados"];
+  /** El constructor de ligas del padre, para que el `?operadora=` no se pierda
+      aquí adentro. Se pasa en vez de rehacerlo: dos constructores del mismo
+      enlace son dos lugares donde se puede olvidar el parámetro. */
+  liga: (ruta: string) => string;
+  /** La puerta del convenio, o `null` cuando la casa actúa por otra: firmar es
+      de ella y esa pantalla no acepta `?operadora=`. El candado se sigue
+      viendo en rojo; lo que no aparece es un «Resolverlo» que rebota. */
+  conFirma: string | null;
 }) {
   const cumplidos = candados.filter((c) => c.cumplido).length;
   return (
@@ -376,9 +432,9 @@ function Mitad({
             const puerta =
               !c.cumplido && c.toca === "operadora"
                 ? c.clave === "convenio"
-                  ? "/caminante/admin/mi-alta/convenio"
+                  ? conFirma
                   : c.clave === "csd" || c.clave === "connect"
-                    ? "/caminante/admin/mi-alta/cobrar"
+                    ? liga("/caminante/admin/mi-alta/cobrar")
                     : null
                 : null;
             return (

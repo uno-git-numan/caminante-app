@@ -13,6 +13,8 @@ const estado = vi.hoisted(() => ({
   fila: null as null | { id: string; estado: string; estado_motivo: string | null },
   solicitud: null as null | Record<string, unknown>,
   operadoras: [] as unknown[],
+  /** El correo con el que está dada de alta la operadora que se pide por id. */
+  correoDeFila: null as string | null,
 }));
 
 vi.mock("@/lib/auth/authorization", () => ({
@@ -28,13 +30,26 @@ vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: () => ({
     from: (tabla: string) => {
       const q: Record<string, unknown> = {};
+      let columnas = "";
       const enc = () => q;
-      q.select = enc;
+      // El `select` se recuerda porque `fetchMiAlta(id)` hace DOS consultas a
+      // `operators` con formas distintas: primero el correo de esa operadora y
+      // luego su fila. Un mock que devuelve lo mismo a las dos no puede
+      // distinguir «no existe esa operadora» de «existe y no tiene alta».
+      q.select = (c: string) => { columnas = c; return q; };
       q.eq = enc;
       q.ilike = enc;
       q.order = enc;
       q.limit = enc;
-      q.maybeSingle = async () => ({ data: tabla === "operators" ? estado.fila : null, error: null });
+      q.maybeSingle = async () => ({
+        data:
+          tabla !== "operators"
+            ? null
+            : columnas === "email"
+              ? (estado.correoDeFila ? { email: estado.correoDeFila } : null)
+              : estado.fila,
+        error: null,
+      });
       // `.limit(1)` sin `.maybeSingle()` devuelve la lista (solicitudes).
       q.then = (res: (v: unknown) => unknown) =>
         Promise.resolve({ data: tabla === "operator_applications" && estado.solicitud ? [estado.solicitud] : [], error: null }).then(res);
@@ -74,6 +89,7 @@ beforeEach(() => {
   estado.fila = null;
   estado.solicitud = null;
   estado.operadoras = [];
+  estado.correoDeFila = null;
 });
 
 describe("fetchMiAlta — la fila manda", () => {
@@ -134,5 +150,44 @@ describe("fetchMiAlta — la fila manda", () => {
     const r = await fetchMiAlta();
     expect(r?.operadora?.id).toBe("op-nomadika");
     expect(r?.estado).toBe("listo");
+  });
+});
+
+// ── LA CASA ACTUANDO POR OTRA ───────────────────────────────────────────────
+//
+// El alta se hace acompañada: Luis captura por la operadora durante la llamada.
+// Hasta el 24 sep 2026 podía entrar por separado a su expediente, a su cobro y
+// a su marca con `?operadora=`, pero la pantalla que junta el recorrido rebotaba
+// — la única que enseña en qué paso va era la única cerrada para quien lo
+// acompaña.
+describe("fetchMiAlta(porOperadora) — leer el alta de otra", () => {
+  it("lee por el correo de ESA operadora, no por el de la sesión", async () => {
+    // La sesión es de la casa; la operadora pedida es otra.
+    estado.email = "uno@numanhub.com";
+    estado.correoDeFila = "catalina@example.com";
+    estado.fila = filaActiva;
+    estado.operadoras = [operadoraSinCandados];
+    const a = await fetchMiAlta("op-nomadika");
+    expect(a?.operadora?.id).toBe("op-nomadika");
+  });
+
+  it("un id que no existe no cae de vuelta en la sesión: devuelve null", async () => {
+    // ⚠️ ESTE ES EL IMPORTANTE. Si al no encontrar el correo la función siguiera
+    // con el de la sesión, pedir una operadora inventada le enseñaría —y le
+    // haría capturar— su PROPIA alta creyendo que es la de ella.
+    estado.email = "catalina@example.com";
+    estado.correoDeFila = null;
+    estado.fila = filaActiva;
+    estado.operadoras = [operadoraSinCandados];
+    expect(await fetchMiAlta("op-que-no-existe")).toBeNull();
+  });
+
+  it("sin argumento sigue siendo la de la sesión", async () => {
+    estado.email = "catalina@example.com";
+    estado.correoDeFila = "otra@example.com";
+    estado.fila = filaActiva;
+    estado.operadoras = [operadoraSinCandados];
+    const a = await fetchMiAlta();
+    expect(a?.operadora?.id).toBe("op-nomadika");
   });
 });

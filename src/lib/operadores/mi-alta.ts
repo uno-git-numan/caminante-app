@@ -52,8 +52,37 @@ export type MiAlta = {
 
 type Expediente = { nombre?: string; archivo?: string | null }[];
 
-export async function fetchMiAlta(): Promise<MiAlta | null> {
-  const email = await correoEnSesion();
+/** El correo con el que está dada de alta una operadora. Sin él no hay alta. */
+async function correoDeOperadora(operatorId: string): Promise<string | null> {
+  const sb = createSupabaseAdminClient();
+  const { data, error } = await sb
+    .from("operators")
+    .select("email")
+    .eq("id", operatorId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return ((data as { email: string | null }).email ?? "").toLowerCase() || null;
+}
+
+/**
+ * El alta de quien tiene la sesión, o —para la casa— la de otra operadora.
+ *
+ * ⚠️ `porOperadora` NO AUTORIZA NADA: se limita a resolver el correo por el que
+ * se va a leer. Quien la pasa tiene que haber comprobado ANTES que es la casa,
+ * exactamente como ya lo hacen las pantallas del expediente y de la marca. Si
+ * esta función decidiera el permiso, cualquier llamada nueva que se le olvidara
+ * comprobarlo le abriría a una operadora el alta de otra — con su expediente y
+ * sus documentos adentro.
+ *
+ * Existe porque el alta se hace acompañada: Luis captura por la operadora en la
+ * llamada, y hasta el 24 sep 2026 podía entrar a su expediente, a su cobro y a
+ * su marca por separado con `?operadora=`, pero NO a la pantalla que las junta
+ * y dice en qué paso va. Esa rebotaba a `/caminante/admin`.
+ */
+export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null> {
+  const email = porOperadora
+    ? await correoDeOperadora(porOperadora)
+    : await correoEnSesion();
   if (!email) return null;
 
   const sb = createSupabaseAdminClient();
