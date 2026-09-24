@@ -127,7 +127,7 @@ function Carpeta({ a, operadora }: { a: ActividadEnPantalla; operadora: string |
  * Lo que no se puede quitar (aprobada, con anexo, con experiencias, con
  * dispensa) lo decide el servidor y lo explica.
  */
-function Quitar({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
+export function Quitar({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
   const [confirmar, setConfirmar] = useState(false);
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -190,7 +190,7 @@ function Quitar({ a, operadora }: { a: ActividadEnPantalla; operadora: string | 
 }
 
 /** «Ya está, revísenlo». Solo aparece mientras la actividad está incompleta. */
-function Mandar({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
+export function Mandar({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (
@@ -220,7 +220,7 @@ function Mandar({ a, operadora }: { a: ActividadEnPantalla; operadora: string | 
  * donde se ofrece —el mosaico de abajo y la lámina de llegada—, así que es un
  * solo componente: dos copias se habrían separado.
  */
-function Declarar({ slug, texto, clase, operadora }: { slug: string; texto: string; clase: string; operadora: string | null }) {
+export function Declarar({ slug, texto, clase, operadora }: { slug: string; texto: string; clase: string; operadora: string | null }) {
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (
@@ -243,7 +243,7 @@ function Declarar({ slug, texto, clase, operadora }: { slug: string; texto: stri
 }
 
 /** Un mosaico del catálogo, en su estado «todavía no la declaras». */
-function Mosaico({ slug, nombre, documentos, operadora }: { slug: string; nombre: string; documentos: number; operadora: string | null }) {
+export function Mosaico({ slug, nombre, documentos, operadora }: { slug: string; nombre: string; documentos: number; operadora: string | null }) {
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (

@@ -12,12 +12,14 @@
 // letras —«es una casa en obra, no una puerta en la cara»—. Poder asomarse a lo
 // que viene es lo que hace que el apagón no se lea como un portazo.
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AQUI_ESTAS, FIRMADO_EL, LECTURA_PASO, PASOS, TODAVIA_NO, pasoDe } from "@/lib/operadores/pasos";
 import type { MiAlta as Datos } from "@/lib/operadores/mi-alta";
-import { CDMX } from "@/lib/fecha/zona";
+import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
+import { ACTIVIDADES, requisitosDe } from "@/lib/operadores/actividades";
+import { Declarar, Mandar, Quitar } from "./expediente/Expediente";
 import Copiar from "./Copiar";
 import ResumenTerminos from "./ResumenTerminos";
 import RenglonDoc from "./RenglonDoc";
@@ -199,14 +201,14 @@ export default function MiAlta({
         {/* EL EXPEDIENTE REAL, SIEMPRE QUE HAY OPERADORA. Se ve al picar el
             paso esté donde esté —antes, en él o después—, porque es la lista
             de lo que hay que subir y su estado, y eso no deja de ser cierto
-            por mirarlo desde otro paso. Transcrito de la lámina v5 (#p2): la
-            barra «N de M», las filas `.doc` y `.doc.pend` con sus dos íconos,
-            y los veredictos de cada momento. */}
+            por mirarlo desde otro paso. Transcrito de la lámina «Panel
+            Operadora»: el veredicto con «lo que vence primero», «Lo general»
+            como acordeón, un acordeón por actividad (sus documentos y, debajo,
+            los de Lo general que necesita) y el catálogo de las no declaradas. */}
         {viendo === 1 && datos.expediente ? (
           <Expediente02
             e={datos.expediente}
             dispensas={datos.dispensas.filter((d) => d.vigente)}
-            liga={liga}
             porOtra={porOtra}
           />
         ) : viendo === 1 && aqui.indice === 1 && s ? (
@@ -761,74 +763,92 @@ function LoQueMande({ e, creadaAt }: { e: SolicitudEnviada; creadaAt: string }) 
 function Expediente02({
   e,
   dispensas,
-  liga,
   porOtra,
 }: {
   e: NonNullable<Datos["expediente"]>;
   dispensas: Datos["dispensas"];
-  liga: (ruta: string) => string;
   /** La operadora por la que actúa la casa; `null` si es ella misma. */
   porOtra: string | null;
 }) {
-  const subir = liga("/caminante/admin/mi-alta/expediente");
-  // Lo que se pinta dentro de una actividad pero VIVE en Lo general no se
-  // cuenta dos veces: se pide una sola vez.
-  const todos = [...e.generales, ...e.actividades.flatMap((a) => a.propios)];
-  const total = todos.length;
-  const entregados = total - e.faltanTotal;
-  const pct = total ? Math.round((entregados / total) * 100) : 0;
+  // LÁMINA «PANEL OPERADORA», paso 02: «Lo general» es UN acordeón y cada
+  // actividad es el suyo; se abre uno a la vez y arranca en Lo general. Hasta
+  // el 24 sep 2026 esto era una sola tarjeta con todo corrido bajo subtítulos
+  // (Luis lo vio en producción): el CSS de Mi alta venía de la lámina anterior,
+  // que no tenía acordeones, y el paso se escribió a la medida de lo que había.
+  const [abierto, setAbierto] = useState<string | null>("general");
+  const [previa, setPrevia] = useState<string | null>(null);
+  const refGeneral = useRef<HTMLDivElement>(null);
+  const irGeneral = () => {
+    setAbierto("general");
+    setTimeout(() => refGeneral.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
+
+  const genOk = e.generales.filter((d) => d.estado === "aprobado").length;
+  const genRev = e.generales.filter((d) => d.estado === "en_revision").length;
+  const genK = e.faltanGenerales ? "inc" : genRev ? "rev" : "aprob";
+  const genSub = e.faltanGenerales
+    ? `Faltan ${e.faltanGenerales} de los que tus actividades necesitan`
+    : genRev
+      ? `${genRev} en revisión · nos toca a nosotros`
+      : e.porVencer.some((d) => e.generales.includes(d))
+        ? "Al corriente · algo vence pronto"
+        : "Al corriente";
+  const aprobadas = e.actividades.filter((a) => a.estado === "aprobada");
+  const enRevision = e.actividades.filter((a) => a.estado === "en_revision");
+  const yaDeclaradas = new Set(e.actividades.map((a) => a.slug));
+  const noDeclaradas = ACTIVIDADES.filter((c) => !yaDeclaradas.has(c.slug));
+  const porSlugGeneral = new Map(e.generales.map((g) => [g.slug, g]));
 
   return (
     <>
-      {e.completo ? (
-        <div className="verdict si">
-          <span className="n">
-            {total}/{total}
-          </span>
-          <span className="g">
-            <b>Tu expediente quedó completo y revisado</b>
-            <span>
-              Este paso se queda abierto para consultar lo que entregaste: tu póliza, tus permisos y
-              las certificaciones de tus guías, con sus vigencias.
-            </span>
-          </span>
-        </div>
-      ) : e.vacio ? (
-        <div className="verdict no">
-          <span className="n">{"//"}</span>
-          <span className="g">
-            <b>Todavía no declaras qué actividades haces</b>
-            <span>
-              La lista de documentos depende de eso: a una operadora de montaña no se le pide lo de
-              buceo. Declara tus actividades y te pedimos sólo lo que te toca.
-            </span>
-          </span>
-        </div>
-      ) : e.faltanTotal === 0 ? (
+      {e.vacio ? (
         <div className="verdict casa">
           <span className="n">{"//"}</span>
           <span className="g">
-            <b>Entregaste todo. Ahora nos toca a nosotros</b>
+            <b>Tu expediente está en blanco, y así empieza el de todos</b>
             <span>
-              Los revisa una persona y tarda entre tres y cinco días hábiles. No falta nada tuyo y no
-              hay nada que puedas apurar desde aquí.
+              No hay nada mal. Son diez documentos generales que se piden una vez, y después una
+              carpeta por cada actividad que quieras ofrecer. Súbelos en el orden que quieras, en
+              varias sesiones: lo que dejes a medias se guarda.
             </span>
           </span>
         </div>
       ) : (
-        <div className="verdict no">
-          <span className="n">
-            {entregados}/{total}
-          </span>
-          <span className="g">
-            <b>
-              Te faltan {e.faltanTotal} {e.faltanTotal === 1 ? "documento" : "documentos"}
-            </b>
-            <span>
-              Van todos en paralelo y se guardan solos: puedes dejarlo a medias y volver cuando
-              quieras.
+        <div className="expbar">
+          <div className={"verdict " + (e.faltanTotal ? "no" : genRev || enRevision.length ? "casa" : "si")}>
+            <span className="n">{e.faltanTotal || "//"}</span>
+            <span className="g">
+              <b>
+                {e.faltanTotal
+                  ? `Te ${e.faltanTotal === 1 ? "falta un documento" : "faltan " + e.faltanTotal + " documentos"} en total`
+                  : "No te falta ningún documento"}
+              </b>
+              <span>
+                {aprobadas.length
+                  ? `${aprobadas.map((a) => a.nombre).join(", ")} ${aprobadas.length === 1 ? "está aprobada" : "están aprobadas"}.`
+                  : "Todavía ninguna actividad aprobada."}{" "}
+                {enRevision.length ? `${enRevision.map((a) => a.nombre).join(", ")} en revisión. ` : ""}
+                Cada actividad se aprueba por separado: que una esté incompleta no detiene a las demás.
+              </span>
             </span>
-          </span>
+          </div>
+          <div className="nowcard">
+            <span className="lb">{"// Lo que vence primero"}</span>
+            {e.proximo ? (
+              <>
+                <b className="t">{e.proximo.nombre}</b>
+                <span className="mn" style={(e.proximo.diasParaVencer ?? 0) <= 30 ? { color: "var(--orange)" } : undefined}>
+                  {(e.proximo.diasParaVencer ?? 0) < 0 ? "Vencido" : `${e.proximo.diasParaVencer} días`}
+                </span>
+                <p>
+                  {(e.proximo.diasParaVencer ?? 0) < 0 ? "Venció el " : "Vence el "}
+                  {e.proximo.venceAt ? diaEnPalabras(e.proximo.venceAt) : "—"}. Te avisamos a 30 y a 7 días, aquí y por correo.
+                </p>
+              </>
+            ) : (
+              <p>Nada cargado con vencimiento todavía.</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -846,51 +866,245 @@ function Expediente02({
         </p>
       ))}
 
-      <div className="card pad" style={{ marginTop: 14 }}>
-        <div className="docbar">
-          <span className="fr">
-            {entregados} de {total}
-          </span>
-          <span className="bar">
-            <i style={{ width: `${pct}%` }} />
-          </span>
-          <span className="mut" style={{ fontSize: 12 }}>
-            Se guarda solo · puedes dejarlo a medias
-          </span>
-        </div>
-
-        <p className="xh4" style={{ marginTop: 6 }}>
-          Lo general · se entrega una sola vez
-        </p>
-        <div className="docs">
-          {e.generales.map((d) => (
-            <RenglonDoc key={`g-${d.slug}`} d={d} actividad={null} operadora={porOtra} />
-          ))}
-        </div>
-
-        {e.actividades.map((a) => (
-          <div key={a.slug}>
-            <p className="xh4" style={{ marginTop: 22 }}>
-              {a.nombre}
-            </p>
-            {a.propios.length ? (
+      <div className="acts" style={{ marginBottom: 24 }}>
+        <div ref={refGeneral} className={"actv " + genK + (abierto === "general" ? " open" : "")}>
+          <button className="ah" type="button" onClick={() => setAbierto(abierto === "general" ? null : "general")} aria-expanded={abierto === "general"}>
+            <span className="g">
+              <b>Lo general</b>
+              <small>{genSub}</small>
+            </span>
+            <span className="rt">
+              <span className={"chip " + (genK === "aprob" ? "c-paid" : "c-full")}>
+                <span className="cd" />
+                {genK === "aprob" ? "Al corriente" : genK === "rev" ? "En revisión" : "Incompleta"}
+              </span>
+              <span className="fr">{genOk} de {e.generales.length}</span>
+              <span className="chev2">▾</span>
+            </span>
+          </button>
+          {abierto === "general" ? (
+            <div className="ab">
+              <p className="gnhint" style={{ maxWidth: "74ch", margin: "2px 0 14px" }}>
+                Documentos que se piden <b>una sola vez</b> y sirven para todas tus actividades. Si
+                mañana declaras una actividad nueva, estos ya están: nada se sube dos veces.
+              </p>
               <div className="docs">
-                {a.propios.map((d) => (
-                  <RenglonDoc key={`${a.slug}-${d.slug}`} d={d} actividad={a.slug} operadora={porOtra} />
+                {e.generales.map((d) => (
+                  <RenglonDoc key={`g-${d.slug}`} d={d} actividad={null} operadora={porOtra} />
                 ))}
               </div>
-            ) : (
-              <p className="gnhint">Esta actividad no pide documentos propios.</p>
-            )}
-          </div>
-        ))}
-
-        <div className="salfoot" style={{ marginTop: 16 }}>
-          <Link className="btn btn-orange btn-sm" href={subir}>
-            {e.faltanTotal > 0 || e.vacio ? "Subir los documentos" : "Ver el expediente"}
-          </Link>
+            </div>
+          ) : null}
         </div>
       </div>
+
+      <p className="xh4" style={{ marginTop: 8 }}>
+        <span style={{ color: "var(--orange)", fontFamily: "var(--mono)", marginRight: 9 }}>{"//"}</span>
+        Tus actividades
+      </p>
+      <p className="gnhint" style={{ maxWidth: "74ch", margin: "0 0 14px" }}>
+        Cada actividad tiene su propio expediente y se aprueba por separado. Abierta, muestra sus
+        documentos propios y, debajo, los de Lo general que necesita: esos ya están y no se vuelven
+        a subir.
+      </p>
+      {e.actividades.length === 0 ? (
+        <div className="empty" style={{ marginBottom: 14 }}>
+          No has declarado ninguna actividad.
+          <br />
+          <span style={{ fontSize: 13 }}>
+            Sin actividades no hay experiencias que publicar. Elige las tuyas en el catálogo de abajo.
+          </span>
+        </div>
+      ) : null}
+      <div className="acts">
+        {e.actividades.map((a) => {
+          const k = a.estado === "aprobada" ? "aprob" : a.estado === "en_revision" ? "rev" : "inc";
+          const ok = a.propios.filter((d) => d.estado === "aprobado").length;
+          const sub =
+            a.estado === "aprobada"
+              ? "Aprobada · puedes publicar experiencias de esta actividad"
+              : a.estado === "en_revision"
+                ? "Entregaste todo · nos toca a nosotros"
+                : a.estado === "suspendida"
+                  ? (a.motivo ?? "Suspendida")
+                  : `Faltan ${a.faltan} ${a.faltan === 1 ? "documento" : "documentos"} · no puedes publicar todavía`;
+          const esta = abierto === a.slug;
+          return (
+            <div key={a.slug} className={"actv " + k + (esta ? " open" : "")}>
+              <button className="ah" type="button" onClick={() => setAbierto(esta ? null : a.slug)} aria-expanded={esta}>
+                <span className="g">
+                  <b>{a.nombre}</b>
+                  <small>{sub}</small>
+                </span>
+                <span className="rt">
+                  <span className={"chip " + (a.estado === "aprobada" ? "c-paid" : "c-full")}>
+                    <span className="cd" />
+                    {a.estado === "aprobada" ? "Aprobada" : a.estado === "en_revision" ? "En revisión" : a.estado === "suspendida" ? "Suspendida" : "Incompleta"}
+                  </span>
+                  <span className="fr">{ok} de {a.propios.length}</span>
+                  <span className="chev2">▾</span>
+                </span>
+              </button>
+              {esta ? (
+                <div className="ab">
+                  {a.estado === "en_revision" ? (
+                    <p className="calm">
+                      <s>{"//"}</s>
+                      <span className="g">
+                        <b>Entregaste todo. Ahora nos toca a nosotros</b>
+                        <span>
+                          Una persona revisa cada documento y tarda entre tres y cinco días hábiles. No
+                          hay nada que puedas apurar desde aquí; si algo no cuadra, te lo decimos en esta
+                          misma pantalla.
+                        </span>
+                      </span>
+                    </p>
+                  ) : null}
+                  <div className="subh">
+                    <b>Documentos de esta actividad</b>
+                    <small>Sólo se piden para {a.nombre.toLowerCase()}. Si la das de baja, dejan de pedirse.</small>
+                  </div>
+                  <div className="docs">
+                    {a.propios.map((d) => (
+                      <RenglonDoc key={`${a.slug}-${d.slug}`} d={d} actividad={a.slug} operadora={porOtra} />
+                    ))}
+                  </div>
+                  <div className="subh">
+                    <b>De Lo general, que esta actividad necesita</b>
+                    <small>Se leen aquí para ver el expediente completo de la actividad, y no se vuelven a subir.</small>
+                  </div>
+                  <div className="hers">
+                    {a.generales.map((d) => <Heredado key={d.slug} d={d} irGeneral={irGeneral} />)}
+                  </div>
+                  {a.estado === "incompleta" ? <Mandar operadora={porOtra} a={a} /> : null}
+                  {a.estado !== "aprobada" ? <Quitar operadora={porOtra} a={a} /> : null}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      {noDeclaradas.length > 0 ? (
+        <>
+          <p className="xh4" style={{ marginTop: 28 }}>Agregar una actividad</p>
+          <p className="gnhint" style={{ maxWidth: "74ch", margin: "0 0 12px" }}>
+            Las que no has declarado. Ninguna te pide nada hasta que la eliges, y antes de elegirla ves
+            exactamente qué documentos lleva.
+          </p>
+          <div className="cat">
+            {noDeclaradas.map((c) => (
+              <button key={c.slug} type="button" className={"cati" + (previa === c.slug ? " sel" : "")} onClick={() => setPrevia(previa === c.slug ? null : c.slug)}>
+                <span className="pl">+</span>
+                <span>
+                  <b>{c.nombre}</b>
+                  <small>{c.documentos.length} {c.documentos.length === 1 ? "documento propio" : "documentos propios"}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+          {previa ? (() => {
+            const c = ACTIVIDADES.find((x) => x.slug === previa);
+            if (!c) return null;
+            const req = requisitosDe(c.slug);
+            const nuevos = req.generales.filter((g) => porSlugGeneral.get(g.slug)?.estado !== "aprobado");
+            return (
+              <div className="actv nod open" style={{ marginTop: 12 }}>
+                <div className="ah" style={{ cursor: "default" }}>
+                  <span className="g">
+                    <b>{c.nombre}</b>
+                    <small>Lo que te pediríamos si la declaras</small>
+                  </span>
+                  <span className="rt">
+                    <span className="chip c-full"><span className="cd" />No declarada</span>
+                    <span className="fr">{req.propios.length} documentos propios</span>
+                  </span>
+                </div>
+                <div className="ab">
+                  <div className="subh">
+                    <b>Documentos de esta actividad</b>
+                    <small>Se piden sólo si la declaras.</small>
+                  </div>
+                  <div className="docs">
+                    {req.propios.map((d) => (
+                      <div className="doc pend" key={d.slug}>
+                        <IconoMas />
+                        <span className="nm"><b>{d.nombre}</b><small>{d.porQue}</small></span>
+                        <span className="fl"><span className="mut">se pediría</span></span>
+                        <span className="ac"></span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="subh">
+                    <b>De Lo general</b>
+                    <small>
+                      {nuevos.length
+                        ? `${req.generales.length - nuevos.length} ya los tienes; ${nuevos.length === 1 ? "uno se pediría" : nuevos.length + " se pedirían"} por primera vez.`
+                        : "Todos los que necesita ya los tienes."}
+                    </small>
+                  </div>
+                  <div className="hers">
+                    {req.generales.map((g) => {
+                      const d = porSlugGeneral.get(g.slug);
+                      return <Heredado key={g.slug} d={d ?? { slug: g.slug, nombre: g.nombre, porQue: g.porQue, estado: "falta", motivo: null, venceAt: null, diasParaVencer: null, cubiertoPorGeneral: true, caduca: false }} irGeneral={irGeneral} />;
+                    })}
+                  </div>
+                  <div className="salfoot">
+                    <Declarar slug={c.slug} texto={`Declarar ${c.nombre.toLowerCase()}`} clase="btn btn-orange btn-sm" operadora={porOtra} />
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPrevia(null)}>Ahora no</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })() : null}
+        </>
+      ) : null}
     </>
+  );
+}
+
+/** El «+» de un documento que todavía no existe, como lo dibuja la lámina. */
+function IconoMas() {
+  return (
+    <svg className="st" viewBox="0 0 24 24" fill="none" stroke="var(--sand)" strokeWidth="2.4" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+/**
+ * Un documento de Lo general visto DESDE una actividad (`.her` en la lámina):
+ * se lee, no se vuelve a pedir, y «Verlo» abre Lo general.
+ */
+function Heredado({ d, irGeneral }: { d: NonNullable<Datos["expediente"]>["generales"][number]; irGeneral: () => void }) {
+  const vencido = (d.diasParaVencer ?? 0) < 0 && d.venceAt !== null;
+  const bloquea = d.estado === "falta" || d.estado === "rechazado" || vencido;
+  const lbl = vencido
+    ? "Vencido en Lo general"
+    : d.estado === "aprobado"
+      ? "Ya está en Lo general"
+      : d.estado === "en_revision"
+        ? "En Lo general · en revisión"
+        : d.estado === "rechazado"
+          ? "Rechazado en Lo general"
+          : "Falta en Lo general";
+  const sub = d.venceAt
+    ? (vencido ? "Venció el " : "Vigente hasta el ") + diaEnPalabras(d.venceAt)
+    : d.estado === "falta"
+      ? "Se sube una sola vez, en Lo general, y cuenta para todas tus actividades"
+      : "Cargado";
+  return (
+    <div className="her">
+      {bloquea ? (
+        <svg className="k" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+      ) : (
+        <svg className="k" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12.6l5.2 5.2L20 6.6" /></svg>
+      )}
+      <span><b>{d.nombre}</b><small>{sub}</small></span>
+      <span className="rt">
+        <span className="lbl" style={bloquea ? { color: "var(--orange)" } : undefined}>{lbl}</span>
+        <a href="#lo-general" onClick={(ev) => { ev.preventDefault(); irGeneral(); }}>Verlo</a>
+      </span>
+    </div>
   );
 }
