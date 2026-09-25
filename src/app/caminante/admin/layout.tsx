@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCurrentRole } from "@/lib/auth/authorization";
-import { rutaDeOperador } from "@/lib/auth/panel-operador";
+import { rutaDeEquipoNuman, rutaDeEquipoOperadora, rutaDeOperador } from "@/lib/auth/panel-operador";
+import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { rebotaDelAlta } from "@/lib/operadores/nav-alta-servidor";
 
 // LA PUERTA DEL PANEL.
@@ -31,7 +32,7 @@ export default async function AdminLayout({
 
   const rol = await getCurrentRole();
 
-  if (rol !== "admin" && rol !== "operador") {
+  if (rol !== "admin" && rol !== "operador" && rol !== "equipo") {
     redirect("/caminante?error=not_admin");
   }
 
@@ -39,6 +40,19 @@ export default async function AdminLayout({
   if (rol === "operador") {
     if (!rutaDeOperador(ruta)) {
       redirect("/caminante/admin?aviso=solo_casa");
+    }
+  }
+  // EL EQUIPO (0070): de numan ve la lista de la plataforma; de una operadora,
+  // la de ella (menos administrar al equipo). Sin alcance —ni operadora ni
+  // numan— no ve nada: fallar cerrado.
+  if (rol === "equipo") {
+    const a = await alcanceActual();
+    if (a?.tipo === "equipo") {
+      if (!rutaDeEquipoNuman(ruta)) redirect("/caminante/admin/plataforma/comunidad");
+    } else if (esOperador(a)) {
+      if (!rutaDeEquipoOperadora(ruta)) redirect("/caminante/admin?aviso=solo_casa");
+    } else {
+      redirect("/caminante?error=not_admin");
     }
   }
 

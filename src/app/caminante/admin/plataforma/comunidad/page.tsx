@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import AdminShell from "../../ui/AdminShell";
 import { getCurrentRole } from "@/lib/auth/authorization";
+import { puedeOnboarding } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchOperadorasPlataforma } from "@/lib/plataforma/operadoras";
 import Operadoras from "./Operadoras";
@@ -48,7 +49,10 @@ function nombreDeNota(note: string | null): string {
 }
 
 export default async function ComunidadPlataformaPage() {
-  if ((await getCurrentRole()) !== "admin") redirect("/caminante/admin");
+  // La casa, o el equipo de numan con la facultad de onboarding (0070). Para el
+  // equipo, lo que sólo es de la casa —accesos al panel, dispensas— no se pinta.
+  const esCasa = (await getCurrentRole()) === "admin";
+  if (!esCasa && !(await puedeOnboarding())) redirect("/caminante/admin");
 
   const sb = createSupabaseAdminClient();
   // `porRevisar` entra al mismo Promise.all: es lo que espera veredicto de
@@ -96,7 +100,7 @@ export default async function ComunidadPlataformaPage() {
         pipeline={enPipeline}
         operadoras={ops.length}
         vistaPipeline={<Pipeline ops={ops} />}
-        vistaOperadoras={<Operadoras ops={ops} porRevisar={porRevisar} dispensas={dispensas} />}
+        vistaOperadoras={<Operadoras ops={ops} porRevisar={porRevisar} dispensas={dispensas} esCasa={esCasa} />}
         vistaSolicitudes={
           <>
             <div className="sec-head" style={{ marginTop: 18 }}>
@@ -157,6 +161,7 @@ export default async function ComunidadPlataformaPage() {
               </div>
             )}
 
+            {esCasa ? (<>
             <div className="sec-head" style={{ marginTop: 24 }}>
               <span className="eyebrow">
                 <span className="sl">{"//"}</span> Acceso al panel
@@ -175,6 +180,7 @@ export default async function ComunidadPlataformaPage() {
                 ))}
               </div>
             )}
+            </>) : null}
           </>
         }
       />

@@ -14,6 +14,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { COOKIE_SOMBRERO, operadorasPropias } from "@/lib/auth/sombrero";
+import { alcanceActual, equipoDelAlcance } from "@/lib/auth/alcance";
 
 const PANEL = "https://caminante.numanhub.com/caminante/admin";
 
@@ -40,13 +41,17 @@ export async function GET(
     return new NextResponse(null, { status: 204 });
   }
 
-  if ((await getCurrentRole()) !== "admin") {
+  const rol = await getCurrentRole();
+  if (rol !== "admin" && rol !== "equipo") {
     return NextResponse.redirect(destino);
   }
 
   const { slug } = await params;
-  const propias = await operadorasPropias();
-  const elegida = propias.find((o) => o.slug === slug);
+  // La casa elige entre las propias; el equipo (0070) entre las SUYAS. Ninguno
+  // puede escribir el slug de otra: rebota con el sombrero que ya traía.
+  const opciones =
+    rol === "admin" ? await operadorasPropias() : (equipoDelAlcance(await alcanceActual())?.operadoras ?? []);
+  const elegida = opciones.find((o) => o.slug === slug);
   // Un slug que no es de una operadora propia no cambia nada y no explota:
   // rebota al panel con el sombrero que ya traía.
   if (!elegida) return NextResponse.redirect(destino);

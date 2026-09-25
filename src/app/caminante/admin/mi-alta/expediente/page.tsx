@@ -15,6 +15,7 @@ import Link from "next/link";
 import AdminShell from "../../ui/AdminShell";
 import { EXPEDIENTE_CSS } from "../../ui/expediente-css";
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
+import { alcanceActual } from "@/lib/auth/alcance";
 import { fetchExpediente, fetchBorradorDelCandado, nombreDeOperadora } from "@/lib/operadores/expediente";
 import Expediente from "./Expediente";
 
@@ -29,8 +30,10 @@ export default async function ExpedientePage({
 }: {
   searchParams: Promise<{ borrador?: string; actividad?: string; operadora?: string }>;
 }) {
-  const alta = await fetchMiAlta();
-  if (!alta) redirect("/caminante/admin");
+  // El equipo de numan (0070) entra POR una operadora, como la casa.
+  const equipoNuman = (await alcanceActual())?.tipo === "equipo";
+  const alta = equipoNuman ? null : await fetchMiAlta();
+  if (!alta && !equipoNuman) redirect("/caminante/admin");
   const q = await searchParams;
 
   // ¿De quién es el expediente que se pinta? De la operadora en sesión — o, si
@@ -42,7 +45,7 @@ export default async function ExpedientePage({
   // nadie con cara de «está vacío».
   let operatorId: string;
   let porOtra: { id: string; nombre: string } | null = null;
-  if (alta.operadora?.esLaCasa) {
+  if (equipoNuman || alta?.operadora?.esLaCasa) {
     const pedida = (q.operadora ?? "").trim();
     const nombre = pedida ? await nombreDeOperadora(pedida) : null;
     if (!pedida || !nombre) redirect("/caminante/admin/plataforma/comunidad");
@@ -53,7 +56,7 @@ export default async function ExpedientePage({
     // solicitud y todavía no la aprobamos no tiene fila en `operators`, así que
     // tampoco tiene dónde colgar documentos. Mandarlo a «Mi alta» le enseña el
     // paso donde SÍ está, en vez de una pantalla vacía que parecería rota.
-    const propia = alta.operadora?.id;
+    const propia = alta?.operadora?.id;
     if (!propia) redirect("/caminante/admin/mi-alta");
     operatorId = propia;
   }

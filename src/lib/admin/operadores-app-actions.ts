@@ -30,7 +30,7 @@
 import { revalidatePath } from "next/cache";
 import { desdeHoraLocal } from "@/lib/fecha/zona";
 import { randomBytes } from "node:crypto";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { puedeOnboarding } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureOperador } from "@/lib/operators/alta";
 import { sembrarPerfilDesdeSolicitud } from "@/lib/operadores/perfil";
@@ -130,7 +130,7 @@ export async function agendarLlamada(
   cuandoISO: string,
   mensaje: string,
 ): Promise<Res> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo admin." };
+  if (!(await puedeOnboarding())) return { ok: false, error: "Solo la casa o el equipo de onboarding." };
   const app = await cargar(id, ["pending", "calling"]);
   if (!app) return { ok: false, error: "La solicitud ya no admite agendar." };
 
@@ -195,7 +195,7 @@ export async function agendarLlamada(
 // catálogo. El link es TOKENIZADO y expira: los papeles de una empresa no
 // pueden quedar tras una URL adivinable y eterna.
 export async function pedirExpediente(id: string, docs: string[], mensaje: string): Promise<Res> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo admin." };
+  if (!(await puedeOnboarding())) return { ok: false, error: "Solo la casa o el equipo de onboarding." };
   const app = await cargar(id, ["pending", "calling", "docs"]);
   if (!app) return { ok: false, error: "La solicitud ya no admite pedir documentos." };
 
@@ -232,7 +232,7 @@ export async function pedirExpediente(id: string, docs: string[], mensaje: strin
 
 // ── 3 · Aprobar ──────────────────────────────────────────────────────────────
 export async function aprobarOperadorApp(id: string): Promise<Res> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo admin." };
+  if (!(await puedeOnboarding())) return { ok: false, error: "Solo la casa o el equipo de onboarding." };
   const app = await cargar(id, ["pending", "calling", "docs"]);
   if (!app) return { ok: false, error: "La solicitud ya fue decidida." };
 
@@ -371,7 +371,7 @@ export async function aprobarOperadorApp(id: string): Promise<Res> {
 
 // ── 4 · Rechazar ─────────────────────────────────────────────────────────────
 export async function rechazarOperadorApp(id: string, motivo: string): Promise<Res> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo admin." };
+  if (!(await puedeOnboarding())) return { ok: false, error: "Solo la casa o el equipo de onboarding." };
   const app = await cargar(id, ["pending", "calling", "docs"]);
   if (!app) return { ok: false, error: "La solicitud ya fue decidida." };
 

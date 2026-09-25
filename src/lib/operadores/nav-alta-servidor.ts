@@ -48,7 +48,9 @@ const estadoDe = cache(async (operatorId: string): Promise<CandadoAlta | null> =
 /** El candado de esta sesión, o null si a quien mira no le aplica. */
 export const candadoDeAlta = cache(async (): Promise<CandadoAlta | null> => {
   const rol = await getCurrentRole();
-  if (rol === "operador") {
+  // El equipo de una operadora trae el mismo candado que ella (0070); el de
+  // numan no tiene alta y `esOperador` lo deja fuera.
+  if (rol === "operador" || rol === "equipo") {
     const a = await alcanceActual();
     return esOperador(a) ? estadoDe(a.operatorId) : null;
   }

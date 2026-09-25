@@ -41,6 +41,10 @@ export function destinoPorRol(role: Role | null, opts?: { telefono?: boolean }):
       return opts?.telefono ? "/caminante/admin/m" : "/caminante/admin";
     case "operador":
       return "/caminante/admin";
+    // El equipo entra al panel; el layout lo manda a su primera pantalla
+    // válida (Comunidad de la plataforma si es de numan y no tiene operadora).
+    case "equipo":
+      return "/caminante/admin";
     case "caminante":
       return "/caminante/perfil";
     default:
@@ -50,5 +54,5 @@ export function destinoPorRol(role: Role | null, opts?: { telefono?: boolean }):
 
 /** ¿Este rol tiene panel? Lo usan el nav público y el login para no rebotar. */
 export function tienePanel(role: Role | null): boolean {
-  return role === "admin" || role === "operador";
+  return role === "admin" || role === "operador" || role === "equipo";
 }

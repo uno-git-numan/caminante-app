@@ -3,15 +3,20 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esSesionMuerta } from "@/lib/auth/sesion-rota";
 
-// TRES perfiles, no dos:
+// CUATRO perfiles:
 //   admin     → la casa. Crea/edita experiencias, cobra, gestiona TODO. NO compra.
+//   equipo    → empleado de numan o de una operadora (`staff`, 0070). Entra al
+//                panel con lo que sus facultades digan; nunca al dinero ni a las
+//                llaves. Ver lib/auth/equipo.ts y lib/equipo/facultades.ts.
 //   operador  → socio externo con `operators.panel_activo` (0042). Entra al
 //                MISMO panel, pero solo ve lo suyo.
 //   caminante → viajero: se registra, reserva/compra, ve su perfil. NO entra a /admin.
 //
-// El rol se DERIVA (no hay columna): admin = `admin_whitelist` activo; operador =
-// fila viva en `operators` con ese correo; caminante = autenticado que no es
-// ninguno de los dos; null = sin sesión.
+// El rol se DERIVA (no hay columna): admin = `admin_whitelist` activo; equipo =
+// fila activa en `staff`; operador = fila viva en `operators` con ese correo;
+// caminante = autenticado que no es ninguno; null = sin sesión. En ese orden:
+// la casa manda, y un empleado que además fuera dueño de una operadora entraría
+// como equipo (no pasa hoy; si pasa, se decide entonces).
 //
 // ⚠️ `isCurrentUserAdmin()` SIGUE SIGNIFICANDO «LA CASA», y eso es a propósito.
 // Lo llaman dos docenas de server actions y el día que se le hiciera significar
@@ -19,7 +24,7 @@ import { esSesionMuerta } from "@/lib/auth/sesion-rota";
 // nadie revisara ninguna. Con este significado intacto, un operador no puede
 // hacer nada hasta que alguien abra esa puerta a mano y con alcance. La lista de
 // lo que sí puede vive en `lib/auth/alcance.ts` y en el layout del panel.
-export type Role = "admin" | "operador" | "caminante";
+export type Role = "admin" | "equipo" | "operador" | "caminante";
 
 // Resuelve el rol usando un cliente Supabase YA con sesión (mismo handler/acción).
 // Útil justo tras un login (exchangeCodeForSession / signInWithPassword) donde las
@@ -63,6 +68,17 @@ export async function roleForClient(
   // `operators` trae el correo de Luis; sin esta precedencia se vería su propio
   // panel filtrado a sí mismo.
   if (data) return "admin";
+
+  // El equipo (0070). Un error de lectura —la tabla aún no existe, red— NO da
+  // asiento: se sigue a operador. Fallar cerrado para el rol nuevo, sin tocar
+  // el viejo.
+  const { data: st, error: stErr } = await createSupabaseAdminClient()
+    .from("staff")
+    .select("id")
+    .eq("email", email)
+    .eq("activo", true)
+    .maybeSingle();
+  if (!stErr && st) return "equipo";
 
   // ⚠️ ESTA CONSULTA VA CON EL CLIENTE DE SERVICIO, NO CON EL DE LA SESIÓN, y no
   // es una comodidad: `operators` tiene RLS que solo expone las filas

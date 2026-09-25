@@ -27,19 +27,61 @@
 // Es el mismo trato que ya teníamos, no uno nuevo.
 
 import { cache } from "react";
+import { cookies, headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esSesionMuerta } from "@/lib/auth/sesion-rota";
+import { equipoDe, type EquipoEnSesion } from "@/lib/auth/equipo";
+import { COOKIE_SOMBRERO } from "@/lib/auth/sombrero";
+import { tieneFacultad } from "@/lib/equipo/facultades";
+
+// EL EQUIPO (0070, 25 sep 2026) entra por aquí con DOS formas, y la forma es
+// lo que hace que el resto del panel no tenga que enterarse:
+//
+//   · Equipo de una OPERADORA → alcance `operador` de esa operadora, con
+//     `equipo` colgado. Todo lo que ya filtra por `esOperador()` —CRM,
+//     experiencias, rosters, Mi alta— le aplica sin cambiar una línea: es la
+//     operadora, acotada. Si trabaja para dos (Caminante y Kéntro), la cookie
+//     del sombrero elige cuál, sólo entre las suyas.
+//     ⚠️ Aquí el sombrero SÍ decide a nombre de quién se actúa, y es a
+//     propósito: un empleado de Druidas actúa por Caminante o por Kéntro, y la
+//     pastilla es su única forma de decirlo. El invariante #22 («los actos
+//     nunca usan el sombrero») protege a la CASA, que actúa por cualquiera y
+//     tiene que decirlo explícito; el equipo sólo puede actuar por las suyas.
+//   · Equipo de NUMAN → alcance `equipo`: no es la casa (`tipo === "casa"`
+//     sigue siendo falso, así que dinero, dispensas y llaves siguen cerradas) y
+//     no es una operadora. Lo que sí puede lo abren a mano `puedeOnboarding()`
+//     y `operadoraObjetivo()`.
+//   · Las dos a la vez → en `/plataforma` es numan; en el resto, su operadora.
 
 export type Alcance =
   | { tipo: "casa" }
-  | { tipo: "operador"; operatorId: string; nombre: string; slug: string | null };
+  | { tipo: "operador"; operatorId: string; nombre: string; slug: string | null; equipo?: EquipoEnSesion }
+  | { tipo: "equipo"; equipo: EquipoEnSesion };
 
 /** ¿Este alcance está limitado a un operador? Estrecha el tipo. */
 export function esOperador(
   a: Alcance | null,
-): a is { tipo: "operador"; operatorId: string; nombre: string; slug: string | null } {
+): a is { tipo: "operador"; operatorId: string; nombre: string; slug: string | null; equipo?: EquipoEnSesion } {
   return a?.tipo === "operador";
+}
+
+/** El empleado detrás de esta sesión, si lo hay (de numan o de una operadora). */
+export function equipoDelAlcance(a: Alcance | null): EquipoEnSesion | null {
+  if (!a) return null;
+  if (a.tipo === "equipo") return a.equipo;
+  if (a.tipo === "operador") return a.equipo ?? null;
+  return null;
+}
+
+async function alcanceDeEquipo(eq: EquipoEnSesion): Promise<Alcance | null> {
+  const ruta = (await headers()).get("x-ruta") ?? "";
+  const enPlataforma = ruta.startsWith("/caminante/admin/plataforma");
+  if (eq.numan && (enPlataforma || eq.operadoras.length === 0)) return { tipo: "equipo", equipo: eq };
+  if (!eq.operadoras.length) return null;
+  const pedido = (await cookies()).get(COOKIE_SOMBRERO)?.value?.trim();
+  const o = eq.operadoras.find((x) => x.slug === pedido) ?? eq.operadoras[0];
+  return { tipo: "operador", operatorId: o.id, nombre: o.nombre, slug: o.slug, equipo: eq };
 }
 
 // `cache` de React memoiza POR REQUEST. Sin esto cada consulta del panel —y
@@ -70,7 +112,11 @@ export const alcanceActual = cache(async (): Promise<Alcance | null> => {
   // tampoco hay operador, esta sesión no ve nada. El menor privilegio.
   if (!wlErr && wl) return { tipo: "casa" };
 
-  // 2 · ¿Es un operador vivo?
+  // 2 · ¿Es del equipo? (0070). Antes que operador, igual que el rol.
+  const eq = await equipoDe(email);
+  if (eq) return alcanceDeEquipo(eq);
+
+  // 3 · ¿Es un operador vivo?
   const { data: op, error: opErr } = await sb
     .from("operators")
     .select("id, name, slug")
@@ -182,7 +228,23 @@ export async function operadoraObjetivo(pedida: string | null | undefined): Prom
   if (!a) return null;
   const id = (pedida ?? "").trim();
   if (esOperador(a)) return !id || id === a.operatorId ? a.operatorId : null;
+  // El equipo de numan actúa por la operadora que diga, como la casa, pero
+  // sólo si tiene la facultad de onboarding. Sin ella, por ninguna.
+  if (a.tipo === "equipo") return tieneFacultad(a.equipo, "onboarding") ? id || null : null;
   return id || null;
+}
+
+/**
+ * ¿Puede hacer el onboarding de operadoras? La casa, o el equipo de numan con
+ * esa facultad. Es la guarda de agendar la llamada, pedir expediente, aprobar
+ * o rechazar una solicitud y resolver documentos y actividades. NO abre
+ * dispensas, suspensiones ni comisiones: eso sigue siendo `isCurrentUserAdmin`.
+ */
+export async function puedeOnboarding(): Promise<boolean> {
+  const a = await alcanceActual();
+  if (!a) return false;
+  if (a.tipo === "casa") return true;
+  return a.tipo === "equipo" && a.equipo.numan && tieneFacultad(a.equipo, "onboarding");
 }
 
 /** ¿Puede escribir sobre esta experiencia (por slug)? */

@@ -49,7 +49,40 @@ const EXACTAS = new Set<string>([
   // pantalla nunca existió: la marca sólo se capturaba al aplicar o en el alta
   // por la casa. Sin puerta, «te falta el color de acento» era un reproche.
   "/caminante/admin/mi-alta/marca",
+  // Su equipo (0070): la operadora da de alta a su propia gente desde aquí.
+  // Un EMPLEADO de la operadora no la ve (ver `rutaDeEquipo`): el equipo no se
+  // administra a sí mismo.
+  "/caminante/admin/mi-alta/equipo",
 ]);
+
+export const RUTA_EQUIPO_OPERADORA = "/caminante/admin/mi-alta/equipo";
+
+/**
+ * QUÉ VE EL EQUIPO DE NUMAN (0070). Lista blanca, por la misma razón que la del
+ * operador. Comunidad de la plataforma (pipeline, expedientes, solicitudes) y
+ * las pantallas por las que actúa por una operadora con `?operadora=`. Fuera:
+ * Panorama y Recursos de la plataforma (dinero), Cobrar (Connect, CSD), el
+ * catálogo de operadores (perfil público con publicar) y todo lo demás.
+ */
+const EXACTAS_NUMAN = new Set<string>([
+  "/caminante/admin/plataforma/comunidad",
+  "/caminante/admin/mi-alta",
+  "/caminante/admin/mi-alta/expediente",
+  "/caminante/admin/mi-alta/marca",
+]);
+
+export function rutaDeEquipoNuman(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  const p = pathname.replace(/\/+$/, "") || "/";
+  return EXACTAS_NUMAN.has(p);
+}
+
+/** Qué ve el equipo de UNA OPERADORA: lo mismo que ella, menos administrar al equipo. */
+export function rutaDeEquipoOperadora(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  const p = pathname.replace(/\/+$/, "") || "/";
+  return p !== RUTA_EQUIPO_OPERADORA && rutaDeOperador(pathname);
+}
 
 // FUERA a propósito, y conviene saber por qué:
 //

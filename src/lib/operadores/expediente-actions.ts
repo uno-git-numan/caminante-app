@@ -20,7 +20,7 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { operadoraObjetivo } from "@/lib/auth/alcance";
+import { operadoraObjetivo, puedeOnboarding } from "@/lib/auth/alcance";
 import { correoEnSesion } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ACTIVIDADES, GENERALES, nombreDeActividad, requisitosDe } from "./actividades";
@@ -381,7 +381,7 @@ async function correoDe(operatorId: string): Promise<{ email: string; nombre: st
 }
 
 export async function resolverDocumento(id: string, aprobado: boolean, motivo?: string): Promise<Res> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo admin." };
+  if (!(await puedeOnboarding())) return { ok: false, error: "Solo la casa o el equipo de onboarding." };
   const razon = (motivo ?? "").trim();
   // La base también lo exige, pero fallar aquí permite DECIRLO en vez de
   // devolver un error de constraint que nadie sabe leer.
@@ -435,7 +435,7 @@ export async function resolverActividad(
   aprobada: boolean,
   motivo?: string,
 ): Promise<Res> {
-  if (!(await isCurrentUserAdmin())) return { ok: false, error: "Solo admin." };
+  if (!(await puedeOnboarding())) return { ok: false, error: "Solo la casa o el equipo de onboarding." };
   if (!VALIDAS.has(actividad)) return { ok: false, error: "Esa actividad no existe." };
   const razon = (motivo ?? "").trim();
   if (!aprobada && !razon) return { ok: false, error: "Devolver una actividad exige decir por qué." };

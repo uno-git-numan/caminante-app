@@ -27,7 +27,8 @@ export type AdminSection =
   | "pl-panorama"
   | "pl-experiencias"
   | "pl-comunidad"
-  | "pl-recursos";
+  | "pl-recursos"
+  | "pl-equipo";
 
 export type AdminNavItem = { key: AdminSection; label: string; href?: string; soon?: boolean };
 
@@ -83,6 +84,9 @@ export const NAV_PLATAFORMA: AdminNavItem[] = [
   { key: "pl-experiencias", label: "Experiencias", href: "/caminante/admin/plataforma/experiencias" },
   { key: "pl-comunidad", label: "Comunidad", href: "/caminante/admin/plataforma/comunidad" },
   { key: "pl-recursos", label: "Recursos", href: "/caminante/admin/plataforma/recursos" },
+  // El equipo (0070): quién trabaja para numan y para cada operadora, con qué
+  // facultades. Sólo la casa.
+  { key: "pl-equipo", label: "Equipo", href: "/caminante/admin/plataforma/equipo" },
 ];
 
 /** Rutas del sombrero de numan (la plataforma). Todo lo demás del panel es el sombrero de Caminante (la operadora). */

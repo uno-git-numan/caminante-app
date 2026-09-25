@@ -16,7 +16,8 @@ import { redirect } from "next/navigation";
 import { candadoDeAlta, rebotaDelAlta } from "@/lib/operadores/nav-alta-servidor";
 import NavAlta from "./NavAlta";
 import { getCurrentRole } from "@/lib/auth/authorization";
-import { alcanceActual, esOperador } from "@/lib/auth/alcance";
+import { alcanceActual, equipoDelAlcance, esOperador } from "@/lib/auth/alcance";
+import { tieneFacultad } from "@/lib/equipo/facultades";
 import { operadorasPropias, sombreroPuesto } from "@/lib/auth/sombrero";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_CSS } from "./admin-css";
@@ -118,13 +119,20 @@ export default async function AdminShell({
   active: AdminSection;
   children: React.ReactNode;
 }) {
-  const rol = (await getCurrentRole()) === "operador" ? "operador" : "admin";
+  const rolReal = await getCurrentRole();
   const alcance = await alcanceActual();
+  // EL EQUIPO (0070) se ve como lo que es: de una operadora, como el operador
+  // (con sus facultades); de numan, como una casa acotada a Comunidad.
+  const equipo = equipoDelAlcance(alcance);
+  const comoNuman = rolReal === "equipo" && alcance?.tipo === "equipo";
+  const rol: "admin" | "operador" | "equipo" =
+    rolReal === "operador" ? "operador" : rolReal === "equipo" ? "equipo" : "admin";
+  const comoOperador = rol === "operador" || (rol === "equipo" && esOperador(alcance));
 
   // Los badges cuentan solicitudes de la PLATAFORMA. Un operador ni ve esa
   // sección, así que ni se consultan — tres consultas menos por pantalla.
   const [pendientes, accesos, embajadores] =
-    rol === "operador"
+    rol !== "admin"
       ? [0, 0, 0]
       : await Promise.all([
           pendientesSolicitudes(),
@@ -144,13 +152,26 @@ export default async function AdminShell({
   const sombrero = sombreroDeRuta(ruta);
   // Las operadoras que la casa opera (0069). Vacío antes de que la migración se
   // aplique: ahí la pastilla vuelve a ser la de dos chips de siempre.
+  // La casa: sus propias y el sombrero puesto. El equipo: SUS operadoras, y de
+  // sombrero la que resolvió el alcance (la pastilla elige sólo entre ésas).
   const [propias, puesto] =
     rol === "admin"
       ? await Promise.all([operadorasPropias(), sombreroPuesto()])
-      : [[], null];
+      : rol === "equipo" && equipo
+        ? [
+            equipo.operadoras
+              .filter((o) => !!o.slug)
+              .map((o) => ({ id: o.id, slug: o.slug as string, nombre: o.nombre, esLaCasa: false })),
+            esOperador(alcance)
+              ? { id: alcance.operatorId, slug: alcance.slug ?? "", nombre: alcance.nombre, esLaCasa: false }
+              : null,
+          ]
+        : [[], null];
   // «Mi alta» aparece en el nav de la casa sólo si el sombrero es de una
   // operadora que tiene alta. Se calcula aquí y no arriba porque depende de él.
-  const items = navPara(rol, sombrero === "operadora" && !!puesto && !puesto.esLaCasa);
+  const items = comoOperador
+    ? navPara("operador")
+    : navPara("admin", sombrero === "operadora" && !!puesto && !puesto.esLaCasa);
 
   // EL ALTA CIERRA SECCIONES. El layout lo revisa en la carga completa; aquí se
   // revisa en cada navegación con clics, que el layout no ve. Misma función.
@@ -163,7 +184,14 @@ export default async function AdminShell({
   // abierto porque vende con dispensa, pero su alta sigue abierta (expediente,
   // convenio). Para ella «Mi alta» se queda al frente.
   const altaCerrada = !!candado?.puedeCobrar && items.some((i) => i.href === MI_ALTA_NAV.href);
-  const nav = sombrero === "plataforma" ? NAV_PLATAFORMA : altaCerrada ? navConAltaCerrada(items) : items;
+  // El equipo de numan sólo tiene Comunidad de la plataforma (lista blanca).
+  const nav = comoNuman
+    ? NAV_PLATAFORMA.filter((i) => i.key === "pl-comunidad")
+    : sombrero === "plataforma"
+      ? NAV_PLATAFORMA
+      : altaCerrada
+        ? navConAltaCerrada(items)
+        : items;
   const enPerfil = !!ruta?.startsWith("/caminante/admin/mi-alta");
   // Mientras el alta no cierra, la cabecera es la de la lámina: «Mi alta» y las
   // seis punteadas, y a la derecha lo que puede y lo que todavía no.
@@ -189,11 +217,15 @@ export default async function AdminShell({
                 todas las pantallas: si no, un día lees un número de Kéntro
                 creyendo que es de Caminante y nada te avisa. */}
             <span className="mode">
-              {esOperador(alcance)
-                ? alcance.nombre
-                : sombrero === "operadora" && puesto
-                  ? `Modo admin · ${puesto.nombre}`
-                  : "Modo admin"}
+              {comoNuman
+                ? `Equipo numan · ${equipo?.nombre ?? ""}`
+                : esOperador(alcance)
+                  ? equipo
+                    ? `${alcance.nombre} · ${equipo.nombre}`
+                    : alcance.nombre
+                  : sombrero === "operadora" && puesto
+                    ? `Modo admin · ${puesto.nombre}`
+                    : "Modo admin"}
             </span>
             {/* LA PASTILLA · sólo la casa.
                 ⚠️ LOS DOS NOMBRES ESTABAN AL REVÉS hasta el 24 sep 2026.
@@ -209,16 +241,18 @@ export default async function AdminShell({
                 está filtrado a nadie —muestra todas las operadoras juntas—.
                 Un operador externo entra directo a lo suyo y esto no existe
                 para él. */}
-            {rol === "admin" ? (
+            {rol === "admin" || (rol === "equipo" && equipo && (equipo.numan || equipo.operadoras.length > 1)) ? (
               <span className="hatwrap">
                 <span className="hatlb">Panel</span>
                 <span className="hat">
-                  <Link
-                    href={RAIZ_PLATAFORMA}
-                    className={sombrero === "plataforma" ? "cam on" : "cam"}
-                  >
-                    numan
-                  </Link>
+                  {rol === "admin" || equipo?.numan ? (
+                    <Link
+                      href={rol === "admin" ? RAIZ_PLATAFORMA : "/caminante/admin/plataforma/comunidad"}
+                      className={sombrero === "plataforma" ? "cam on" : "cam"}
+                    >
+                      numan
+                    </Link>
+                  ) : null}
                   {/* Un chip por operadora propia. Hasta el 24 sep 2026 era uno
                       solo y fijo, porque la casa era UNA operadora; hoy son dos
                       —Caminante y Kéntro, las dos de Druidas— y el panel de
@@ -294,7 +328,7 @@ export default async function AdminShell({
                 —una pantalla que sí era suya, ya podada a sus salidas. Al
                 mudar una sección hay que preguntarse por quién entraba por la
                 puerta que se cerró. */}
-            {rol === "operador" ? (
+            {rol === "operador" || (comoOperador && tieneFacultad(equipo, "clientes")) ? (
               <Link href="/caminante/admin/pagos" className="btn btn-glass btn-sm">
                 Pagos
               </Link>
@@ -304,9 +338,11 @@ export default async function AdminShell({
                 Generar cobro
               </Link>
             ) : null}
-            <Link href="/caminante/admin/experiencias/nueva" className="btn btn-orange btn-sm">
-              + Experiencia
-            </Link>
+            {rol !== "equipo" || (comoOperador && tieneFacultad(equipo, "armar")) ? (
+              <Link href="/caminante/admin/experiencias/nueva" className="btn btn-orange btn-sm">
+                + Experiencia
+              </Link>
+            ) : null}
             <form action={signOut}>
               <button type="submit" className="btn btn-glass btn-sm" title="Cerrar sesión">
                 Salir
@@ -360,7 +396,7 @@ export default async function AdminShell({
             className={active === ADMIN_NAV_OPERADOR.key ? "on" : ""}
             style={{
               marginLeft: "auto",
-              display: rol === "operador" ? "none" : "inline-flex",
+              display: rol !== "admin" ? "none" : "inline-flex",
               alignItems: "center",
               gap: 6,
             }}

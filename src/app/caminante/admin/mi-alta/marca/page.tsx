@@ -14,6 +14,7 @@ import AdminShell from "../../ui/AdminShell";
 import { EXPEDIENTE_CSS } from "../../ui/expediente-css";
 import { MI_ALTA_CSS } from "../../ui/mi-alta-css";
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
+import { alcanceActual } from "@/lib/auth/alcance";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { OperatorBranding } from "@/lib/operators/branding";
@@ -30,20 +31,22 @@ export default async function MarcaPage({
 }: {
   searchParams: Promise<{ operadora?: string }>;
 }) {
-  const alta = await fetchMiAlta();
-  if (!alta) redirect("/caminante/admin");
+  // El equipo de numan (0070) entra POR una operadora, como la casa.
+  const equipoNuman = (await alcanceActual())?.tipo === "equipo";
+  const alta = equipoNuman ? null : await fetchMiAlta();
+  if (!alta && !equipoNuman) redirect("/caminante/admin");
   const q = await searchParams;
 
   let operatorId: string;
   let porOtra: { id: string; nombre: string } | null = null;
-  if (alta.operadora?.esLaCasa) {
+  if (equipoNuman || alta?.operadora?.esLaCasa) {
     const pedida = (q.operadora ?? "").trim();
     const nombre = pedida ? await nombreDeOperadora(pedida) : null;
     if (!pedida || !nombre) redirect("/caminante/admin/plataforma/comunidad");
     operatorId = pedida;
     porOtra = { id: pedida, nombre };
   } else {
-    const propia = alta.operadora?.id;
+    const propia = alta?.operadora?.id;
     if (!propia) redirect("/caminante/admin/mi-alta");
     operatorId = propia;
   }

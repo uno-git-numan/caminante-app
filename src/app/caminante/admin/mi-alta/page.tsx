@@ -15,6 +15,7 @@ import AdminShell from "../ui/AdminShell";
 import { MI_ALTA_CSS } from "../ui/mi-alta-css";
 import MiPerfil from "./MiPerfil";
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
+import { alcanceActual } from "@/lib/auth/alcance";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { sombreroPuesto } from "@/lib/auth/sombrero";
 import { datosDeFirma } from "@/lib/operadores/datos-firma";
@@ -32,9 +33,13 @@ export default async function MiAltaPage({
 }: {
   searchParams: Promise<{ operadora?: string; pasos?: string }>;
 }) {
-  const propia = await fetchMiAlta();
+  // El equipo de numan (0070) no tiene alta propia: entra POR una operadora
+  // con `?operadora=`, igual que la casa. Su fila no está en `operators`, así
+  // que `fetchMiAlta()` sin argumento no le devolvería nada.
+  const equipoNuman = (await alcanceActual())?.tipo === "equipo";
+  const propia = equipoNuman ? null : await fetchMiAlta();
   // Sin solicitud y sin operadora no hay recorrido que enseñar.
-  if (!propia) redirect("/caminante/admin");
+  if (!propia && !equipoNuman) redirect("/caminante/admin");
 
   // ⚠️ LA CASA NO TIENE ALTA PROPIA. Su fila en `operators` existe para
   // atribuirse sus experiencias, no porque haya pasado por el embudo: no mandó
@@ -51,7 +56,7 @@ export default async function MiAltaPage({
   // era la única cerrada para quien acompaña el recorrido.
   let datos = propia;
   let porOtra: { id: string; nombre: string } | null = null;
-  if (propia.operadora?.esLaCasa) {
+  if (equipoNuman || propia?.operadora?.esLaCasa) {
     const pedida = ((await searchParams).operadora ?? "").trim();
 
     // SIN `?operadora=`, EL SOMBRERO DICE DE QUIÉN. Con el de Kéntro puesto,
@@ -64,7 +69,7 @@ export default async function MiAltaPage({
     // cuelgue de ella, lleve el id EXPLÍCITO. La cookie sólo eligió el default,
     // una vez, y a la vista.
     if (!pedida) {
-      const puesto = await sombreroPuesto();
+      const puesto = equipoNuman ? null : await sombreroPuesto();
       if (puesto && !puesto.esLaCasa) {
         redirect(`/caminante/admin/mi-alta?operadora=${encodeURIComponent(puesto.id)}`);
       }
@@ -78,6 +83,7 @@ export default async function MiAltaPage({
     datos = suya;
     porOtra = { id: pedida, nombre };
   }
+  if (!datos) redirect("/caminante/admin");
 
   // ⚠️ LA CASA NO TIENE ALTA, TAMPOCO VISTA POR OTRA. Con `?operadora=` de la
   // fila de la casa (Caminante, mientras cargue `es_la_casa`), esta pantalla

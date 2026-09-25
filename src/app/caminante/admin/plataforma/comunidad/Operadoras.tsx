@@ -17,9 +17,12 @@ export default function Operadoras({
   ops,
   porRevisar,
   dispensas,
+  esCasa = true,
 }: {
   ops: OperadoraPlataforma[];
   porRevisar: Map<string, PorRevisar>;
+  /** Dispensas sólo la casa (0070): el equipo de numan las ve, no las otorga. */
+  esCasa?: boolean;
   dispensas: Map<string, DispensaEnPantalla[]>;
 }) {
   const externas = ops.filter((o) => !o.esLaCasa);
@@ -172,7 +175,7 @@ export default function Operadoras({
                                   </a>
                                 </span>
                               </p>
-                              <Dispensas operadorId={o.id} lista={dispensas.get(o.id) ?? []} />
+                              {esCasa ? <Dispensas operadorId={o.id} lista={dispensas.get(o.id) ?? []} /> : null}
                               <p className="arr">
                                 <s>Arranque de comisión</s>
                                 {o.comisionDesde ? (
