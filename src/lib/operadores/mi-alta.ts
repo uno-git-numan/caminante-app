@@ -108,6 +108,12 @@ export type MiAlta = {
    * lo que se le mandó— y si no, de su fila de operadora.
    */
   terminos: BloqueTerminos[];
+  /**
+   * Lo que el viajero lee en su página (lámina «Panel Operadora», vista «Mi
+   * perfil»): bio, Instagram y equipo. Se ENSEÑA aquí; se edita donde siempre
+   * (el editor del perfil público), para no tener dos editores del mismo dato.
+   */
+  perfilPublico: { slug: string | null; bio: string | null; instagram: string | null; equipo: string[]; publico: boolean };
 };
 
 type Expediente = { nombre?: string; archivo?: string | null }[];
@@ -154,7 +160,7 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
   const sb = createSupabaseAdminClient();
   const [{ data: op }, { data: apps }] = await Promise.all([
     sb.from("operators")
-      .select("id, estado, estado_motivo, name, legal, rfc, razon_social, regimen_fiscal, cp_fiscal")
+      .select("id, estado, estado_motivo, name, legal, rfc, razon_social, regimen_fiscal, cp_fiscal, slug, bio, instagram, team, is_public")
       .eq("email", email)
       .maybeSingle(),
     // Los cinco últimos campos son los mismos con los que la invitación a la
@@ -249,6 +255,7 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
       dispensas: [],
       experiencias: [],
       fiscal: { rfc: null, razonSocial: null, regimen: null, cp: null },
+      perfilPublico: { slug: null, bio: null, instagram: null, equipo: [], publico: false },
       terminos: terminosDe({
         responsable: (a?.responsable as string | null) ?? null,
         operadora: (a?.nombre_operadora as string | null) ?? null,
@@ -320,5 +327,17 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
       regimen: txt((op as Record<string, unknown> | null)?.regimen_fiscal),
       cp: txt((op as Record<string, unknown> | null)?.cp_fiscal),
     },
+    perfilPublico: perfilPublicoDe(op as Record<string, unknown> | null),
+  };
+}
+
+function perfilPublicoDe(op: Record<string, unknown> | null): MiAlta["perfilPublico"] {
+  const team = Array.isArray(op?.team) ? (op!.team as { name?: unknown }[]) : [];
+  return {
+    slug: txt(op?.slug),
+    bio: txt(op?.bio),
+    instagram: txt(op?.instagram),
+    equipo: team.map((m) => (typeof m?.name === "string" ? m.name.trim() : "")).filter(Boolean),
+    publico: op?.is_public === true,
   };
 }

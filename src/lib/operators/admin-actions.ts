@@ -4,6 +4,7 @@
 // re-verifica isCurrentUserAdmin() (el gate del layout no cubre actions directas).
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { operadoraObjetivo } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cleanAdjust, type TeamMember } from "@/lib/operators/public";
 import { slugLibre } from "@/lib/operators/slug";
@@ -109,5 +110,40 @@ export async function setOperatorPublic(formData: FormData): Promise<OperadorSav
     .single();
   if (error) return { ok: false, error: error.message };
   revalidar((data?.slug as string) ?? "");
+  return { ok: true };
+}
+
+/**
+ * «Tu página» desde Mi perfil (lámina «Panel Operadora»): la bio y el
+ * Instagram, que son de la operadora y los edita ella. Sólo esas dos columnas:
+ * `saveOperatorProfile` escribe el perfil ENTERO (fotos, encuadres, equipo) y
+ * llamarla con dos campos borraría lo demás. Las fotos y el equipo siguen en
+ * el editor de la casa.
+ *
+ * Gate: la casa sobre cualquiera, la operadora sólo sobre sí misma (la misma
+ * regla que subir un documento), no `isCurrentUserAdmin` como el resto de
+ * este archivo, porque aquí quien escribe es la operadora.
+ */
+export async function guardarMiPagina(
+  operadorId: string,
+  bio: string,
+  instagram: string,
+): Promise<OperadorSaveResult> {
+  const id = await operadoraObjetivo((operadorId ?? "").trim() || null);
+  if (!id || id !== (operadorId ?? "").trim()) return { ok: false, error: "No autorizado." };
+  const sb = createSupabaseAdminClient();
+  const { data, error } = await sb
+    .from("operators")
+    .update({
+      bio: bio.trim().slice(0, 1200) || null,
+      instagram: instagram.trim().replace(/^@/, "").slice(0, 60) || null,
+    })
+    .eq("id", id)
+    .select("slug")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  const slug = (data as { slug?: string | null } | null)?.slug;
+  if (slug) revalidar(slug);
+  revalidatePath("/caminante/admin/mi-alta");
   return { ok: true };
 }

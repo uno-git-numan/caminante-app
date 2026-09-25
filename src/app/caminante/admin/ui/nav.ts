@@ -16,6 +16,7 @@ export type AdminSection =
   | "personas"
   | "recursos"
   | "operador"
+  | "perfil"
   | "encuesta"
   // ── El sombrero de LA PLATAFORMA (numan) ───────────────────────────────
   // Claves aparte de las de la operadora aunque tres etiquetas se repitan. Son
@@ -158,6 +159,23 @@ export const ADMIN_NAV_DE_OPERADOR: AdminNavItem[] = [
  *   que seguir» y pasa a ser justo lo que se está mirando: el alta de ella,
  *   recorrida como la recorre ella. Sin sombrero, o con el de la casa, no sale.
  */
+/**
+ * «Mi perfil»: en lo que se convierte «Mi alta» cuando el alta cierra (lámina
+ * «Panel Operadora»: «Tu alta cerró: las seis secciones están abiertas, y lo
+ * tuyo se mudó a Mi perfil, en la orilla derecha»). Misma ruta: la pantalla
+ * decide qué enseñar según el estado.
+ */
+export const MI_PERFIL_NAV: AdminNavItem = {
+  key: "perfil",
+  label: "Mi perfil",
+  href: "/caminante/admin/mi-alta",
+};
+
+/** Puro: quita «Mi alta» del frente y pone «Mi perfil» al final (a la derecha). */
+export function navConAltaCerrada(items: AdminNavItem[]): AdminNavItem[] {
+  return [...items.filter((i) => i.href !== MI_ALTA_NAV.href), MI_PERFIL_NAV];
+}
+
 export function navPara(rol: "admin" | "operador", conAlta = false): AdminNavItem[] {
   if (rol === "operador") return ADMIN_NAV_DE_OPERADOR;
   return conAlta ? [MI_ALTA_NAV, ...ADMIN_NAV] : ADMIN_NAV;

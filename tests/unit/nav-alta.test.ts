@@ -52,3 +52,18 @@ describe("rutaCerrada", () => {
     expect(rutaCerrada("/caminante/admin/recursos", "cerrado")).toBe(false);
   });
 });
+
+// ── Cuando el alta cierra, «Mi alta» se vuelve «Mi perfil» a la derecha ──────
+import { MI_ALTA_NAV, MI_PERFIL_NAV, navConAltaCerrada, navPara } from "@/app/caminante/admin/ui/nav";
+
+describe("navConAltaCerrada", () => {
+  it("quita «Mi alta» del frente y pone «Mi perfil» al final, con la misma ruta", () => {
+    const antes = navPara("operador");
+    expect(antes[0]).toBe(MI_ALTA_NAV);
+    const despues = navConAltaCerrada(antes);
+    expect(despues.some((i) => i.label === "Mi alta")).toBe(false);
+    expect(despues[despues.length - 1]).toBe(MI_PERFIL_NAV);
+    expect(MI_PERFIL_NAV.href).toBe(MI_ALTA_NAV.href);
+    expect(despues.length).toBe(antes.length);
+  });
+});

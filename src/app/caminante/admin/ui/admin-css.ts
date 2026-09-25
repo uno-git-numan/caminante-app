@@ -1258,6 +1258,11 @@ export const ADMIN_CSS = `
    orden que venga; mi-alta-css y expediente-css son generados y no se tocan. */
 @media(max-width:640px){.adm .docs .doc{grid-template-columns:20px 1fr;row-gap:8px}.adm .docs .doc .fl,.adm .docs .doc .ac{grid-column:2}.adm .docs .doc .ac{justify-content:flex-start}}
 
+/* «Mi perfil» a la orilla derecha del nav cuando el alta cerró (lámina «Panel
+   Operadora»). La regla también viene en mi-alta-css, pero el nav se pinta en
+   TODAS las pantallas del panel y esa hoja sólo carga en Mi alta. */
+.adm .nav a.yo{margin-left:auto;flex:0 0 auto}
+
 /* LA CABECERA DEL PANEL EN TELÉFONO (Luis, 24 sep 2026). Sólo el índice
    /caminante/admin redirige al panel-app; Mi alta, el expediente y Cobrar
    sirven el DOM de escritorio, y su cabecera —logo, «Modo admin», la pastilla

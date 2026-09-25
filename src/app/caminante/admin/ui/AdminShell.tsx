@@ -8,6 +8,8 @@ import {
   RAIZ_PLATAFORMA,
   sombreroDeRuta,
   type AdminSection,
+  navConAltaCerrada,
+  MI_ALTA_NAV,
 } from "./nav";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -149,12 +151,17 @@ export default async function AdminShell({
   // «Mi alta» aparece en el nav de la casa sólo si el sombrero es de una
   // operadora que tiene alta. Se calcula aquí y no arriba porque depende de él.
   const items = navPara(rol, sombrero === "operadora" && !!puesto && !puesto.esLaCasa);
-  const nav = sombrero === "plataforma" ? NAV_PLATAFORMA : items;
 
   // EL ALTA CIERRA SECCIONES. El layout lo revisa en la carga completa; aquí se
   // revisa en cada navegación con clics, que el layout no ve. Misma función.
   if (await rebotaDelAlta(ruta)) redirect("/caminante/admin/mi-alta");
   const candado = sombrero === "operadora" ? await candadoDeAlta() : null;
+  // Cuando el alta ya cerró, «Mi alta» deja el frente y «Mi perfil» va a la
+  // orilla derecha (lámina «Panel Operadora»). `candado` sólo existe para quien
+  // tiene alta; la casa sin sombrero no lo ve.
+  const altaCerrada = candado?.estado === "abierto" && items.some((i) => i.href === MI_ALTA_NAV.href);
+  const nav = sombrero === "plataforma" ? NAV_PLATAFORMA : altaCerrada ? navConAltaCerrada(items) : items;
+  const enPerfil = !!ruta?.startsWith("/caminante/admin/mi-alta");
   // Mientras el alta no cierra, la cabecera es la de la lámina: «Mi alta» y las
   // seis punteadas, y a la derecha lo que puede y lo que todavía no.
   const enAlta = candado && candado.estado !== "abierto" ? candado : null;
@@ -314,7 +321,11 @@ export default async function AdminShell({
         <nav className="nav">
           {nav.map((it) =>
             it.href ? (
-              <Link key={it.key} href={it.href} className={active === it.key ? "on" : ""}>
+              <Link
+                key={it.key}
+                href={it.href}
+                className={(it.key === "perfil" ? "yo" : "") + (active === it.key || (it.key === "perfil" && enPerfil) ? " on" : "")}
+              >
                 {it.label}
                 {badgeDe(it.key) > 0 ? (
                   <span

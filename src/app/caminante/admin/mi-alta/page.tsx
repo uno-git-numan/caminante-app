@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import AdminShell from "../ui/AdminShell";
 import { MI_ALTA_CSS } from "../ui/mi-alta-css";
+import MiPerfil from "./MiPerfil";
 import { fetchMiAlta } from "@/lib/operadores/mi-alta";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { sombreroPuesto } from "@/lib/auth/sombrero";
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
 export default async function MiAltaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ operadora?: string }>;
+  searchParams: Promise<{ operadora?: string; pasos?: string }>;
 }) {
   const propia = await fetchMiAlta();
   // Sin solicitud y sin operadora no hay recorrido que enseñar.
@@ -127,6 +128,38 @@ export default async function MiAltaPage({
 
   const ORDINAL = ["primero", "segundo", "tercero", "cuarto"];
   const aqui = pasoDe(datos.estado);
+
+  // CUANDO EL ALTA CIERRA, ESTA PANTALLA ES «MI PERFIL» (lámina «Panel
+  // Operadora»: «Mi alta se convirtió en Mi perfil»). Los cuatro pasos siguen
+  // ahí, por si quiere releerlos, con `?pasos=1`.
+  const verPasos = ((await searchParams).pasos ?? "") === "1";
+  if (datos.estado === "listo" && !verPasos) {
+    return (
+      <AdminShell active="perfil">
+        <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS }} />
+        <div className="sec-head">
+          <div>
+            <span className="eyebrow">
+              <span className="sl">{"//"}</span> {porOtra ? `Perfil de ${porOtra.nombre}` : "Mi perfil"}
+            </span>
+            <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
+              {porOtra ? "Su alta cerró." : "Tu alta cerró."} <em className="ac">Esto es lo que queda a la vista.</em>
+            </h2>
+            <p className="desc" style={{ marginTop: 10 }}>
+              {porOtra ? (
+                <Link href="/caminante/admin/plataforma/comunidad">Volver a Comunidad</Link>
+              ) : null}
+              {porOtra ? " · " : null}
+              <Link href={porOtra ? `/caminante/admin/mi-alta?operadora=${encodeURIComponent(porOtra.id)}&pasos=1` : "/caminante/admin/mi-alta?pasos=1"}>
+                Ver los cuatro pasos {porOtra ? "de su alta" : "de tu alta"}
+              </Link>
+            </p>
+          </div>
+        </div>
+        <MiPerfil datos={datos} porOtra={porOtra?.id ?? null} />
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell active="panorama">
