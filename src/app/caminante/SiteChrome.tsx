@@ -59,7 +59,7 @@ export default function SiteChrome({
   role,
   children,
 }: {
-  role: "admin" | "operador" | "caminante" | null;
+  role: "admin" | "equipo" | "operador" | "caminante" | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -118,7 +118,7 @@ export default function SiteChrome({
                   className="ml-1 rounded-full px-3 py-2 text-xs font-medium text-olive hover:text-lagoon"
                 >
                   {/* El operador también tiene panel — el suyo, filtrado. */}
-                  {role === "admin" || role === "operador" ? "Panel" : "Mi espacio"}
+                  {role === "admin" || role === "operador" || role === "equipo" ? "Panel" : "Mi espacio"}
                 </a>
                 <form action={signOut}>
                   <button

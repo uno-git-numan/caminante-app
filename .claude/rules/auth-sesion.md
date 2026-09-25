@@ -94,6 +94,47 @@ consultas; con dos podadas seguía enseñando el correo de un cliente de la casa
 **El admin no compra**: `/reservar` y `/registro` lo rebotan. (Ojo al verificar:
 por eso esas vistas no se pueden ver con sesión de admin.)
 
+## El equipo: el tercer rol (0070, 25 sep 2026)
+
+Cuatro perfiles: **admin** (la casa) · **equipo** (`staff`) · **operador**
+(`operators.panel_activo`) · **caminante**. Se derivan por correo, **en ese
+orden**: la casa manda; un correo en `staff` activo es equipo aunque también
+tenga fila de operador.
+
+**Qué es el equipo.** Empleados con sueldo, de numan (`staff.numan`) y/o de una
+o varias operadoras (`staff_operadoras`; Caminante y Kéntro son un solo equipo:
+Druidas). `facultades` las prende y apaga la casa: `onboarding` (numan) ·
+`clientes` · `armar` · `campo` (operadora). **Lo que nunca:** reembolsos,
+`commission_pct`, Connect/CSD/facturas, dispensas, suspender/baja, dar accesos
+— todo eso sigue exigiendo `isCurrentUserAdmin()`, y esta tabla no lo abre.
+
+**Cómo entra al panel (`lib/auth/alcance.ts`).** Dos formas, y la forma es lo
+que evita tocar el resto del panel:
+- Equipo de una **operadora** → alcance `operador` de esa operadora con
+  `equipo` colgado. Todo lo que filtra por `esOperador()` le aplica. Si trabaja
+  para dos, la cookie del sombrero elige **sólo entre las suyas** — aquí el
+  sombrero sí decide a nombre de quién actúa, a propósito: es la operadora,
+  acotada. El invariante #22 protege a la casa, que actúa por cualquiera.
+- Equipo de **numan** → alcance `equipo`. `tipo === "casa"` sigue falso. Lo
+  que puede lo abren a mano `puedeOnboarding()` (agendar llamada, pedir
+  expediente, aprobar/rechazar solicitud, resolver documentos y actividades) y
+  `operadoraObjetivo()` (subir por una operadora). Con las dos a la vez: en
+  `/plataforma` es numan, en el resto su operadora.
+
+**Listas blancas** (`panel-operador.ts`): `rutaDeEquipoNuman` (Comunidad de la
+plataforma + Mi alta/expediente/marca por `?operadora=`) y
+`rutaDeEquipoOperadora` (lo del operador menos `/mi-alta/equipo`: el equipo no
+se administra solo). El layout las aplica; falla cerrado.
+
+**Alta y facultades** (`lib/equipo/actions.ts`): la casa en
+`/plataforma/equipo`; cada operadora a su gente en `/mi-alta/equipo` (sólo su
+operadora, sólo facultades de operadora). Un correo de `admin_whitelist` no se
+puede meter al equipo. La baja apaga `activo`, conserva la fila.
+
+**Pendiente (0071+):** atribución transferible (solicitudes, tarjetas, grupos),
+comisiones (10% de la comisión de numan; 3% por grupo cerrado) y la sección de
+rendimiento sólo para uno@numanhub.com. Memoria: `caminante-equipo-vendedores`.
+
 ## Olfatear el user-agent
 
 **PROHIBIDO en páginas públicas** — el sitio móvil se resuelve con CSS, y olfatear

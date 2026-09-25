@@ -800,7 +800,7 @@ export default function ExperienceTemplateV2({
   // para que el flujo completo (página → checkout) siga viendo la salida privada.
   grupoToken?: string | null;
   // Rol de la sesión (server-side): entrada a "Mi espacio"/"Panel" en el nav.
-  sessionRole?: "admin" | "operador" | "caminante" | null;
+  sessionRole?: "admin" | "equipo" | "operador" | "caminante" | null;
   // Chip "Operada por" del hero (null = operador sin perfil público o sin 0020).
   operatorChip?: OperatorChip | null;
   // Contacto del operador dueño. null = la experiencia es de la casa y el
@@ -812,7 +812,7 @@ export default function ExperienceTemplateV2({
   const slug = experience.slug;
   // Entrada por rol en el nav de la experiencia (misma lógica que SiteChrome):
   // sin sesión → "Entrar"; caminante → "Mi espacio"; casa y operador → "Panel".
-  const conPanel = sessionRole === "admin" || sessionRole === "operador";
+  const conPanel = sessionRole === "admin" || sessionRole === "operador" || sessionRole === "equipo";
   const cuentaHref = conPanel
     ? "/caminante/admin"
     : sessionRole === "caminante"

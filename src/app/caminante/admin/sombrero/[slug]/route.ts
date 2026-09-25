@@ -54,7 +54,7 @@ export async function GET(
   const elegida = opciones.find((o) => o.slug === slug);
   // Un slug que no es de una operadora propia no cambia nada y no explota:
   // rebota al panel con el sombrero que ya traía.
-  if (!elegida) return NextResponse.redirect(destino);
+  if (!elegida?.slug) return NextResponse.redirect(destino);
 
   const res = NextResponse.redirect(destino);
   res.cookies.set(COOKIE_SOMBRERO, elegida.slug, {

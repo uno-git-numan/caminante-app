@@ -36,7 +36,7 @@
 // La identificación sólo se pide si el RFC no cuadra con el nombre.
 
 /** Prendida sólo con `COBRO_EN_PLATAFORMA=1`. Cualquier otro valor es apagada. */
-export function altaCobroEnPlataforma(env: NodeJS.ProcessEnv = process.env): boolean {
+export function altaCobroEnPlataforma(env: Record<string, string | undefined> = process.env): boolean {
   return env.COBRO_EN_PLATAFORMA === "1";
 }
 

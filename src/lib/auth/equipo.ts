@@ -42,7 +42,7 @@ export async function equipoDe(email: string): Promise<EquipoEnSesion | null> {
   // numan (si lo tiene) que uno de una operadora que no se pudo confirmar.
   const operadoras: OperadoraDelEquipo[] = e2
     ? []
-    : ((ops ?? []) as { operators: { id: string; name: string | null; slug: string | null; estado: string | null } | null }[])
+    : ((ops ?? []) as unknown as { operators: { id: string; name: string | null; slug: string | null; estado: string | null } | null }[])
         .map((r) => r.operators)
         .filter((o): o is NonNullable<typeof o> => !!o && o.estado !== "baja")
         .map((o) => ({ id: o.id, nombre: o.name || "Operadora", slug: o.slug }));
