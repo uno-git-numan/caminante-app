@@ -100,13 +100,6 @@ type Fila = {
   subido_at?: string | null;
 };
 
-/** «1,2 MB» o «340 KB», como lo escribe la lámina. */
-export function pesoEnPalabras(b: number): string {
-  return b >= 1048576
-    ? (b / 1048576).toFixed(1).replace(".", ",") + " MB"
-    : Math.max(1, Math.round(b / 1024)) + " KB";
-}
-
 function pintar(
   d: Documento,
   fila: Fila | undefined,

@@ -20,7 +20,8 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { pesoEnPalabras, type DocEnPantalla } from "@/lib/operadores/expediente";
+import type { DocEnPantalla } from "@/lib/operadores/expediente";
+import { pesoEnPalabras } from "@/lib/operadores/peso";
 import { quitarDocumento, subirDocumento } from "@/lib/operadores/expediente-actions";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
 

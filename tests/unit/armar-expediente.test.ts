@@ -4,7 +4,8 @@
 // en qué columna la pone. Antes el Pipeline no lo sabía, y ponía en
 // «Vendiendo» a quien vendía con dispensa sin un solo documento.
 import { describe, expect, it } from "vitest";
-import { armarExpediente, pesoEnPalabras } from "@/lib/operadores/expediente";
+import { armarExpediente } from "@/lib/operadores/expediente";
+import { pesoEnPalabras } from "@/lib/operadores/peso";
 import { GENERALES, requisitosDe } from "@/lib/operadores/actividades";
 
 const doc = (documento: string, actividad: string | null, estado = "aprobado") =>
