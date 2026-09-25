@@ -20,9 +20,15 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { DocEnPantalla } from "@/lib/operadores/expediente";
-import { subirDocumento } from "@/lib/operadores/expediente-actions";
-import { diaEnPalabras } from "@/lib/fecha/zona";
+import { pesoEnPalabras, type DocEnPantalla } from "@/lib/operadores/expediente";
+import { quitarDocumento, subirDocumento } from "@/lib/operadores/expediente-actions";
+import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
+
+// `subido_at` es un instante (timestamptz), no una fecha: se lee en la zona de
+// México, no en UTC, o una subida de las 8 de la noche saldría con el día
+// siguiente. `vence_at` sí es fecha y va por `diaEnPalabras`.
+const diaDelInstante = (iso: string) =>
+  new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric", timeZone: CDMX });
 
 // Los cuatro íconos de la lámina: entregado, en revisión, rechazado y falta.
 const IcoOK = () => (
@@ -67,6 +73,7 @@ export default function RenglonDoc({
   const [pend, setPend] = useState<{ f: File; vence: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subiendo, arranca] = useTransition();
+  const [quitando, arrancaQuitar] = useTransition();
 
   const vencido = d.estado !== "falta" && d.diasParaVencer !== null && d.diasParaVencer < 0;
   const k = d.estado === "falta" ? "falta" : vencido ? "vencido" : d.estado === "en_revision" ? "revision" : d.estado;
@@ -100,6 +107,18 @@ export default function RenglonDoc({
         // pedirle al servidor que la vuelva a dibujar.
         router.refresh();
       } else setError(r.error);
+    });
+  };
+
+  // «Quitar» = el archivo equivocado. Lo aprobado no se quita (lo dice el
+  // servidor y por eso el botón ni se ofrece); lo demás vuelve a «sin archivo».
+  const quitar = () => {
+    if (!d.id) return;
+    setError(null);
+    arrancaQuitar(async () => {
+      const r = await quitarDocumento(d.id!, operadora);
+      if (r.ok) router.refresh();
+      else setError(r.error);
     });
   };
 
@@ -146,7 +165,24 @@ export default function RenglonDoc({
           <span className="mut">sin archivo</span>
         ) : (
           <>
+            {/* La liga abre el archivo por la ruta firmada (5 minutos), en
+                otra pestaña: el renglón se queda donde estaba. */}
+            {d.archivoPath ? (
+              <>
+                <a
+                  className="flink"
+                  href={`/caminante/api/admin/expediente?path=${encodeURIComponent(d.archivoPath)}`}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  {d.archivoNombre ?? "archivo"}
+                </a>
+                {d.archivoBytes !== null ? ` · ${pesoEnPalabras(d.archivoBytes)}` : ""}
+                <br />
+              </>
+            ) : null}
             <span className="mut" style={{ fontFamily: "'Geist',system-ui,sans-serif" }}>
+              {d.subidoAt ? `Subido el ${diaDelInstante(d.subidoAt)} · ` : ""}
               {estadoTxt[k]}
             </span>
             {d.venceAt ? (
@@ -170,10 +206,15 @@ export default function RenglonDoc({
             {subiendo ? "Subiendo…" : k === "vencido" ? "Subir el vigente" : "Subir de nuevo"}
           </button>
         ) : (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={pick} disabled={subiendo}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={pick} disabled={subiendo || quitando}>
             {subiendo ? "Subiendo…" : "Reemplazar"}
           </button>
         )}
+        {d.id && k !== "aprobado" ? (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={quitar} disabled={subiendo || quitando}>
+            {quitando ? "Quitando…" : "Quitar"}
+          </button>
+        ) : null}
       </span>
       <input ref={ref} type="file" hidden accept={ACEPTA} onChange={onFile} />
 

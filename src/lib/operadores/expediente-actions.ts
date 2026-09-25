@@ -243,6 +243,56 @@ export async function quitarActividad(actividad: string, operadora?: string | nu
 }
 
 /**
+ * Quitar UN documento subido (lámina «Panel Operadora», botón «Quitar»).
+ *
+ * Es para el archivo equivocado —subí la póliza donde iba el RNT— y por eso
+ * no toca nada más: la fila se va y el archivo con ella, y el renglón vuelve
+ * a «sin archivo». Distinto de «Reemplazar», que conserva la fila y cambia el
+ * archivo.
+ *
+ * ⚠️ LO APROBADO NO SE QUITA. Una persona de la casa lo revisó y la actividad
+ * puede estar aprobada sobre ese papel; quitarlo dejaría la aprobación sin
+ * sustento y nadie se enteraría. Si cambió, se sube el nuevo con «Reemplazar»
+ * y vuelve a revisión, que es el camino que sí avisa.
+ */
+export async function quitarDocumento(id: string, operadora?: string | null): Promise<Res> {
+  const operatorId = await operadoraObjetivo(operadora);
+  if (!operatorId) return { ok: false, error: "No hay una operadora sobre la que quitar esto." };
+  const docId = (id ?? "").trim();
+  if (!docId) return { ok: false, error: "Falta el documento." };
+
+  const sb = createSupabaseAdminClient();
+  const { data, error } = await sb
+    .from("operator_documents")
+    .select("id, operator_id, estado, archivo_path")
+    .eq("id", docId)
+    .maybeSingle();
+  if (error) return { ok: false, error: "No pude leer el documento. No se quitó nada." };
+  const fila = data as { id: string; operator_id: string; estado: string; archivo_path: string | null } | null;
+  // Que no sea suyo y que no exista se contestan igual: no se confirma la
+  // existencia de un documento ajeno.
+  if (!fila || fila.operator_id !== operatorId) return { ok: false, error: "Ese documento no está en tu expediente." };
+  if (fila.estado === "aprobado") {
+    return { ok: false, error: "Ya lo aprobamos. Si cambió, súbelo de nuevo con «Reemplazar» y lo volvemos a revisar." };
+  }
+
+  // Primero la fila, después el archivo (misma razón que en quitarActividad).
+  const { error: e2 } = await sb.from("operator_documents").delete().eq("id", fila.id).eq("operator_id", operatorId);
+  if (e2) {
+    console.error("quitarDocumento:", e2);
+    return { ok: false, error: "No se pudo quitar. Intenta de nuevo." };
+  }
+  if (fila.archivo_path) {
+    const { error: e3 } = await sb.storage.from(BUCKET).remove([fila.archivo_path]);
+    if (e3) console.error("quitarDocumento archivo (queda huérfano, sin fila):", e3);
+  }
+
+  revalidatePath(RUTA);
+  revalidatePath("/caminante/admin/mi-alta");
+  return { ok: true };
+}
+
+/**
  * Declarar una actividad = abrir su carpeta.
  *
  * Hasta ahora las actividades sólo nacían al aprobar la solicitud, con lo que

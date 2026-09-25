@@ -32,6 +32,16 @@ export type DocEnPantalla = {
   /** Se pinta dentro de una actividad pero VIVE en Lo general: no se re-pide. */
   cubiertoPorGeneral: boolean;
   /**
+   * El archivo, cuando lo hay (lámina «Panel Operadora»: nombre, peso y fecha
+   * de subida, con liga). `archivoBytes` sale del Storage —la fila no lo
+   * guarda— y es `null` si no se pudo leer: la pantalla enseña el nombre igual.
+   */
+  id: string | null;
+  archivoPath: string | null;
+  archivoNombre: string | null;
+  archivoBytes: number | null;
+  subidoAt: string | null;
+  /**
    * Si caduca, según el catálogo. Con esto la pantalla sabe si, al elegir el
    * archivo, tiene que pedir la fecha antes de subir (lámina «Panel Operadora»)
    * — en vez de enseñar siempre un campo de fecha que casi nadie necesitaba.
@@ -83,11 +93,37 @@ type Fila = {
   estado: EstadoDoc extends string ? string : never;
   motivo: string | null;
   vence_at: string | null;
+  /** Lo del archivo es opcional: el tablero de la casa no lo pide. */
+  id?: string;
+  archivo_path?: string | null;
+  archivo_nombre?: string | null;
+  subido_at?: string | null;
 };
 
-function pintar(d: Documento, fila: Fila | undefined, cubierto: boolean): DocEnPantalla {
+/** «1,2 MB» o «340 KB», como lo escribe la lámina. */
+export function pesoEnPalabras(b: number): string {
+  return b >= 1048576
+    ? (b / 1048576).toFixed(1).replace(".", ",") + " MB"
+    : Math.max(1, Math.round(b / 1024)) + " KB";
+}
+
+function pintar(
+  d: Documento,
+  fila: Fila | undefined,
+  cubierto: boolean,
+  tamanos?: Map<string, number>,
+): DocEnPantalla {
   const estado = (fila?.estado as EstadoDoc) ?? "falta";
+  const path = fila?.archivo_path ?? null;
+  const base = path ? path.split("/").pop() ?? "" : "";
   return {
+    id: fila?.id ?? null,
+    archivoPath: path,
+    // Sin nombre guardado (filas anteriores a la 0060), el de la ruta: es un
+    // hash con extensión, feo pero verdadero.
+    archivoNombre: fila ? (fila.archivo_nombre ?? base ?? null) : null,
+    archivoBytes: base ? tamanos?.get(base) ?? null : null,
+    subidoAt: fila?.subido_at ?? null,
     slug: d.slug,
     nombre: d.nombre,
     porQue: d.porQue,
@@ -114,13 +150,32 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
       .eq("operator_id", operatorId),
     sb
       .from("operator_documents")
-      .select("actividad, documento, estado, motivo, vence_at")
+      .select("id, actividad, documento, estado, motivo, vence_at, archivo_path, archivo_nombre, subido_at")
       .eq("operator_id", operatorId),
   ]);
   return armarExpediente(
     (acts ?? []) as { actividad: string; estado: string; motivo: string | null }[],
     (docs ?? []) as Fila[],
+    await tamanosDe(operatorId),
   );
+}
+
+/**
+ * El peso de cada archivo de una operadora, en UNA llamada al Storage: la
+ * carpeta del bucket es su id, y `list` trae el tamaño de cada objeto. La fila
+ * no lo guarda y no hace falta una columna para un dato que el bucket ya sabe.
+ * Si falla, se devuelve vacío: el renglón enseña el nombre sin el peso.
+ */
+async function tamanosDe(operatorId: string): Promise<Map<string, number>> {
+  const sb = createSupabaseAdminClient();
+  const { data, error } = await sb.storage.from("expedientes").list(operatorId, { limit: 1000 });
+  if (error || !data) return new Map();
+  const out = new Map<string, number>();
+  for (const o of data as { name: string; metadata?: { size?: number } | null }[]) {
+    const n = Number(o.metadata?.size);
+    if (o.name && Number.isFinite(n)) out.set(o.name, n);
+  }
+  return out;
 }
 
 /**
@@ -159,13 +214,15 @@ export async function expedientesCompletos(): Promise<Map<string, boolean>> {
 export function armarExpediente(
   acts: { actividad: string; estado: string; motivo: string | null }[],
   docs: Fila[],
+  /** Peso por nombre de objeto en el bucket (ver `tamanosDe`). */
+  tamanos?: Map<string, number>,
 ): Expediente {
   const filas = docs;
   // Clave compuesta: `null` de actividad se escribe "" para poder indexar.
   const porClave = new Map(filas.map((f) => [`${f.actividad ?? ""}|${f.documento}`, f]));
   const general = (slug: string) => porClave.get(`|${slug}`);
 
-  const generales = GENERALES.map((d) => pintar(d, general(d.slug), false));
+  const generales = GENERALES.map((d) => pintar(d, general(d.slug), false, tamanos));
 
   // ⚠️ Se recorre lo DECLARADO en la base, no el catálogo entero. El catálogo
   // dice qué existe; la fila dice qué eligió esta operadora. Recorrer el
@@ -174,14 +231,14 @@ export function armarExpediente(
 
   const actividades: ActividadEnPantalla[] = declaradas.map((a) => {
     const req = requisitosDe(a.actividad);
-    const propios = req.propios.map((d) => pintar(d, porClave.get(`${a.actividad}|${d.slug}`), false));
+    const propios = req.propios.map((d) => pintar(d, porClave.get(`${a.actividad}|${d.slug}`), false, tamanos));
     return {
       slug: a.actividad,
       nombre: nombreDeActividad(a.actividad),
       estado: a.estado as EstadoActividad,
       motivo: a.motivo,
       propios,
-      generales: req.generales.map((d) => pintar(d, general(d.slug), true)),
+      generales: req.generales.map((d) => pintar(d, general(d.slug), true, tamanos)),
       faltan: propios.filter(pendiente).length,
     };
   });

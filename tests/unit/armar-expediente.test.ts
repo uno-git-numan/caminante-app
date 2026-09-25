@@ -4,7 +4,7 @@
 // en qué columna la pone. Antes el Pipeline no lo sabía, y ponía en
 // «Vendiendo» a quien vendía con dispensa sin un solo documento.
 import { describe, expect, it } from "vitest";
-import { armarExpediente } from "@/lib/operadores/expediente";
+import { armarExpediente, pesoEnPalabras } from "@/lib/operadores/expediente";
 import { GENERALES, requisitosDe } from "@/lib/operadores/actividades";
 
 const doc = (documento: string, actividad: string | null, estado = "aprobado") =>
@@ -50,5 +50,37 @@ describe("armarExpediente", () => {
       [{ ...primero, estado: "rechazado" }, ...resto, ...propiosDe("senderismo")],
     );
     expect(e.completo).toBe(false);
+  });
+});
+
+describe("el archivo en el renglón (lámina «Panel Operadora»)", () => {
+  it("nombre guardado, peso del bucket y fecha de subida viajan al renglón; sin fila, todo null", () => {
+    const tamanos = new Map([["abc.pdf", 348_160]]);
+    const e = armarExpediente(
+      [],
+      [{ ...doc("rnt", null, "en_revision"), id: "d1", archivo_path: "op-1/abc.pdf", archivo_nombre: "RNT 2026.pdf", subido_at: "2026-09-24T10:00:00Z" }],
+      tamanos,
+    );
+    const rnt = e.generales.find((d) => d.slug === "rnt")!;
+    expect(rnt.id).toBe("d1");
+    expect(rnt.archivoNombre).toBe("RNT 2026.pdf");
+    expect(rnt.archivoBytes).toBe(348_160);
+    expect(rnt.subidoAt).toBe("2026-09-24T10:00:00Z");
+    const otro = e.generales.find((d) => d.slug !== "rnt")!;
+    expect(otro.id).toBeNull();
+    expect(otro.archivoNombre).toBeNull();
+  });
+
+  it("sin nombre guardado (filas viejas) enseña el de la ruta; sin peso en el bucket, null", () => {
+    const e = armarExpediente([], [{ ...doc("rnt", null, "aprobado"), id: "d1", archivo_path: "op-1/abc.pdf" }]);
+    const rnt = e.generales.find((d) => d.slug === "rnt")!;
+    expect(rnt.archivoNombre).toBe("abc.pdf");
+    expect(rnt.archivoBytes).toBeNull();
+  });
+
+  it("pesoEnPalabras: KB redondeados (mínimo 1), MB con una decimal y coma", () => {
+    expect(pesoEnPalabras(348_160)).toBe("340 KB");
+    expect(pesoEnPalabras(10)).toBe("1 KB");
+    expect(pesoEnPalabras(1_258_291)).toBe("1,2 MB");
   });
 });
