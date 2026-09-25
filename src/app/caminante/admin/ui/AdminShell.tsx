@@ -159,7 +159,10 @@ export default async function AdminShell({
   // Cuando el alta ya cerró, «Mi alta» deja el frente y «Mi perfil» va a la
   // orilla derecha (lámina «Panel Operadora»). `candado` sólo existe para quien
   // tiene alta; la casa sin sombrero no lo ve.
-  const altaCerrada = candado?.estado === "abierto" && items.some((i) => i.href === MI_ALTA_NAV.href);
+  // ⚠️ «Cerró» es PUEDE COBRAR, no «el nav está abierto»: Nomádika tiene el nav
+  // abierto porque vende con dispensa, pero su alta sigue abierta (expediente,
+  // convenio). Para ella «Mi alta» se queda al frente.
+  const altaCerrada = !!candado?.puedeCobrar && items.some((i) => i.href === MI_ALTA_NAV.href);
   const nav = sombrero === "plataforma" ? NAV_PLATAFORMA : altaCerrada ? navConAltaCerrada(items) : items;
   const enPerfil = !!ruta?.startsWith("/caminante/admin/mi-alta");
   // Mientras el alta no cierra, la cabecera es la de la lámina: «Mi alta» y las

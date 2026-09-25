@@ -171,7 +171,12 @@ su enlace aunque la bandera esté prendida. `refrescarEstado` devuelve
 ⚠️ **Con la bandera apagada NADA cambia**: cuenta Express + Account Links, como
 siempre. La prueba `alta-cobro.test.ts` lo afirma.
 
-**Falta para prenderla:** el abogado (Cuarta §7), `COBRO_EN_PLATAFORMA=1` +
-rebuild en Vercel, y probarla en modo test con la Operadora Cero (Stripe da
-valores de prueba: DOB `1901-01-01`, RFC `000000000`, `address_full_match`,
-CLABE `000000001234567897`, archivo `file_identity_document_success`).
+**Probada contra Stripe en modo test (25 sep 2026):** `tests/e2e/alta-cobro.test.ts`
+—se prende con `PROBAR_CONNECT=1` y llave `sk_test_`— crea una cuenta física y
+una moral con la misma forma que manda la pantalla (token de cuenta, token de
+persona, CLABE) y afirma que **nada de lo que recabamos queda pendiente** en
+`requirements.currently_due`. Las cuentas se borran al final. Si Stripe cambia
+lo que pide para MX, esta prueba lo dice antes que una operadora.
+
+**Falta para prenderla:** el abogado (Cuarta §7) y `COBRO_EN_PLATAFORMA=1` +
+rebuild en Vercel.
