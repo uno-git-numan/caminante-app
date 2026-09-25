@@ -7,9 +7,9 @@
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import AdminShell from "../../ui/AdminShell";
 import { MI_ALTA_CSS } from "../../ui/mi-alta-css";
+import { EQUIPO_CSS } from "../../ui/equipo-css";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { fetchEquipo } from "@/lib/equipo/lista";
@@ -42,25 +42,18 @@ export default async function EquipoOperadoraPage({ searchParams }: { searchPara
 
   return (
     <AdminShell active="panorama">
-      <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS }} />
-      <div className="sec-head" style={{ marginBottom: 18 }}>
-        <div>
-          <span className="eyebrow"><span className="sl">{"//"}</span> {porOtra ? `Equipo de ${nombre}` : "Tu equipo"}</span>
-          <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
-            Quien trabaja contigo <em className="ac">entra con su correo.</em>
-          </h2>
-          <p className="desc">
-            Ve y hace sólo lo que le prendas: clientes, experiencias, campo. Tus cobros, tus devoluciones y tu
-            convenio siguen siendo tuyos.
-          </p>
-          <p className="desc" style={{ marginTop: 10 }}>
-            <Link href={porOtra ? `/caminante/admin/mi-alta?operadora=${encodeURIComponent(operatorId)}` : "/caminante/admin/mi-alta"}>
-              Volver a {porOtra ? "su alta" : "Mi alta"}
-            </Link>
-          </p>
-        </div>
-      </div>
-      <Equipo miembros={miembros} modo={{ casa: false, operatorId, nombre }} />
+      <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS + EQUIPO_CSS }} />
+      <Equipo
+        miembros={miembros}
+        modo={{
+          casa: false,
+          operatorId,
+          nombre,
+          porOtra,
+          ligaAlta: porOtra ? `/caminante/admin/mi-alta?operadora=${encodeURIComponent(operatorId)}` : "/caminante/admin/mi-alta",
+          ligaPerfil: porOtra ? `/caminante/admin/mi-alta?operadora=${encodeURIComponent(operatorId)}` : "/caminante/admin/mi-alta",
+        }}
+      />
     </AdminShell>
   );
 }

@@ -1,9 +1,9 @@
 // EQUIPO (la casa) — quién trabaja para numan y para cada operadora (0070).
 //
 // Sólo la casa. Aquí Luis prende y apaga facultades y decide para quién
-// trabaja cada persona. La sección de RENDIMIENTO del equipo (quién cerró qué,
-// comisiones) viene aparte, con lámina de Claude Design, y sólo para
-// uno@numanhub.com.
+// trabaja cada persona. La pantalla es la lámina «Equipo» de Claude Design
+// (design/equipo/dc/Equipo.html); la sección de RENDIMIENTO (quién cerró qué,
+// comisiones) espera la atribución (0071+) y sólo la verá uno@numanhub.com.
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -11,6 +11,8 @@ import AdminShell from "../../ui/AdminShell";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchEquipo } from "@/lib/equipo/lista";
+import { MI_ALTA_CSS } from "../../ui/mi-alta-css";
+import { EQUIPO_CSS } from "../../ui/equipo-css";
 import Equipo from "./Equipo";
 
 export const dynamic = "force-dynamic";
@@ -27,19 +29,7 @@ export default async function EquipoPlataformaPage() {
 
   return (
     <AdminShell active="pl-equipo">
-      <div className="sec-head">
-        <div>
-          <span className="eyebrow"><span className="sl">{"//"}</span> Equipo</span>
-          <h1 className="display" style={{ marginTop: 10 }}>
-            Quién trabaja aquí, <em className="ac">y qué puede.</em>
-          </h1>
-          <p className="desc">
-            Empleados de numan (onboarding de operadoras) y de cada operadora (clientes, experiencias, campo).
-            Un perfil puede ser de numan, de una operadora, o de las dos; tú prendes y apagas cada facultad. Lo
-            que nunca: dinero, comisiones, cuentas de cobro, dispensas, accesos.
-          </p>
-        </div>
-      </div>
+      <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS + EQUIPO_CSS }} />
       <Equipo miembros={miembros} modo={{ casa: true, operadoras }} />
     </AdminShell>
   );
