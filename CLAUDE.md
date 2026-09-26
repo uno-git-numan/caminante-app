@@ -243,6 +243,11 @@ de la cuenta de cobro DENTRO de la plataforma está construida y **apagada**
 Documentación de handover: Notion «Caminante · Panel de operadora: alta,
 expediente y cobro (sistema)» y el doc homónimo en Drive `numan/CAMINANTE/`.
 
+**El equipo (0070 + 0071, 26 sep 2026):** tercer rol `equipo` con facultades
+que la casa prende y apaga, pantalla de la lámina «Equipo» en producción, y el
+libro de atribuciones (`staff_atribuciones`): tomar es actuar, todo se
+transfiere, el pago congela `vendedor_id`. Ver `.claude/rules/auth-sesion.md`.
+
 ## El panel de la PLATAFORMA (28 ago 2026)
 
 **Caminante es la PLATAFORMA; NUMAN es una operadora — la propia.** Una pastilla

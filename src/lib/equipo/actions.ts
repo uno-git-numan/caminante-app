@@ -20,6 +20,8 @@ import { isCurrentUserAdmin, correoEnSesion } from "@/lib/auth/authorization";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { FACULTADES_DE_OPERADORA, facultadesDe, type Facultad } from "@/lib/equipo/facultades";
+import { leerLibro, transferirAtribucion } from "@/lib/equipo/atribucion";
+import { carteraDe, OBJETO, puedeTener, type Objeto } from "@/lib/equipo/atribucion-reglas";
 
 export type ResEquipo = { ok: true } | { ok: false; error: string };
 
@@ -139,12 +141,35 @@ export async function cambiarFacultades(staffId: string, facultades: string[], n
  * persona de SU operadora — si además trabaja para numan o para otra, sigue
  * activa ahí.
  */
-export async function darDeBaja(staffId: string): Promise<ResEquipo> {
+export async function darDeBaja(staffId: string, transferirA?: string): Promise<ResEquipo> {
   const quien = await quienPide();
   if (!quien) return { ok: false, error: "No autorizado." };
   const id = (staffId ?? "").trim();
   if (!id) return { ok: false, error: "Falta la persona." };
   const sb = createSupabaseAdminClient();
+
+  // LA CARTERA NO SE QUEDA HUÉRFANA (0071). Si la persona tiene algo abierto
+  // —operadoras, solicitudes, tarjetas, grupos— la baja exige a quién pasa.
+  // La casa transfiere todo; una operadora sólo lo de su operadora (lo demás
+  // sigue siendo de la persona, que sigue activa en el resto).
+  const cartera = carteraDe(await leerLibro(sb), id);
+  const abiertas = (Object.keys(cartera) as Objeto[]).flatMap((o) => cartera[o].map((objetoId) => ({ objeto: o, objetoId })));
+  const mias = quien.casa ? abiertas : await soloDeOperadora(abiertas, quien.operatorId);
+  if (mias.length) {
+    const a = (transferirA ?? "").trim();
+    if (!a) return { ok: false, error: "Transfiere su cartera primero: tiene cosas abiertas y no pueden quedarse sin nadie." };
+    const destino = await personaParaRecibir(a);
+    const por = await correoEnSesion();
+    for (const it of mias) {
+      const opId = it.objeto === "tarjeta" || it.objeto === "grupo" ? await operadoraDe(it) : null;
+      if (!puedeTener(destino, it.objeto, opId)) {
+        return { ok: false, error: `Quien recibe no puede llevar ${OBJETO[it.objeto].varios}: revisa sus facultades y para quién trabaja.` };
+      }
+      const r = await transferirAtribucion(it.objeto, it.objetoId, a, "baja", por, sb);
+      if (!r.ok) return { ok: false, error: r.error };
+    }
+  }
+
   if (quien.casa) {
     const { error } = await sb.from("staff").update({ activo: false, baja_at: new Date().toISOString() }).eq("id", id);
     if (error) return { ok: false, error: error.message };
@@ -172,4 +197,44 @@ async function esDeMiOperadora(staffId: string, operatorId: string): Promise<boo
     .eq("operator_id", operatorId)
     .maybeSingle();
   return !!data;
+}
+
+/** De las cosas abiertas, las que son de esta operadora (tarjetas y grupos suyos). */
+async function soloDeOperadora(items: { objeto: Objeto; objetoId: string }[], operatorId: string) {
+  const out: { objeto: Objeto; objetoId: string }[] = [];
+  for (const it of items) {
+    if (it.objeto !== "tarjeta" && it.objeto !== "grupo") continue;
+    if ((await operadoraDe(it)) === operatorId) out.push(it);
+  }
+  return out;
+}
+
+async function operadoraDe(it: { objeto: Objeto; objetoId: string }): Promise<string | null> {
+  const sb = createSupabaseAdminClient();
+  if (it.objeto === "tarjeta") {
+    const { data } = await sb.from("crm_cards").select("operator_id").eq("id", it.objetoId).maybeSingle();
+    return (data as { operator_id: string | null } | null)?.operator_id ?? null;
+  }
+  if (it.objeto === "grupo") {
+    const { data } = await sb.from("experience_slots").select("experiences(operator_id)").eq("id", it.objetoId).maybeSingle();
+    return (data as unknown as { experiences: { operator_id: string | null } | null } | null)?.experiences?.operator_id ?? null;
+  }
+  return null;
+}
+
+async function personaParaRecibir(staffId: string) {
+  const sb = createSupabaseAdminClient();
+  const [{ data: s }, { data: ops }] = await Promise.all([
+    sb.from("staff").select("id, activo, numan, facultades").eq("id", staffId).maybeSingle(),
+    sb.from("staff_operadoras").select("operator_id").eq("staff_id", staffId),
+  ]);
+  if (!s) return null;
+  const f = s as { id: string; activo: boolean; numan: boolean; facultades: unknown };
+  return {
+    id: f.id,
+    activo: f.activo === true,
+    numan: f.numan === true,
+    facultades: Array.isArray(f.facultades) ? (f.facultades as string[]) : [],
+    operadoras: ((ops ?? []) as { operator_id: string }[]).map((o) => ({ id: o.operator_id })),
+  };
 }

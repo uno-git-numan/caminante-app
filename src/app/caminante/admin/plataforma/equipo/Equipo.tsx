@@ -11,16 +11,18 @@
 // con su propio markup (`.cmn-switch`, `.cmn-field`) y su CSS viaja en
 // equipo-css.ts. Los botones PBtn son los `.btn` del panel, como siempre.
 //
-// ⚠️ «TRANSFERIR CARTERA» NO ESTÁ: la cartera (operadoras tomadas, tarjetas)
-// nace con la atribución (0071+). La lámina ya esconde el botón cuando la
-// cartera es cero, que es exactamente el caso hoy; la línea «Hoy» dice
-// «Todavía sin…» porque es verdad, no un relleno.
+// «Transferir cartera» (0071) es el `Transferir` de la lámina: lo que la
+// persona tiene abierto (operadoras y solicitudes de numan; tarjetas y grupos
+// de su operadora) pasa a otra persona del equipo que pueda llevarlo. La línea
+// «Hoy» sale del libro de atribuciones, no de un relleno.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { agregarAlEquipo, cambiarFacultades, darDeBaja } from "@/lib/equipo/actions";
+import { transferir } from "@/lib/equipo/atribucion-actions";
+import { lineaDeHoy, OBJETO, type Objeto } from "@/lib/equipo/atribucion-reglas";
 import { FACULTAD, FACULTADES, type Facultad } from "@/lib/equipo/facultades";
-import type { MiembroEnPantalla } from "@/lib/equipo/lista";
+import type { CosaEnCartera, MiembroEnPantalla } from "@/lib/equipo/lista";
 
 export type ModoEquipo =
   | { casa: true; operadoras: { id: string; nombre: string }[] }
@@ -72,17 +74,81 @@ const paraDe = (m: MiembroEnPantalla, scope: "casa" | "op"): string[] =>
 const esOp = (m: MiembroEnPantalla) => m.operadoras.length > 0;
 const facOK = (k: Facultad, m: { numan: boolean; operadoras: unknown[] }, scope: "casa" | "op") =>
   scope === "op" ? k !== "onboarding" : FACULTAD[k].de === "numan" ? m.numan : m.operadoras.length > 0;
-/** La línea «Hoy». Sin atribución (0071+) todavía no hay cartera, y se dice. */
-const estadoLinea = (m: MiembroEnPantalla, scope: "casa" | "op") => {
-  const n = scope === "op" ? false : m.numan, o = scope === "op" || esOp(m);
-  if (n && o) return "0 operadoras en su cartera · 0 tarjetas abiertas";
-  if (n) return "Todavía sin operadoras en su cartera";
-  return "Todavía sin tarjetas";
-};
+/** PCheck del sistema de diseño, con su markup. */
+function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="cmn-check">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span className="cmn-check__box"></span>
+      <span className="cmn-check__text">{label}</span>
+    </label>
+  );
+}
+const porObjeto = (c: CosaEnCartera[]): Record<Objeto, string[]> => ({
+  solicitud: c.filter((x) => x.objeto === "solicitud").map((x) => x.id),
+  operadora: c.filter((x) => x.objeto === "operadora").map((x) => x.id),
+  tarjeta: c.filter((x) => x.objeto === "tarjeta").map((x) => x.id),
+  grupo: c.filter((x) => x.objeto === "grupo").map((x) => x.id),
+});
+/** La línea «Hoy», del libro (0071). */
+const estadoLinea = (m: MiembroEnPantalla, scope: "casa" | "op") =>
+  lineaDeHoy(porObjeto(m.cartera), { numan: scope === "casa" && m.numan, operadora: scope === "op" || esOp(m) });
+const ops = (m: MiembroEnPantalla) => m.cartera.filter((x) => OBJETO[x.objeto].de === "numan");
+const tarj = (m: MiembroEnPantalla) => m.cartera.filter((x) => OBJETO[x.objeto].de === "operadora");
+const LADO = (o: Objeto) => (OBJETO[o].de === "numan" ? "ops" : "tarj");
 
-function Persona({ m, scope, operadora }: { m: MiembroEnPantalla; scope: "casa" | "op"; operadora?: string }) {
+/** Transferir cartera — transcrito de la lámina (`Transferir`). */
+function Transferir({ m, todos, scope, onDone, onCancel }: { m: MiembroEnPantalla; todos: MiembroEnPantalla[]; scope: "casa" | "op"; onDone: (n: number) => void; onCancel: () => void }) {
   const router = useRouter();
-  const [modo, setModo] = useState<null | "baja">(null);
+  const ops = m.cartera.filter((x) => LADO(x.objeto) === "ops");
+  const tarj = m.cartera.filter((x) => LADO(x.objeto) === "tarj");
+  const kinds = [ops.length && "ops", tarj.length && "tarj"].filter(Boolean) as ("ops" | "tarj")[];
+  const [kind, setKind] = useState<"ops" | "tarj">(kinds[0] ?? "ops");
+  const cand = todos.filter((x) => x.id !== m.id && x.activo && (kind === "ops" ? x.numan : scope === "op" || esOp(x)));
+  const [a, setA] = useState("");
+  const [todo, setTodo] = useState(true);
+  const [sel, setSel] = useState<string[]>([]);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [pendiente, arranca] = useTransition();
+  const items = kind === "ops" ? ops : tarj;
+  const lista = todo ? items : items.filter((x) => sel.includes(x.id));
+  const nom = kind === "ops" ? ["operadora", "operadoras"] : ["tarjeta", "tarjetas"];
+  const hacer = () =>
+    arranca(async () => {
+      const r = await transferir(lista.map((x) => ({ objeto: x.objeto, objetoId: x.id })), a);
+      if (!r.ok) { setAviso(r.error); return; }
+      router.refresh();
+      onDone(r.hechas ?? lista.length);
+    });
+  return (
+    <div className="upfecha eqcol">
+      <div className="g"><b>Transferir cartera</b>Lo devengado hasta hoy sigue siendo de {m.nombre.split(" ")[0]}. Desde mañana, lo nuevo es de quien la recibe.</div>
+      {kinds.length > 1 ? (
+        <div className="opts" style={{ margin: 0 }}>
+          {kinds.map((k) => <button key={k} type="button" className={"opt" + (kind === k ? " on" : "")} onClick={() => { setKind(k); setSel([]); setA(""); }}><i></i>{k === "ops" ? pl(ops.length, "operadora", "operadoras") : pl(tarj.length, "tarjeta", "tarjetas")}</button>)}
+        </div>
+      ) : null}
+      <label className="sel">A quién<select value={a} onChange={(e) => setA(e.target.value)}><option value="">Elige a alguien del equipo</option>{cand.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}</select></label>
+      {cand.length === 0 ? <p className="gnhint" style={{ marginTop: 0 }}>Nadie más en el equipo puede recibir {nom[1]}. Da de alta a alguien primero.</p> : null}
+      <div className="opts" style={{ margin: 0 }}>
+        <button type="button" className={"opt" + (todo ? " on" : "")} onClick={() => setTodo(true)}><i></i>{kind === "ops" ? "Todas sus operadoras" : "Todas sus tarjetas"}</button>
+        <button type="button" className={"opt" + (!todo ? " on" : "")} onClick={() => setTodo(false)}><i></i>Algunas</button>
+      </div>
+      {!todo ? <div className="eqlist">{items.map((it) => <Check key={it.id} label={it.nombre} checked={sel.includes(it.id)} onChange={(v) => setSel((s) => (v ? [...s, it.id] : s.filter((x) => x !== it.id)))} />)}</div> : null}
+      {aviso ? <p className="eqerr">{aviso}</p> : null}
+      <div className="ac">
+        <button type="button" className="btn btn-orange btn-sm" disabled={!a || !lista.length || pendiente} onClick={hacer}>{lista.length ? `Transferir ${pl(lista.length, nom[0], nom[1])}` : "Transferir"}</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>Cancelar</button>
+      </div>
+    </div>
+  );
+}
+
+function Persona({ m, todos, scope, operadora }: { m: MiembroEnPantalla; todos: MiembroEnPantalla[]; scope: "casa" | "op"; operadora?: string }) {
+  const router = useRouter();
+  const [modo, setModo] = useState<null | "baja" | "trans">(null);
+  const cartera = m.cartera.length;
+  const [hecho, setHecho] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const plegable = scope === "casa";
   const [abierto, setAbierto] = useState(!plegable);
@@ -105,10 +171,11 @@ function Persona({ m, scope, operadora }: { m: MiembroEnPantalla; scope: "casa" 
   const baja = () =>
     arranca(async () => {
       const r = await darDeBaja(m.id);
-      if (!r.ok) setAviso(r.error);
+      if (!r.ok) { setAviso(r.error); setModo(null); return; }
       setModo(null);
       router.refresh();
     });
+  const carteraTxt = [ops(m).length && pl(ops(m).length, "operadora", "operadoras"), tarj(m).length && pl(tarj(m).length, "tarjeta", "tarjetas")].filter(Boolean).join(" y ");
 
   const cab = (
     <>
@@ -147,22 +214,26 @@ function Persona({ m, scope, operadora }: { m: MiembroEnPantalla; scope: "casa" 
             <div className="calm eqin"><s>{"//"}</s><span className="g"><b>Entra y mira, no toca</b><span>Con todo apagado, {first} ve el panel pero no puede mover nada. Préndele lo que vaya a hacer.</span></span></div>
           ) : null}
           {aviso && !modo ? <div className="verdict no eqin"><span className="n">{"//"}</span><span className="g"><b>No se pudo</b><span>{aviso}</span></span></div> : null}
+          {hecho && !modo ? <div className="verdict si eqin"><span className="n">→</span><span className="g"><b>{hecho}</b><span>Lo devengado hasta hoy sigue siendo de {first}.</span></span></div> : null}
+          {modo === "trans" ? <div className="eqin"><Transferir m={m} todos={todos} scope={scope} onCancel={() => setModo(null)} onDone={(n) => { setModo(null); setHecho(`Transferido: ${n}.`); }} /></div> : null}
           {modo === "baja" ? (
             <div className="calm eqin eqbaja">
               <s>{"//"}</s>
               <span className="g">
                 <b>¿{scope === "op" ? `Quitar a ${m.nombre} de tu equipo` : `Dar de baja a ${m.nombre}`}?</b>
-                <span>{scope === "op" ? `Deja de ver lo de ${operadora ?? "tu operadora"} ahora mismo.` : "Pierde el panel ahora mismo; lo que atribuyó hasta hoy sigue siendo suyo."}</span>
+                <span>{scope === "op" ? `Deja de ver lo de ${operadora ?? "tu operadora"} ahora mismo.` : "Pierde el panel ahora mismo; lo que atribuyó hasta hoy sigue siendo suyo."}{cartera ? ` Su cartera (${carteraTxt}) tiene que pasar a alguien primero.` : ""}</span>
               </span>
               <span className="ac">
                 <button type="button" className="btn btn-sm" disabled={pendiente} onClick={baja}>{scope === "op" ? "Sí, quitarle" : "Sí, dar de baja"}</button>
+                {cartera > 0 ? <button type="button" className="btn btn-ghost btn-sm" onClick={() => setModo("trans")}>Transferir primero</button> : null}
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setModo(null)}>Cancelar</button>
               </span>
             </div>
           ) : null}
           {!modo ? (
             <div className="salfoot eqfoot">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setAviso(null); setModo("baja"); }}>{scope === "op" ? "Quitar de mi equipo" : "Dar de baja"}</button>
+              {cartera > 0 ? <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setAviso(null); setHecho(null); setModo("trans"); }}>Transferir cartera</button> : null}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setAviso(null); setHecho(null); setModo("baja"); }}>{scope === "op" ? "Quitar de mi equipo" : "Dar de baja"}</button>
             </div>
           ) : null}
         </>
@@ -281,7 +352,7 @@ export default function Equipo({ miembros, modo }: { miembros: MiembroEnPantalla
       {ok ? <div className="verdict si" style={{ marginTop: alta ? 14 : 0 }}><span className="n">→</span><span className="g"><b>{ok} ya puede entrar</b><span>Entra con su correo y ve sólo lo que le prendiste. Si no le prendiste nada, mira pero no toca.</span></span></div> : null}
       {lista.length === 0 && !alta ? <div className="verdict casa"><span className="n">00</span><span className="g"><b>Todavía nadie.</b><span>La primera persona entra con su correo y ve sólo lo que le prendas.</span></span></div> : null}
       <div className="eqgrid">
-        {lista.map((m) => <Persona key={m.id} m={m} scope={scope} operadora={modo.casa ? undefined : modo.nombre} />)}
+        {lista.map((m) => <Persona key={m.id} m={m} todos={lista} scope={scope} operadora={modo.casa ? undefined : modo.nombre} />)}
       </div>
       {bajas.length > 0 ? (
         <details className="eqbajas">
@@ -290,7 +361,7 @@ export default function Equipo({ miembros, modo }: { miembros: MiembroEnPantalla
             {bajas.map((b) => (
               <div key={b.id} className="pfr">
                 <span className="k">{b.nombre}<br /><span className="eqmail">{b.email}</span></span>
-                <span className="v">Se fue el {b.bajaAt ? fecha(b.bajaAt) : "—"}. Lo que atribuyó hasta ese día sigue siendo suyo.</span>
+                <span className="v">Se fue el {b.bajaAt ? fecha(b.bajaAt) : "—"}{b.carteraPasoA.length ? ` · su cartera pasó a ${b.carteraPasoA.join(" y ")}` : ""}. Lo que atribuyó hasta ese día sigue siendo suyo.</span>
                 <span className="t"><span className="pill lock">Sin acceso</span></span>
               </div>
             ))}

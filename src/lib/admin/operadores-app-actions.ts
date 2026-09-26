@@ -32,6 +32,8 @@ import { desdeHoraLocal } from "@/lib/fecha/zona";
 import { randomBytes } from "node:crypto";
 import { puedeOnboarding } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { atribuir, cerrarAtribucion, titularDe, tomarSiLibre } from "@/lib/equipo/atribucion";
+import { correoEnSesion } from "@/lib/auth/authorization";
 import { ensureOperador } from "@/lib/operators/alta";
 import { sembrarPerfilDesdeSolicitud } from "@/lib/operadores/perfil";
 import { marcaLista } from "@/lib/operators/marca";
@@ -168,6 +170,8 @@ export async function agendarLlamada(
     console.error("agendarLlamada:", error);
     return { ok: false, error: "No se pudo guardar la llamada." };
   }
+  // Tomar es actuar (0071): la solicitud pasa a quien agenda, si nadie la tenía.
+  await tomarSiLibre("solicitud", id);
 
   const aviso = await avisar(
     "invitación",
@@ -264,6 +268,18 @@ export async function aprobarOperadorApp(id: string): Promise<Res> {
     console.error("aprobarOperadorApp panel:", panelErr);
     return { ok: false, error: "Se creó el operador pero no se pudo abrir su panel." };
   }
+
+  // LA CARTERA NACE AQUÍ (0071). Quien llevó la solicitud se queda con la
+  // operadora: desde hoy, el 10% de la comisión que numan le cobre es suyo
+  // mientras la tenga. La solicitud se cierra como resuelta: ya no hay qué
+  // tomar. Si nadie la llevaba (la casa sola), la operadora nace sin titular.
+  await tomarSiLibre("solicitud", id);
+  const titular = await titularDe("solicitud", id);
+  if (titular) {
+    const her = await atribuir({ staffId: titular.staffId, objeto: "operadora", objetoId: alta.operatorId, como: "heredada", por: await correoEnSesion() });
+    if (!her.ok) console.error("aprobarOperadorApp atribución:", her.error);
+  }
+  await cerrarAtribucion("solicitud", id, "resuelta");
 
   // LO QUE DECLARÓ SE VUELVE SU EXPEDIENTE. Hasta aquí las actividades eran
   // texto en la solicitud; a partir de aprobarla son filas con estado propio, y
@@ -389,6 +405,7 @@ export async function rechazarOperadorApp(id: string, motivo: string): Promise<R
     console.error("rechazarOperadorApp:", error);
     return { ok: false, error: "No se pudo actualizar la solicitud." };
   }
+  await cerrarAtribucion("solicitud", id, "resuelta");
 
   const avisoNo = await avisar("respuesta", emailRechazoOperador(app.email, app.responsable));
   revalidatePath(PANEL);

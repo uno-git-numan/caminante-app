@@ -131,9 +131,27 @@ se administra solo). El layout las aplica; falla cerrado.
 operadora, sólo facultades de operadora). Un correo de `admin_whitelist` no se
 puede meter al equipo. La baja apaga `activo`, conserva la fila.
 
-**Pendiente (0071+):** atribución transferible (solicitudes, tarjetas, grupos),
-comisiones (10% de la comisión de numan; 3% por grupo cerrado) y la sección de
-rendimiento sólo para uno@numanhub.com. Memoria: `caminante-equipo-vendedores`.
+**La atribución (0071, `lib/equipo/atribucion*.ts`).** Un LIBRO
+(`staff_atribuciones`): una fila por (persona, objeto, tramo); la abierta tiene
+`hasta` null y un índice parcial impide dos titulares. Objetos: `solicitud`
+(operator_applications) y `operadora` (operators) del lado numan; `tarjeta`
+(crm_cards) y `grupo` (experience_slots) del lado operadora.
+- **Tomar es actuar**: agendar la llamada o mover la tarjeta la hace de quien
+  actúa si nadie la tenía (`tomarSiLibre`); si era de otro no se arrebata; la
+  casa no toma, asigna. Aprobar la solicitud HEREDA la operadora al mismo
+  titular y cierra la solicitud como `resuelta`; rechazar y «caído» también.
+- **Una sola puerta** para tener algo (`puedeTener`): activo + facultad del
+  objeto + lado (numan para lo de numan; trabajar para ESA operadora para lo
+  suyo). Tomar, asignar y recibir una transferencia pasan por ahí.
+- **El pago sabe quién lo vendió**: `payments.vendedor_id` se congela al entrar
+  (titular de la tarjeta de esa persona×experiencia, o del grupo) en los dos
+  webhooks; null = nadie del equipo. Una transferencia posterior no lo mueve.
+- **La baja exige transferir la cartera** (`darDeBaja(id, transferirA)`): lo
+  abierto pasa con `cierre='baja'`; «a quién pasó» se DERIVA del libro
+  (`aQuienPaso`), no se guarda aparte.
+- Lo que sigue: comisiones (10% de la comisión de numan por tramo del libro;
+  3% de `payments` con `vendedor_id` por grupo cerrado) y Rendimiento, sólo
+  para uno@numanhub.com. Memoria: `caminante-equipo-vendedores`.
 
 ## Olfatear el user-agent
 

@@ -10,6 +10,7 @@
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { vendedorParaPago } from "@/lib/equipo/atribucion";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { findOrCreateContact } from "@/lib/crm/contacts";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
@@ -206,10 +207,15 @@ export async function finalizeSelfServeCheckout(
     console.error("[finalize] canal connect sin cuenta en la metadata; se registra como casa", providerRef);
   }
 
+  // Quién del equipo lo vendió (0071): se decide AHORA, con el titular de la
+  // tarjeta o del grupo, y no se vuelve a tocar. Null = nadie del equipo.
+  const vendedorId = await vendedorParaPago({ contactId: contact.id, experienceId: experienceId || null, slotId }, sb);
+
   const { error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,
     contact_id: contact.id,
     amount_mxn: amountPaid,
+    ...(vendedorId ? { vendedor_id: vendedorId } : {}),
     ...(platformFee != null && Number.isFinite(platformFee) ? { platform_fee_mxn: platformFee } : {}),
     canal_cobro: canalReal,
     ...(canalReal === "connect" ? { stripe_account_id: connectAccount } : {}),

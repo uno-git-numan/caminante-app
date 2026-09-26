@@ -14,6 +14,7 @@
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { vendedorParaPago } from "@/lib/equipo/atribucion";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { capiPurchase } from "@/lib/meta/capi";
 
@@ -65,7 +66,7 @@ export async function finalizeReservationCheckout(
 
   const { data: resv } = await sb
     .from("reservations")
-    .select("id, contact_id, status, total_amount_mxn, amount_due_mxn")
+    .select("id, contact_id, status, total_amount_mxn, amount_due_mxn, experience_id, slot_id")
     .eq("id", reservationId)
     .maybeSingle();
   if (!resv) {
@@ -75,11 +76,17 @@ export async function finalizeReservationCheckout(
 
   const contactId = (session.metadata?.contact_id as string) || resv.contact_id;
 
+  // Quién del equipo lo vendió (0071): el titular de la tarjeta o del grupo,
+  // congelado al entrar el pago. Null = nadie del equipo.
+  const r = resv as { experience_id?: string | null; slot_id?: string | null };
+  const vendedorId = await vendedorParaPago({ contactId, experienceId: r.experience_id ?? null, slotId: r.slot_id ?? null }, sb);
+
   // Registrar el abono.
   const { error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,
     contact_id: contactId,
     amount_mxn: amountPaid,
+    ...(vendedorId ? { vendedor_id: vendedorId } : {}),
     status: "paid",
     method: "stripe",
     provider_ref: providerRef,

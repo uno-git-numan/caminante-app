@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { A_MANO } from "@/lib/comunidad/etapas";
+import { cerrarAtribucion, tomarSiLibre } from "@/lib/equipo/atribucion";
 
 // ⚠️ Sólo estas tres se mueven a mano. Pagado, Preparando y Viajó SÓLO reciben
 // automático: la primera con el webhook de Stripe, la segunda con el pago
@@ -51,6 +52,11 @@ export async function moverTarjeta(cardId: string, destino: string, motivo?: str
     })
     .eq("id", cardId);
   if (error) return { ok: false, error: error.message };
+
+  // Tomar es actuar (0071): la tarjeta pasa a quien la mueve, si nadie la
+  // tenía. Una tarjeta caída ya no es de nadie: no hay a quién pasarla.
+  if (destino === "caido") await cerrarAtribucion("tarjeta", cardId, "resuelta");
+  else await tomarSiLibre("tarjeta", cardId);
 
   revalidatePath("/caminante/admin/comunidad");
   return { ok: true };
