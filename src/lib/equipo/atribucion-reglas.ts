@@ -104,7 +104,7 @@ export function lineaDeHoy(c: Record<Objeto, string[]>, lados: { numan: boolean;
     ? pl(c.tarjeta.length, "tarjeta abierta", "tarjetas abiertas") +
       (c.grupo.length ? ` · ${pl(c.grupo.length, "grupo", "grupos")}` : "")
     : "Todavía sin tarjetas";
-  if (lados.numan && lados.operadora) return `${numan} · ${op}`;
+  if (lados.numan && lados.operadora) return `${numan} · ${o ? op : "todavía sin tarjetas"}`;
   if (lados.numan) return numan;
   return op;
 }

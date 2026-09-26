@@ -1,8 +1,8 @@
-// Generado por scripts/extraer-css-dc.mjs desde design/equipo/dc/Equipo.html: el bloque <style> «lo único nuevo»
-// (sólo las reglas .eq*; las de .ahead/.nav/.page ya viven en admin-css) + los tres controles del sistema de
-// diseño que la lámina usa (Switch, Checkbox, Input: su CSS viaja dentro del bundle, no en un <style>) y los
-// tokens de :root que esos controles piden, declarados en la raíz de cada control porque el extractor tira
-// :root a propósito y `.adm .page` ya existe en admin-css (lo daría por vestido).
+// Generado por scripts/extraer-css-dc.mjs desde design/equipo/dc/Equipo.html (lámina corregida, 26 sep 2026):
+// el bloque <style> «lo único nuevo» (sólo reglas .eq*, menos la pastilla de estados de la lámina) + los tres
+// controles del sistema de diseño que usa (Switch, Checkbox, Input: su CSS viaja dentro del bundle, no en un
+// <style>) y los tokens de :root que esos controles piden, declarados en la raíz de cada control porque el
+// extractor tira :root a propósito y `.adm .page` ya existe en admin-css (lo daría por vestido).
 // ⚠️ NO editar a mano: si el diseño cambia se re-entrega y se re-extrae.
 // Sólo va el delta del entregable, con TODOS los selectores bajo `.adm`.
 
@@ -46,12 +46,6 @@ export const EQUIPO_CSS = String.raw`
 .adm .eqmx.neg{color:#c23c1c}
 .adm .eqtot{background:var(--panel)}
 .adm .eqtot .k{font-weight:600;color:var(--charcoal)}
-.adm .opseg.eqhat{margin-top:0;padding:3px;border-radius:999px;gap:2px;flex-wrap:nowrap}
-.adm .opseg.eqhat button{padding:5px 12px;border-radius:999px;font-size:12px;white-space:nowrap}
-.adm .opseg.eqhat.dark{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}
-.adm .opseg.eqhat.dark button{color:rgba(255,255,255,.75)}
-.adm .opseg.eqhat.dark button.on{background:#fff;color:var(--charcoal)}
-.adm .eqdemo{display:flex;gap:8px;flex-wrap:wrap}
 .adm .eqp .ph{flex-direction:column;align-items:flex-start;gap:5px}
 .adm .eqtog{width:100%;border:0;border-bottom:1px solid var(--line);font:inherit;text-align:left;cursor:pointer;flex-direction:row!important;align-items:center!important;justify-content:space-between;gap:12px!important}
 .adm .eqtog{flex-wrap:nowrap!important}
@@ -65,7 +59,19 @@ export const EQUIPO_CSS = String.raw`
 .adm .eqsum{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--ink-soft);margin-top:3px}
 .adm .eqp .ph .fr{margin-left:0}
 .adm .eqmail{overflow-wrap:break-word}
-@media(max-width:640px){.adm .eqdemo .opseg.eqhat{flex-wrap:wrap}.adm .eqf small{padding-left:0}.adm .actv>.ah{grid-template-columns:1fr}.adm .actv>.ah .rt{justify-content:flex-start}.adm .eqn{align-items:flex-start}}
+.adm .eqetapa{white-space:nowrap}
+.adm .eqp .pchip{white-space:nowrap}
+.adm .eqfields{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:620px){.adm .eqfields{grid-template-columns:1fr 1fr}}
+.adm .eqseg{margin:0 0 18px;width:fit-content;max-width:100%}
+.adm .eqseg button{white-space:nowrap}
+.adm .eqmesrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.adm .eqmes{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.adm .eqmes b{font-size:15px;font-weight:600;color:var(--charcoal);min-width:150px;text-align:center}
+.adm .eqmes>span{font-size:12.5px;color:var(--ink-soft);margin-left:6px}
+.adm .eqfsum{font-weight:600;color:var(--olive-d)}
+.adm .eqfsum.off{color:var(--ink-soft);font-weight:400}
+@media(max-width:640px){.adm .eqf small{padding-left:0}.adm .eqn{align-items:flex-start}.adm .eqmes b{min-width:0}}
 .adm .cmn-switch,.adm .cmn-check,.adm .cmn-field{--border-default:#d4cec6;--border-width:1px;--border-width-strong:2px;--control-md:44px;--danger-500:#c43d2a;--duration-base:200ms;--duration-fast:120ms;--ease-out:cubic-bezier(0.16, 1, 0.3, 1);--ease-standard:cubic-bezier(0.2, 0.8, 0.2, 1);--font-sans:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;--green-500:#637154;--orange-500:#ff5d36;--radius-full:50%;--radius-md:12px;--radius-pill:999px;--radius-xs:4px;--shadow-focus:0 0 0 3px rgba(98, 114, 85, 0.30);--shadow-sm:0 1px 3px rgba(31, 29, 26, 0.08), 0 1px 2px rgba(31, 29, 26, 0.05);--space-2:0.5rem;--space-3:0.75rem;--space-4:1rem;--surface-card:#ffffff;--taupe-400:#c5beb6;--taupe-50:#faf9f7;--taupe-500:#b6ada5;--text-body:1rem;--text-body-sm:0.875rem;--text-caption:0.8125rem;--text-muted:#776f67;--text-primary:#20211c;--text-secondary:#534e48;--text-subtle:#988f86;--weight-medium:500;--white:#ffffff;}
 .adm .cmn-switch{display: inline-flex; align-items: center; gap: var(--space-3); cursor: pointer; font-family: var(--font-sans); user-select: none;}
 .adm .cmn-switch input{position: absolute; opacity: 0; width: 0; height: 0;}

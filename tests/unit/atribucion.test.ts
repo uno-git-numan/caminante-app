@@ -62,7 +62,7 @@ describe("la línea «Hoy»", () => {
   it("dice la verdad cuando no hay nada, por lado", () => {
     expect(lineaDeHoy(vacia, { numan: true, operadora: false })).toBe("Todavía sin operadoras en su cartera");
     expect(lineaDeHoy(vacia, { numan: false, operadora: true })).toBe("Todavía sin tarjetas");
-    expect(lineaDeHoy(vacia, { numan: true, operadora: true })).toBe("Todavía sin operadoras en su cartera · Todavía sin tarjetas");
+    expect(lineaDeHoy(vacia, { numan: true, operadora: true })).toBe("Todavía sin operadoras en su cartera · todavía sin tarjetas");
   });
   it("cuenta en singular y plural, y suma las solicitudes en curso", () => {
     expect(lineaDeHoy({ ...vacia, operadora: ["a"], solicitud: ["s", "t"] }, { numan: true, operadora: false })).toBe("1 operadora en su cartera · 2 solicitudes en curso");

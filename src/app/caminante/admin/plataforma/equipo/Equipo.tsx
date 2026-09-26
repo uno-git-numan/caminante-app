@@ -11,6 +11,11 @@
 // con su propio markup (`.cmn-switch`, `.cmn-field`) y su CSS viaja en
 // equipo-css.ts. Los botones PBtn son los `.btn` del panel, como siempre.
 //
+// Lámina corregida el 26 sep 2026 (segmento, .eqfields, .eqfsum). Lo único que
+// NO está es el segmento Personas | Rendimiento: Rendimiento lee comisiones que
+// todavía no se derivan (F3), y una pestaña vacía es un control muerto. El
+// segmento entra con Rendimiento.
+//
 // «Transferir cartera» (0071) es el `Transferir` de la lámina: lo que la
 // persona tiene abierto (operadoras y solicitudes de numan; tarjetas y grupos
 // de su operadora) pasa a otra persona del equipo que pueda llevarlo. La línea
@@ -182,7 +187,7 @@ function Persona({ m, todos, scope, operadora }: { m: MiembroEnPantalla; todos: 
       <span className="pchip" style={{ padding: "4px 12px 4px 4px", fontSize: 13, fontWeight: 500 }}><span className="av">{ini(m.nombre)}</span>{m.nombre}</span>
       <span className="eqmail">{m.email}</span>
       <span className="eqdesde">Desde el {fecha(m.altaAt)}</span>
-      {plegable && !abierto ? <span className="eqsum"><Para para={para} /><span>{estadoLinea(m, scope)}</span></span> : null}
+      {plegable && !abierto ? <span className="eqsum"><Para para={para} /><span className={"eqfsum" + (prendidas.length ? "" : " off")}>{prendidas.length ? `${prendidas.length} de 4 prendidas` : "Sin facultades · entra y mira"}</span><span>{estadoLinea(m, scope)}</span></span> : null}
     </>
   );
   return (
@@ -287,7 +292,7 @@ function Alta({ modo, todos, onClose }: { modo: ModoEquipo; todos: MiembroEnPant
     <div className="pf eqalta">
       <div className="ph"><b>Dar de alta</b><span className="fr">Sin contraseña: entra con su correo.</span></div>
       <div className="eqbody">
-        <div className="fldrow" style={{ marginTop: 0 }}>
+        <div className="eqfields">
           <Input label="Correo" type="email" value={f.correo} placeholder={scope === "casa" ? "nombre@numanhub.com" : "nombre@correo.com"} error={tried && !!err} help={tried && err ? err : scope === "casa" ? "Su correo @numanhub.com. Con ése entra." : "Con ése entra. No le pedimos contraseña."} onChange={(v) => { setErrorServidor(null); setF({ ...f, correo: v }); }} />
           <Input label="Nombre" value={f.nombre} error={tried && !!errN} help={tried && errN ? errN : ""} onChange={(v) => setF({ ...f, nombre: v })} />
         </div>
