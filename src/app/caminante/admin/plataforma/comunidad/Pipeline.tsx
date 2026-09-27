@@ -8,8 +8,7 @@ import Cajon from "../../ui/Cajon";
 import Candados, { LlaveDeDuenos } from "./Candados";
 import SolicitudEnCajon from "./SolicitudEnCajon";
 import { AsgCtl, LoLleva } from "../../ui/asignar/Asignar";
-import { claveTit, type PersonaParaAsignar, type Titularidad, type Yo } from "@/lib/equipo/atribucion-reglas";
-import type { Objeto } from "@/lib/equipo/atribucion-reglas";
+import { claveTit, objetoDeOperadora as objetoDe, type PersonaParaAsignar, type Titularidad, type Yo } from "@/lib/equipo/atribucion-reglas";
 
 // EL PIPELINE DE ALTAS — el mismo tablero del CRM de Caminante, otra unidad.
 //
@@ -25,10 +24,6 @@ import type { Objeto } from "@/lib/equipo/atribucion-reglas";
 //
 // La tarjeta ABRE. Antes no: se veía pulsable y no hacía nada, que es peor que
 // no parecerlo, porque enseña a no confiar en la pantalla.
-
-/** Qué se atribuye de una operadora: su solicitud mientras está en el embudo; su fila después. */
-export const objetoDe = (o: { etapa: string; solicitudId: string | null }): { objeto: Objeto; id: string | null } =>
-  (o.etapa === "llego" || o.etapa === "en_llamada") && o.solicitudId ? { objeto: "solicitud", id: o.solicitudId } : { objeto: "operadora", id: null };
 
 export default function Pipeline({ ops, tits, equipo, yo }: { ops: OperadoraPlataforma[]; tits: Record<string, Titularidad>; equipo: PersonaParaAsignar[]; yo: Yo }) {
   const titDe = (o: OperadoraPlataforma): Titularidad => {

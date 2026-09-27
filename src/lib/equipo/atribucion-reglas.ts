@@ -145,3 +145,16 @@ export type PersonaParaAsignar = Persona & { nombre: string };
 export type Yo = { casa: boolean; staffId: string | null };
 
 export const claveTit = (objeto: Objeto, id: string) => `${objeto}:${id}`;
+
+/**
+ * Qué se atribuye de una operadora del pipeline: su solicitud mientras está
+ * en el embudo (Llegó / En llamada), su fila después.
+ *
+ * ⚠️ Vive aquí y no en Pipeline.tsx a propósito: ese archivo es "use client",
+ * y una función exportada desde un módulo cliente e importada por una página
+ * de servidor NO es la función — Next entrega una referencia de cliente, y
+ * llamarla tira la página entera con «Application error». Pasó en producción
+ * el 27 sep 2026 con /plataforma/comunidad.
+ */
+export const objetoDeOperadora = (o: { etapa: string; solicitudId: string | null }): { objeto: Objeto; id: string | null } =>
+  (o.etapa === "llego" || o.etapa === "en_llamada") && o.solicitudId ? { objeto: "solicitud", id: o.solicitudId } : { objeto: "operadora", id: null };
