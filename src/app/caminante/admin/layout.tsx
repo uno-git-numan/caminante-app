@@ -49,6 +49,9 @@ export default async function AdminLayout({
     const a = await alcanceActual();
     if (a?.tipo === "equipo") {
       if (!rutaDeEquipoNuman(ruta)) redirect("/caminante/admin/plataforma/comunidad");
+    } else if (esOperador(a) && !a.equipo) {
+      // Dueña de esta operadora (Cat con el sombrero de Nomádika): su lista completa.
+      if (!rutaDeOperador(ruta)) redirect("/caminante/admin?aviso=solo_casa");
     } else if (esOperador(a)) {
       if (!rutaDeEquipoOperadora(ruta)) redirect("/caminante/admin?aviso=solo_casa");
     } else {

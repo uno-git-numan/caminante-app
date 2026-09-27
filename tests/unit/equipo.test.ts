@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FACULTADES_DE_OPERADORA, facultadesDe, tieneFacultad } from "@/lib/equipo/facultades";
 import { rutaDeEquipoNuman, rutaDeEquipoOperadora, rutaDeOperador } from "@/lib/auth/panel-operador";
+import { elegirSombrero, sombrerosDe } from "@/lib/equipo/sombreros";
 
 describe("facultades", () => {
   it("limpia lo que llega de un formulario: sólo las cuatro, sin repetir, sin inventos", () => {
@@ -108,5 +109,22 @@ describe("roleForClient con el equipo", () => {
     expect(await roleForClient(clienteDeSesion())).toBe("operador");
     st.operador = false;
     expect(await roleForClient(clienteDeSesion())).toBe("caminante");
+  });
+});
+
+describe("dueña y equipo a la vez (Cat: dueña de Nomádika, equipo de Caminante)", () => {
+  const nom = { id: "n", nombre: "Nomádika", slug: "nomadika" };
+  const cam = { id: "c", nombre: "Caminante", slug: "numan-caminante" };
+  it("los sombreros: la suya primero y marcada como dueña, luego las de equipo, sin repetir", () => {
+    expect(sombrerosDe({ duena: nom, operadoras: [cam] })).toEqual([{ ...nom, duena: true }, { ...cam, duena: false }]);
+    expect(sombrerosDe({ duena: nom, operadoras: [cam, nom] })).toHaveLength(2);
+    expect(sombrerosDe({ duena: null, operadoras: [cam] })).toEqual([{ ...cam, duena: false }]);
+  });
+  it("sin cookie trae puesta la suya; con cookie válida, esa; con cookie ajena, la suya", () => {
+    const s = sombrerosDe({ duena: nom, operadoras: [cam] });
+    expect(elegirSombrero(s, undefined)?.id).toBe("n");
+    expect(elegirSombrero(s, "numan-caminante")?.id).toBe("c");
+    expect(elegirSombrero(s, "kentro")?.id).toBe("n");
+    expect(elegirSombrero([], "nomadika")).toBe(null);
   });
 });

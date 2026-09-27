@@ -14,7 +14,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { COOKIE_SOMBRERO, operadorasPropias } from "@/lib/auth/sombrero";
-import { alcanceActual, equipoDelAlcance } from "@/lib/auth/alcance";
+import { alcanceActual, esOperador } from "@/lib/auth/alcance";
+
+/** Los sombreros de alguien del equipo: la operadora de la que es dueña, si la hay, y las suyas de equipo. */
+async function sombrerosDelEquipo(): Promise<{ id: string; slug: string | null }[]> {
+  const a = await alcanceActual();
+  return esOperador(a) ? (a.sombreros ?? []) : [];
+}
 
 const PANEL = "https://caminante.numanhub.com/caminante/admin";
 
@@ -49,8 +55,7 @@ export async function GET(
   const { slug } = await params;
   // La casa elige entre las propias; el equipo (0070) entre las SUYAS. Ninguno
   // puede escribir el slug de otra: rebota con el sombrero que ya traía.
-  const opciones =
-    rol === "admin" ? await operadorasPropias() : (equipoDelAlcance(await alcanceActual())?.operadoras ?? []);
+  const opciones = rol === "admin" ? await operadorasPropias() : await sombrerosDelEquipo();
   const elegida = opciones.find((o) => o.slug === slug);
   // Un slug que no es de una operadora propia no cambia nada y no explota:
   // rebota al panel con el sombrero que ya traía.

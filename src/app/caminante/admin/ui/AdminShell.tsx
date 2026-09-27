@@ -125,8 +125,13 @@ export default async function AdminShell({
   // (con sus facultades); de numan, como una casa acotada a Comunidad.
   const equipo = equipoDelAlcance(alcance);
   const comoNuman = rolReal === "equipo" && alcance?.tipo === "equipo";
+  // Dueña con el sombrero de la suya (alcance operador SIN equipo) = operadora
+  // plena, aunque el rol real diga «equipo» por su fila en staff.
   const rol: "admin" | "operador" | "equipo" =
-    rolReal === "operador" ? "operador" : rolReal === "equipo" ? "equipo" : "admin";
+    rolReal === "operador" || (rolReal === "equipo" && esOperador(alcance) && !alcance.equipo)
+      ? "operador"
+      : rolReal === "equipo" ? "equipo" : "admin";
+  const sombrerosEq = rolReal === "equipo" && esOperador(alcance) ? (alcance.sombreros ?? []) : [];
   const comoOperador = rol === "operador" || (rol === "equipo" && esOperador(alcance));
 
   // Los badges cuentan solicitudes de la PLATAFORMA. Un operador ni ve esa
@@ -157,9 +162,9 @@ export default async function AdminShell({
   const [propias, puesto] =
     rol === "admin"
       ? await Promise.all([operadorasPropias(), sombreroPuesto()])
-      : rol === "equipo" && equipo
+      : rolReal === "equipo" && (equipo || sombrerosEq.length)
         ? [
-            equipo.operadoras
+            sombrerosEq
               .filter((o) => !!o.slug)
               .map((o) => ({ id: o.id, slug: o.slug as string, nombre: o.nombre, esLaCasa: false })),
             esOperador(alcance)
@@ -241,7 +246,7 @@ export default async function AdminShell({
                 está filtrado a nadie —muestra todas las operadoras juntas—.
                 Un operador externo entra directo a lo suyo y esto no existe
                 para él. */}
-            {rol === "admin" || (rol === "equipo" && equipo && (equipo.numan || equipo.operadoras.length > 1)) ? (
+            {rol === "admin" || (rolReal === "equipo" && ((equipo?.numan ?? false) || sombrerosEq.length > 1)) ? (
               <span className="hatwrap">
                 <span className="hatlb">Panel</span>
                 <span className="hat">

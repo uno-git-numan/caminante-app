@@ -21,6 +21,12 @@ export type EquipoEnSesion = {
   facultades: Facultad[];
   /** Las operadoras para las que trabaja (Druidas: Caminante y Kéntro). */
   operadoras: OperadoraDelEquipo[];
+  /**
+   * La operadora de la que es DUEÑA (su fila en `operators` con panel), si la
+   * hay. Cat es dueña de Nomádika y equipo de Caminante con el mismo correo:
+   * con el sombrero de la suya es dueña plena; con el de otra, equipo.
+   */
+  duena: OperadoraDelEquipo | null;
 };
 
 export async function equipoDe(email: string): Promise<EquipoEnSesion | null> {
@@ -34,10 +40,12 @@ export async function equipoDe(email: string): Promise<EquipoEnSesion | null> {
   if (error || !data) return null;
   const fila = data as { id: string; nombre: string; numan: boolean; facultades: unknown };
 
-  const { data: ops, error: e2 } = await sb
-    .from("staff_operadoras")
-    .select("operator_id, operators(id, name, slug, estado)")
-    .eq("staff_id", fila.id);
+  const [{ data: ops, error: e2 }, { data: propia }] = await Promise.all([
+    sb.from("staff_operadoras").select("operator_id, operators(id, name, slug, estado)").eq("staff_id", fila.id),
+    sb.from("operators").select("id, name, slug").eq("email", email.toLowerCase()).eq("panel_activo", true).neq("estado", "baja").maybeSingle(),
+  ]);
+  const d = propia as { id: string; name: string | null; slug: string | null } | null;
+  const duena: OperadoraDelEquipo | null = d ? { id: d.id, nombre: d.name || "Operadora", slug: d.slug } : null;
   // Sin poder leer sus operadoras no se le da ninguna: mejor un asiento de
   // numan (si lo tiene) que uno de una operadora que no se pudo confirmar.
   const operadoras: OperadoraDelEquipo[] = e2
@@ -53,5 +61,6 @@ export async function equipoDe(email: string): Promise<EquipoEnSesion | null> {
     numan: fila.numan === true,
     facultades: facultadesDe(fila.facultades),
     operadoras,
+    duena,
   };
 }

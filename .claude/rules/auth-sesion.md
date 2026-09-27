@@ -121,6 +121,17 @@ que evita tocar el resto del panel:
   `operadoraObjetivo()` (subir por una operadora). Con las dos a la vez: en
   `/plataforma` es numan, en el resto su operadora.
 
+**Dueña y equipo a la vez** (27 sep 2026, `lib/equipo/sombreros.ts`): el mismo
+correo puede ser dueño de una operadora (`operators.email` + `panel_activo`) y
+equipo de otras. `equipoDe` trae `duena`; los sombreros son la suya (primero,
+por omisión) + las de equipo, y viajan en `alcance.sombreros`. Con el sombrero
+de la suya el alcance es `operador` SIN `equipo` (dueña plena: lista blanca
+completa, administra su equipo, cobra); con el de otra, `operador` con
+`equipo` (facultades). El rol real sigue siendo `equipo`; AdminShell y el
+layout lo tratan como operadora cuando el alcance no trae `equipo`.
+`puedeEntrarAlPanel` incluye `equipo` (antes no: nadie del equipo podía
+mover una tarjeta).
+
 **Listas blancas** (`panel-operador.ts`): `rutaDeEquipoNuman` (Comunidad de la
 plataforma + Mi alta/expediente/marca por `?operadora=`) y
 `rutaDeEquipoOperadora` (lo del operador menos `/mi-alta/equipo`: el equipo no

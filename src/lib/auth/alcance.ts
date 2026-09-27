@@ -33,6 +33,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esSesionMuerta } from "@/lib/auth/sesion-rota";
 import { equipoDe, type EquipoEnSesion } from "@/lib/auth/equipo";
 import { COOKIE_SOMBRERO } from "@/lib/auth/sombrero";
+import { elegirSombrero, sombrerosDe, type Sombrero } from "@/lib/equipo/sombreros";
 import { tieneFacultad } from "@/lib/equipo/facultades";
 
 // EL EQUIPO (0070, 25 sep 2026) entra por aquí con DOS formas, y la forma es
@@ -56,13 +57,13 @@ import { tieneFacultad } from "@/lib/equipo/facultades";
 
 export type Alcance =
   | { tipo: "casa" }
-  | { tipo: "operador"; operatorId: string; nombre: string; slug: string | null; equipo?: EquipoEnSesion }
+  | { tipo: "operador"; operatorId: string; nombre: string; slug: string | null; equipo?: EquipoEnSesion; sombreros?: Sombrero[] }
   | { tipo: "equipo"; equipo: EquipoEnSesion };
 
 /** ¿Este alcance está limitado a un operador? Estrecha el tipo. */
 export function esOperador(
   a: Alcance | null,
-): a is { tipo: "operador"; operatorId: string; nombre: string; slug: string | null; equipo?: EquipoEnSesion } {
+): a is { tipo: "operador"; operatorId: string; nombre: string; slug: string | null; equipo?: EquipoEnSesion; sombreros?: Sombrero[] } {
   return a?.tipo === "operador";
 }
 
@@ -77,11 +78,14 @@ export function equipoDelAlcance(a: Alcance | null): EquipoEnSesion | null {
 async function alcanceDeEquipo(eq: EquipoEnSesion): Promise<Alcance | null> {
   const ruta = (await headers()).get("x-ruta") ?? "";
   const enPlataforma = ruta.startsWith("/caminante/admin/plataforma");
-  if (eq.numan && (enPlataforma || eq.operadoras.length === 0)) return { tipo: "equipo", equipo: eq };
-  if (!eq.operadoras.length) return null;
-  const pedido = (await cookies()).get(COOKIE_SOMBRERO)?.value?.trim();
-  const o = eq.operadoras.find((x) => x.slug === pedido) ?? eq.operadoras[0];
-  return { tipo: "operador", operatorId: o.id, nombre: o.nombre, slug: o.slug, equipo: eq };
+  const sombreros = sombrerosDe(eq);
+  if (eq.numan && (enPlataforma || sombreros.length === 0)) return { tipo: "equipo", equipo: eq };
+  const o = elegirSombrero(sombreros, (await cookies()).get(COOKIE_SOMBRERO)?.value);
+  if (!o) return null;
+  // Con el sombrero de la SUYA es dueña plena: sin `equipo`, para que todo lo
+  // que pregunta `!a.equipo` (administrar su equipo, cobrar, firmar) la deje.
+  if (o.duena) return { tipo: "operador", operatorId: o.id, nombre: o.nombre, slug: o.slug, sombreros };
+  return { tipo: "operador", operatorId: o.id, nombre: o.nombre, slug: o.slug, equipo: eq, sombreros };
 }
 
 // `cache` de React memoiza POR REQUEST. Sin esto cada consulta del panel —y

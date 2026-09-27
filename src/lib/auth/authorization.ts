@@ -134,5 +134,8 @@ export async function isCurrentUserAdmin() {
  */
 export async function puedeEntrarAlPanel(): Promise<boolean> {
   const r = await getCurrentRole();
-  return r === "admin" || r === "operador";
+  // El equipo (0070) también: sin esto, alguien de Caminante no podía ni
+  // mover una tarjeta («Sin permiso»). Qué ve y qué toca lo deciden el
+  // alcance y sus facultades, no este gate.
+  return r === "admin" || r === "operador" || r === "equipo";
 }
