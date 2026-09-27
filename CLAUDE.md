@@ -246,7 +246,10 @@ expediente y cobro (sistema)» y el doc homónimo en Drive `numan/CAMINANTE/`.
 **El equipo (0070 + 0071, 26 sep 2026):** tercer rol `equipo` con facultades
 que la casa prende y apaga, pantalla de la lámina «Equipo» en producción, y el
 libro de atribuciones (`staff_atribuciones`): tomar es actuar, todo se
-transfiere, el pago congela `vendedor_id`. Ver `.claude/rules/auth-sesion.md`.
+transfiere, el pago congela `vendedor_id`. **Rendimiento** (27 sep): pestaña
+dentro de Equipo sólo para uno@numanhub.com; comisiones DERIVADAS (10% numan
+por tramo del libro, 3% Caminante por grupo cerrado); lo sin dato sale «sin
+registro», nunca $0. Ver `.claude/rules/auth-sesion.md`.
 
 ## El panel de la PLATAFORMA (28 ago 2026)
 

@@ -2,13 +2,14 @@
 //
 // Sólo la casa. Aquí Luis prende y apaga facultades y decide para quién
 // trabaja cada persona. La pantalla es la lámina «Equipo» de Claude Design
-// (design/equipo/dc/Equipo.html); la sección de RENDIMIENTO (quién cerró qué,
-// comisiones) espera la atribución (0071+) y sólo la verá uno@numanhub.com.
+// (design/equipo/dc/Equipo.html); RENDIMIENTO (quién cerró qué, comisiones)
+// es una pestaña que sólo ve uno@numanhub.com (F3, lib/equipo/rendimiento.ts).
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import AdminShell from "../../ui/AdminShell";
-import { getCurrentRole } from "@/lib/auth/authorization";
+import { getCurrentRole, correoEnSesion } from "@/lib/auth/authorization";
+import { fetchRendimiento } from "@/lib/equipo/rendimiento";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchEquipo } from "@/lib/equipo/lista";
 import { MI_ALTA_CSS } from "../../ui/mi-alta-css";
@@ -21,16 +22,21 @@ export const metadata: Metadata = { title: "Equipo · numan", robots: { index: f
 export default async function EquipoPlataformaPage() {
   if ((await getCurrentRole()) !== "admin") redirect("/caminante/admin");
   const sb = createSupabaseAdminClient();
-  const [miembros, { data: ops }] = await Promise.all([
+  // RENDIMIENTO ES DE UNA SOLA PERSONA. La casa entera ve quién trabaja aquí;
+  // lo que cada quien devenga sólo lo ve uno@numanhub.com. Otro admin no ve
+  // la pestaña, ni un hueco donde iría.
+  const dueno = (await correoEnSesion()) === "uno@numanhub.com";
+  const [miembros, { data: ops }, rendimiento] = await Promise.all([
     fetchEquipo(),
     sb.from("operators").select("id, name, estado").neq("estado", "baja").order("name"),
+    dueno ? fetchRendimiento() : Promise.resolve(null),
   ]);
   const operadoras = ((ops ?? []) as { id: string; name: string | null }[]).map((o) => ({ id: o.id, nombre: o.name || "Operadora" }));
 
   return (
     <AdminShell active="pl-equipo">
       <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS + EQUIPO_CSS }} />
-      <Equipo miembros={miembros} modo={{ casa: true, operadoras }} />
+      <Equipo miembros={miembros} modo={{ casa: true, operadoras }} rendimiento={rendimiento} />
     </AdminShell>
   );
 }

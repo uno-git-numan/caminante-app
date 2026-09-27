@@ -11,10 +11,9 @@
 // con su propio markup (`.cmn-switch`, `.cmn-field`) y su CSS viaja en
 // equipo-css.ts. Los botones PBtn son los `.btn` del panel, como siempre.
 //
-// Lámina corregida el 26 sep 2026 (segmento, .eqfields, .eqfsum). Lo único que
-// NO está es el segmento Personas | Rendimiento: Rendimiento lee comisiones que
-// todavía no se derivan (F3), y una pestaña vacía es un control muerto. El
-// segmento entra con Rendimiento.
+// Lámina corregida el 26 sep 2026: segmento Personas | Rendimiento (sólo
+// cuando `rendimiento` viene del servidor: uno@numanhub.com, o la operadora
+// sobre su equipo), .eqfields, .eqfsum.
 //
 // «Transferir cartera» (0071) es el `Transferir` de la lámina: lo que la
 // persona tiene abierto (operadoras y solicitudes de numan; tarjetas y grupos
@@ -28,6 +27,8 @@ import { transferir } from "@/lib/equipo/atribucion-actions";
 import { lineaDeHoy, OBJETO, type Objeto } from "@/lib/equipo/atribucion-reglas";
 import { FACULTAD, FACULTADES, type Facultad } from "@/lib/equipo/facultades";
 import type { CosaEnCartera, MiembroEnPantalla } from "@/lib/equipo/lista";
+import type { Rendimiento as DatosRendimiento } from "@/lib/equipo/rendimiento";
+import Rendimiento from "./Rendimiento";
 
 export type ModoEquipo =
   | { casa: true; operadoras: { id: string; nombre: string }[] }
@@ -329,8 +330,10 @@ function Alta({ modo, todos, onClose }: { modo: ModoEquipo; todos: MiembroEnPant
   );
 }
 
-export default function Equipo({ miembros, modo }: { miembros: MiembroEnPantalla[]; modo: ModoEquipo }) {
+export default function Equipo({ miembros, modo, rendimiento }: { miembros: MiembroEnPantalla[]; modo: ModoEquipo; rendimiento?: DatosRendimiento | null }) {
   const scope: "casa" | "op" = modo.casa ? "casa" : "op";
+  const [tab, setTab] = useState<"personas" | "rend">("personas");
+  const vista = rendimiento && tab === "rend" ? "rend" : "personas";
   const lista = miembros.filter((m) => m.activo);
   const bajas = modo.casa ? miembros.filter((m) => !m.activo) : [];
   const [alta, setAlta] = useState(false);
@@ -345,12 +348,18 @@ export default function Equipo({ miembros, modo }: { miembros: MiembroEnPantalla
           </h2>
           <p className="desc">{scope === "op" ? "Le prendes sólo lo que necesita, y lo apagas cuando quieras." : "Cada persona entra con su correo @numanhub.com y ve sólo lo que le prendes."}</p>
         </div>
-        {!alta ? <button type="button" className="btn btn-orange btn-sm" onClick={() => { setOk(null); setAlta(true); }}>Dar de alta</button> : null}
+        {!alta && vista === "personas" ? <button type="button" className="btn btn-orange btn-sm" onClick={() => { setOk(null); setAlta(true); }}>Dar de alta</button> : null}
       </div>
+      {!modo.casa ? <p className="eqback"><a href={modo.ligaAlta}>← {modo.porOtra ? "Su alta" : "Mi alta"}</a></p> : null}
+      {rendimiento ? (
+        <div className="opseg eqseg">
+          {([["personas", "Personas"], ["rend", "Rendimiento"]] as const).map(([k, t]) => <button key={k} type="button" className={vista === k ? "on" : ""} onClick={() => setTab(k)}>{t}</button>)}
+        </div>
+      ) : null}
+      {vista === "rend" && rendimiento ? <Rendimiento datos={rendimiento} op={!modo.casa} /> : (<>
       {!modo.casa ? (
         <>
           <p className="calm" style={{ marginBottom: 14 }}><s>{"//"}</s><span className="g"><b>Tus cobros, tus devoluciones y tu convenio siguen siendo tuyos</b><span>Nadie de tu equipo los ve. Aquí sólo decides quién atiende a tus clientes, quién arma tus experiencias y quién va a campo.</span></span></p>
-          <p className="eqback"><a href={modo.ligaAlta}>← {modo.porOtra ? "Su alta" : "Mi alta"}</a></p>
         </>
       ) : null}
       {alta ? <Alta modo={modo} todos={miembros} onClose={(n) => { setAlta(false); if (n) setOk(n); }} /> : null}
@@ -373,6 +382,7 @@ export default function Equipo({ miembros, modo }: { miembros: MiembroEnPantalla
           </div>
         </details>
       ) : null}
+      </>)}
     </div>
   );
 }

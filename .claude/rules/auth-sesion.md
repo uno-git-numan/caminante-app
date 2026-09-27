@@ -149,9 +149,17 @@ puede meter al equipo. La baja apaga `activo`, conserva la fila.
 - **La baja exige transferir la cartera** (`darDeBaja(id, transferirA)`): lo
   abierto pasa con `cierre='baja'`; «a quién pasó» se DERIVA del libro
   (`aQuienPaso`), no se guarda aparte.
-- Lo que sigue: comisiones (10% de la comisión de numan por tramo del libro;
-  3% de `payments` con `vendedor_id` por grupo cerrado) y Rendimiento, sólo
-  para uno@numanhub.com. Memoria: `caminante-equipo-vendedores`.
+- **Comisiones y Rendimiento (F3, `lib/equipo/comisiones.ts` puro +
+  `rendimiento.ts`)**: numan = 10% de `platform_fee_mxn` (neto de devolución
+  en proporción) para quien tenía la operadora el día del pago (`titularEn`);
+  Caminante = 3% del cobrado sin IVA de `payments.vendedor_id` cuando la
+  salida ya ocurrió, en el mes de la salida; lo futuro «por devengar»; una
+  reserva sin fecha no devenga y se dice. **Lo que no tiene dato sale null y
+  la pantalla dice «sin dato / sin registro», nunca $0**: lo pagado a cada
+  quien (no hay tabla), respondidas <1h, embajadores, el 1% de embajadoras.
+  Una devolución resta del pago que devolvió (refunded_mxn no tiene fecha).
+  La pestaña Rendimiento sólo se dibuja para uno@numanhub.com; la operadora
+  ve lo de su equipo sin comisiones. Memoria: `caminante-equipo-vendedores`.
 
 ## Olfatear el user-agent
 

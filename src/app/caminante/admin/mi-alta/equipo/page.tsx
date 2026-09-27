@@ -13,6 +13,7 @@ import { EQUIPO_CSS } from "../../ui/equipo-css";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { fetchEquipo } from "@/lib/equipo/lista";
+import { fetchRendimiento } from "@/lib/equipo/rendimiento";
 import Equipo from "../../plataforma/equipo/Equipo";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,8 @@ export default async function EquipoOperadoraPage({ searchParams }: { searchPara
     redirect("/caminante/admin");
   }
 
-  const miembros = await fetchEquipo(operatorId);
+  // Lo que mueve su equipo con sus clientes, sin comisiones: eso lo arregla ella.
+  const [miembros, rendimiento] = await Promise.all([fetchEquipo(operatorId), fetchRendimiento({ soloOperadora: operatorId })]);
 
   return (
     <AdminShell active="panorama">
@@ -53,6 +55,7 @@ export default async function EquipoOperadoraPage({ searchParams }: { searchPara
           ligaAlta: porOtra ? `/caminante/admin/mi-alta?operadora=${encodeURIComponent(operatorId)}` : "/caminante/admin/mi-alta",
           ligaPerfil: porOtra ? `/caminante/admin/mi-alta?operadora=${encodeURIComponent(operatorId)}` : "/caminante/admin/mi-alta",
         }}
+        rendimiento={rendimiento}
       />
     </AdminShell>
   );
