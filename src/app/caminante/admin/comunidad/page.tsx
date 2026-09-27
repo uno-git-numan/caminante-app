@@ -69,7 +69,11 @@ export default async function ComunidadPage() {
   // Quién lleva cada tarjeta (0071), en una consulta para todo el tablero; y el
   // nombre de la operadora del sombrero, para decir «tarjetas de Caminante».
   const [tits, { data: opMiro }] = await Promise.all([
-    fetchTitularidades([...tablero.tarjetas, ...tablero.caidas].map((t) => ({ objeto: "tarjeta" as const, id: t.id }))),
+    fetchTitularidades([
+      ...[...tablero.tarjetas, ...tablero.caidas].map((t) => ({ objeto: "tarjeta" as const, id: t.id })),
+      ...Object.values(solicitudes?.tarjetas ?? {}).map((t) => ({ objeto: "tarjeta" as const, id: t.id })),
+      ...(solicitudes?.embPend ?? []).map((e) => ({ objeto: "embajador" as const, id: e.id })),
+    ]),
     miro ? createSupabaseAdminClient().from("operators").select("name").eq("id", miro).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const nombreOperadora = (opMiro as { name: string | null } | null)?.name ?? "la operadora";
@@ -115,7 +119,7 @@ export default async function ComunidadPage() {
                 </p>
               </div>
             </div>
-            {solicitudes ? <PorContestar d={solicitudes} /> : null}
+            {solicitudes ? <PorContestar d={solicitudes} tits={tits} equipo={equipo} yo={yo} operadora={{ id: miro, nombre: nombreOperadora }} /> : null}
             <TableroCRM d={tablero} tits={tits} equipo={equipo} yo={yo} operadora={nombreOperadora} />
           </>
         }

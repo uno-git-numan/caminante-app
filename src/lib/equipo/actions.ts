@@ -19,6 +19,7 @@ import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin, correoEnSesion } from "@/lib/auth/authorization";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { operadoraQueMiro } from "@/lib/admin/queries";
 import { FACULTADES_DE_OPERADORA, facultadesDe, type Facultad } from "@/lib/equipo/facultades";
 import { leerLibro, transferirAtribucion } from "@/lib/equipo/atribucion";
 import { carteraDe, OBJETO, puedeTener, type Objeto } from "@/lib/equipo/atribucion-reglas";
@@ -161,7 +162,7 @@ export async function darDeBaja(staffId: string, transferirA?: string): Promise<
     const destino = await personaParaRecibir(a);
     const por = await correoEnSesion();
     for (const it of mias) {
-      const opId = it.objeto === "tarjeta" || it.objeto === "grupo" ? await operadoraDe(it) : null;
+      const opId = it.objeto === "tarjeta" || it.objeto === "grupo" || it.objeto === "embajador" ? await operadoraDe(it) : null;
       if (!puedeTener(destino, it.objeto, opId)) {
         return { ok: false, error: `Quien recibe no puede llevar ${OBJETO[it.objeto].varios}: revisa sus facultades y para quién trabaja.` };
       }
@@ -203,7 +204,7 @@ async function esDeMiOperadora(staffId: string, operatorId: string): Promise<boo
 async function soloDeOperadora(items: { objeto: Objeto; objetoId: string }[], operatorId: string) {
   const out: { objeto: Objeto; objetoId: string }[] = [];
   for (const it of items) {
-    if (it.objeto !== "tarjeta" && it.objeto !== "grupo") continue;
+    if (it.objeto !== "tarjeta" && it.objeto !== "grupo" && it.objeto !== "embajador") continue;
     if ((await operadoraDe(it)) === operatorId) out.push(it);
   }
   return out;
@@ -219,6 +220,7 @@ async function operadoraDe(it: { objeto: Objeto; objetoId: string }): Promise<st
     const { data } = await sb.from("experience_slots").select("experiences(operator_id)").eq("id", it.objetoId).maybeSingle();
     return (data as unknown as { experiences: { operator_id: string | null } | null } | null)?.experiences?.operator_id ?? null;
   }
+  if (it.objeto === "embajador") return operadoraQueMiro();
   return null;
 }
 

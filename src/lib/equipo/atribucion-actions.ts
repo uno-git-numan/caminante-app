@@ -18,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin, correoEnSesion } from "@/lib/auth/authorization";
 import { alcanceActual, equipoDelAlcance, esOperador } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { operadoraQueMiro } from "@/lib/admin/queries";
 import { atribuir, cerrarAtribucion, titularDe, transferirAtribucion } from "@/lib/equipo/atribucion";
 import { esObjeto, OBJETO, puedeTener, type Objeto, type Persona } from "@/lib/equipo/atribucion-reglas";
 
@@ -58,6 +59,8 @@ async function operadoraDelObjeto(objeto: Objeto, objetoId: string): Promise<str
     const { data } = await sb.from("experience_slots").select("experiences(operator_id)").eq("id", objetoId).maybeSingle();
     return (data as unknown as { experiences: { operator_id: string | null } | null } | null)?.experiences?.operator_id ?? null;
   }
+  // 0072: el embajador es de la operadora que lo contesta (el sombrero).
+  if (objeto === "embajador") return operadoraQueMiro();
   return null;
 }
 

@@ -95,6 +95,7 @@ const porObjeto = (c: CosaEnCartera[]): Record<Objeto, string[]> => ({
   operadora: c.filter((x) => x.objeto === "operadora").map((x) => x.id),
   tarjeta: c.filter((x) => x.objeto === "tarjeta").map((x) => x.id),
   grupo: c.filter((x) => x.objeto === "grupo").map((x) => x.id),
+  embajador: c.filter((x) => x.objeto === "embajador").map((x) => x.id),
 });
 /** La línea «Hoy», del libro (0071). */
 const estadoLinea = (m: MiembroEnPantalla, scope: "casa" | "op") =>

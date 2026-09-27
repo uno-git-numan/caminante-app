@@ -13,6 +13,7 @@
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { cerrarAtribucion, tomarSiLibre } from "@/lib/equipo/atribucion";
 import { emailBienvenidaEmbajador, emailRechazoAplicacion } from "@/lib/embajadores/emails";
 
 const PANEL = "/caminante/admin/comunidad";
@@ -78,6 +79,9 @@ export async function approveEmbajador(id: string): Promise<Res> {
     .update({ status: "approved", operator_id: operatorId, decided_at: new Date().toISOString() })
     .eq("id", id)
     .eq("status", "pending"); // nunca pisar una decisión ya tomada
+  // 0072: contestar es actuar (se la queda quien contesta, si nadie la llevaba) y resolver.
+  await tomarSiLibre("embajador", id);
+  await cerrarAtribucion("embajador", id, "resuelta");
   if (updErr) {
     console.error("approveEmbajador update:", updErr);
     return { ok: false, error: "No se pudo actualizar la aplicación." };
@@ -101,6 +105,9 @@ export async function rejectEmbajador(id: string): Promise<Res> {
     .update({ status: "rejected", decided_at: new Date().toISOString() })
     .eq("id", id)
     .eq("status", "pending");
+  // 0072: contestar es actuar (se la queda quien contesta, si nadie la llevaba) y resolver.
+  await tomarSiLibre("embajador", id);
+  await cerrarAtribucion("embajador", id, "resuelta");
   if (error) {
     console.error("rejectEmbajador:", error);
     return { ok: false, error: "No se pudo actualizar la aplicación." };

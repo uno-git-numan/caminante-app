@@ -5,7 +5,7 @@
 
 import type { Facultad } from "@/lib/equipo/facultades";
 
-export const OBJETOS = ["solicitud", "operadora", "tarjeta", "grupo"] as const;
+export const OBJETOS = ["solicitud", "operadora", "tarjeta", "grupo", "embajador"] as const;
 export type Objeto = (typeof OBJETOS)[number];
 
 export function esObjeto(x: unknown): x is Objeto {
@@ -18,6 +18,8 @@ export const OBJETO: Record<Objeto, { facultad: Facultad; de: "numan" | "operado
   operadora: { facultad: "onboarding", de: "numan", uno: "operadora", varios: "operadoras" },
   tarjeta: { facultad: "clientes", de: "operadora", uno: "tarjeta", varios: "tarjetas" },
   grupo: { facultad: "clientes", de: "operadora", uno: "grupo", varios: "grupos" },
+  // 0072: el que aplicó a embajador; de la operadora que lo contesta.
+  embajador: { facultad: "clientes", de: "operadora", uno: "embajador", varios: "embajadores" },
 };
 
 export type Persona = {
@@ -54,7 +56,7 @@ export type FilaLibro = {
 
 /** La cartera de una persona: sus filas abiertas, por objeto. */
 export function carteraDe(libro: FilaLibro[], staffId: string): Record<Objeto, string[]> {
-  const out: Record<Objeto, string[]> = { solicitud: [], operadora: [], tarjeta: [], grupo: [] };
+  const out: Record<Objeto, string[]> = { solicitud: [], operadora: [], tarjeta: [], grupo: [], embajador: [] };
   for (const f of libro) if (f.staff_id === staffId && f.hasta === null) out[f.objeto].push(f.objeto_id);
   return out;
 }
@@ -95,14 +97,15 @@ export function aQuienPaso(libro: FilaLibro[], staffId: string): string[] {
 export function lineaDeHoy(c: Record<Objeto, string[]>, lados: { numan: boolean; operadora: boolean }): string {
   const pl = (n: number, a: string, b: string) => `${n} ${n === 1 ? a : b}`;
   const n = c.operadora.length + c.solicitud.length;
-  const o = c.tarjeta.length + c.grupo.length;
+  const o = c.tarjeta.length + c.grupo.length + c.embajador.length;
   const numan = n
     ? pl(c.operadora.length, "operadora en su cartera", "operadoras en su cartera") +
       (c.solicitud.length ? ` · ${pl(c.solicitud.length, "solicitud en curso", "solicitudes en curso")}` : "")
     : "Todavía sin operadoras en su cartera";
   const op = o
     ? pl(c.tarjeta.length, "tarjeta abierta", "tarjetas abiertas") +
-      (c.grupo.length ? ` · ${pl(c.grupo.length, "grupo", "grupos")}` : "")
+      (c.grupo.length ? ` · ${pl(c.grupo.length, "grupo", "grupos")}` : "") +
+      (c.embajador.length ? ` · ${pl(c.embajador.length, "embajador", "embajadores")}` : "")
     : "Todavía sin tarjetas";
   if (lados.numan && lados.operadora) return `${numan} · ${o ? op : "todavía sin tarjetas"}`;
   if (lados.numan) return numan;

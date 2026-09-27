@@ -2,7 +2,7 @@
 
 // Tarjeta de una aplicación de EMBAJADOR pendiente (patrón AccesoCard):
 // datos completos de la aplicación + Aprobar / Rechazar con confirmación.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { approveEmbajador, rejectEmbajador } from "@/lib/admin/embajadores-actions";
 
 const PERFIL_LABEL: Record<string, string> = {
@@ -24,7 +24,7 @@ export type EmbAppView = {
   fecha: string;
 };
 
-export default function EmbajadorCard({ app }: { app: EmbAppView }) {
+export default function EmbajadorCard({ app, asg }: { app: EmbAppView; asg?: ReactNode }) {
   const [busy, setBusy] = useState<"ok" | "no" | null>(null);
   const [done, setDone] = useState<"ok" | "no" | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -96,6 +96,8 @@ export default function EmbajadorCard({ app }: { app: EmbAppView }) {
         )}
         {err ? <span className="mut" style={{ color: "#b0341a", fontSize: 12.5 }}>{err}</span> : null}
       </div>
+      {/* Quién lo lleva (0072): en la tarjeta misma, no en un cajón. */}
+      {asg}
     </div>
   );
 }

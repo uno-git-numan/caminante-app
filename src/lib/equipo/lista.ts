@@ -49,12 +49,15 @@ export async function fetchEquipo(soloOperadora?: string): Promise<MiembroEnPant
   // Los nombres de lo que hay en el libro, en tres consultas y no una por cosa.
   const abiertas = libro.filter((f) => f.hasta === null);
   const ids = (o: Objeto) => [...new Set(abiertas.filter((f) => f.objeto === o).map((f) => f.objeto_id))];
-  const [{ data: sols }, { data: cards }, { data: slots }] = await Promise.all([
+  const [{ data: sols }, { data: cards }, { data: slots }, { data: embs }] = await Promise.all([
     ids("solicitud").length ? sb.from("operator_applications").select("id, nombre_operadora").in("id", ids("solicitud")) : Promise.resolve({ data: [] }),
     ids("tarjeta").length ? sb.from("crm_cards").select("id, operator_id, contacts(full_name), experiences(slug)").in("id", ids("tarjeta")) : Promise.resolve({ data: [] }),
     ids("grupo").length ? sb.from("experience_slots").select("id, label, experiences(slug, operator_id)").in("id", ids("grupo")) : Promise.resolve({ data: [] }),
+    ids("embajador").length ? sb.from("ambassador_applications").select("id, full_name").in("id", ids("embajador")) : Promise.resolve({ data: [] }),
   ]);
   const nombreCosa = new Map<string, { nombre: string; operatorId: string | null }>();
+  // Un embajador es de la operadora que lo contesta; en la cartera no se recorta por operadora.
+  for (const e of (embs ?? []) as { id: string; full_name: string | null }[]) nombreCosa.set(`embajador:${e.id}`, { nombre: `${e.full_name || "Alguien"} · embajador`, operatorId: null });
   for (const s of (sols ?? []) as { id: string; nombre_operadora: string | null }[]) nombreCosa.set(`solicitud:${s.id}`, { nombre: s.nombre_operadora || "Solicitud", operatorId: null });
   for (const c of (cards ?? []) as unknown as { id: string; operator_id: string | null; contacts: { full_name: string | null } | null; experiences: { slug: string | null } | null }[]) {
     nombreCosa.set(`tarjeta:${c.id}`, { nombre: `${c.contacts?.full_name || "Alguien"} · ${c.experiences?.slug || "experiencia"}`, operatorId: c.operator_id });
@@ -94,6 +97,6 @@ export async function fetchEquipo(soloOperadora?: string): Promise<MiembroEnPant
       ...m,
       numan: false,
       operadoras: m.operadoras.filter((o) => o.id === soloOperadora),
-      cartera: m.cartera.filter((x) => (x.objeto === "tarjeta" || x.objeto === "grupo") && x.operatorId === soloOperadora),
+      cartera: m.cartera.filter((x) => ((x.objeto === "tarjeta" || x.objeto === "grupo") && x.operatorId === soloOperadora) || x.objeto === "embajador"),
     }));
 }

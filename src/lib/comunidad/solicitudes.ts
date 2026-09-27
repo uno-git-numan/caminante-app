@@ -61,6 +61,8 @@ export type Solicitudes = {
   embTablaLista: boolean;
   /** Lo que espera una decisión humana. */
   pendientes: number;
+  /** La tarjeta del CRM de cada solicitud de fecha (0072): es lo que se lleva. */
+  tarjetas: Record<string, { id: string; operatorId: string | null }>;
 };
 
 async function fetchEmbApps(): Promise<{ rows: EmbRow[]; tablaLista: boolean }> {
@@ -91,6 +93,13 @@ export async function fetchSolicitudes(): Promise<Solicitudes> {
 
   const rows = (reqData ?? []) as unknown as SolRow[];
   const nuevas = rows.filter((r) => r.status === "new");
+  // Cada solicitud de fecha nace con su tarjeta en el CRM (submitSlotRequest);
+  // «quién la lleva» es quién lleva esa tarjeta.
+  const tarjetas: Record<string, { id: string; operatorId: string | null }> = {};
+  if (nuevas.length) {
+    const { data: cards } = await sb.from("crm_cards").select("id, slot_request_id, operator_id").in("slot_request_id", nuevas.map((r) => r.id));
+    for (const c of (cards ?? []) as { id: string; slot_request_id: string; operator_id: string | null }[]) tarjetas[c.slot_request_id] = { id: c.id, operatorId: c.operator_id };
+  }
   const embPend = emb.rows.filter((r) => r.status === "pending");
 
   return {
@@ -100,6 +109,7 @@ export async function fetchSolicitudes(): Promise<Solicitudes> {
     embResueltas: emb.rows.filter((r) => r.status !== "pending"),
     embTablaLista: emb.tablaLista,
     // Las dos cosas que esperan a que alguien diga sí o no.
+    tarjetas,
     pendientes: nuevas.length + embPend.length,
   };
 }

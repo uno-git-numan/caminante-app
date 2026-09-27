@@ -22,6 +22,9 @@ describe("puedeTener: una sola puerta", () => {
     expect(puedeTener(diego, "solicitud", null)).toBe(false);
     expect(puedeTener(paula, "grupo", "ken")).toBe(true);
     expect(puedeTener(paula, "operadora", null)).toBe(true);
+    // 0072: el embajador es de la operadora que lo contesta; pide «clientes».
+    expect(puedeTener(diego, "embajador", "cam")).toBe(true);
+    expect(puedeTener(ana, "embajador", "cam")).toBe(false);
   });
   it("sin facultad, sin operadora conocida o inactivo: no", () => {
     expect(puedeTener({ ...diego, facultades: ["armar"] }, "tarjeta", "cam")).toBe(false);
@@ -42,8 +45,8 @@ const libro: FilaLibro[] = [
 
 describe("el libro", () => {
   it("la cartera son las filas abiertas, por objeto", () => {
-    expect(carteraDe(libro, "paula")).toEqual({ solicitud: [], operadora: ["nomadika"], tarjeta: [], grupo: ["g1"] });
-    expect(carteraDe(libro, "ana")).toEqual({ solicitud: [], operadora: [], tarjeta: [], grupo: [] });
+    expect(carteraDe(libro, "paula")).toEqual({ solicitud: [], operadora: ["nomadika"], tarjeta: [], grupo: ["g1"], embajador: [] });
+    expect(carteraDe(libro, "ana")).toEqual({ solicitud: [], operadora: [], tarjeta: [], grupo: [], embajador: [] });
   });
   it("«quién la tenía el día X» es una consulta por tramo, con el corte en el instante exacto", () => {
     expect(titularEn(libro, "operadora", "nomadika", "2026-09-15T00:00:00Z")).toBe("ana");
@@ -58,7 +61,7 @@ describe("el libro", () => {
 });
 
 describe("la línea «Hoy»", () => {
-  const vacia = { solicitud: [], operadora: [], tarjeta: [], grupo: [] };
+  const vacia = { solicitud: [], operadora: [], tarjeta: [], grupo: [], embajador: [] };
   it("dice la verdad cuando no hay nada, por lado", () => {
     expect(lineaDeHoy(vacia, { numan: true, operadora: false })).toBe("Todavía sin operadoras en su cartera");
     expect(lineaDeHoy(vacia, { numan: false, operadora: true })).toBe("Todavía sin tarjetas");

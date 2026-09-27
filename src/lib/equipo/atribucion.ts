@@ -12,6 +12,7 @@ import "server-only";
 // duplicado. El índice único parcial impide lo contrario: dos abiertas.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { operadoraQueMiro } from "@/lib/admin/queries";
 import { OBJETO, puedeTener, type Objeto, type FilaLibro } from "@/lib/equipo/atribucion-reglas";
 import { alcanceActual, equipoDelAlcance } from "@/lib/auth/alcance";
 import { correoEnSesion } from "@/lib/auth/authorization";
@@ -171,7 +172,9 @@ export async function tomarSiLibre(objeto: Objeto, objetoId: string): Promise<vo
     operatorId = (data as { operator_id: string | null } | null)?.operator_id ?? null;
   } else if (objeto === "grupo") {
     const { data } = await sb.from("experience_slots").select("experiences(operator_id)").eq("id", objetoId).maybeSingle();
-    operatorId = (data as unknown as { experiences: { operator_id: string | null } | null } | null)?.experiences?.operator_id ?? null;
+        operatorId = (data as unknown as { experiences: { operator_id: string | null } | null } | null)?.experiences?.operator_id ?? null;
+  } else if (objeto === "embajador") {
+    operatorId = await operadoraQueMiro();
   }
   const persona = { id: eq.staffId, activo: true, numan: eq.numan, facultades: eq.facultades, operadoras: eq.operadoras };
   if (!puedeTener(persona, objeto, operatorId)) return;

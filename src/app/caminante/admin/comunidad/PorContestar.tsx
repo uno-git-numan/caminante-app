@@ -1,6 +1,8 @@
 import SolicitudCard, { type SolicitudView } from "./SolicitudCard";
 import EmbajadorCard, { type EmbAppView } from "./EmbajadorCard";
 import type { EmbRow, SolRow, Solicitudes as Datos } from "@/lib/comunidad/solicitudes";
+import { AsgCtl } from "../ui/asignar/Asignar";
+import { claveTit, type PersonaParaAsignar, type Titularidad, type Yo } from "@/lib/equipo/atribucion-reglas";
 
 // LO QUE ESPERA RESPUESTA — arriba del tablero, dentro del CRM.
 //
@@ -27,7 +29,7 @@ function titulo(r: SolRow): string {
   );
 }
 
-export default function PorContestar({ d }: { d: Datos }) {
+export default function PorContestar({ d, tits, equipo, yo, operadora }: { d: Datos; tits: Record<string, Titularidad>; equipo: PersonaParaAsignar[]; yo: Yo; operadora: { id: string | null; nombre: string } }) {
   if (d.pendientes === 0) return null;
 
   const aVista = (r: EmbRow): EmbAppView => ({
@@ -77,7 +79,14 @@ export default function PorContestar({ d }: { d: Datos }) {
               groupType: r.group_type === "open" ? "open" : "private",
               createdAt: fmt(r.created_at),
             };
-            return <SolicitudCard key={r.id} s={s} />;
+            const tj = d.tarjetas[r.id];
+            return (
+              <SolicitudCard
+                key={r.id}
+                s={s}
+                asg={tj ? <AsgCtl objeto="tarjeta" objetoId={tj.id} operatorId={tj.operatorId} tit={tits[claveTit("tarjeta", tj.id)] ?? null} equipo={equipo} yo={yo} noun={`solicitudes de ${operadora.nombre}`} /> : null}
+              />
+            );
           })}
         </div>
       ) : null}
@@ -91,7 +100,11 @@ export default function PorContestar({ d }: { d: Datos }) {
           </p>
           <div style={{ display: "grid", gap: 12 }}>
             {d.embPend.map((r) => (
-              <EmbajadorCard key={r.id} app={aVista(r)} />
+              <EmbajadorCard
+                key={r.id}
+                app={aVista(r)}
+                asg={<AsgCtl objeto="embajador" objetoId={r.id} operatorId={operadora.id} tit={tits[claveTit("embajador", r.id)] ?? null} equipo={equipo} yo={yo} noun={`embajadores de ${operadora.nombre}`} />}
+              />
             ))}
           </div>
         </>

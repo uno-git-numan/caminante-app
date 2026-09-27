@@ -4,7 +4,7 @@
 // lo que pidió el cliente) + rechazar. Al aprobar muestra el link del grupo y
 // el mensaje de WhatsApp con botones de copiar (patrón CobroForm).
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   approveSlotRequest,
   rejectSlotRequest,
@@ -34,7 +34,7 @@ function labelDesdeFecha(iso: string): string {
   return `${mes.charAt(0).toUpperCase()}${mes.slice(1)} ${dia}`;
 }
 
-export default function SolicitudCard({ s }: { s: SolicitudView }) {
+export default function SolicitudCard({ s, asg }: { s: SolicitudView; asg?: ReactNode }) {
   const [label, setLabel] = useState(s.desiredDate ? labelDesdeFecha(s.desiredDate) : "");
   const [start, setStart] = useState(s.desiredDate ?? "");
   const [end, setEnd] = useState("");
@@ -178,6 +178,8 @@ export default function SolicitudCard({ s }: { s: SolicitudView }) {
           </div>
         </>
       )}
+      {/* Quién la lleva (lámina «Quién lo lleva»): en la tarjeta misma, no en un cajón. */}
+      {asg}
     </div>
   );
 }
