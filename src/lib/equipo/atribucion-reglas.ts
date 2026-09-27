@@ -108,3 +108,37 @@ export function lineaDeHoy(c: Record<Objeto, string[]>, lados: { numan: boolean;
   if (lados.numan) return numan;
   return op;
 }
+
+/**
+ * QUÉ BOTÓN VE CADA QUIEN (lámina «Quién lo lleva»). La casa asigna, no toma:
+ * «asignar» si nadie la lleva, «pasar» si alguien la lleva. Alguien del
+ * equipo con la puerta abierta (`door` = `puedeTener`): «tomar» si nadie la
+ * lleva, «pasar» si la lleva él; si la lleva otro, sólo la ve. Sin puerta,
+ * nada — ni deshabilitado: no está.
+ */
+export function verboDeAsignacion(
+  tit: { staffId: string } | { ex: string } | null,
+  yo: { casa: boolean; staffId: string | null },
+  door: boolean,
+): "asignar" | "pasar" | "tomar" | null {
+  const who = tit && "staffId" in tit ? tit.staffId : null;
+  if (yo.casa) return who ? "pasar" : "asignar";
+  if (!door || !yo.staffId) return null;
+  if (!who) return "tomar";
+  return who === yo.staffId ? "pasar" : null;
+}
+
+// ── Lo que las pantallas de «Quién lo lleva» necesitan sin tocar el servidor ──
+
+/** Con titular; o suelta desde que alguien se fue (se ve de dónde viene); o nadie. */
+export type Titularidad =
+  | { staffId: string; nombre: string; desde: string }
+  | { ex: string; desde: string }
+  | null;
+
+export type PersonaParaAsignar = Persona & { nombre: string };
+
+/** Quién mira: la casa (asigna), alguien del equipo (toma o pasa lo suyo), o nadie de eso. */
+export type Yo = { casa: boolean; staffId: string | null };
+
+export const claveTit = (objeto: Objeto, id: string) => `${objeto}:${id}`;

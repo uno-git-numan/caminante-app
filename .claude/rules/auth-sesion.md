@@ -146,6 +146,15 @@ puede meter al equipo. La baja apaga `activo`, conserva la fila.
 - **El pago sabe quién lo vendió**: `payments.vendedor_id` se congela al entrar
   (titular de la tarjeta de esa persona×experiencia, o del grupo) en los dos
   webhooks; null = nadie del equipo. Una transferencia posterior no lo mueve.
+- **«Quién lo lleva» en Comunidad** (lámina del 27 sep, `ui/asignar/Asignar.tsx`,
+  `lib/equipo/titulares.ts`): la tarjeta de operadora del pipeline y la del CRM
+  dicen quién la lleva; el cajón trae el control. El verbo lo decide
+  `verboDeAsignacion` (puro): la casa asigna/pasa, el equipo con la puerta
+  toma/pasa lo suyo, sin puerta no hay botón. La lista de «a quién» es
+  `puedeTener` sobre el equipo activo. El tablero del CRM ganó su cajón
+  (`ui/Cajon.tsx`): ficha, escribirle, y quién la lleva. Las solicitudes de
+  fecha y los embajadores de «Por contestar» NO tienen control: no son
+  objetos del libro (haría falta una 0072 que amplíe el CHECK).
 - **La baja exige transferir la cartera** (`darDeBaja(id, transferirA)`): lo
   abierto pasa con `cierre='baja'`; «a quién pasó» se DERIVA del libro
   (`aQuienPaso`), no se guarda aparte.

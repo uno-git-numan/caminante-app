@@ -30,6 +30,8 @@ export type Tarjeta = {
   motivoCaida: string | null;
   telefono: string | null;
   email: string | null;
+  /** De qué operadora es (0071): decide quién del equipo puede llevarla. */
+  operatorId: string | null;
 };
 
 export type Tablero = { tarjetas: Tarjeta[]; caidas: Tarjeta[]; total: number };
@@ -89,6 +91,7 @@ export async function fetchTablero(): Promise<Tablero> {
         motivoCaida: (c.motivo_caida as string) ?? null,
         telefono: p?.phone ?? null,
         email: p?.email ?? null,
+        operatorId: (c.operator_id as string | null) ?? null,
       };
     });
 

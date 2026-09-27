@@ -5,7 +5,11 @@ import { puedeOnboarding } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchOperadorasPlataforma } from "@/lib/plataforma/operadoras";
 import Operadoras from "./Operadoras";
-import Pipeline from "./Pipeline";
+import Pipeline, { objetoDe } from "./Pipeline";
+import { fetchEquipoParaAsignar, fetchTitularidades, quienSoyParaAsignar } from "@/lib/equipo/titulares";
+import { MI_ALTA_CSS } from "../../ui/mi-alta-css";
+import { EQUIPO_CSS } from "../../ui/equipo-css";
+import { ASIGNAR_CSS } from "../../ui/asignar-css";
 import Vistas from "./Vistas";
 import OperadorAppCard, { type OpAppView } from "./OperadorAppCard";
 import AccesoCard from "./AccesoCard";
@@ -57,7 +61,7 @@ export default async function ComunidadPlataformaPage() {
   const sb = createSupabaseAdminClient();
   // `porRevisar` entra al mismo Promise.all: es lo que espera veredicto de
   // TODAS las operadoras, en dos consultas, no una por ficha.
-  const [ops, apps, wl, porRevisar, dispensas] = await Promise.all([
+  const [ops, apps, wl, porRevisar, dispensas, equipo, yo] = await Promise.all([
     fetchOperadorasPlataforma(),
     sb
       .from("operator_applications")
@@ -69,7 +73,13 @@ export default async function ComunidadPlataformaPage() {
     sb.from("admin_whitelist").select("email, is_active, note").eq("is_active", false),
       fetchPorRevisar(),
       fetchDispensas(),
+      fetchEquipoParaAsignar(),
+      quienSoyParaAsignar(),
   ]);
+  // Quién lleva cada operadora (0071): su solicitud en el embudo, su fila después.
+  const tits = await fetchTitularidades(
+    ops.filter((o) => !o.esLaCasa).map((o) => { const ob = objetoDe(o); return { objeto: ob.objeto, id: ob.id ?? o.id }; }),
+  );
 
   const solicitudes = (apps.data ?? []) as unknown as OpRow[];
   const accesos = (wl.data ?? []) as WLRow[];
@@ -78,6 +88,7 @@ export default async function ComunidadPlataformaPage() {
 
   return (
     <AdminShell active="pl-comunidad">
+      <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS + EQUIPO_CSS + ASIGNAR_CSS }} />
       <div className="cmstick">
         <div className="sec-head">
           <div>
@@ -99,7 +110,7 @@ export default async function ComunidadPlataformaPage() {
         solicitudes={esperando}
         pipeline={enPipeline}
         operadoras={ops.length}
-        vistaPipeline={<Pipeline ops={ops} />}
+        vistaPipeline={<Pipeline ops={ops} tits={tits} equipo={equipo} yo={yo} />}
         vistaOperadoras={<Operadoras ops={ops} porRevisar={porRevisar} dispensas={dispensas} esCasa={esCasa} />}
         vistaSolicitudes={
           <>

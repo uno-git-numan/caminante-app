@@ -13,12 +13,19 @@ import { useState, useTransition } from "react";
 import { ETAPAS, A_MANO } from "@/lib/comunidad/etapas";
 import type { Tablero as Datos, Tarjeta } from "@/lib/comunidad/tablero";
 import { moverTarjeta } from "@/lib/comunidad/tablero-actions";
+import Cajon from "../ui/Cajon";
+import { AsgAv, AsgCtl } from "../ui/asignar/Asignar";
+import { claveTit, type PersonaParaAsignar, type Titularidad, type Yo } from "@/lib/equipo/atribucion-reglas";
 
-function Tarj({ t, arrastrable, onDrag }: { t: Tarjeta; arrastrable: boolean; onDrag: (id: string) => void }) {
+function Tarj({ t, arrastrable, onDrag, tit, picked, onPick }: { t: Tarjeta; arrastrable: boolean; onDrag: (id: string) => void; tit: Titularidad; picked: boolean; onPick: () => void }) {
   return (
     <article
-      className={`cmc${t.fria ? " cold" : ""}${t.stage === "caido" ? " lost" : ""}`}
+      className={`cmc${t.fria ? " cold" : ""}${t.stage === "caido" ? " lost" : ""}${picked ? " picked" : ""}`}
       draggable={arrastrable}
+      role="button"
+      tabIndex={0}
+      onClick={onPick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPick(); } }}
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", t.id);
         onDrag(t.id);
@@ -39,6 +46,8 @@ function Tarj({ t, arrastrable, onDrag }: { t: Tarjeta; arrastrable: boolean; on
         <span className={`ag${t.fria ? " mal" : ""}`}>
           {t.diasQuieta === 0 ? "hoy" : `hace ${t.diasQuieta} d`}
         </span>
+        {/* Quien la lleva (0071), en la esquina: sin titular no hay hueco. */}
+        <AsgAv tit={tit} />
       </div>
       <div className="cmtag">
         <span>
@@ -55,8 +64,13 @@ function Tarj({ t, arrastrable, onDrag }: { t: Tarjeta; arrastrable: boolean; on
   );
 }
 
-export default function TableroCRM({ d }: { d: Datos }) {
+export default function TableroCRM({ d, tits, equipo, yo, operadora }: { d: Datos; tits: Record<string, Titularidad>; equipo: PersonaParaAsignar[]; yo: Yo; operadora: string }) {
   const [tomada, setTomada] = useState<string | null>(null);
+  // PICAR UNA TARJETA ABRE SU FICHA (lámina «Quién lo lleva»): quién es, qué
+  // sigue, escribirle, y quién la lleva. El resto del tablero no cambia.
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const sel = [...d.tarjetas, ...d.caidas].find((t) => t.id === abierta) ?? null;
+  const etapaDe = (t: Tarjeta) => ETAPAS.find((e) => e.id === t.stage);
   const [error, setError] = useState("");
   const [pendiente, empezar] = useTransition();
 
@@ -77,6 +91,38 @@ export default function TableroCRM({ d }: { d: Datos }) {
         <div className="cmerr" role="alert">{error}</div>
       ) : null}
 
+      <Cajon
+        abierta={!!sel}
+        cerrar={() => setAbierta(null)}
+        ficha={
+          sel && {
+            iniciales: sel.iniciales,
+            titulo: sel.persona,
+            subtitulo: <>{sel.experiencia}{sel.salida ? ` · ${sel.salida}` : ""} · {sel.personas} {sel.personas === 1 ? "persona" : "personas"}</>,
+            banda: sel.stage === "caido" ? "Se cayó" : (etapaDe(sel)?.titulo ?? "Tarjeta"),
+            bandaDer: sel.diasQuieta === 0 ? "hoy" : `hace ${sel.diasQuieta} d`,
+            cuerpo: (
+              <>
+                {sel.motivoCaida ? (
+                  <p className="cmnext" style={{ marginTop: 0 }}><s>·</s><i>{sel.motivoCaida}</i></p>
+                ) : sel.fria ? (
+                  <p className="cmnext" style={{ marginTop: 0 }}><s>⚠</s><span>Sin contactar desde hace <b>{sel.diasQuieta} días</b></span></p>
+                ) : null}
+                <div className="act-row">
+                  {sel.telefono ? (
+                    <a className="btn btn-sm" href={`https://wa.me/${sel.telefono.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">Escribirle por WhatsApp</a>
+                  ) : sel.email ? (
+                    <a className="btn btn-sm" href={`mailto:${sel.email}`}>Escribirle</a>
+                  ) : (
+                    <span className="mut">Sin teléfono ni correo.</span>
+                  )}
+                </div>
+                <AsgCtl key={sel.id} objeto="tarjeta" objetoId={sel.id} operatorId={sel.operatorId} tit={tits[claveTit("tarjeta", sel.id)] ?? null} equipo={equipo} yo={yo} noun={`tarjetas de ${operadora}`} />
+              </>
+            ),
+          }
+        }
+      >
       <div className="cmboard">
         <div className="cmtrack">
           {ETAPAS.map((et) => {
@@ -98,7 +144,7 @@ export default function TableroCRM({ d }: { d: Datos }) {
                 <p className="src">{et.pie}</p>
                 <div className="cmcards">
                   {dentro.map((t) => (
-                    <Tarj key={t.id} t={t} arrastrable={recibe && !pendiente} onDrag={setTomada} />
+                    <Tarj key={t.id} t={t} arrastrable={recibe && !pendiente} onDrag={setTomada} tit={tits[claveTit("tarjeta", t.id)] ?? null} picked={t.id === abierta} onPick={() => setAbierta(t.id)} />
                   ))}
                   {dentro.length === 0 ? <div className="cmghost" /> : null}
                 </div>
@@ -133,13 +179,14 @@ export default function TableroCRM({ d }: { d: Datos }) {
             <p className="src">No es un fracaso permanente: es un «ahora no».</p>
             <div className="cmcards">
               {d.caidas.map((t) => (
-                <Tarj key={t.id} t={t} arrastrable={false} onDrag={() => {}} />
+                <Tarj key={t.id} t={t} arrastrable={false} onDrag={() => {}} tit={tits[claveTit("tarjeta", t.id)] ?? null} picked={t.id === abierta} onPick={() => setAbierta(t.id)} />
               ))}
               {d.caidas.length === 0 ? <div className="cmghost" /> : null}
             </div>
           </section>
         </div>
       </div>
+      </Cajon>
 
       {d.total === 0 ? (
         <div className="empty" style={{ marginTop: 18 }}>

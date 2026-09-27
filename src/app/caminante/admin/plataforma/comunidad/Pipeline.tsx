@@ -7,6 +7,9 @@ import { formatMXN } from "@/lib/admin/formato";
 import Cajon from "../../ui/Cajon";
 import Candados, { LlaveDeDuenos } from "./Candados";
 import SolicitudEnCajon from "./SolicitudEnCajon";
+import { AsgCtl, LoLleva } from "../../ui/asignar/Asignar";
+import { claveTit, type PersonaParaAsignar, type Titularidad, type Yo } from "@/lib/equipo/atribucion-reglas";
+import type { Objeto } from "@/lib/equipo/atribucion-reglas";
 
 // EL PIPELINE DE ALTAS — el mismo tablero del CRM de Caminante, otra unidad.
 //
@@ -23,7 +26,15 @@ import SolicitudEnCajon from "./SolicitudEnCajon";
 // La tarjeta ABRE. Antes no: se veía pulsable y no hacía nada, que es peor que
 // no parecerlo, porque enseña a no confiar en la pantalla.
 
-export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
+/** Qué se atribuye de una operadora: su solicitud mientras está en el embudo; su fila después. */
+export const objetoDe = (o: { etapa: string; solicitudId: string | null }): { objeto: Objeto; id: string | null } =>
+  (o.etapa === "llego" || o.etapa === "en_llamada") && o.solicitudId ? { objeto: "solicitud", id: o.solicitudId } : { objeto: "operadora", id: null };
+
+export default function Pipeline({ ops, tits, equipo, yo }: { ops: OperadoraPlataforma[]; tits: Record<string, Titularidad>; equipo: PersonaParaAsignar[]; yo: Yo }) {
+  const titDe = (o: OperadoraPlataforma): Titularidad => {
+    const ob = objetoDe(o);
+    return tits[claveTit(ob.objeto, ob.id ?? o.id)] ?? null;
+  };
   // La casa no está en el pipeline: no se da de alta a sí misma.
   const externas = ops.filter((o) => !o.esLaCasa);
   const [abierta, setAbierta] = useState<string | null>(null);
@@ -79,7 +90,10 @@ export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
               // la respuesta a una pregunta que todavía nadie hizo, y encima
               // obligaban a salirse del tablero para agendar.
               sel.etapa === "llego" || sel.etapa === "en_llamada" ? (
-                <SolicitudEnCajon o={sel} />
+                <>
+                  <SolicitudEnCajon o={sel} />
+                  <AsgCtl key={sel.id} objeto={objetoDe(sel).objeto} objetoId={objetoDe(sel).id ?? sel.id} operatorId={null} tit={titDe(sel)} equipo={equipo} yo={yo} noun="operadoras" />
+                </>
               ) : (
               <>
                 <div className={sel.puedeCobrar ? "verdict" : "verdict no"}>
@@ -155,6 +169,7 @@ export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
                     </span>
                   </span>
                 </div>
+                <AsgCtl key={sel.id} objeto="operadora" objetoId={sel.id} operatorId={null} tit={titDe(sel)} equipo={equipo} yo={yo} noun="operadoras" />
               </>
               )
             ),
@@ -226,6 +241,7 @@ export default function Pipeline({ ops }: { ops: OperadoraPlataforma[] }) {
                             <s>{"//"}</s>
                             <span>{t.siguiente}</span>
                           </p>
+                          <div className="asgfoot"><LoLleva tit={titDe(o)} /></div>
                         </div>
                         );
                       })

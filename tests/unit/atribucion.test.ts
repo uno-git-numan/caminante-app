@@ -6,7 +6,7 @@
 // `puedeTener`) y que el libro contesta «quién lo tenía el día X» sin
 // reconstruir nada.
 import { describe, expect, it } from "vitest";
-import { aQuienPaso, carteraDe, lineaDeHoy, puedeTener, titularEn, type FilaLibro } from "@/lib/equipo/atribucion-reglas";
+import { aQuienPaso, carteraDe, lineaDeHoy, puedeTener, titularEn, verboDeAsignacion, type FilaLibro } from "@/lib/equipo/atribucion-reglas";
 
 const ana = { id: "ana", activo: true, numan: true, facultades: ["onboarding"], operadoras: [] };
 const diego = { id: "diego", activo: true, numan: false, facultades: ["clientes", "armar"], operadoras: [{ id: "cam" }] };
@@ -67,5 +67,24 @@ describe("la línea «Hoy»", () => {
   it("cuenta en singular y plural, y suma las solicitudes en curso", () => {
     expect(lineaDeHoy({ ...vacia, operadora: ["a"], solicitud: ["s", "t"] }, { numan: true, operadora: false })).toBe("1 operadora en su cartera · 2 solicitudes en curso");
     expect(lineaDeHoy({ ...vacia, tarjeta: ["a", "b"], grupo: ["g"] }, { numan: false, operadora: true })).toBe("2 tarjetas abiertas · 1 grupo");
+  });
+});
+
+describe("qué botón ve cada quien (lámina «Quién lo lleva»)", () => {
+  const casa = { casa: true, staffId: null };
+  const yoAna = { casa: false, staffId: "ana" };
+  it("la casa asigna si nadie la lleva y pasa si alguien la lleva; nunca toma", () => {
+    expect(verboDeAsignacion(null, casa, false)).toBe("asignar");
+    expect(verboDeAsignacion({ ex: "Claudia" }, casa, false)).toBe("asignar");
+    expect(verboDeAsignacion({ staffId: "ana" }, casa, false)).toBe("pasar");
+  });
+  it("el equipo con la puerta abierta toma lo libre y pasa lo suyo; lo de otro sólo lo ve", () => {
+    expect(verboDeAsignacion(null, yoAna, true)).toBe("tomar");
+    expect(verboDeAsignacion({ staffId: "ana" }, yoAna, true)).toBe("pasar");
+    expect(verboDeAsignacion({ staffId: "diego" }, yoAna, true)).toBe(null);
+  });
+  it("sin la puerta, nada — ni deshabilitado", () => {
+    expect(verboDeAsignacion(null, yoAna, false)).toBe(null);
+    expect(verboDeAsignacion(null, { casa: false, staffId: null }, true)).toBe(null);
   });
 });

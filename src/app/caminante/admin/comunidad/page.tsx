@@ -8,6 +8,12 @@ import { getCurrentRole, puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { fetchBiblioteca } from "@/lib/comunidad/biblioteca";
 import { fetchSolicitudes } from "@/lib/comunidad/solicitudes";
 import { fetchTablero } from "@/lib/comunidad/tablero";
+import { fetchEquipoParaAsignar, fetchTitularidades, quienSoyParaAsignar } from "@/lib/equipo/titulares";
+import { operadoraQueMiro } from "@/lib/admin/queries";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { MI_ALTA_CSS } from "../ui/mi-alta-css";
+import { EQUIPO_CSS } from "../ui/equipo-css";
+import { ASIGNAR_CSS } from "../ui/asignar-css";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Comunidad · Admin — Caminante" };
@@ -52,14 +58,25 @@ export default async function ComunidadPage() {
   // plataforma —eso se fue al Pipeline del sombrero de numan (la plataforma)— sino sólo lo de
   // quien opera, que es suyo.
   const esCasa = (await getCurrentRole()) === "admin";
-  const [d, tablero, solicitudes] = await Promise.all([
+  const [d, tablero, solicitudes, equipo, yo, miro] = await Promise.all([
     fetchBiblioteca(),
     fetchTablero(),
     esCasa ? fetchSolicitudes() : Promise.resolve(null),
+    fetchEquipoParaAsignar(),
+    quienSoyParaAsignar(),
+    operadoraQueMiro(),
   ]);
+  // Quién lleva cada tarjeta (0071), en una consulta para todo el tablero; y el
+  // nombre de la operadora del sombrero, para decir «tarjetas de Caminante».
+  const [tits, { data: opMiro }] = await Promise.all([
+    fetchTitularidades([...tablero.tarjetas, ...tablero.caidas].map((t) => ({ objeto: "tarjeta" as const, id: t.id }))),
+    miro ? createSupabaseAdminClient().from("operators").select("name").eq("id", miro).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const nombreOperadora = (opMiro as { name: string | null } | null)?.name ?? "la operadora";
 
   return (
     <AdminShell active="personas">
+      <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS + EQUIPO_CSS + ASIGNAR_CSS }} />
       <div className="cmstick">
         <div className="sec-head">
           <div>
@@ -99,7 +116,7 @@ export default async function ComunidadPage() {
               </div>
             </div>
             {solicitudes ? <PorContestar d={solicitudes} /> : null}
-            <TableroCRM d={tablero} />
+            <TableroCRM d={tablero} tits={tits} equipo={equipo} yo={yo} operadora={nombreOperadora} />
           </>
         }
         biblioteca={
