@@ -261,8 +261,11 @@ function Alta({ modo, todos, onClose }: { modo: ModoEquipo; todos: MiembroEnPant
     ? "Falta el correo."
     : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c)
       ? "Ese correo no se ve completo."
-      : scope === "casa" && !c.endsWith("@numanhub.com")
-        ? "El equipo de la casa entra con su correo @numanhub.com."
+      // Sólo quien trabaja para NUMAN entra con @numanhub.com; alguien de
+      // Caminante o Kéntro puede entrar con el correo que ya usa (Cat entra
+      // con el de Nomádika). Luis, 27 sep 2026.
+      : scope === "casa" && f.para.includes("numan") && !c.endsWith("@numanhub.com")
+        ? "Quien trabaja para numan entra con su correo @numanhub.com."
         : todos.some((x) => x.email === c && x.activo)
           ? "Esa persona ya está en el equipo."
           : errorServidor;
@@ -298,7 +301,7 @@ function Alta({ modo, todos, onClose }: { modo: ModoEquipo; todos: MiembroEnPant
       <div className="ph"><b>Dar de alta</b><span className="fr">Sin contraseña: entra con su correo.</span></div>
       <div className="eqbody">
         <div className="eqfields">
-          <Input label="Correo" type="email" value={f.correo} placeholder={scope === "casa" ? "nombre@numanhub.com" : "nombre@correo.com"} error={tried && !!err} help={tried && err ? err : scope === "casa" ? "Su correo @numanhub.com. Con ése entra." : "Con ése entra. No le pedimos contraseña."} onChange={(v) => { setErrorServidor(null); setF({ ...f, correo: v }); }} />
+          <Input label="Correo" type="email" value={f.correo} placeholder={scope === "casa" && f.para.includes("numan") ? "nombre@numanhub.com" : "nombre@correo.com"} error={tried && !!err} help={tried && err ? err : scope === "casa" && f.para.includes("numan") ? "Su correo @numanhub.com. Con ése entra." : "Con ése entra. No le pedimos contraseña."} onChange={(v) => { setErrorServidor(null); setF({ ...f, correo: v }); }} />
           <Input label="Nombre" value={f.nombre} error={tried && !!errN} help={tried && errN ? errN : ""} onChange={(v) => setF({ ...f, nombre: v })} />
         </div>
         {scope === "casa" ? (
