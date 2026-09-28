@@ -137,10 +137,16 @@ plataforma + Mi alta/expediente/marca por `?operadora=`) y
 `rutaDeEquipoOperadora` (lo del operador menos `/mi-alta/equipo`: el equipo no
 se administra solo). El layout las aplica; falla cerrado.
 
-**Alta y facultades** (`lib/equipo/actions.ts`): la casa en
-`/plataforma/equipo`; cada operadora a su gente en `/mi-alta/equipo` (sólo su
-operadora, sólo facultades de operadora). Un correo de `admin_whitelist` no se
-puede meter al equipo. La baja apaga `activo`, conserva la fila.
+**Alta y facultades** (`lib/equipo/actions.ts`, Luis 27 sep 2026): **cada
+quien administra a su gente**. La casa en `/plataforma/equipo` da de alta a la
+de numan y a la de las operadoras PROPIAS (Caminante, Kéntro) —a una externa
+como Nomádika le da de alta su dueña, y numan ni la ve como opción ni lista a
+su equipo—. Cada operadora, propias incluidas, tiene la pestaña **«Equipo»**
+(`EQUIPO_NAV`, `/mi-alta/equipo`): la dueña la ve, su equipo no
+(`sinAdministrarEquipo`), y la casa con el sombrero de una propia la ve
+apuntando a ésa (`?operadora=` o el sombrero puesto). Sólo facultades de
+operadora desde ahí. Un correo de `admin_whitelist` no se puede meter al
+equipo. La baja apaga `activo`, conserva la fila.
 
 **La atribución (0071, `lib/equipo/atribucion*.ts`).** Un LIBRO
 (`staff_atribuciones`): una fila por (persona, objeto, tramo); la abierta tiene

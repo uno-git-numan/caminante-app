@@ -10,7 +10,7 @@ import {
   type AdminSection,
   navConAltaCerrada,
   MI_ALTA_NAV,
-} from "./nav";
+ sinAdministrarEquipo } from "./nav";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { candadoDeAlta, rebotaDelAlta } from "@/lib/operadores/nav-alta-servidor";
@@ -174,9 +174,11 @@ export default async function AdminShell({
         : [[], null];
   // «Mi alta» aparece en el nav de la casa sólo si el sombrero es de una
   // operadora que tiene alta. Se calcula aquí y no arriba porque depende de él.
+  // «Equipo»: la dueña la ve; su EQUIPO no (no se administra a sí mismo); la
+  // casa con el sombrero de una propia ve la de esa operadora.
   const items = comoOperador
-    ? navPara("operador")
-    : navPara("admin", sombrero === "operadora" && !!puesto && !puesto.esLaCasa);
+    ? equipo ? sinAdministrarEquipo(navPara("operador")) : navPara("operador")
+    : navPara("admin", sombrero === "operadora" && !!puesto && !puesto.esLaCasa, sombrero === "operadora" && puesto ? puesto.id : undefined);
 
   // EL ALTA CIERRA SECCIONES. El layout lo revisa en la carga completa; aquí se
   // revisa en cada navegación con clics, que el layout no ve. Misma función.

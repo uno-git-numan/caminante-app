@@ -1,8 +1,9 @@
 // TU EQUIPO (la operadora) — «como una agencia de viajes» (Luis, 25 sep 2026).
 //
 // La operadora da de alta a su gente desde su propio panel: sólo para ella y
-// sólo con facultades de operadora (clientes, armar, campo). La casa entra POR
-// una operadora con `?operadora=`, como en el expediente. Un EMPLEADO de la
+// sólo con facultades de operadora (clientes, armar, campo). Caminante y Kéntro
+// también, como cualquier otra: la casa entra POR ellas con el sombrero puesto
+// (pestaña «Equipo») o con `?operadora=`, como en el expediente. Un EMPLEADO de la
 // operadora no llega aquí (lista blanca): el equipo no se administra solo.
 
 import type { Metadata } from "next";
@@ -11,6 +12,7 @@ import AdminShell from "../../ui/AdminShell";
 import { MI_ALTA_CSS } from "../../ui/mi-alta-css";
 import { EQUIPO_CSS } from "../../ui/equipo-css";
 import { alcanceActual, esOperador } from "@/lib/auth/alcance";
+import { sombreroPuesto } from "@/lib/auth/sombrero";
 import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { fetchEquipo } from "@/lib/equipo/lista";
 import { fetchRendimiento } from "@/lib/equipo/rendimiento";
@@ -26,7 +28,9 @@ export default async function EquipoOperadoraPage({ searchParams }: { searchPara
   let nombre: string;
   let porOtra = false;
   if (a?.tipo === "casa") {
-    const pedida = (q.operadora ?? "").trim();
+    // Por ?operadora=, o por el sombrero puesto (la pestaña «Equipo» de
+    // Caminante o Kéntro llega así). Sin ninguno de los dos, a la de la casa.
+    const pedida = (q.operadora ?? "").trim() || (await sombreroPuesto())?.id || "";
     const n = pedida ? await nombreDeOperadora(pedida) : null;
     if (!pedida || !n) redirect("/caminante/admin/plataforma/equipo");
     operatorId = pedida;
@@ -43,7 +47,7 @@ export default async function EquipoOperadoraPage({ searchParams }: { searchPara
   const [miembros, rendimiento] = await Promise.all([fetchEquipo(operatorId), fetchRendimiento({ soloOperadora: operatorId })]);
 
   return (
-    <AdminShell active="panorama">
+    <AdminShell active="op-equipo">
       <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS + EQUIPO_CSS }} />
       <Equipo
         miembros={miembros}

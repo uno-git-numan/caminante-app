@@ -54,7 +54,7 @@ describe("rutaCerrada", () => {
 });
 
 // ── Cuando el alta cierra, «Mi alta» se vuelve «Mi perfil» a la derecha ──────
-import { MI_ALTA_NAV, MI_PERFIL_NAV, navConAltaCerrada, navPara } from "@/app/caminante/admin/ui/nav";
+import { MI_ALTA_NAV, MI_PERFIL_NAV, navConAltaCerrada, navPara, sinAdministrarEquipo } from "@/app/caminante/admin/ui/nav";
 
 describe("navConAltaCerrada", () => {
   it("quita «Mi alta» del frente y pone «Mi perfil» al final, con la misma ruta", () => {
@@ -65,5 +65,21 @@ describe("navConAltaCerrada", () => {
     expect(despues[despues.length - 1]).toBe(MI_PERFIL_NAV);
     expect(MI_PERFIL_NAV.href).toBe(MI_ALTA_NAV.href);
     expect(despues.length).toBe(antes.length);
+  });
+});
+
+describe("«Equipo» es una pestaña de cada operadora (27 sep 2026)", () => {
+  it("la operadora la ve al final; su equipo no; la casa con sombrero de una propia la ve apuntando a ésa", () => {
+    const op = navPara("operador");
+    expect(op[op.length - 1]).toMatchObject({ key: "op-equipo", href: "/caminante/admin/mi-alta/equipo" });
+    expect(sinAdministrarEquipo(op).some((i) => i.key === "op-equipo")).toBe(false);
+    expect(navPara("admin").some((i) => i.key === "op-equipo")).toBe(false);
+    const casa = navPara("admin", false, "66ed7510");
+    expect(casa[casa.length - 1]).toMatchObject({ key: "op-equipo", href: "/caminante/admin/mi-alta/equipo?operadora=66ed7510" });
+  });
+  it("«Mi perfil» sigue yendo al final, después de Equipo", () => {
+    const n = navConAltaCerrada(navPara("operador"));
+    expect(n[n.length - 1]).toBe(MI_PERFIL_NAV);
+    expect(n[n.length - 2].key).toBe("op-equipo");
   });
 });

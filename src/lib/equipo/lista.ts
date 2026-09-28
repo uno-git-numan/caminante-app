@@ -33,7 +33,7 @@ export async function fetchEquipo(soloOperadora?: string): Promise<MiembroEnPant
   const [{ data: staff }, { data: rel }, { data: ops }, libro] = await Promise.all([
     sb.from("staff").select("id, email, nombre, numan, facultades, activo, alta_at, baja_at").order("alta_at"),
     sb.from("staff_operadoras").select("staff_id, operator_id"),
-    sb.from("operators").select("id, name"),
+    sb.from("operators").select("id, name, propia"),
     leerLibro(sb),
   ]);
   const nombreDe = new Map(((ops ?? []) as { id: string; name: string | null }[]).map((o) => [o.id, o.name || "Operadora"]));
@@ -90,7 +90,15 @@ export async function fetchEquipo(soloOperadora?: string): Promise<MiembroEnPant
   // Una operadora sólo ve a quien trabaja para ella, y de esa persona sólo lo
   // que le atañe: si además es de numan o de otra, no es asunto suyo. Su
   // cartera también se recorta a lo de ESTA operadora.
-  if (!soloOperadora) return todos;
+  // La casa ve a SU gente: la de numan y la de las operadoras propias. La de
+  // una externa es de su dueña; ni se lista, y si alguien de la casa además
+  // trabaja para una externa, ese chip no se enseña aquí.
+  if (!soloOperadora) {
+    const propias = new Set(((ops ?? []) as { id: string; propia?: boolean }[]).filter((o) => o.propia === true).map((o) => o.id));
+    return todos
+      .filter((m) => m.numan || m.operadoras.some((o) => propias.has(o.id)))
+      .map((m) => ({ ...m, operadoras: m.operadoras.filter((o) => propias.has(o.id)), cartera: m.cartera.filter((x) => !x.operatorId || propias.has(x.operatorId)) }));
+  }
   return todos
     .filter((m) => m.activo && m.operadoras.some((o) => o.id === soloOperadora))
     .map((m) => ({

@@ -79,6 +79,14 @@ export async function agregarAlEquipo(input: {
   }
 
   const sb = createSupabaseAdminClient();
+  // La casa da de alta a su gente y a la de las operadoras PROPIAS. A la de una
+  // externa le da de alta su dueña: numan no mete gente al equipo de Nomádika.
+  if (quien.casa && operadoras.length) {
+    const { data: prop } = await sb.from("operators").select("id").in("id", operadoras).eq("propia", true);
+    const propias = new Set(((prop ?? []) as { id: string }[]).map((o) => o.id));
+    const ajena = operadoras.find((id) => !propias.has(id));
+    if (ajena) return { ok: false, error: "A esa operadora le da de alta su dueña, desde su propio panel." };
+  }
   // ⚠️ Un correo que ya es de la casa no se vuelve equipo: sería bajarle las
   // llaves a medias sin que nadie lo decidiera. Se dice.
   const { data: wl } = await sb.from("admin_whitelist").select("email").eq("email", email).eq("is_active", true).maybeSingle();

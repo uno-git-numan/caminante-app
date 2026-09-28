@@ -28,7 +28,9 @@ export type AdminSection =
   | "pl-experiencias"
   | "pl-comunidad"
   | "pl-recursos"
-  | "pl-equipo";
+  | "pl-equipo"
+  // «Equipo» de una OPERADORA (su gente), distinta de la de la plataforma.
+  | "op-equipo";
 
 export type AdminNavItem = { key: AdminSection; label: string; href?: string; soon?: boolean };
 
@@ -152,10 +154,26 @@ export const MI_ALTA_NAV: AdminNavItem = {
   href: "/caminante/admin/mi-alta",
 };
 
+// «Equipo»: cada operadora administra a SU gente desde su propio panel (Luis,
+// 27 sep 2026), Caminante y Kéntro incluidas, como cualquier otra. La casa con
+// el sombrero de una propia ve la misma pestaña apuntando a esa operadora; a
+// las externas (Nomádika) no les da de alta a nadie: eso es de la dueña.
+export const EQUIPO_NAV: AdminNavItem = {
+  key: "op-equipo",
+  label: "Equipo",
+  href: "/caminante/admin/mi-alta/equipo",
+};
+
 export const ADMIN_NAV_DE_OPERADOR: AdminNavItem[] = [
   MI_ALTA_NAV,
   ...ADMIN_NAV.filter((i) => !FUERA_DEL_OPERADOR.includes(i.key)),
+  EQUIPO_NAV,
 ];
+
+/** Puro: el equipo de una operadora no administra al equipo — sin la pestaña. */
+export function sinAdministrarEquipo(items: AdminNavItem[]): AdminNavItem[] {
+  return items.filter((i) => i.key !== EQUIPO_NAV.key);
+}
 
 /**
  * @param conAlta — la casa trae puesto el sombrero de una operadora que SÍ
@@ -180,7 +198,12 @@ export function navConAltaCerrada(items: AdminNavItem[]): AdminNavItem[] {
   return [...items.filter((i) => i.href !== MI_ALTA_NAV.href), MI_PERFIL_NAV];
 }
 
-export function navPara(rol: "admin" | "operador", conAlta = false): AdminNavItem[] {
+/**
+ * @param equipoDe — la casa trae puesto el sombrero de una operadora PROPIA
+ *   (Caminante o Kéntro): su pestaña «Equipo» apunta a la gente de ésa.
+ */
+export function navPara(rol: "admin" | "operador", conAlta = false, equipoDe?: string): AdminNavItem[] {
   if (rol === "operador") return ADMIN_NAV_DE_OPERADOR;
-  return conAlta ? [MI_ALTA_NAV, ...ADMIN_NAV] : ADMIN_NAV;
+  const base = conAlta ? [MI_ALTA_NAV, ...ADMIN_NAV] : ADMIN_NAV;
+  return equipoDe ? [...base, { ...EQUIPO_NAV, href: `${EQUIPO_NAV.href}?operadora=${encodeURIComponent(equipoDe)}` }] : base;
 }
