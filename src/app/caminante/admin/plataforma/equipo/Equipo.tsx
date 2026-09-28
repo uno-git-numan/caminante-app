@@ -281,7 +281,10 @@ function Alta({ modo, todos, onClose }: { modo: ModoEquipo; todos: MiembroEnPant
         email: c,
         nombre: f.nombre.trim(),
         numan: paraTmp.numan,
-        operadoras: modo.casa ? f.para.filter((x) => x !== "numan") : undefined,
+        // Desde «Tu equipo» siempre se manda la operadora: la dueña se da de alta
+        // a sí misma (el servidor la ignora y usa la suya), pero la CASA actuando
+        // por ella necesita que viaje, o el servidor no sabe para quién es.
+        operadoras: modo.casa ? f.para.filter((x) => x !== "numan") : [modo.operatorId],
         facultades: facs.filter((k) => f.fac.includes(k) && facOK(k, paraTmp, scope)),
       });
       if (!r.ok) { setErrorServidor(r.error); return; }
