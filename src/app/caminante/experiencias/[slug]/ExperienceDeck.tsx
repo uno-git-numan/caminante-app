@@ -343,11 +343,21 @@ export default function ExperienceDeck({
 
   // Selección EXPLÍCITA de slides (orden fijo del flyer, independiente del
   // orden del array): portada · experiencia · itinerario · precio · qué
-  // incluye · comunidad · qué llevar · faq · cierre. Lo demás (statement,
-  // guías/variedades/aliados, fechas) NO va al flyer.
+  // incluye · quién te guía · comunidad · qué llevar · faq · cierre. Lo demás
+  // (statement, listas de aliados/variedades, fechas) NO va al flyer.
   const splits = blocks.filter((b): b is V2Split => b.type === "split");
   const expSplit = splits.find((b) => b.anchor === "experiencia" || (b.frame === "xp" && b.points));
   const comunidad = splits.find((b) => b !== expSplit && /comunidad/i.test(`${b.eyebrow} ${b.title}`));
+  // Quién te guía: los perfiles (modo «párrafos») CON foto. Un guía sin
+  // párrafos o sin foto no es una lámina, es un hueco: no va. Nació el 30 sep
+  // 2026 porque el flyer de Volcanes salió sin Eder Belmont.
+  const guias = splits.filter(
+    (b) =>
+      b !== expSplit &&
+      b !== comunidad &&
+      (b.paragraphs ?? []).some((t) => t.trim()) &&
+      b.media.images.some((im) => im.url),
+  );
   const itin = blocks.find((b): b is V2Itinerary => b.type === "itinerary");
   const checklist = blocks.find((b): b is V2Checklist => b.type === "checklist");
   const packing = blocks.find((b): b is V2Packing => b.type === "packing");
@@ -355,7 +365,7 @@ export default function ExperienceDeck({
   const closing = blocks.find((b): b is V2Closing => b.type === "closing");
 
   // numeración: todos los slides intermedios (sin portada ni cierre)
-  const middle = [expSplit, itin, tariff, checklist, comunidad, packing, faq].filter(Boolean).length;
+  const middle = [expSplit, itin, tariff, checklist, ...guias, comunidad, packing, faq].filter(Boolean).length;
   let n = 0;
   const pagerFor = () => `${String(++n).padStart(2, "0")} / ${String(middle).padStart(2, "0")}`;
 
@@ -366,6 +376,7 @@ export default function ExperienceDeck({
       {itin ? <ItinSlide b={itin} pager={pagerFor()} collabs={collabs} /> : null}
       {tariff ? <TariffSlide b={tariff} pager={pagerFor()} bg={gallery[0] || heroBgUrl} tiers={experience.priceTiers ?? []} collabs={collabs} /> : null}
       {checklist ? <ChecklistSlide b={checklist} pager={pagerFor()} photo={gallery[1] || gallery[0]} collabs={collabs} /> : null}
+      {guias.map((g, i) => <SplitSlide key={`guia-${i}`} b={g} pager={pagerFor()} collabs={collabs} />)}
       {comunidad ? <SplitSlide b={comunidad} pager={pagerFor()} collabs={collabs} /> : null}
       {packing ? <PackingSlide b={packing} pager={pagerFor()} collabs={collabs} /> : null}
       {faq ? <FaqSlide b={faq} pager={pagerFor()} collabs={collabs} /> : null}

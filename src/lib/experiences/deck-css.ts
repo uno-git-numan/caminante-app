@@ -28,6 +28,13 @@ html,body{background:#e9e7e0;}
 .slide{position:relative;width:${W}px;height:${H}px;overflow:hidden;background:var(--cream);page-break-after:always;break-after:page;box-shadow:0 20px 50px -30px rgba(0,0,0,.5);}
 .slide:last-child{page-break-after:auto;break-after:auto;}
 @media print{.deck{gap:0;padding:0;}.slide{box-shadow:none;}}
+/* ⚠️ IMPRIMIR LOS COLORES TAL CUAL. Sin esto, Chrome con «Gráficos de fondo»
+   apagado (ajuste que persiste en su diálogo) entra en modo economía: pinta los
+   veils como un rectángulo BLANCO opaco encima de la foto a sangre y fuerza el
+   texto blanco a negro. Resultado: portada, itinerario y cierre salen en blanco
+   y sin foto (PDF de Luis, 30 sep 2026; la foto SÍ iba dentro del PDF, tapada).
+   `exact` hace que el ajuste del diálogo deje de importar. */
+.deck,.deck *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
 /* ---- marca / pager / tipografía base ----
    El sello SIEMPRE va en sus colores verdaderos (olive/sand/orange);
