@@ -139,6 +139,20 @@ export const ACTIVIDADES: Actividad[] = [
       { slug: "plan-mareas", nombre: "Plan de mareas y viento", porQue: "El viento de la tarde decide si se puede volver remando.", vence: false }],
     generalesRelevantes: ["primeros-auxilios", "protocolo-emergencia", "poliza-gm"] },
 
+  // Snorkel y apnea (buceo libre): nadar con cardúmenes, marlin, móbulas o
+  // ballenas desde una panga, sin tanque. Nació el 29 sep 2026 con el Sardine
+  // Run de Bahía Magdalena. NO es buceo autónomo (sin tanques ni cámara
+  // hiperbárica), pero sí es mar abierto desde embarcación: lo que se pide es
+  // la flotación, la radio, el plan de mar y la embarcación en regla.
+  { slug: "snorkel", nombre: "Snorkel y apnea (buceo libre)", norma: NOM09,
+    documentos: [cred("buceo libre"),
+      { slug: "flotacion", nombre: "Chalecos o equipo de flotación certificados", porQue: "En mar abierto, quien se cansa o se marea necesita flotar sin esfuerzo. Con talla para cada persona.", vence: false },
+      { slug: "radio-vhf", nombre: "Radio VHF en la embarcación", porQue: "Es el canal por el que se pide ayuda en el agua.", vence: false },
+      { slug: "plan-mar", nombre: "Plan de mar: clima, corrientes y punto de retorno", porQue: "El viento y la corriente deciden si se entra al agua y hasta dónde. Se consulta el mismo día, no la semana anterior.", vence: false },
+      { slug: "embarcacion", nombre: "Matrícula de la embarcación y libreta de mar del capitán", porQue: "La panga y quien la lleva tienen que estar registrados ante la autoridad marítima.", vence: true },
+      { slug: "protocolo-agua", nombre: "Protocolo de conteo y rescate en el agua", porQue: "Cuántos entran, cuántos salen, quién vigila desde la panga y cómo se recupera a alguien en apuros.", vence: false }],
+    generalesRelevantes: ["primeros-auxilios", "protocolo-emergencia", "poliza-gm"] },
+
   { slug: "buceo", nombre: "Buceo autónomo", norma: "NOM-05-TUR-2003 y NOM-012-TUR",
     documentos: [cred("buceo"),
       { slug: "cert-agencia", nombre: "Certificación de agencia del guía (PADI, NAUI, SSI o CMAS)", porQue: "Vigente. La NOM-05 obliga a guías con credencial reconocida.", vence: true },
