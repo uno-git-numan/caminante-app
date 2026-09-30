@@ -33,7 +33,7 @@ html,body{background:#e9e7e0;}
    veils como un rectángulo BLANCO opaco encima de la foto a sangre y fuerza el
    texto blanco a negro. Resultado: portada, itinerario y cierre salen en blanco
    y sin foto (PDF de Luis, 30 sep 2026; la foto SÍ iba dentro del PDF, tapada).
-   `exact` hace que el ajuste del diálogo deje de importar. */
+   «exact» hace que el ajuste del diálogo deje de importar. */
 .deck,.deck *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
 /* ---- marca / pager / tipografía base ----
