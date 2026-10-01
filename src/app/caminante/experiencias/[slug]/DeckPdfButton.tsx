@@ -54,6 +54,14 @@ async function slideJpeg(slide: HTMLElement): Promise<PageJpeg> {
     image.onerror = () => rej(new Error("svg render"));
     image.src = url;
   });
+  // ⚠️ SAFARI (iPhone): `onload` del SVG dispara ANTES de que las fotos que van
+  // dentro del foreignObject estén decodificadas → drawImage pinta textos y
+  // degradados, y las fotos NO (PDF de Luis, 1 oct 2026: 7 páginas sin una
+  // sola foto). Reproducido en Safari de escritorio con una página de prueba:
+  // dibujar en onload = sin foto; decode() + una pausa = con foto. Chrome no
+  // lo necesita y no le estorba.
+  if (image.decode) await image.decode().catch(() => undefined);
+  await new Promise((r) => setTimeout(r, 250));
   const canvas = document.createElement("canvas");
   canvas.width = w * SCALE;
   canvas.height = h * SCALE;
