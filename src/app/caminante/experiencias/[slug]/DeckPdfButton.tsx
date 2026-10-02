@@ -7,15 +7,19 @@
 // CSS+fotos inlineadas (mismo serializador probado de SocialExport/Kit) →
 // canvas JPEG → PDF ensamblado a mano (sin librerías: páginas + XObjects
 // DCTDecode + xref). Una lámina = una página exacta, en cualquier dispositivo.
+// Desde el 2 oct 2026 las fotos se dibujan a mano en el canvas (ver slideJpeg):
+// WebKit en iPhone no las pintaba dentro del foreignObject.
 import { useState } from "react";
 
 const SCALE = 1.5; // 720×1280 → 1080×1920 px de raster por página
 
 async function toDataUrl(url: string): Promise<string> {
-  const blob = await fetch(url, { mode: "cors", cache: "no-store" }).then((r) => {
-    if (!r.ok) throw new Error("img " + r.status);
-    return r.blob();
-  });
+  const blob = await fetch(url, { mode: "cors", cache: "no-store" }).then(
+    (r) => {
+      if (!r.ok) throw new Error("img " + r.status);
+      return r.blob();
+    },
+  );
   return await new Promise((res, rej) => {
     const fr = new FileReader();
     fr.onload = () => res(fr.result as string);
@@ -26,26 +30,147 @@ async function toDataUrl(url: string): Promise<string> {
 
 type PageJpeg = { b64: string; w: number; h: number; pw: number; ph: number };
 
+// Una foto decodificada, lista para drawImage. Cache por URL: la misma foto
+// aparece en varias láminas (hero, clones del glass) y se baja una sola vez.
+const fotos = new Map<string, Promise<HTMLImageElement>>();
+function cargarFoto(src: string): Promise<HTMLImageElement> {
+  let p = fotos.get(src);
+  if (!p) {
+    p = (async () => {
+      const data = src.startsWith("data:") ? src : await toDataUrl(src);
+      const img = new Image();
+      await new Promise<void>((res, rej) => {
+        img.onload = () => res();
+        img.onerror = () => rej(new Error("foto"));
+        img.src = data;
+      });
+      if (img.decode) await img.decode().catch(() => undefined);
+      return img;
+    })();
+    fotos.set(src, p);
+  }
+  return p;
+}
+
+// object-position «50% 30%» → fracciones. Sin dato, centrado.
+function posicion(objectPosition: string): [number, number] {
+  const m = objectPosition.match(/([\d.]+)%\s+([\d.]+)%/);
+  return m ? [Number(m[1]) / 100, Number(m[2]) / 100] : [0.5, 0.5];
+}
+
+// Rectángulo de un elemento RELATIVO a la lámina, en px CSS.
+function rectEn(slide: DOMRect, el: Element) {
+  const r = el.getBoundingClientRect();
+  return {
+    x: r.left - slide.left,
+    y: r.top - slide.top,
+    w: r.width,
+    h: r.height,
+  };
+}
+
+// ⚠️ LAS FOTOS SE DIBUJAN A MANO, NO DENTRO DEL SVG.
+//
+// El pipeline original metía las fotos como data URLs dentro del foreignObject
+// y rasterizaba todo de un golpe. En iPhone (Safari y Chrome usan WebKit) el
+// canvas salía con textos y degradados pero SIN UNA SOLA FOTO (PDFs de Luis,
+// 1 y 2 oct 2026), y esperar decode() no lo arregló. Aquí cada <img> se pinta
+// con drawImage directo —eso WebKit sí lo hace bien— en el mismo rectángulo y
+// con el mismo recorte (object-fit: cover + object-position) que tiene en
+// pantalla, y DESPUÉS va la capa SVG con el resto: textos, veils, tarjetas,
+// sin ningún <img> y con transparentes las cajas que en el DOM están detrás
+// de una foto (.slide, .s-media, las celdas del mosaico, el clon del glass).
+// El orden es el del DOM: en el deck la foto siempre es el fondo de su caja.
 async function slideJpeg(slide: HTMLElement): Promise<PageJpeg> {
   await document.fonts.ready;
   const w = slide.offsetWidth || 720;
   const h = slide.offsetHeight || 1280;
   const deckClass = slide.closest(".deck")?.className || "deck v";
+  const canvas = document.createElement("canvas");
+  canvas.width = w * SCALE;
+  canvas.height = h * SCALE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas");
+  ctx.scale(SCALE, SCALE);
+  // JPEG no tiene transparencia → el fondo de la lámina, explícito.
+  ctx.fillStyle = getComputedStyle(slide).backgroundColor || "#ffffff";
+  ctx.fillRect(0, 0, w, h);
+
+  const sr = slide.getBoundingClientRect();
+  // Cajas de media vacías conservan su fondo (gris panel) aunque no haya foto.
+  slide.querySelectorAll(".s-media").forEach((m) => {
+    const r = rectEn(sr, m);
+    ctx.fillStyle = getComputedStyle(m).backgroundColor;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+  });
+
+  // 1 · Las fotos, en orden de DOM, recortadas a la caja que las contiene.
+  // Los logos del pie (.brandfoot, z-index arriba de todo) van en una segunda
+  // pasada DESPUÉS de la capa SVG: si fueran antes, el veil los oscurecería.
+  const todas = Array.from(slide.querySelectorAll("img"));
+  const alPie = (img: HTMLImageElement) => !!img.closest(".brandfoot");
+  const pintar = async (imgs: HTMLImageElement[]) => {
+    for (const img of imgs) {
+      const src = img.currentSrc || img.getAttribute("src") || "";
+      const dest = rectEn(sr, img);
+      if (!src || dest.w <= 0 || dest.h <= 0) continue;
+      let foto: HTMLImageElement;
+      try {
+        foto = await cargarFoto(src);
+      } catch {
+        continue; // una foto rota no tumba el PDF
+      }
+      const iw = foto.naturalWidth || 1;
+      const ih = foto.naturalHeight || 1;
+      const cs = getComputedStyle(img);
+      const clipBox = img.parentElement
+        ? rectEn(sr, img.parentElement)
+        : { x: 0, y: 0, w, h };
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(clipBox.x, clipBox.y, clipBox.w, clipBox.h);
+      ctx.clip();
+      // CSS filter (blur del glass) sólo donde el canvas lo soporte; si no, la
+      // foto va nítida bajo el tinte, que es un degradado digno y no un hueco.
+      if ("filter" in ctx && cs.filter && cs.filter !== "none")
+        ctx.filter = cs.filter;
+      if (cs.objectFit === "cover" || cs.objectFit === "contain") {
+        const cover = cs.objectFit === "cover";
+        const s = cover
+          ? Math.max(dest.w / iw, dest.h / ih)
+          : Math.min(dest.w / iw, dest.h / ih);
+        const dw = iw * s;
+        const dh = ih * s;
+        const [px, py] = posicion(cs.objectPosition);
+        ctx.drawImage(
+          foto,
+          dest.x + (dest.w - dw) * px,
+          dest.y + (dest.h - dh) * py,
+          dw,
+          dh,
+        );
+      } else {
+        ctx.drawImage(foto, dest.x, dest.y, dest.w, dest.h);
+      }
+      ctx.restore();
+    }
+  };
+  await pintar(todas.filter((i) => !alPie(i)));
+
+  // 2 · La capa SVG: todo menos las fotos, con transparentes las cajas que
+  // en el DOM están detrás de una foto, para no taparlas.
   const clone = slide.cloneNode(true) as HTMLElement;
-  const imgs = Array.from(clone.querySelectorAll("img"));
-  await Promise.all(
-    imgs.map(async (img) => {
-      const src = img.getAttribute("src");
-      if (!src || src.startsWith("data:")) return;
-      img.setAttribute("src", await toDataUrl(src));
-    }),
-  );
-  const css = Array.from(document.querySelectorAll("style")).map((s) => s.textContent || "").join("\n");
+  clone.querySelectorAll("img").forEach((i) => i.remove());
+  const css =
+    Array.from(document.querySelectorAll("style"))
+      .map((s) => s.textContent || "")
+      .join("\n") +
+    "\n.slide,.s-media,.s-mosaic .m,.gclone{background:transparent !important;box-shadow:none !important;}";
   const xhtml = new XMLSerializer().serializeToString(clone);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w * SCALE}" height="${h * SCALE}">` +
     `<foreignObject width="100%" height="100%">` +
-    `<div xmlns="http://www.w3.org/1999/xhtml" class="${deckClass}" style="width:${w}px;height:${h}px;transform:scale(${SCALE});transform-origin:top left;padding:0;gap:0;margin:0;display:block;font-family:'Geist',system-ui,sans-serif;">` +
+    `<div xmlns="http://www.w3.org/1999/xhtml" class="${deckClass}" style="width:${w}px;height:${h}px;transform:scale(${SCALE});transform-origin:top left;padding:0;gap:0;margin:0;display:block;background:transparent;font-family:'Geist',system-ui,sans-serif;">` +
     `<style>${css}</style>${xhtml}</div></foreignObject></svg>`;
   const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
   const image = new Image();
@@ -54,25 +179,19 @@ async function slideJpeg(slide: HTMLElement): Promise<PageJpeg> {
     image.onerror = () => rej(new Error("svg render"));
     image.src = url;
   });
-  // ⚠️ SAFARI (iPhone): `onload` del SVG dispara ANTES de que las fotos que van
-  // dentro del foreignObject estén decodificadas → drawImage pinta textos y
-  // degradados, y las fotos NO (PDF de Luis, 1 oct 2026: 7 páginas sin una
-  // sola foto). Reproducido en Safari de escritorio con una página de prueba:
-  // dibujar en onload = sin foto; decode() + una pausa = con foto. Chrome no
-  // lo necesita y no le estorba.
   if (image.decode) await image.decode().catch(() => undefined);
-  await new Promise((r) => setTimeout(r, 250));
-  const canvas = document.createElement("canvas");
-  canvas.width = w * SCALE;
-  canvas.height = h * SCALE;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas");
-  // JPEG no tiene transparencia → fondo blanco explícito (si no, sale negro).
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(image, 0, 0);
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  await pintar(todas.filter(alPie));
   const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-  return { b64: dataUrl.split(",")[1], w: canvas.width, h: canvas.height, pw: w, ph: h };
+  return {
+    b64: dataUrl.split(",")[1],
+    w: canvas.width,
+    h: canvas.height,
+    pw: w,
+    ph: h,
+  };
 }
 
 // PDF mínimo válido: catálogo + páginas; cada página = content stream que pinta
@@ -102,7 +221,10 @@ function buildPdf(pages: PageJpeg[]): Blob {
   push(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a])); // marcador binario
 
   obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
-  obj(2, `<< /Type /Pages /Kids [${pages.map((_, i) => `${pageObj(i)} 0 R`).join(" ")}] /Count ${n} >>`);
+  obj(
+    2,
+    `<< /Type /Pages /Kids [${pages.map((_, i) => `${pageObj(i)} 0 R`).join(" ")}] /Count ${n} >>`,
+  );
   pages.forEach((p, i) => {
     obj(
       pageObj(i),
@@ -110,7 +232,9 @@ function buildPdf(pages: PageJpeg[]): Blob {
     );
     const stream = `q ${p.pw} 0 0 ${p.ph} 0 0 cm /Im0 Do Q`;
     offsets[contObj(i)] = offset;
-    push(`${contObj(i)} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`);
+    push(
+      `${contObj(i)} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`,
+    );
     const bin = Uint8Array.from(atob(p.b64), (c) => c.charCodeAt(0));
     offsets[imgObj(i)] = offset;
     push(
@@ -122,9 +246,12 @@ function buildPdf(pages: PageJpeg[]): Blob {
 
   const xrefStart = offset;
   let xref = `xref\n0 ${total}\n0000000000 65535 f \n`;
-  for (let k = 1; k < total; k++) xref += String(offsets[k]).padStart(10, "0") + " 00000 n \n";
+  for (let k = 1; k < total; k++)
+    xref += String(offsets[k]).padStart(10, "0") + " 00000 n \n";
   push(xref);
-  push(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`);
+  push(
+    `trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`,
+  );
   return new Blob(parts as BlobPart[], { type: "application/pdf" });
 }
 
@@ -132,7 +259,9 @@ export default function DeckPdfButton({ filename }: { filename: string }) {
   const [state, setState] = useState<string | null>(null);
 
   async function generar() {
-    const slides = Array.from(document.querySelectorAll<HTMLElement>(".deck .slide"));
+    const slides = Array.from(
+      document.querySelectorAll<HTMLElement>(".deck .slide"),
+    );
     if (!slides.length) return;
     try {
       const pages: PageJpeg[] = [];
@@ -157,7 +286,11 @@ export default function DeckPdfButton({ filename }: { filename: string }) {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: "@media print{.deck-dl{display:none !important;}}" }} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: "@media print{.deck-dl{display:none !important;}}",
+        }}
+      />
       <button
         type="button"
         className="deck-dl"
