@@ -26,6 +26,8 @@ export type FichaCajon = {
   subtitulo: ReactNode;
   /** La banda verde: qué es esto. */
   banda: ReactNode;
+  /** El número de la etapa («03»). Sin él, el «//» de la casa. */
+  numero?: string;
   /** A la derecha de la banda, si hay algo que decir del estado. */
   bandaDer?: ReactNode;
   cuerpo: ReactNode;
@@ -76,7 +78,7 @@ export default function Cajon({
             </button>
           </div>
           <div className="cmpanel-st">
-            <span className="n">{"//"}</span>
+            <span className="n">{ficha.numero ?? "//"}</span>
             {ficha.banda}
             {ficha.bandaDer ? <span className="mv">{ficha.bandaDer}</span> : null}
           </div>

@@ -149,8 +149,10 @@ export default function TableroCRM({ d, tits, equipo, yo, operadora }: { d: Dato
             iniciales: sel.iniciales,
             titulo: sel.persona,
             subtitulo: <>{sel.experiencia}{sel.salida ? ` · ${sel.salida}` : ""} · {sel.personas} {sel.personas === 1 ? "persona" : "personas"}</>,
-            banda: sel.stage === "caido" ? "Se cayó" : (etapaDe(sel)?.titulo ?? "Tarjeta"),
-            bandaDer: sel.diasQuieta === 0 ? "hoy" : `hace ${sel.diasQuieta} d`,
+            banda: sel.stage === "caido" ? "Se cayeron" : (etapaDe(sel)?.titulo ?? "Tarjeta"),
+            numero: sel.stage === "caido" ? "07" : etapaDe(sel)?.n,
+            // Como en la lámina: la banda dice CÓMO se sale de la etapa, no cuánto lleva.
+            bandaDer: sel.stage === "caido" ? "Fuera del camino" : etapaDe(sel)?.como,
             cuerpo: (
               <>
                 <PanelTarjeta
