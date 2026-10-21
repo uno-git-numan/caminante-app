@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminShell from "../ui/AdminShell";
 import Capsula from "./Capsula";
+import SalidaVacia from "./SalidaVacia";
 import NuevaSalida from "./NuevaSalida";
 import MandarEncuestas from "./MandarEncuestas";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
@@ -217,16 +217,7 @@ export default async function SalidasPage({
             </summary>
             <div className="in">
               {d.vacias.map((v) => (
-                <div className="salvl" key={v.id}>
-                  <span className="nm">
-                    {v.experiencia}
-                    {v.lugar ? ` · ${v.lugar}` : ""}
-                  </span>
-                  <span className="dt">
-                    {v.label} · 0 de {v.cupo ?? "∞"}
-                  </span>
-                  <Link href={`/caminante/admin/eventos/${v.slug}`}>Abrir</Link>
-                </div>
+                <SalidaVacia key={v.id} s={v} />
               ))}
             </div>
           </details>

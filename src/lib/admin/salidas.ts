@@ -145,7 +145,11 @@ export type LineaDeSalidas = {
   proximas: Salida[];
   pasadas: Salida[];
   /** Próximas publicadas que nadie ha comprado. Se colapsan: no son un pendiente. */
-  vacias: { id: string; slug: string; experiencia: string; lugar: string; label: string; cupo: number | null }[];
+  /** Próximas publicadas sin ninguna reserva. Salidas COMPLETAS, con los
+   *  mismos mandos que las demás (cerrar, editar, cancelar): antes eran un
+   *  renglón con un link a la ficha, y la ficha mandaba de vuelta aquí — una
+   *  fecha que nadie había comprado no se podía cerrar ni editar en escritorio. */
+  vacias: Salida[];
   // ── el encabezado ──
   porViajar: number;
   personasPorViajar: number;
@@ -330,17 +334,9 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     // pantalla que existe para ver de un vistazo qué necesita atención.
     if (pasada && titulares === 0 && mios.length === 0) continue;
 
-    if (!pasada && titulares === 0) {
-      vacias.push({
-        id: s.id,
-        slug: exp.slug,
-        experiencia: experienceTitle(data, exp.slug),
-        lugar: (data?.cardPloc || data?.estado || "").toString(),
-        label: s.label || fechaLarga(s.starts_at),
-        cupo: s.capacity_total,
-      });
-      continue;
-    }
+    // Próxima que nadie ha comprado: se arma igual que las demás y se va a
+    // `vacias`, que la pantalla colapsa. Tiene mandos, no sólo un link.
+    const vacia = !pasada && titulares === 0;
 
     const pendientes: PersonaPendiente[] = mias
       .filter((r) => !firmadoPorResv.has(r.id))
@@ -433,7 +429,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       sinReserva: !f.reservation_id,
     }));
 
-    salidas.push({
+    (vacia ? vacias : salidas).push({
       id: s.id,
       slug: exp.slug,
       experienceId: exp.id,

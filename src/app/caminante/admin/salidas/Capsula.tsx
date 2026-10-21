@@ -40,7 +40,7 @@ const dec = (n: number) => n.toFixed(1).replace(".", ",");
  *  nunca antes del inicio. Aquí se avisan antes de mandar, para no hacer ir y
  *  volver al servidor por un error que ya se ve.
  */
-function EditarSalida({ s, onListo }: { s: Salida; onListo: () => void }) {
+export function EditarSalida({ s, onListo }: { s: Salida; onListo: () => void }) {
   const [f, setF] = useState({
     etiqueta: s.label,
     ini: s.inicioInput,
