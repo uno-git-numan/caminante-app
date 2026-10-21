@@ -10,6 +10,7 @@
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { tarjetaPagada } from "@/lib/comunidad/automatico";
 import { vendedorParaPago } from "@/lib/equipo/atribucion";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { findOrCreateContact } from "@/lib/crm/contacts";
@@ -210,6 +211,10 @@ export async function finalizeSelfServeCheckout(
   // Quién del equipo lo vendió (0071): se decide AHORA, con el titular de la
   // tarjeta o del grupo, y no se vuelve a tocar. Null = nadie del equipo.
   const vendedorId = await vendedorParaPago({ contactId: contact.id, experienceId: experienceId || null, slotId }, sb);
+
+  // El tablero de Comunidad se entera solo: la tarjeta de esta persona en
+  // esta experiencia cae en «Pagado» (lib/comunidad/automatico.ts).
+  await tarjetaPagada(sb, { contactId: contact.id, experienceId, reservationId, slotId });
 
   const { error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cerrarSalidasVencidas } from "@/lib/experiences/cerrar-vencidas";
+import { avanzarTarjetasPorFecha } from "@/lib/comunidad/automatico";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   try {
-    return NextResponse.json({ ok: true, ...(await cerrarSalidasVencidas()) });
+    const cierre = await cerrarSalidasVencidas();
+    // Y el tablero de Comunidad avanza con la fecha: Preparando y Viajó.
+    const tablero = await avanzarTarjetasPorFecha();
+    return NextResponse.json({ ok: true, ...cierre, tablero });
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : "error" },

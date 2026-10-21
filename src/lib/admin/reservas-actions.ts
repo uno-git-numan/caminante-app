@@ -18,6 +18,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { tarjetaPagada } from "@/lib/comunidad/automatico";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 
 const RANK: Record<string, number> = {
@@ -70,7 +71,7 @@ export async function registrarPagoEnReserva(input: {
   const sb = createSupabaseAdminClient();
   const { data: r } = await sb
     .from("reservations")
-    .select("id, contact_id, status, total_amount_mxn")
+    .select("id, contact_id, experience_id, slot_id, status, total_amount_mxn")
     .eq("id", reservationId)
     .maybeSingle();
   if (!r) return { ok: false, error: "Esa reserva no existe." };
@@ -89,6 +90,13 @@ export async function registrarPagoEnReserva(input: {
     paid_at: paidAt,
   });
   if (payErr) return { ok: false, error: payErr.message };
+  // El tablero de Comunidad se entera igual que con Stripe.
+  await tarjetaPagada(sb, {
+    contactId: r.contact_id as string,
+    experienceId: r.experience_id as string,
+    reservationId,
+    slotId: (r.slot_id as string | null) ?? null,
+  });
 
   // Recalcular estado (solo avanzar). Si el total era 0 (cobro fuera del
   // sistema), el total pasa a ser lo pagado — sin deudas fantasma.

@@ -77,7 +77,7 @@ export async function emailAvisoAdminOperador(i: {
 // cuál es. «9:00» sin zona es una promesa a medias.
 
 /** El evento de calendario. Sin esto la cita vive sólo dentro del correo. */
-function ics(i: {
+export function ics(i: {
   uid: string; inicio: Date; minutos: number; titulo: string;
   descripcion: string; url: string; para: string;
 }): string {
