@@ -180,9 +180,16 @@ async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?
   const { sb, card, slug, data } = ctx;
   const linkDe = (token: string | null) => `${SITE}/caminante/experiencias/${slug}${token ? `?grupo=${token}` : ""}`;
 
-  if (card.slot_id) {
-    const { data: s } = await sb.from("experience_slots").select("label, access_token, visibility").eq("id", card.slot_id).maybeSingle();
-    return s ? { label: String(s.label ?? ""), link: linkDe(s.visibility === "private" ? (s.access_token as string | null) : null) } : null;
+  // Una salida cancelada no cuenta: se abre otra. (Pasó el 22 oct: se canceló
+  // la primera para probar y la tarjeta seguía apuntándole.)
+  const viva = async (id: string | null) => {
+    if (!id) return null;
+    const { data: s } = await sb.from("experience_slots").select("id, label, access_token, visibility, status").eq("id", id).maybeSingle();
+    return s && s.status !== "cancelled" ? s : null;
+  };
+  const actual = await viva(card.slot_id);
+  if (actual) {
+    return { label: String(actual.label ?? ""), link: linkDe(actual.visibility === "private" ? (actual.access_token as string | null) : null) };
   }
 
   const req = card.slot_request_id
@@ -191,11 +198,11 @@ async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?
         | null)
     : null;
 
-  // La solicitud ya se aprobó antes (bandeja): sólo se liga la tarjeta.
-  if (req?.created_slot_id) {
-    const { data: s } = await sb.from("experience_slots").select("label, access_token, visibility").eq("id", req.created_slot_id).maybeSingle();
-    await sb.from("crm_cards").update({ slot_id: req.created_slot_id, updated_at: ahora() }).eq("id", card.id);
-    return s ? { label: String(s.label ?? ""), link: linkDe(s.visibility === "private" ? (s.access_token as string | null) : null) } : null;
+  // La solicitud ya se aprobó antes (bandeja) y su salida sigue viva: sólo se liga la tarjeta.
+  const deSolicitud = await viva(req?.created_slot_id ?? null);
+  if (deSolicitud) {
+    await sb.from("crm_cards").update({ slot_id: deSolicitud.id, updated_at: ahora() }).eq("id", card.id);
+    return { label: String(deSolicitud.label ?? ""), link: linkDe(deSolicitud.visibility === "private" ? (deSolicitud.access_token as string | null) : null) };
   }
 
   const inicio = fechas?.inicio ?? req?.desired_date ?? null;
@@ -226,7 +233,7 @@ async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?
     return null;
   }
   await sb.from("crm_cards").update({ slot_id: slot.id, updated_at: ahora() }).eq("id", card.id);
-  if (req && req.status === "new") {
+  if (req) {
     await sb
       .from("slot_requests")
       .update({ status: "approved", created_slot_id: slot.id, resolved_at: ahora() })

@@ -122,7 +122,7 @@ export async function fetchTablero(): Promise<Tablero> {
     sb.from("experiences").select("id, slug, data, operator_id"),
     sb
       .from("experience_slots")
-      .select("id, label, starts_at, ends_at, visibility, access_token, punto_encuentro"),
+      .select("id, label, starts_at, ends_at, status, visibility, access_token, punto_encuentro"),
     sb.from("contacts").select("id, full_name, email, phone"),
   ]);
 
@@ -133,10 +133,11 @@ export async function fetchTablero(): Promise<Tablero> {
     ((exps ?? []) as Exp[]).filter((e) => !operatorId || e.operator_id === operatorId).map((e) => e.id),
   );
   type SlotRow = {
-    id: string; label: string | null; starts_at: string | null; ends_at: string | null;
+    id: string; label: string | null; starts_at: string | null; ends_at: string | null; status: string | null;
     visibility: string | null; access_token: string | null; punto_encuentro: string | null;
   };
-  const slotPorId = new Map(((slots ?? []) as SlotRow[]).map((s) => [s.id, s]));
+  // Una salida cancelada ya no es la salida de nadie: la tarjeta vuelve a no tener.
+  const slotPorId = new Map(((slots ?? []) as SlotRow[]).filter((s) => s.status !== "cancelled").map((s) => [s.id, s]));
   const persona = new Map(
     ((contacts ?? []) as { id: string; full_name: string | null; email: string | null; phone: string | null }[])
       .map((c) => [c.id, c]),
