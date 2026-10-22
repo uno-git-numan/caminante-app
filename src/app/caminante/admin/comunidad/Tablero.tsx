@@ -86,7 +86,9 @@ function Tarj({ t, arrastrable, onDrag, tit, picked, onPick }: { t: Tarjeta; arr
             principal: no hay nada que tomar. */}
         {arrastrable ? <span className="cmgrip" aria-hidden>≡</span> : null}
         <span className="av">{t.iniciales}</span>
-        <span className="g">
+        {/* `.nm`, como en la lámina: el nombre arriba y la salida abajo. Con
+            `.g` (que aquí no existe) se pegaban en un solo renglón. */}
+        <span className="nm">
           <b>{t.persona}</b>
           <small>
             {t.experiencia}
