@@ -107,7 +107,7 @@ function Tarj({ t, arrastrable, onDrag, tit, picked, onPick }: { t: Tarjeta; arr
   );
 }
 
-export default function TableroCRM({ d, tits, equipo, yo, operadora }: { d: Datos; tits: Record<string, Titularidad>; equipo: PersonaParaAsignar[]; yo: Yo; operadora: string }) {
+export default function TableroCRM({ d, tits, equipo, yo, operadora, remitente }: { d: Datos; tits: Record<string, Titularidad>; equipo: PersonaParaAsignar[]; yo: Yo; operadora: string; remitente: string | null }) {
   const [tomada, setTomada] = useState<string | null>(null);
   // PICAR UNA TARJETA ABRE SU FICHA (lámina «Quién lo lleva»): quién es, qué
   // sigue, escribirle, y quién la lleva. El resto del tablero no cambia.
@@ -162,6 +162,7 @@ export default function TableroCRM({ d, tits, equipo, yo, operadora }: { d: Dato
                   t={sel}
                   agenda={d.agenda}
                   operadora={operadora}
+                  remitente={remitente}
                   caidaPedida={caidaPara === sel.id}
                   onCaidaHecha={() => setCaidaPara(null)}
                 />

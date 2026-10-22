@@ -10,6 +10,7 @@ import { fetchSolicitudes } from "@/lib/comunidad/solicitudes";
 import { fetchTablero } from "@/lib/comunidad/tablero";
 import { fetchEquipoParaAsignar, fetchTitularidades, quienSoyParaAsignar } from "@/lib/equipo/titulares";
 import { operadoraQueMiro } from "@/lib/admin/queries";
+import { remitenteActual } from "@/lib/comunidad/remitente";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { MI_ALTA_CSS } from "../ui/mi-alta-css";
 import { EQUIPO_CSS } from "../ui/equipo-css";
@@ -58,13 +59,14 @@ export default async function ComunidadPage() {
   // plataforma —eso se fue al Pipeline del sombrero de numan (la plataforma)— sino sólo lo de
   // quien opera, que es suyo.
   const esCasa = (await getCurrentRole()) === "admin";
-  const [d, tablero, solicitudes, equipo, yo, miro] = await Promise.all([
+  const [d, tablero, solicitudes, equipo, yo, miro, remitente] = await Promise.all([
     fetchBiblioteca(),
     fetchTablero(),
     esCasa ? fetchSolicitudes() : Promise.resolve(null),
     fetchEquipoParaAsignar(),
     quienSoyParaAsignar(),
     operadoraQueMiro(),
+    remitenteActual(),
   ]);
   // Quién lleva cada tarjeta (0071), en una consulta para todo el tablero; y el
   // nombre de la operadora del sombrero, para decir «tarjetas de Caminante».
@@ -120,7 +122,7 @@ export default async function ComunidadPage() {
               </div>
             </div>
             {solicitudes ? <PorContestar d={solicitudes} tits={tits} equipo={equipo} yo={yo} operadora={{ id: miro, nombre: nombreOperadora }} /> : null}
-            <TableroCRM d={tablero} tits={tits} equipo={equipo} yo={yo} operadora={nombreOperadora} />
+            <TableroCRM d={tablero} tits={tits} equipo={equipo} yo={yo} operadora={nombreOperadora} remitente={remitente} />
           </>
         }
         biblioteca={

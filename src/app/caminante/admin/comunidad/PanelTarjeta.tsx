@@ -36,10 +36,11 @@ const hoyYmd = () => new Date().toLocaleDateString("en-CA", { timeZone: "America
 
 type R = { ok: true; waUrl?: string | null; aviso?: string } | { ok: false; error: string };
 
-export default function PanelTarjeta({ t, agenda, operadora, caidaPedida, onCaidaHecha }: {
+export default function PanelTarjeta({ t, agenda, operadora, remitente, caidaPedida, onCaidaHecha }: {
   t: Tarjeta;
   agenda: Cita[];
   operadora: string;
+  remitente: string | null;
   /** Se soltó en «Se cayeron»: el panel abre pidiendo el motivo. */
   caidaPedida: boolean;
   onCaidaHecha: () => void;
@@ -97,7 +98,7 @@ export default function PanelTarjeta({ t, agenda, operadora, caidaPedida, onCaid
         </>
       ) : null}
 
-      {enCurso ? <Mensaje t={t} operadora={operadora} pendiente={pendiente} correr={correr} /> : null}
+      {enCurso ? <Mensaje t={t} operadora={operadora} remitente={remitente} pendiente={pendiente} correr={correr} /> : null}
 
       {grupoVisible ? <Grupo t={t} pendiente={pendiente} correr={correr} /> : null}
 
@@ -137,13 +138,66 @@ export default function PanelTarjeta({ t, agenda, operadora, caidaPedida, onCaid
 }
 
 /* ── El mensaje ───────────────────────────────────────────────────────────── */
-function Mensaje({ t, operadora, pendiente, correr }: { t: Tarjeta; operadora: string; pendiente: boolean; correr: (fn: () => Promise<R>, d?: () => void) => void }) {
+// «Cat de Nomádika» · «Nomádika de Caminante» · «Caminante» (igual que remitente.ts).
+function firmaDe(remitente: string | null, operadora: string): string {
+  const op = operadora.trim() || "Caminante";
+  if (remitente && remitente.toLowerCase() !== op.toLowerCase()) return `${remitente} de ${op}`;
+  if (op.toLowerCase() !== "caminante") return `${op} de Caminante`;
+  return op;
+}
+const ymdCdmx = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+const horaCdmx = (iso: string) => new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(iso)).replace(/\./g, "");
+const diaLargo = (ymd: string) => new Intl.DateTimeFormat("es-MX", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" }).format(new Date(`${ymd}T12:00:00Z`)).replace(/\./g, "");
+
+type Hueco = { k: string; label: string; tipo?: "date" | "time" | "url" | "tel" | "text" };
+type Plantilla = { id: string; nombre: string; partes: (string | Hueco)[]; cierre: string };
+
+/**
+ * Las plantillas de la lámina. Mientras Meta no apruebe una plantilla de
+ * WhatsApp, los huecos se llenan aquí y el texto se abre en el teléfono del
+ * operador: lo manda él. Los huecos nacen llenos cuando el dato ya existe
+ * (la llamada agendada, la liga de pago, el punto de encuentro de la salida).
+ */
+const PLANTILLAS: Plantilla[] = [
+  { id: "llamada", nombre: "Plantilla · Invitación a llamada", cierre: "Responde a este mensaje y seguimos por aquí.",
+    partes: ["Te comparto la liga de nuestra llamada del ", { k: "dia", label: "día", tipo: "date" }, " a las ", { k: "hora", label: "hora", tipo: "time" }, ": ", { k: "liga", label: "liga", tipo: "url" }] },
+  { id: "pago", nombre: "Plantilla · Recordatorio de pago", cierre: "Si tienes dudas, respóndeme por aquí.",
+    partes: ["Para apartar tu lugar en ", { k: "experiencia", label: "experiencia" }, " falta completar el pago: ", { k: "pagar", label: "liga de pago", tipo: "url" }] },
+  { id: "encuentro", nombre: "Plantilla · Punto de encuentro", cierre: "Cualquier cosa ese día, me escribes aquí.",
+    partes: ["Nos vemos el ", { k: "dia", label: "día", tipo: "date" }, " en ", { k: "direccion", label: "dirección" }, " a las ", { k: "hora", label: "hora", tipo: "time" }, ". El teléfono del guía es ", { k: "telefono", label: "teléfono", tipo: "tel" }] },
+];
+
+function Mensaje({ t, operadora, remitente, pendiente, correr }: { t: Tarjeta; operadora: string; remitente: string | null; pendiente: boolean; correr: (fn: () => Promise<R>, d?: () => void) => void }) {
   const [canal, setCanal] = useState<"correo" | "whatsapp">(t.telefono ? "whatsapp" : "correo");
   const [texto, setTexto] = useState("");
+  const [plantillaId, setPlantillaId] = useState("llamada");
+  const [huecos, setHuecos] = useState<Record<string, string>>(() => ({
+    dia: t.llamada ? ymdCdmx(t.llamada.startsAt) : t.salidaInfo?.inicio ? ymdCdmx(t.salidaInfo.inicio) : "",
+    hora: t.llamada ? new Date(t.llamada.startsAt).toLocaleTimeString("en-GB", { timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit" }) : "",
+    liga: t.llamada?.url ?? "",
+    experiencia: t.experiencia,
+    pagar: t.pagarUrl,
+    direccion: t.salidaInfo?.puntoEncuentro ?? "",
+    telefono: "",
+  }));
   const nombre = t.persona.split(" ")[0];
-  const plantilla = `Hola ${nombre}, soy ${operadora} de Caminante. Te comparto la liga de nuestra llamada del [día] a las [hora]: [liga] Responde a este mensaje y seguimos por aquí.`;
+  const firma = firmaDe(remitente, operadora);
   const bloqueado = canal === "whatsapp" && !t.waVentana.abierta;
-  const mandar = (pasar: boolean) => correr(() => mandarMensaje(t.id, canal, texto, pasar), () => setTexto(""));
+  const plantilla = PLANTILLAS.find((x) => x.id === plantillaId) ?? PLANTILLAS[0];
+  const completa = plantilla.partes.every((x) => typeof x === "string" || (huecos[x.k] ?? "").trim());
+  const valorLegible = (h: Hueco) => {
+    const v = (huecos[h.k] ?? "").trim();
+    if (!v) return "";
+    if (h.tipo === "date" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return diaLargo(v);
+    if (h.tipo === "time" && /^\d{2}:\d{2}$/.test(v)) return horaCdmx(`${huecos.dia || "2026-01-01"}T${v}:00-06:00`);
+    return v;
+  };
+  const textoPlantilla = () =>
+    `Hola ${nombre}, soy ${firma}. ${plantilla.partes.map((x) => (typeof x === "string" ? x : valorLegible(x))).join("")}. ${plantilla.cierre}`.replace(/\.\s*\./g, ".");
+  const cuerpo = bloqueado ? textoPlantilla() : texto;
+  const listo = bloqueado ? completa : !!texto.trim();
+  const mandar = (pasar: boolean) => correr(() => mandarMensaje(t.id, canal, cuerpo, pasar), () => setTexto(""));
+
   return (
     <>
       <p className="xh4">El mensaje</p>
@@ -154,29 +208,56 @@ function Mensaje({ t, operadora, pendiente, correr }: { t: Tarjeta; operadora: s
       <div className={`cmwin ${bloqueado ? "locked" : "open"}`}>
         <div className="wh">
           <span className="lb">{canal === "correo" ? "Correo" : bloqueado ? "WhatsApp · ventana cerrada" : "WhatsApp · ventana abierta"}</span>
-          <span className="cd">{canal === "correo" ? (t.email ?? "sin correo") : bloqueado ? "Se manda desde tu teléfono" : t.waVentana.cierraEn}</span>
+          <span className="cd">{canal === "correo" ? (t.email ?? "sin correo") : bloqueado ? "Se llenan huecos" : t.waVentana.cierraEn}</span>
         </div>
         <div className="wb">
-          <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={bloqueado ? plantilla : `Hola ${nombre}. Sí hay lugar para ${t.personas} en ${t.experiencia}. ¿Te late si nos vemos 30 minutos por video esta semana para contarte el itinerario?`} rows={4} />
           {bloqueado ? (
-            <div className="cmtpl" style={{ marginTop: 10 }}>
-              Hola <span className="cmslot">{nombre}</span>, soy <span className="cmslot">{operadora}</span> de Caminante. Te comparto la liga de nuestra llamada del <span className="cmslot empty">día</span> a las <span className="cmslot empty">hora</span>: <span className="cmslot empty">liga</span> <span className="fx">Responde a este mensaje y seguimos por aquí.</span>
-            </div>
-          ) : null}
+            <>
+              <textarea disabled placeholder="Aquí no se redacta." rows={2} />
+              <div className="mini-form" style={{ marginTop: 10 }}>
+                <select value={plantillaId} onChange={(e) => setPlantillaId(e.target.value)} aria-label="Plantilla">
+                  {PLANTILLAS.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+                </select>
+              </div>
+              <div className="cmtpl" style={{ marginTop: 10 }}>
+                Hola <span className="cmslot">{nombre}</span>, soy <span className="cmslot">{firma}</span>.{" "}
+                {plantilla.partes.map((x, i) =>
+                  typeof x === "string" ? (
+                    <span key={i}>{x}</span>
+                  ) : (
+                    <input
+                      key={x.k}
+                      className={`cmslot${(huecos[x.k] ?? "").trim() ? "" : " empty"}`}
+                      type={x.tipo === "date" || x.tipo === "time" ? x.tipo : "text"}
+                      value={huecos[x.k] ?? ""}
+                      placeholder={x.label}
+                      aria-label={x.label}
+                      size={Math.max(6, (huecos[x.k] ?? x.label).length)}
+                      onChange={(e) => setHuecos({ ...huecos, [x.k]: e.target.value })}
+                      style={{ width: "auto", maxWidth: 260 }}
+                    />
+                  ),
+                )}
+                . <span className="fx">{plantilla.cierre}</span>
+              </div>
+            </>
+          ) : (
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={`Hola ${nombre}. Sí hay lugar para ${t.personas} en ${t.experiencia}. ¿Te late si nos vemos 30 minutos por video esta semana para contarte el itinerario?`} rows={4} />
+          )}
         </div>
         <p className="why">
           {canal === "correo"
-            ? "Sale ahora, con tu nombre y el de Caminante. Si responde, te llega al correo de la operadora."
+            ? "Sale ahora, firmado por ti. Si responde, te llega al correo de la operadora."
             : bloqueado
-              ? "Si nadie escribió en las últimas 24 horas, WhatsApp sólo entrega mensajes con una plantilla aprobada. Mientras no haya plantilla, el texto se abre en tu WhatsApp y lo mandas tú."
+              ? "Si nadie escribió en las últimas 24 horas, WhatsApp sólo entrega mensajes con una plantilla aprobada. Se elige la plantilla y se llenan sus huecos; al mandar, el texto se abre en tu WhatsApp y lo envías tú."
               : `${nombre} escribió primero. Mientras la conversación esté abierta puedes redactar libre; el reloj de arriba dice cuánto queda.`}
         </p>
       </div>
       <div className="act-row">
         {t.stage === "llego" ? (
-          <button type="button" className="btn btn-orange btn-sm" disabled={pendiente || !texto.trim()} onClick={() => mandar(true)}>Mandar y pasar a conversación</button>
+          <button type="button" className="btn btn-orange btn-sm" disabled={pendiente || !listo} onClick={() => mandar(true)}>Mandar y pasar a conversación</button>
         ) : null}
-        <button type="button" className={`btn ${t.stage === "llego" ? "btn-ghost" : "btn-orange"} btn-sm`} disabled={pendiente || !texto.trim()} onClick={() => mandar(false)}>Mandar</button>
+        <button type="button" className={`btn ${t.stage === "llego" ? "btn-ghost" : "btn-orange"} btn-sm`} disabled={pendiente || !listo} onClick={() => mandar(false)}>Mandar</button>
       </div>
     </>
   );

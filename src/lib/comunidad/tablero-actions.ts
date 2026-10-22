@@ -21,6 +21,7 @@ import { sendText, whatsappConfigured } from "@/lib/whatsapp/client";
 import { CDMX, desdeHoraLocal, enPalabras } from "@/lib/fecha/zona";
 import { experienceTitle } from "@/lib/admin/queries";
 import type { Experience } from "@/lib/experiences/types";
+import { firmaDe, remitenteActual } from "@/lib/comunidad/remitente";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://caminante.numanhub.com";
 const RUTA = "/caminante/admin/comunidad";
@@ -274,12 +275,13 @@ export async function mandarMensaje(cardId: string, canal: "correo" | "whatsapp"
   const ctx = await cargar(cardId);
   if (!ctx) return { ok: false, error: "Esa tarjeta ya no existe." };
   const { sb, card, contacto, titulo, operadora } = ctx;
+  const firma = firmaDe(await remitenteActual(), operadora);
 
   let waUrl: string | null = null;
   let aviso: string | undefined;
   if (canal === "correo") {
     if (!contacto.email) return { ok: false, error: "No tiene correo. Escríbele por WhatsApp." };
-    const correo = marco("Un mensaje", [h1(`Hola${saludo(contacto.full_name)}.`), ...parrafosDe(cuerpo), p(`— ${esc(operadora)}, desde Caminante`)]);
+    const correo = marco("Un mensaje", [h1(`Hola${saludo(contacto.full_name)}.`), ...parrafosDe(cuerpo), p(`— ${esc(firma)}`)]);
     const ok = await sendViaResend(contacto.email, `${titulo} · ${operadora}`, correo.html, { ua: "caminante-crm/1.0", text: correo.texto });
     if (!ok) return { ok: false, error: "El correo no salió. Intenta de nuevo." };
   } else {
@@ -315,6 +317,7 @@ export async function agendarLlamada(cardId: string, i: { url: string; fecha: st
   const ctx = await cargar(cardId);
   if (!ctx) return { ok: false, error: "Esa tarjeta ya no existe." };
   const { sb, card, contacto, titulo, operadora } = ctx;
+  const firma = firmaDe(await remitenteActual(), operadora);
 
   const { data: call, error } = await sb
     .from("crm_calls")
@@ -324,7 +327,7 @@ export async function agendarLlamada(cardId: string, i: { url: string; fecha: st
   if (error || !call) return { ok: false, error: error?.message ?? "No se pudo guardar la llamada." };
 
   const cuandoTxt = enPalabras(cuando, CDMX);
-  const texto = `Hola${saludo(contacto.full_name).replace(/^, /, " ")}, soy ${operadora} de Caminante. Te comparto la liga de nuestra llamada del ${cuandoTxt}: ${url} — Responde a este mensaje y seguimos por aquí.`;
+  const texto = `Hola${saludo(contacto.full_name).replace(/^, /, " ")}, soy ${firma}. Te comparto la liga de nuestra llamada del ${cuandoTxt}: ${url} — Responde a este mensaje y seguimos por aquí.`;
 
   let correoOk = false;
   if (contacto.email) {
@@ -332,13 +335,13 @@ export async function agendarLlamada(cardId: string, i: { url: string; fecha: st
       h1(`Nos vemos el ${esc(cuandoTxt)}${saludo(contacto.full_name)}.`),
       p(`<b>${esc(cuandoTxt)}</b>, hora del centro de México. Son 30 minutos por video para contarte de <b>${esc(titulo)}</b>. Va adjunto el evento para que se meta a tu calendario.`),
       boton("Entrar a la llamada", url),
-      p(`Si esa hora no te queda, responde este correo y la movemos. — ${esc(operadora)}`),
+      p(`Si esa hora no te queda, responde este correo y la movemos. — ${esc(firma)}`),
     ]);
     const cal = ics({
       uid: `llamada-${call.id}@caminante.numanhub.com`,
       inicio: cuando, minutos: 30,
       titulo: `Caminante · ${titulo}`,
-      descripcion: `Llamada con ${operadora}.\nLiga: ${url}`,
+      descripcion: `Llamada con ${firma}.\nLiga: ${url}`,
       url, para: contacto.email,
     });
     correoOk = await sendViaResend(contacto.email, `Tu llamada · ${cuandoTxt}`, correo.html, {
@@ -375,14 +378,15 @@ export async function recordatorioPago(cardId: string): Promise<Res> {
     if (s?.visibility === "private" && s.access_token) grupoQ = `?grupo=${s.access_token}`;
   }
   const pagar = `${SITE}/caminante/reservar/${slug}${grupoQ}`;
-  const texto = `Hola${saludo(contacto.full_name).replace(/^, /, " ")}, soy ${operadora} de Caminante. Para apartar tu lugar en ${titulo} falta completar el pago: ${pagar}`;
+  const firma = firmaDe(await remitenteActual(), operadora);
+  const texto = `Hola${saludo(contacto.full_name).replace(/^, /, " ")}, soy ${firma}. Para apartar tu lugar en ${titulo} falta completar el pago: ${pagar}`;
   let correoOk = false;
   if (contacto.email) {
     const correo = marco("Tu lugar", [
       h1(`Tu lugar en ${esc(titulo)}${saludo(contacto.full_name)}.`),
       p("Para apartarlo falta completar el pago. Es un minuto y queda confirmado al instante."),
       boton("Completar el pago", pagar),
-      p(`Cualquier duda, responde este correo. — ${esc(operadora)}`),
+      p(`Cualquier duda, responde este correo. — ${esc(firma)}`),
     ]);
     correoOk = await sendViaResend(contacto.email, `Tu lugar en ${titulo}`, correo.html, { ua: "caminante-crm/1.0", text: correo.texto });
   }
