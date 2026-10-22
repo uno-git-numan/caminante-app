@@ -95,9 +95,9 @@ function Tarj({ t, arrastrable, onDrag, tit, picked, onPick }: { t: Tarjeta; arr
             {t.salida ? <> · <span className="sal">{t.salida}</span></> : ""}
           </small>
         </span>
-        <span className={`ag${t.fria ? " mal" : ""}`}>
-          {t.diasQuieta === 0 ? "hoy" : `hace ${t.diasQuieta} d`}
-        </span>
+        {/* La edad sólo cuando la tarjeta está fría, como en la lámina («9 días»);
+            una tarjeta al día no carga reloj. */}
+        {t.fria ? <span className="age">{t.diasQuieta} días</span> : null}
         {/* Quien la lleva (0071), en la esquina: sin titular no hay hueco. */}
         <AsgAv tit={tit} />
       </div>
@@ -194,7 +194,7 @@ export default function TableroCRM({ d, tits, equipo, yo, operadora }: { d: Dato
                   {dentro.map((t) => (
                     <Tarj key={t.id} t={t} arrastrable={recibe && !pendiente} onDrag={setTomada} tit={tits[claveTit("tarjeta", t.id)] ?? null} picked={t.id === abierta} onPick={() => setAbierta(t.id)} />
                   ))}
-                  {dentro.length === 0 ? <div className="cmghost" /> : null}
+                  {dentro.length === 0 ? <div className="cmghost">esperando</div> : null}
                 </div>
                 {/* Sin regaño y sin una gota de rojo: dice quién decide, no que
                     hiciste algo mal. */}
@@ -238,7 +238,7 @@ export default function TableroCRM({ d, tits, equipo, yo, operadora }: { d: Dato
                   {d.caidas.map((t) => (
                     <Tarj key={t.id} t={t} arrastrable={false} onDrag={() => {}} tit={tits[claveTit("tarjeta", t.id)] ?? null} picked={t.id === abierta} onPick={() => setAbierta(t.id)} />
                   ))}
-                  {d.caidas.length === 0 ? <div className="cmghost" /> : null}
+                  {d.caidas.length === 0 ? <div className="cmghost">nadie</div> : null}
                 </div>
               </>
             ) : (
