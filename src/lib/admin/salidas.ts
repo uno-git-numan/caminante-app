@@ -21,6 +21,8 @@
 // darse cuenta.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { resumenesDeEspacios } from "@/lib/grupo/resumen-server";
+import type { ResumenDelEspacio } from "@/lib/grupo/resumen";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
 import { cdmxDay, formatDiaMes } from "@/lib/admin/formato";
@@ -131,6 +133,8 @@ export type Salida = {
   /** `open` = a la venta · `closed` = ya no se vende (la fecha sigue viva). */
   estado: string;
   tokenGrupo: string | null;
+  /** Salida privada: su espacio del grupo (D3). Null en las públicas. */
+  grupo: ResumenDelEspacio | null;
 };
 
 export type LineaDeSalidas = {
@@ -201,7 +205,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       sb
         .from("experience_slots")
         .select(
-          "id, experience_id, label, starts_at, ends_at, capacity_total, price_mxn, status, visibility, feedback_token",
+          "id, experience_id, label, starts_at, ends_at, capacity_total, price_mxn, status, visibility, access_token, feedback_token",
         ),
       sb.from("reservations").select("id, experience_id, slot_id, contact_id, num_people, status"),
       sb.from("registrations").select("reservation_id, signed_at"),
@@ -242,6 +246,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     capacity_total: number | null;
     status: string;
     visibility: string | null;
+    access_token: string | null;
     feedback_token: string | null;
   }[]).filter((s) => expIds.has(s.experience_id));
   const slotIds = new Set(slots.map((s) => s.id));
@@ -306,6 +311,11 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   const salidas: Salida[] = [];
   const vacias: LineaDeSalidas["vacias"] = [];
 
+  // Los espacios de las salidas privadas vivas, para el bloque «Su espacio».
+  const espacios = await resumenesDeEspacios(
+    slots.filter((s) => s.status !== "cancelled" && s.visibility === "private" && s.access_token).map((s) => s.access_token as string),
+  );
+
   for (const s of slots) {
     const exp = expById.get(s.experience_id);
     if (!exp) continue;
@@ -316,8 +326,10 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     // Las canceladas no son parte del trabajo de nadie; las cerradas sí (una
     // salida cerrada que ya viajó tiene encuesta que leer).
     if (s.status === "cancelled") continue;
-    // Las privadas se operan desde Solicitudes: no ensucian la línea de tiempo.
-    if ((s.visibility ?? "public") !== "public") continue;
+    // Las privadas también son salidas (desde el 27 oct 2026 tienen su espacio
+    // del grupo y su cápsula lleva el bloque «Su espacio»). «Solicitudes», desde
+    // donde se operaban, ya no existe.
+    const privada = (s.visibility ?? "public") === "private";
 
     const mias = resvs.filter((r) => r.slot_id === s.id);
     const mios = fbs.filter((f) => f.slot_id === s.id);
@@ -336,7 +348,9 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
 
     // Próxima que nadie ha comprado: se arma igual que las demás y se va a
     // `vacias`, que la pantalla colapsa. Tiene mandos, no sólo un link.
-    const vacia = !pasada && titulares === 0;
+    // Una privada nunca es «vacía»: aunque nadie haya pagado, su cápsula lleva
+    // el espacio del grupo, que es donde se ve quién va entrando.
+    const vacia = !pasada && titulares === 0 && !privada;
 
     const pendientes: PersonaPendiente[] = mias
       .filter((r) => !firmadoPorResv.has(r.id))
@@ -471,6 +485,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       sinResponder,
       estado: s.status,
       tokenGrupo: s.feedback_token,
+      grupo: privada && s.access_token ? espacios.get(s.id) ?? null : null,
     });
   }
 

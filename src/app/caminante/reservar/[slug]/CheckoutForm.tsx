@@ -40,18 +40,21 @@ export default function CheckoutForm({
   tiers = [],
   complementos = [],
   grupoToken,
+  grupoExtra = null,
 }: {
   slug: string;
   slots: ReservarSlot[];
   tiers?: PriceTier[];
   complementos?: ReservarComplemento[];
+  /** Desde el espacio del grupo: mi lugar y/o los lugares de otros que cubro. */
+  grupoExtra?: { lugar: string | null; cubre: string[] } | null;
   // Token de grupo privado: viaja como hidden y el server lo valida contra la
   // BD (una salida privada NUNCA se paga sin su token).
   grupoToken?: string | null;
 }) {
   const firstOpen = slots.find((s) => !s.soldOut) ?? slots[0];
   const [slotId, setSlotId] = useState(firstOpen?.id ?? "");
-  const [people, setPeople] = useState(1);
+  const [people, setPeople] = useState(Math.max(1, grupoExtra?.cubre.length ?? 0));
   const [tierIndex, setTierIndex] = useState(tiers.length ? 0 : -1);
   const [marcados, setMarcados] = useState<string[]>([]);
 
@@ -90,6 +93,10 @@ export default function CheckoutForm({
       <input type="hidden" name="numPeople" value={ppl} />
       {tiers.length ? <input type="hidden" name="tierIndex" value={tierIndex} /> : null}
       {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
+      {grupoExtra?.lugar ? <input type="hidden" name="lugar" value={grupoExtra.lugar} /> : null}
+      {grupoExtra?.cubre.map((id) => (
+        <input key={id} type="hidden" name="cubre" value={id} />
+      ))}
       {elegidos.map((c) => (
         <input key={c.id} type="hidden" name="complemento" value={c.id} />
       ))}

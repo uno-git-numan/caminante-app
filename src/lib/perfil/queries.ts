@@ -340,8 +340,10 @@ export async function fetchMiEspacio(user: User): Promise<MiEspacio> {
     // si es abierta, la página pública de la experiencia.
     const slug = exp?.slug || "";
     const esPrivada = slot?.visibility === "private" && !!slot?.access_token;
+    // Desde el 27 oct 2026 la liga de una salida privada es su ESPACIO DEL
+    // GRUPO (/caminante/g/<token>): ahí entran, apartan y firman.
     const grupoQ = esPrivada ? `?grupo=${slot!.access_token}` : "";
-    const inviteLink = `${SITE}/caminante/experiencias/${slug}${grupoQ}`;
+    const inviteLink = esPrivada ? `${SITE}/caminante/g/${slot!.access_token}` : `${SITE}/caminante/experiencias/${slug}`;
     const cap = slot?.capacity_total ?? null;
     const yaVan = r.slot_id ? takenBySlot.get(r.slot_id) || 0 : 0;
     const cupoLinea = cap != null ? `El cupo es de ${cap}; ya van ${yaVan}.` : "";

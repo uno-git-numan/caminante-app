@@ -11,6 +11,7 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { tarjetaPagada } from "@/lib/comunidad/automatico";
+import { lugaresPagados } from "@/lib/grupo/pagos";
 import { vendedorParaPago } from "@/lib/equipo/atribucion";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { findOrCreateContact } from "@/lib/crm/contacts";
@@ -215,6 +216,18 @@ export async function finalizeSelfServeCheckout(
   // El tablero de Comunidad se entera solo: la tarjeta de esta persona en
   // esta experiencia cae en «Pagado» (lib/comunidad/automatico.ts).
   await tarjetaPagada(sb, { contactId: contact.id, experienceId, reservationId, slotId });
+
+  // El ESPACIO DEL GRUPO: este cobro aparta el lugar propio (`lugar_id`) y/o
+  // los de otros del grupo (`cubre_lugares`). Se ligan a la reserva y las
+  // tarjetas de los cubiertos caen en Pagado. Best-effort: un fallo aquí no
+  // puede perder el pago.
+  await lugaresPagados(sb, {
+    lugarId: session.metadata?.lugar_id || null,
+    cubre: (session.metadata?.cubre_lugares || "").split(",").filter(Boolean),
+    reservationId,
+    experienceId,
+    slotId,
+  });
 
   const { error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,

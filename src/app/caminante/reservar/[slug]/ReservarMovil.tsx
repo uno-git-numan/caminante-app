@@ -52,6 +52,7 @@ export default function ReservarMovil({
   tiers,
   complementos,
   grupoToken,
+  grupoExtra = null,
   deslindeOk,
   errMsg,
 }: {
@@ -62,13 +63,15 @@ export default function ReservarMovil({
   tiers: PriceTier[];
   complementos: ReservarComplemento[];
   grupoToken?: string | null;
+  /** Desde el espacio del grupo: mi lugar y/o los lugares de otros que cubro. */
+  grupoExtra?: { lugar: string | null; cubre: string[] } | null;
   /** `deslindeListo(exp).ok` — sin él NO se cobra (regla que nació del caso Enyd). */
   deslindeOk: boolean;
   errMsg: string | null;
 }) {
   const primero = slots.find((s) => !s.soldOut) ?? slots[0];
   const [sel, setSel] = useState(primero?.id ?? "");
-  const [pax, setPax] = useState(1);
+  const [pax, setPax] = useState(Math.max(1, grupoExtra?.cubre.length ?? 0));
   const [nivel, setNivel] = useState(tiers.length ? 0 : -1);
   const [marcados, setMarcados] = useState<string[]>([]);
   const [pagando, setPagando] = useState(false);
@@ -178,6 +181,10 @@ export default function ReservarMovil({
           <input type="hidden" name="numPeople" value={ppl} />
           {tiers.length ? <input type="hidden" name="tierIndex" value={nivel} /> : null}
           {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
+          {grupoExtra?.lugar ? <input type="hidden" name="lugar" value={grupoExtra.lugar} /> : null}
+          {grupoExtra?.cubre.map((id) => (
+            <input key={id} type="hidden" name="cubre" value={id} />
+          ))}
           {puestos.map((c) => (
             <input key={c.id} type="hidden" name="complemento" value={c.id} />
           ))}

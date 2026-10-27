@@ -17,6 +17,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Cita, Tarjeta } from "@/lib/comunidad/tablero";
+import SuEspacio from "@/app/caminante/admin/ui/SuEspacio";
 import {
   abrirFechaParaTarjeta,
   agendarLlamada,
@@ -78,7 +79,9 @@ export default function PanelTarjeta({ t, agenda, operadora, remitente, caidaPed
         <span className="cmtag">Llegó el <span className="k">{t.llegoEl}</span></span>
         {t.deslindeFirmado ? <span className="cmtag">Deslinde firmado</span> : null}
         {t.grupoUrl ? <span className="cmtag">En el grupo</span> : null}
-        {t.salidaInfo?.privada ? <span className="cmtag">Grupo privado · <span className="k">{t.salidaInfo.label}</span></span> : null}
+        {t.anfitrion ? <span className="cmtag">Anfitrión</span> : null}
+        {t.salidaInfo?.privada ? <span className="cmtag">Salida privada · <span className="k">{t.salidaInfo.label}</span></span> : null}
+        {!t.anfitrion && t.grupo?.anfitrion ? <span className="cmtag">Grupo de {t.grupo.anfitrion.split(" ")[0]}</span> : null}
       </div>
 
       {aviso ? (
@@ -103,6 +106,9 @@ export default function PanelTarjeta({ t, agenda, operadora, remitente, caidaPed
       {grupoVisible ? <Grupo t={t} pendiente={pendiente} correr={correr} /> : null}
 
       {pagoVisible ? <CuantoFalta t={t} pendiente={pendiente} correr={correr} /> : null}
+
+      {/* D2 · «Su espacio»: la liga, la fecha límite y el mínimo, y quién entró. */}
+      {t.grupo && (t.anfitrion || !pagoVisible) ? <SuEspacio g={t.grupo} /> : null}
 
       {enCurso ? <Llamada t={t} agenda={agenda} pendiente={pendiente} correr={correr} /> : null}
 
@@ -386,11 +392,11 @@ function CuantoFalta({ t, pendiente, correr }: { t: Tarjeta; pendiente: boolean;
 
       {t.salidaInfo ? (
         <>
-          <p className="xh4">{t.salidaInfo.privada ? "Liga para invitar a sus amigos" : "Su salida"}</p>
+          <p className="xh4">{t.salidaInfo.privada ? "La liga de su espacio" : "Su salida"}</p>
           <div className="sallk"><span>{t.salidaInfo.link.replace(/^https?:\/\//, "")}</span><button type="button" className="btn btn-glass btn-sm" onClick={() => copiar(t.salidaInfo!.link)}>{copiado ? "Copiado" : "Copiar"}</button></div>
           <p style={{ fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.55, marginTop: 9 }}>
             {t.salidaInfo.privada
-              ? `Liga privada de la salida ${t.salidaInfo.label}. Quien entre por ahí ve sólo esa fecha y queda ligado a ${t.persona.split(" ")[0]}.`
+              ? `El espacio del grupo de la salida ${t.salidaInfo.label}. Quien entre por ahí crea su cuenta (celular y correo), aparta su lugar y firma.`
               : `Salida pública ${t.salidaInfo.label}: cualquiera la ve en el sitio.`}
           </p>
         </>

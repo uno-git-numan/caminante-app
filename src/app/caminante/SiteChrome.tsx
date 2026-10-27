@@ -26,6 +26,7 @@ function isImmersive(pathname: string): boolean {
     pathname === "/caminante/nosotros" || // sitio público móvil: shell propio (.pub)
     pathname === "/caminante/experiencias" || // índice de experiencias: shell propio (.pub)
     pathname === "/caminante/aprende" || // índice de la ficha científica: shell propio (.pub)
+    pathname.startsWith("/caminante/g/") || // el espacio del grupo (salida privada): shell propio (.pub.esp)
     pathname.startsWith("/caminante/invitar/") || // invitación imprimible (→ PDF)
     pathname.startsWith("/caminante/deslinde/") || // deslinde legal data-driven (imprimible)
     // ⚠️ TODO /caminante/admin es inmersivo, sin excepciones. Antes esto era

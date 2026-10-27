@@ -35,11 +35,18 @@ export default async function ReservarPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ error?: string; grupo?: string }>;
+  searchParams: Promise<{ error?: string; grupo?: string; lugar?: string; cubre?: string }>;
 }) {
   const { slug } = await params;
-  const { error, grupo } = await searchParams;
+  const { error, grupo, lugar: lugarRaw, cubre: cubreRaw } = await searchParams;
   const grupoToken = cleanGrupoToken(grupo);
+  // Desde el espacio del grupo (/caminante/g/<token>): `lugar` = mi lugar;
+  // `cubre` = los lugares de otros del grupo que voy a pagar. Viajan como hidden
+  // y createCheckout los valida contra grupo_lugares de ESA salida.
+  const UUID = /^[0-9a-f-]{36}$/i;
+  const lugarId = grupoToken && lugarRaw && UUID.test(lugarRaw) ? lugarRaw : null;
+  const cubreIds = grupoToken && cubreRaw ? cubreRaw.split(",").filter((x) => UUID.test(x)).slice(0, 20) : [];
+  const grupoExtra = lugarId || cubreIds.length ? { lugar: lugarId, cubre: cubreIds } : null;
 
   // El admin no compra (perfiles separados). Va a su panel.
   if (await isCurrentUserAdmin()) {
@@ -168,6 +175,7 @@ export default async function ReservarPage({
             tiers={experience?.priceTiers ?? []}
             complementos={complementos}
             grupoToken={grupoToken}
+            grupoExtra={grupoExtra}
           />
         )}
       </div>
@@ -182,6 +190,7 @@ export default async function ReservarPage({
           tiers={experience?.priceTiers ?? []}
           complementos={complementos}
           grupoToken={grupoToken}
+          grupoExtra={grupoExtra}
           deslindeOk={deslindeOk}
           errMsg={errMsg}
         />

@@ -16,6 +16,9 @@
 // tarjetas del alcance; el panel no vuelve al servidor para leer.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { ligaDelEspacio } from "@/lib/grupo/espacio";
+import { resumenesDeEspacios } from "@/lib/grupo/resumen-server";
+import type { ResumenDelEspacio } from "@/lib/grupo/resumen";
 import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
 import { cdmxDay, formatDiaMes, iniciales } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
@@ -74,6 +77,10 @@ export type Tarjeta = {
   llamada: { url: string; startsAt: string; pasada: boolean } | null;
   /** WhatsApp: si escribió en las últimas 24 h, se le puede redactar libre. */
   waVentana: { abierta: boolean; cierraEn: string | null };
+  /** El espacio del grupo de su salida privada (D1/D2): quién entró, pagó, la liga. */
+  grupo: ResumenDelEspacio | null;
+  /** Esta tarjeta es la anfitriona de ese espacio. */
+  anfitrion: boolean;
 };
 
 export type Cita = {
@@ -95,6 +102,7 @@ const ORIGEN: Record<string, string> = {
   whatsapp: "Llegó por WhatsApp",
   embajador: "La trajo un embajador",
   manual: "Alta a mano",
+  grupo: "Entró por el espacio del grupo",
 };
 
 const TZ = "America/Mexico_City";
@@ -218,6 +226,17 @@ export async function fetchTablero(): Promise<Tablero> {
     if (!fbPorClave.has(k) || f.status === "submitted") fbPorClave.set(k, f);
   }
 
+  // Los espacios de las salidas privadas que aparecen en el tablero.
+  const tokensPrivados = filas
+    .map((c) => {
+      const req = c.slot_request_id ? reqPorId.get(String(c.slot_request_id)) ?? null : null;
+      const sid = (c.slot_id as string | null) ?? req?.created_slot_id ?? null;
+      const s = sid ? slotPorId.get(sid) ?? null : null;
+      return s?.visibility === "private" ? s.access_token : null;
+    })
+    .filter((t): t is string => !!t);
+  const espacios = await resumenesDeEspacios(tokensPrivados);
+
   const ahora = Date.now();
   const todas: Tarjeta[] = filas.map((c) => {
     const p = persona.get(String(c.contact_id));
@@ -231,7 +250,11 @@ export async function fetchTablero(): Promise<Tablero> {
     const slot = slotId ? slotPorId.get(slotId) ?? null : null;
     const privada = slot?.visibility === "private" && !!slot.access_token;
     const grupoQ = privada ? `?grupo=${slot!.access_token}` : "";
-    const link = slot ? `${SITE}/caminante/experiencias/${slug}${grupoQ}` : "";
+    // La liga de una salida privada es su ESPACIO (/caminante/g/<token>), no
+    // la página de la experiencia: desde el 27 oct 2026 ahí es donde el grupo
+    // entra, aparta y firma.
+    const link = slot ? (privada ? ligaDelEspacio(slot!.access_token as string) : `${SITE}/caminante/experiencias/${slug}`) : "";
+    const grupo = slotId ? espacios.get(slotId) ?? null : null;
 
     // Su reserva en esta salida (o en la experiencia, si la tarjeta no tiene salida).
     const suyas = reservas.filter(
@@ -304,6 +327,8 @@ export async function fetchTablero(): Promise<Tablero> {
         ? { url: proxima.url, startsAt: proxima.starts_at, pasada: new Date(proxima.starts_at).getTime() < ahora }
         : null,
       waVentana: { abierta: !!cierraEn, cierraEn },
+      grupo,
+      anfitrion: !!grupo && grupo.anfitrionContactId === String(c.contact_id),
     };
   });
 

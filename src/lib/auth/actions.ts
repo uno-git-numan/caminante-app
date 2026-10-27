@@ -188,6 +188,24 @@ export async function signInWithGoogle(formData: FormData): Promise<GoogleOAuthI
   return { url: data.url };
 }
 
+/**
+ * «Continuar con Apple» — mismo mecanismo que Google. Sólo se ofrece cuando
+ * `NEXT_PUBLIC_AUTH_APPLE=1` (el proveedor hay que darlo de alta en Supabase
+ * con la cuenta de Apple Developer de Luis; un botón sin proveedor detrás es un
+ * control muerto). Nació con el espacio del grupo, 27 oct 2026.
+ */
+export async function signInWithApple(formData: FormData): Promise<GoogleOAuthInicio> {
+  const next = parseNext(formData);
+  const origin = await getOrigin();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "apple",
+    options: { redirectTo: `${origin}/caminante/auth/callback?next=${encodeURIComponent(next)}` },
+  });
+  if (error || !data?.url) return { error: error?.message ?? "No se pudo abrir Apple." };
+  return { url: data.url };
+}
+
 export async function signOut() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();

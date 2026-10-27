@@ -29,7 +29,11 @@ function Chips({ t }: { t: Tarjeta }) {
     <div className="met">
       <span className="cmtag"><b className="k">{lug}</b> {t.stage === "llego" || t.stage === "conversacion" ? (lug === 1 ? "persona" : "personas") : lug === 1 ? "lugar" : "lugares"}</span>
       {t.stage === "llego" || t.stage === "conversacion" ? <span className="cmtag">{t.origen}</span> : null}
-      {t.stage === "interesado" ? <span className="cmtag">{t.grupoUrl ? "Grupo puesto" : "Sin grupo"}</span> : null}
+      {/* D1 · la tarjeta del grupo: quien es anfitrión lleva su chip y «Salida
+          privada»; quien entró por el espacio dice de qué grupo viene. */}
+      {t.anfitrion ? <><span className="cmtag">Anfitrión</span><span className="cmtag">Salida privada</span></> : null}
+      {!t.anfitrion && t.grupo?.anfitrion ? <span className="cmtag">Grupo de {t.grupo.anfitrion.split(" ")[0]}</span> : null}
+      {t.stage === "interesado" && !t.anfitrion && !t.grupo ? <span className="cmtag">{t.grupoUrl ? "Grupo puesto" : "Sin grupo"}</span> : null}
       {t.stage === "pagado" ? <span className="chip c-paid"><span className="cd" />Pagado</span> : null}
       {t.stage === "preparando" && t.deslindeFirmado ? <span className="cmtag">Deslinde firmado</span> : null}
       {t.stage === "preparando" && t.grupoUrl ? <span className="cmtag">En el grupo</span> : null}
@@ -51,6 +55,21 @@ function QueSigue({ t }: { t: Tarjeta }) {
       if (t.llamada) return <p className="cmnext"><s>{t.llamada.pasada ? "✓" : "→"}</s><span>{t.llamada.pasada ? "Habló el" : "Llamada el"} <b>{diaMes(t.llamada.startsAt)}</b></span></p>;
       return t.diasQuieta > 0 ? <p className="cmnext"><s>→</s><span>Sin contactar desde hace <b>{t.diasQuieta} {t.diasQuieta === 1 ? "día" : "días"}</b></span></p> : null;
     case "interesado":
+      if (t.anfitrion && t.grupo) {
+        const g = t.grupo;
+        return (
+          <>
+            <p className="cmnext"><s>→</s><span><b>{g.entraron}</b> {g.entraron === 1 ? "entró" : "entraron"} · <b>{g.pagaron}</b> {g.pagaron === 1 ? "pagó" : "pagaron"}</span></p>
+            <div className="prog" style={{ marginTop: 10 }}>
+              <div className="tk2"><i style={{ width: `${g.cupo ? Math.min(100, (g.apartados / g.cupo) * 100) : 0}%` }}></i></div>
+              <span className="fr">{g.cupo != null ? `${g.apartados}/${g.cupo} lugares` : `${g.apartados} lugares`}</span>
+            </div>
+          </>
+        );
+      }
+      if (t.grupo && !t.pago) {
+        return <p className="cmnext"><s>→</s><span>Falta pagar{t.grupo.fechaLimite ? <> · antes del <b>{diaMes(`${t.grupo.fechaLimite}T12:00:00-06:00`)}</b></> : null}</span></p>;
+      }
       return <p className="cmnext"><s>→</s><span>Falta pagar <b>{t.pago ? mxn(t.pago.falta) : "· sin reserva"}</b></span></p>;
     case "pagado": {
       if (!t.salidaInfo?.inicio) return null;
@@ -84,7 +103,7 @@ function Tarj({ t, arrastrable, onDrag, tit, picked, onPick }: { t: Tarjeta; arr
       <div className="hd">
         {/* El asa existe SÓLO donde se puede arrastrar. Su ausencia es la señal
             principal: no hay nada que tomar. */}
-        {arrastrable ? <span className="cmgrip" aria-hidden>≡</span> : null}
+        {arrastrable ? <span className="cmgrip" aria-hidden><i></i><i></i><i></i></span> : null}
         <span className="av">{t.iniciales}</span>
         {/* `.nm`, como en la lámina: el nombre arriba y la salida abajo. Con
             `.g` (que aquí no existe) se pegaban en un solo renglón. */}
@@ -130,7 +149,7 @@ export default function TableroCRM({ d, tits, equipo, yo, operadora, remitente }
     empezar(async () => {
       const r = await moverTarjeta(id, destino);
       setError(r.ok ? "" : r.error);
-      setNota(r.ok && r.salidaAbierta ? `Se abrió su fecha de grupo: ${r.salidaAbierta.label}. La liga está en su ficha.` : "");
+      setNota(r.ok && r.salidaAbierta ? `Se abrió su fecha de grupo: ${r.salidaAbierta.label}. ${r.salidaAbierta.aviso ?? "La liga está en su ficha."}` : "");
     });
   };
 

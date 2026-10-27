@@ -22,6 +22,8 @@ import { CDMX, desdeHoraLocal, enPalabras } from "@/lib/fecha/zona";
 import { experienceTitle } from "@/lib/admin/queries";
 import type { Experience } from "@/lib/experiences/types";
 import { firmaDe, remitenteActual } from "@/lib/comunidad/remitente";
+import { fetchEspacio, ligaDelEspacio } from "@/lib/grupo/espacio";
+import { avisarAnfitriona } from "@/lib/grupo/mensajes";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://caminante.numanhub.com";
 const RUTA = "/caminante/admin/comunidad";
@@ -35,7 +37,7 @@ const RUTA = "/caminante/admin/comunidad";
 const MOVIBLE = new Set([...A_MANO, "caido"]);
 
 export type MoverResult =
-  | { ok: true; salidaAbierta: { label: string; link: string } | null }
+  | { ok: true; salidaAbierta: { label: string; link: string; aviso?: string } | null }
   | { ok: false; error: string };
 
 type Res = { ok: true; waUrl?: string | null; aviso?: string } | { ok: false; error: string };
@@ -174,11 +176,19 @@ function etiquetaDe(inicio: string, fin: string): string {
  * su liga; cupo = las personas que dijo; sin precio propio (hereda el de la
  * experiencia). Idempotente: si ya tiene salida, devuelve la que hay.
  */
-async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?: string }): Promise<{ label: string; link: string } | null> {
+async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?: string }): Promise<{ label: string; link: string; aviso?: string } | null> {
   const ctx = await cargar(cardId);
   if (!ctx) return null;
   const { sb, card, slug, data } = ctx;
-  const linkDe = (token: string | null) => `${SITE}/caminante/experiencias/${slug}${token ? `?grupo=${token}` : ""}`;
+  // La liga de una salida privada es su ESPACIO DEL GRUPO (/caminante/g/<token>).
+  const linkDe = (token: string | null) => (token ? ligaDelEspacio(token) : `${SITE}/caminante/experiencias/${slug}`);
+  // Una salida privada que nació antes del espacio (27 oct 2026) no sabe quién
+  // es su anfitrión: se le pone al pasar por aquí, sin volver a avisar.
+  const asegurarAnfitrion = async (s: { id: string; visibility: string | null }) => {
+    if (s.visibility !== "private") return;
+    await sb.from("experience_slots").update({ anfitrion_contact_id: card.contact_id, updated_at: ahora() }).eq("id", s.id).is("anfitrion_contact_id", null);
+    await sb.from("grupo_lugares").upsert({ slot_id: s.id, contact_id: card.contact_id, rol: "anfitrion" }, { onConflict: "slot_id,contact_id", ignoreDuplicates: true });
+  };
 
   // Una salida cancelada no cuenta: se abre otra. (Pasó el 22 oct: se canceló
   // la primera para probar y la tarjeta seguía apuntándole.)
@@ -189,6 +199,7 @@ async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?
   };
   const actual = await viva(card.slot_id);
   if (actual) {
+    await asegurarAnfitrion(actual as { id: string; visibility: string | null });
     return { label: String(actual.label ?? ""), link: linkDe(actual.visibility === "private" ? (actual.access_token as string | null) : null) };
   }
 
@@ -202,6 +213,7 @@ async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?
   const deSolicitud = await viva(req?.created_slot_id ?? null);
   if (deSolicitud) {
     await sb.from("crm_cards").update({ slot_id: deSolicitud.id, updated_at: ahora() }).eq("id", card.id);
+    await asegurarAnfitrion(deSolicitud as { id: string; visibility: string | null });
     return { label: String(deSolicitud.label ?? ""), link: linkDe(deSolicitud.visibility === "private" ? (deSolicitud.access_token as string | null) : null) };
   }
 
@@ -213,6 +225,14 @@ async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?
   if (fin < inicio) return null;
 
   const token = randomBytes(16).toString("base64url");
+  // La fecha límite para apartar: dos semanas antes de salir, y nunca antes de
+  // mañana. El mínimo, el de la experiencia si lo declara. Las dos se editan en
+  // el panel («Su espacio»).
+  const hoyYmd = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+  const manana = new Date(Date.parse(`${hoyYmd}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
+  const dosSemanasAntes = new Date(Date.parse(`${inicio}T12:00:00Z`) - 14 * 86400000).toISOString().slice(0, 10);
+  const fechaLimite = dosSemanasAntes > manana ? dosSemanasAntes : manana < inicio ? manana : null;
+  const minimo = data?.minPeople && data.minPeople >= 1 ? Math.min(data.minPeople, card.num_people || data.minPeople) : null;
   const { data: slot, error } = await sb
     .from("experience_slots")
     .insert({
@@ -225,6 +245,9 @@ async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?
       status: "open",
       visibility: "private",
       access_token: token,
+      anfitrion_contact_id: card.contact_id,
+      fecha_limite: fechaLimite,
+      minimo,
     })
     .select("id, label")
     .single();
@@ -239,7 +262,27 @@ async function abrirFechaDeGrupo(cardId: string, fechas?: { inicio: string; fin?
       .update({ status: "approved", created_slot_id: slot.id, resolved_at: ahora() })
       .eq("id", req.id);
   }
-  return { label: String(slot.label), link: linkDe(token) };
+  // El anfitrión ya está ADENTRO de su espacio (su lugar nace con la salida),
+  // y recibe los dos mensajes: «eres la anfitriona» y el texto para su grupo.
+  await sb.from("grupo_lugares").upsert({ slot_id: slot.id, contact_id: card.contact_id, rol: "anfitrion" }, { onConflict: "slot_id,contact_id", ignoreDuplicates: true });
+  let aviso: string | undefined;
+  try {
+    const e = await fetchEspacio(token);
+    const r = e ? await avisarAnfitriona(e) : null;
+    aviso = !r
+      ? "No se pudo mandar el aviso; la liga está en su ficha."
+      : r.whatsapp && r.correo
+        ? "Le llegó por WhatsApp y correo con la liga y el mensaje para su grupo."
+        : r.correo
+          ? "Le llegó por correo con la liga y el mensaje para su grupo (WhatsApp no salió: la plantilla no está aprobada o no hay número real)."
+          : r.whatsapp
+            ? "Le llegó por WhatsApp con la liga y el mensaje para su grupo."
+            : "No le llegó ni por correo ni por WhatsApp: mándaselo desde su ficha.";
+  } catch (err) {
+    console.error("avisarAnfitriona:", err);
+    aviso = "No se pudo mandar el aviso; la liga está en su ficha.";
+  }
+  return { label: String(slot.label), link: linkDe(token), aviso };
 }
 
 /** Desde el panel, cuando la solicitud no traía fecha (o no hubo solicitud). */

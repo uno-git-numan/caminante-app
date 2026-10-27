@@ -53,7 +53,18 @@ export async function createCheckout(formData: FormData) {
     .getAll("complemento")
     .map((v) => String(v).trim())
     .filter(Boolean);
-  const backQ = grupoToken ? `&grupo=${grupoToken}` : "";
+  // Desde el ESPACIO DEL GRUPO: `lugar` = el lugar propio que se aparta;
+  // `cubre` = lugares de otros del grupo que esta persona paga. Son señas, no
+  // montos: el precio sigue saliendo de la base. Se validan contra
+  // grupo_lugares de ESTA salida más abajo.
+  const UUID = /^[0-9a-f-]{36}$/i;
+  const lugarRaw = String(formData.get("lugar") ?? "").trim();
+  const lugarId = UUID.test(lugarRaw) ? lugarRaw : null;
+  const cubreIds = Array.from(new Set(formData.getAll("cubre").map((v) => String(v).trim()).filter((v) => UUID.test(v)))).slice(0, 20);
+  const backQ =
+    (grupoToken ? `&grupo=${grupoToken}` : "") +
+    (lugarId ? `&lugar=${lugarId}` : "") +
+    (cubreIds.length ? `&cubre=${cubreIds.join(",")}` : "");
   const back = (e: string) => `/caminante/reservar/${slug}?error=${encodeURIComponent(e)}${backQ}`;
 
   if (!slug || !slotId) redirect(back("datos"));
@@ -94,6 +105,44 @@ export async function createCheckout(formData: FormData) {
   // Salida PRIVADA: exige el token exacto de su link de grupo.
   if (slot.visibility === "private" && (!grupoToken || grupoToken !== slot.access_token)) {
     redirect(back("salida"));
+  }
+  // Y respeta su fecha límite para apartar: el espacio del grupo la enseña como
+  // candado, así que aquí se cumple (la operadora la mueve desde el panel).
+  // (Consulta aparte y best-effort: si la columna aún no existe —0073 sin
+  // aplicar— el cobro sigue; lo que no puede pasar es que un deploy adelantado
+  // a la migración tumbe TODOS los cobros web.)
+  if (slot.visibility === "private") {
+    const { data: lim } = await sb.from("experience_slots").select("fecha_limite").eq("id", slotId).maybeSingle();
+    const fechaLimite = (lim as { fecha_limite: string | null } | null)?.fecha_limite ?? null;
+    if (fechaLimite) {
+      const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+      if (hoy > fechaLimite) redirect(back("Ya pasó la fecha límite para apartar lugar en esta salida. Escríbele a tu operadora."));
+    }
+  }
+
+  // Los lugares del espacio del grupo tienen que ser de ESTA salida, y los que
+  // se cubren no pueden estar ya pagados.
+  let correoDelLugar: string | null = null;
+  if (lugarId || cubreIds.length) {
+    const ids = [...(lugarId ? [lugarId] : []), ...cubreIds];
+    const { data: lugares } = await sb
+      .from("grupo_lugares")
+      .select("id, slot_id, contact_id, reservation_id, contacts(email)")
+      .in("id", ids);
+    const filas = (lugares ?? []) as { id: string; slot_id: string; contact_id: string; reservation_id: string | null; contacts: { email: string | null } | { email: string | null }[] | null }[];
+    if (filas.length !== ids.length || filas.some((l) => l.slot_id !== slotId)) redirect(back("salida"));
+    if (cubreIds.length) {
+      if (numPeople < cubreIds.length) redirect(back(`Elegiste cubrir ${cubreIds.length} lugares: el número de personas no puede ser menor.`));
+      const { data: pagadas } = await sb
+        .from("reservations")
+        .select("id")
+        .in("id", filas.filter((l) => cubreIds.includes(l.id) && l.reservation_id).map((l) => l.reservation_id as string))
+        .in("status", ["confirmed", "paid", "partially_paid", "completed"]);
+      if ((pagadas ?? []).length) redirect(back("Alguien de los que elegiste ya tiene su lugar apartado."));
+    }
+    const mio = filas.find((l) => l.id === lugarId);
+    const c = mio?.contacts;
+    correoDelLugar = (Array.isArray(c) ? c[0]?.email : c?.email) ?? null;
   }
 
   // Cupo server-side: el form limita en cliente, pero el monto de personas
@@ -227,6 +276,9 @@ export async function createCheckout(formData: FormData) {
       regla.tipo === "plano" ? `${origenRegla}:${regla.pct}` : `escala:${regla.escala}`,
     tier_label: tierLabel,
     slot_visibility: (slot.visibility as string | null) ?? "public",
+    // El espacio del grupo: qué lugar(es) paga este cobro. El webhook los liga.
+    ...(lugarId ? { lugar_id: lugarId } : {}),
+    ...(cubreIds.length ? { cubre_lugares: cubreIds.join(",") } : {}),
     // POR DÓNDE ENTRÓ. Viaja a la metadata para que el webhook lo escriba en
     // `payments` sin volver a decidirlo: lo que se cobró manda sobre lo que hoy
     // diga la ficha de la operadora, que mañana puede cambiar.
@@ -291,6 +343,9 @@ export async function createCheckout(formData: FormData) {
       metadata,
       payment_intent_data: { metadata, ...paraStripe(plan) },
       phone_number_collection: { enabled: true },
+      // Quien paga desde su espacio ya tiene cuenta: el correo va fijo para que
+      // el pago caiga en SU contacto y no en uno nuevo con otro correo.
+      ...(correoDelLugar ? { customer_email: correoDelLugar } : {}),
       success_url: `${origin}/caminante/reserva/exito?slug=${encodeURIComponent(slug)}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/caminante/reservar/${slug}?error=cancelado${backQ}`,
     });

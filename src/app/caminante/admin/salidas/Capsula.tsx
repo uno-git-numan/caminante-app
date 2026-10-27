@@ -23,6 +23,7 @@ import {
 import { iniciales } from "@/lib/admin/formato";
 import { mandarmeUnaPrueba } from "@/lib/feedback/prueba";
 import { generarLinkDeGrupo } from "@/lib/feedback/link-grupo";
+import SuEspacio from "@/app/caminante/admin/ui/SuEspacio";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
 /** Con coma decimal: es un número que se lee, no un identificador. */
@@ -365,7 +366,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
               {s.experiencia} <span className="chev2" style={{ transform: abierta ? "rotate(180deg)" : undefined }}>▾</span>
             </h3>
             <p className="meta">
-              {[s.label, s.lugar, s.operador ? `operada por ${s.operador}` : null].filter(Boolean).join(" · ")}
+              {[s.label, s.grupo ? "Salida privada" : null, s.grupo?.anfitrion ? `Grupo de ${s.grupo.anfitrion.split(" ")[0]}` : null, s.lugar, s.operador ? `operada por ${s.operador}` : null].filter(Boolean).join(" · ")}
             </p>
           </div>
           <span className={`salwhen${s.cerca ? " cerca" : ""}`}>{s.cuando}</span>
@@ -664,6 +665,8 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                   </div>
                 </>
               ) : null}
+              {/* D3 · la salida privada trae su espacio del grupo debajo del roster. */}
+              {s.grupo ? <SuEspacio g={s.grupo} abrir /> : null}
               <div className="salfoot">
                 <a href={`/caminante/admin/roster/${s.id}`} className="btn btn-ghost">
                   Ver roster
