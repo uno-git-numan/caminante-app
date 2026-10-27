@@ -49,7 +49,15 @@ export async function createSupabaseServerClient() {
  * Supabase hoy, también para la liga mágica) lo necesitan para el canje. Es la
  * única cookie `sb-` que pasa el filtro.
  */
-export async function createSupabaseAuthClient() {
+/**
+ * `flujo: "implicit"` es para canjear un `hashed_token` que salió de
+ * `auth.admin.generateLink` (el código del celular del espacio del grupo, que
+ * ES el login). Medido el 27 oct 2026: con el flujo PKCE por defecto,
+ * `verifyOtp({token_hash})` sobre ese token responde «Email link is invalid or
+ * has expired» (403) aunque el token esté recién hecho; con el flujo implícito
+ * canjea y deja la sesión en cookies. La liga mágica por correo sigue por PKCE.
+ */
+export async function createSupabaseAuthClient(opts?: { flujo?: "pkce" | "implicit" }) {
   const cookieStore = await cookies();
   const env = getClientSupabaseEnv();
 
@@ -60,6 +68,7 @@ export async function createSupabaseAuthClient() {
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
+      ...(opts?.flujo ? { auth: { flowType: opts.flujo } } : {}),
       cookies: {
         getAll() {
           return cookieStore.getAll().filter((c) => !esSesion(c.name));

@@ -87,7 +87,7 @@ async function porWhatsapp(sb: ReturnType<typeof createSupabaseAdminClient>, e16
 async function porCorreo(email: string, nombre: string | null, codigo: string, experiencia: string | null): Promise<boolean> {
   const { html, texto } = marco("Tu código", [
     h1(`Tu código es <span style="letter-spacing:.18em">${esc(codigo)}</span>`),
-    p(`Hola${saludo(nombre)}. Escríbelo en la pantalla para verificar tu celular${experiencia ? ` y entrar al grupo de <b>${esc(experiencia)}</b>` : ""}.`),
+    p(`Hola${saludo(nombre)}. Escríbelo en la pantalla para verificar tu celular${experiencia ? ` y entrar al grupo de <b>${esc(experiencia.replace(/\.$/, ""))}</b>` : ""}.`),
     p(`Vence en ${MINUTOS_CODIGO} minutos. Si no lo pediste tú, ignora este correo.`),
   ]);
   return sendViaResend(email, `${codigo} es tu código · Caminante`, html, { ua: "caminante-grupo/1.0", text: texto });

@@ -185,9 +185,14 @@ export async function verificarYEntrar(formData: FormData): Promise<void> {
   if (!user) {
     if (!v.tokenHash) redirect(conError(token, "/entrar", "Tu sesión se perdió. Vuelve a entrar."));
     // El código cuadró: se canjea la liga mágica y la sesión queda en cookies.
-    const auth = await createSupabaseAuthClient();
+    // Flujo IMPLÍCITO a propósito: el token salió de generateLink, no de un
+    // signInWithOtp con verificador PKCE (ver createSupabaseAuthClient).
+    const auth = await createSupabaseAuthClient({ flujo: "implicit" });
     const { data, error } = await auth.auth.verifyOtp({ token_hash: v.tokenHash, type: "magiclink" });
-    if (error || !data.user) redirect(conError(token, "/entrar", "No pudimos abrir tu sesión. Pide un código nuevo."));
+    if (error || !data.user) {
+      console.error("verificarYEntrar verifyOtp:", error?.message);
+      redirect(conError(token, "/entrar", "No pudimos abrir tu sesión. Pide un código nuevo."));
+    }
     user = data.user;
   }
 
