@@ -39,7 +39,13 @@ y desde donde salen, uno a uno, todos los mensajes del viaje.
 correo**. Con el celular de cada quien podemos escribirle directo (WhatsApp y correo) sin
 depender del grupo de WhatsApp, que sigue existiendo como conversación.
 
-**Diseña para teléfono primero.** La anfitriona y los invitados viven en el celular.
+**Diseña para teléfono primero, y también para escritorio.** La anfitriona y los
+invitados viven en el celular, pero la liga se abre igual en la computadora (Mac,
+navegador de escritorio): el sitio público ya renderiza las dos vistas y el CSS decide
+cuál se ve (el corte es 699px). Cada pantalla de A–C se entrega en **las dos** versiones;
+las de D sólo en escritorio, como el panel. Para la vista de escritorio reusa la página de
+experiencia de escritorio del sitio público y la versión de escritorio de «Mi espacio v2»
+(mismos componentes, misma marca); no inventes una tercera estética.
 
 ---
 
@@ -127,6 +133,36 @@ Dibuja también el **estado feo**: entró, no ha pagado, faltan 3 días para la 
 
 ---
 
+## Escritorio (Mac y navegador de escritorio)
+
+Las mismas pantallas de A–C, a 1280 de ancho, con estas decisiones:
+
+1. **El espacio del grupo (B y C3)** va a dos columnas, como el viaje de Airbnb en
+   escritorio: a la izquierda el contenido largo (portada con la foto ancha, quién va,
+   el viaje, lo que viene, el grupo de WhatsApp, el pie); a la derecha una **tarjeta
+   pegajosa** (sticky) que no se va al hacer scroll, con el contador «4 de 10», la fecha
+   límite, el precio por persona y el botón que toca (apartar o firmar). En la versión de
+   la anfitriona, «Invitar a mi grupo» y la liga con «Copiar» viven dentro de esa misma
+   tarjeta, debajo del botón; «Pagar por alguien más» sigue siendo acordeón, en la
+   columna izquierda.
+2. **La portada de invitación (C1)**: foto a media pantalla a la izquierda, a la derecha
+   «Miranda te invita», el contador, el precio y «Entrar al grupo». Nada más.
+3. **Crear cuenta y el código (C2)**: una tarjeta centrada, angosta (unos 440px), con los
+   botones de Apple y Google arriba y el formulario corto debajo. El código de WhatsApp,
+   en la misma tarjeta. El invitado está en la computadora pero el código le llega al
+   celular: dilo en una línea («te mandamos un código por WhatsApp al +52 55 ••• 1234»).
+4. **Los mensajes de la anfitriona (A)**: la versión de correo se dibuja como se ve en
+   un cliente de correo de escritorio (ancho 600, el marco de los correos de Caminante);
+   la de WhatsApp se queda en teléfono.
+5. **Los estados** (cupo lleno, venció la fecha límite, ya viajaron, el estado feo) se
+   dibujan en escritorio sólo sobre la tarjeta pegajosa: es la que cambia.
+
+Mismo contenido, mismo orden, mismos componentes. Lo único que cambia es la
+disposición. Si en escritorio una sección se vería vacía o desproporcionada, dilo en el
+recibo en vez de rellenarla.
+
+---
+
 ## D · Lo que cambia en el panel (sólo esto)
 
 1. **La tarjeta del grupo en el CRM** (`.cmc`): la tarjeta de Miranda en «Interesado» se
@@ -159,7 +195,10 @@ Dibuja también el **estado feo**: entró, no ha pagado, faltan 3 días para la 
 Un solo HTML con las láminas en este orden: A (los dos mensajes), B (espacio de la
 anfitriona), B-estados (los cuatro), B-precio variable, C1 (portada de invitación), C2
 (crear cuenta + código), C3 (espacio del invitado), C4 (estado feo + cupo lleno), D (las
-tres piezas del panel). Teléfono para A–C; escritorio para D.
+tres piezas del panel). **Cada lámina de A–C en teléfono y en escritorio** (la de
+teléfono primero, la de escritorio junto); D sólo en escritorio. Que las dos versiones de
+una misma pantalla salgan del mismo marcado con una sola media query en 699px, como el
+sitio: no dos HTML distintos.
 
 Al final, el **recibo**: qué componentes reusaste de cada pantalla anterior y qué clases
 nuevas creaste, con su nombre y para qué.
