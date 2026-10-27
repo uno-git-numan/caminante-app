@@ -188,12 +188,33 @@ que escriben `ends_at`.
 corte es por **`starts_at`, no `ends_at`**: una salida de Oct 8-11 no se vende el 9,
 el grupo ya va en camino. Cerrar **no borra** — se reabre desde el dashboard.
 
-## Salidas privadas
+## Salidas privadas: el espacio del grupo (27 oct 2026)
 
-Solo existen con su link `?grupo=<token>`. **Sanitiza SIEMPRE con `cleanGrupoToken`**
-antes de un filtro PostgREST. Los puntos que filtran `visibility='public'`:
+Su liga es **`/caminante/g/<access_token>`** (el espacio del grupo, estilo viaje de
+Airbnb), no la página de la experiencia. `?grupo=<token>` sigue vivo en `/reservar`
+y en la página de la experiencia. **Sanitiza SIEMPRE con `cleanGrupoToken`** antes
+de un filtro PostgREST. Los puntos que filtran `visibility='public'`:
 `fetchOpenSlotsForTemplate`, `fetchPublicAvailability`, `/reservar` y el picker del
 deslinde. El form de experiencia no las ve ni las toca.
+
+Código en `lib/grupo/` y `app/caminante/g/[token]/`; esquema en la **0073**
+(`anfitrion_contact_id`, `fecha_limite`, `minimo` en la salida; `grupo_lugares`;
+`codigos_celular`; `contacts.phone_verified_at`; `crm_cards.origen='grupo'`).
+
+- **Nadie entra sin cuenta, y la cuenta exige celular y correo.** El código del
+  celular ES el login (canjea una liga mágica); llega por WhatsApp si hay plantilla
+  aprobada y número real, y si no, **por correo** (hoy: siempre por correo).
+- **«Entré» es una fila; «pagué» y «firmé» se DERIVAN** de `reservations` y
+  `registrations`. No escribas estados.
+- **Apartar y «pagar por alguien más» pasan por `/reservar`** con `lugar` /
+  `cubre`; `createCheckout` los valida contra `grupo_lugares` de ESA salida, y el
+  webhook liga la reserva (`lib/grupo/pagos.ts`). La fecha límite se cumple en
+  el cobro, pero se lee aparte y best-effort (un deploy adelantado a la 0073 no
+  puede tumbar todos los cobros web).
+- **Al vencer la fecha límite nada se cancela solo**: el cron avisa a la casa y
+  la operadora decide (mover la fecha, bajar el mínimo o cancelar).
+- La anfitriona recibe A1 («eres la anfitriona») y A2 (el texto para reenviar) al
+  pasar su tarjeta a Interesado; la nota del tablero dice por dónde salió.
 
 ## Diseño v2 data-driven
 

@@ -224,6 +224,16 @@ quedaron todas en `unico`: aplicarla no movió ni un número.
 ⚠️ Ojo con los dos ejes: **`tipo`** (fijo/variable/buffer) decide el EQUILIBRIO;
 **`modo`** decide CÓMO se calcula el monto. No se deducen uno del otro.
 
+## El espacio del grupo (27 oct 2026)
+
+Una salida privada tiene su **espacio** en `/caminante/g/<token>`: la anfitriona
+invita y ve quién entra; cada invitado entra con su cuenta (celular verificado +
+correo), aparta su lugar y firma. Código en `lib/grupo/`; reglas en
+`.claude/rules/experiencias.md` («Salidas privadas»). **Bloqueado por la 0073**
+(Luis) y, para WhatsApp, por Meta: el número sigue siendo el de pruebas y el
+WABA de prueba no puede crear plantillas de autenticación → el código llega por
+correo hasta que haya número real. Memoria: `caminante-espacio-del-grupo`.
+
 ## El panel de operadora (24 sep 2026)
 
 ⚠️ **numan es el SOFTWARE; Caminante es una OPERADORA** (de Druidas, igual que
