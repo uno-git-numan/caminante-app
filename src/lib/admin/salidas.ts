@@ -22,6 +22,7 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resumenesDeEspacios } from "@/lib/grupo/resumen-server";
+import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import type { ResumenDelEspacio } from "@/lib/grupo/resumen";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
@@ -81,6 +82,17 @@ export type Respuesta = {
   sinReserva: boolean;
 };
 
+export type LinkPendiente = {
+  reservationId: string;
+  nombre: string;
+  email: string | null;
+  telefono: string | null;
+  lugares: number;
+  montoMxn: number;
+  url: string;
+  nota: string | null;
+};
+
 export type Salida = {
   id: string;
   slug: string;
@@ -106,6 +118,8 @@ export type Salida = {
   inicioInput: string;
   finInput: string;
   precio: number | null;
+  /** El precio por persona que RIGE: el de la salida, o el de la experiencia. Null = sin precio. */
+  precioLista: number | null;
 
   // ── deslinde ──
   firmados: number;
@@ -135,6 +149,8 @@ export type Salida = {
   tokenGrupo: string | null;
   /** Salida privada: su espacio del grupo (D3). Null en las públicas. */
   grupo: ResumenDelEspacio | null;
+  /** Links de pago mandados y sin pagar (precio especial o cobro por WhatsApp): no apartan lugar. */
+  linksPendientes: LinkPendiente[];
 };
 
 export type LineaDeSalidas = {
@@ -207,7 +223,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
         .select(
           "id, experience_id, label, starts_at, ends_at, capacity_total, price_mxn, status, visibility, access_token, feedback_token",
         ),
-      sb.from("reservations").select("id, experience_id, slot_id, contact_id, num_people, status"),
+      sb.from("reservations").select("id, experience_id, slot_id, contact_id, num_people, status, total_amount_mxn, amount_due_mxn, payment_link_url, notes"),
       sb.from("registrations").select("reservation_id, signed_at"),
       sb
         .from("experience_feedback")
@@ -236,7 +252,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   const expIds = new Set(exps.map((e) => e.id));
   const expById = new Map(exps.map((e) => [e.id, e]));
 
-  let slots = ((slotsRaw ?? []) as {
+  const slots = ((slotsRaw ?? []) as {
     id: string;
     experience_id: string;
     label: string | null;
@@ -251,13 +267,21 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   }[]).filter((s) => expIds.has(s.experience_id));
   const slotIds = new Set(slots.map((s) => s.id));
 
-  const resvs = ((resvsRaw ?? []) as {
+  type ResvRow = {
     id: string;
     slot_id: string | null;
     contact_id: string;
     num_people: number | null;
     status: string;
-  }[]).filter((r) => r.slot_id && slotIds.has(r.slot_id) && HOLDING_STATUSES.includes(r.status));
+    total_amount_mxn: number | null;
+    amount_due_mxn: number | null;
+    payment_link_url: string | null;
+    notes: string | null;
+  };
+  const resvs = ((resvsRaw ?? []) as ResvRow[]).filter((r) => r.slot_id && slotIds.has(r.slot_id) && HOLDING_STATUSES.includes(r.status));
+  // Los links mandados y sin pagar: `requested` con link. No apartan lugar, pero
+  // la cápsula los enseña para copiarlos otra vez o cancelarlos.
+  const pendientesLink = ((resvsRaw ?? []) as ResvRow[]).filter((r) => r.slot_id && slotIds.has(r.slot_id) && r.status === "requested" && r.payment_link_url);
 
   const fbs = ((fbsRaw ?? []) as ({ slot_id: string | null; contact_id: string } & Snap)[]).filter(
     (f) => f.slot_id && slotIds.has(f.slot_id),
@@ -286,7 +310,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     if (r.estado === "solicitado" || r.estado === "confirmado") reembolsoVivo.set(r.reservation_id, r.id);
   }
 
-  const contactIds = [...new Set([...resvs.map((r) => r.contact_id), ...fbs.map((f) => f.contact_id)])];
+  const contactIds = [...new Set([...resvs.map((r) => r.contact_id), ...pendientesLink.map((r) => r.contact_id), ...fbs.map((f) => f.contact_id)])];
   const { data: contactsRaw } = contactIds.length
     ? await sb.from("contacts").select("id, full_name, email, phone").in("id", contactIds)
     : { data: [] as unknown[] };
@@ -459,6 +483,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       inicioInput: s.starts_at ? cdmxDay(s.starts_at) : "",
       finInput: s.ends_at ? cdmxDay(s.ends_at) : "",
       precio: s.price_mxn ?? null,
+      precioLista: s.price_mxn ?? parseMxnAmount(data?.price?.amount),
       firmados,
       titulares,
       pendientes,
@@ -486,6 +511,21 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       estado: s.status,
       tokenGrupo: s.feedback_token,
       grupo: privada && s.access_token ? espacios.get(s.id) ?? null : null,
+      linksPendientes: pendientesLink
+        .filter((r) => r.slot_id === s.id)
+        .map((r) => {
+          const c = cById.get(r.contact_id);
+          return {
+            reservationId: r.id,
+            nombre: c?.full_name || c?.email || "—",
+            email: c?.email ?? null,
+            telefono: c?.phone ?? null,
+            lugares: r.num_people || 1,
+            montoMxn: Number(r.amount_due_mxn ?? r.total_amount_mxn ?? 0),
+            url: r.payment_link_url as string,
+            nota: r.notes,
+          };
+        }),
     });
   }
 

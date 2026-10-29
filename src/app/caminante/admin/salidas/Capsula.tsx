@@ -24,6 +24,7 @@ import { iniciales } from "@/lib/admin/formato";
 import { mandarmeUnaPrueba } from "@/lib/feedback/prueba";
 import { generarLinkDeGrupo } from "@/lib/feedback/link-grupo";
 import SuEspacio from "@/app/caminante/admin/ui/SuEspacio";
+import { LinkEspecial, LinksPendientes } from "./LinkEspecial";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
 /** Con coma decimal: es un número que se lee, no un identificador. */
@@ -345,6 +346,7 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
 export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio: string; esCasa?: boolean }) {
   const [abierta, setAbierta] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [cobrando, setCobrando] = useState(false);
   const [reembolsando, setReembolsando] = useState(false);
   const [tokenGrupo, setTokenGrupo] = useState(s.tokenGrupo);
   const [generando, setGenerando] = useState(false);
@@ -665,6 +667,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                   </div>
                 </>
               ) : null}
+              <LinksPendientes links={s.linksPendientes} />
               {/* D3 · la salida privada trae su espacio del grupo debajo del roster. */}
               {s.grupo ? <SuEspacio g={s.grupo} abrir /> : null}
               <div className="salfoot">
@@ -696,6 +699,13 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                     {editando ? "Cerrar edición" : "Editar cupo y fechas"}
                   </button>
                 )}
+                {/* Cobrar con descuento o monto fijo a UNA persona de ESTA salida
+                    (Luis, 28 oct 2026). Sólo mientras se vende. */}
+                {!s.pasada && s.estado === "open" ? (
+                  <button type="button" className="btn btn-ghost" onClick={() => setCobrando((v) => !v)}>
+                    {cobrando ? "Cerrar link especial" : "Link de pago especial"}
+                  </button>
+                ) : null}
                 {/* Dinero. Solo aparece para la casa: `reembolsables` llega
                     vacío para un operador (la devolución sale de la cuenta de
                     NUMAN HUB, no de la suya). */}
@@ -715,6 +725,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                 ) : null}
               </div>
               {editando ? <EditarSalida s={s} onListo={() => setEditando(false)} /> : null}
+              {cobrando ? <LinkEspecial slotId={s.id} precioLista={s.precioLista} onListo={() => setCobrando(false)} /> : null}
               {reembolsando ? <Reembolsos s={s} onListo={() => setReembolsando(false)} /> : null}
             </>
           )}

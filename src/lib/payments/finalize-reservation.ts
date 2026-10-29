@@ -17,6 +17,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { vendedorParaPago } from "@/lib/equipo/atribucion";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { capiPurchase } from "@/lib/meta/capi";
+import { tarjetaPagada } from "@/lib/comunidad/automatico";
+import { notifyConfirmacionCompra } from "@/lib/notifications/notify-customer";
 
 export type FinalizeReservationResult = {
   handled: boolean; // false = el evento no es de una reserva (sin metadata.reservation_id)
@@ -81,12 +83,19 @@ export async function finalizeReservationCheckout(
   const r = resv as { experience_id?: string | null; slot_id?: string | null };
   const vendedorId = await vendedorParaPago({ contactId, experienceId: r.experience_id ?? null, slotId: r.slot_id ?? null }, sb);
 
+  // La comisión viaja en la metadata cuando el link la calculó (los links
+  // especiales desde la cápsula de la salida, link-especial.ts). Sin ella, el
+  // cobro por WhatsApp de siempre: no se inventa un monto.
+  const feeRaw = session.metadata?.platform_fee_mxn;
+  const platformFee = feeRaw != null && feeRaw !== "" ? Number(feeRaw) : null;
+
   // Registrar el abono.
   const { error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,
     contact_id: contactId,
     amount_mxn: amountPaid,
     ...(vendedorId ? { vendedor_id: vendedorId } : {}),
+    ...(platformFee != null && Number.isFinite(platformFee) ? { platform_fee_mxn: platformFee, canal_cobro: "casa" } : {}),
     status: "paid",
     method: "stripe",
     provider_ref: providerRef,
@@ -114,6 +123,11 @@ export async function finalizeReservationCheckout(
   if ((RANK[computed] ?? 0) > (RANK[current] ?? 0)) {
     finalStatus = computed;
     await sb.from("reservations").update({ status: computed }).eq("id", reservationId);
+  }
+
+  // El tablero de Comunidad se entera solo (igual que el cobro web).
+  if (paymentRecorded) {
+    await tarjetaPagada(sb, { contactId, experienceId: String(r.experience_id ?? ""), reservationId, slotId: r.slot_id ?? null });
   }
 
   // Cola de sync a Notion — SOLO comercial (Pipeline: Paid / Payment Amount / Method).
@@ -147,6 +161,27 @@ export async function finalizeReservationCheckout(
       .maybeSingle();
     const experienceSlug = session.metadata?.experience_slug || "";
     const numPeople = Math.max(1, parseInt(session.metadata?.num_people ?? "1", 10) || 1);
+
+    // El comprobante AL CLIENTE con la liga del deslinde (hasta el 28 oct 2026
+    // quien pagaba por link se quedaba sin correo y sin deslinde: la
+    // confirmación sólo existía en el cobro web). Best-effort.
+    if (contact?.email && r.experience_id) {
+      const { data: expRow } = await sb.from("experiences").select("slug, data").eq("id", r.experience_id).maybeSingle();
+      const d = (expRow?.data ?? null) as { title?: string; titleAccent?: string; cardTitle?: string; registration?: { active?: boolean } } | null;
+      const slugReal = (expRow?.slug as string | undefined) || experienceSlug;
+      const nombreExperiencia = d?.cardTitle || [d?.title, d?.titleAccent].filter(Boolean).join(" ").trim() || slugReal;
+      await notifyConfirmacionCompra({
+        email: contact.email,
+        nombre: contact.full_name ?? null,
+        operatorId: (session.metadata?.operator_id as string | undefined) || null,
+        experiencia: nombreExperiencia,
+        salida: session.metadata?.slot_label || "",
+        personas: numPeople,
+        montoMxn: amountPaid,
+        deslindeUrl: d?.registration?.active ? `https://caminante.numanhub.com/caminante/registro/${slugReal}?reserva=${reservationId}` : null,
+      }).catch(() => {});
+    }
+
     await capiPurchase({
       eventId: providerRef,
       value: amountPaid,
