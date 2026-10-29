@@ -21,6 +21,7 @@ import { findOrCreateContact } from "@/lib/crm/contacts";
 import { cleanGrupoToken } from "@/lib/experiences/availability";
 import { fetchEspacio, contactoDeUsuario, type Espacio } from "@/lib/grupo/espacio";
 import { celularE164, pedirCodigo, verificarCodigo, MINUTOS_CODIGO } from "@/lib/grupo/codigo";
+import { avisarAnfitriona } from "@/lib/grupo/mensajes";
 
 const COOKIE = "cam_codigo";
 const ahora = () => new Date().toISOString();
@@ -284,6 +285,68 @@ export async function apuntarseEnListaDeEspera(formData: FormData): Promise<void
     .is("lista_espera_at", null);
   revalidatePath(ruta(token));
   redirect(`${ruta(token)}?espera=1`);
+}
+
+/**
+ * El panel: «Mandarle su liga» a la anfitriona. Completa lo que una salida
+ * privada abierta ANTES del espacio no tiene (anfitrión, fecha límite, su
+ * lugar) y manda A1/A2 por correo y WhatsApp. También sirve para reenviar.
+ */
+export async function mandarLigaALaAnfitriona(slotId: string): Promise<{ ok: true; aviso: string; waUrl: string | null } | { ok: false; error: string }> {
+  if (!(await puedeEditarSlot(slotId))) return { ok: false, error: "Sin permiso." };
+  const sb = createSupabaseAdminClient();
+  const { data: slot } = await sb
+    .from("experience_slots")
+    .select("id, experience_id, access_token, visibility, status, starts_at, anfitrion_contact_id, fecha_limite, minimo")
+    .eq("id", slotId)
+    .maybeSingle();
+  if (!slot || slot.visibility !== "private" || !slot.access_token) return { ok: false, error: "Esa salida no es privada." };
+
+  // Quién es el anfitrión: lo que diga la salida, o la tarjeta viva ligada a ella.
+  let anfitrion = slot.anfitrion_contact_id as string | null;
+  if (!anfitrion) {
+    const { data: card } = await sb
+      .from("crm_cards")
+      .select("contact_id")
+      .eq("slot_id", slotId)
+      .neq("stage", "caido")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    anfitrion = (card?.contact_id as string | null) ?? null;
+  }
+  if (!anfitrion) return { ok: false, error: "Esta salida no tiene tarjeta en el CRM: no sé quién es el anfitrión." };
+
+  const patch: Record<string, unknown> = { anfitrion_contact_id: anfitrion, updated_at: ahora() };
+  if (!slot.fecha_limite) {
+    const inicio = String(slot.starts_at).slice(0, 10);
+    const hoyYmd = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+    const manana = new Date(Date.parse(`${hoyYmd}T12:00:00Z`) + 86400000).toISOString().slice(0, 10);
+    const dosSemanas = new Date(Date.parse(`${inicio}T12:00:00Z`) - 14 * 86400000).toISOString().slice(0, 10);
+    patch.fecha_limite = dosSemanas > manana ? dosSemanas : manana < inicio ? manana : null;
+  }
+  if (slot.minimo == null) {
+    const { data: exp } = await sb.from("experiences").select("data->>minPeople").eq("id", slot.experience_id as string).maybeSingle();
+    const min = parseInt(String((exp as { minPeople?: string } | null)?.minPeople ?? ""), 10);
+    if (Number.isInteger(min) && min >= 1) patch.minimo = min;
+  }
+  await sb.from("experience_slots").update(patch).eq("id", slotId);
+  await sb.from("grupo_lugares").upsert({ slot_id: slotId, contact_id: anfitrion, rol: "anfitrion" }, { onConflict: "slot_id,contact_id", ignoreDuplicates: true });
+
+  const e = await fetchEspacio(slot.access_token as string);
+  if (!e) return { ok: false, error: "No se pudo cargar el espacio." };
+  const r = await avisarAnfitriona(e);
+  const aviso =
+    r.whatsapp && r.correo
+      ? "Le llegó por WhatsApp y correo con su liga y el mensaje para su grupo."
+      : r.correo
+        ? "Le llegó por correo. Por WhatsApp no salió (sin plantilla aprobada o sin número real): se abre para que lo mandes tú."
+        : r.whatsapp
+          ? "Le llegó por WhatsApp."
+          : "No salió por ningún lado: mándaselo con la liga que se abre.";
+  revalidatePath("/caminante/admin/comunidad");
+  revalidatePath("/caminante/admin/salidas");
+  return { ok: true, aviso, waUrl: r.waUrl };
 }
 
 /** El panel (D2/D3): fecha límite y mínimo de una salida privada. */

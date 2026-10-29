@@ -8,7 +8,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { guardarLimitesDeGrupo } from "@/lib/grupo/acciones";
+import { guardarLimitesDeGrupo, mandarLigaALaAnfitriona } from "@/lib/grupo/acciones";
 import type { ResumenDelEspacio } from "@/lib/grupo/resumen";
 
 const diaLargo = (ymd: string) => {
@@ -27,6 +27,14 @@ export default function SuEspacio({ g, abrir = false }: { g: ResumenDelEspacio; 
   const [pendiente, start] = useTransition();
   const router = useRouter();
   const copiar = () => navigator.clipboard?.writeText(g.liga).then(() => { setOk(true); setTimeout(() => setOk(false), 1500); });
+  const [avisoLiga, setAvisoLiga] = useState<string | null>(null);
+  const mandarLiga = () =>
+    start(async () => {
+      const r = await mandarLigaALaAnfitriona(g.slotId);
+      setAvisoLiga(r.ok ? r.aviso : r.error);
+      if (r.ok && r.waUrl) window.open(r.waUrl, "_blank", "noopener");
+      if (r.ok) router.refresh();
+    });
   const guardar = () =>
     start(async () => {
       const r = await guardarLimitesDeGrupo(g.slotId, fecha, minimo);
@@ -47,7 +55,11 @@ export default function SuEspacio({ g, abrir = false }: { g: ResumenDelEspacio; 
             Abrir el espacio como lo ve el grupo
           </a>
         ) : null}
+        <button type="button" className="btn btn-ghost btn-sm" disabled={pendiente} onClick={mandarLiga}>
+          {g.gente.some((p) => p.anfitrion) ? "Volver a mandarle su liga" : "Mandarle su liga al anfitrión"}
+        </button>
       </div>
+      {avisoLiga ? <p className="mut" style={{ fontSize: 12.5, marginTop: 8 }}>{avisoLiga}</p> : null}
       <dl className="dl" style={{ marginTop: 12 }}>
         <dt>Anfitrión</dt>
         <dd>{g.anfitrion ?? "—"}</dd>
