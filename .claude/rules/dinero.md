@@ -25,6 +25,11 @@ Son cuatro a propósito, y **las cuatro tienen que quedar igual de completas**:
 4. **Pago manual con enlace de alta** — el admin captura lo poco que sabe y el
    sistema devuelve un link para que la persona se dé de alta y firme.
 
+La puerta 2 tiene una variante desde el 29 oct: el **link de pago especial** por
+salida (descuento en % o monto fijo, con motivo escrito en `reservations.notes`),
+`lib/payments/link-especial.ts`. Mismo webhook, misma comisión sobre lo cobrado.
+Ver `rules/experiencias.md`.
+
 ⚠️ Hasta el 11 ago la 3 y la 4 **no existían**, y quien pagaba por transferencia
 simplemente no existía para la plataforma. Lo destapó Lorena Saravia: transfirió
 $16,500 y la salida se veía en 4/12 cuando iba en 5/12, con ella lista para viajar

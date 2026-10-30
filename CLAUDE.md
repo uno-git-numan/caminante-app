@@ -229,10 +229,15 @@ quedaron todas en `unico`: aplicarla no movió ni un número.
 Una salida privada tiene su **espacio** en `/caminante/g/<token>`: la anfitriona
 invita y ve quién entra; cada invitado entra con su cuenta (celular verificado +
 correo), aparta su lugar y firma. Código en `lib/grupo/`; reglas en
-`.claude/rules/experiencias.md` («Salidas privadas»). **Bloqueado por la 0073**
-(Luis) y, para WhatsApp, por Meta: el número sigue siendo el de pruebas y el
+`.claude/rules/experiencias.md` («Salidas privadas»). **0073 APLICADA el 28
+oct.** Para WhatsApp sigue bloqueado por Meta: el número es el de pruebas y el
 WABA de prueba no puede crear plantillas de autenticación → el código llega por
-correo hasta que haya número real. Memoria: `caminante-espacio-del-grupo`.
+correo hasta que haya número real. El primer grupo real es el de Miranda (Izta,
+28–29 nov), abierto el 29 oct. Memoria: `caminante-espacio-del-grupo`.
+
+**Link de pago especial (29 oct 2026):** dentro de cada salida en Salidas, un
+link de Stripe con descuento en % o monto fijo para una persona, con el porqué
+escrito en la reserva. Probado de punta a punta en preview (Stripe test).
 
 ## El panel de operadora (24 sep 2026)
 

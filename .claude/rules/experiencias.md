@@ -214,7 +214,30 @@ Código en `lib/grupo/` y `app/caminante/g/[token]/`; esquema en la **0073**
 - **Al vencer la fecha límite nada se cancela solo**: el cron avisa a la casa y
   la operadora decide (mover la fecha, bajar el mínimo o cancelar).
 - La anfitriona recibe A1 («eres la anfitriona») y A2 (el texto para reenviar) al
-  pasar su tarjeta a Interesado; la nota del tablero dice por dónde salió.
+  pasar su tarjeta a Interesado; la nota del tablero dice por dónde salió. Si la
+  salida ya existía antes (como la de Miranda), el botón **«Mandarle su liga al
+  anfitrión»** del bloque «Su espacio» hace lo mismo: pone anfitrión, fecha
+  límite, su lugar, y manda A1/A2. Por WhatsApp no sale solo (sin número real):
+  se abre `wa.me` para que la casa lo mande.
+- **El login del admin en un preview** (para probar con la base real): pedir
+  «Enviar enlace por correo» DESDE el preview y abrir el link del correo con el
+  host cambiado al del preview. El token es `pkce_…` y el verificador quedó en
+  la cookie de ese host, así que el confirm de producción no lo canjea.
+- **Los previews cobran con Stripe TEST** (`buy.stripe.com/test_…`): las env
+  vars de Preview en Vercel no son las de Production. Un link generado ahí no
+  cobra dinero real; uno generado en producción, sí.
+
+## Link de pago especial (29 oct 2026)
+
+Dentro de la cápsula de cada salida en Salidas: «Link de pago especial»
+(`admin/salidas/LinkEspecial.tsx` → `lib/payments/link-especial.ts`). Descuento
+en % (1–99) o monto fijo (≥$10, ≤ lista) para UNA persona, con el porqué
+obligatorio. Nace como reserva `requested` (canal `admin`, `notes` = «Precio
+especial (…): motivo · lista $X · cobra $Y») + Payment Link de Stripe con
+`precio_especial=1` y `precio_lista_mxn` en metadata; paga → el webhook de
+siempre (`finalize-reservation`) la confirma. **No aparta lugar hasta pagar.**
+La comisión se calcula sobre lo cobrado (regla del 27 ago). «Cancelar» en
+«Links de pago sin pagar» cancela la reserva y DESACTIVA el link en Stripe.
 
 ## Diseño v2 data-driven
 
