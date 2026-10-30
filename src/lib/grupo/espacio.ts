@@ -226,7 +226,7 @@ export async function fetchEspacio(tokenRaw: unknown): Promise<Espacio | null> {
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
     sb
       .from("reservations")
-      .select("id, contact_id, num_people, status")
+      .select("id, contact_id, num_people, status, created_at")
       .eq("slot_id", slot.id)
       .in("status", HOLDING_STATUSES),
     slot.anfitrion_contact_id
@@ -243,7 +243,16 @@ export async function fetchEspacio(tokenRaw: unknown): Promise<Espacio | null> {
     sb.from("slot_requests").select("created_at").eq("created_slot_id", slot.id).order("created_at", { ascending: true }).limit(1).maybeSingle(),
   ]);
   const nombreDe = new Map((contactos ?? []).map((c) => [c.id as string, (c.full_name as string | null) ?? ""]));
-  const reservasVivas = (reservas ?? []) as { id: string; contact_id: string; num_people: number; status: string }[];
+  const reservasVivas = (reservas ?? []) as { id: string; contact_id: string; num_people: number; status: string; created_at: string }[];
+  // Quien pagó la salida por el sitio, sin pasar por la liga, también va
+  // (Luis, 29 oct 2026: «acá ya pagaron 3 personas, no solo Miranda»). Sus
+  // nombres no venían en la consulta de arriba porque no tienen lugar.
+  const sinLugar = reservasVivas.filter((r) => r.contact_id && !lugares.some((l) => l.contact_id === r.contact_id));
+  const faltanNombre = Array.from(new Set(sinLugar.map((r) => r.contact_id))).filter((id) => !nombreDe.has(id));
+  if (faltanNombre.length) {
+    const { data: mas } = await sb.from("contacts").select("id, full_name").in("id", faltanNombre);
+    for (const c of mas ?? []) nombreDe.set(c.id as string, (c.full_name as string | null) ?? "");
+  }
   const reservaIds = reservasVivas.map((r) => r.id);
   const { data: firmas } = reservaIds.length
     ? await sb.from("registrations").select("reservation_id, contact_id").in("reservation_id", reservaIds)
@@ -282,6 +291,29 @@ export async function fetchEspacio(tokenRaw: unknown): Promise<Espacio | null> {
       reservationId: res?.id ?? null,
     };
   });
+  // Los que pagaron sin entrar por la liga: un renglón por reserva, ya pagado.
+  // Su «lugar» es la reserva (no hay fila en grupo_lugares); cuando entren por
+  // la liga, su fila real los sustituye.
+  const vistos = new Set<string>();
+  for (const r of sinLugar) {
+    if (vistos.has(r.contact_id)) continue;
+    vistos.add(r.contact_id);
+    const firmo = firmasVivas.some((f) => f.reservation_id === r.id && (f.contact_id === r.contact_id || !f.contact_id));
+    const nombre = nombreDe.get(r.contact_id) || "Alguien del grupo";
+    personas.push({
+      lugarId: `resv:${r.id}`,
+      contactId: r.contact_id,
+      nombre,
+      iniciales: iniciales(nombre),
+      estado: firmo ? "firmo" : "pago",
+      anfitrion: r.contact_id === slot.anfitrion_contact_id,
+      pagadoPor: null,
+      lugaresPagados: Number(r.num_people) || 1,
+      listaEspera: false,
+      entroEl: r.created_at,
+      reservationId: r.id,
+    });
+  }
   // La anfitriona primero; luego por orden de llegada.
   personas.sort((a, b) => Number(b.anfitrion) - Number(a.anfitrion));
 
