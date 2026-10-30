@@ -29,6 +29,10 @@ import type { Experience } from "@/lib/experiences/types";
 
 export type LinkEspecialInput = {
   slotId: string;
+  /** Alguien que YA está en el grupo de la salida (anfitrión o quien entró):
+   *  se cobra a SU ficha, para que su lugar pase a «pagó» al caer el pago.
+   *  Con esto, nombre/correo/teléfono se ignoran. */
+  contactId?: string;
   nombre: string;
   email: string;
   telefono?: string;
@@ -49,17 +53,35 @@ const pesos = (n: number) => `$${r0(n).toLocaleString("en-US")}`;
 export async function generarLinkEspecial(input: LinkEspecialInput): Promise<LinkEspecialResult> {
   if (!(await puedeEditarSlot(input.slotId))) return { ok: false, error: "Sin permiso." };
 
-  const nombre = (input.nombre || "").trim().slice(0, 120);
-  const email = (input.email || "").trim().toLowerCase();
-  const telefono = (input.telefono || "").trim();
+  const sb = createSupabaseAdminClient();
+
+  // Alguien del grupo: su ficha manda (Luis, 29 oct 2026: «este descuento va
+  // justamente para Miranda»). Un correo tecleado distinto al de su ficha
+  // crearía OTRA persona y su lugar del espacio seguiría en «falta pagar».
+  let delGrupo: { id: string; full_name: string | null; email: string | null; phone: string | null } | null = null;
+  if (input.contactId) {
+    const { data: c } = await sb.from("contacts").select("id, full_name, email, phone").eq("id", input.contactId).maybeSingle();
+    if (!c) return { ok: false, error: "No encuentro a esa persona." };
+    const [{ count: enGrupo }, { data: slotAnf }] = await Promise.all([
+      sb.from("grupo_lugares").select("id", { count: "exact", head: true }).eq("slot_id", input.slotId).eq("contact_id", c.id as string),
+      sb.from("experience_slots").select("anfitrion_contact_id").eq("id", input.slotId).maybeSingle(),
+    ]);
+    if (!(enGrupo ?? 0) && (slotAnf as { anfitrion_contact_id: string | null } | null)?.anfitrion_contact_id !== c.id) {
+      return { ok: false, error: "Esa persona no está en el grupo de esta salida." };
+    }
+    delGrupo = c as typeof delGrupo;
+    if (!delGrupo?.email) return { ok: false, error: "Esa persona no tiene correo en su ficha: ponlo en Comunidad antes de cobrarle." };
+  }
+
+  const nombre = (delGrupo ? delGrupo.full_name || "" : input.nombre || "").trim().slice(0, 120);
+  const email = (delGrupo ? delGrupo.email || "" : input.email || "").trim().toLowerCase();
+  const telefono = (delGrupo ? delGrupo.phone || "" : input.telefono || "").trim();
   const lugares = Math.max(1, Math.min(20, Math.floor(Number(input.lugares) || 1)));
   const motivo = (input.motivo || "").trim().slice(0, 200);
   if (!nombre) return { ok: false, error: "Escribe el nombre." };
   if (!email.includes("@")) return { ok: false, error: "Escribe un correo válido: ahí le llega el comprobante y el deslinde." };
-  if (telefono && !normalizePhoneMX(telefono)) return { ok: false, error: "El WhatsApp no parece válido (10 dígitos)." };
+  if (!delGrupo && telefono && !normalizePhoneMX(telefono)) return { ok: false, error: "El WhatsApp no parece válido (10 dígitos)." };
   if (!motivo) return { ok: false, error: "Escribe el porqué (queda en la reserva, para el corte)." };
-
-  const sb = createSupabaseAdminClient();
   const { data: slot } = await sb
     .from("experience_slots")
     .select("id, experience_id, label, price_mxn, status, starts_at")
@@ -101,14 +123,19 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
     return { ok: false, error: avail.available <= 0 ? "Esa salida está llena." : `Sólo quedan ${avail.available} lugares en esa salida.` };
   }
 
-  const contactRes = await findOrCreateContact(sb, {
-    email,
-    fullName: nombre,
-    phone: telefono || undefined,
-    source: `link especial · ${slug}`,
-  });
-  if (!contactRes.ok) return { ok: false, error: contactRes.error };
-  const contact = contactRes.contact;
+  let contact: { id: string };
+  if (delGrupo) {
+    contact = { id: delGrupo.id };
+  } else {
+    const contactRes = await findOrCreateContact(sb, {
+      email,
+      fullName: nombre,
+      phone: telefono || undefined,
+      source: `link especial · ${slug}`,
+    });
+    if (!contactRes.ok) return { ok: false, error: contactRes.error };
+    contact = contactRes.contact;
+  }
 
   // Una reserva viva de esta persona en esta salida que ya tenga pagos no se
   // toca: ese es otro cobro. Una `requested` sin pagos se reutiliza.

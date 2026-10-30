@@ -7,13 +7,20 @@
 
 import { useState } from "react";
 import type { LinkPendiente } from "@/lib/admin/salidas";
+import type { GenteDelEspacio } from "@/lib/grupo/resumen";
 import { cancelarLinkEspecial, generarLinkEspecial } from "@/lib/payments/link-especial";
 import { iniciales } from "@/lib/admin/formato";
 
 const pesos = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 
-export function LinkEspecial({ slotId, precioLista, onListo }: { slotId: string; precioLista: number | null; onListo: () => void }) {
+export function LinkEspecial({ slotId, precioLista, gente = [], onListo }: { slotId: string; precioLista: number | null; gente?: GenteDelEspacio[]; onListo: () => void }) {
   const [f, setF] = useState({ nombre: "", email: "", telefono: "", lugares: "1", modo: "descuento" as "descuento" | "monto", valor: "", motivo: "" });
+  // Salida privada: el link puede ir a alguien que YA está en el grupo; se cobra
+  // a su ficha (nombre, correo y WhatsApp de ahí) y su lugar pasa a «pagó» solo.
+  const candidatos = gente.filter((p) => p.estado === "entro" && !p.listaEspera);
+  const [paraQuien, setParaQuien] = useState<string>(candidatos.length === 1 ? candidatos[0].contactId : "");
+  const elegido = candidatos.find((p) => p.contactId === paraQuien) ?? null;
+  const nombreMostrado = elegido ? elegido.nombre : f.nombre.trim();
   const [error, setError] = useState("");
   const [generando, setGenerando] = useState(false);
   const [hecho, setHecho] = useState<{ url: string; montoMxn: number; listaMxn: number; waUrl: string | null; texto: string } | null>(null);
@@ -40,7 +47,7 @@ export function LinkEspecial({ slotId, precioLista, onListo }: { slotId: string;
       <div className="card pad" style={{ marginTop: 14 }}>
         <span className="subtitle">Link listo</span>
         <p style={{ fontSize: 13.5, marginTop: 8 }}>
-          {f.nombre.trim()} paga <b>{pesos(hecho.montoMxn)}</b> por {lugares} {lugares === 1 ? "lugar" : "lugares"} (lista {pesos(hecho.listaMxn)}). El lugar se aparta cuando pague; entonces le llega el comprobante y el deslinde por correo.
+          {nombreMostrado} paga <b>{pesos(hecho.montoMxn)}</b> por {lugares} {lugares === 1 ? "lugar" : "lugares"} (lista {pesos(hecho.listaMxn)}). El lugar se aparta cuando pague; entonces le llega el comprobante y el deslinde por correo.
         </p>
         <div className="salfoot">
           <div className="sallk">
@@ -67,15 +74,34 @@ export function LinkEspecial({ slotId, precioLista, onListo }: { slotId: string;
         Para quien se le prometió otra cosa. El porqué queda escrito en la reserva; la comisión se calcula sobre lo cobrado.
       </p>
       <div className="mini-form">
-        <label className="mut" style={{ fontSize: 12.5 }}>
-          Nombre <input value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} style={{ width: 170 }} />
-        </label>
-        <label className="mut" style={{ fontSize: 12.5 }}>
-          Correo <input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} style={{ width: 200 }} />
-        </label>
-        <label className="mut" style={{ fontSize: 12.5 }}>
-          WhatsApp <input inputMode="tel" value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} placeholder="opcional" style={{ width: 130 }} />
-        </label>
+        {candidatos.length > 0 ? (
+          <label className="mut" style={{ fontSize: 12.5 }}>
+            Para{" "}
+            <select value={paraQuien} onChange={(e) => setParaQuien(e.target.value)} aria-label="Para quién">
+              {candidatos.map((p) => (
+                <option key={p.contactId} value={p.contactId}>
+                  {p.nombre}{p.anfitrion ? " · anfitrión" : ""}
+                </option>
+              ))}
+              <option value="">Otra persona</option>
+            </select>
+          </label>
+        ) : null}
+        {elegido ? (
+          <span className="mut" style={{ fontSize: 12.5 }}>Se cobra a su ficha: el link y el deslinde le llegan al correo que tiene en Comunidad.</span>
+        ) : (
+          <>
+            <label className="mut" style={{ fontSize: 12.5 }}>
+              Nombre <input value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} style={{ width: 170 }} />
+            </label>
+            <label className="mut" style={{ fontSize: 12.5 }}>
+              Correo <input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} style={{ width: 200 }} />
+            </label>
+            <label className="mut" style={{ fontSize: 12.5 }}>
+              WhatsApp <input inputMode="tel" value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} placeholder="opcional" style={{ width: 130 }} />
+            </label>
+          </>
+        )}
         <label className="mut" style={{ fontSize: 12.5 }}>
           Lugares <input inputMode="numeric" value={f.lugares} onChange={(e) => setF({ ...f, lugares: e.target.value })} style={{ width: 60 }} />
         </label>
@@ -101,11 +127,11 @@ export function LinkEspecial({ slotId, precioLista, onListo }: { slotId: string;
         <button
           type="button"
           className="btn btn-orange"
-          disabled={generando || !f.nombre.trim() || !f.email.includes("@") || !f.motivo.trim() || !(valorN > 0)}
+          disabled={generando || (!elegido && (!f.nombre.trim() || !f.email.includes("@"))) || !f.motivo.trim() || !(valorN > 0)}
           onClick={async () => {
             setGenerando(true);
             setError("");
-            const r = await generarLinkEspecial({ slotId, nombre: f.nombre, email: f.email, telefono: f.telefono, lugares, modo: f.modo, valor: valorN, motivo: f.motivo });
+            const r = await generarLinkEspecial({ slotId, contactId: elegido?.contactId, nombre: f.nombre, email: f.email, telefono: f.telefono, lugares, modo: f.modo, valor: valorN, motivo: f.motivo });
             setGenerando(false);
             if (!r.ok) setError(r.error);
             else setHecho({ url: r.url, montoMxn: r.montoMxn, listaMxn: r.listaMxn, waUrl: r.waUrl, texto: r.texto });

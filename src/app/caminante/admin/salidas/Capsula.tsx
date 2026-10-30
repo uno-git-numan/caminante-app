@@ -725,7 +725,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                 ) : null}
               </div>
               {editando ? <EditarSalida s={s} onListo={() => setEditando(false)} /> : null}
-              {cobrando ? <LinkEspecial slotId={s.id} precioLista={s.precioLista} onListo={() => setCobrando(false)} /> : null}
+              {cobrando ? <LinkEspecial slotId={s.id} precioLista={s.precioLista} gente={s.grupo?.gente} onListo={() => setCobrando(false)} /> : null}
               {reembolsando ? <Reembolsos s={s} onListo={() => setReembolsando(false)} /> : null}
             </>
           )}
