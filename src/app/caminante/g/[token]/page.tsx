@@ -76,7 +76,7 @@ function Portada({ e, sesion, celularListo, error }: { e: Espacio; sesion: boole
           <div className="esp-donly">
             <Eyeb>{e.privada ? "Salida privada" : "Tu grupo"} · {e.fechaCorta}</Eyeb>
             <h1>
-              {quien} al{" "}
+              {quien} a{" "}
               <em>
                 {e.titulo}
                 {e.tituloAcento ? ` ${e.tituloAcento}` : ""}
