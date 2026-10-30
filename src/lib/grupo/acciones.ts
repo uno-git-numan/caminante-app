@@ -300,7 +300,7 @@ export async function mandarLigaALaAnfitriona(slotId: string): Promise<{ ok: tru
     .select("id, experience_id, access_token, visibility, status, starts_at, anfitrion_contact_id, fecha_limite, minimo")
     .eq("id", slotId)
     .maybeSingle();
-  if (!slot || slot.visibility !== "private" || !slot.access_token) return { ok: false, error: "Esa salida no es privada." };
+  if (!slot || !slot.access_token) return { ok: false, error: "Esa salida no tiene liga." };
 
   // Quién es el anfitrión: lo que diga la salida, o la tarjeta viva ligada a ella.
   let anfitrion = slot.anfitrion_contact_id as string | null;

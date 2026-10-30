@@ -111,7 +111,7 @@ export async function createCheckout(formData: FormData) {
   // (Consulta aparte y best-effort: si la columna aún no existe —0073 sin
   // aplicar— el cobro sigue; lo que no puede pasar es que un deploy adelantado
   // a la migración tumbe TODOS los cobros web.)
-  if (slot.visibility === "private") {
+  {
     const { data: lim } = await sb.from("experience_slots").select("fecha_limite").eq("id", slotId).maybeSingle();
     const fechaLimite = (lim as { fecha_limite: string | null } | null)?.fecha_limite ?? null;
     if (fechaLimite) {

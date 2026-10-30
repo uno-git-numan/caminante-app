@@ -50,9 +50,9 @@ export const Titulo = ({ e }: { e: Espacio }) => (
   </>
 );
 
-export const Priv = () => (
+export const Priv = ({ privada = true }: { privada?: boolean }) => (
   <span className="pub-chip">
-    <span className="cd"></span>Salida privada
+    <span className="cd"></span>{privada ? "Salida privada" : "Tu grupo"}
   </span>
 );
 

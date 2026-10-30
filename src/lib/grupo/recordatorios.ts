@@ -25,7 +25,7 @@ export async function correrRecordatoriosDelGrupo(): Promise<{ salidas: number; 
   const { data: slots } = await sb
     .from("experience_slots")
     .select("id, access_token, status, fecha_limite, minimo, aviso_minimo_at, starts_at")
-    .eq("visibility", "private")
+    .not("access_token", "is", null)
     .neq("status", "cancelled")
     .gte("starts_at", new Date(Date.now() - 86400000).toISOString());
   const filas = (slots ?? []) as { id: string; access_token: string | null; status: string; fecha_limite: string | null; minimo: number | null; aviso_minimo_at: string | null; starts_at: string }[];

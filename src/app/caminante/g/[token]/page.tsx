@@ -71,7 +71,7 @@ function Portada({ e, sesion, celularListo, error }: { e: Espacio; sesion: boole
     <EspShell>
       <Head sesion={sesion} />
       <div className="esp-c1">
-        <Hero e={e} h={560} chips={<Priv />} eb={<Eyeb neg>{quien}</Eyeb>} meta={[e.fechaCorta, e.lugar].filter(Boolean).join(" · ")} />
+        <Hero e={e} h={560} chips={<Priv privada={e.privada} />} eb={<Eyeb neg>{quien}</Eyeb>} meta={[e.fechaCorta, e.lugar].filter(Boolean).join(" · ")} />
         <div className="esp-right">
           <div className="esp-donly">
             <Eyeb>Salida privada · {e.fechaCorta}</Eyeb>
@@ -357,7 +357,7 @@ async function EspacioVista({ e, yo, sesion, operadora, aviso }: { e: Espacio; y
           e={e}
           chips={
             <>
-              <Priv />
+              <Priv privada={e.privada} />
               {e.cupoLleno && !e.yaViajaron ? <span className="pub-chip">Cupo lleno</span> : null}
               {e.yaViajaron ? <span className="pub-chip">Ya viajaron</span> : null}
             </>

@@ -54,6 +54,8 @@ export type Espacio = {
   titulo: string;
   tituloAcento: string;
   tituloPlano: string;
+  /** `visibility = private`: sólo se vende por su liga. En una pública la liga es la del grupo, pero la fecha también se vende en el sitio. */
+  privada: boolean;
   foto: { url: string; alt: string; pos?: string } | null;
   lugar: string | null; // "Sierra Nevada" (metaEst del hero)
   etiqueta: string; // "Nov 28–29"
@@ -196,7 +198,10 @@ export async function fetchEspacio(tokenRaw: unknown): Promise<Espacio | null> {
     .eq("access_token", token)
     .maybeSingle();
   const slot = slotRow as SlotRow | null;
-  if (!slot || slot.visibility !== "private" || slot.status === "cancelled") return null;
+  // Desde el 29 oct 2026 el espacio es de TODA salida viva con liga, no sólo
+  // de las privadas (Luis: «la Sardine run igual tiene que tener link privado,
+  // igual los volcanes»). Lo que cambia entre una y otra es el chip.
+  if (!slot || !slot.access_token || slot.status === "cancelled") return null;
 
   const [{ data: expRow }, avail, { data: lugaresRows }] = await Promise.all([
     sb.from("experiences").select("id, slug, data").eq("id", slot.experience_id).maybeSingle(),
@@ -309,6 +314,7 @@ export async function fetchEspacio(tokenRaw: unknown): Promise<Espacio | null> {
     tituloPlano: [titulo, tituloAcento].filter(Boolean).join(" ").trim().replace(/[.\s]+$/, ""),
     foto: fotoUrl ? { url: fotoUrl, alt: hero?.bg?.alt || data?.heroImageAlt || "", pos: hero?.bg?.pos } : null,
     lugar: hero?.metaEst ?? null,
+    privada: slot.visibility === "private",
     etiqueta: slot.label ?? fechaCorta(inicio, fin),
     fechaLarga: fechaLarga(inicio, fin),
     fechaCorta: fechaCorta(inicio, fin),

@@ -368,7 +368,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
               {s.experiencia} <span className="chev2" style={{ transform: abierta ? "rotate(180deg)" : undefined }}>▾</span>
             </h3>
             <p className="meta">
-              {[s.label, s.grupo ? "Salida privada" : null, s.grupo?.anfitrion ? `Grupo de ${s.grupo.anfitrion.split(" ")[0]}` : null, s.lugar, s.operador ? `operada por ${s.operador}` : null].filter(Boolean).join(" · ")}
+              {[s.label, s.privada ? "Salida privada" : null, s.grupo?.anfitrion ? `Grupo de ${s.grupo.anfitrion.split(" ")[0]}` : null, s.lugar, s.operador ? `operada por ${s.operador}` : null].filter(Boolean).join(" · ")}
             </p>
           </div>
           <span className={`salwhen${s.cerca ? " cerca" : ""}`}>{s.cuando}</span>

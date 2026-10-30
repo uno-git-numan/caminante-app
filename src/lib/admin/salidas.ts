@@ -20,6 +20,7 @@
 // pegado a `respuestas` e `invitadas`, y quien dibuje no puede separarlos sin
 // darse cuenta.
 
+import { randomBytes } from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resumenesDeEspacios } from "@/lib/grupo/resumen-server";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
@@ -147,7 +148,9 @@ export type Salida = {
   /** `open` = a la venta · `closed` = ya no se vende (la fecha sigue viva). */
   estado: string;
   tokenGrupo: string | null;
-  /** Salida privada: su espacio del grupo (D3). Null en las públicas. */
+  /** `visibility = private`: sólo se vende por su liga. */
+  privada: boolean;
+  /** El espacio del grupo (D3) de toda salida viva con liga. */
   grupo: ResumenDelEspacio | null;
   /** Links de pago mandados y sin pagar (precio especial o cobro por WhatsApp): no apartan lugar. */
   linksPendientes: LinkPendiente[];
@@ -335,9 +338,19 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   const salidas: Salida[] = [];
   const vacias: LineaDeSalidas["vacias"] = [];
 
-  // Los espacios de las salidas privadas vivas, para el bloque «Su espacio».
+  // Toda salida ABIERTA tiene su liga (Luis, 29 oct 2026: «la Sardine run
+  // igual tiene que tener link privado, igual los volcanes»). A la que no la
+  // tenga se le acuña aquí mismo, una vez; el espacio del grupo cuelga de ella.
+  for (const s of slots) {
+    if (s.status !== "open" || s.access_token) continue;
+    const token = randomBytes(16).toString("base64url");
+    const { error } = await sb.from("experience_slots").update({ access_token: token }).eq("id", s.id).is("access_token", null);
+    if (!error) s.access_token = token;
+  }
+
+  // Los espacios de las salidas vivas con liga, para el bloque «Su espacio».
   const espacios = await resumenesDeEspacios(
-    slots.filter((s) => s.status !== "cancelled" && s.visibility === "private" && s.access_token).map((s) => s.access_token as string),
+    slots.filter((s) => s.status !== "cancelled" && s.access_token).map((s) => s.access_token as string),
   );
 
   for (const s of slots) {
@@ -514,7 +527,8 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       sinResponder,
       estado: s.status,
       tokenGrupo: s.feedback_token,
-      grupo: privada && s.access_token ? espacios.get(s.id) ?? null : null,
+      privada,
+      grupo: s.access_token ? espacios.get(s.id) ?? null : null,
       linksPendientes: pendientesLink
         .filter((r) => r.slot_id === s.id)
         .map((r) => {
