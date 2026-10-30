@@ -23,7 +23,7 @@ export function LinkEspecial({ slotId, precioLista, gente = [], onListo }: { slo
   const nombreMostrado = elegido ? elegido.nombre : f.nombre.trim();
   const [error, setError] = useState("");
   const [generando, setGenerando] = useState(false);
-  const [hecho, setHecho] = useState<{ url: string; montoMxn: number; listaMxn: number; waUrl: string | null; texto: string } | null>(null);
+  const [hecho, setHecho] = useState<{ url: string; montoMxn: number; listaMxn: number; waUrl: string | null; texto: string; conCorreo: boolean } | null>(null);
   const [copiado, setCopiado] = useState(false);
 
   const lugares = Math.max(1, parseInt(f.lugares, 10) || 1);
@@ -47,7 +47,8 @@ export function LinkEspecial({ slotId, precioLista, gente = [], onListo }: { slo
       <div className="card pad" style={{ marginTop: 14 }}>
         <span className="subtitle">Link listo</span>
         <p style={{ fontSize: 13.5, marginTop: 8 }}>
-          {nombreMostrado} paga <b>{pesos(hecho.montoMxn)}</b> por {lugares} {lugares === 1 ? "lugar" : "lugares"} (lista {pesos(hecho.listaMxn)}). El lugar se aparta cuando pague; entonces le llega el comprobante y el deslinde por correo.
+          {nombreMostrado} paga <b>{pesos(hecho.montoMxn)}</b> por {lugares} {lugares === 1 ? "lugar" : "lugares"} (lista {pesos(hecho.listaMxn)}). El lugar se aparta cuando pague
+          {hecho.conCorreo ? "; entonces le llega el comprobante y el deslinde por correo." : ". Como va sin correo, al pagar aparece en «Falta firmar» y desde ahí le mandas el deslinde por WhatsApp."}
         </p>
         <div className="salfoot">
           <div className="sallk">
@@ -95,10 +96,10 @@ export function LinkEspecial({ slotId, precioLista, gente = [], onListo }: { slo
               Nombre <input value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} style={{ width: 170 }} />
             </label>
             <label className="mut" style={{ fontSize: 12.5 }}>
-              Correo <input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} style={{ width: 200 }} />
+              Correo <input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="o WhatsApp" style={{ width: 200 }} />
             </label>
             <label className="mut" style={{ fontSize: 12.5 }}>
-              WhatsApp <input inputMode="tel" value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} placeholder="opcional" style={{ width: 130 }} />
+              WhatsApp <input inputMode="tel" value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} placeholder="o correo" style={{ width: 130 }} />
             </label>
           </>
         )}
@@ -127,14 +128,14 @@ export function LinkEspecial({ slotId, precioLista, gente = [], onListo }: { slo
         <button
           type="button"
           className="btn btn-orange"
-          disabled={generando || (!elegido && (!f.nombre.trim() || !f.email.includes("@"))) || !f.motivo.trim() || !(valorN > 0)}
+          disabled={generando || (!elegido && (!f.nombre.trim() || (!f.email.includes("@") && f.telefono.replace(/\D/g, "").length < 10))) || !f.motivo.trim() || !(valorN > 0)}
           onClick={async () => {
             setGenerando(true);
             setError("");
             const r = await generarLinkEspecial({ slotId, contactId: elegido?.contactId, nombre: f.nombre, email: f.email, telefono: f.telefono, lugares, modo: f.modo, valor: valorN, motivo: f.motivo });
             setGenerando(false);
             if (!r.ok) setError(r.error);
-            else setHecho({ url: r.url, montoMxn: r.montoMxn, listaMxn: r.listaMxn, waUrl: r.waUrl, texto: r.texto });
+            else setHecho({ url: r.url, montoMxn: r.montoMxn, listaMxn: r.listaMxn, waUrl: r.waUrl, texto: r.texto, conCorreo: r.conCorreo });
           }}
         >
           {generando ? "Generando…" : "Generar link"}

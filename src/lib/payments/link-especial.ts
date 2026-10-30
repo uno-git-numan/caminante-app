@@ -18,7 +18,8 @@ import type Stripe from "stripe";
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { puedeEditarSlot } from "@/lib/auth/alcance";
-import { findOrCreateContact, normalizePhoneMX } from "@/lib/crm/contacts";
+import { findOrCreateContact, findOrCreateContactByPhone } from "@/lib/crm/contacts";
+import { celularE164 } from "@/lib/grupo/codigo";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
@@ -44,7 +45,7 @@ export type LinkEspecialInput = {
 };
 
 export type LinkEspecialResult =
-  | { ok: true; url: string; montoMxn: number; listaMxn: number; reservationId: string; waUrl: string | null; texto: string }
+  | { ok: true; url: string; montoMxn: number; listaMxn: number; reservationId: string; waUrl: string | null; texto: string; conCorreo: boolean }
   | { ok: false; error: string };
 
 const r0 = (n: number) => Math.round(n);
@@ -71,7 +72,7 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
       return { ok: false, error: "Esa persona no está en el grupo de esta salida." };
     }
     delGrupo = c as Ficha;
-    if (!delGrupo.email) return { ok: false, error: "Esa persona no tiene correo en su ficha: ponlo en Comunidad antes de cobrarle." };
+    if (!delGrupo.email && !delGrupo.phone) return { ok: false, error: "Esa persona no tiene correo ni WhatsApp en su ficha: pon uno en Comunidad antes de cobrarle." };
   }
 
   const nombre = (delGrupo ? delGrupo.full_name || "" : input.nombre || "").trim().slice(0, 120);
@@ -79,9 +80,15 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
   const telefono = (delGrupo ? delGrupo.phone || "" : input.telefono || "").trim();
   const lugares = Math.max(1, Math.min(20, Math.floor(Number(input.lugares) || 1)));
   const motivo = (input.motivo || "").trim().slice(0, 200);
+  // Correo O WhatsApp, cualquiera de los dos (Luis, 29 oct 2026). Sin correo,
+  // el comprobante y el deslinde no salen solos al pagar: la persona aparece en
+  // «Falta firmar» y desde ahí se le manda el deslinde por WhatsApp.
+  const conCorreo = email.includes("@");
+  const telE164 = telefono ? celularE164(telefono) : null;
   if (!nombre) return { ok: false, error: "Escribe el nombre." };
-  if (!email.includes("@")) return { ok: false, error: "Escribe un correo válido: ahí le llega el comprobante y el deslinde." };
-  if (!delGrupo && telefono && !normalizePhoneMX(telefono)) return { ok: false, error: "El WhatsApp no parece válido (10 dígitos)." };
+  if (email && !conCorreo) return { ok: false, error: "Ese correo no parece válido." };
+  if (telefono && !telE164) return { ok: false, error: "El WhatsApp no parece válido (10 dígitos)." };
+  if (!conCorreo && !telE164) return { ok: false, error: "Escribe su correo o su WhatsApp: por uno de los dos le llega el link." };
   if (!motivo) return { ok: false, error: "Escribe el porqué (queda en la reserva, para el corte)." };
   const { data: slot } = await sb
     .from("experience_slots")
@@ -128,12 +135,9 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
   if (delGrupo) {
     contact = { id: delGrupo.id };
   } else {
-    const contactRes = await findOrCreateContact(sb, {
-      email,
-      fullName: nombre,
-      phone: telefono || undefined,
-      source: `link especial · ${slug}`,
-    });
+    const contactRes = conCorreo
+      ? await findOrCreateContact(sb, { email, fullName: nombre, phone: telefono || undefined, source: `link especial · ${slug}` })
+      : await findOrCreateContactByPhone(sb, { waPhone: telE164 as string, fullName: nombre, source: `link especial · ${slug}` });
     if (!contactRes.ok) return { ok: false, error: contactRes.error };
     contact = contactRes.contact;
   }
@@ -231,12 +235,11 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
   await sb.from("reservations").update({ payment_link_url: url, payment_link_id: linkId }).eq("id", reservationId);
 
   const pila = nombre.split(/\s+/)[0];
-  const texto = `Hola, ${pila}. Aquí está tu link de pago para ${titulo}${slot.label ? ` (${slot.label})` : ""}: ${url}\n\nSon ${pesos(montoMxn)} por ${lugares} ${lugares === 1 ? "lugar" : "lugares"}. Al pagar te llega el deslinde por correo.`;
-  const digitos = telefono ? telefono.replace(/\D/g, "") : "";
-  const waUrl = digitos ? `https://wa.me/${digitos.length === 10 ? `52${digitos}` : digitos}?text=${encodeURIComponent(texto)}` : null;
+  const texto = `Hola, ${pila}. Aquí está tu link de pago para ${titulo}${slot.label ? ` (${slot.label})` : ""}: ${url}\n\nSon ${pesos(montoMxn)} por ${lugares} ${lugares === 1 ? "lugar" : "lugares"}. ${conCorreo ? "Al pagar te llega el deslinde por correo." : "Al pagar te mando el deslinde por aquí."}`;
+  const waUrl = telE164 ? `https://wa.me/${telE164.replace(/\D/g, "")}?text=${encodeURIComponent(texto)}` : null;
 
   revalidatePath("/caminante/admin/salidas");
-  return { ok: true, url, montoMxn, listaMxn, reservationId, waUrl, texto };
+  return { ok: true, url, montoMxn, listaMxn, reservationId, waUrl, texto, conCorreo };
 }
 
 /** Un link que no se va a usar: la reserva `requested` se cancela y el link de Stripe se apaga. */
