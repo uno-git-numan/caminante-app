@@ -20,6 +20,7 @@ import { sendTemplate, sendText, whatsappConfigured } from "@/lib/whatsapp/clien
 import { sendViaResend } from "@/lib/email/resend";
 import { boton, crudo, esc, h1, marco, p, saludo } from "@/lib/email/plantilla";
 import { fmtMxn } from "@/lib/grupo/formato";
+import { celularE164 } from "@/lib/grupo/codigo";
 import type { Espacio } from "@/lib/grupo/espacio";
 import { ligaDelEspacio } from "@/lib/grupo/espacio";
 
@@ -28,7 +29,10 @@ type Destino = { contactId: string; nombre: string | null; email: string | null;
 
 export type Enviado = { correo: boolean; whatsapp: boolean; waUrl: string | null };
 
-const digitos = (t: string | null) => (t ?? "").replace(/\D/g, "");
+// Los contactos guardan el celular como lo tecleó la persona («5543430274»):
+// sin normalizar, `wa.me/5543430274` no resuelve a México y Meta rechaza el
+// envío. Mismo normalizador que el login (10 dígitos → +52).
+const digitos = (t: string | null) => (t ? (celularE164(t) ?? "") : "").replace(/\D/g, "");
 const waUrlDe = (tel: string | null, texto: string) =>
   digitos(tel) ? `https://wa.me/${digitos(tel)}?text=${encodeURIComponent(texto)}` : null;
 
