@@ -58,7 +58,8 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
   // Alguien del grupo: su ficha manda (Luis, 29 oct 2026: «este descuento va
   // justamente para Miranda»). Un correo tecleado distinto al de su ficha
   // crearía OTRA persona y su lugar del espacio seguiría en «falta pagar».
-  let delGrupo: { id: string; full_name: string | null; email: string | null; phone: string | null } | null = null;
+  type Ficha = { id: string; full_name: string | null; email: string | null; phone: string | null };
+  let delGrupo: Ficha | null = null;
   if (input.contactId) {
     const { data: c } = await sb.from("contacts").select("id, full_name, email, phone").eq("id", input.contactId).maybeSingle();
     if (!c) return { ok: false, error: "No encuentro a esa persona." };
@@ -69,8 +70,8 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
     if (!(enGrupo ?? 0) && (slotAnf as { anfitrion_contact_id: string | null } | null)?.anfitrion_contact_id !== c.id) {
       return { ok: false, error: "Esa persona no está en el grupo de esta salida." };
     }
-    delGrupo = c as typeof delGrupo;
-    if (!delGrupo?.email) return { ok: false, error: "Esa persona no tiene correo en su ficha: ponlo en Comunidad antes de cobrarle." };
+    delGrupo = c as Ficha;
+    if (!delGrupo.email) return { ok: false, error: "Esa persona no tiene correo en su ficha: ponlo en Comunidad antes de cobrarle." };
   }
 
   const nombre = (delGrupo ? delGrupo.full_name || "" : input.nombre || "").trim().slice(0, 120);
