@@ -74,7 +74,7 @@ function Portada({ e, sesion, celularListo, error }: { e: Espacio; sesion: boole
         <Hero e={e} h={560} chips={<Priv privada={e.privada} />} eb={<Eyeb neg>{quien}</Eyeb>} meta={[e.fechaCorta, e.lugar].filter(Boolean).join(" · ")} />
         <div className="esp-right">
           <div className="esp-donly">
-            <Eyeb>Salida privada · {e.fechaCorta}</Eyeb>
+            <Eyeb>{e.privada ? "Salida privada" : "Tu grupo"} · {e.fechaCorta}</Eyeb>
             <h1>
               {quien} al{" "}
               <em>
