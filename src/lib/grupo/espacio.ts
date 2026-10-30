@@ -304,7 +304,9 @@ export async function fetchEspacio(tokenRaw: unknown): Promise<Espacio | null> {
     slug,
     titulo,
     tituloAcento,
-    tituloPlano: [titulo, tituloAcento].filter(Boolean).join(" ").trim(),
+    // Sin el punto editorial final («La mujer dormida.»): va dentro de frases
+    // y salía «*La mujer dormida.*.» en el mensaje a Miranda (29 oct).
+    tituloPlano: [titulo, tituloAcento].filter(Boolean).join(" ").trim().replace(/[.\s]+$/, ""),
     foto: fotoUrl ? { url: fotoUrl, alt: hero?.bg?.alt || data?.heroImageAlt || "", pos: hero?.bg?.pos } : null,
     lugar: hero?.metaEst ?? null,
     etiqueta: slot.label ?? fechaCorta(inicio, fin),
