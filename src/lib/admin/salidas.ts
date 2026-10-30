@@ -374,7 +374,11 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     // `vacias`, que la pantalla colapsa. Tiene mandos, no sólo un link.
     // Una privada nunca es «vacía»: aunque nadie haya pagado, su cápsula lleva
     // el espacio del grupo, que es donde se ve quién va entrando.
-    const vacia = !pasada && titulares === 0 && !privada;
+    // Una fecha ABIERTA a la venta tampoco (Luis, 29 oct 2026): se ve igual
+    // que las que ya tienen pagos — con la misma cápsula y los mismos mandos
+    // (link de pago especial incluido). Colapsadas quedan sólo las que no se
+    // venden y nadie compró.
+    const vacia = !pasada && titulares === 0 && !privada && s.status !== "open";
 
     const pendientes: PersonaPendiente[] = mias
       .filter((r) => !firmadoPorResv.has(r.id))
