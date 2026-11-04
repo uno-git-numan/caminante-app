@@ -14,6 +14,8 @@ import ReservarMovil from "./ReservarMovil";
 import { fetchTodosLosComplementos } from "@/lib/experiences/complementos";
 import { normalizarCodigo } from "@/lib/descuentos/codigos";
 import { cotizarCodigo } from "@/lib/descuentos/acciones";
+import { CODIGO_COOKIE } from "@/lib/descuentos/cookie";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +44,13 @@ export default async function ReservarPage({
   const { slug } = await params;
   const { error, grupo, lugar: lugarRaw, cubre: cubreRaw, codigo: codigoRaw } = await searchParams;
   const grupoToken = cleanGrupoToken(grupo);
-  // `?codigo=` viene del mensaje que manda la casa (o del espacio del grupo):
-  // llega puesto en el campo y se cotiza solo. El servidor lo vuelve a resolver
-  // al cobrar; aquí sólo se prellena.
-  const codigoRecibido = normalizarCodigo(codigoRaw);
+  // `?codigo=` viene del mensaje que manda la casa (o del espacio del grupo);
+  // si la query se perdió en los brincos de crear cuenta, el middleware lo dejó
+  // en cookie. Llega puesto en el campo y cotizado. El servidor lo vuelve a
+  // resolver al cobrar; aquí sólo se prellena. El de la cookie, si no aplica a
+  // esta salida, se ignora en silencio (es de otra liga); el de la query avisa.
+  const codigoEnLiga = normalizarCodigo(codigoRaw);
+  const codigoRecibido = codigoEnLiga ?? normalizarCodigo((await cookies()).get(CODIGO_COOKIE)?.value);
   // Desde el espacio del grupo (/caminante/g/<token>): `lugar` = mi lugar;
   // `cubre` = los lugares de otros del grupo que voy a pagar. Viajan como hidden
   // y createCheckout los valida contra grupo_lugares de ESA salida.
@@ -129,7 +134,11 @@ export default async function ReservarPage({
   let codigoInicial: { codigo: string; cupon: { codigo: string; descuentoMxn: number; etiqueta: string } | null; msg: string | null } | null = null;
   if (codigoRecibido && primeraAbierta) {
     const r = await cotizarCodigo({ slug, slotId: primeraAbierta.id, codigo: codigoRecibido, numPeople: Math.max(1, grupoExtra?.cubre.length ?? 0), tierIndex: tiers.length ? 0 : -1 });
-    codigoInicial = r.ok ? { codigo: r.codigo, cupon: { codigo: r.codigo, descuentoMxn: r.descuentoMxn, etiqueta: r.etiqueta }, msg: null } : { codigo: codigoRecibido, cupon: null, msg: r.error };
+    codigoInicial = r.ok
+      ? { codigo: r.codigo, cupon: { codigo: r.codigo, descuentoMxn: r.descuentoMxn, etiqueta: r.etiqueta }, msg: null }
+      : codigoEnLiga
+        ? { codigo: codigoRecibido, cupon: null, msg: r.error }
+        : null;
   }
 
   // White-label F1: la marca del operador dueño del viaje. Sin operador con

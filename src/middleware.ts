@@ -6,6 +6,8 @@ import {
   armarAtribucion,
 } from "@/lib/operadores/atribucion";
 
+import { CODIGO_COOKIE, OPCIONES_CODIGO } from "@/lib/descuentos/cookie";
+
 const CANONICAL_HOST = "caminante.numanhub.com";
 // The stable *.vercel.app alias that always points to production. We redirect it
 // to the real domain so the public site only lives on caminante.numanhub.com.
@@ -65,13 +67,29 @@ export async function middleware(request: NextRequest) {
   const cabeceras = { "x-ruta": request.nextUrl.pathname };
 
   const atrib = atribucionDeLaRuta(request.nextUrl.pathname);
-  if (atrib && !request.cookies.get(ATRIB_COOKIE)) {
+  // ── CÓDIGO DE DESCUENTO EN LA LIGA ──────────────────────────────────────────
+  // El mensaje que manda la casa trae `?codigo=` (4 nov 2026). De la liga del
+  // grupo a /reservar hay varios brincos (crear cuenta, verificar celular,
+  // login) que tiran la query, así que el código se guarda en cookie y
+  // /reservar lo lee de ahí. Sólo la forma: si no existe o es de otra salida,
+  // /reservar lo ignora en silencio. ÚLTIMO toque: una liga nueva lo reemplaza.
+  const codigo = codigoDeLaRuta(request);
+  if ((atrib && !request.cookies.get(ATRIB_COOKIE)) || codigo) {
     const res = await updateSession(request, cabeceras);
-    res.cookies.set(ATRIB_COOKIE, await armarAtribucion(atrib), OPCIONES_ATRIB);
+    if (atrib && !request.cookies.get(ATRIB_COOKIE)) res.cookies.set(ATRIB_COOKIE, await armarAtribucion(atrib), OPCIONES_ATRIB);
+    if (codigo) res.cookies.set(CODIGO_COOKIE, codigo, OPCIONES_CODIGO);
     return res;
   }
 
   return updateSession(request, cabeceras);
+}
+
+/** `?codigo=` en el espacio del grupo o en /reservar, ya en mayúsculas; null si no viene o no tiene forma de código. */
+function codigoDeLaRuta(request: NextRequest): string | null {
+  const p = request.nextUrl.pathname;
+  if (!p.startsWith("/caminante/g/") && !p.startsWith("/caminante/reservar/")) return null;
+  const c = (request.nextUrl.searchParams.get("codigo") ?? "").trim().toUpperCase();
+  return /^[A-Z0-9_-]{3,32}$/.test(c) ? c : null;
 }
 
 /**

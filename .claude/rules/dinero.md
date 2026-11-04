@@ -39,8 +39,12 @@ desde la cápsula de esa salida en Salidas (`admin/salidas/CodigoDescuento.tsx`;
 `codigos_descuento` con `slot_id` siempre puesto: % o pesos, usos máximos,
 vencimiento). El 4 nov Luis los sacó de Recursos: «cada salida puntual tiene su
 código individual». «Copiar mensaje» da el texto con la liga del grupo de esa
-salida y `?codigo=`; la liga `/g/<token>?codigo=X` lo pasa a `/reservar`, que lo
-cotiza en el servidor y arranca con el descuento puesto. La persona también
+salida y `?codigo=`. Como de la liga del grupo a `/reservar` hay varios brincos
+(crear cuenta, verificar celular, login) que tiran la query, el **middleware**
+guarda el código en la cookie `caminante_codigo` (`lib/descuentos/cookie.ts`,
+30 días, último toque) y `/reservar` lo lee de la query o de la cookie, lo cotiza
+en el servidor y arranca con el descuento puesto. El de la cookie que no aplique
+a esa salida se ignora en silencio; el de la query avisa. La persona también
 puede teclearlo a mano. `createCheckout` lo resuelve
 server-side (`lib/descuentos/codigos.ts`), lo manda a Stripe como cupón de un
 uso (`discounts`) y el webhook lo congela en la reserva
