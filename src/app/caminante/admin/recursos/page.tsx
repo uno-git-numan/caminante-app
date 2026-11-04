@@ -24,6 +24,8 @@ import { fetchDinero } from "@/lib/admin/queries";
 import { fetchExperienciasConSalidas } from "@/lib/admin/transferencias";
 import Encabezado from "./Encabezado";
 import PagoManualForm from "./PagoManualForm";
+import CodigosDescuento from "./CodigosDescuento";
+import { listarCodigos } from "@/lib/descuentos/codigos";
 import { Egresos, Ingresos } from "./Secciones";
 
 export const dynamic = "force-dynamic";
@@ -181,10 +183,11 @@ function Cascada({ s }: { s: SalidaRentabilidad }) {
 }
 
 export default async function RentabilidadPage() {
-  const [salidas, dinero, experiencias] = await Promise.all([
+  const [salidas, dinero, experiencias, codigos] = await Promise.all([
     fetchRentabilidad(),
     fetchDinero(),
     fetchExperienciasConSalidas(),
+    listarCodigos(),
   ]);
 
   // Agrupado por mes de la salida.
@@ -242,8 +245,9 @@ export default async function RentabilidadPage() {
 
         {/* Capturar un pago de fuera de Stripe es la única acción de esta
             página; va colapsada porque es puntual. */}
-        <div style={{ marginBottom: 18 }}>
+        <div style={{ marginBottom: 18, display: "flex", flexDirection: "column", gap: 12 }}>
           <PagoManualForm experiencias={experiencias} />
+          <CodigosDescuento codigos={codigos} experiencias={experiencias} />
         </div>
 
         {enRiesgo ? (

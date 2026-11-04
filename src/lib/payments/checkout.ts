@@ -23,6 +23,7 @@ import { planDeCobro, paraStripe } from "@/lib/payments/connect-cobro";
 import { COLUMNAS_GATE, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
 import { reglaComisionDeOperador } from "@/lib/operadores/regla";
 import { ATRIB_COOKIE, escalaPara, leerAtribucion } from "@/lib/operadores/atribucion";
+import { resolverCodigo } from "@/lib/descuentos/codigos";
 import type { Experience } from "@/lib/experiences/types";
 
 async function getOrigin() {
@@ -170,6 +171,19 @@ export async function createCheckout(formData: FormData) {
   if (perPerson == null) perPerson = parseMxnAmount(experience.price?.amount);
   if (perPerson == null || perPerson <= 0) redirect(back("precio"));
 
+  // El código de descuento (0074). Se resuelve contra la base, aquí, aunque el
+  // formulario ya lo haya cotizado: lo que el cliente mandó es el NOMBRE del
+  // código, nunca un monto. Aplica al viaje; los complementos van completos.
+  const viajeLista = perPerson * numPeople;
+  const codigoRaw = String(formData.get("codigo") ?? "").trim();
+  let descuento: { id: string; codigo: string; descuentoMxn: number } | null = null;
+  if (codigoRaw) {
+    const r = await resolverCodigo(sb, { codigo: codigoRaw, experienceId, slotId, baseMxn: viajeLista });
+    if (!r.ok) redirect(back(r.error));
+    descuento = { id: r.id, codigo: r.codigo, descuentoMxn: r.descuentoMxn };
+  }
+  const viajeCobrado = viajeLista - (descuento?.descuentoMxn ?? 0);
+
   // Complementos: se leen de la BD para ESTA salida y se cruzan con lo que
   // marcó el cliente. Los obligatorios entran aunque no vengan marcados; un id
   // que no esté en la lista de su salida se cae solo (resolverElegidos).
@@ -214,7 +228,8 @@ export async function createCheckout(formData: FormData) {
 
   const comision = comisionDeVenta(
     {
-      viaje: { precioUnitario: sinIva(perPerson), cantidad: numPeople },
+      // Sobre LO COBRADO: un descuento no cambia la comisión (27 ago 2026).
+      viaje: { precioUnitario: sinIva(viajeCobrado / numPeople), cantidad: numPeople },
       complementos: complementosElegidos.map((c) => ({
         precioUnitario: sinIva(c.precioUnitario),
         cantidad: c.porPersona ? numPeople : 1,
@@ -231,7 +246,7 @@ export async function createCheckout(formData: FormData) {
   // a preguntar porque decide a dónde va el dinero, y esa decisión no puede
   // depender de que alguien más haya preguntado antes.
   const cobradoTotal =
-    perPerson * numPeople +
+    viajeCobrado +
     complementosElegidos.reduce((n, c) => n + c.precioUnitario * (c.porPersona ? numPeople : 1), 0);
 
   let plan = planDeCobro(null, comision.monto, cobradoTotal);
@@ -275,6 +290,11 @@ export async function createCheckout(formData: FormData) {
     comision_regla:
       regla.tipo === "plano" ? `${origenRegla}:${regla.pct}` : `escala:${regla.escala}`,
     tier_label: tierLabel,
+    // El código usado y cuánto perdonó; el webhook lo congela en la reserva y
+    // sube `usos`. precio_lista = el viaje sin descuento.
+    ...(descuento
+      ? { codigo_descuento_id: descuento.id, codigo_descuento: descuento.codigo, descuento_mxn: String(descuento.descuentoMxn), precio_lista_mxn: String(viajeLista) }
+      : {}),
     slot_visibility: (slot.visibility as string | null) ?? "public",
     // El espacio del grupo: qué lugar(es) paga este cobro. El webhook los liga.
     ...(lugarId ? { lugar_id: lugarId } : {}),
@@ -312,8 +332,21 @@ export async function createCheckout(formData: FormData) {
   let url: string | null = null;
   try {
     const stripe = getStripeServerClient();
+    // El descuento viaja como cupón de Stripe de un solo uso: la persona ve el
+    // precio de lista, la línea «−$X (CÓDIGO)» y el total, igual que en el
+    // formulario; y `amount_total` ya llega descontado al webhook.
+    const cupon = descuento
+      ? await stripe.coupons.create({
+          amount_off: toStripeAmount(descuento.descuentoMxn),
+          currency: "mxn",
+          duration: "once",
+          name: `Código ${descuento.codigo}`,
+          max_redemptions: 1,
+        })
+      : null;
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      ...(cupon ? { discounts: [{ coupon: cupon.id }] } : {}),
       // Un renglón por concepto: el viaje y cada complemento aparte. El cliente
       // ve en Stripe exactamente lo que está pagando, desglosado.
       line_items: [

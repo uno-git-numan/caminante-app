@@ -14,16 +14,15 @@
 //
 // Esto no bifurca la caja: usa Payment Links de siempre; sólo cambia el monto.
 
-import type Stripe from "stripe";
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { puedeEditarSlot } from "@/lib/auth/alcance";
 import { findOrCreateContact, findOrCreateContactByPhone } from "@/lib/crm/contacts";
 import { celularE164 } from "@/lib/grupo/codigo";
-import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
+import { getStripeServerClient } from "@/lib/payments/stripe";
+import { nuevoPagoToken, urlDePago } from "@/lib/payments/pago-token";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
-import { comisionDeVenta, sinIva, type Regla } from "@/lib/operadores/comision";
 import { reglaComisionDeOperador } from "@/lib/operadores/regla";
 import { experienceTitle } from "@/lib/admin/queries";
 import type { Experience } from "@/lib/experiences/types";
@@ -146,19 +145,19 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
   // toca: ese es otro cobro. Una `requested` sin pagos se reutiliza.
   const { data: vivas } = await sb
     .from("reservations")
-    .select("id, status, total_amount_mxn")
+    .select("id, status, total_amount_mxn, pago_token")
     .eq("contact_id", contact.id)
     .eq("slot_id", slot.id as string)
     .neq("status", "cancelled");
-  const previa = (vivas ?? [])[0] as { id: string; status: string } | undefined;
+  const previa = (vivas ?? [])[0] as { id: string; status: string; pago_token: string | null } | undefined;
   if (previa && previa.status !== "requested") {
     return { ok: false, error: `${nombre} ya tiene una reserva ${previa.status === "paid" ? "pagada" : "viva"} en esta salida. Cóbrale lo que falte desde Pagos.` };
   }
 
-  // La comisión, sobre lo cobrado y con la escala de venta (lo vende la casa a mano).
-  const { regla: reglaOperador, origen: origenRegla } = await reglaComisionDeOperador(operatorId);
-  const regla: Regla = reglaOperador.tipo === "plano" ? reglaOperador : { tipo: "escala", escala: "venta" };
-  const comision = comisionDeVenta({ viaje: { precioUnitario: sinIva(montoMxn / lugares), cantidad: lugares } }, regla);
+  // La comisión se calcula al PAGAR (pagina-pago.ts), sobre lo cobrado y con la
+  // escala de venta. Aquí sólo se congela el % pactado si lo hay.
+  const { regla: reglaOperador } = await reglaComisionDeOperador(operatorId);
+  const regla = reglaOperador.tipo === "plano" ? reglaOperador : ({ tipo: "escala" } as const);
   const commissionPct = reglaOperador.tipo === "plano" ? reglaOperador.pct : null;
 
   const descuentoTexto = input.modo === "descuento" ? `${Number(input.valor)}% de descuento` : "monto especial";
@@ -169,7 +168,7 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
     reservationId = previa.id;
     await sb
       .from("reservations")
-      .update({ num_people: lugares, total_amount_mxn: montoMxn, amount_due_mxn: montoMxn, notes, operator_id: operatorId, commission_pct: commissionPct, updated_at: new Date().toISOString() })
+      .update({ num_people: lugares, total_amount_mxn: montoMxn, amount_due_mxn: montoMxn, precio_lista_mxn: listaMxn, notes, operator_id: operatorId, commission_pct: commissionPct, updated_at: new Date().toISOString() })
       .eq("id", reservationId);
   } else {
     const { data: created, error } = await sb
@@ -183,6 +182,7 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
         channel: "admin",
         total_amount_mxn: montoMxn,
         amount_due_mxn: montoMxn,
+        precio_lista_mxn: listaMxn,
         operator_id: operatorId,
         commission_pct: commissionPct,
         ...(regla.tipo === "escala" ? { escala_comision: "venta" } : {}),
@@ -195,44 +195,19 @@ export async function generarLinkEspecial(input: LinkEspecialInput): Promise<Lin
   }
 
   const titulo = experienceTitle(experience, slug);
-  const metadata: Stripe.MetadataParam = {
-    reservation_id: reservationId,
-    contact_id: contact.id,
-    slot_id: slot.id as string,
-    slot_label: (slot.label as string | null) ?? "",
-    experience_slug: slug,
-    experience_id: slot.experience_id as string,
-    num_people: String(lugares),
-    operator_id: operatorId ?? "",
-    commission_pct: commissionPct != null ? String(commissionPct) : "",
-    platform_fee_mxn: String(comision.monto),
-    comision_regla: regla.tipo === "plano" ? `${origenRegla}:${regla.pct}` : "escala:venta",
-    canal_cobro: "casa",
-    precio_especial: "1",
-    precio_lista_mxn: String(listaMxn),
-  };
 
-  let url: string;
-  let linkId: string;
-  try {
-    const stripe = getStripeServerClient();
-    const product = await stripe.products.create({
-      name: `${titulo} — ${lugares} ${lugares === 1 ? "lugar" : "lugares"} · precio especial`,
-      ...(slot.label ? { description: `Salida: ${slot.label}` } : {}),
-    });
-    const price = await stripe.prices.create({ product: product.id, unit_amount: toStripeAmount(montoMxn), currency: "mxn" });
-    const link = await stripe.paymentLinks.create({
-      line_items: [{ price: price.id, quantity: 1 }],
-      metadata,
-      payment_intent_data: { metadata },
-    });
-    url = link.url;
-    linkId = link.id;
-  } catch (e) {
-    return { ok: false, error: `Stripe: ${(e as Error).message}` };
-  }
-
-  await sb.from("reservations").update({ payment_link_url: url, payment_link_id: linkId }).eq("id", reservationId);
+  // EL LINK ES UNA PÁGINA DE CAMINANTE (/caminante/pago/<token>), no Stripe a
+  // secas (Luis, 3 nov 2026: la persona llegaba a Stripe sin contexto y al
+  // pagar se perdía, sin saber cómo volver a firmar). La Checkout Session nace
+  // cuando toca «Pagar» (pagina-pago.ts). Si la reserva ya tenía su token, se
+  // conserva: el link que ya se mandó sigue valiendo con el monto nuevo.
+  const token = previa?.pago_token || nuevoPagoToken();
+  const url = urlDePago(token);
+  const { error: errTok } = await sb
+    .from("reservations")
+    .update({ pago_token: token, payment_link_url: url, payment_link_id: null })
+    .eq("id", reservationId);
+  if (errTok) return { ok: false, error: errTok.message };
 
   const pila = nombre.split(/\s+/)[0];
   const texto = `Hola, ${pila}. Aquí está tu link de pago para ${titulo}${slot.label ? ` (${slot.label})` : ""}: ${url}\n\nSon ${pesos(montoMxn)} por ${lugares} ${lugares === 1 ? "lugar" : "lugares"}. ${conCorreo ? "Al pagar te llega el deslinde por correo." : "Al pagar te mando el deslinde por aquí."}`;

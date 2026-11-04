@@ -1,16 +1,18 @@
-// Crea un Stripe Payment Link POR RESERVA (cobro por persona, enviado por WhatsApp).
+// El LINK DE PAGO de una reserva (cobro por persona, enviado por WhatsApp).
 //
-// A diferencia de generateStripeLink (que crea UN link a nivel experiencia, sin
-// metadata), aquí el link lleva metadata {reservation_id, contact_id, slot_id} que
-// Stripe copia al Checkout Session → nos vuelve en el webhook (checkout.session.completed)
-// para registrar el pago en `payments` y avanzar reservations.status (ver finalize-reservation.ts).
+// Hasta el 3 nov 2026 era un Stripe Payment Link: la persona llegaba a Stripe
+// sin contexto y al pagar se perdía, sin saber cómo volver a firmar el deslinde.
+// Ahora el link es una página de Caminante, /caminante/pago/<token>
+// (reservations.pago_token, 0074): explica qué se paga, manda a Stripe al tocar
+// «Pagar» (pagina-pago.ts crea la Checkout Session con la metadata
+// {reservation_id, contact_id, slot_id…}) y vuelve a la pantalla de éxito con
+// «Firmar mi deslinde». El webhook es el de siempre (finalize-reservation.ts).
 //
-// Reusable: lo llaman el action de cobro del admin HOY y el bot de WhatsApp MAÑANA.
-// Recibe el client service-role como parámetro (no crea el suyo) — mismo patrón que crm/contacts.
+// Reusable: lo llaman el action de cobro del admin HOY y el bot de WhatsApp
+// MAÑANA. Recibe el client service-role como parámetro (no crea el suyo).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type Stripe from "stripe";
-import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
+import { nuevoPagoToken, urlDePago } from "@/lib/payments/pago-token";
 import type { Experience } from "@/lib/experiences/types";
 
 export type ReservationLinkResult =
@@ -34,6 +36,7 @@ type ReservationRow = {
   total_amount_mxn: number | null;
   amount_due_mxn: number | null;
   payment_link_url: string | null;
+  pago_token: string | null;
 };
 
 // Crea (o reusa) el link de pago de una reserva. `reuseExisting` evita generar un
@@ -48,7 +51,7 @@ export async function createReservationPaymentLink(
   const { data: resv } = await sb
     .from("reservations")
     .select(
-      "id, experience_id, slot_id, contact_id, num_people, status, total_amount_mxn, amount_due_mxn, payment_link_url",
+      "id, experience_id, slot_id, contact_id, num_people, status, total_amount_mxn, amount_due_mxn, payment_link_url, pago_token",
     )
     .eq("id", reservationId)
     .maybeSingle();
@@ -58,10 +61,10 @@ export async function createReservationPaymentLink(
   if (reservation.status === "cancelled") {
     return { ok: false, error: "La reserva está cancelada." };
   }
-  if (reuseExisting && reservation.payment_link_url) {
+  if (reuseExisting && reservation.pago_token) {
     return {
       ok: true,
-      url: reservation.payment_link_url,
+      url: urlDePago(reservation.pago_token),
       amountMxn: Number(reservation.amount_due_mxn ?? reservation.total_amount_mxn ?? 0),
       reused: true,
     };
@@ -96,42 +99,15 @@ export async function createReservationPaymentLink(
   const numPeople = Math.max(1, reservation.num_people || 1);
   const amountMxn = perPerson * numPeople;
 
-  const metadata: Stripe.MetadataParam = {
-    reservation_id: reservation.id,
-    contact_id: reservation.contact_id,
-    slot_id: reservation.slot_id ?? "",
-    experience_slug: experience.slug,
-    num_people: String(numPeople),
-  };
-
+  // La página de pago: el token se acuña una vez y se conserva. Monto
+  // congelado en la reserva: es lo que pagina-pago.ts cobra al tocar «Pagar».
+  const token = reservation.pago_token || nuevoPagoToken();
+  const url = urlDePago(token);
   try {
-    const stripe = getStripeServerClient();
-    const title =
-      [experience.title, experience.titleAccent].filter(Boolean).join(" ").trim() ||
-      experience.docTitle ||
-      "Experiencia Caminante";
-
-    const product = await stripe.products.create({
-      name: title,
-      ...(experience.subtitle ? { description: experience.subtitle } : {}),
-    });
-    const price = await stripe.prices.create({
-      product: product.id,
-      unit_amount: toStripeAmount(perPerson),
-      currency: "mxn",
-    });
-    const link = await stripe.paymentLinks.create({
-      line_items: [{ price: price.id, quantity: numPeople }],
-      // Stripe copia esta metadata al Checkout Session creado por el link → webhook.
-      metadata,
-      // Defensivo: que el PaymentIntent también la lleve.
-      payment_intent_data: { metadata },
-    });
-
-    // Guardar el link + snapshot del monto en la reserva. total_amount_mxn solo si estaba en 0.
     const patch: Record<string, unknown> = {
-      payment_link_url: link.url,
-      payment_link_id: link.id,
+      pago_token: token,
+      payment_link_url: url,
+      payment_link_id: null,
       amount_due_mxn: amountMxn,
     };
     if (!reservation.total_amount_mxn || Number(reservation.total_amount_mxn) === 0) {
@@ -151,11 +127,11 @@ export async function createReservationPaymentLink(
         experience_slug: experience.slug,
         amount_due_mxn: amountMxn,
         num_people: numPeople,
-        payment_link_url: link.url,
+        payment_link_url: url,
       },
     });
 
-    return { ok: true, url: link.url, amountMxn, reused: false };
+    return { ok: true, url, amountMxn, reused: false };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }

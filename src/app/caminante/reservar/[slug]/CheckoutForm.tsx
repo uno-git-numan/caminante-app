@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createCheckout } from "@/lib/payments/checkout";
+import { cotizarCodigo } from "@/lib/descuentos/acciones";
 import { trackPixel } from "@/lib/meta/pixel";
 
 export type ReservarSlot = {
@@ -57,6 +58,30 @@ export default function CheckoutForm({
   const [people, setPeople] = useState(Math.max(1, grupoExtra?.cubre.length ?? 0));
   const [tierIndex, setTierIndex] = useState(tiers.length ? 0 : -1);
   const [marcados, setMarcados] = useState<string[]>([]);
+  // El código de descuento (0074). «Aplicar» lo cotiza en el servidor para
+  // ENSEÑAR el descuento; el checkout lo vuelve a resolver por su cuenta. Si
+  // cambia la salida, las personas o el nivel, se recotiza.
+  const [codigo, setCodigo] = useState("");
+  const [cupon, setCupon] = useState<{ codigo: string; descuentoMxn: number; etiqueta: string } | null>(null);
+  const [cuponMsg, setCuponMsg] = useState<string | null>(null);
+  const [cotizando, setCotizando] = useState(false);
+  const aplicarCodigo = async (ctx?: { slotId?: string; people?: number; tierIndex?: number }) => {
+    const c = codigo.trim();
+    if (!c) return;
+    setCotizando(true);
+    const r = await cotizarCodigo({ slug, slotId: ctx?.slotId ?? slotId, codigo: c, numPeople: ctx?.people ?? people, tierIndex: ctx?.tierIndex ?? tierIndex });
+    setCotizando(false);
+    if (r.ok) {
+      setCupon({ codigo: r.codigo, descuentoMxn: r.descuentoMxn, etiqueta: r.etiqueta });
+      setCuponMsg(null);
+    } else {
+      setCupon(null);
+      setCuponMsg(r.error);
+    }
+  };
+  const recotizar = (ctx: { slotId?: string; people?: number; tierIndex?: number }) => {
+    if (cupon) void aplicarCodigo(ctx);
+  };
 
   const slot = slots.find((s) => s.id === slotId) ?? firstOpen;
   const maxPeople = slot?.available != null ? Math.max(1, Math.min(slot.available, 12)) : 12;
@@ -72,7 +97,8 @@ export default function CheckoutForm({
     (n, c) => n + c.precioUnitario * (c.porPersona ? ppl : 1),
     0,
   );
-  const total = perPerson * ppl + sumaComplementos;
+  const descuento = cupon ? Math.min(cupon.descuentoMxn, Math.max(0, perPerson * ppl - 10)) : 0;
+  const total = perPerson * ppl - descuento + sumaComplementos;
 
   return (
     <form
@@ -93,6 +119,7 @@ export default function CheckoutForm({
       <input type="hidden" name="numPeople" value={ppl} />
       {tiers.length ? <input type="hidden" name="tierIndex" value={tierIndex} /> : null}
       {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
+      {cupon ? <input type="hidden" name="codigo" value={cupon.codigo} /> : null}
       {grupoExtra?.lugar ? <input type="hidden" name="lugar" value={grupoExtra.lugar} /> : null}
       {grupoExtra?.cubre.map((id) => (
         <input key={id} type="hidden" name="cubre" value={id} />
@@ -110,7 +137,7 @@ export default function CheckoutForm({
               <button
                 type="button"
                 key={i}
-                onClick={() => setTierIndex(i)}
+                onClick={() => { setTierIndex(i); recotizar({ tierIndex: i }); }}
                 className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
                   selected ? "border-dune bg-dune/5" : "border-sand bg-white hover:border-dune"
                 }`}
@@ -132,7 +159,11 @@ export default function CheckoutForm({
               type="button"
               key={s.id}
               disabled={s.soldOut}
-              onClick={() => !s.soldOut && setSlotId(s.id)}
+              onClick={() => {
+                if (s.soldOut) return;
+                setSlotId(s.id);
+                recotizar({ slotId: s.id });
+              }}
               className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
                 selected ? "border-dune bg-dune/5" : "border-sand bg-white hover:border-dune"
               } ${s.soldOut ? "cursor-not-allowed opacity-50" : ""}`}
@@ -207,7 +238,11 @@ export default function CheckoutForm({
         <div className="mt-2 flex items-center gap-4">
           <button
             type="button"
-            onClick={() => setPeople((p) => Math.max(1, p - 1))}
+            onClick={() => {
+              const n = Math.max(1, ppl - 1);
+              setPeople(n);
+              recotizar({ people: n });
+            }}
             className="h-10 w-10 rounded-lg border border-sand text-lg text-lagoon transition hover:border-dune"
             aria-label="Menos personas"
           >
@@ -216,7 +251,11 @@ export default function CheckoutForm({
           <span className="min-w-8 text-center text-lg font-semibold text-lagoon">{ppl}</span>
           <button
             type="button"
-            onClick={() => setPeople((p) => Math.min(maxPeople, p + 1))}
+            onClick={() => {
+              const n = Math.min(maxPeople, ppl + 1);
+              setPeople(n);
+              recotizar({ people: n });
+            }}
             className="h-10 w-10 rounded-lg border border-sand text-lg text-lagoon transition hover:border-dune"
             aria-label="Más personas"
           >
@@ -228,15 +267,50 @@ export default function CheckoutForm({
         </div>
       </div>
 
+      <div className="border-t border-sand pt-4">
+        <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-olive">¿Tienes un código?</label>
+        <div className="mt-2 flex gap-2">
+          <input
+            value={codigo}
+            onChange={(e) => {
+              setCodigo(e.target.value.toUpperCase());
+              if (cupon) setCupon(null);
+              setCuponMsg(null);
+            }}
+            placeholder="CÓDIGO"
+            aria-label="Código de descuento"
+            className="min-w-0 flex-1 rounded-xl border border-sand bg-white px-3 py-2 text-sm uppercase tracking-wide text-lagoon"
+          />
+          <button
+            type="button"
+            onClick={() => void aplicarCodigo()}
+            disabled={cotizando || !codigo.trim() || !slotId}
+            className="rounded-xl border border-sand px-4 py-2 text-sm font-semibold text-lagoon transition hover:border-dune disabled:opacity-50"
+          >
+            {cotizando ? "…" : cupon ? "Aplicado" : "Aplicar"}
+          </button>
+        </div>
+        {cuponMsg ? <p className="mt-2 text-xs text-dune">{cuponMsg}</p> : null}
+        {cupon ? <p className="mt-2 text-xs text-forest">{cupon.etiqueta} sobre el viaje.</p> : null}
+      </div>
+
       <div className="space-y-1 border-t border-sand pt-4">
+        {sumaComplementos || descuento ? (
+          <div className="flex items-baseline justify-between text-xs text-olive">
+            <span>
+              Viaje · {ppl} {ppl === 1 ? "persona" : "personas"}
+            </span>
+            <span>{mxn(perPerson * ppl)}</span>
+          </div>
+        ) : null}
+        {descuento ? (
+          <div className="flex items-baseline justify-between text-xs text-forest">
+            <span>Código {cupon?.codigo}</span>
+            <span>−{mxn(descuento)}</span>
+          </div>
+        ) : null}
         {sumaComplementos ? (
           <>
-            <div className="flex items-baseline justify-between text-xs text-olive">
-              <span>
-                Viaje · {ppl} {ppl === 1 ? "persona" : "personas"}
-              </span>
-              <span>{mxn(perPerson * ppl)}</span>
-            </div>
             {elegidos.map((c) => (
               <div key={c.id} className="flex items-baseline justify-between text-xs text-olive">
                 <span>{c.nombre}</span>

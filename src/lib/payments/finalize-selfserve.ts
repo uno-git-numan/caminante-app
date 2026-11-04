@@ -69,6 +69,17 @@ export async function finalizeSelfServeCheckout(
   // notes para que el roster/dashboard sepa el tipo. Sin migración.
   const tierLabel = (session.metadata?.tier_label ?? "").trim();
   if (!experienceId) return { handled: true, paymentRecorded: false };
+  // El código de descuento (0074): se congela en la reserva y sube `usos` UNA
+  // vez (este camino sólo corre cuando el pago es nuevo: arriba ya se descartó
+  // el PaymentIntent repetido).
+  const codigoId = (session.metadata?.codigo_descuento_id ?? "").trim() || null;
+  const codigoNombre = (session.metadata?.codigo_descuento ?? "").trim();
+  const descuentoMxn = codigoId ? Number(session.metadata?.descuento_mxn ?? 0) || 0 : 0;
+  const precioListaMxn = codigoId ? Number(session.metadata?.precio_lista_mxn ?? 0) || null : null;
+  const notas = [tierLabel ? `Nivel: ${tierLabel}` : null, codigoId ? `Código ${codigoNombre} · −$${Math.round(descuentoMxn).toLocaleString("en-US")}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  const conCodigo = codigoId ? { codigo_descuento_id: codigoId, descuento_mxn: descuentoMxn, precio_lista_mxn: precioListaMxn } : {};
 
   // Contacto: dedupe en cascada (correo manda aquí). source = web pago.
   const contactRes = await findOrCreateContact(sb, {
@@ -122,7 +133,8 @@ export async function finalizeSelfServeCheckout(
         channel: "web",
         operator_id: operatorId,
         commission_pct: commissionPct,
-        ...(tierLabel ? { notes: `Nivel: ${tierLabel}` } : {}),
+        ...(notas ? { notes: notas } : {}),
+        ...conCodigo,
       })
       .eq("id", reservationId);
   } else {
@@ -138,12 +150,17 @@ export async function finalizeSelfServeCheckout(
         channel: "web",
         operator_id: operatorId,
         commission_pct: commissionPct,
-        ...(tierLabel ? { notes: `Nivel: ${tierLabel}` } : {}),
+        ...(notas ? { notes: notas } : {}),
+        ...conCodigo,
       })
       .select("id")
       .single();
     if (resErr) throw new Error(`No se pudo crear la reserva: ${resErr.message}`);
     reservationId = created.id as string;
+  }
+  if (codigoId) {
+    const { error: eUso } = await sb.rpc("usar_codigo_descuento", { p_id: codigoId });
+    if (eUso) console.error("[finalize] usar_codigo_descuento:", eUso.message);
   }
 
   // Complementos comprados. El precio viene CONGELADO de la metadata de Stripe

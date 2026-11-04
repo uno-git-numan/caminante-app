@@ -27,6 +27,7 @@ import { createPortal } from "react-dom";
 import { NavCream } from "@/app/caminante/ui/pub/atoms";
 import { pfmt } from "@/app/caminante/ui/pub/PubShell";
 import { createCheckout } from "@/lib/payments/checkout";
+import { cotizarCodigo } from "@/lib/descuentos/acciones";
 import { trackPixel } from "@/lib/meta/pixel";
 import type { PriceTier, ReservarComplemento, ReservarSlot } from "./CheckoutForm";
 
@@ -76,6 +77,29 @@ export default function ReservarMovil({
   const [marcados, setMarcados] = useState<string[]>([]);
   const [pagando, setPagando] = useState(false);
   const [host, setHost] = useState<HTMLElement | null>(null);
+  // El código de descuento (0074): «Aplicar» lo cotiza para ENSEÑARLO; el
+  // servidor lo vuelve a resolver al pagar. Cambiar salida/personas/nivel recotiza.
+  const [codigo, setCodigo] = useState("");
+  const [cupon, setCupon] = useState<{ codigo: string; descuentoMxn: number; etiqueta: string } | null>(null);
+  const [cuponMsg, setCuponMsg] = useState<string | null>(null);
+  const [cotizando, setCotizando] = useState(false);
+  const aplicarCodigo = async (ctx?: { slotId?: string; people?: number; tierIndex?: number }) => {
+    const c = codigo.trim();
+    if (!c) return;
+    setCotizando(true);
+    const r = await cotizarCodigo({ slug, slotId: ctx?.slotId ?? sel, codigo: c, numPeople: ctx?.people ?? pax, tierIndex: ctx?.tierIndex ?? nivel });
+    setCotizando(false);
+    if (r.ok) {
+      setCupon({ codigo: r.codigo, descuentoMxn: r.descuentoMxn, etiqueta: r.etiqueta });
+      setCuponMsg(null);
+    } else {
+      setCupon(null);
+      setCuponMsg(r.error);
+    }
+  };
+  const recotizar = (ctx: { slotId?: string; people?: number; tierIndex?: number }) => {
+    if (cupon) void aplicarCodigo(ctx);
+  };
   const formRef = useRef<HTMLFormElement>(null);
 
   // La barra de compra se PORTA a `.pub-app` (su CSS es position:absolute contra
@@ -93,7 +117,8 @@ export default function ReservarMovil({
   const agregables = complementos.filter((c) => c.slotId === null || c.slotId === sel);
   const puestos = agregables.filter((c) => c.obligatorio || marcados.includes(c.id));
   const extra = puestos.reduce((n, c) => n + c.precioUnitario * (c.porPersona ? ppl : 1), 0);
-  const total = precio * ppl + extra;
+  const descuento = cupon ? Math.min(cupon.descuentoMxn, Math.max(0, precio * ppl - 10)) : 0;
+  const total = precio * ppl - descuento + extra;
 
   const backHref = `/caminante/experiencias/${slug}${grupoToken ? `?grupo=${grupoToken}` : ""}`;
 
@@ -181,6 +206,7 @@ export default function ReservarMovil({
           <input type="hidden" name="numPeople" value={ppl} />
           {tiers.length ? <input type="hidden" name="tierIndex" value={nivel} /> : null}
           {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
+          {cupon ? <input type="hidden" name="codigo" value={cupon.codigo} /> : null}
           {grupoExtra?.lugar ? <input type="hidden" name="lugar" value={grupoExtra.lugar} /> : null}
           {grupoExtra?.cubre.map((id) => (
             <input key={id} type="hidden" name="cubre" value={id} />
@@ -200,7 +226,9 @@ export default function ReservarMovil({
                   disabled={s.soldOut}
                   onClick={() => {
                     setSel(s.id);
-                    if (s.available != null && pax > s.available) setPax(Math.max(1, s.available));
+                    const n = s.available != null && pax > s.available ? Math.max(1, s.available) : pax;
+                    if (n !== pax) setPax(n);
+                    recotizar({ slotId: s.id, people: n });
                   }}
                 >
                   <span className="rd">{sel === s.id ? <i></i> : null}</span>
@@ -230,7 +258,10 @@ export default function ReservarMovil({
                     type="button"
                     key={t.label}
                     className={"pub-sel" + (nivel === i ? " on" : "")}
-                    onClick={() => setNivel(i)}
+                    onClick={() => {
+                      setNivel(i);
+                      recotizar({ tierIndex: i });
+                    }}
                   >
                     <span className="rd">{nivel === i ? <i></i> : null}</span>
                     <div className="g">
@@ -284,14 +315,22 @@ export default function ReservarMovil({
             <div className="pub-blk">
               <span className="pub-lbl">Personas</span>
               <div className="pub-stepper">
-                <button type="button" aria-label="Quitar" onClick={() => setPax(Math.max(1, ppl - 1))}>
+                <button type="button" aria-label="Quitar" onClick={() => {
+                    const n = Math.max(1, ppl - 1);
+                    setPax(n);
+                    recotizar({ people: n });
+                  }}>
                   −
                 </button>
                 <b>{ppl}</b>
                 <button
                   type="button"
                   aria-label="Agregar"
-                  onClick={() => setPax(Math.min(maxPax, ppl + 1))}
+                  onClick={() => {
+                    const n = Math.min(maxPax, ppl + 1);
+                    setPax(n);
+                    recotizar({ people: n });
+                  }}
                 >
                   +
                 </button>
@@ -304,14 +343,49 @@ export default function ReservarMovil({
               ) : null}
             </div>
 
+            <div className="pub-blk">
+              <span className="pub-lbl">¿Tienes un código?</span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={codigo}
+                  onChange={(e) => {
+                    setCodigo(e.target.value.toUpperCase());
+                    if (cupon) setCupon(null);
+                    setCuponMsg(null);
+                  }}
+                  placeholder="CÓDIGO"
+                  aria-label="Código de descuento"
+                  autoCapitalize="characters"
+                  style={{ flex: 1, minWidth: 0, border: "1.5px solid var(--line)", borderRadius: 14, background: "#fff", padding: "12px 14px", fontSize: 16, letterSpacing: ".06em", textTransform: "uppercase" }}
+                />
+                <button
+                  type="button"
+                  className="pub-cta pub-cta-ghost"
+                  style={{ width: "auto", padding: "0 18px", minHeight: 48 }}
+                  disabled={cotizando || !codigo.trim() || !sel}
+                  onClick={() => void aplicarCodigo()}
+                >
+                  {cotizando ? "…" : cupon ? "Aplicado" : "Aplicar"}
+                </button>
+              </div>
+              {cuponMsg ? <p style={{ fontSize: 13.5, color: "var(--orange)", fontWeight: 600, marginTop: 8 }}>{cuponMsg}</p> : null}
+              {cupon ? <p style={{ fontSize: 13.5, color: "var(--forest)", marginTop: 8 }}>{cupon.etiqueta} sobre el viaje.</p> : null}
+            </div>
+
             <div className="pub-blk pub-total">
               <span className="pub-lbl">Total</span>
               <div className="row">
                 <span>
                   {ppl} × {pfmt(precio)}
                 </span>
-                <span className="pub-mono">{pfmt(total)}</span>
+                <span className="pub-mono">{pfmt(precio * ppl)}</span>
               </div>
+              {descuento ? (
+                <div className="row">
+                  <span>Código {cupon?.codigo}</span>
+                  <span className="pub-mono">−{pfmt(descuento)}</span>
+                </div>
+              ) : null}
               {puestos.map((c) => (
                 <div className="row" key={c.id}>
                   <span>{c.nombre}</span>
