@@ -28,13 +28,32 @@ function resumen(c: CodigoDescuento, precioLista: number | null): string {
   return `${que}${cobra} · ${usos}${vig}${c.nota ? ` · ${c.nota}` : ""}`;
 }
 
-export function CodigosDeSalida({ slotId, codigos, abierta, precioLista, onListo }: { slotId: string; codigos: CodigoDescuento[]; abierta: boolean; precioLista: number | null; onListo: () => void }) {
+/**
+ * El mensaje que la casa copia y pega (Luis, 4 nov 2026): el link del grupo de
+ * ESTA salida con el código ya puesto (`?codigo=`), lo que cobra y cuánto era.
+ */
+function mensajeDelCodigo(c: CodigoDescuento, ctx: { titulo: string; fechaLarga: string; precioLista: number | null; liga: string }): string {
+  const sep = ctx.liga.includes("?") ? "&" : "?";
+  const liga = `${ctx.liga}${sep}codigo=${c.codigo}`;
+  const cobra = ctx.precioLista != null ? (c.tipo === "porcentaje" ? ctx.precioLista * (1 - c.valor / 100) : Math.max(0, ctx.precioLista - c.valor)) : null;
+  const cuanto = cobra != null && ctx.precioLista != null ? `pagas ${pesos(cobra)} en vez de ${pesos(ctx.precioLista)} por lugar` : c.tipo === "porcentaje" ? `tienes ${c.valor}% de descuento` : `tienes ${pesos(c.valor)} de descuento`;
+  const vence = c.vigenteHasta ? ` Vale hasta el ${fecha(c.vigenteHasta)}.` : "";
+  return `Hola, te comparto *${ctx.titulo}* (${ctx.fechaLarga}) con Caminante. Con el código *${c.codigo}* ${cuanto}.${vence}\n\nAparta tu lugar aquí, el código ya va puesto: ${liga}`;
+}
+
+export function CodigosDeSalida({ slotId, codigos, abierta, precioLista, titulo, fechaLarga, liga, onListo }: { slotId: string; codigos: CodigoDescuento[]; abierta: boolean; precioLista: number | null; titulo: string; fechaLarga: string; liga: string; onListo: () => void }) {
   const [f, setF] = useState({ codigo: "", tipo: "porcentaje" as TipoDescuento, valor: "", usosMax: "", hasta: "", nota: "" });
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [hecho, setHecho] = useState<string | null>(null);
   const [tocando, setTocando] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState<string | null>(null);
   const router = useRouter();
+  const copiar = (c: CodigoDescuento) =>
+    navigator.clipboard?.writeText(mensajeDelCodigo(c, { titulo, fechaLarga, precioLista, liga })).then(() => {
+      setCopiado(c.id);
+      setTimeout(() => setCopiado(null), 1500);
+    });
 
   const valorN = Number(f.valor.replace(/[^0-9.]/g, ""));
   const vistaPrevia =
@@ -64,7 +83,7 @@ export function CodigosDeSalida({ slotId, codigos, abierta, precioLista, onListo
     <div className="card pad" style={{ marginTop: 14 }}>
       <span className="subtitle">Códigos de descuento de esta salida</span>
       <p className="mut" style={{ fontSize: 12.5, marginTop: 6, lineHeight: 1.55 }}>
-        Quien lo teclee en la página de reservar paga menos por el viaje (no por los complementos). Los usos se gastan cuando el pago cae; la comisión se calcula sobre lo cobrado.
+        Quien lo teclee en la página de reservar paga menos por el viaje (no por los complementos). «Copiar mensaje» te da el texto con el link de esta salida y el código ya puesto. Los usos se gastan cuando el pago cae; la comisión se calcula sobre lo cobrado.
       </p>
 
       {activos.length || apagados.length ? (
@@ -77,6 +96,11 @@ export function CodigosDeSalida({ slotId, codigos, abierta, precioLista, onListo
               </span>
               <span className="rt">
                 <span className="st">{c.activo ? "Activo" : "Apagado"}</span>
+                {c.activo ? (
+                  <button type="button" className="btn btn-glass btn-sm" style={{ padding: "3px 9px", fontSize: 11.5 }} onClick={() => void copiar(c)}>
+                    {copiado === c.id ? "Copiado" : "Copiar mensaje"}
+                  </button>
+                ) : null}
                 <button type="button" className="btn btn-ghost btn-sm" style={{ padding: "3px 9px", fontSize: 11.5 }} disabled={tocando === c.id} onClick={() => void prenderApagar(c)}>
                   {c.activo ? "Apagar" : "Volver a prender"}
                 </button>

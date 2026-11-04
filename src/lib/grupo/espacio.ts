@@ -138,6 +138,8 @@ function fechaLarga(inicio: string, fin: string): string {
   if (mes(inicio) === mes(fin)) return `${dia(inicio)} y ${dia(fin)} de ${mes(inicio)}`;
   return `${dia(inicio)} de ${mes(inicio)} al ${dia(fin)} de ${mes(fin)}`;
 }
+/** «sábado 21 y domingo 22 de noviembre», de dos YYYY-MM-DD. La usa Salidas para el mensaje del código. */
+export const fechaLargaDeSalida = fechaLarga;
 
 function fechaCorta(inicio: string, fin: string): string {
   const f = (ymd: string, o: Intl.DateTimeFormatOptions) =>

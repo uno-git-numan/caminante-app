@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { contactoDeUsuario, fetchEspacio, ligaDelEspacio, lugarDe, type Espacio, type PersonaDelGrupo } from "@/lib/grupo/espacio";
+import { normalizarCodigo } from "@/lib/descuentos/codigos";
 import { mensajeParaElGrupo } from "@/lib/grupo/mensajes";
 import { apuntarseEnListaDeEspera, entrarConSesion } from "@/lib/grupo/acciones";
 import { precioPub } from "@/lib/grupo/formato";
@@ -44,10 +45,13 @@ export default async function EspacioDelGrupoPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ error?: string; espera?: string }>;
+  searchParams: Promise<{ error?: string; espera?: string; codigo?: string }>;
 }) {
   const { token } = await params;
-  const { error, espera } = await searchParams;
+  const { error, espera, codigo: codigoRaw } = await searchParams;
+  // El mensaje que manda la casa trae `?codigo=`: viaja hasta /reservar, donde
+  // llega puesto y cotizado. Sólo la forma; si no existe, /reservar lo dirá.
+  const codigo = normalizarCodigo(codigoRaw);
   const e = await fetchEspacio(token);
   if (!e) notFound();
 
@@ -59,7 +63,7 @@ export default async function EspacioDelGrupoPage({
   if (!yo && !operadora) {
     return <Portada e={e} sesion={!!user} celularListo={!!contacto?.phone_verified_at} error={error} />;
   }
-  return <EspacioVista e={e} yo={yo} sesion={!!user} operadora={operadora} aviso={espera ? "Estás en la lista de espera. Si se abre un lugar, te avisamos por WhatsApp y correo." : error ?? null} />;
+  return <EspacioVista e={e} yo={yo} sesion={!!user} operadora={operadora} codigo={codigo} aviso={espera ? "Estás en la lista de espera. Si se abre un lugar, te avisamos por WhatsApp y correo." : error ?? null} />;
 }
 
 /* ── C1 · la portada de invitación ───────────────────────────────────────── */
@@ -137,10 +141,10 @@ async function encuestaDe(e: Espacio, yo: PersonaDelGrupo | null): Promise<strin
   return row?.token && row.status !== "submitted" ? row.token : null;
 }
 
-async function EspacioVista({ e, yo, sesion, operadora, aviso }: { e: Espacio; yo: PersonaDelGrupo | null; sesion: boolean; operadora: boolean; aviso: string | null }) {
+async function EspacioVista({ e, yo, sesion, operadora, aviso, codigo }: { e: Espacio; yo: PersonaDelGrupo | null; sesion: boolean; operadora: boolean; aviso: string | null; codigo: string | null }) {
   const anfitrion = !!yo?.anfitrion;
   const liga = ligaDelEspacio(e.token);
-  const reservarBase = `/caminante/reservar/${e.slug}?grupo=${e.token}`;
+  const reservarBase = `/caminante/reservar/${e.slug}?grupo=${e.token}${codigo ? `&codigo=${codigo}` : ""}`;
   const apartarHref = yo ? `${reservarBase}&lugar=${yo.lugarId}` : reservarBase;
   const firmarHref = yo?.reservationId && e.deslindeActivo ? `/caminante/registro/${e.slug}?reserva=${yo.reservationId}` : null;
   const escribirHref = e.operadora.whatsapp ? `https://wa.me/${digitos(e.operadora.whatsapp)}` : e.operadora.email ? `mailto:${e.operadora.email}` : null;

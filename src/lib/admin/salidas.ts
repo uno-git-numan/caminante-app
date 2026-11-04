@@ -23,6 +23,8 @@
 import { randomBytes } from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resumenesDeEspacios } from "@/lib/grupo/resumen-server";
+import { fechaLargaDeSalida, ligaDelEspacio } from "@/lib/grupo/espacio";
+import { SITE } from "@/lib/payments/pago-token";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import type { ResumenDelEspacio } from "@/lib/grupo/resumen";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
@@ -157,6 +159,10 @@ export type Salida = {
   linksPendientes: LinkPendiente[];
   /** Los códigos de descuento de ESTA salida (0074): se tecleen en /reservar. */
   codigos: CodigoDescuento[];
+  /** «sábado 21 y domingo 22 de noviembre»: para el mensaje que Luis copia y pega. */
+  fechaLarga: string;
+  /** Por dónde entra la gente a comprar ESTA salida: su espacio del grupo si tiene liga, si no la página de reservar. */
+  ligaVenta: string;
 };
 
 export type LineaDeSalidas = {
@@ -534,6 +540,8 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       privada,
       grupo: s.access_token ? espacios.get(s.id) ?? null : null,
       codigos: codigosDeSalida.get(s.id) ?? [],
+      fechaLarga: s.starts_at ? fechaLargaDeSalida(cdmxDay(s.starts_at), cdmxDay(s.ends_at ?? s.starts_at)) : s.label || "",
+      ligaVenta: s.access_token ? ligaDelEspacio(s.access_token) : `${SITE}/caminante/reservar/${exp.slug}`,
       linksPendientes: pendientesLink
         .filter((r) => r.slot_id === s.id)
         .map((r) => {

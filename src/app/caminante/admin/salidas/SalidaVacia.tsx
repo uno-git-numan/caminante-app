@@ -100,7 +100,7 @@ export default function SalidaVacia({ s }: { s: Salida }) {
       ) : null}
       {conCodigo ? (
         <div style={{ flexBasis: "100%" }}>
-          <CodigosDeSalida slotId={s.id} codigos={s.codigos} abierta={abierta} precioLista={s.precioLista} onListo={() => setConCodigo(false)} />
+          <CodigosDeSalida slotId={s.id} codigos={s.codigos} titulo={s.experiencia} fechaLarga={s.fechaLarga} liga={s.ligaVenta} abierta={abierta} precioLista={s.precioLista} onListo={() => setConCodigo(false)} />
         </div>
       ) : null}
     </div>

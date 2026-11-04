@@ -12,6 +12,8 @@ import WhiteLabelStyles, { wlApp, wlDoc } from "../../ui/wl/WhiteLabelStyles";
 import CheckoutForm, { type ReservarSlot } from "./CheckoutForm";
 import ReservarMovil from "./ReservarMovil";
 import { fetchTodosLosComplementos } from "@/lib/experiences/complementos";
+import { normalizarCodigo } from "@/lib/descuentos/codigos";
+import { cotizarCodigo } from "@/lib/descuentos/acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +37,15 @@ export default async function ReservarPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ error?: string; grupo?: string; lugar?: string; cubre?: string }>;
+  searchParams: Promise<{ error?: string; grupo?: string; lugar?: string; cubre?: string; codigo?: string }>;
 }) {
   const { slug } = await params;
-  const { error, grupo, lugar: lugarRaw, cubre: cubreRaw } = await searchParams;
+  const { error, grupo, lugar: lugarRaw, cubre: cubreRaw, codigo: codigoRaw } = await searchParams;
   const grupoToken = cleanGrupoToken(grupo);
+  // `?codigo=` viene del mensaje que manda la casa (o del espacio del grupo):
+  // llega puesto en el campo y se cotiza solo. El servidor lo vuelve a resolver
+  // al cobrar; aquí sólo se prellena.
+  const codigoRecibido = normalizarCodigo(codigoRaw);
   // Desde el espacio del grupo (/caminante/g/<token>): `lugar` = mi lugar;
   // `cubre` = los lugares de otros del grupo que voy a pagar. Viajan como hidden
   // y createCheckout los valida contra grupo_lugares de ESA salida.
@@ -114,6 +120,18 @@ export default async function ReservarPage({
     })
     .filter((s) => s.perPerson > 0);
 
+  // El código de la liga se cotiza AQUÍ, en el servidor, contra la primera
+  // salida con lugar y las mismas personas con que arranca el formulario; así
+  // llega puesto y ya aplicado, sin un efecto en el cliente. Si cambia la
+  // salida o las personas, el formulario recotiza como siempre.
+  const tiers = experience?.priceTiers ?? [];
+  const primeraAbierta = slots.find((s) => !s.soldOut) ?? slots[0];
+  let codigoInicial: { codigo: string; cupon: { codigo: string; descuentoMxn: number; etiqueta: string } | null; msg: string | null } | null = null;
+  if (codigoRecibido && primeraAbierta) {
+    const r = await cotizarCodigo({ slug, slotId: primeraAbierta.id, codigo: codigoRecibido, numPeople: Math.max(1, grupoExtra?.cubre.length ?? 0), tierIndex: tiers.length ? 0 : -1 });
+    codigoInicial = r.ok ? { codigo: r.codigo, cupon: { codigo: r.codigo, descuentoMxn: r.descuentoMxn, etiqueta: r.etiqueta }, msg: null } : { codigo: codigoRecibido, cupon: null, msg: r.error };
+  }
+
   // White-label F1: la marca del operador dueño del viaje. Sin operador con
   // marca ⇒ null y la pantalla se ve Caminante, igual que siempre.
   const tema = await fetchThemeForExperience(slug);
@@ -172,10 +190,11 @@ export default async function ReservarPage({
           <CheckoutForm
             slug={slug}
             slots={slots}
-            tiers={experience?.priceTiers ?? []}
+            tiers={tiers}
             complementos={complementos}
             grupoToken={grupoToken}
             grupoExtra={grupoExtra}
+            codigoInicial={codigoInicial}
           />
         )}
       </div>
@@ -187,10 +206,11 @@ export default async function ReservarPage({
           titulo={title}
           lugar={lugar}
           slots={slots}
-          tiers={experience?.priceTiers ?? []}
+          tiers={tiers}
           complementos={complementos}
           grupoToken={grupoToken}
           grupoExtra={grupoExtra}
+          codigoInicial={codigoInicial}
           deslindeOk={deslindeOk}
           errMsg={errMsg}
         />

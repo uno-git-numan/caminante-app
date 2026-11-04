@@ -42,8 +42,11 @@ export default function CheckoutForm({
   complementos = [],
   grupoToken,
   grupoExtra = null,
+  codigoInicial = null,
 }: {
   slug: string;
+  /** `?codigo=` del mensaje de la casa: la página ya lo cotizó en el servidor; llega puesto y aplicado (o con su razón). */
+  codigoInicial?: { codigo: string; cupon: { codigo: string; descuentoMxn: number; etiqueta: string } | null; msg: string | null } | null;
   slots: ReservarSlot[];
   tiers?: PriceTier[];
   complementos?: ReservarComplemento[];
@@ -61,9 +64,9 @@ export default function CheckoutForm({
   // El código de descuento (0074). «Aplicar» lo cotiza en el servidor para
   // ENSEÑAR el descuento; el checkout lo vuelve a resolver por su cuenta. Si
   // cambia la salida, las personas o el nivel, se recotiza.
-  const [codigo, setCodigo] = useState("");
-  const [cupon, setCupon] = useState<{ codigo: string; descuentoMxn: number; etiqueta: string } | null>(null);
-  const [cuponMsg, setCuponMsg] = useState<string | null>(null);
+  const [codigo, setCodigo] = useState(codigoInicial?.codigo ?? "");
+  const [cupon, setCupon] = useState<{ codigo: string; descuentoMxn: number; etiqueta: string } | null>(codigoInicial?.cupon ?? null);
+  const [cuponMsg, setCuponMsg] = useState<string | null>(codigoInicial?.msg ?? null);
   const [cotizando, setCotizando] = useState(false);
   const aplicarCodigo = async (ctx?: { slotId?: string; people?: number; tierIndex?: number }) => {
     const c = codigo.trim();

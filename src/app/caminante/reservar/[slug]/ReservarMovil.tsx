@@ -54,6 +54,7 @@ export default function ReservarMovil({
   complementos,
   grupoToken,
   grupoExtra = null,
+  codigoInicial = null,
   deslindeOk,
   errMsg,
 }: {
@@ -66,6 +67,8 @@ export default function ReservarMovil({
   grupoToken?: string | null;
   /** Desde el espacio del grupo: mi lugar y/o los lugares de otros que cubro. */
   grupoExtra?: { lugar: string | null; cubre: string[] } | null;
+  /** `?codigo=` del mensaje de la casa: la página ya lo cotizó en el servidor; llega puesto y aplicado (o con su razón). */
+  codigoInicial?: { codigo: string; cupon: { codigo: string; descuentoMxn: number; etiqueta: string } | null; msg: string | null } | null;
   /** `deslindeListo(exp).ok` — sin él NO se cobra (regla que nació del caso Enyd). */
   deslindeOk: boolean;
   errMsg: string | null;
@@ -79,9 +82,9 @@ export default function ReservarMovil({
   const [host, setHost] = useState<HTMLElement | null>(null);
   // El código de descuento (0074): «Aplicar» lo cotiza para ENSEÑARLO; el
   // servidor lo vuelve a resolver al pagar. Cambiar salida/personas/nivel recotiza.
-  const [codigo, setCodigo] = useState("");
-  const [cupon, setCupon] = useState<{ codigo: string; descuentoMxn: number; etiqueta: string } | null>(null);
-  const [cuponMsg, setCuponMsg] = useState<string | null>(null);
+  const [codigo, setCodigo] = useState(codigoInicial?.codigo ?? "");
+  const [cupon, setCupon] = useState<{ codigo: string; descuentoMxn: number; etiqueta: string } | null>(codigoInicial?.cupon ?? null);
+  const [cuponMsg, setCuponMsg] = useState<string | null>(codigoInicial?.msg ?? null);
   const [cotizando, setCotizando] = useState(false);
   const aplicarCodigo = async (ctx?: { slotId?: string; people?: number; tierIndex?: number }) => {
     const c = codigo.trim();
