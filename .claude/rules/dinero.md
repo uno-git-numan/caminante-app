@@ -38,7 +38,10 @@ comisión sobre lo cobrado. Ver `rules/experiencias.md`.
 desde la cápsula de esa salida en Salidas (`admin/salidas/CodigoDescuento.tsx`;
 `codigos_descuento` con `slot_id` siempre puesto: % o pesos, usos máximos,
 vencimiento). El 4 nov Luis los sacó de Recursos: «cada salida puntual tiene su
-código individual». La persona lo teclea en `/reservar`. `createCheckout` lo resuelve
+código individual». «Copiar mensaje» da el texto con la liga del grupo de esa
+salida y `?codigo=`; la liga `/g/<token>?codigo=X` lo pasa a `/reservar`, que lo
+cotiza en el servidor y arranca con el descuento puesto. La persona también
+puede teclearlo a mano. `createCheckout` lo resuelve
 server-side (`lib/descuentos/codigos.ts`), lo manda a Stripe como cupón de un
 uso (`discounts`) y el webhook lo congela en la reserva
 (`codigo_descuento_id`, `descuento_mxn`, `precio_lista_mxn`) y sube `usos` con
