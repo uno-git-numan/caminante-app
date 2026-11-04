@@ -237,7 +237,16 @@ especial (…): motivo · lista $X · cobra $Y») + Payment Link de Stripe con
 `precio_especial=1` y `precio_lista_mxn` en metadata; paga → el webhook de
 siempre (`finalize-reservation`) la confirma. **No aparta lugar hasta pagar.**
 La comisión se calcula sobre lo cobrado (regla del 27 ago). «Cancelar» en
-«Links de pago sin pagar» cancela la reserva y DESACTIVA el link en Stripe.
+«Links de pago sin pagar» cancela la reserva (y apaga el Payment Link viejo si
+la reserva era de antes del 3 nov).
+
+**Desde el 3 nov 2026 el link es una página de Caminante**, no Stripe:
+`/caminante/pago/<token>` (`reservations.pago_token`, 0074). Explica qué se
+paga (lugares, precio de lista tachado, total), «Pagar» crea la Checkout
+Session (`lib/payments/pagina-pago.ts`) y al volver cae en la pantalla de éxito
+con «Firmar mi deslinde». Pagada → «este pago ya está hecho» + deslinde;
+cancelada o salida cerrada → contacto de la operadora. Un Payment Link **no
+caducaba**; la página tampoco, pero sí deja de cobrar si la salida se cierra.
 
 ## Diseño v2 data-driven
 

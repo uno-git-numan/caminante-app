@@ -236,8 +236,12 @@ correo hasta que haya número real. El primer grupo real es el de Miranda (Izta,
 28–29 nov), abierto el 29 oct. Memoria: `caminante-espacio-del-grupo`.
 
 **Link de pago especial (29 oct 2026):** dentro de cada salida en Salidas, un
-link de Stripe con descuento en % o monto fijo para una persona, con el porqué
-escrito en la reserva. Probado de punta a punta en preview (Stripe test).
+link con descuento en % o monto fijo para una persona, con el porqué escrito en
+la reserva. **Desde el 3 nov** ese link (y el del cobro por WhatsApp) es una
+**página de Caminante** `/caminante/pago/<token>` que manda a Stripe al tocar
+«Pagar» y vuelve al deslinde; y hay **códigos de descuento** que la casa crea en
+Recursos y la persona teclea en `/reservar`. Migración **0074** (ver
+`.claude/rules/dinero.md`).
 
 ## El panel de operadora (24 sep 2026)
 

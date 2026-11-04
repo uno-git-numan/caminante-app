@@ -19,16 +19,29 @@ Son cuatro a propósito, y **las cuatro tienen que quedar igual de completas**:
 
 1. **Web self-serve** — `/caminante/reservar/[slug]` → `createCheckout`
    (`lib/payments/checkout.ts`) → webhook → `finalize-selfserve.ts`.
-2. **WhatsApp** — `/admin/cobro` genera un Payment Link por reserva
-   (`reservation-links.ts`) → webhook → `finalize-reservation.ts`.
+2. **WhatsApp** — `/admin/cobro` arma la reserva y su **página de pago**
+   `/caminante/pago/<token>` (`reservation-links.ts`, `reservations.pago_token`,
+   0074) → la persona toca «Pagar» → `pagina-pago.ts` crea la Checkout Session
+   → webhook → `finalize-reservation.ts` → `/caminante/reserva/exito` con
+   «Firmar mi deslinde». **Ya no se crean Payment Links de Stripe** (3 nov
+   2026: la persona llegaba a Stripe sin contexto y al pagar se perdía).
 3. **Transferencia / efectivo** — `/admin/dinero` → `lib/admin/transferencias.ts`.
 4. **Pago manual con enlace de alta** — el admin captura lo poco que sabe y el
    sistema devuelve un link para que la persona se dé de alta y firme.
 
 La puerta 2 tiene una variante desde el 29 oct: el **link de pago especial** por
 salida (descuento en % o monto fijo, con motivo escrito en `reservations.notes`),
-`lib/payments/link-especial.ts`. Mismo webhook, misma comisión sobre lo cobrado.
-Ver `rules/experiencias.md`.
+`lib/payments/link-especial.ts`. Misma página de pago, mismo webhook, misma
+comisión sobre lo cobrado. Ver `rules/experiencias.md`.
+
+**Códigos de descuento (0074, 3 nov 2026):** la casa los crea en Recursos
+(`codigos_descuento`: % o pesos, alcance por experiencia o salida, usos máximos,
+vigencia); la persona lo teclea en `/reservar`. `createCheckout` lo resuelve
+server-side (`lib/descuentos/codigos.ts`), lo manda a Stripe como cupón de un
+uso (`discounts`) y el webhook lo congela en la reserva
+(`codigo_descuento_id`, `descuento_mxn`, `precio_lista_mxn`) y sube `usos` con
+`usar_codigo_descuento`. **Aplica al viaje, no a los complementos; la comisión
+va sobre lo cobrado.** Los usos se gastan al pagar, no al cotizar.
 
 ⚠️ Hasta el 11 ago la 3 y la 4 **no existían**, y quien pagaba por transferencia
 simplemente no existía para la plataforma. Lo destapó Lorena Saravia: transfirió
