@@ -1,7 +1,9 @@
 import "server-only";
 
-// CÓDIGOS DE DESCUENTO (0074). La casa los crea en Recursos; la persona lo
-// teclea en /reservar y el checkout lo resuelve server-side.
+// CÓDIGOS DE DESCUENTO (0074). Cada SALIDA tiene los suyos: se crean desde su
+// cápsula en Salidas (Luis, 4 nov 2026: «cada salida puntual tiene su código
+// individual», no un catálogo en Recursos); la persona lo teclea en /reservar
+// y el checkout lo resuelve server-side.
 //
 // Reglas:
 //   · El descuento aplica al VIAJE (personas × precio), no a los complementos.
@@ -14,10 +16,6 @@ import "server-only";
 //     lo usaron lo apuntan por FK.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { experienceTitle } from "@/lib/admin/queries";
-import type { Experience } from "@/lib/experiences/types";
 
 export type TipoDescuento = "porcentaje" | "monto";
 
@@ -26,10 +24,7 @@ export type CodigoDescuento = {
   codigo: string;
   tipo: TipoDescuento;
   valor: number;
-  experienceId: string | null;
-  experiencia: string | null;
-  slotId: string | null;
-  salida: string | null;
+  slotId: string;
   usosMax: number | null;
   usos: number;
   vigenteDesde: string | null;
@@ -91,42 +86,35 @@ export async function resolverCodigo(
   return { ok: true, id: c.id as string, codigo, descuentoMxn, etiqueta: etiquetaDe(d) };
 }
 
-/** Todos los códigos, para Recursos. Sólo la casa. */
-export async function listarCodigos(): Promise<CodigoDescuento[]> {
-  if (!(await isCurrentUserAdmin())) return [];
-  const sb = createSupabaseAdminClient();
+/** Los códigos de cada salida, para sus cápsulas. Activos primero, luego los más nuevos. */
+export async function codigosPorSalida(sb: SupabaseClient, slotIds: string[]): Promise<Map<string, CodigoDescuento[]>> {
+  const out = new Map<string, CodigoDescuento[]>();
+  if (!slotIds.length) return out;
   const { data } = await sb
     .from("codigos_descuento")
-    .select("id, codigo, tipo, valor, experience_id, slot_id, usos_max, usos, vigente_desde, vigente_hasta, activo, nota, created_at")
+    .select("id, codigo, tipo, valor, slot_id, usos_max, usos, vigente_desde, vigente_hasta, activo, nota, created_at")
+    .in("slot_id", slotIds)
     .order("activo", { ascending: false })
     .order("created_at", { ascending: false });
-  const filas = (data ?? []) as {
-    id: string; codigo: string; tipo: TipoDescuento; valor: number; experience_id: string | null; slot_id: string | null;
+  for (const f of (data ?? []) as {
+    id: string; codigo: string; tipo: TipoDescuento; valor: number; slot_id: string;
     usos_max: number | null; usos: number; vigente_desde: string | null; vigente_hasta: string | null; activo: boolean; nota: string | null; created_at: string;
-  }[];
-  const expIds = Array.from(new Set(filas.map((f) => f.experience_id).filter(Boolean))) as string[];
-  const slotIds = Array.from(new Set(filas.map((f) => f.slot_id).filter(Boolean))) as string[];
-  const [{ data: exps }, { data: slots }] = await Promise.all([
-    expIds.length ? sb.from("experiences").select("id, slug, data").in("id", expIds) : Promise.resolve({ data: [] as { id: string; slug: string; data: unknown }[] }),
-    slotIds.length ? sb.from("experience_slots").select("id, label").in("id", slotIds) : Promise.resolve({ data: [] as { id: string; label: string | null }[] }),
-  ]);
-  const nombreExp = new Map((exps ?? []).map((e) => [e.id as string, experienceTitle((e.data ?? null) as Partial<Experience> | null, e.slug as string)]));
-  const nombreSlot = new Map((slots ?? []).map((s) => [s.id as string, (s.label as string | null) ?? ""]));
-  return filas.map((f) => ({
-    id: f.id,
-    codigo: f.codigo,
-    tipo: f.tipo,
-    valor: Number(f.valor),
-    experienceId: f.experience_id,
-    experiencia: f.experience_id ? nombreExp.get(f.experience_id) ?? null : null,
-    slotId: f.slot_id,
-    salida: f.slot_id ? nombreSlot.get(f.slot_id) ?? null : null,
-    usosMax: f.usos_max,
-    usos: Number(f.usos) || 0,
-    vigenteDesde: f.vigente_desde,
-    vigenteHasta: f.vigente_hasta,
-    activo: f.activo,
-    nota: f.nota,
-    createdAt: f.created_at,
-  }));
+  }[]) {
+    const c: CodigoDescuento = {
+      id: f.id,
+      codigo: f.codigo,
+      tipo: f.tipo,
+      valor: Number(f.valor),
+      slotId: f.slot_id,
+      usosMax: f.usos_max,
+      usos: Number(f.usos) || 0,
+      vigenteDesde: f.vigente_desde,
+      vigenteHasta: f.vigente_hasta,
+      activo: f.activo,
+      nota: f.nota,
+      createdAt: f.created_at,
+    };
+    out.set(f.slot_id, [...(out.get(f.slot_id) ?? []), c]);
+  }
+  return out;
 }

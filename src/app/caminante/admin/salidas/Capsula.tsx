@@ -25,6 +25,7 @@ import { mandarmeUnaPrueba } from "@/lib/feedback/prueba";
 import { generarLinkDeGrupo } from "@/lib/feedback/link-grupo";
 import SuEspacio from "@/app/caminante/admin/ui/SuEspacio";
 import { LinkEspecial, LinksPendientes } from "./LinkEspecial";
+import { CodigosDeSalida } from "./CodigoDescuento";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
 /** Con coma decimal: es un número que se lee, no un identificador. */
@@ -347,6 +348,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
   const [abierta, setAbierta] = useState(false);
   const [editando, setEditando] = useState(false);
   const [cobrando, setCobrando] = useState(false);
+  const [conCodigo, setConCodigo] = useState(false);
   const [reembolsando, setReembolsando] = useState(false);
   const [tokenGrupo, setTokenGrupo] = useState(s.tokenGrupo);
   const [generando, setGenerando] = useState(false);
@@ -706,6 +708,14 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                     {cobrando ? "Cerrar link especial" : "Link de pago especial"}
                   </button>
                 ) : null}
+                {/* Los códigos de descuento son DE la salida (Luis, 4 nov 2026):
+                    se crean aquí mientras se vende; los que ya existen se ven
+                    y se apagan aunque esté cerrada. */}
+                {!s.pasada && (s.estado === "open" || s.codigos.length) ? (
+                  <button type="button" className="btn btn-ghost" onClick={() => setConCodigo((v) => !v)}>
+                    {conCodigo ? "Cerrar códigos" : `Código de descuento${s.codigos.filter((c) => c.activo).length ? ` · ${s.codigos.filter((c) => c.activo).length}` : ""}`}
+                  </button>
+                ) : null}
                 {/* Dinero. Solo aparece para la casa: `reembolsables` llega
                     vacío para un operador (la devolución sale de la cuenta de
                     NUMAN HUB, no de la suya). */}
@@ -726,6 +736,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
               </div>
               {editando ? <EditarSalida s={s} onListo={() => setEditando(false)} /> : null}
               {cobrando ? <LinkEspecial slotId={s.id} precioLista={s.precioLista} gente={s.grupo?.gente} onListo={() => setCobrando(false)} /> : null}
+              {conCodigo ? <CodigosDeSalida slotId={s.id} codigos={s.codigos} abierta={s.estado === "open"} precioLista={s.precioLista} onListo={() => setConCodigo(false)} /> : null}
               {reembolsando ? <Reembolsos s={s} onListo={() => setReembolsando(false)} /> : null}
             </>
           )}

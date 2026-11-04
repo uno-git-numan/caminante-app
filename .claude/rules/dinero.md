@@ -34,9 +34,11 @@ salida (descuento en % o monto fijo, con motivo escrito en `reservations.notes`)
 `lib/payments/link-especial.ts`. Misma página de pago, mismo webhook, misma
 comisión sobre lo cobrado. Ver `rules/experiencias.md`.
 
-**Códigos de descuento (0074, 3 nov 2026):** la casa los crea en Recursos
-(`codigos_descuento`: % o pesos, alcance por experiencia o salida, usos máximos,
-vigencia); la persona lo teclea en `/reservar`. `createCheckout` lo resuelve
+**Códigos de descuento (0074, 3 nov 2026):** son **de una salida**: se crean
+desde la cápsula de esa salida en Salidas (`admin/salidas/CodigoDescuento.tsx`;
+`codigos_descuento` con `slot_id` siempre puesto: % o pesos, usos máximos,
+vencimiento). El 4 nov Luis los sacó de Recursos: «cada salida puntual tiene su
+código individual». La persona lo teclea en `/reservar`. `createCheckout` lo resuelve
 server-side (`lib/descuentos/codigos.ts`), lo manda a Stripe como cupón de un
 uso (`discounts`) y el webhook lo congela en la reserva
 (`codigo_descuento_id`, `descuento_mxn`, `precio_lista_mxn`) y sube `usos` con

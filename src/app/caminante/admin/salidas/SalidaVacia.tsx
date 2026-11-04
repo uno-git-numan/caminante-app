@@ -14,9 +14,11 @@ import Link from "next/link";
 import type { Salida } from "@/lib/admin/salidas";
 import { setSlotStatusAction, updateSlot } from "@/lib/admin/eventos-actions";
 import { EditarSalida } from "./Capsula";
+import { CodigosDeSalida } from "./CodigoDescuento";
 
 export default function SalidaVacia({ s }: { s: Salida }) {
   const [editando, setEditando] = useState(false);
+  const [conCodigo, setConCodigo] = useState(false);
   // Cancelar borra la fecha del sitio y no se deshace. Sin reservas no hay
   // dinero de por medio, así que basta un segundo clic en vez de escribir el
   // nombre; pero sí dos clics, nunca uno.
@@ -51,6 +53,12 @@ export default function SalidaVacia({ s }: { s: Salida }) {
       <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditando((v) => !v)}>
         {editando ? "Cerrar edición" : "Editar cupo y fechas"}
       </button>
+      {/* Una fecha sin compras es justo cuando se arma su código de descuento. */}
+      {abierta || s.codigos.length ? (
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConCodigo((v) => !v)}>
+          {conCodigo ? "Cerrar códigos" : `Código de descuento${s.codigos.filter((c) => c.activo).length ? ` · ${s.codigos.filter((c) => c.activo).length}` : ""}`}
+        </button>
+      ) : null}
       {confirmando ? (
         <>
           <button
@@ -88,6 +96,11 @@ export default function SalidaVacia({ s }: { s: Salida }) {
       {editando ? (
         <div style={{ flexBasis: "100%" }}>
           <EditarSalida s={s} onListo={() => setEditando(false)} />
+        </div>
+      ) : null}
+      {conCodigo ? (
+        <div style={{ flexBasis: "100%" }}>
+          <CodigosDeSalida slotId={s.id} codigos={s.codigos} abierta={abierta} precioLista={s.precioLista} onListo={() => setConCodigo(false)} />
         </div>
       ) : null}
     </div>

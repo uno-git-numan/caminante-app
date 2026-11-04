@@ -26,6 +26,7 @@ import { resumenesDeEspacios } from "@/lib/grupo/resumen-server";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import type { ResumenDelEspacio } from "@/lib/grupo/resumen";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
+import { codigosPorSalida, type CodigoDescuento } from "@/lib/descuentos/codigos";
 import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
 import { cdmxDay, formatDiaMes } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
@@ -154,6 +155,8 @@ export type Salida = {
   grupo: ResumenDelEspacio | null;
   /** Links de pago mandados y sin pagar (precio especial o cobro por WhatsApp): no apartan lugar. */
   linksPendientes: LinkPendiente[];
+  /** Los códigos de descuento de ESTA salida (0074): se tecleen en /reservar. */
+  codigos: CodigoDescuento[];
 };
 
 export type LineaDeSalidas = {
@@ -349,6 +352,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   }
 
   // Los espacios de las salidas vivas con liga, para el bloque «Su espacio».
+  const codigosDeSalida = await codigosPorSalida(sb, [...slotIds]);
   const espacios = await resumenesDeEspacios(
     slots.filter((s) => s.status !== "cancelled" && s.access_token).map((s) => s.access_token as string),
   );
@@ -529,6 +533,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       tokenGrupo: s.feedback_token,
       privada,
       grupo: s.access_token ? espacios.get(s.id) ?? null : null,
+      codigos: codigosDeSalida.get(s.id) ?? [],
       linksPendientes: pendientesLink
         .filter((r) => r.slot_id === s.id)
         .map((r) => {

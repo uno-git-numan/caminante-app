@@ -239,9 +239,10 @@ correo hasta que haya número real. El primer grupo real es el de Miranda (Izta,
 link con descuento en % o monto fijo para una persona, con el porqué escrito en
 la reserva. **Desde el 3 nov** ese link (y el del cobro por WhatsApp) es una
 **página de Caminante** `/caminante/pago/<token>` que manda a Stripe al tocar
-«Pagar» y vuelve al deslinde; y hay **códigos de descuento** que la casa crea en
-Recursos y la persona teclea en `/reservar`. Migración **0074** (ver
-`.claude/rules/dinero.md`).
+«Pagar» y vuelve al deslinde; y hay **códigos de descuento por salida** (botón
+«Código de descuento» en la cápsula de cada salida; **cada salida tiene los
+suyos**, no hay catálogo en Recursos — Luis, 4 nov) que la persona teclea en
+`/reservar`. Migración **0074** (ver `.claude/rules/dinero.md`).
 
 ## El panel de operadora (24 sep 2026)
 

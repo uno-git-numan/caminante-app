@@ -4,7 +4,7 @@
 //   · cotizarCodigo: pública — el formulario de /reservar la llama al tocar
 //     «Aplicar» para ENSEÑAR el descuento. No reserva nada ni gasta usos; el
 //     checkout vuelve a resolver el código por su cuenta (nunca confía en esto).
-//   · crearCodigo / apagarCodigo: sólo la casa (Recursos).
+//   · crearCodigo / apagarCodigo: desde la cápsula de la salida, sólo admin.
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -12,6 +12,8 @@ import { correoEnSesion, isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";
 import { normalizarCodigo, resolverCodigo, type TipoDescuento } from "@/lib/descuentos/codigos";
 import type { Experience } from "@/lib/experiences/types";
+
+const PANTALLA = "/caminante/admin/salidas";
 
 export type Cotizacion = { ok: true; codigo: string; descuentoMxn: number; etiqueta: string } | { ok: false; error: string };
 
@@ -43,11 +45,11 @@ export async function cotizarCodigo(input: { slug: string; slotId: string; codig
 }
 
 export type NuevoCodigo = {
+  /** La salida a la que pertenece. Un código es de UNA salida, siempre. */
+  slotId: string;
   codigo: string;
   tipo: TipoDescuento;
   valor: number;
-  experienceSlug?: string | null;
-  slotId?: string | null;
   usosMax?: number | null;
   vigenteDesde?: string | null;
   vigenteHasta?: string | null;
@@ -70,18 +72,8 @@ export async function crearCodigo(input: NuevoCodigo): Promise<{ ok: true; id: s
   if (desde && hasta && hasta < desde) return { ok: false, error: "La vigencia termina antes de empezar." };
 
   const sb = createSupabaseAdminClient();
-  let experienceId: string | null = null;
-  let slotId: string | null = null;
-  if (input.slotId) {
-    const { data: s } = await sb.from("experience_slots").select("id, experience_id").eq("id", input.slotId).maybeSingle();
-    if (!s) return { ok: false, error: "Esa salida no existe." };
-    slotId = s.id as string;
-    experienceId = s.experience_id as string;
-  } else if (input.experienceSlug) {
-    const { data: e } = await sb.from("experiences").select("id").eq("slug", input.experienceSlug).maybeSingle();
-    if (!e) return { ok: false, error: "Esa experiencia no existe." };
-    experienceId = e.id as string;
-  }
+  const { data: s } = await sb.from("experience_slots").select("id, experience_id").eq("id", String(input.slotId ?? "")).maybeSingle();
+  if (!s) return { ok: false, error: "Esa salida no existe." };
 
   const { data, error } = await sb
     .from("codigos_descuento")
@@ -89,8 +81,8 @@ export async function crearCodigo(input: NuevoCodigo): Promise<{ ok: true; id: s
       codigo,
       tipo,
       valor,
-      experience_id: experienceId,
-      slot_id: slotId,
+      experience_id: s.experience_id as string,
+      slot_id: s.id as string,
       usos_max: usosMax,
       vigente_desde: desde,
       vigente_hasta: hasta,
@@ -100,7 +92,7 @@ export async function crearCodigo(input: NuevoCodigo): Promise<{ ok: true; id: s
     .select("id")
     .single();
   if (error) return { ok: false, error: error.code === "23505" ? "Ya existe un código con ese nombre." : error.message };
-  revalidatePath("/caminante/admin/recursos");
+  revalidatePath(PANTALLA);
   return { ok: true, id: data.id as string };
 }
 
@@ -110,6 +102,6 @@ export async function apagarCodigo(id: string, activo = false): Promise<{ ok: tr
   const sb = createSupabaseAdminClient();
   const { error } = await sb.from("codigos_descuento").update({ activo }).eq("id", id);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/caminante/admin/recursos");
+  revalidatePath(PANTALLA);
   return { ok: true };
 }
