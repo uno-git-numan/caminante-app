@@ -10,6 +10,7 @@
 // usos los cuenta el webhook al confirmar el pago. Apagar, no borrar.
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ExperienciaConSalidas } from "@/lib/admin/transferencias";
 import type { CodigoDescuento, TipoDescuento } from "@/lib/descuentos/codigos";
 import { apagarCodigo, crearCodigo } from "@/lib/descuentos/acciones";
@@ -40,6 +41,7 @@ export default function CodigosDescuento({ codigos, experiencias }: { codigos: C
   const [error, setError] = useState<string | null>(null);
   const [hecho, setHecho] = useState<string | null>(null);
   const [quitando, setQuitando] = useState<string | null>(null);
+  const router = useRouter();
 
   const exp = useMemo(() => experiencias.find((e) => e.slug === slug) ?? null, [experiencias, slug]);
   const activos = codigos.filter((c) => c.activo);
@@ -68,6 +70,7 @@ export default function CodigosDescuento({ codigos, experiencias }: { codigos: C
       setCodigo("");
       setValor("");
       setNota("");
+      router.refresh();
     }
   };
 
@@ -179,6 +182,7 @@ export default function CodigosDescuento({ codigos, experiencias }: { codigos: C
                       const r = await apagarCodigo(c.id);
                       setQuitando(null);
                       if (!r.ok) setError(r.error);
+                      else router.refresh();
                     }}
                   >
                     Apagar
@@ -198,7 +202,7 @@ export default function CodigosDescuento({ codigos, experiencias }: { codigos: C
                 <span className="chip mono">{c.codigo}</span>
                 <span className="sub" style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>{descripcion(c)}</span>
                 <span>
-                  <button type="button" className="btn btn-glass btn-sm" onClick={() => void apagarCodigo(c.id, true)}>
+                  <button type="button" className="btn btn-glass btn-sm" onClick={() => void apagarCodigo(c.id, true).then(() => router.refresh())}>
                     Volver a prender
                   </button>
                 </span>

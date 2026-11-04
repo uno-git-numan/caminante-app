@@ -30,10 +30,13 @@ export type PagoVista = {
 const cdmx = (iso: string, o: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", ...o }).format(new Date(iso));
 
+// «jueves 10 al domingo 13 de diciembre» — armado a mano: Intl mete una coma
+// («domingo, 13 de diciembre») que no es del sitio.
 function fechaLargaDe(inicio: string, fin: string | null): string {
-  const d1 = cdmx(inicio, { weekday: "long", day: "numeric", month: "long" });
-  if (!fin || cdmx(fin, { day: "numeric", month: "numeric" }) === cdmx(inicio, { day: "numeric", month: "numeric" })) return d1;
-  return `${cdmx(inicio, { weekday: "long", day: "numeric" })} al ${cdmx(fin, { weekday: "long", day: "numeric", month: "long" })}`;
+  const dia = (iso: string) => `${cdmx(iso, { weekday: "long" })} ${cdmx(iso, { day: "numeric" })}`;
+  const mes = (iso: string) => cdmx(iso, { month: "long" });
+  if (!fin || cdmx(fin, { day: "numeric", month: "numeric" }) === cdmx(inicio, { day: "numeric", month: "numeric" })) return `${dia(inicio)} de ${mes(inicio)}`;
+  return mes(inicio) === mes(fin) ? `${dia(inicio)} al ${dia(fin)} de ${mes(fin)}` : `${dia(inicio)} de ${mes(inicio)} al ${dia(fin)} de ${mes(fin)}`;
 }
 
 export async function fetchPagoPorToken(token: string): Promise<PagoVista | null> {
