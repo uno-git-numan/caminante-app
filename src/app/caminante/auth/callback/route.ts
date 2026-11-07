@@ -52,6 +52,9 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
+    // Qué cookies llegaron (sólo nombres): es lo único que distingue «el
+    // navegador no trajo el verificador» de «lo trajo y no sirvió».
+    console.warn("[callback] exchangeCodeForSession:", error.message, "| cookies:", request.cookies.getAll().map((c) => c.name).join(", ") || "ninguna");
     return NextResponse.redirect(
       new URL(`/caminante/login?error=${encodeURIComponent(error.message)}`, request.url),
     );

@@ -65,10 +65,19 @@ export async function updateSession(
           return request.cookies.getAll();
         },
         setAll(cookieValues) {
-          cookieValues.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
-          });
+          // ⚠️ El middleware JAMÁS escribe el `code-verifier` de PKCE. Su trabajo
+          // es refrescar la sesión; el verificador lo pone la acción que arranca
+          // Google/Apple en ESTE MISMO request. Con una sesión muerta en la
+          // cookie, auth-js llama `_removeSession`, que también «borra» el
+          // verificador, y la cabecera de borrado del middleware se montaba
+          // sobre la de la acción que lo acababa de poner: Google regresaba a
+          // «PKCE code verifier not found» (iPhone de Luis, 7 nov 2026).
+          cookieValues
+            .filter(({ name }) => !name.includes("code-verifier"))
+            .forEach(({ name, value, options }) => {
+              request.cookies.set(name, value);
+              response.cookies.set(name, value, options);
+            });
         },
       },
     },
