@@ -120,16 +120,19 @@ export async function updateSession(
  */
 function matarCookie(response: NextResponse, nombre: string, request: NextRequest) {
   const host = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "").split(":")[0];
-  response.cookies.set(nombre, "", { path: "/", maxAge: 0 });
-  response.cookies.set(nombre, "", { path: "/caminante", maxAge: 0 });
+  // ⚠️ `response.cookies.set` guarda UNA entrada por nombre: cuatro variantes
+  // se colapsaban en la última. Las cabeceras se agregan a mano, una por una.
+  const borrar = (attrs: string) => response.headers.append("set-cookie", `${nombre}=; ${attrs}; Max-Age=0; SameSite=Lax`);
+  borrar("Path=/");
+  borrar("Path=/caminante");
   if (host && !host.includes("localhost")) {
-    response.cookies.set(nombre, "", { path: "/", maxAge: 0, domain: host });
+    borrar(`Path=/; Domain=${host}`);
     // ⚠️ numan y Caminante comparten el proyecto de Supabase, así que la
     // cookie de sesión se llama IGUAL en los dos. Una puesta para el dominio
     // padre (numanhub.com) llega a caminante.numanhub.com y sólo se borra
     // nombrando ese mismo dominio. Era la sesión muerta que el iPhone de Luis
     // no soltaba (7 nov 2026).
     const padre = host.split(".").slice(1).join(".");
-    if (padre.includes(".")) response.cookies.set(nombre, "", { path: "/", maxAge: 0, domain: padre });
+    if (padre.includes(".")) borrar(`Path=/; Domain=${padre}`);
   }
 }
