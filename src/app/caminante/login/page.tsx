@@ -34,6 +34,7 @@ function friendlyError(raw: string): string {
 
   // Patrones de Supabase (su copy cambia entre versiones; el patrón aguanta).
   const patrones: [RegExp, string][] = [
+    [/code verifier/i, "El navegador perdió el paso anterior. Vuelve a tocar el botón con el que entraste; esta vez sí."],
     [/expired|invalid.*(link|token)|otp.*expired/i, "Ese enlace ya venció o se usó. Pide uno nuevo aquí abajo."],
     [/rate limit|too many/i, "Demasiados intentos. Espera un minuto y vuelve a intentar."],
     [/user (not found|already registered)/i, "Revisa el correo: no encontramos esa cuenta."],
@@ -128,7 +129,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Enviar enlace por correo
           </button>
           <p className="text-xs leading-relaxed text-olive">
-            ¿Sin contraseña? Pide el enlace: te llega al correo y abre desde cualquier dispositivo.
+            ¿Sin contraseña, o la olvidaste?{" "}
+            <Link className="font-semibold text-forest underline" href={`/caminante/login/contrasena?next=${encodeURIComponent(nextPath)}`}>
+              Créala o cámbiala aquí
+            </Link>
+            . O pide el enlace: te llega al correo y abre desde cualquier dispositivo.
           </p>
         </form>
       </div>

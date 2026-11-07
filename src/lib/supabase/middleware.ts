@@ -80,15 +80,38 @@ export async function updateSession(
   // hoyo. Aquí sí podemos escribir cookies (es lo único que puede), así que este
   // es EL lugar donde la sesión muerta se cura: se borra y el usuario queda
   // simplemente deslogueado, que es la verdad.
+  // ⚠️ Desde auth-js 2.1xx `getUser()` ya NO lanza con el refresh token muerto:
+  // lo DEVUELVE en `error` (7 nov 2026, medido contra los logs: «Invalid
+  // Refresh Token» en cada request del iPhone de Luis y la cookie seguía ahí).
+  // Se atienden los dos caminos, el que lanza y el que devuelve.
+  let muerta = false;
   try {
-    await conLimite(supabase.auth.getUser(), LIMITE_MS);
+    const { error } = await conLimite(supabase.auth.getUser(), LIMITE_MS);
+    muerta = !!error && esSesionMuerta(error);
   } catch (e) {
     if (e === SE_TARDO) return response; // ver abajo
     if (!esSesionMuerta(e)) throw e;
+    muerta = true;
+  }
+  if (muerta) {
     for (const nombre of cookiesDeSesion(request.cookies.getAll().map((c) => c.name))) {
-      response.cookies.delete(nombre);
+      matarCookie(response, nombre, request);
     }
   }
 
   return response;
+}
+
+/**
+ * Borrar una cookie sólo surte efecto si el borrado trae el MISMO path y domain
+ * con que se puso. La de sesión se pone hoy con `Path=/` y sin domain, pero una
+ * cookie vieja de otra época (otro path, el dominio explícito) sobrevive a ese
+ * borrado y deja al teléfono con la sesión podrida para siempre. Se tiran las
+ * variantes plausibles: cuesta tres cabeceras y no hay nada que perder.
+ */
+function matarCookie(response: NextResponse, nombre: string, request: NextRequest) {
+  const host = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "").split(":")[0];
+  response.cookies.set(nombre, "", { path: "/", maxAge: 0 });
+  response.cookies.set(nombre, "", { path: "/caminante", maxAge: 0 });
+  if (host && !host.includes("localhost")) response.cookies.set(nombre, "", { path: "/", maxAge: 0, domain: host });
 }

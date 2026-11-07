@@ -74,7 +74,9 @@ export default async function MiEspacioPage({
         <header className="mesp-hd">
           <span className="mesp-eyebrow"><span className="sl">{"//"}</span> Tu espacio</span>
           <h1 className="mesp-display">Hola, <em className="mesp-ac">{me.nombre}.</em></h1>
-          <p className="sub">Aquí vive todo tu viaje con Caminante.</p>
+          <p className="sub">
+            Aquí vive todo tu viaje con Caminante. <a href="/caminante/cuenta/contrasena?next=%2Fcaminante%2Fperfil%3Fok%3D1">Crear o cambiar tu contraseña</a>
+          </p>
           {ok ? <div className="mesp-flash ok">Guardado. ✓</div> : null}
           {error ? <div className="mesp-flash err">{error}</div> : null}
         </header>

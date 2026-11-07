@@ -69,6 +69,27 @@ callback vuelve al mismo navegador).
 de confirmación con el mismo problema de arriba. `mailer_autoconfirm` sigue en
 false en Supabase: no hace falta tocarlo.
 
+**Todo camino de login IGNORA la sesión entrante (7 nov 2026).** Con una
+sesión muerta en la cookie, el cliente SSR normal intenta refrescarla, falla y
+auth-js ≥2.1 llama `_removeSession`, que borra TAMBIÉN el `code-verifier` y
+manda `SIGNED_OUT`; si en ese mismo request corre `signInWithOAuth`, la
+limpieza se lleva el verificador recién puesto y Google regresa a «PKCE code
+verifier not found». Así quedó Luis fuera desde su iPhone. Por eso
+`signInWithPassword`, `signInWithGoogle/Apple`, el alta por contraseña y
+`entrarAlGrupo` usan `createSupabaseAuthClient()` (ignora la sesión, lee el
+verificador), igual que `auth/confirm` y `auth/callback`.
+
+**La sesión muerta se cura en el middleware por el error DEVUELTO.** Desde
+auth-js 2.1xx `getUser()` ya no lanza con «Invalid Refresh Token»: lo devuelve
+en `error`. El middleware atiende los dos caminos y borra la cookie en sus
+variantes de path/domain (`matarCookie`), porque un borrado sólo surte efecto
+con el mismo path y domain con que se puso.
+
+**Contraseña por liga** (`pedirLigaDeContrasena` → correo por Resend con
+`generateLink({type:"recovery"})` y NUESTRO confirm → `/caminante/cuenta/contrasena`
+→ `definirContrasena`). La casa nunca teclea ni conoce contraseñas: la persona
+la define. Entradas: «Créala o cámbiala aquí» en /login y en Mi espacio.
+
 **Apple**: `signInWithApple` existe y el botón (`AppleButton`) se dibuja sólo con
 `NEXT_PUBLIC_AUTH_APPLE=1`. Darlo de alta es de Luis: en Supabase → Auth →
 Providers → Apple, con Services ID, Team ID, Key ID y la llave `.p8` de su Apple

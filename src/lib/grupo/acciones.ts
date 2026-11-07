@@ -18,7 +18,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAuthClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { puedeEditarSlot } from "@/lib/auth/alcance";
 import { findOrCreateContact } from "@/lib/crm/contacts";
@@ -121,8 +121,9 @@ export async function entrarAlGrupo(formData: FormData): Promise<void> {
       console.error("entrarAlGrupo createUser:", creado.error.message);
       redirect(conError(token, "/entrar", "No pudimos crear tu cuenta. Inténtalo otra vez."));
     }
-    // La sesión queda en cookies en este mismo request.
-    const auth = await createSupabaseServerClient();
+    // La sesión queda en cookies en este mismo request. Cliente que IGNORA la
+    // sesión entrante: una sesión muerta en la cookie no debe pelear con ésta.
+    const auth = await createSupabaseAuthClient();
     const { data, error } = await auth.auth.signInWithPassword({ email: correoForm, password });
     if (error || !data.user) {
       console.error("entrarAlGrupo signIn:", error?.message);

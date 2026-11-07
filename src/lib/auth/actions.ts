@@ -4,9 +4,12 @@ import { headers, cookies } from "next/headers";
 import { destinoPorRol } from "@/lib/auth/destino";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAuthClient, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseOtpClient } from "@/lib/supabase/otp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { sendViaResend } from "@/lib/email/resend";
+import { boton, h1, marco, p as parrafo, saludo } from "@/lib/email/plantilla";
+import { getCurrentUser } from "@/lib/auth/session";
 import { roleForClient } from "@/lib/auth/authorization";
 import { OP_INTENT_COOKIE } from "@/lib/auth/op-intent";
 
@@ -112,7 +115,13 @@ export async function signInWithPassword(formData: FormData) {
     redirect(`/caminante/login?error=invalid_credentials&next=${encodeURIComponent(next)}`);
   }
 
-  const supabase = await createSupabaseServerClient();
+  // ⚠️ El cliente que IGNORA la sesión entrante (7 nov 2026). Con una sesión
+  // muerta en la cookie, el cliente normal intenta refrescarla, falla y llama
+  // `_removeSession`, que en auth-js ≥2.1 borra TAMBIÉN el `code-verifier` y
+  // manda SIGNED_OUT: cualquier login que corra en ese mismo request pelea con
+  // esa limpieza. Luis desde su iPhone: «Continuar con Google» moría con «PKCE
+  // code verifier not found» mientras los logs decían «Invalid Refresh Token».
+  const supabase = await createSupabaseAuthClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -150,7 +159,7 @@ export async function signUpWithPassword(formData: FormData) {
     volver(creado.error.message);
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseAuthClient();
   const { error } = await supabase.auth.signInWithPassword({ email: email as string, password });
   if (error) volver(error.message);
 
@@ -180,7 +189,9 @@ export type GoogleOAuthInicio = { url: string } | { error: string };
 export async function signInWithGoogle(formData: FormData): Promise<GoogleOAuthInicio> {
   const next = parseNext(formData);
   const origin = await getOrigin();
-  const supabase = await createSupabaseServerClient();
+  // Ignora la sesión entrante a propósito: ver signInWithPassword. Aquí es
+  // donde la sesión muerta se llevaba el code-verifier recién puesto.
+  const supabase = await createSupabaseAuthClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -200,7 +211,7 @@ export async function signInWithGoogle(formData: FormData): Promise<GoogleOAuthI
 export async function signInWithApple(formData: FormData): Promise<GoogleOAuthInicio> {
   const next = parseNext(formData);
   const origin = await getOrigin();
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseAuthClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "apple",
     options: { redirectTo: `${origin}/caminante/auth/callback?next=${encodeURIComponent(next)}` },
@@ -213,4 +224,60 @@ export async function signOut() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   redirect("/caminante");
+}
+
+/**
+ * «Crear o cambiar contraseña» (7 nov 2026, Luis: «dame un usuario y
+ * contraseña»). La contraseña la teclea la persona, nunca la casa: se le manda
+ * una liga de recuperación y ella la define en /caminante/cuenta/contrasena.
+ *
+ * La liga sale de `auth.admin.generateLink({ type: "recovery" })` y la manda
+ * Resend con NUESTRO confirm (`?token_hash=…&type=recovery`): no es PKCE, abre
+ * desde cualquier dispositivo. El template de Supabase para recovery no está
+ * personalizado y el suyo por defecto manda a `/auth/v1/verify` con los tokens
+ * en el hash (#access_token), que el servidor no ve.
+ *
+ * Si el correo no tiene cuenta, se contesta igual que si la tuviera: la pantalla
+ * no revela quién está registrado.
+ */
+export async function pedirLigaDeContrasena(formData: FormData) {
+  const email = parseEmail(formData);
+  const next = parseNext(formData);
+  if (!email) redirect(`/caminante/login/contrasena?error=invalid_email&next=${encodeURIComponent(next)}`);
+
+  const origin = await getOrigin();
+  const admin = createSupabaseAdminClient();
+  const liga = await admin.auth.admin.generateLink({ type: "recovery", email });
+  const tokenHash = liga.data?.properties?.hashed_token;
+  if (!liga.error && tokenHash) {
+    const destino = `/caminante/cuenta/contrasena?next=${encodeURIComponent(next)}`;
+    const url = `${origin}/caminante/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=recovery&next=${encodeURIComponent(destino)}`;
+    const nombre = (liga.data.user?.user_metadata?.full_name as string | undefined) ?? null;
+    const { html, texto } = marco("Tu contraseña", [
+      h1("Crea tu contraseña"),
+      parrafo(`Hola${saludo(nombre)}. Toca el botón, escribe la contraseña que quieras y listo: con ella entras a Caminante desde cualquier dispositivo.`),
+      boton("Crear mi contraseña", url),
+      parrafo("La liga vale una hora y funciona una sola vez. Si no la pediste tú, ignora este correo."),
+    ]);
+    await sendViaResend(email, "Crea tu contraseña · Caminante", html, { ua: "caminante-auth/1.0", text: texto });
+  } else if (liga.error && !/not found|no user/i.test(liga.error.message)) {
+    console.error("pedirLigaDeContrasena:", liga.error.message);
+  }
+  redirect(`/caminante/login/contrasena?sent=1&email=${encodeURIComponent(email)}`);
+}
+
+/** Con sesión (por la liga de arriba, o ya adentro): guarda la contraseña nueva. */
+export async function definirContrasena(formData: FormData) {
+  const next = parseNext(formData);
+  const password = typeof formData.get("password") === "string" ? String(formData.get("password")) : "";
+  const otra = typeof formData.get("password2") === "string" ? String(formData.get("password2")) : "";
+  const volver = (error: string) => redirect(`/caminante/cuenta/contrasena?error=${encodeURIComponent(error)}&next=${encodeURIComponent(next)}`);
+  const user = await getCurrentUser();
+  if (!user) redirect(`/caminante/login?next=${encodeURIComponent(`/caminante/cuenta/contrasena?next=${encodeURIComponent(next)}`)}`);
+  if (password.length < 8) volver("corta");
+  if (password !== otra) volver("distintas");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) volver(/same password|different from the old/i.test(error.message) ? "misma" : error.message);
+  redirect(next && next !== "/caminante" ? next : await postAuthDestination(supabase, "/caminante"));
 }
