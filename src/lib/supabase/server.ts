@@ -45,19 +45,12 @@ export async function createSupabaseServerClient() {
  * `getAll()` sigue devolviendo las de la PETICIÓN, así que el cliente las veía
  * igual.
  *
- * ⚠️ El `code-verifier` SÍ se lee: los tokens `pkce_…` (que es lo que emite
- * Supabase hoy, también para la liga mágica) lo necesitan para el canje. Es la
- * única cookie `sb-` que pasa el filtro.
+ * ⚠️ El `code-verifier` SÍ se lee: los tokens `pkce_…` de Google/Apple lo
+ * necesitan para el canje. Es la única cookie `sb-` que pasa el filtro. La liga
+ * mágica por correo ya NO es PKCE (ver lib/supabase/otp.ts): su token se canjea
+ * desde cualquier dispositivo, con o sin esa cookie.
  */
-/**
- * `flujo: "implicit"` es para canjear un `hashed_token` que salió de
- * `auth.admin.generateLink` (el código del celular del espacio del grupo, que
- * ES el login). Medido el 27 oct 2026: con el flujo PKCE por defecto,
- * `verifyOtp({token_hash})` sobre ese token responde «Email link is invalid or
- * has expired» (403) aunque el token esté recién hecho; con el flujo implícito
- * canjea y deja la sesión en cookies. La liga mágica por correo sigue por PKCE.
- */
-export async function createSupabaseAuthClient(opts?: { flujo?: "pkce" | "implicit" }) {
+export async function createSupabaseAuthClient() {
   const cookieStore = await cookies();
   const env = getClientSupabaseEnv();
 
@@ -68,7 +61,6 @@ export async function createSupabaseAuthClient(opts?: { flujo?: "pkce" | "implic
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
-      ...(opts?.flujo ? { auth: { flowType: opts.flujo } } : {}),
       cookies: {
         getAll() {
           return cookieStore.getAll().filter((c) => !esSesion(c.name));

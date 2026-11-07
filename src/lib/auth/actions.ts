@@ -5,6 +5,8 @@ import { destinoPorRol } from "@/lib/auth/destino";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseOtpClient } from "@/lib/supabase/otp";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { roleForClient } from "@/lib/auth/authorization";
 import { OP_INTENT_COOKIE } from "@/lib/auth/op-intent";
 
@@ -79,7 +81,10 @@ export async function sendMagicLink(formData: FormData) {
   // Solo rutas internas (el confirm valida origen de todos modos)
   const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/caminante";
   const origin = await getOrigin();
-  const supabase = await createSupabaseServerClient();
+  // ⚠️ Cliente SIN PKCE a propósito (lib/supabase/otp.ts): la liga tiene que
+  // abrir desde el Mail del teléfono, la app de Gmail o Safari, no sólo desde
+  // el navegador que la pidió.
+  const supabase = createSupabaseOtpClient();
 
   // emailRedirectTo lleva el DESTINO FINAL (no la URL del confirm): el template
   // del correo arma el link del confirm con {{ .TokenHash }} + {{ .SiteURL }} y
@@ -121,37 +126,35 @@ export async function signInWithPassword(formData: FormData) {
 export async function signUpWithPassword(formData: FormData) {
   const email = parseEmail(formData);
   const password = typeof formData.get("password") === "string" ? String(formData.get("password")) : "";
+  const nombre = typeof formData.get("nombre") === "string" ? String(formData.get("nombre")).trim().slice(0, 120) : "";
   const next = parseNext(formData);
+  const volver = (error: string) => redirect(`/caminante/signup?tipo=viajero&error=${encodeURIComponent(error)}&next=${encodeURIComponent(next)}`);
 
-  if (!email) {
-    redirect(`/caminante/signup?error=invalid_email&next=${encodeURIComponent(next)}`);
-  }
-  if (password.length < 8) {
-    redirect(`/caminante/signup?error=weak_password&next=${encodeURIComponent(next)}`);
-  }
+  if (!email) volver("invalid_email");
+  if (password.length < 8) volver("weak_password");
 
-  const origin = await getOrigin();
-  const supabase = await createSupabaseServerClient();
-
-  // emailRedirectTo = destino final (igual que el magic link): el template de
-  // "Confirm signup" arma el link del confirm con {{ .TokenHash }} y pasa esto como next.
-  const { data, error } = await supabase.auth.signUp({
-    email,
+  // La cuenta nace CONFIRMADA y con sesión en este mismo request (7 nov 2026).
+  // Antes `auth.signUp` mandaba un correo de confirmación cuyo link era PKCE:
+  // abierto desde Mail/Gmail en el teléfono —otro navegador— moría, y la
+  // persona se quedaba sin cuenta y sin poder pagar.
+  const admin = createSupabaseAdminClient();
+  const creado = await admin.auth.admin.createUser({
+    email: email as string,
     password,
-    options: { emailRedirectTo: `${origin}${next}` },
+    email_confirm: true,
+    user_metadata: nombre ? { full_name: nombre } : {},
   });
-
-  if (error) {
-    redirect(`/caminante/signup?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
+  if (creado.error) {
+    if (/already|exists|registered/i.test(creado.error.message)) volver("User already registered");
+    console.error("signUpWithPassword createUser:", creado.error.message);
+    volver(creado.error.message);
   }
 
-  // Si la confirmación por correo está DESHABILITADA, signUp ya deja sesión → al destino.
-  if (data.session) {
-    redirect(await postAuthDestination(supabase, next));
-  }
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithPassword({ email: email as string, password });
+  if (error) volver(error.message);
 
-  // Confirmación habilitada → hay que verificar el correo antes de entrar.
-  redirect(`/caminante/signup?sent=1&email=${encodeURIComponent(email)}`);
+  redirect(await postAuthDestination(supabase, next));
 }
 
 export type GoogleOAuthInicio = { url: string } | { error: string };

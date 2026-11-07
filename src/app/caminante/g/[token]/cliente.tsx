@@ -1,13 +1,12 @@
 "use client";
 
 // Las piezas CLIENTE del espacio del grupo: lo que necesita navegador
-// (copiar, abrir WhatsApp, elegir a quién cubrir, las seis casillas del código,
-// el reloj de «pedir otro», el OAuth). El marcado y las clases son los del
+// (copiar, abrir WhatsApp, elegir a quién cubrir, el OAuth). El marcado y las clases son los del
 // entregable (design/comunidad/dc/espacio/*.jsx); sólo cambia que las acciones
 // son reales.
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { HeadFloat } from "@/app/caminante/ui/pub/atoms";
 import { signInWithGoogle, signInWithApple } from "@/lib/auth/actions";
 import { precioPub } from "@/lib/grupo/formato";
@@ -179,63 +178,6 @@ export function Cubrir({
         </div>
       </div>
     </div>
-  );
-}
-
-/** Las seis casillas del código (C2). Un solo input real debajo; las casillas lo reflejan. */
-export function CodigoInput({ name = "codigo" }: { name?: string }) {
-  const [v, setV] = useState("");
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    ref.current?.focus();
-  }, []);
-  const d = v.replace(/\D/g, "").slice(0, 6);
-  return (
-    <div className="esp-codewrap" onClick={() => ref.current?.focus()}>
-      <div className="esp-code" aria-hidden>
-        {Array.from({ length: 6 }, (_, i) => (
-          <span key={i} className={i === Math.min(d.length, 5) ? "on" : ""}>
-            {d[i] ?? ""}
-          </span>
-        ))}
-      </div>
-      <input
-        ref={ref}
-        className="esp-code-in"
-        name={name}
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        pattern="[0-9]{6}"
-        maxLength={6}
-        value={d}
-        onChange={(e) => setV(e.target.value)}
-        aria-label="Código de seis dígitos"
-        required
-      />
-      <button className="pub-cta pub-cta-orange" style={{ marginTop: 22 }} disabled={d.length !== 6}>
-        Verificar
-      </button>
-    </div>
-  );
-}
-
-/** «Puedes pedir otro en 0:42» → al llegar a cero, el botón de pedir otro. */
-export function PedirOtro({ segundos, token, action }: { segundos: number; token: string; action: (fd: FormData) => Promise<void> }) {
-  const [s, setS] = useState(Math.max(0, segundos));
-  useEffect(() => {
-    if (s <= 0) return;
-    const id = setInterval(() => setS((x) => Math.max(0, x - 1)), 1000);
-    return () => clearInterval(id);
-  }, [s]);
-  const mmss = useMemo(() => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`, [s]);
-  if (s > 0) return <p style={{ fontSize: 13.5, color: "var(--ink-soft)" }}>Puedes pedir otro en {mmss}.</p>;
-  return (
-    <form action={action}>
-      <input type="hidden" name="token" value={token} />
-      <button className="pub-cta pub-cta-ghost" style={{ width: "100%" }}>
-        Pedir otro código
-      </button>
-    </form>
   );
 }
 

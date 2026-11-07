@@ -2,28 +2,31 @@
 
 // LAS ACCIONES DEL ESPACIO DEL GRUPO.
 //
-// Entrar al grupo = tener cuenta con celular verificado + una fila en
-// grupo_lugares. El código del celular ES el login: al pedirlo se genera una
-// liga mágica que se canjea cuando el código cuadra (no se manda por correo;
-// la reemplaza el código). Quien ya tiene sesión sólo verifica el celular.
+// Entrar al grupo = tener cuenta (correo + contraseña, Google o Apple) con
+// celular + una fila en grupo_lugares. La cuenta nace AL INSTANTE: se crea ya
+// confirmada y se abre la sesión en el mismo paso. El celular se pide, no se
+// verifica (7 nov 2026): la verificación por código mandado por correo dejó
+// fuera a casi todos los invitados de Volcanes —a una persona nueva el token
+// que se generaba era de alta sin confirmar y el canje como liga mágica lo
+// rechazaba SIEMPRE— y Luis pidió cuenta con contraseña, Google y Apple.
+// Cuando haya número real de WhatsApp, verificar el celular vuelve como paso
+// aparte, nunca como candado para entrar.
 //
 // Nada de aquí mueve dinero: apartar y pagar por otros van por /reservar y
 // createCheckout, con `lugar` / `cubre` como únicas señas nuevas.
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseAuthClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { puedeEditarSlot } from "@/lib/auth/alcance";
 import { findOrCreateContact } from "@/lib/crm/contacts";
 import { cleanGrupoToken } from "@/lib/experiences/availability";
 import { fetchEspacio, contactoDeUsuario, type Espacio } from "@/lib/grupo/espacio";
-import { celularE164, pedirCodigo, verificarCodigo, MINUTOS_CODIGO } from "@/lib/grupo/codigo";
+import { celularE164 } from "@/lib/grupo/celular";
 import { avisarAnfitriona } from "@/lib/grupo/mensajes";
 
-const COOKIE = "cam_codigo";
 const ahora = () => new Date().toISOString();
 
 type Sb = ReturnType<typeof createSupabaseAdminClient>;
@@ -76,29 +79,10 @@ async function darLugar(sb: Sb, e: Espacio, contactId: string, userId: string | 
   }
 }
 
-/** La liga mágica que el código va a canjear. Crea la cuenta si no existe. */
-async function ligaMagica(sb: Sb, email: string, nombre: string | null): Promise<{ tokenHash: string; userId: string } | { error: string }> {
-  const gen = () => sb.auth.admin.generateLink({ type: "magiclink", email });
-  let r = await gen();
-  if (r.error) {
-    const creado = await sb.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      user_metadata: nombre ? { full_name: nombre } : {},
-    });
-    if (creado.error && !/already/i.test(creado.error.message)) return { error: creado.error.message };
-    r = await gen();
-    if (r.error) return { error: r.error.message };
-  }
-  const tokenHash = r.data.properties?.hashed_token;
-  const userId = r.data.user?.id;
-  if (!tokenHash || !userId) return { error: "No se pudo preparar tu cuenta." };
-  return { tokenHash, userId };
-}
-
 /**
- * C2 · «Entrar»: nombre, celular y correo. Deja el código en camino y lleva a
- * la pantalla de seis casillas. Con sesión, sólo pide el celular.
+ * C2 · «Entrar»: nombre, celular, correo y contraseña. Crea la cuenta YA
+ * confirmada, abre la sesión y deja a la persona adentro, en un solo paso.
+ * Con sesión (Google, Apple, contraseña), sólo pide el celular.
  */
 export async function entrarAlGrupo(formData: FormData): Promise<void> {
   const token = cleanGrupoToken(formData.get("token"));
@@ -109,116 +93,64 @@ export async function entrarAlGrupo(formData: FormData): Promise<void> {
   const nombre = String(formData.get("nombre") ?? "").trim().slice(0, 120);
   const celular = celularE164(String(formData.get("celular") ?? ""));
   const correoForm = String(formData.get("correo") ?? "").trim().toLowerCase().slice(0, 200);
+  const password = String(formData.get("password") ?? "");
   if (!celular) redirect(conError(token, "/entrar", "celular"));
 
   const sb = createSupabaseAdminClient();
-  const user = await getCurrentUser();
-
-  let email = correoForm;
-  let userId: string | null = null;
-  let tokenHash: string | null = null;
+  let user = await getCurrentUser();
   let nombreFinal: string | null = nombre || null;
 
   if (user) {
-    email = (user.email ?? correoForm).toLowerCase();
-    userId = user.id;
     const c = await contactoDeUsuario(user);
     nombreFinal = nombreFinal || c?.full_name || (user.user_metadata?.full_name as string | undefined) || null;
   } else {
-    if (!email.includes("@")) redirect(conError(token, "/entrar", "correo"));
+    if (!correoForm.includes("@")) redirect(conError(token, "/entrar", "correo"));
     if (!nombre) redirect(conError(token, "/entrar", "nombre"));
-    const liga = await ligaMagica(sb, email, nombre);
-    if ("error" in liga) redirect(conError(token, "/entrar", liga.error));
-    tokenHash = liga.tokenHash;
-    userId = liga.userId;
-  }
-
-  // El contacto existe desde ya (con el celular, sin verificar todavía).
-  const contacto = await findOrCreateContact(sb, {
-    email,
-    fullName: nombreFinal ?? undefined,
-    phone: celular,
-    source: `espacio del grupo · ${e.slug}`,
-    userId,
-  });
-  if (!contacto.ok) redirect(conError(token, "/entrar", contacto.error));
-
-  const pedido = await pedirCodigo({
-    celular,
-    email,
-    nombre: nombreFinal,
-    userId,
-    slotId: e.slotId,
-    tokenHash,
-    experiencia: e.tituloPlano,
-  });
-  if (!pedido.ok) redirect(conError(token, "/entrar", pedido.error));
-
-  const jar = await cookies();
-  jar.set(COOKIE, pedido.id, { httpOnly: true, sameSite: "lax", secure: true, path: "/caminante/g", maxAge: MINUTOS_CODIGO * 60 + 60 });
-  redirect(ruta(token, "/codigo"));
-}
-
-/** C2 · las seis casillas. Si cuadra, la persona entra con sesión y lugar. */
-export async function verificarYEntrar(formData: FormData): Promise<void> {
-  const token = cleanGrupoToken(formData.get("token"));
-  if (!token) redirect("/caminante");
-  const e = await fetchEspacio(token);
-  if (!e) redirect("/caminante");
-
-  const jar = await cookies();
-  const id = jar.get(COOKIE)?.value;
-  if (!id || !/^[0-9a-f-]{36}$/.test(id)) redirect(conError(token, "/entrar", "Pide un código nuevo."));
-
-  const codigo = String(formData.get("codigo") ?? "");
-  const v = await verificarCodigo(id, codigo);
-  if (!v.ok) {
-    if (v.agotado) {
-      jar.delete(COOKIE);
-      redirect(conError(token, "/entrar", v.error));
+    if (password.length < 8) redirect(conError(token, "/entrar", "password"));
+    // La cuenta nace confirmada: nada de correos de confirmación que se abren
+    // en otro navegador y mueren (PKCE). Si el correo ya tiene cuenta, se le
+    // dice y se le manda a entrar con ella.
+    const creado = await sb.auth.admin.createUser({
+      email: correoForm,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: nombre },
+    });
+    if (creado.error) {
+      if (/already|exists|registered/i.test(creado.error.message)) redirect(conError(token, "/entrar", "existe"));
+      console.error("entrarAlGrupo createUser:", creado.error.message);
+      redirect(conError(token, "/entrar", "No pudimos crear tu cuenta. Inténtalo otra vez."));
     }
-    redirect(conError(token, "/codigo", v.error));
-  }
-
-  const sb = createSupabaseAdminClient();
-  let user = await getCurrentUser();
-
-  if (!user) {
-    if (!v.tokenHash) redirect(conError(token, "/entrar", "Tu sesión se perdió. Vuelve a entrar."));
-    // El código cuadró: se canjea la liga mágica y la sesión queda en cookies.
-    // Flujo IMPLÍCITO a propósito: el token salió de generateLink, no de un
-    // signInWithOtp con verificador PKCE (ver createSupabaseAuthClient).
-    const auth = await createSupabaseAuthClient({ flujo: "implicit" });
-    const { data, error } = await auth.auth.verifyOtp({ token_hash: v.tokenHash, type: "magiclink" });
+    // La sesión queda en cookies en este mismo request.
+    const auth = await createSupabaseServerClient();
+    const { data, error } = await auth.auth.signInWithPassword({ email: correoForm, password });
     if (error || !data.user) {
-      console.error("verificarYEntrar verifyOtp:", error?.message);
-      redirect(conError(token, "/entrar", "No pudimos abrir tu sesión. Pide un código nuevo."));
+      console.error("entrarAlGrupo signIn:", error?.message);
+      redirect(conError(token, "/entrar", "Tu cuenta ya existe; entra con tu contraseña."));
     }
     user = data.user;
   }
 
-  // El contacto: ligado a la cuenta, con el celular verificado.
-  const email = (user.email ?? v.email ?? "").toLowerCase();
+  const email = (user.email ?? correoForm).toLowerCase();
   const contacto = await findOrCreateContact(sb, {
     email,
-    fullName: v.nombre ?? undefined,
-    phone: v.celular,
+    fullName: nombreFinal ?? undefined,
+    phone: celular,
     source: `espacio del grupo · ${e.slug}`,
     userId: user.id,
   });
   if (!contacto.ok) redirect(conError(token, "/entrar", contacto.error));
   await sb
     .from("contacts")
-    .update({ phone: v.celular, phone_verified_at: ahora(), ...(contacto.contact.user_id ? {} : { user_id: user.id }), updated_at: ahora() })
+    .update({ phone: celular, ...(contacto.contact.user_id ? {} : { user_id: user.id }), updated_at: ahora() })
     .eq("id", contacto.contact.id);
 
   await darLugar(sb, e, contacto.contact.id, user.id);
-  jar.delete(COOKIE);
   revalidatePath(ruta(token));
   redirect(ruta(token));
 }
 
-/** Con sesión y celular ya verificado: entrar al grupo es un clic. */
+/** Con sesión y celular en la ficha: entrar al grupo es un clic. */
 export async function entrarConSesion(formData: FormData): Promise<void> {
   const token = cleanGrupoToken(formData.get("token"));
   if (!token) redirect("/caminante");
@@ -227,43 +159,10 @@ export async function entrarConSesion(formData: FormData): Promise<void> {
   const e = await fetchEspacio(token);
   if (!e) redirect("/caminante");
   const c = await contactoDeUsuario(user);
-  if (!c || !c.phone_verified_at) redirect(ruta(token, "/entrar"));
+  if (!c || !c.phone) redirect(ruta(token, "/entrar"));
   await darLugar(createSupabaseAdminClient(), e, c.id, user.id);
   revalidatePath(ruta(token));
   redirect(ruta(token));
-}
-
-/** «Puedes pedir otro»: mismo celular, código nuevo. */
-export async function pedirOtroCodigo(formData: FormData): Promise<void> {
-  const token = cleanGrupoToken(formData.get("token"));
-  if (!token) redirect("/caminante");
-  const jar = await cookies();
-  const id = jar.get(COOKIE)?.value;
-  const sb = createSupabaseAdminClient();
-  const { data: row } = id && /^[0-9a-f-]{36}$/.test(id)
-    ? await sb.from("codigos_celular").select("phone, email, nombre, user_id, slot_id, token_hash").eq("id", id).maybeSingle()
-    : { data: null };
-  if (!row) redirect(conError(token, "/entrar", "Pide un código nuevo."));
-  const e = await fetchEspacio(token);
-  const r = row as { phone: string; email: string | null; nombre: string | null; user_id: string | null; slot_id: string | null; token_hash: string | null };
-  // La liga mágica vieja puede seguir viva, pero se genera otra por si caducó.
-  let tokenHash = r.token_hash;
-  if (tokenHash && r.email) {
-    const liga = await ligaMagica(sb, r.email, r.nombre);
-    if (!("error" in liga)) tokenHash = liga.tokenHash;
-  }
-  const pedido = await pedirCodigo({
-    celular: r.phone,
-    email: r.email,
-    nombre: r.nombre,
-    userId: r.user_id,
-    slotId: r.slot_id,
-    tokenHash,
-    experiencia: e?.tituloPlano ?? null,
-  });
-  if (!pedido.ok) redirect(conError(token, "/codigo", pedido.error));
-  jar.set(COOKIE, pedido.id, { httpOnly: true, sameSite: "lax", secure: true, path: "/caminante/g", maxAge: MINUTOS_CODIGO * 60 + 60 });
-  redirect(`${ruta(token, "/codigo")}?otro=1`);
 }
 
 /** Cupo lleno: «avísame si se abre un lugar». */

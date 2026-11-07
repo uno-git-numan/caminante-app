@@ -227,13 +227,15 @@ quedaron todas en `unico`: aplicarla no movió ni un número.
 ## El espacio del grupo (27 oct 2026)
 
 Una salida privada tiene su **espacio** en `/caminante/g/<token>`: la anfitriona
-invita y ve quién entra; cada invitado entra con su cuenta (celular verificado +
-correo), aparta su lugar y firma. Código en `lib/grupo/`; reglas en
+invita y ve quién entra; cada invitado entra con su cuenta (correo + contraseña
+al instante, Google o Apple; celular pedido, no verificado desde el 7 nov),
+aparta su lugar y firma. Código en `lib/grupo/`; reglas en
 `.claude/rules/experiencias.md` («Salidas privadas»). **0073 APLICADA el 28
-oct.** Para WhatsApp sigue bloqueado por Meta: el número es el de pruebas y el
-WABA de prueba no puede crear plantillas de autenticación → el código llega por
-correo hasta que haya número real. El primer grupo real es el de Miranda (Izta,
-28–29 nov), abierto el 29 oct. Memoria: `caminante-espacio-del-grupo`.
+oct.** ⚠️ **7 nov 2026: se quitó el código de verificación del celular** —
+dejaba fuera a toda persona nueva (ver `rules/experiencias.md`) y la liga
+mágica por correo dejó de ser PKCE (`rules/auth-sesion.md`). El primer grupo
+real es el de Miranda (Izta, 28–29 nov), abierto el 29 oct. Memoria:
+`caminante-espacio-del-grupo`.
 
 **Link de pago especial (29 oct 2026):** dentro de cada salida en Salidas, un
 link con descuento en % o monto fijo para una persona, con el porqué escrito en

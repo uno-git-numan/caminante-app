@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { sendMagicLink, signInWithPassword } from "@/lib/auth/actions";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import { destinoPorRol } from "@/lib/auth/destino";
-import GoogleButton from "./GoogleButton";
+import GoogleButton, { AppleButton } from "./GoogleButton";
 
 interface LoginPageProps {
   searchParams: Promise<{
@@ -52,6 +52,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   // Con sesión activa el login no tiene nada que ofrecer: directo a tu página.
   const role = await getCurrentRole();
+  const apple = process.env.NEXT_PUBLIC_AUTH_APPLE === "1";
   // Cualquier rol con sesión sale de aquí. Antes solo salían dos, y el operador
   // se quedaba mirando el formulario de login ya estando autenticado.
   if (role) redirect(destinoPorRol(role));
@@ -61,13 +62,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <p className="text-[10px] uppercase tracking-[0.25em] text-olive">Tu cuenta</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-lagoon">Entra a Caminante</h1>
       <p className="mt-2 text-sm text-olive">
-        Usa tu cuenta de Google, tu contraseña, o pide un enlace por correo.
+        Entra con {apple ? "Apple, Google" : "Google"}, con tu correo y contraseña, o pide un enlace por correo.
       </p>
 
       <div className="mt-8 space-y-5 rounded-2xl border border-sand bg-white p-6">
         {sent === "1" && email ? (
           <div className="rounded-lg bg-cream p-3 text-sm text-lagoon">
-            Te enviamos un enlace a <strong>{email}</strong>. Ábrelo desde este dispositivo.
+            Te enviamos un enlace a <strong>{email}</strong>. Ábrelo desde donde leas tu correo: entra con un toque.
           </div>
         ) : null}
         {error ? (
@@ -76,6 +77,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         ) : null}
 
+        {apple ? <AppleButton next={nextPath} /> : null}
         <GoogleButton next={nextPath} />
 
         <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-olive/60">
@@ -125,6 +127,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           >
             Enviar enlace por correo
           </button>
+          <p className="text-xs leading-relaxed text-olive">
+            ¿Sin contraseña? Pide el enlace: te llega al correo y abre desde cualquier dispositivo.
+          </p>
         </form>
       </div>
 

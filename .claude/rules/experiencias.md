@@ -201,9 +201,18 @@ Código en `lib/grupo/` y `app/caminante/g/[token]/`; esquema en la **0073**
 (`anfitrion_contact_id`, `fecha_limite`, `minimo` en la salida; `grupo_lugares`;
 `codigos_celular`; `contacts.phone_verified_at`; `crm_cards.origen='grupo'`).
 
-- **Nadie entra sin cuenta, y la cuenta exige celular y correo.** El código del
-  celular ES el login (canjea una liga mágica); llega por WhatsApp si hay plantilla
-  aprobada y número real, y si no, **por correo** (hoy: siempre por correo).
+- **Nadie entra sin cuenta, y la cuenta pide celular y correo.** La cuenta
+  nace AL INSTANTE con correo + contraseña (`auth.admin.createUser` confirmada +
+  `signInWithPassword` en el mismo request), o con Google/Apple; el celular se
+  pide y se guarda **sin verificar**. ⚠️ Hasta el 7 nov 2026 había un código de
+  seis dígitos mandado por correo que «canjeaba una liga mágica»: para una
+  persona NUEVA el token que generaba `generateLink` era de ALTA SIN CONFIRMAR
+  y el canje como `magiclink` lo rechazaba siempre («invalid or has expired»);
+  27 códigos pedidos en una semana, casi ninguno entró, y nadie podía pagar
+  Volcanes. `codigos_celular` y `contacts.phone_verified_at` quedan en la base
+  sin que nadie los escriba (quitarlos es una migración de Luis). Verificar el
+  celular vuelve cuando haya número real de WhatsApp, como paso aparte, nunca
+  como candado para entrar.
 - **«Entré» es una fila; «pagué» y «firmé» se DERIVAN** de `reservations` y
   `registrations`. No escribas estados.
 - **Apartar y «pagar por alguien más» pasan por `/reservar`** con `lugar` /
@@ -221,8 +230,8 @@ Código en `lib/grupo/` y `app/caminante/g/[token]/`; esquema en la **0073**
   se abre `wa.me` para que la casa lo mande.
 - **El login del admin en un preview** (para probar con la base real): pedir
   «Enviar enlace por correo» DESDE el preview y abrir el link del correo con el
-  host cambiado al del preview. El token es `pkce_…` y el verificador quedó en
-  la cookie de ese host, así que el confirm de producción no lo canjea.
+  host cambiado al del preview. Desde el 7 nov la liga ya no es PKCE
+  (`lib/supabase/otp.ts`): se canjea desde cualquier host y navegador.
 - **Los previews cobran con Stripe TEST** (`buy.stripe.com/test_…`): las env
   vars de Preview en Vercel no son las de Production. Un link generado ahí no
   cobra dinero real; uno generado en producción, sí.

@@ -20,7 +20,7 @@ import { sendTemplate, sendText, whatsappConfigured } from "@/lib/whatsapp/clien
 import { sendViaResend } from "@/lib/email/resend";
 import { boton, crudo, esc, h1, marco, p, saludo } from "@/lib/email/plantilla";
 import { fmtMxn } from "@/lib/grupo/formato";
-import { celularE164 } from "@/lib/grupo/codigo";
+import { celularE164 } from "@/lib/grupo/celular";
 import type { Espacio } from "@/lib/grupo/espacio";
 import { ligaDelEspacio } from "@/lib/grupo/espacio";
 

@@ -52,6 +52,29 @@ PKCE. Y `cookiesDeSesion` nunca borra la cookie `-code-verifier`.
 **índice** del panel redirige al panel-app en teléfono, y el panel-app conserva su
 salida `?escritorio=1`. Se rompió dos veces en un día.
 
+**La liga mágica por correo NO es PKCE (7 nov 2026).** `@supabase/ssr` fuerza
+PKCE aunque se le pida `flowType: "implicit"`; con PKCE el token sólo se canjea
+desde el navegador que pidió la liga (el verificador vive en su cookie), y en
+el teléfono el correo se abre en Mail, Gmail o Safari, no en el Chrome que la
+pidió: «No pudimos completar el inicio de sesión» hasta para Luis desde su
+iPhone. `sendMagicLink` usa `createSupabaseOtpClient()` (`lib/supabase/otp.ts`,
+supabase-js plano con flujo implícito, sin cookies) y `auth/confirm` canjea el
+token plano desde cualquier dispositivo. Google y Apple siguen por PKCE (ahí el
+callback vuelve al mismo navegador).
+
+**Crear cuenta con contraseña no manda correo de confirmación.**
+`signUpWithPassword` y `entrarAlGrupo` crean la cuenta con
+`auth.admin.createUser({ email_confirm: true })` y abren sesión con
+`signInWithPassword` en el mismo request. `auth.signUp` mandaba un link PKCE
+de confirmación con el mismo problema de arriba. `mailer_autoconfirm` sigue en
+false en Supabase: no hace falta tocarlo.
+
+**Apple**: `signInWithApple` existe y el botón (`AppleButton`) se dibuja sólo con
+`NEXT_PUBLIC_AUTH_APPLE=1`. Darlo de alta es de Luis: en Supabase → Auth →
+Providers → Apple, con Services ID, Team ID, Key ID y la llave `.p8` de su Apple
+Developer, y el redirect `https://hnyoahirxmzkshivgvnm.supabase.co/auth/v1/callback`
+registrado en el Services ID. Luego la env var en Vercel y rebuild.
+
 ## Reglas del dominio
 
 **Nadie se auto-nombra admin.** El rol es **derivado**, y desde el 24 ago son TRES:

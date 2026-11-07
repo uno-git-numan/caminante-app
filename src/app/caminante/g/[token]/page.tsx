@@ -61,7 +61,7 @@ export default async function EspacioDelGrupoPage({
   const operadora = !yo && !!user && (await puedeEntrarAlPanel());
 
   if (!yo && !operadora) {
-    return <Portada e={e} sesion={!!user} celularListo={!!contacto?.phone_verified_at} error={error} />;
+    return <Portada e={e} sesion={!!user} celularListo={!!contacto?.phone} error={error} />;
   }
   return <EspacioVista e={e} yo={yo} sesion={!!user} operadora={operadora} codigo={codigo} aviso={espera ? "Estás en la lista de espera. Si se abre un lugar, te avisamos por WhatsApp y correo." : error ?? null} />;
 }
@@ -106,8 +106,8 @@ function Portada({ e, sesion, celularListo, error }: { e: Espacio; sesion: boole
             )}
             <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.5, marginTop: 12 }}>
               {sesion && !celularListo
-                ? "Falta verificar tu celular: por ahí te llegan los avisos del viaje. El deslinde lo llenas antes de salir."
-                : "Vas a crear tu cuenta Caminante (celular y correo). El deslinde lo llenas antes de salir."}
+                ? "Falta tu celular: por ahí te llegan los avisos del viaje. El deslinde lo llenas antes de salir."
+                : "Creas tu cuenta Caminante en un paso (o entras con Google). El deslinde lo llenas antes de salir."}
             </p>
             {!sesion ? (
               <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8 }}>

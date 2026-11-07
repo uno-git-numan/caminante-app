@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { sendMagicLink, signUpWithPassword, elegirOperador } from "@/lib/auth/actions";
-import GoogleButton from "../login/GoogleButton";
+import GoogleButton, { AppleButton } from "../login/GoogleButton";
 
 interface SignupPageProps {
   searchParams: Promise<{
@@ -16,7 +16,7 @@ function friendlyError(raw: string): string {
   const map: Record<string, string> = {
     invalid_email: "Escribe un correo válido.",
     weak_password: "La contraseña debe tener al menos 8 caracteres.",
-    "User already registered": "Ya existe una cuenta con ese correo. Entra con tu contraseña o un enlace.",
+    "User already registered": "Ya existe una cuenta con ese correo. Entra con tu contraseña, con Google, o pide un enlace por correo.",
   };
   return map[raw] ?? raw;
 }
@@ -24,6 +24,7 @@ function friendlyError(raw: string): string {
 export default async function SignupPage({ searchParams }: SignupPageProps) {
   const { sent, email, error, next, tipo } = await searchParams;
   const esOperador = tipo === "operador";
+  const apple = process.env.NEXT_PUBLIC_AUTH_APPLE === "1";
 
   // PASO 1 — elegir el camino. Sin ?tipo aún → mostramos las dos puertas.
   if (tipo !== "viajero" && tipo !== "operador") {
@@ -98,7 +99,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
       <p className="mt-2 text-sm text-olive">
         {esOperador
           ? "Crea tu cuenta y revisamos tu solicitud. En cuanto la aprobemos, entras al panel para publicar tus experiencias."
-          : "Para reservar tus experiencias y guardar tu expediente caminante."}
+          : "Un paso y listo: tu cuenta queda abierta al instante, sin correo de confirmación."}
       </p>
 
       {esOperador ? (
@@ -111,14 +112,14 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
       <div className="mt-6 space-y-5 rounded-2xl border border-sand bg-white p-6">
         {sent === "1" && email ? (
           <div className="rounded-lg bg-cream p-3 text-sm text-lagoon">
-            Te enviamos un correo a <strong>{email}</strong> para confirmar tu cuenta. Ábrelo desde este
-            dispositivo.
+            Te enviamos un enlace a <strong>{email}</strong>. Ábrelo desde donde leas tu correo.
           </div>
         ) : null}
         {error ? (
           <div className="rounded-lg bg-clay/10 p-3 text-sm text-clay">{friendlyError(decodeURIComponent(error))}</div>
         ) : null}
 
+        {apple ? <AppleButton next={nextPath} /> : null}
         <GoogleButton next={nextPath} />
 
         <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-olive/60">
@@ -129,6 +130,20 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
 
         <form action={signUpWithPassword} className="space-y-3">
           <input type="hidden" name="next" value={nextPath} />
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-olive" htmlFor="nombre">
+              Nombre
+            </label>
+            <input
+              className="mt-1 w-full rounded-lg border border-sand px-3 py-2 text-sm text-lagoon outline-none focus:border-dune"
+              id="nombre"
+              name="nombre"
+              type="text"
+              required
+              autoComplete="name"
+              placeholder="Como te llamas"
+            />
+          </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-olive" htmlFor="email">
               Correo

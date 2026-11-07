@@ -13,7 +13,7 @@
 // navegación dura del documento, que es lo que un OAuth necesita.
 
 import { useState } from "react";
-import { signInWithGoogle } from "@/lib/auth/actions";
+import { signInWithApple, signInWithGoogle } from "@/lib/auth/actions";
 
 export default function GoogleButton({ next = "/caminante" }: { next?: string }) {
   const [yendo, setYendo] = useState(false);
@@ -64,6 +64,56 @@ export default function GoogleButton({ next = "/caminante" }: { next?: string })
           />
         </svg>
         {yendo ? "Abriendo Google…" : "Continuar con Google"}
+      </button>
+      {error ? (
+        <p className="mt-2 text-center text-xs text-orange" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * «Continuar con Apple» — mismo mecanismo. Sólo se dibuja cuando
+ * `NEXT_PUBLIC_AUTH_APPLE=1`: el proveedor hay que darlo de alta en Supabase con
+ * la cuenta de Apple Developer de Luis (Services ID, Team ID, Key ID y la llave
+ * .p8). Un botón sin proveedor detrás es un control muerto.
+ */
+export function AppleButton({ next = "/caminante" }: { next?: string }) {
+  const [yendo, setYendo] = useState(false);
+  const [error, setError] = useState("");
+
+  async function ir() {
+    setYendo(true);
+    setError("");
+    const fd = new FormData();
+    fd.set("next", next);
+    try {
+      const r = await signInWithApple(fd);
+      if ("url" in r) {
+        window.location.assign(r.url);
+        return;
+      }
+      setError(r.error);
+    } catch {
+      setError("No se pudo abrir Apple. Intenta con tu correo.");
+    }
+    setYendo(false);
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={ir}
+        disabled={yendo}
+        className="flex w-full items-center justify-center gap-3 rounded-xl bg-lagoon px-4 py-3 text-sm font-semibold text-cream transition hover:bg-dune disabled:opacity-70"
+      >
+        <svg width="16" height="18" viewBox="0 0 16 19" aria-hidden="true" fill="currentColor">
+          <path d="M13.3 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.5-.2-2.8.8-3.6.8-.7 0-1.9-.8-3.1-.8C3.6 4.7 2 5.6 1.1 7.1c-1.8 3.2-.5 7.9 1.3 10.5.9 1.3 1.9 2.7 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.3.8c1.4 0 2.3-1.3 3.1-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.4-1-2.4-3.5zM11 3.1c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z" />
+        </svg>
+        {yendo ? "Abriendo Apple…" : "Continuar con Apple"}
       </button>
       {error ? (
         <p className="mt-2 text-center text-xs text-orange" role="alert">

@@ -18,7 +18,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { puedeEditarSlot } from "@/lib/auth/alcance";
 import { findOrCreateContact, findOrCreateContactByPhone } from "@/lib/crm/contacts";
-import { celularE164 } from "@/lib/grupo/codigo";
+import { celularE164 } from "@/lib/grupo/celular";
 import { getStripeServerClient } from "@/lib/payments/stripe";
 import { nuevoPagoToken, urlDePago } from "@/lib/payments/pago-token";
 import { parseMxnAmount } from "@/lib/payments/reservation-links";

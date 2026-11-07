@@ -5,9 +5,11 @@ import { entrarAlGrupo, entrarConSesion } from "@/lib/grupo/acciones";
 import { EspShell, Nav } from "../ui";
 import { OAuth } from "../cliente";
 
-// C2 · «Crear cuenta, un paso». Apple o Google llenan nombre y correo; el
-// celular es obligatorio y se verifica con un código. Con sesión, sólo falta el
-// celular. En escritorio es la tarjeta angosta centrada (.esp-auth).
+// C2 · «Crear cuenta, un paso». Apple o Google llenan nombre y correo; con
+// tus datos es nombre, celular, correo y contraseña, y la cuenta nace al
+// instante (sin código ni correo de confirmación: 7 nov 2026, ver
+// lib/grupo/acciones.ts). Con sesión, sólo falta el celular. En escritorio es
+// la tarjeta angosta centrada (.esp-auth).
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,8 @@ const ERRORES: Record<string, string> = {
   celular: "Escribe tu celular a diez dígitos (o con lada internacional).",
   correo: "Escribe un correo válido.",
   nombre: "Escribe tu nombre.",
+  password: "Tu contraseña: al menos 8 caracteres.",
+  existe: "Ese correo ya tiene cuenta. Entra con tu contraseña, con Google, o pide un enlace por correo.",
 };
 
 export default async function EntrarAlGrupoPage({
@@ -37,7 +41,7 @@ export default async function EntrarAlGrupoPage({
   const apple = process.env.NEXT_PUBLIC_AUTH_APPLE === "1";
   const sub = `${e.anfitrion?.pila ? `Grupo de ${e.anfitrion.pila}` : "Salida privada"} · ${e.etiqueta}`;
   const err = error ? (ERRORES[error] ?? error) : null;
-  const celularListo = !!contacto?.phone_verified_at;
+  const celularListo = !!contacto?.phone;
 
   return (
     <EspShell>
@@ -66,7 +70,7 @@ export default async function EntrarAlGrupoPage({
                   Falta tu <em>celular.</em>
                 </h2>
                 <p style={{ fontSize: 14.5, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                  Entras como <b>{contacto?.full_name || user.email}</b>. Por el celular te llegan los avisos del viaje; lo verificamos con un código.
+                  Entras como <b>{contacto?.full_name || user.email}</b>. Por el celular te llegan los avisos del viaje.
                 </p>
                 {err ? <p style={{ fontSize: 13.5, color: "var(--orange)", marginTop: 10 }}>{err}</p> : null}
                 <form action={entrarAlGrupo}>
@@ -77,7 +81,7 @@ export default async function EntrarAlGrupoPage({
                     <span className="hint">Obligatorio. Por aquí te llegan los avisos del viaje.</span>
                   </div>
                   <button className="pub-cta pub-cta-orange" style={{ marginTop: 10 }}>
-                    Mandarme el código
+                    Entrar al grupo
                   </button>
                 </form>
               </>
@@ -104,13 +108,21 @@ export default async function EntrarAlGrupoPage({
                     <label htmlFor="correo">Correo</label>
                     <input id="correo" name="correo" inputMode="email" type="email" autoComplete="email" required />
                   </div>
+                  <div className="pub-fld">
+                    <label htmlFor="password">Contraseña</label>
+                    <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} placeholder="Mínimo 8 caracteres" required />
+                    <span className="hint">Con ella entras después a tu espacio y a firmar tu deslinde.</span>
+                  </div>
                   <button className="pub-cta pub-cta-orange" style={{ marginTop: 10 }}>
-                    Entrar
+                    Crear mi cuenta y entrar
                   </button>
                 </form>
                 <a className="pub-cta pub-cta-ghost" style={{ width: "100%", marginTop: 10 }} href={`/caminante/login?next=${encodeURIComponent(aqui)}`}>
                   Ya tengo cuenta · entrar
                 </a>
+                <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.5 }}>
+                  ¿Ya tienes cuenta pero no contraseña? Ahí mismo pide un enlace por correo: abre desde cualquier dispositivo.
+                </p>
               </>
             )}
           </div>
