@@ -13,7 +13,7 @@ export default async function ContrasenaPage({ searchParams }: { searchParams: P
       <p className="text-[10px] uppercase tracking-[0.25em] text-olive">Tu cuenta</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-lagoon">Crea o cambia tu contraseña</h1>
       <p className="mt-2 text-sm text-olive">
-        Te mandamos una liga al correo. La abres desde donde quieras, escribes tu contraseña nueva y entras.
+        Te mandamos un código a tu correo. Lo escribes en la siguiente pantalla y eliges tu contraseña. Sin ligas que se pierdan.
       </p>
 
       <div className="mt-8 space-y-5 rounded-2xl border border-sand bg-white p-6">
@@ -40,7 +40,7 @@ export default async function ContrasenaPage({ searchParams }: { searchParams: P
             />
           </div>
           <button type="submit" className="w-full rounded-xl bg-lagoon px-4 py-3 text-sm font-semibold text-cream transition hover:bg-dune">
-            Mandarme la liga
+            Mandarme el código
           </button>
         </form>
       </div>

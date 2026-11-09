@@ -8,11 +8,10 @@ import { createSupabaseAuthClient, createSupabaseServerClient } from "@/lib/supa
 import { createSupabaseOtpClient } from "@/lib/supabase/otp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureContactLink } from "@/lib/crm/contacts";
-import { sendViaResend } from "@/lib/email/resend";
-import { boton, h1, marco, p as parrafo, saludo } from "@/lib/email/plantilla";
 import { getCurrentUser } from "@/lib/auth/session";
 import { roleForClient } from "@/lib/auth/authorization";
 import { OP_INTENT_COOKIE } from "@/lib/auth/op-intent";
+import { DESTINO_COOKIE } from "@/lib/auth/destino-cookie";
 
 // Paso 1 del alta: elegir el camino "operador". Marca la intención (cookie que
 // sobrevive cualquier método de login) y manda al formulario de registro. NO
@@ -95,7 +94,14 @@ async function pedirCodigo(email: string, next: string, crear: boolean): Promise
     email,
     options: { emailRedirectTo: `${origin}${next}`, shouldCreateUser: crear },
   });
-  if (!error) return { ok: true };
+  if (!error) {
+    // A dónde iba, guardado en ESTE navegador: Supabase sólo respeta
+    // `emailRedirectTo` si cae en su lista de URLs permitidas, y una ruta larga
+    // como /caminante/g/<token>/entrar se cae a la portada. `auth/confirm` la
+    // lee cuando la liga llega sin destino (lib/auth/destino-cookie.ts).
+    (await cookies()).set(DESTINO_COOKIE, next, { httpOnly: true, sameSite: "lax", secure: true, path: "/caminante", maxAge: 3600 });
+    return { ok: true };
+  }
   if (/signups not allowed|user not found|not allowed for otp/i.test(error.message)) return { ok: false, error: error.message, sinCuenta: true };
   return { ok: false, error: error.message };
 }
@@ -278,46 +284,29 @@ export async function signOut() {
 }
 
 /**
- * «Crear o cambiar contraseña» (7 nov 2026, Luis: «dame un usuario y
- * contraseña»). La contraseña la teclea la persona, nunca la casa: se le manda
- * una liga de recuperación y ella la define en /caminante/cuenta/contrasena.
+ * «Crear o cambiar contraseña» — POR CÓDIGO (9 nov 2026). Antes mandaba una
+ * liga de recuperación por correo; a Ana Malvido (Hotmail) se le gastó sola
+ * (escáner de Outlook) y nunca pudo definir su contraseña. Ahora es el mismo
+ * código de acceso: lo escribe en /caminante/login/codigo, entra, y cae en
+ * /caminante/cuenta/contrasena para elegir la suya. Nada que dependa de que una
+ * liga sobreviva el viaje.
  *
- * La liga sale de `auth.admin.generateLink({ type: "recovery" })` y la manda
- * Resend con NUESTRO confirm (`?token_hash=…&type=recovery`): no es PKCE, abre
- * desde cualquier dispositivo. El template de Supabase para recovery no está
- * personalizado y el suyo por defecto manda a `/auth/v1/verify` con los tokens
- * en el hash (#access_token), que el servidor no ve.
- *
- * Si el correo no tiene cuenta, se contesta igual que si la tuviera: la pantalla
- * no revela quién está registrado.
+ * Si el correo no tiene cuenta, se le manda a crearla (con el correo puesto).
  */
 export async function pedirLigaDeContrasena(formData: FormData) {
   const email = parseEmail(formData);
   const next = parseNext(formData);
   if (!email) redirect(`/caminante/login/contrasena?error=invalid_email&next=${encodeURIComponent(next)}`);
-
-  const origin = await getOrigin();
-  const admin = createSupabaseAdminClient();
-  const liga = await admin.auth.admin.generateLink({ type: "recovery", email });
-  const tokenHash = liga.data?.properties?.hashed_token;
-  if (!liga.error && tokenHash) {
-    const destino = `/caminante/cuenta/contrasena?next=${encodeURIComponent(next)}`;
-    const url = `${origin}/caminante/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}&type=recovery&next=${encodeURIComponent(destino)}`;
-    const nombre = (liga.data.user?.user_metadata?.full_name as string | undefined) ?? null;
-    const { html, texto } = marco("Tu contraseña", [
-      h1("Crea tu contraseña"),
-      parrafo(`Hola${saludo(nombre)}. Toca el botón, escribe la contraseña que quieras y listo: con ella entras a Caminante desde cualquier dispositivo.`),
-      boton("Crear mi contraseña", url),
-      parrafo("La liga vale una hora y funciona una sola vez. Si no la pediste tú, ignora este correo."),
-    ]);
-    await sendViaResend(email, "Crea tu contraseña · Caminante", html, { ua: "caminante-auth/1.0", text: texto });
-  } else if (liga.error && !/not found|no user/i.test(liga.error.message)) {
-    console.error("pedirLigaDeContrasena:", liga.error.message);
+  const destino = `/caminante/cuenta/contrasena?next=${encodeURIComponent(next)}`;
+  const r = await pedirCodigo(email as string, destino, false);
+  if (!r.ok) {
+    if (r.sinCuenta) redirect(`/caminante/signup?tipo=viajero&email=${encodeURIComponent(email as string)}&next=${encodeURIComponent(next)}&error=sin_cuenta`);
+    redirect(`/caminante/login/contrasena?error=${encodeURIComponent(r.error)}&next=${encodeURIComponent(next)}`);
   }
-  redirect(`/caminante/login/contrasena?sent=1&email=${encodeURIComponent(email)}`);
+  redirect(aCodigo(email as string, destino, "&aviso=contrasena"));
 }
 
-/** Con sesión (por la liga de arriba, o ya adentro): guarda la contraseña nueva. */
+/** Con sesión (por el código, o ya adentro): guarda la contraseña nueva. */
 export async function definirContrasena(formData: FormData) {
   const next = parseNext(formData);
   const password = typeof formData.get("password") === "string" ? String(formData.get("password")) : "";

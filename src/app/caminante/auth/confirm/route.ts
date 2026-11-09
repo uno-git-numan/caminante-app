@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ensureContactLink } from "@/lib/crm/contacts";
 import { roleForClient } from "@/lib/auth/authorization";
 import { destinoPorRol } from "@/lib/auth/destino";
+import { DESTINO_COOKIE } from "@/lib/auth/destino-cookie";
 
 // `next` puede venir como ruta interna ("/caminante/perfil") o como URL absoluta
 // del MISMO origen (el template del correo pasa {{ .RedirectTo }} absoluto).
@@ -104,11 +105,17 @@ export async function POST(request: NextRequest) {
 
   // Si `next` es el genérico "/caminante", ramificamos por rol (admin → panel,
   // caminante → su perfil). Un `next` explícito se respeta (la página guarda por rol).
+  // La liga llegó sin destino (Supabase lo tira si no está en su lista
+  // permitida): se usa el que quedó guardado al pedir el código, en ESTE navegador.
   let dest = next;
-  if (next === "/caminante") {
+  const guardado = request.cookies.get(DESTINO_COOKIE)?.value ?? "";
+  if ((next === "/" || next === "/caminante") && guardado.startsWith("/caminante") && !guardado.startsWith("//")) dest = guardado;
+  if (dest === "/caminante") {
     const role = await roleForClient(supabase);
     dest = destinoPorRol(role);
   }
 
-  return NextResponse.redirect(new URL(dest, request.url), 303);
+  const res = NextResponse.redirect(new URL(dest, request.url), 303);
+  res.cookies.set(DESTINO_COOKIE, "", { path: "/caminante", maxAge: 0 });
+  return res;
 }

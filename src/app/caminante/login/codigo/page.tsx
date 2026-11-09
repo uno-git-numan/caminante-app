@@ -36,7 +36,11 @@ export default async function CodigoPage({
       <p className="text-[10px] uppercase tracking-[0.25em] text-olive">Tu cuenta</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-lagoon">Escribe tu código</h1>
       <p className="mt-2 text-sm text-olive">
-        {aviso === "existe" ? (
+        {aviso === "contrasena" ? (
+          <>
+            Te mandamos un código a <strong>{correo}</strong>. Escríbelo aquí y en la siguiente pantalla eliges tu contraseña.
+          </>
+        ) : aviso === "existe" ? (
           <>
             <strong>{correo}</strong> ya tiene cuenta en Caminante. Para entrar sin contraseña, te mandamos un código a ese correo.
           </>
