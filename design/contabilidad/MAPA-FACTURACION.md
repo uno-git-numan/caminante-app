@@ -17,7 +17,15 @@ correo+monto) y `/caminante/admin/facturacion`. Todo apagado por
 
 ## 0 · MODELO FISCAL — definido con Luis el 9 nov 2026
 
-**Operamos como Airbnb.** Así factura Airbnb en México (fuentes al pie):
+**Operamos como Airbnb.** Confirmado el 9 nov contra la **guía oficial de
+Airbnb México** («Guía de pago de impuestos en México», 84 pp.): «*Tu factura
+debe emitirse por el monto total del alojamiento, experiencia o aventura*» la
+emite el **anfitrión**, incluso si el huésped no la pide (entonces en una
+«factura global»); Airbnb emite **sólo** «*la factura por el cobro por uso de
+plataforma*» (reglas 2.7.1.16 y 12.1.4) y entrega cada mes la **constancia de
+retenciones** (4 % ISR hospedaje, 1 % otros servicios, 8 % IVA; 36 % sin RFC;
+sin retención a personas morales en esa versión de la guía). En devoluciones,
+el anfitrión emite nota de crédito o cancela. Así factura Airbnb en México:
 el **anfitrión emite el CFDI al huésped** por el hospedaje (a su RFC si lo pide,
 o lo mete en su global); **Airbnb emite su propio CFDI por su tarifa de
 servicio** (con IVA); y Airbnb, como plataforma que cobra por cuenta del
@@ -174,9 +182,50 @@ empresa) la cambia antes de pedir la factura; la factura guarda la ficha
 Si en seis meses aparecen diez personas que alternan dos RFC, se agrega un
 selector; hoy sería un control para nadie.
 
+### 0.8 El flujo del dinero tiene que justificar las facturas (Luis, 9 nov)
+
+Hoy el 100 % entra a la cuenta de NUMAN y NUMAN deposita el neto por banco.
+Fiscalmente eso es **cobro por cuenta de terceros** y es exactamente lo que hace
+Airbnb (cobra todo, retiene, deposita): el modelo B1/B2/R1 es válido así. Pero
+Luis quiere que **el dinero mismo** lo diga, no sólo los documentos. Eso es
+**Stripe Connect con cargo con destino y `on_behalf_of` = la operadora**
+(decisión 3 del MVP), y por eso Connect deja de ser «después» y entra al plan:
+
+```
+Cliente ──$ total──▶ Stripe (cargo a nombre de la OPERADORA, on_behalf_of)
+                       ├─ application_fee → NUMAN  = comisión + IVA (+ retenciones ISR/IVA cuando apliquen)
+                       └─ el resto cae en la CUENTA CONECTADA de la operadora (Stripe le deposita a su banco)
+```
+
+- La operadora es el **comerciante de liquidación**: en su Stripe y en su banco
+  aparece el total cobrado menos lo que NUMAN retuvo. **Su B1 cuadra con su
+  cuenta; el B2 de NUMAN cuadra con el `application_fee`.** No hay liquidación
+  por banco que explicar.
+- Las **retenciones** viajan dentro del `application_fee`: NUMAN se queda
+  comisión + IVA + ISR/IVA retenidos, entera los retenidos al SAT el 17 y emite
+  R1. `platform_fee_mxn` sigue siendo la comisión sin IVA; lo demás se deriva.
+- **Devoluciones**: `refund` con `reverse_transfer` + `refund_application_fee`
+  → las dos partes regresan en proporción, igual que las notas de crédito.
+- NUMAN paga el fee de Stripe (está dentro de su comisión, §0.3).
+- **DRUIDAS también es cuenta conectada**: las experiencias propias corren por
+  el mismo riel; NUMAN nunca toca su parte.
+- Nomádika es persona física: Stripe Express MX admite individuos (KYC con
+  INE y CLABE). Kéntro y DRUIDAS: empresa.
+
+**Transición**: lo que ya se cobró por `casa` se liquida como hasta hoy y se
+documenta como cobro por cuenta de terceros (B1 de la operadora + B2 de NUMAN,
+sin Connect). Desde que una operadora tenga cuenta conectada, sus ventas
+nuevas van por Connect. Los dos canales ya existen en `payments.canal_cobro`
+y la liquidación sólo mira `casa` (trigger 0066).
+
+Qué falta para Connect (`caminante-connect-multiemisor`): el segundo webhook
+de Stripe para cuentas conectadas (Luis), `createCheckout` bifurcando por
+canal (la última pieza, a propósito), y la cuenta Express de cada operadora
+desde «Mi alta» (pantalla ya construida). **Entra como Fase 2b** del plan.
+
 ### Fuentes consultadas (9 nov 2026)
 
-- Airbnb en México: [Facturación CFDI para hosts de Airbnb (Host Tax)](https://hosttax.mx/recursos/facturacion-airbnb) · [¿Se puede facturar Airbnb? (Praxium)](https://praxiumconsultores.com/blog/puedo-pedir-factura-de-airbnb-como-huesped) · [Impuestos Airbnb 2026 (Heru)](https://www.heru.app/blog/impuestos-airbnb-mexico/) · [Ayuda de Airbnb](https://es-l.airbnb.com/help/article/1857)
+- Airbnb en México: **[Guía oficial de pago de impuestos en México (PDF de Airbnb, 84 pp.)](https://assets.contentstack.io/v3/assets/bltb428ce5d46f8efd8/blt149e452d316dcaa9/5fdd215cb80b0a1a68f9f371/Airbnb_Guia_de_Pago_de_Impuestos_en_Mexico.pdf)** · [Facturación CFDI para hosts de Airbnb (Host Tax)](https://hosttax.mx/recursos/facturacion-airbnb) · [¿Se puede facturar Airbnb? (Praxium)](https://praxiumconsultores.com/blog/puedo-pedir-factura-de-airbnb-como-huesped) · [Impuestos Airbnb 2026 (Heru)](https://www.heru.app/blog/impuestos-airbnb-mexico/) · [Ayuda de Airbnb](https://es-l.airbnb.com/help/article/1857)
 - Régimen de plataformas: [Guía 2026 (Praxium)](https://praxiumconsultores.com/blog/regimen-plataformas-digitales-guia-2026) · [Art. 113-A comentado (SDV)](https://sdv.com.mx/compendio/ley-isr/articulo-113-a/) · [Retenciones 2026 (Contarito)](https://contarito.com.mx/blog/retenciones-plataformas-digitales-2026-tabla-actualizada/) · [Personas morales 2026 (Camacho Limón)](https://camacholimon.com/retenciones-personas-morales-plataformas-digitales-2026/) · [Régimen 625 (SATFácil)](https://www.satfacil.com.mx/regimen/625-plataformas-tecnologicas) · [RESICO y plataformas (Mercado Pago)](https://www.mercadopago.com.mx/blog/que-es-resico-para-vendedores-plataformas) · [Obligaciones de las plataformas (Siempre al día)](https://siemprealdia.co/mexico/fiscal/obligaciones-fiscales-de-las-plataformas-digitales/)
 - Claves SAT: [90121500 y familia 9012 (veinte.mx)](https://veinte.mx/catalogos/servicios/grupo/9012) · [Anexo 20 v4.0 90121500 (GNCYS)](https://www.gncys.com/anexo20/4.0/claveprodserv/90121500) · [80141628 distribuidores por comisión](https://veinte.mx/catalogos/clave/80141628) · [80141706 intermediación](https://veinte.mx/catalogos/clave/80141706) · [Sugerencia del SAT: servicios de comisión (PDF)](http://omawww.sat.gob.mx/informacion_fiscal/factura_electronica/Documents/Sugerencia_PyS/Ser_comision.pdf) · [Forma de pago 31 (Facturama)](https://facturama.mx/blog/que-significa/forma-de-pago-sat-intermediarios/)
 - Cancelación vs egreso: [Cancelación de CFDI 2026 (Alegra)](https://blog.alegra.com/mexico/cancelacion-de-cfdi-paso-a-paso/) · [Reglas de aceptación 2026 (Carbajal)](https://carbajalcontadores.com/2026/08/01/cancelacion-cfdi-2026-nuevas-reglas-aceptacion-receptor-plazos-sat/) · [Motivos y plazos (Ortiz Garza)](https://www.ortizgarza.com.mx/guias/cancelacion-cfdi/)
@@ -415,6 +464,16 @@ el mismo ciclo.
   organización. El cliente no nota la diferencia.
 - Vigencia del CSD (4 años): `csd_vence_at` ya existe; aviso 60 días antes y el
   gate lo rechaza vencido.
+
+### Fase 2b · Connect: que el dinero caiga donde dice la factura (§0.8)
+
+- Cuenta Express por operadora desde «Mi alta» (pantalla construida; falta el
+  segundo webhook de Stripe, de Luis).
+- `createCheckout` bifurca por canal: con cuenta conectada lista → cargo con
+  destino + `on_behalf_of`, `application_fee` = comisión + IVA (+ retenciones);
+  sin cuenta → `casa` como hoy. `finalize-*` ya lee `canal_cobro`.
+- Reembolsos con `reverse_transfer` + `refund_application_fee`.
+- Candado: `commission_pct` NULL bloquea Connect (ya cableado).
 
 ### Fase 3 · La comisión se factura sola (B2)
 
