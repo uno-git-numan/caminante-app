@@ -100,10 +100,26 @@ El ingenuo `base × 1.036` deja **$15 corto por transacción** a $11,500.
 
 ## Facturación (CFDI)
 
-Ver `design/contabilidad/` y `rules/operadores-connect.md`. Hoy `lib/facturacion/`
-asume **un solo emisor** (NUMAN HUB, RFC `NHU250826CS8`). Abrirlo a multi-emisor es
-la fase A3 y depende de que la cuenta de Facturapi admita **multi-organización** —
-requisito, no detalle.
+**El mapa y el modelo viven en `design/contabilidad/MAPA-FACTURACION.md`** (9 nov
+2026): operamos como Airbnb. La OPERADORA factura al cliente (B1, con su CSD desde
+el portal); NUMAN factura a la operadora sólo su comisión + IVA (B2); NUMAN retiene
+y emite el CFDI de retenciones (R1). La comisión de Stripe va dentro de la de NUMAN.
+Las experiencias propias las operará **DRUIDAS** (empresa de turismo por constituir).
+
+**Fase 1 (código, 9 nov):** `lib/facturacion/emitir.ts` es el ÚNICO núcleo que
+timbra (conceptos: viaje por persona con el descuento como `discount` + cada
+complemento; lo que suma tiene que ser lo cobrado o cae a un solo concepto). Lo
+llaman la autofactura pública por token (`facturacion/actions.ts`) y «Facturar»
+en Mi espacio (`lib/perfil/facturacion-actions.ts`) con la ficha de
+`datos_fiscales` (0075, una por cuenta, congelada en cada CFDI). `estadoFacturable`
+decide si el botón existe. **El emisor es la operadora de la experiencia**: en
+Fase 1 sólo la casa (la organización de `FACTURAPI_SECRET_KEY`); una venta de
+operadora externa dice «cuando su facturación quede conectada» (Fase 2:
+`operators.facturapi_org_id`, una organización por operadora). Clave por defecto
+**90121501** (no 90121500, que es la familia), o `experience.data.fiscal`.
+
+Todo apagado mientras no exista `FACTURAPI_SECRET_KEY` (`facturacionActiva()`):
+Mi espacio enseña los pagos como «Por facturar». **Sandbox primero.**
 
 Cobros reales sin CFDI entran como `status_cfdi = por-emitir`.
 

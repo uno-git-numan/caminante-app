@@ -350,6 +350,13 @@ export type Experience = {
 
   // card / calendar metadata (for the landing grid and the calendar)
   cardTitle?: string; // defaults to subtitle
+
+  // FISCAL (9 nov 2026): la clave SAT con que se factura ESTA experiencia y el
+  // uso CFDI por defecto. Sin esto se usa 90121501 «Servicios de organización
+  // de excursiones» / G03. Una experiencia que sea sólo guía (90121701) o con
+  // hospedaje desglosado (90111501) lo dice aquí; lo fija la casa con la
+  // contadora, no el formulario del cliente. Ver design/contabilidad/MAPA-FACTURACION.md §0.4.
+  fiscal?: { claveProdServ?: string; usoCfdiDefault?: string };
   cardPloc?: string; // "Baja California Sur · Junio 2026"
   cardHook?: string; // one-liner; defaults to subtitle
   startDate?: string | null; // ISO date for calendar ordering, optional

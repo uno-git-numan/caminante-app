@@ -8,6 +8,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { signOut } from "@/lib/auth/actions";
 import { fetchMiEspacio } from "@/lib/perfil/queries";
+import { fetchMisFacturas } from "@/lib/perfil/facturas";
+import { fetchDatosFiscales } from "@/lib/facturacion/datos-fiscales";
+import { facturarPagoAction, guardarDatosFiscalesAction } from "@/lib/perfil/facturacion-actions";
+import { REGIMENES, USOS_CFDI, USO_CFDI_DEFAULT, tipoPersonaDeRfc } from "@/lib/facturacion/catalogos";
 import {
   guardarDatosAction,
   guardarMedicoAction,
@@ -53,6 +57,10 @@ export default async function MiEspacioPage({
 
   const { ok, error } = await searchParams;
   const me = await fetchMiEspacio(user);
+  const [fiscal, facturas] = await Promise.all([fetchDatosFiscales(user.id), me.contactId ? fetchMisFacturas(me.contactId) : Promise.resolve([])]);
+  const persona = fiscal ? tipoPersonaDeRfc(fiscal.rfc) : null;
+  const regimenes = REGIMENES.filter((x) => !persona || x.persona === "ambos" || x.persona === persona);
+  const pesos = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
   const friendLink = `${SITE}/caminante`;
 
   return (
@@ -77,7 +85,7 @@ export default async function MiEspacioPage({
           <p className="sub">
             Aquí vive todo tu viaje con Caminante. <a href="/caminante/cuenta/contrasena?next=%2Fcaminante%2Fperfil%3Fok%3D1">Crear o cambiar tu contraseña</a>
           </p>
-          {ok ? <div className="mesp-flash ok">Guardado. ✓</div> : null}
+          {ok === "factura" ? <div className="mesp-flash ok">Factura emitida. Te la mandamos al correo y la tienes abajo. ✓</div> : ok === "fiscal" ? <div className="mesp-flash ok">Datos fiscales guardados. ✓</div> : ok ? <div className="mesp-flash ok">Guardado. ✓</div> : null}
           {error ? <div className="mesp-flash err">{error}</div> : null}
         </header>
 
@@ -227,6 +235,50 @@ export default async function MiEspacioPage({
           </section>
         ) : null}
 
+        {/* TUS FACTURAS (Fase 1 de facturación en el portal, 9 nov 2026) */}
+        {facturas.length ? (
+          <section className="mesp-sec" id="facturas">
+            <span className="mesp-eyebrow"><span className="sl">{"//"}</span> Tus facturas</span>
+            <p className="lead">Cada pago con su factura. Para facturar, guarda primero tus datos fiscales en Tu expediente.</p>
+            {facturas.map((f) => (
+              <div className="mesp-sig" key={f.paymentId}>
+                <div>
+                  <div className="tt">{f.titulo}{f.salida ? ` · ${f.salida}` : ""}</div>
+                  <div className="mt">
+                    {pesos(f.montoMxn)} · {f.metodo} · {f.fecha}
+                    {f.devueltoMxn > 0 ? ` · devuelto ${pesos(f.devueltoMxn)}` : ""}
+                    {f.estado === "emitida" && f.factura ? ` · factura del ${f.factura.emitidaEl}` : ""}
+                    {f.estado === "pendiente" && f.motivo ? ` · ${f.motivo}` : ""}
+                    {f.estado === "no-facturable" && f.motivo ? ` · ${f.motivo}` : ""}
+                    {f.estado === "global" ? " · incluido en la factura global del mes" : ""}
+                  </div>
+                </div>
+                <div className="r">
+                  {f.estado === "emitida" && f.factura ? (
+                    <>
+                      <span className="mesp-ver">{f.factura.uuid.slice(0, 8).toUpperCase()}</span>
+                      {f.factura.pdfUrl ? <a href={f.factura.pdfUrl} target="_blank" rel="noopener noreferrer">PDF</a> : null}
+                      {f.factura.xmlUrl ? <a href={f.factura.xmlUrl} target="_blank" rel="noopener noreferrer">XML</a> : null}
+                      {!f.factura.pdfUrl && !f.factura.xmlUrl ? <span className="mesp-seal">✓</span> : null}
+                    </>
+                  ) : f.estado === "facturable" ? (
+                    fiscal ? (
+                      <form action={facturarPagoAction}>
+                        <input type="hidden" name="paymentId" value={f.paymentId} />
+                        <button className="mesp-btn mesp-orange mesp-sm" type="submit">Facturar</button>
+                      </form>
+                    ) : (
+                      <span className="mesp-ver">Faltan tus datos fiscales</span>
+                    )
+                  ) : f.estado === "pendiente" ? (
+                    <span className="mesp-ver">Por facturar</span>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </section>
+        ) : null}
+
         {/* EXPEDIENTE */}
         <section className="mesp-sec">
           <span className="mesp-eyebrow"><span className="sl">{"//"}</span> Tu expediente</span>
@@ -255,6 +307,39 @@ export default async function MiEspacioPage({
                   <span className="mesp-sw" />
                 </label>
                 <div className="mesp-save"><button className="mesp-btn mesp-orange mesp-sm" type="submit">Guardar cambios</button></div>
+              </form>
+            </div></div>
+          </div>
+
+          {/* Datos fiscales (0075): una ficha por cuenta; «Facturar» la usa tal cual. */}
+          <div className="mesp-acc">
+            <button className="mesp-acc-h" type="button" data-acc="4">
+              <span className="l"><span className="ti">Datos fiscales</span><span className="su">{fiscal ? `${fiscal.rfc} · ${fiscal.razonSocial}` : "Para que tus facturas salgan solas"}</span></span>
+              <span className="mesp-chev">▾</span>
+            </button>
+            <div className="mesp-acc-b"><div className="mesp-acc-in">
+              <form action={guardarDatosFiscalesAction}>
+                <div className="mesp-f2">
+                  <div className="mesp-fg"><label htmlFor="mesp-rfc">RFC</label><input id="mesp-rfc" name="rfc" type="text" defaultValue={fiscal?.rfc ?? ""} placeholder="XAXX010101000" autoCapitalize="characters" required /></div>
+                  <div className="mesp-fg"><label htmlFor="mesp-cp">Código postal fiscal</label><input id="mesp-cp" name="cp" type="text" inputMode="numeric" defaultValue={fiscal?.codigoPostal ?? ""} placeholder="11000" required /></div>
+                </div>
+                <div className="mesp-fg"><label htmlFor="mesp-rs">Nombre o razón social (exacto, como en tu constancia)</label><input id="mesp-rs" name="razonSocial" type="text" defaultValue={fiscal?.razonSocial ?? ""} placeholder="Sin «S.A. de C.V.» si eres persona moral" required /></div>
+                <div className="mesp-f2">
+                  <div className="mesp-fg"><label htmlFor="mesp-reg">Régimen fiscal</label>
+                    <select id="mesp-reg" name="regimen" defaultValue={fiscal?.regimenFiscal ?? ""} required>
+                      <option value="" disabled>Elige…</option>
+                      {regimenes.map((r) => <option key={r.clave} value={r.clave}>{r.clave} · {r.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="mesp-fg"><label htmlFor="mesp-uso">Uso del CFDI</label>
+                    <select id="mesp-uso" name="uso" defaultValue={fiscal?.usoCfdi ?? USO_CFDI_DEFAULT}>
+                      {USOS_CFDI.map((u) => <option key={u.clave} value={u.clave}>{u.clave} · {u.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="mesp-fg"><label htmlFor="mesp-fmail">Correo para tus facturas</label><input id="mesp-fmail" name="email" type="email" defaultValue={fiscal?.email ?? me.datos.email} /></div>
+                <p className="mesp-note">Una sola ficha por cuenta. Cada factura guarda su propia copia: cambiarla después no altera las ya emitidas.</p>
+                <div className="mesp-save"><button className="mesp-btn mesp-orange mesp-sm" type="submit">Guardar datos fiscales</button></div>
               </form>
             </div></div>
           </div>

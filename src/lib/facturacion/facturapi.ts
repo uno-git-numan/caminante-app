@@ -9,13 +9,15 @@
 
 const API = "https://www.facturapi.io/v2";
 
-// Clave de Producto/Servicio SAT para experiencias guiadas en naturaleza.
-// Default a confirmar con la contadora (90121500 = agencias/operadores de viajes
-// y excursiones); override por env sin re-deploy de código.
-const CLAVE_PROD_SERV = process.env.FACTURAPI_CLAVE_PROD_SERV || "90121500";
+// Clave de Producto/Servicio SAT por defecto para una experiencia:
+// 90121501 «Servicios de organización de excursiones» (Anexo 20 v4.0). Antes era
+// 90121500, que es la FAMILIA «Agentes de viajes», no un servicio. Cada
+// experiencia puede traer la suya en `data.fiscal.claveProdServ`; la de la
+// comisión de plataforma (Fase 3) es 80141628. Ver MAPA-FACTURACION.md §0.4.
+export const CLAVE_PROD_SERV_EXPERIENCIA = process.env.FACTURAPI_CLAVE_PROD_SERV || "90121501";
 const CLAVE_UNIDAD = process.env.FACTURAPI_CLAVE_UNIDAD || "E48"; // Unidad de servicio
-// Forma de pago default: 04 = Tarjeta de crédito (Stripe cobra con tarjeta).
-const FORMA_PAGO = process.env.FACTURAPI_FORMA_PAGO || "04";
+// Forma de pago default: 04 = Tarjeta (Stripe). Transferencia = 03, efectivo = 01.
+const FORMA_PAGO_DEFAULT = process.env.FACTURAPI_FORMA_PAGO || "04";
 
 export function facturacionActiva(): boolean {
   return !!process.env.FACTURAPI_SECRET_KEY;
@@ -45,14 +47,28 @@ export type FacturaTimbrada = {
   iva: number;
 };
 
-// Crea y timbra un CFDI de ingreso. `totalConIva` = lo que pagó el cliente (MXN).
-// `descripcion` = concepto (ej. "Experiencia Caminante — Ensenada de Muertos").
+/** Una línea del CFDI. Los precios INCLUYEN IVA (así se cobran); Facturapi desglosa. */
+export type Concepto = {
+  descripcion: string;
+  cantidad: number;
+  /** Precio unitario CON IVA, en MXN. */
+  precioUnitarioConIva: number;
+  /** Descuento total de la línea CON IVA (p. ej. un código de descuento). */
+  descuentoConIva?: number;
+  claveProdServ?: string;
+};
+
+// Crea y timbra un CFDI de ingreso con uno o varios conceptos (viaje por
+// persona, cada complemento con su clave, el descuento como `discount`).
 export async function crearFacturaIngreso(input: {
   receptor: ReceptorFiscal;
-  totalConIva: number;
-  descripcion: string;
+  conceptos: Concepto[];
+  /** c_FormaPago: 04 tarjeta · 03 transferencia · 01 efectivo. */
+  formaPago?: string;
 }): Promise<FacturaTimbrada> {
-  const { receptor, totalConIva, descripcion } = input;
+  const { receptor, conceptos } = input;
+  if (!conceptos.length) throw new Error("La factura no tiene conceptos.");
+  const totalConIva = conceptos.reduce((n, c) => n + c.cantidad * c.precioUnitarioConIva - (c.descuentoConIva ?? 0), 0);
 
   const body = {
     customer: {
@@ -62,21 +78,20 @@ export async function crearFacturaIngreso(input: {
       email: receptor.email.trim(),
       address: { zip: receptor.codigoPostal.trim() },
     },
-    items: [
-      {
-        quantity: 1,
-        product: {
-          description: descripcion,
-          product_key: CLAVE_PROD_SERV,
-          unit_key: CLAVE_UNIDAD,
-          price: Number(totalConIva.toFixed(2)),
-          tax_included: true,
-          taxes: [{ type: "IVA", rate: 0.16, factor: "Tasa" }],
-        },
+    items: conceptos.map((c) => ({
+      quantity: c.cantidad,
+      ...(c.descuentoConIva && c.descuentoConIva > 0 ? { discount: Number(c.descuentoConIva.toFixed(2)) } : {}),
+      product: {
+        description: c.descripcion,
+        product_key: c.claveProdServ || CLAVE_PROD_SERV_EXPERIENCIA,
+        unit_key: CLAVE_UNIDAD,
+        price: Number(c.precioUnitarioConIva.toFixed(2)),
+        tax_included: true,
+        taxes: [{ type: "IVA", rate: 0.16, factor: "Tasa" }],
       },
-    ],
+    })),
     use: receptor.usoCfdi.trim(),
-    payment_form: FORMA_PAGO,
+    payment_form: input.formaPago || FORMA_PAGO_DEFAULT,
     payment_method: "PUE",
   };
 
