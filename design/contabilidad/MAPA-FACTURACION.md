@@ -13,6 +13,179 @@ correo+monto) y `/caminante/admin/facturacion`. Todo apagado por
 
 ---
 
+---
+
+## 0 · MODELO FISCAL — definido con Luis el 9 nov 2026
+
+**Operamos como Airbnb.** Así factura Airbnb en México (fuentes al pie):
+el **anfitrión emite el CFDI al huésped** por el hospedaje (a su RFC si lo pide,
+o lo mete en su global); **Airbnb emite su propio CFDI por su tarifa de
+servicio** (con IVA); y Airbnb, como plataforma que cobra por cuenta del
+anfitrión, **le retiene ISR e IVA y le entrega cada mes un CFDI de retenciones**.
+Airbnb nunca factura el hospedaje: sólo intermedia.
+
+Traducido a Caminante:
+
+| Quién | Qué emite | A quién |
+|---|---|---|
+| **La operadora** (DRUIDAS para las experiencias propias; Nomádika; Kéntro) | CFDI de ingreso por la experiencia, con su CSD, desde el portal (**B1**) | al cliente (o global **B1g**) |
+| **NUMAN HUB** (la plataforma) | CFDI de ingreso por la **comisión de plataforma + IVA** (**B2**) | a la operadora |
+| **NUMAN HUB** | CFDI de **retenciones e información de pagos** (**R1**), mensual | a cada operadora persona física (y a morales si la reforma 2026 lo exige: ver abajo) |
+| NUMAN HUB | nada por lo que deposita (**liquidación**): es dinero de la operadora cobrado por su cuenta | — |
+
+### 0.1 La nueva pieza: DRUIDAS
+
+Se constituye una **empresa de turismo (DRUIDAS)** que será la operadora de las
+experiencias propias (Caminante; Kéntro conserva su RFC). **NUMAN HUB queda
+como la plataforma**: software, cobro y comisión. Consecuencias:
+
+- NUMAN **ya no necesita** dar de alta turismo en el SAT: factura servicios de
+  plataforma (comisión) y nada más. Cierra la «omisión» de la CSF.
+- DRUIDAS nace con las actividades de turismo en su CSF **desde el acta**
+  (agencias de viajes / organización de excursiones), su e.firma y su **CSD**;
+  en Facturapi tiene su propia organización. En la base es una fila de
+  `operators` (`propia = true`), y la fila `numan-caminante` deja de ser
+  operadora: NUMAN es `es_la_casa` (plataforma), DRUIDAS es la casa que vende.
+- **Mientras DRUIDAS no exista**, las ventas propias no tienen emisor turístico
+  limpio. Decisión: las ventas de la casa se facturan al cliente **cuando
+  DRUIDAS tenga CSD**; hasta entonces se acumulan `por-emitir` (y Marisol decide
+  si las ventas de 2026 anteriores a DRUIDAS las emite NUMAN como hasta hoy).
+  Nomádika **sí puede arrancar antes**: en cuanto suba su CSD.
+- NUMAN le factura a DRUIDAS la comisión (B2) igual que a cualquier operadora.
+  Es una operación entre partes relacionadas: la contadora fija el **precio de
+  transferencia** (la escala pública es defendible porque es la misma que paga
+  Nomádika).
+- Tiempo realista: acta + RFC + e.firma + CSD + alta de actividades: **4 a 8
+  semanas**. Arrancar YA; la Fase 1 (datos fiscales en Mi espacio) se construye
+  en paralelo porque no depende de DRUIDAS.
+
+### 0.2 Operadoras persona física (serán muchas) — qué tiene que pasar
+
+Fuentes: LISR 113-A a 113-C, LIVA 18-J; guías 2026 al pie. **Las tasas exactas
+las confirma la contadora** porque las fuentes se contradicen en una (ver ⚠️).
+
+1. **La plataforma retiene.** Cuando NUMAN cobra por cuenta de una persona
+   física y le deposita, debe **retener ISR e IVA** sobre el ingreso SIN IVA de
+   cada venta y enterarlos al SAT **a más tardar el 17 del mes siguiente**.
+   - IVA: **50 % del IVA trasladado** (8 % del precio sin IVA) si da RFC; **100 %**
+     si no.
+   - ISR por «prestación de servicios» (lo nuestro: no es hospedaje ni
+     transporte): la LISR dice **1 %**; varias guías afirman que la **Ley de
+     Ingresos 2026 lo subió a 2.5 %**. ⚠️ Marisol lo confirma contra la LIF 2026.
+     Sin RFC: **20 %**.
+2. **CFDI de retenciones mensual** (complemento «Servicios Plataformas
+   Tecnológicas») de NUMAN a cada operadora, y la declaración informativa.
+   Es el documento **R1** del mapa; se emite por Facturapi.
+3. **La operadora cambia de régimen**: debe darse de alta en el **Régimen de
+   actividades empresariales con ingresos a través de plataformas tecnológicas
+   (625)**. ⚠️ **RESICO es incompatible** con ingresos por plataformas (113-E y
+   RMF 3.13.3): una operadora en RESICO tiene que salirse o no puede vender por
+   Caminante. Esto va en el **onboarding** («Mi alta»): el expediente pide el
+   régimen y el gate `listo-para-vender` rechaza RESICO y «sin régimen».
+4. **Pago definitivo**: si sus ingresos anuales no pasan de **$300,000**, puede
+   optar por que la retención sea su impuesto final (menos carga para ella). Se
+   le explica en el onboarding; la opción la ejerce ella ante el SAT.
+5. **Ella sigue facturando al cliente** (B1) y su CFDI lleva, si la contadora lo
+   indica, el complemento de plataformas tecnológicas. El portal lo timbra con
+   su CSD; ella no hace nada.
+6. **Lo que ve en su liquidación**: cobrado − devuelto − comisión(+IVA) −
+   **retenciones** = lo que se le deposita. El convenio lo dice con números.
+
+⚠️ **Personas morales (Kéntro, DRUIDAS):** varias guías 2026 afirman que la
+reforma extendió la retención a personas morales residentes (4 % ISR ó 2.5 %
+según la fuente, y 8 % IVA). Si es así, B2 y R1 aplican igual a Kéntro y a
+DRUIDAS. Marisol confirma; el código trae las tasas en **configuración por tipo
+de persona**, nunca quemadas.
+
+### 0.3 La comisión de Stripe va DENTRO de la comisión de NUMAN
+
+Decidido: NUMAN la absorbe (el código ya lo hace: la liquidación es cobrado −
+devuelto − comisión, sin restar Stripe). Se corrige la decisión del 13 ago en
+el plan de Connect y el **convenio** lo dice así. Con Connect, igual:
+`application_fee` = comisión + IVA y NUMAN paga el fee de Stripe.
+
+### 0.4 Claves SAT para la experiencia (c_ClaveProdServ, Anexo 20 v4.0)
+
+Familia **9012 «Facilitación de viajes»**:
+
+| Clave | Descripción oficial | Cuándo |
+|---|---|---|
+| **90121501** | Servicios de organización de excursiones | **la clave por defecto de toda experiencia** (B1): es literalmente lo que vende una operadora |
+| 90121502 | Agencias de viajes | si la operadora se asume como agencia (revende hospedaje y transporte de terceros) |
+| 90121701 | Guías locales o de excursiones | experiencia que es sólo guía (sin hospedaje ni logística) |
+| 90111501 / 90111800 | Hoteles / campamentos | sólo si la contadora pide **desglosar** el hospedaje como concepto aparte |
+| 78111800 | Transporte de pasajeros por carretera | complemento de transporte vendido aparte (el tren de Barrancas) |
+| **80141628** | Servicio de distribuidores por comisión | **la comisión de NUMAN a la operadora (B2)**; el propio SAT la sugiere para comisiones mercantiles |
+| 80141706 | Servicio de intermediación de productos | alternativa para B2 si la contadora prefiere «intermediación» |
+
+Reglas: **un concepto por línea cobrada** (viaje por persona; cada complemento
+con su clave; el descuento como `Descuento` del concepto); objeto de impuesto
+**02** (sí objeto de IVA, 16 %); unidad **E48 «Unidad de servicio»**; método
+**PUE** (se paga en una exhibición antes del viaje); forma de pago **04**
+tarjeta / **03** transferencia / **01** efectivo — y en el B1 de la operadora,
+como el dinero lo cobró NUMAN, la contadora decide si va **31 «Intermediario
+pagos»** (existe exactamente para esto) o la forma con que pagó el cliente.
+**Hoy el default del código es 90121500 («Agentes de viajes»), que es la
+familia, no un servicio: se cambia a 90121501.** La clave y el uso CFDI
+(G03 gastos en general por defecto; S01 para quien no deduce) se guardan **por
+experiencia** con el default de arriba, para que una experiencia con hospedaje
+desglosado o un complemento de transporte no se facture mal.
+
+### 0.5 Devoluciones: nota de crédito, cancelación o nada
+
+| Caso | Qué conviene | Por qué |
+|---|---|---|
+| Aún **no se emitió** CFDI (la mayoría: el cliente pide factura después) | **Nada.** El pago pasa a `no-facturable` y no entra en la global | no hay documento que corregir |
+| Devolución **parcial** (50 % por la política, o un complemento) | **CFDI de egreso** (nota de crédito) relacionado al de ingreso, tipo de relación 01 | la operación SÍ ocurrió; el egreso resta ingreso e IVA sin tocar el original |
+| Devolución **total** y la salida no ocurrió, **dentro del mismo mes** | **Cancelar** con motivo **03 «No se llevó a cabo la operación»** | es lo que el SAT prevé para eso; deja el periodo limpio. Si el CFDI pasa de $1,000 el receptor tiene 3 días hábiles para aceptar; si no responde, se acepta solo |
+| Devolución **total** después de cerrado el mes (IVA ya declarado) | **Egreso** por el total | cancelar un periodo declarado obliga a complementaria; el egreso lo ajusta en el mes en que se devuelve |
+| Comisión (B2) cuando hay devolución | **Egreso proporcional** NUMAN → operadora | la comisión vuelve en la misma proporción que el cobro (`netoDelPago`) |
+| Concesión al liquidar (L1) | **Egreso** sobre B2 | es un descuento posterior sobre la comisión, no un error |
+
+**Por qué no «cancelar siempre»:** desde 2026 la cancelación de un CFDI con
+complemento de pago exige aceptación aunque sea menor a $1,000 y el SAT multa
+las cancelaciones fuera de plazo; la nota de crédito nunca depende del
+receptor. **Por qué no «egreso siempre»:** si la experiencia no ocurrió,
+sostener un ingreso y un egreso iguales es ruido en la contabilidad y en la
+conciliación con La Caja. La regla de arriba es la propuesta; Marisol la fija y
+el código la lee como configuración (`mismo_mes → cancelar | egreso`).
+
+### 0.6 El pasado: lo que Marisol emitió por fuera
+
+Marisol ha venido emitiendo los CFDI del 2026 por fuera, sin dejar registro en
+Drive ni en la base. **Antes del primer timbre del sistema**, ella entrega la
+lista de UUIDs emitidos (basta exportar del portal del SAT «facturas emitidas»
+de NUMAN HUB) y un script la cruza contra los 82 cobros por monto y fecha:
+
+- cruza → `payments.status_cfdi = 'emitido'` + fila en `cfdi_invoices` con el
+  UUID (sin XML si no lo tiene; se puede descargar del SAT después);
+- entró en una global suya → `publico-general`;
+- lo que no cruce queda `por-emitir` y se decide uno por uno.
+
+Y hacia adelante, **la regla de oro aplica**: todo CFDI que emita el sistema se
+archiva en `cfdi_invoices` + Storage y se drena a La Caja (Fase 5). Lo que
+Marisol emita a mano, si algo, se registra en la misma tabla desde el panel.
+
+### 0.7 Una sola ficha fiscal por cuenta — de acuerdo
+
+Una ficha por cuenta, editable. Quien necesite facturar a otro RFC (su
+empresa) la cambia antes de pedir la factura; la factura guarda la ficha
+**congelada** en `cfdi_invoices`, así que cambiarla después no reescribe nada.
+Si en seis meses aparecen diez personas que alternan dos RFC, se agrega un
+selector; hoy sería un control para nadie.
+
+### Fuentes consultadas (9 nov 2026)
+
+- Airbnb en México: [Facturación CFDI para hosts de Airbnb (Host Tax)](https://hosttax.mx/recursos/facturacion-airbnb) · [¿Se puede facturar Airbnb? (Praxium)](https://praxiumconsultores.com/blog/puedo-pedir-factura-de-airbnb-como-huesped) · [Impuestos Airbnb 2026 (Heru)](https://www.heru.app/blog/impuestos-airbnb-mexico/) · [Ayuda de Airbnb](https://es-l.airbnb.com/help/article/1857)
+- Régimen de plataformas: [Guía 2026 (Praxium)](https://praxiumconsultores.com/blog/regimen-plataformas-digitales-guia-2026) · [Art. 113-A comentado (SDV)](https://sdv.com.mx/compendio/ley-isr/articulo-113-a/) · [Retenciones 2026 (Contarito)](https://contarito.com.mx/blog/retenciones-plataformas-digitales-2026-tabla-actualizada/) · [Personas morales 2026 (Camacho Limón)](https://camacholimon.com/retenciones-personas-morales-plataformas-digitales-2026/) · [Régimen 625 (SATFácil)](https://www.satfacil.com.mx/regimen/625-plataformas-tecnologicas) · [RESICO y plataformas (Mercado Pago)](https://www.mercadopago.com.mx/blog/que-es-resico-para-vendedores-plataformas) · [Obligaciones de las plataformas (Siempre al día)](https://siemprealdia.co/mexico/fiscal/obligaciones-fiscales-de-las-plataformas-digitales/)
+- Claves SAT: [90121500 y familia 9012 (veinte.mx)](https://veinte.mx/catalogos/servicios/grupo/9012) · [Anexo 20 v4.0 90121500 (GNCYS)](https://www.gncys.com/anexo20/4.0/claveprodserv/90121500) · [80141628 distribuidores por comisión](https://veinte.mx/catalogos/clave/80141628) · [80141706 intermediación](https://veinte.mx/catalogos/clave/80141706) · [Sugerencia del SAT: servicios de comisión (PDF)](http://omawww.sat.gob.mx/informacion_fiscal/factura_electronica/Documents/Sugerencia_PyS/Ser_comision.pdf) · [Forma de pago 31 (Facturama)](https://facturama.mx/blog/que-significa/forma-de-pago-sat-intermediarios/)
+- Cancelación vs egreso: [Cancelación de CFDI 2026 (Alegra)](https://blog.alegra.com/mexico/cancelacion-de-cfdi-paso-a-paso/) · [Reglas de aceptación 2026 (Carbajal)](https://carbajalcontadores.com/2026/08/01/cancelacion-cfdi-2026-nuevas-reglas-aceptacion-receptor-plazos-sat/) · [Motivos y plazos (Ortiz Garza)](https://www.ortizgarza.com.mx/guias/cancelacion-cfdi/)
+
+Son guías de despachos y proveedores, no el DOF: **las tasas y la regla de
+cancelación las valida Marisol** antes de quedar en configuración.
+
+---
+
 ## 1 · Lo que hay en la caja hoy (verificado contra la base, 9 nov 2026)
 
 | | |
@@ -286,7 +459,7 @@ Mismo mapa; se quita la liquidación por banco. Lo pendiente de Luis está en
 
 ## 4 · Decisiones que no son mías
 
-Para Luis (y la contadora donde se indica). **Sin estas, la Fase 1 no arranca.**
+**Resueltas el 9 nov (ver §0):** 1 (Airbnb), 3 (Stripe dentro de la comisión de NUMAN), 7 (Marisol entrega UUIDs), 8 (NUMAN deja de ser operadora; nace DRUIDAS), 9 (una ficha). **Quedan para Marisol:** 2 (tasas exactas y si alcanza a morales), 4 (confirmar claves de §0.4), 5 (confirmar regla de §0.5), 6 (global mensual).
 
 1. **Modelo fiscal para el canal `casa`**: Airbnb (B1+B2, lo propuesto) o
    reventa. *Contadora.*
