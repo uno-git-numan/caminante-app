@@ -5,7 +5,8 @@
 import { revalidatePath } from "next/cache";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { enviarCFDIPorCorreo, facturacionActiva } from "@/lib/facturacion/facturapi";
+import { clienteFacturapi, facturacionActiva, llaveDeLaCasa } from "@/lib/facturacion/facturapi";
+import { emisorDeOperadora } from "@/lib/facturacion/emisor";
 
 // Reenvía por correo un CFDI ya timbrado (Facturapi adjunta XML+PDF).
 export async function reenviarCFDI(formData: FormData): Promise<void> {
@@ -17,11 +18,17 @@ export async function reenviarCFDI(formData: FormData): Promise<void> {
   const sb = createSupabaseAdminClient();
   const { data: inv } = await sb
     .from("cfdi_invoices")
-    .select("facturapi_id, email, status")
+    .select("facturapi_id, email, status, emisor_operator_id")
     .eq("id", invoiceId)
     .maybeSingle();
   if (inv?.status === "stamped" && inv.facturapi_id) {
-    await enviarCFDIPorCorreo(inv.facturapi_id as string, (inv.email as string) || undefined);
+    // Con la llave de quien la emitió: la operadora de la venta, o la casa.
+    let key = llaveDeLaCasa();
+    if (inv.emisor_operator_id) {
+      const e = await emisorDeOperadora(inv.emisor_operator_id as string);
+      if (e.ok) key = e.emisor.key;
+    }
+    await clienteFacturapi(key).enviarCFDIPorCorreo(inv.facturapi_id as string, (inv.email as string) || undefined);
   }
   revalidatePath("/caminante/admin/facturacion");
 }
