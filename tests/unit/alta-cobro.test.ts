@@ -100,6 +100,7 @@ const st = vi.hoisted(() => ({
   env: "" as string,
   fila: null as Record<string, unknown> | null,
   creadas: [] as Record<string, unknown>[],
+  creadasV2: [] as Record<string, unknown>[],
   actualizadas: [] as [string, Record<string, unknown>][],
   personas: [] as [string, Record<string, unknown>][],
   recuperada: { id: "acct_x", controller: { requirement_collection: "stripe" } } as Record<string, unknown>,
@@ -114,6 +115,7 @@ vi.mock("@/lib/payments/stripe", () => ({
       createPerson: async (id: string, p: Record<string, unknown>) => { st.personas.push([id, p]); return { id: "person_1" }; },
       retrieve: async () => st.recuperada,
     },
+    v2: { core: { accounts: { create: async (p: Record<string, unknown>) => { st.creadasV2.push(p); return { id: "acct_v2" }; } } } },
   }),
 }));
 vi.mock("@/lib/operadores/emails", () => ({ emailStripeListo: async () => undefined }));
@@ -139,7 +141,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 import { completarAltaCobro } from "@/lib/payments/connect";
 
 beforeEach(() => {
-  st.creadas = []; st.actualizadas = []; st.personas = []; st.escrituras = [];
+  st.creadas = []; st.creadasV2 = []; st.actualizadas = []; st.personas = []; st.escrituras = [];
   st.fila = { id: "op-1", name: "Kéntro", email: "k@example.com", slug: "kentro", tipo_persona: "fisica", stripe_account_id: null, stripe_onboarded_at: null };
   delete process.env.COBRO_EN_PLATAFORMA;
 });
@@ -198,11 +200,24 @@ describe("completarAltaCobro", () => {
     expect(st.personas).toEqual([["acct_p", { person_token: "ptoken_a" }], ["acct_p", { person_token: "ptoken_b" }]]);
   });
 
-  it("apagada: la cuenta nueva sigue siendo Express, como hoy", async () => {
+  it("apagada: la cuenta nueva va por Accounts v2, dashboard completo y pérdidas a Stripe (lo que LIVE exige)", async () => {
     const { crearCuentaConectada } = await import("@/lib/payments/connect");
     const r = await crearCuentaConectada("op-1");
     expect(r.ok).toBe(true);
-    expect((st.creadas[0] as { type?: string }).type).toBe("express");
-    expect((st.creadas[0] as { controller?: unknown }).controller).toBeUndefined();
+    expect(st.creadas).toHaveLength(0);
+    const c = st.creadasV2[0] as {
+      dashboard?: string;
+      identity?: { country?: string; entity_type?: string };
+      configuration?: { merchant?: unknown; recipient?: { capabilities?: { stripe_balance?: { stripe_transfers?: { requested?: boolean } } } } };
+      defaults?: { responsibilities?: { losses_collector?: string; fees_collector?: string } };
+      metadata?: { operator_id?: string };
+    };
+    expect(c.dashboard).toBe("full");
+    expect(c.defaults?.responsibilities).toEqual({ fees_collector: "stripe", losses_collector: "stripe" });
+    expect(c.identity).toEqual({ country: "mx", entity_type: "individual" });
+    expect(c.configuration?.merchant).toBeDefined();
+    // Sin `recipient` el cargo con destino rebota (probado en test el 9 nov).
+    expect(c.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.requested).toBe(true);
+    expect(c.metadata?.operator_id).toBe("op-1");
   });
 });

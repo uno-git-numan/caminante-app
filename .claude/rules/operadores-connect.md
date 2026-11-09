@@ -60,16 +60,19 @@ cuando Stripe ya lo apagó.
 si el flujo no está completo, **no se vende**. ⚠️ Hasta el 22 sep 2026 **nadie lo
 llamaba en ninguna puerta** aunque su encabezado prometiera tres; hoy lo llama
 `candadosDe` (`lib/experiences/candados-venta.ts`), que es la única puerta de
-publicar y cobrar. Cinco condiciones, todas verificables — ninguna es casilla
-de honor:
+publicar y cobrar. **Cuatro condiciones desde el 9 nov 2026**, todas verificables:
 
-1. `stripe_charges_enabled` — lo dice **Stripe**, no nosotros. Lo escribe el
-   webhook `account.updated`; que exista la cuenta no significa KYC completo.
-2. CSD `.cer` **y** `.key` presentes y vigentes (caduca a los 4 años).
-3. Datos fiscales del emisor completos + `tipo_persona` (define si hay retención
-   de ISR e IVA; Numan es corresponsable solidaria).
-4. `convenio_firmado_at` — la fecha de firma, no una casilla marcada.
-5. `commission_pct` no NULL.
+1. `stripe_charges_enabled` — lo dice **Stripe**, no nosotros.
+2. `tipo_persona` (física o moral): define retenciones y qué papeles se piden.
+3. `convenio_firmado_at` — la fecha de firma, no una casilla marcada.
+4. Comisión resuelta: `commission_pct` o `comision_desde`.
+
+⚠️ **El CSD y los datos fiscales YA NO detienen la venta** (Luis, 9 nov 2026,
+haciendo el alta de Nomádika en vivo: «si quieren facturación, que se prenda en
+un paso posterior, pero no sea un cuello para empezar a cobrar»). La facturación
+desde la plataforma es opcional y vive en Cobrar, sección 2. Si no la prende, la
+operadora le factura a su cliente por fuera. En los seis candados del tablero el
+del CSD se volvió «Física o moral».
 
 Un operador **sin** `stripe_account_id` no está en Connect y el gate lo deja pasar
 (`requiereConnect`). Esa es la bandera por operador: el camino que hoy mueve
@@ -77,6 +80,20 @@ dinero real no se toca.
 
 Usa **`COLUMNAS_GATE`** para el `select`; si un call site inventa el suyo y omite
 una columna, llega `undefined` y el gate la reporta faltante estando llena.
+
+## La cuenta conectada: Accounts v2, dashboard completo (9 nov 2026)
+
+En LIVE Stripe rechazó la cuenta Express de siempre: «Use Accounts v2, remove
+type, and set losses_collector to stripe». Probado en test: con pérdidas a
+Stripe **sólo existe el dashboard completo** (`express` + `stripe` = «configuration
+is not supported»). `crearCuentaV2` (`lib/payments/connect.ts`) la crea con
+`configuration.merchant` (card_payments, MCC 4722) **y** `configuration.recipient`
+(`stripe_balance.stripe_transfers`): sin la segunda el cargo con destino rebota.
+El estado y el Account Link siguen por la API v1, que ve la cuenta como
+`standard`. En cargo con destino el fee de Stripe lo sigue pagando la
+plataforma: el reparto del dinero no cambió. ⚠️ La bandera `COBRO_EN_PLATAFORMA`
+crea cuentas con pérdidas a la plataforma y **no se puede prender tal cual** en
+LIVE.
 
 ## Dónde vive qué
 

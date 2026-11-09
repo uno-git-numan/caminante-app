@@ -1,7 +1,8 @@
 "use client";
 
 // Los pasos del onboarding de Connect para UN operador, con su semáforo arriba.
-// El orden es el del plan: conectar Stripe → subir su CSD → datos fiscales.
+// El orden (9 nov 2026): conectar la cuenta de cobro, que es lo único que hace
+// falta para cobrar · y aparte, opcional, la facturación (datos fiscales → CSD).
 
 import { useState } from "react";
 import { pedirLinkStripe, refrescarConexion, guardarFiscales, guardarCsd } from "@/lib/payments/connect-actions";
@@ -221,8 +222,58 @@ export default function CobrosPanel({
         </>
       )}
 
-      {/* ── Paso 2 · CSD ───────────────────────────────────────────── */}
-      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>2 · Sube su CSD</h3>
+      {/* ── Facturación: opcional, después (Luis, 9 nov 2026) ──────── */}
+      {/* «Facilitemos todo para poder cobrar lo antes posible… y si quieren
+          facturación, que se prenda en un paso posterior, pero no sea un
+          cuello para empezar a cobrar.» Hasta hoy eran los pasos 2 y 3 y los
+          dos detenían la venta. Ahora no detienen nada: si no se prende, la
+          operadora le factura a su cliente por fuera, como siempre. */}
+      <h3 id="facturacion" style={{ fontSize: 15, margin: "30px 0 4px", paddingTop: 14, borderTop: "1px solid var(--sand)" }}>
+        2 · Facturación desde Caminante <span className="mut" style={{ fontWeight: 400, fontSize: 12.5 }}>· opcional, cuando quieras</span>
+      </h3>
+      <p className="mut" style={{ fontSize: 12.5, margin: "0 0 4px" }}>
+        No hace falta para cobrar. Si la prendes, timbramos a tu nombre las facturas de tus viajeros y el
+        comprobante de cada pago. Si no, facturas por tu cuenta como siempre.
+      </p>
+      <h3 style={{ fontSize: 14, margin: "14px 0 6px" }}>A · Sus datos fiscales</h3>
+      <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
+        Son los del <b>emisor</b> del CFDI que recibirá su cliente. También se editan desde su
+        convenio: es el mismo dato, no dos.
+      </p>
+      <form onSubmit={guardar}>
+        <div className="mini-form" style={{ alignItems: "start" }}>
+          <label>
+            RFC
+            <input value={rfc} onChange={(e) => setRfc(e.target.value)} maxLength={13} placeholder="XAXX010101000" />
+          </label>
+          <label>
+            Razón social
+            <input value={razonSocial} onChange={(e) => setRazonSocial(e.target.value)} maxLength={200} />
+          </label>
+          <label>
+            Régimen fiscal (clave SAT)
+            <input value={regimenFiscal} onChange={(e) => setRegimenFiscal(e.target.value)} maxLength={3} placeholder="601" />
+          </label>
+          <label>
+            C.P. fiscal
+            <input value={cpFiscal} onChange={(e) => setCpFiscal(e.target.value)} maxLength={5} placeholder="56760" />
+          </label>
+          <label>
+            Persona
+            <select value={tipoPersona} onChange={(e) => setTipoPersona(e.target.value)}>
+              <option value="">Sin definir</option>
+              <option value="fisica">Física</option>
+              <option value="moral">Moral</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit" className="btn btn-orange btn-sm" style={{ marginTop: 10 }} disabled={ocupado !== ""}>
+          {ocupado === "fiscales" ? "Guardando…" : "Guardar datos fiscales"}
+        </button>
+      </form>
+
+      {/* ── B · CSD ─────────────────────────────────────────────────── */}
+      <h3 style={{ fontSize: 14, margin: "18px 0 6px" }}>B · Su CSD (para timbrar)</h3>
       <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
         Los <b>dos</b> archivos que le dio el SAT: el <code>.cer</code> y el <code>.key</code>. Van a
         un bucket privado y solo se ven por liga firmada de 5 minutos.{" "}
@@ -259,44 +310,6 @@ export default function CobrosPanel({
         </p>
         <button type="submit" className="btn btn-sm" style={{ marginTop: 10 }} disabled={ocupado !== ""}>
           {ocupado === "csd" ? "Subiendo…" : "Subir CSD"}
-        </button>
-      </form>
-
-      {/* ── Paso 3 · Datos fiscales ────────────────────────────────── */}
-      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>3 · Sus datos fiscales</h3>
-      <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
-        Son los del <b>emisor</b> del CFDI que recibirá su cliente. También se editan desde su
-        convenio: es el mismo dato, no dos.
-      </p>
-      <form onSubmit={guardar}>
-        <div className="mini-form" style={{ alignItems: "start" }}>
-          <label>
-            RFC
-            <input value={rfc} onChange={(e) => setRfc(e.target.value)} maxLength={13} placeholder="XAXX010101000" />
-          </label>
-          <label>
-            Razón social
-            <input value={razonSocial} onChange={(e) => setRazonSocial(e.target.value)} maxLength={200} />
-          </label>
-          <label>
-            Régimen fiscal (clave SAT)
-            <input value={regimenFiscal} onChange={(e) => setRegimenFiscal(e.target.value)} maxLength={3} placeholder="601" />
-          </label>
-          <label>
-            C.P. fiscal
-            <input value={cpFiscal} onChange={(e) => setCpFiscal(e.target.value)} maxLength={5} placeholder="56760" />
-          </label>
-          <label>
-            Persona
-            <select value={tipoPersona} onChange={(e) => setTipoPersona(e.target.value)}>
-              <option value="">Sin definir</option>
-              <option value="fisica">Física</option>
-              <option value="moral">Moral</option>
-            </select>
-          </label>
-        </div>
-        <button type="submit" className="btn btn-orange btn-sm" style={{ marginTop: 10 }} disabled={ocupado !== ""}>
-          {ocupado === "fiscales" ? "Guardando…" : "Guardar datos fiscales"}
         </button>
       </form>
 

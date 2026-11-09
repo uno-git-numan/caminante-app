@@ -93,7 +93,7 @@ export default async function ExpedientePage({
           </p>
         </div>
       </div>
-      <Expediente datos={datos} traido={traido} porOtra={porOtra} />
+      <Expediente datos={datos} operadoraId={operatorId} traido={traido} porOtra={porOtra} />
     </AdminShell>
   );
 }

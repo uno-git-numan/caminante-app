@@ -23,6 +23,7 @@ import { Declarar, Mandar, Quitar } from "./expediente/Expediente";
 import Copiar from "./Copiar";
 import ResumenTerminos from "./ResumenTerminos";
 import RenglonDoc from "./RenglonDoc";
+import TipoPersona from "./TipoPersona";
 import Convenio, { type DatosFirma } from "./convenio/Convenio";
 import { guardarTipoPersona } from "@/lib/payments/connect-actions";
 import type { SolicitudEnviada } from "@/lib/operadores/mi-alta";
@@ -208,6 +209,7 @@ export default function MiAlta({
         {viendo === 1 && datos.expediente ? (
           <Expediente02
             e={datos.expediente}
+            operadoraId={datos.operadora?.id ?? null}
             dispensas={datos.dispensas.filter((d) => d.vigente)}
             porOtra={porOtra}
           />
@@ -419,9 +421,9 @@ function Paso03({
           <p className="calm">
             <s>{"//"}</s>
             <span className="g">
-              <b>Una sociedad firma con acta y poder</b>
+              <b>Una empresa firma por su representante legal</b>
               <span>
-                El acta constitutiva y el poder del representante van en Lo general. El nombre de quien firma tiene que ser el mismo del poder. Sin él la firma no obliga a la sociedad.
+                Firma quien la representa, y su identificación {idSubida && idSubida.estado !== "falta" ? "ya está" : "va"} en Lo general. Si tienes el acta constitutiva y el poder a la mano, súbelos: es opcional, y nos ayuda a confirmar que quien firma puede obligar a la empresa.
               </span>
             </span>
           </p>
@@ -492,9 +494,9 @@ function Paso04({
   const publicadas = datos.experiencias.filter((e) => e.estado === "published");
   const f = datos.fiscal;
   const fiscalOK = !!(f.rfc && f.razonSocial && f.regimen && f.cp);
-  const csdOK = datos.candados.find((c) => c.clave === "csd")?.cumplido ?? false;
+  // El CSD ya no es candado (9 nov 2026): se lee de lo que trae la ficha.
+  const csdOK = Boolean(datos.fiscal.csd);
   const cuentaOK = datos.candados.find((c) => c.clave === "connect")?.cumplido ?? false;
-  const cobrarN = [fiscalOK, csdOK, cuentaOK].filter(Boolean).length;
   const comision = datos.candados.find((c) => c.clave === "comision")?.detalle ?? "";
   const armarEstado = lectura ? "Cuando firmes" : publicadas.length ? "Publicada" : "Ya puedes";
 
@@ -594,45 +596,53 @@ function Paso04({
         </div>
 
         <div className="mitad cobrar">
+          {/* ⚠️ COBRAR ES UNA SOLA COSA (Luis, 9 nov 2026): «Facilitemos todo
+              para poder cobrar lo antes posible… y si quieren facturación, que
+              se prenda en un paso posterior». Antes eran tres —datos fiscales,
+              CSD y cuenta— y las tres detenían la venta. Hoy la cuenta de cobro
+              es lo único; facturar desde aquí es opcional y va debajo. */}
           <div className="mh">
             <b>Cobrar</b>
-            <span className="fr" style={cobrarN === 3 ? { color: "var(--olive-d)" } : undefined}>
-              {lectura ? "Esto se te va a pedir" : cobrarN === 3 ? "Listo" : `Falta ${3 - cobrarN} de 3`}
+            <span className="fr" style={cuentaOK ? { color: "var(--olive-d)" } : undefined}>
+              {lectura ? "Esto se te va a pedir" : cuentaOK ? "Listo" : "Falta tu cuenta"}
             </span>
-            <small>Tus datos fiscales, tu CSD y tu cuenta de cobro. Sin esto no publicamos: el cobro no tendría a dónde llegar.</small>
+            <small>Tu cuenta de cobro: a ella entra el dinero de tus ventas, a tu nombre. Es lo único que hace falta para cobrar.</small>
           </div>
           <div className="mb">
             <div className="subh" style={{ marginTop: 0 }}>
-              <b>Datos fiscales</b>
-              {fiscalOK ? (
-                <span className="chip c-paid"><span className="cd" />Completos</span>
-              ) : null}
-            </div>
-            <div className="pf">
-              <Renglon k="RFC" v={f.rfc} />
-              <Renglon k="Razón social" v={f.razonSocial} />
-              <Renglon k="Régimen fiscal" v={f.regimen} />
-              <Renglon k="Código postal fiscal" v={f.cp} />
-            </div>
-            <div className="subh">
-              <b>Certificado de Sello Digital</b>
-              <small>Con él timbramos las facturas de tus viajeros a tu nombre.</small>
-            </div>
-            <p className="gnhint" style={{ marginTop: 0 }}>{csdOK ? "Cargado." : "Sin cargar."}</p>
-            <div className="subh">
               <b>Cuenta de cobro</b>
               {cuentaOK ? (
                 <span className="chip c-paid"><span className="cd" />Verificada</span>
               ) : null}
             </div>
             <p className="gnhint" style={{ marginTop: 0 }}>
-              {cuentaOK ? "Verificada: tus ventas pueden entrar a tu nombre." : "Sin conectar."}
+              {cuentaOK
+                ? "Verificada: tus ventas pueden entrar a tu nombre."
+                : "Sin conectar. Son unos minutos: tus datos, tu identificación y la cuenta donde quieres recibir."}
             </p>
             <div className="salfoot">
               <Link className="btn btn-orange btn-sm" href={liga("/caminante/admin/mi-alta/cobrar")}>
-                {cobrarN === 3 ? "Ver mis datos de cobro" : "Completar mis datos de cobro"}
+                {cuentaOK ? "Ver mi cuenta de cobro" : "Conectar mi cuenta de cobro"}
               </Link>
             </div>
+
+            <div className="subh">
+              <b>Facturación desde Caminante</b>
+              <span className="fr">Opcional · después</span>
+              <small>
+                Si la prendes, timbramos las facturas de tus viajeros a tu nombre. No detiene tus ventas: si no la
+                prendes, facturas como siempre, por tu cuenta.
+              </small>
+            </div>
+            <div className="pf">
+              <Renglon k="Datos fiscales" v={fiscalOK ? "Completos" : "Sin capturar"} />
+              <Renglon k="Certificado de Sello Digital" v={csdOK ? "Cargado" : "Sin cargar"} />
+            </div>
+            <p className="gnhint">
+              <Link href={liga("/caminante/admin/mi-alta/cobrar#facturacion")}>
+                {fiscalOK && csdOK ? "Ver mi facturación" : "Prender la facturación"}
+              </Link>
+            </p>
           </div>
         </div>
       </div>
@@ -762,10 +772,12 @@ function LoQueMande({ e, creadaAt }: { e: SolicitudEnviada; creadaAt: string }) 
 
 function Expediente02({
   e,
+  operadoraId,
   dispensas,
   porOtra,
 }: {
   e: NonNullable<Datos["expediente"]>;
+  operadoraId: string | null;
   dispensas: Datos["dispensas"];
   /** La operadora por la que actúa la casa; `null` si es ella misma. */
   porOtra: string | null;
@@ -799,15 +811,22 @@ function Expediente02({
   const noDeclaradas = ACTIVIDADES.filter((c) => !yaDeclaradas.has(c.slug));
   const porSlugGeneral = new Map(e.generales.map((g) => [g.slug, g]));
 
+  // Física o moral va PRIMERO: decide qué papeles se piden. Sin respuesta no
+  // se enseña la lista, porque la lista todavía no es la suya.
+  const idOp = porOtra ?? operadoraId;
+  if (!e.tipoPersona && idOp) return <TipoPersona operadoraId={idOp} tipo={null} />;
+  const obligatorios = e.generales.filter((d) => !d.opcional).length;
+
   return (
     <>
+      {idOp ? <TipoPersona operadoraId={idOp} tipo={e.tipoPersona} compacto /> : null}
       {e.vacio ? (
         <div className="verdict casa">
           <span className="n">{"//"}</span>
           <span className="g">
             <b>Tu expediente está en blanco, y así empieza el de todos</b>
             <span>
-              No hay nada mal. Son diez documentos generales que se piden una vez, y después una
+              No hay nada mal. Son {obligatorios} documentos generales que se piden una vez, y después una
               carpeta por cada actividad que quieras ofrecer. Súbelos en el orden que quieras, en
               varias sesiones: lo que dejes a medias se guarda.
             </span>
@@ -1046,7 +1065,7 @@ function Expediente02({
                   <div className="hers">
                     {req.generales.map((g) => {
                       const d = porSlugGeneral.get(g.slug);
-                      return <Heredado key={g.slug} d={d ?? { slug: g.slug, nombre: g.nombre, porQue: g.porQue, estado: "falta", motivo: null, venceAt: null, diasParaVencer: null, cubiertoPorGeneral: true, caduca: false, id: null, archivoPath: null, archivoNombre: null, archivoBytes: null, subidoAt: null }} irGeneral={irGeneral} />;
+                      return <Heredado key={g.slug} d={d ?? { slug: g.slug, nombre: g.nombre, porQue: g.porQue, estado: "falta", motivo: null, venceAt: null, diasParaVencer: null, cubiertoPorGeneral: true, caduca: false, vencePorAnio: false, opcional: g.opcional === true, id: null, archivoPath: null, archivoNombre: null, archivoBytes: null, subidoAt: null }} irGeneral={irGeneral} />;
                     })}
                   </div>
                   <div className="salfoot">

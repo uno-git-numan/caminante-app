@@ -101,7 +101,8 @@ export type MiAlta = {
    */
   experiencias: { slug: string; titulo: string; estado: string; actividad: string | null }[];
   /** Sus datos fiscales, para la mitad «Cobrar». Vacío = sin capturar. */
-  fiscal: { rfc: string | null; razonSocial: string | null; regimen: string | null; cp: string | null };
+  /** `csd`: los dos archivos del CSD cargados. Ya no es candado: es la facturación opcional. */
+  fiscal: { rfc: string | null; razonSocial: string | null; regimen: string | null; cp: string | null; csd: boolean };
   /**
    * El resumen de términos, el mismo que viajó en PDF con la invitación a la
    * llamada, para releerlo en el paso 01. Sale de la solicitud si la hubo —es
@@ -160,7 +161,7 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
   const sb = createSupabaseAdminClient();
   const [{ data: op }, { data: apps }] = await Promise.all([
     sb.from("operators")
-      .select("id, estado, estado_motivo, name, legal, rfc, razon_social, regimen_fiscal, cp_fiscal, slug, bio, instagram, team, is_public")
+      .select("id, estado, estado_motivo, name, legal, rfc, razon_social, regimen_fiscal, cp_fiscal, csd_cer_path, csd_key_path, slug, bio, instagram, team, is_public")
       .eq("email", email)
       .maybeSingle(),
     // Los cinco últimos campos son los mismos con los que la invitación a la
@@ -254,7 +255,7 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
       expediente: null,
       dispensas: [],
       experiencias: [],
-      fiscal: { rfc: null, razonSocial: null, regimen: null, cp: null },
+      fiscal: { rfc: null, razonSocial: null, regimen: null, cp: null, csd: false },
       perfilPublico: { slug: null, bio: null, instagram: null, equipo: [], publico: false },
       terminos: terminosDe({
         responsable: (a?.responsable as string | null) ?? null,
@@ -326,6 +327,7 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
       razonSocial: txt((op as Record<string, unknown> | null)?.razon_social),
       regimen: txt((op as Record<string, unknown> | null)?.regimen_fiscal),
       cp: txt((op as Record<string, unknown> | null)?.cp_fiscal),
+      csd: Boolean(txt((op as Record<string, unknown> | null)?.csd_cer_path) && txt((op as Record<string, unknown> | null)?.csd_key_path)),
     },
     perfilPublico: perfilPublicoDe(op as Record<string, unknown> | null),
   };

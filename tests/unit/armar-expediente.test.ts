@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { armarExpediente } from "@/lib/operadores/expediente";
 import { pesoEnPalabras } from "@/lib/operadores/peso";
-import { GENERALES, requisitosDe } from "@/lib/operadores/actividades";
+import { GENERALES, generalesPara, requisitosDe } from "@/lib/operadores/actividades";
 
 const doc = (documento: string, actividad: string | null, estado = "aprobado") =>
   ({ actividad, documento, estado, motivo: null, vence_at: null });
@@ -22,15 +22,18 @@ describe("armarExpediente", () => {
   });
 
   it("EL CASO KÉNTRO: senderismo declarado, cero documentos ⇒ no completo, y cuenta lo que falta", () => {
-    const e = armarExpediente([{ actividad: "senderismo", estado: "incompleta", motivo: null }], []);
+    const e = armarExpediente([{ actividad: "senderismo", estado: "incompleta", motivo: null }], [], undefined, "fisica");
     expect(e.completo).toBe(false);
-    expect(e.faltanTotal).toBe(GENERALES.length + requisitosDe("senderismo").propios.length);
+    const obligatorios = generalesPara("fisica").filter((d) => !d.opcional).length;
+    expect(e.faltanTotal).toBe(obligatorios + requisitosDe("senderismo").propios.length);
   });
 
   it("todo entregado pero la actividad sin aprobar ⇒ no completo (está en revisión)", () => {
     const e = armarExpediente(
       [{ actividad: "senderismo", estado: "en_revision", motivo: null }],
       [...generalesEntregados, ...propiosDe("senderismo", "en_revision")],
+      undefined,
+      "fisica",
     );
     expect(e.faltanTotal).toBe(0);
     expect(e.completo).toBe(false);
@@ -40,8 +43,57 @@ describe("armarExpediente", () => {
     const e = armarExpediente(
       [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
       [...generalesEntregados, ...propiosDe("senderismo")],
+      undefined,
+      "moral",
     );
     expect(e.completo).toBe(true);
+  });
+
+  it("sin decir si es física o moral el expediente no cierra, aunque todo esté entregado", () => {
+    const e = armarExpediente(
+      [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
+      [...generalesEntregados, ...propiosDe("senderismo")],
+    );
+    expect(e.faltanTotal).toBe(0);
+    expect(e.completo).toBe(false);
+  });
+
+  it("LUIS, 9 NOV: a una persona física no se le enseña el acta; a una moral sí, y es opcional", () => {
+    const fisica = armarExpediente([], [], undefined, "fisica");
+    expect(fisica.generales.some((d) => d.slug === "acta-constitutiva")).toBe(false);
+    const moral = armarExpediente([], [], undefined, "moral");
+    const acta = moral.generales.find((d) => d.slug === "acta-constitutiva")!;
+    expect(acta.opcional).toBe(true);
+    // Lo opcional sin subir no cuenta como faltante.
+    const obligatorios = generalesPara("moral").filter((d) => !d.opcional).length;
+    expect(moral.faltanGenerales).toBe(obligatorios);
+  });
+
+  it("todo entregado MENOS lo opcional ⇒ completo", () => {
+    const sinOpcionales = GENERALES.filter((g) => !g.opcional).map((g) => doc(g.slug, null));
+    const e = armarExpediente(
+      [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
+      [...sinOpcionales, ...propiosDe("senderismo")],
+      undefined,
+      "moral",
+    );
+    expect(e.completo).toBe(true);
+  });
+
+  it("la identificación pide su vigencia por AÑO y se llama según quién firma", () => {
+    const moral = armarExpediente([], [], undefined, "moral");
+    const id = moral.generales.find((d) => d.slug === "id-responsable")!;
+    expect(id.vencePorAnio).toBe(true);
+    expect(id.nombre).toMatch(/representante legal/);
+    const csf = moral.generales.find((d) => d.slug === "csf")!;
+    expect(csf.caduca).toBe(false);
+  });
+
+  it("lo que Luis quitó ya no se pide: primeros auxilios, protocolo, botiquín, bitácora", () => {
+    const slugs = GENERALES.map((g) => g.slug);
+    for (const fuera of ["primeros-auxilios", "protocolo-emergencia", "botiquin", "bitacora-incidentes"]) {
+      expect(slugs).not.toContain(fuera);
+    }
   });
 
   it("un documento rechazado reabre el expediente", () => {
@@ -49,6 +101,8 @@ describe("armarExpediente", () => {
     const e = armarExpediente(
       [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
       [{ ...primero, estado: "rechazado" }, ...resto, ...propiosDe("senderismo")],
+      undefined,
+      "fisica",
     );
     expect(e.completo).toBe(false);
   });

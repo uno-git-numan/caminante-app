@@ -80,15 +80,24 @@ describe("operadorListo", () => {
     expect(r.faltantes.join(" ")).toMatch(/no genera comisión/i);
   });
 
-  it("exige los DOS archivos del CSD, y los nombra", () => {
-    const r = operadorListo({ ...completo, csd_key_path: null }, HOY);
-    expect(r.faltantes.join(" ")).toMatch(/\.key/);
-    expect(r.faltantes.join(" ")).not.toMatch(/\.cer/);
+  it("LUIS, 9 NOV: sin CSD ni datos fiscales SÍ vende — facturar es un paso posterior", () => {
+    const sinFacturacion = {
+      ...completo,
+      csd_cer_path: null,
+      csd_key_path: null,
+      csd_vence_at: null,
+      rfc: null,
+      razon_social: null,
+      regimen_fiscal: null,
+      cp_fiscal: null,
+    };
+    expect(operadorListo(sinFacturacion, HOY)).toEqual({ ok: true, faltantes: [] });
   });
 
-  it("un CSD vencido dice hace cuántos días", () => {
-    const r = operadorListo({ ...completo, csd_vence_at: "2026-09-01" }, HOY);
-    expect(r.faltantes.join(" ")).toMatch(/venció hace 20 día/);
+  it("física o moral sí detiene: de eso dependen las retenciones", () => {
+    const r = operadorListo({ ...completo, tipo_persona: null }, HOY);
+    expect(r.ok).toBe(false);
+    expect(r.faltantes.join(" ")).toMatch(/física o moral/);
   });
 
   it("lo que Stripe dice manda sobre lo que nosotros creemos", () => {
@@ -96,17 +105,17 @@ describe("operadorListo", () => {
     expect(r.faltantes[0]).toMatch(/cuenta de cobro todavía no está verificada/);
   });
 
-  it("con todo vacío enumera las seis faltas, una por condición", () => {
+  it("con todo vacío enumera las cuatro faltas, una por condición", () => {
     const r = operadorListo({ stripe_account_id: "acct_x" }, HOY);
     expect(r.ok).toBe(false);
-    expect(r.faltantes).toHaveLength(6);
+    expect(r.faltantes).toHaveLength(4);
   });
 
   it("el select del gate pide TODAS las columnas que el gate lee", () => {
     // Un campo ausente llega como `undefined` y el gate lo reporta faltante
     // aunque en la base esté lleno. `comision_desde` entró al gate el 22 sep y
     // por poco se queda fuera de COLUMNAS_GATE.
-    for (const c of ["commission_pct", "comision_desde", "convenio_firmado_at", "csd_key_path", "tipo_persona"]) {
+    for (const c of ["commission_pct", "comision_desde", "convenio_firmado_at", "tipo_persona"]) {
       expect(COLUMNAS_GATE).toContain(c);
     }
   });

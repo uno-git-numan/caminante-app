@@ -6,11 +6,14 @@
 // antes.
 import { describe, expect, it } from "vitest";
 import { LECTURA_PASO } from "@/lib/operadores/pasos";
-import { GENERALES } from "@/lib/operadores/actividades";
+import { generalesPara } from "@/lib/operadores/actividades";
 
 describe("textos del riel", () => {
-  it("«diez generales» sigue siendo cierto", () => {
-    expect(LECTURA_PASO[1]).toContain("diez generales");
-    expect(GENERALES).toHaveLength(10);
+  // Desde el 9 nov 2026 lo general depende de si es persona física o moral, y
+  // el número escrito cuenta los OBLIGATORIOS: lo opcional no se promete.
+  it("«cinco generales» sigue siendo cierto para física y para moral", () => {
+    expect(LECTURA_PASO[1]).toContain("cinco generales");
+    expect(generalesPara("fisica").filter((d) => !d.opcional)).toHaveLength(5);
+    expect(generalesPara("moral").filter((d) => !d.opcional)).toHaveLength(5);
   });
 });

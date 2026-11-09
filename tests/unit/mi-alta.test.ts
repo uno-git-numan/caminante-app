@@ -72,6 +72,7 @@ vi.mock("@/lib/operadores/expediente", () => ({
 }));
 
 const expedienteCompleto = {
+  tipoPersona: "fisica",
   generales: [], actividades: [{ slug: "senderismo", nombre: "Senderismo", estado: "aprobada", propios: [], generales: [], faltan: 0 }],
   faltanGenerales: 0, faltanTotal: 0, proximo: null, vencidos: [], porVencer: [], vacio: false, completo: true,
 };

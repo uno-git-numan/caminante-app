@@ -15,7 +15,7 @@
 // llegó rebotado, con `?borrador=&actividad=`: es una lámina de llegada, no una
 // sección de la pantalla.
 //
-// La subida va por `subirDocumento` (desde `../RenglonDoc.tsx`, el renglón que
+// La subida va por `prepararSubida` + `registrarSubida` (desde `../RenglonDoc.tsx`, el renglón que
 // comparte con Mi alta), un server action con FormData: el archivo
 // no pasa por el cliente más que para elegirlo. El `operator_id` sí puede viajar
 // (`operadora`, un input oculto) pero NO decide nada: `operadoraObjetivo` lo
@@ -24,6 +24,7 @@
 // operadora edita lo suyo y el id de ella cuando la casa sube POR ella.
 
 import RenglonDoc from "../RenglonDoc";
+import TipoPersona from "../TipoPersona";
 import { diaEnPalabras } from "@/lib/fecha/zona";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -410,10 +411,13 @@ function Traido({ t, generales, operadora }: { t: BorradorDelCandado; generales:
 
 export default function Expediente({
   datos,
+  operadoraId,
   traido,
   porOtra,
 }: {
   datos: Datos;
+  /** De quién es este expediente: decide sobre quién se guarda «física o moral». */
+  operadoraId: string;
   traido?: BorradorDelCandado | null;
   /** La casa subiendo POR una operadora. Null cuando la operadora edita lo suyo. */
   porOtra?: { id: string; nombre: string } | null;
@@ -422,9 +426,14 @@ export default function Expediente({
   const [abiertoGen, setAbiertoGen] = useState(true);
   const yaDeclaradas = new Set(datos.actividades.map((a) => a.slug));
   const genListos = datos.generales.length - datos.faltanGenerales;
+  const obligatorios = datos.generales.filter((d) => !d.opcional).length;
+
+  // Física o moral va PRIMERO (Luis, 9 nov 2026): decide qué papeles se piden.
+  if (!datos.tipoPersona) return <TipoPersona operadoraId={operadoraId} tipo={null} />;
 
   return (
     <>
+      <TipoPersona operadoraId={operadoraId} tipo={datos.tipoPersona} compacto />
       {porOtra ? (
         // La casa está aquí POR alguien. Se dice arriba de todo y en cada acción
         // queda registrado (`subido_por`): un papel que subió la casa no lo
@@ -454,7 +463,7 @@ export default function Expediente({
             </b>
             <span>
               {datos.vacio
-                ? "No hay nada mal. Son diez documentos generales que se piden una vez, y después una carpeta por cada actividad que ofrezcas. Puedes subirlos en el orden que quieras, en varias sesiones, y lo que dejes a medias se guarda."
+                ? `No hay nada mal. Son ${obligatorios} documentos generales que se piden una vez, y después una carpeta por cada actividad que ofrezcas. Puedes subirlos en el orden que quieras, en varias sesiones, y lo que dejes a medias se guarda.`
                 : datos.completo
                   ? "Puedes publicar experiencias de todas las actividades que declaraste."
                   : "Lo general se sube una sola vez y sirve para todas tus actividades; lo propio de cada una vive en su carpeta."}

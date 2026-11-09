@@ -22,7 +22,7 @@ import { altaCobroEnPlataforma, MCC_TURISMO, recaudaLaPlataforma } from "./alta-
 
 const CANONICAL = "https://caminante.numanhub.com";
 
-/** País y capacidades: cuenta Express de MX que cobra con tarjeta y recibe transferencias. */
+/** País: cuentas de MX que cobran con tarjeta y reciben transferencias. */
 const PAIS = "MX";
 
 export type OperadorConnect = {
@@ -50,6 +50,66 @@ async function leerOperador(operadorId: string): Promise<OperadorConnect | null>
     .eq("id", operadorId)
     .maybeSingle();
   return (data as OperadorConnect | null) ?? null;
+}
+
+/**
+ * LA CUENTA DE COBRO DE SIEMPRE, DICHA COMO STRIPE LA ACEPTA HOY (9 nov 2026).
+ *
+ * En LIVE Stripe rechazó crear la cuenta Express de siempre al darle «Conectar»
+ * Nomádika: «Use Accounts v2, remove type, and set losses_collector to stripe».
+ * Probado contra Stripe en modo test el mismo día:
+ *
+ *   dashboard express + pérdidas de Stripe ... «configuration is not supported»
+ *   dashboard full    + pérdidas de Stripe ... ✓ (v1 la ve como `standard`)
+ *
+ * O sea: con Stripe respondiendo por los saldos negativos, la única cuenta que
+ * existe es la de dashboard COMPLETO. La operadora ve su propio Stripe, Stripe
+ * le cobra sus comisiones a ella en los cargos directos y la verificación la
+ * hace Stripe con su enlace (el mismo Account Link v1 de siempre funciona).
+ *
+ * ⚠️ DOS CONFIGURACIONES, NO UNA. Cobramos con CARGO CON DESTINO y
+ * `on_behalf_of` (connect-cobro.ts). `merchant` la hace comerciante —la venta
+ * sale a su nombre— y `recipient` con `stripe_transfers` le deja recibir la
+ * transferencia. Sin la segunda, Stripe contestó en test: «Your destination
+ * account needs to have … stripe_transfers capability enabled». Con las dos,
+ * el PaymentIntent con `on_behalf_of` + `transfer_data` + `application_fee`
+ * se creó en test. En un cargo con destino el fee de Stripe lo sigue pagando
+ * la plataforma, así que el dinero se reparte EXACTAMENTE como antes.
+ *
+ * El estado se sigue leyendo por la API v1 (`accounts.retrieve`), que ve estas
+ * cuentas igual: `charges_enabled`, `requirements`, `controller`.
+ */
+async function crearCuentaV2(
+  stripe: ReturnType<typeof getStripeServerClient>,
+  op: OperadorConnect,
+): Promise<{ id: string }> {
+  const entidad = op.tipo_persona === "moral" ? "company" : op.tipo_persona === "fisica" ? "individual" : undefined;
+  const url = op.slug ? `${CANONICAL}/caminante/o/${op.slug}` : CANONICAL;
+  const cuenta = await stripe.v2.core.accounts.create({
+    contact_email: op.email ?? undefined,
+    display_name: op.name ?? undefined,
+    dashboard: "full",
+    // `entity_type` se omite si no lo ha dicho, en vez de adivinar: mandar
+    // «individual» a una S.A. de C.V. le pediría el KYC equivocado.
+    identity: { country: "mx", ...(entidad ? { entity_type: entidad } : {}) },
+    configuration: {
+      merchant: { capabilities: { card_payments: { requested: true } }, mcc: MCC_TURISMO },
+      recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } },
+    },
+    defaults: {
+      currency: "mxn",
+      locales: ["es-419"],
+      profile: {
+        business_url: url,
+        product_description: "Experiencias guiadas en naturaleza, reservadas por Caminante.",
+      },
+      responsibilities: { fees_collector: "stripe", losses_collector: "stripe" },
+    },
+    // Para resolver el operador desde un evento de cuenta conectada sin
+    // depender de una consulta inversa.
+    metadata: { operator_id: op.id },
+  });
+  return { id: cuenta.id };
 }
 
 /**
@@ -105,12 +165,18 @@ export async function crearCuentaConectada(
   let account;
   try {
     // ⚠️ DOS FORMAS DE CUENTA, Y LA FORMA ES PARA SIEMPRE (el dashboard no se
-    // cambia después). Con la bandera apagada, Express + link a Stripe, como
-    // hasta hoy. Prendida, una cuenta sin dashboard en la que LA PLATAFORMA
+    // cambia después). Con la bandera apagada, la cuenta de dashboard completo
+    // por Accounts v2 + link a Stripe (`crearCuentaV2`, 9 nov 2026; antes era
+    // Express y Stripe ya no la acepta en LIVE). Prendida, una cuenta sin dashboard en la que LA PLATAFORMA
     // recaba los requisitos, paga las comisiones y responde por los saldos
     // negativos —es lo que permite que la operadora no salga de aquí—, y los
     // datos llegan en el token; el giro y el sitio, que no pueden ir en un
     // token, se ponen directo. Ver alta-cobro.ts.
+    //
+    // ⚠️ LA BANDERA NO SE PUEDE PRENDER TAL CUAL (9 nov 2026): esta forma deja
+    // las pérdidas a la PLATAFORMA, y en LIVE Stripe sólo acepta cuentas nuevas
+    // con las pérdidas a Stripe. Prenderla daría el mismo error que tumbó el
+    // alta de Nomádika.
     account = altaCobroEnPlataforma()
       ? await stripe.accounts.create({
           ...comun,
@@ -128,7 +194,7 @@ export async function crearCuentaConectada(
           },
           ...(accountToken ? { account_token: accountToken } : {}),
         })
-      : await stripe.accounts.create({ type: "express", ...comun });
+      : await crearCuentaV2(stripe, op);
   } catch (error) {
     return { ok: false, error: `Stripe no pudo crear la cuenta: ${(error as Error).message}` };
   }

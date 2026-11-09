@@ -17,7 +17,7 @@ export type { Candado, Etapa } from "./etapas";
 // uno es una puerta real del sistema, y estar aprobado no abre ninguna.
 //
 // ⚠️ Los candados NO son todos suyos, y ésa es la parte útil. Dos dependen de la
-// operadora (convenio, CSD) y cuatro de la casa (definirle comisión, prenderle
+// operadora (convenio, física o moral; el CSD salió el 9 nov 2026) y cuatro de la casa (definirle comisión, prenderle
 // el panel, habilitarle Connect, publicarle su experiencia). Sin esa distinción
 // la ficha es un diagnóstico; con ella es una lista de pendientes con dueño.
 // Dos operadoras en 2 de 6 se ven idénticas y lo que las destraba es distinto.
@@ -177,11 +177,16 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
         toca: conv.toca,
         bloquea: "armar",
       },
+      // ⚠️ AQUÍ ESTABA EL CSD (hasta el 9 nov 2026). Luis lo sacó de las
+      // condiciones para cobrar: la facturación desde la plataforma se prende
+      // después y es opcional. Lo que sí se exige —y es de la operadora— es
+      // decir si es persona física o moral: de eso dependen sus papeles y las
+      // retenciones (`operadorListo`, condición 3).
       {
-        clave: "csd",
-        nombre: "CSD fiscal",
-        cumplido: Boolean(o.csd_subido_at),
-        detalle: o.csd_subido_at ? "Cargado" : "Sin cargar",
+        clave: "persona",
+        nombre: "Física o moral",
+        cumplido: o.tipo_persona === "fisica" || o.tipo_persona === "moral",
+        detalle: o.tipo_persona === "fisica" ? "Persona física" : o.tipo_persona === "moral" ? "Persona moral" : "Sin decir",
         toca: "operadora",
         bloquea: "cobrar",
       },

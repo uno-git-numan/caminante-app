@@ -219,7 +219,7 @@ export function tarjetaDeEtapa(o: DatosTarjeta): Tarjeta {
     case "expediente": {
       // Aquí sólo se muestran los DOS de papeles. Los otros cuatro son de la
       // casa y no son lo que se está esperando en esta columna.
-      const papeles = o.candados.filter((c) => c.clave === "convenio" || c.clave === "csd");
+      const papeles = o.candados.filter((c) => c.clave === "convenio" || c.clave === "persona");
       const mios = faltan.filter((c) => c.toca === "casa");
       const suyos = faltan.filter((c) => c.toca === "operadora");
       return {

@@ -19,6 +19,8 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { analizarCsf } from "./csf";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { operadoraObjetivo, puedeOnboarding } from "@/lib/auth/alcance";
 import { correoEnSesion } from "@/lib/auth/authorization";
@@ -52,44 +54,110 @@ function pertenece(actividad: string | null, documento: string): boolean {
 
 // ── Lado de la operadora ─────────────────────────────────────────────────────
 
-export async function subirDocumento(formData: FormData): Promise<Res> {
-  const operatorId = await operadoraObjetivo(String(formData.get("operadora") ?? ""));
-  if (!operatorId) return { ok: false, error: "No hay una operadora sobre la que subir esto." };
+// ⚠️ EL ARCHIVO NO PASA POR LA SERVER ACTION (9 nov 2026). Antes viajaba dentro
+// del FormData de `subirDocumento`, y Next corta el cuerpo de una server action
+// en 1 MB: la foto de una INE desde el teléfono pesa 2–4 MB, la acción reventaba
+// ANTES de entrar a esta función y la operadora veía «Application error: a
+// client-side exception». Prometíamos 10 MB y aceptábamos 1. Subirle el límite
+// no bastaba: Vercel corta cualquier función en 4.5 MB.
+//
+// Ahora son dos pasos: `prepararSubida` valida y entrega una liga firmada de UN
+// uso para ESA ruta; el navegador sube directo al bucket privado; y
+// `registrarSubida` comprueba que el objeto existe, su peso y su tipo REALES
+// (los del bucket, no los que dice el navegador) y escribe la fila.
 
-  const cruda = String(formData.get("actividad") ?? "").trim();
+/** El tipo real del archivo; Safari a veces manda `type` vacío para un HEIC. */
+function tipoDe(tipo: string, nombre: string): string | null {
+  const t = (tipo || "").toLowerCase();
+  if (TIPOS.includes(t)) return t;
+  const ext = nombre.toLowerCase().split(".").pop() ?? "";
+  const porExt: Record<string, string> = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", heic: "image/heic" };
+  return t === "" || t === "application/octet-stream" ? porExt[ext] ?? null : null;
+}
+
+const EXT: Record<string, string> = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/heic": "heic" };
+
+type Destino = { operatorId: string; actividad: string | null; documento: string };
+
+async function destinoDe(input: { operadora?: string | null; actividad?: string | null; documento?: string }): Promise<Destino | { error: string }> {
+  const operatorId = await operadoraObjetivo(String(input.operadora ?? ""));
+  if (!operatorId) return { error: "No hay una operadora sobre la que subir esto." };
+  const cruda = String(input.actividad ?? "").trim();
   const actividad = cruda === "" ? null : cruda;
-  const documento = String(formData.get("documento") ?? "").trim();
-  if (!pertenece(actividad, documento)) {
-    return { ok: false, error: "Ese documento no corresponde a esa actividad." };
-  }
+  const documento = String(input.documento ?? "").trim();
+  if (!pertenece(actividad, documento)) return { error: "Ese documento no corresponde a esa actividad." };
+  return { operatorId, actividad, documento };
+}
 
-  const file = formData.get("archivo");
-  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Falta el archivo." };
-  if (file.size > MAX_BYTES) return { ok: false, error: "Máximo 10 MB." };
-  const tipo = file.type || "application/pdf";
-  if (!TIPOS.includes(tipo)) return { ok: false, error: "Sube un PDF o una foto." };
+export type Preparada = { ok: true; path: string; token: string; tipo: string } | { ok: false; error: string };
+
+/** Paso 1: valida y entrega la liga firmada para subir directo al bucket. */
+export async function prepararSubida(input: {
+  operadora?: string | null;
+  actividad?: string | null;
+  documento: string;
+  nombre: string;
+  tipo: string;
+  bytes: number;
+}): Promise<Preparada> {
+  const d = await destinoDe(input);
+  if ("error" in d) return { ok: false, error: d.error };
+  if (!input.bytes) return { ok: false, error: "Falta el archivo." };
+  if (input.bytes > MAX_BYTES) return { ok: false, error: "Máximo 10 MB." };
+  const tipo = tipoDe(input.tipo, input.nombre);
+  if (!tipo) return { ok: false, error: "Sube un PDF o una foto (JPG, PNG o HEIC)." };
+
+  // El nombre original suele traer el nombre de una persona; dentro del bucket
+  // no aporta nada y sí filtra datos a quien vea la ruta.
+  const path = `${d.operatorId}/${randomBytes(16).toString("hex")}.${EXT[tipo]}`;
+  const { data, error } = await createSupabaseAdminClient().storage.from(BUCKET).createSignedUploadUrl(path);
+  if (error || !data) {
+    console.error("prepararSubida:", error);
+    return { ok: false, error: "No se pudo preparar la subida. Intenta de nuevo." };
+  }
+  return { ok: true, path: data.path, token: data.token, tipo };
+}
+
+/** Paso 2: el archivo ya está en el bucket; se comprueba y se registra. */
+export async function registrarSubida(input: {
+  operadora?: string | null;
+  actividad?: string | null;
+  documento: string;
+  path: string;
+  nombre: string;
+  venceAt?: string | null;
+}): Promise<Res> {
+  const d = await destinoDe(input);
+  if ("error" in d) return { ok: false, error: d.error };
+  const { operatorId, actividad, documento } = d;
+
+  // La ruta la puso `prepararSubida`, pero viaja por el navegador: se exige que
+  // sea de ESTA operadora y con la forma que nosotros generamos.
+  const path = String(input.path ?? "");
+  const m = path.match(/^([0-9a-f-]{36})\/([0-9a-f]{32})\.(pdf|jpg|png|heic)$/);
+  if (!m || m[1] !== operatorId) return { ok: false, error: "Esa subida no corresponde a esta operadora." };
+
+  const sb = createSupabaseAdminClient();
+  const { data: objs, error: eLista } = await sb.storage.from(BUCKET).list(operatorId, { search: `${m[2]}.${m[3]}`, limit: 1 });
+  const obj = (objs ?? []).find((o) => o.name === `${m[2]}.${m[3]}`);
+  if (eLista || !obj) return { ok: false, error: "El archivo no terminó de subir. Intenta de nuevo." };
+  const meta = (obj.metadata ?? {}) as { size?: number; mimetype?: string };
+  if ((meta.size ?? 0) > MAX_BYTES || (meta.mimetype && !TIPOS.includes(meta.mimetype) && meta.mimetype !== "application/octet-stream")) {
+    await sb.storage.from(BUCKET).remove([path]);
+    return { ok: false, error: "Ese archivo no se puede guardar: máximo 10 MB, PDF o foto." };
+  }
 
   // `vence_at` es fecha, no casilla (ver la 0058). Si el catálogo dice que este
   // documento caduca, la fecha es obligatoria: sin ella el expediente se vería
   // completo para siempre.
-  const venceAt = String(formData.get("venceAt") ?? "").trim() || null;
+  const venceAt = String(input.venceAt ?? "").trim() || null;
+  if (venceAt && !/^\d{4}-\d{2}-\d{2}$/.test(venceAt)) return { ok: false, error: "La fecha de vencimiento no es válida." };
   const caduca = actividad === null
     ? GENERALES.find((g) => g.slug === documento)?.vence
-    : requisitosDe(actividad).propios.find((d) => d.slug === documento)?.vence;
-  if (caduca && !venceAt) return { ok: false, error: "Falta la fecha de vencimiento." };
-
-  const ext = tipo === "application/pdf" ? "pdf" : (tipo.split("/")[1] || "jpg");
-  // El nombre original suele traer el nombre de una persona; dentro del bucket
-  // no aporta nada y sí filtra datos a quien vea la ruta.
-  const path = `${operatorId}/${randomBytes(16).toString("hex")}.${ext}`;
-
-  const sb = createSupabaseAdminClient();
-  const { error: subida } = await sb.storage
-    .from(BUCKET)
-    .upload(path, Buffer.from(await file.arrayBuffer()), { contentType: tipo, upsert: false });
-  if (subida) {
-    console.error("subirDocumento storage:", subida);
-    return { ok: false, error: "No se pudo guardar el archivo." };
+    : requisitosDe(actividad).propios.find((x) => x.slug === documento)?.vence;
+  if (caduca && !venceAt) {
+    await sb.storage.from(BUCKET).remove([path]);
+    return { ok: false, error: "Falta la fecha de vencimiento." };
   }
 
   // ⚠️ NADA DE `upsert` CON `onConflict` AQUÍ, y la razón cuesta encontrarla:
@@ -101,7 +169,6 @@ export async function subirDocumento(formData: FormData): Promise<Res> {
   // Lo vicioso es CÓMO fallaba: el archivo YA estaba en el bucket cuando
   // reventaba el insert, así que quedaba un objeto huérfano y la operadora
   // veía «Todavía no lo has subido» después de una subida que se veía bien.
-  // Sólo salió al subir un PDF de verdad; `tsc` y el build no lo podían ver.
   //
   // Buscar y luego actualizar o insertar no depende de la forma del índice.
   const base = sb
@@ -119,7 +186,7 @@ export async function subirDocumento(formData: FormData): Promise<Res> {
   // que su corrección no sirvió.
   const campos = {
     archivo_path: path,
-    archivo_nombre: file.name.slice(0, 200),
+    archivo_nombre: String(input.nombre ?? "archivo").slice(0, 200),
     estado: "en_revision",
     motivo: null,
     vence_at: venceAt,
@@ -132,24 +199,33 @@ export async function subirDocumento(formData: FormData): Promise<Res> {
     revisado_por: null,
   };
   const anterior = (previa as { id: string; archivo_path: string } | null) ?? null;
-  const { error } = anterior
-    ? await sb.from("operator_documents").update(campos).eq("id", anterior.id)
+  const { data: escrita, error } = anterior
+    ? await sb.from("operator_documents").update(campos).eq("id", anterior.id).select("id").maybeSingle()
     : await sb
         .from("operator_documents")
-        .insert({ operator_id: operatorId, actividad, documento, ...campos });
-
+        .insert({ operator_id: operatorId, actividad, documento, ...campos })
+        .select("id")
+        .maybeSingle();
   if (error) {
     // ⚠️ SI LA FILA NO SE ESCRIBE, EL ARCHIVO NO SE QUEDA. Un objeto sin fila
     // que lo apunte es basura invisible en un bucket privado: nadie lo ve,
     // nadie lo borra, y cuenta para el límite de Storage.
     await sb.storage.from(BUCKET).remove([path]);
-    console.error("subirDocumento:", error);
+    console.error("registrarSubida:", error);
     return { ok: false, error: "No se pudo registrar el documento." };
   }
 
   // Y el archivo VIEJO tampoco: al reemplazar, ya no lo apunta nadie.
   if (anterior?.archivo_path && anterior.archivo_path !== path) {
     await sb.storage.from(BUCKET).remove([anterior.archivo_path]);
+  }
+
+  // La CSF se LEE y se confirma con el SAT (csf.ts), DESPUÉS de contestar:
+  // la operadora no espera los segundos de la lectura, y si falla, su
+  // documento ya está guardado igual.
+  const docId = (escrita as { id?: string } | null)?.id ?? anterior?.id ?? null;
+  if (documento === "csf" && actividad === null && docId) {
+    after(() => analizarCsf(docId).then(() => undefined));
   }
 
   revalidatePath(RUTA);

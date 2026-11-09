@@ -10,7 +10,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 //
 // ⚠️ LA DUEÑA TAMBIÉN PUEDE VERLO (desde el 25 sep 2026). Exigía admin, así
 // que la operadora no podía abrir el papel que ella misma subió. La ruta del
-// objeto empieza con el id de la operadora (`subirDocumento`), y ese id se
+// objeto empieza con el id de la operadora (`prepararSubida`), y ese id se
 // compara contra la sesión con la MISMA regla que subir: la casa sobre
 // cualquiera, la operadora sólo sobre sí misma.
 

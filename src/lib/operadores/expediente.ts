@@ -14,7 +14,8 @@ import "server-only";
 // rechazada.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { ACTIVIDADES, GENERALES, requisitosDe, nombreDeActividad, type Documento } from "./actividades";
+import { resumenCsf, type AnalisisCsf } from "./csf";
+import { ACTIVIDADES, GENERALES, generalesPara, requisitosDe, nombreDeActividad, type Documento } from "./actividades";
 
 export type EstadoDoc = "falta" | "en_revision" | "aprobado" | "rechazado";
 export type EstadoActividad = "incompleta" | "en_revision" | "aprobada" | "suspendida";
@@ -47,7 +48,19 @@ export type DocEnPantalla = {
    * — en vez de enseñar siempre un campo de fecha que casi nadie necesitaba.
    */
   caduca: boolean;
+  /** La vigencia se pide por año (la INE), no por día. */
+  vencePorAnio: boolean;
+  /** Se ofrece pero no cuenta como pendiente. */
+  opcional: boolean;
+  /**
+   * Lo que la plataforma leyó del documento (hoy sólo la CSF, `csf.ts`), ya
+   * dicho en una línea. `satUrl` es la liga del validador del SAT para quien
+   * revisa. `null` = no se ha leído.
+   */
+  leido?: { tono: "ok" | "aviso" | "mal"; texto: string; satUrl: string | null } | null;
 };
+
+export type TipoPersona = "fisica" | "moral" | null;
 
 export type ActividadEnPantalla = {
   slug: string;
@@ -62,6 +75,11 @@ export type ActividadEnPantalla = {
 };
 
 export type Expediente = {
+  /**
+   * Física o moral. Se pregunta ANTES del expediente (Luis, 9 nov 2026): de
+   * eso depende qué papeles se piden. Sin respuesta, el expediente no cierra.
+   */
+  tipoPersona: TipoPersona;
   generales: DocEnPantalla[];
   actividades: ActividadEnPantalla[];
   /** Generales sin entregar o rechazados. */
@@ -128,15 +146,24 @@ function pintar(
     diasParaVencer: fila?.vence_at ? diasHasta(fila.vence_at) : null,
     cubiertoPorGeneral: cubierto,
     caduca: d.vence,
+    vencePorAnio: d.vencePor === "anio",
+    opcional: d.opcional === true,
   };
 }
 
-/** Un documento cuenta como pendiente si falta o si se rechazó. */
-const pendiente = (d: DocEnPantalla) => d.estado === "falta" || d.estado === "rechazado";
+/**
+ * Un documento cuenta como pendiente si falta o si se rechazó. Uno OPCIONAL
+ * que no se subió no es pendiente; si se subió y se rechazó, sí: hay un papel
+ * equivocado en el expediente y alguien tiene que corregirlo o quitarlo.
+ */
+const pendiente = (d: DocEnPantalla) =>
+  d.estado === "rechazado" || (d.estado === "falta" && !d.opcional);
+
+const tipoDe = (v: unknown): TipoPersona => (v === "fisica" || v === "moral" ? v : null);
 
 export async function fetchExpediente(operatorId: string): Promise<Expediente> {
   const sb = createSupabaseAdminClient();
-  const [{ data: acts }, { data: docs }] = await Promise.all([
+  const [{ data: acts }, { data: docs }, { data: op }] = await Promise.all([
     sb
       .from("operator_activities")
       .select("actividad, estado, motivo")
@@ -145,12 +172,27 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
       .from("operator_documents")
       .select("id, actividad, documento, estado, motivo, vence_at, archivo_path, archivo_nombre, subido_at")
       .eq("operator_id", operatorId),
+    sb.from("operators").select("tipo_persona").eq("id", operatorId).maybeSingle(),
   ]);
-  return armarExpediente(
+  const e = armarExpediente(
     (acts ?? []) as { actividad: string; estado: string; motivo: string | null }[],
     (docs ?? []) as Fila[],
     await tamanosDe(operatorId),
+    tipoDe((op as { tipo_persona?: string } | null)?.tipo_persona),
   );
+  // La lectura de la CSF va en su propia consulta: si la 0077 no está
+  // aplicada, la columna no existe y esto falla SOLO, sin tumbar el expediente.
+  const { data: leida, error: eLeida } = await sb
+    .from("operator_documents")
+    .select("analisis")
+    .eq("operator_id", operatorId)
+    .eq("documento", "csf")
+    .is("actividad", null)
+    .maybeSingle();
+  const a = !eLeida ? ((leida as { analisis?: AnalisisCsf | null } | null)?.analisis ?? null) : null;
+  const csf = e.generales.find((d) => d.slug === "csf");
+  if (csf && a && csf.estado !== "falta") csf.leido = { ...resumenCsf(a), satUrl: a.satUrl };
+  return e;
 }
 
 /**
@@ -183,13 +225,15 @@ async function tamanosDe(operatorId: string): Promise<Map<string, number>> {
  */
 export async function expedientesCompletos(): Promise<Map<string, boolean>> {
   const sb = createSupabaseAdminClient();
-  const [{ data: acts, error: e1 }, { data: docs, error: e2 }] = await Promise.all([
+  const [{ data: acts, error: e1 }, { data: docs, error: e2 }, { data: ops, error: e3 }] = await Promise.all([
     sb.from("operator_activities").select("operator_id, actividad, estado, motivo"),
     sb.from("operator_documents").select("operator_id, actividad, documento, estado, motivo, vence_at"),
+    sb.from("operators").select("id, tipo_persona"),
   ]);
   // Sin poder leer, nadie se da por completo: el tablero la deja en su
   // expediente en vez de mandarla a «Vendiendo» por un error de red.
-  if (e1 || e2) return new Map();
+  if (e1 || e2 || e3) return new Map();
+  const tipos = new Map(((ops ?? []) as { id: string; tipo_persona: string | null }[]).map((o) => [o.id, tipoDe(o.tipo_persona)]));
   type ConOp<T> = T & { operator_id: string };
   const porOp = new Map<string, { acts: ConOp<{ actividad: string; estado: string; motivo: string | null }>[]; docs: ConOp<Fila>[] }>();
   const de = (id: string) => {
@@ -199,7 +243,7 @@ export async function expedientesCompletos(): Promise<Map<string, boolean>> {
   for (const a of (acts ?? []) as ConOp<{ actividad: string; estado: string; motivo: string | null }>[]) de(a.operator_id).acts.push(a);
   for (const d of (docs ?? []) as ConOp<Fila>[]) de(d.operator_id).docs.push(d);
   const out = new Map<string, boolean>();
-  for (const [id, x] of porOp) out.set(id, armarExpediente(x.acts, x.docs).completo);
+  for (const [id, x] of porOp) out.set(id, armarExpediente(x.acts, x.docs, undefined, tipos.get(id) ?? null).completo);
   return out;
 }
 
@@ -209,13 +253,16 @@ export function armarExpediente(
   docs: Fila[],
   /** Peso por nombre de objeto en el bucket (ver `tamanosDe`). */
   tamanos?: Map<string, number>,
+  tipoPersona: TipoPersona = null,
 ): Expediente {
   const filas = docs;
   // Clave compuesta: `null` de actividad se escribe "" para poder indexar.
   const porClave = new Map(filas.map((f) => [`${f.actividad ?? ""}|${f.documento}`, f]));
   const general = (slug: string) => porClave.get(`|${slug}`);
 
-  const generales = GENERALES.map((d) => pintar(d, general(d.slug), false, tamanos));
+  // Sólo los que le tocan a su tipo de persona: el acta ni se le enseña a una
+  // persona física.
+  const generales = generalesPara(tipoPersona).map((d) => pintar(d, general(d.slug), false, tamanos));
 
   // ⚠️ Se recorre lo DECLARADO en la base, no el catálogo entero. El catálogo
   // dice qué existe; la fila dice qué eligió esta operadora. Recorrer el
@@ -231,7 +278,9 @@ export function armarExpediente(
       estado: a.estado as EstadoActividad,
       motivo: a.motivo,
       propios,
-      generales: req.generales.map((d) => pintar(d, general(d.slug), true, tamanos)),
+      generales: req.generales
+        .filter((d) => !d.soloPara || d.soloPara === tipoPersona)
+        .map((d) => pintar({ ...d, nombre: (tipoPersona && d.nombrePara?.[tipoPersona]) || d.nombre }, general(d.slug), true, tamanos)),
       faltan: propios.filter(pendiente).length,
     };
   });
@@ -248,6 +297,7 @@ export function armarExpediente(
   const faltanTotal = faltanGenerales + actividades.reduce((n, a) => n + a.faltan, 0);
 
   return {
+    tipoPersona,
     generales,
     actividades,
     faltanGenerales,
@@ -258,6 +308,7 @@ export function armarExpediente(
     porVencer,
     vacio: actividades.length === 0 && generales.every((d) => d.estado === "falta"),
     completo:
+      tipoPersona !== null &&
       actividades.length > 0 &&
       faltanTotal === 0 &&
       vencidos.length === 0 &&

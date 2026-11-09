@@ -22,7 +22,8 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DocEnPantalla } from "@/lib/operadores/expediente";
 import { pesoEnPalabras } from "@/lib/operadores/peso";
-import { quitarDocumento, subirDocumento } from "@/lib/operadores/expediente-actions";
+import { prepararSubida, quitarDocumento, registrarSubida } from "@/lib/operadores/expediente-actions";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
 
 // `subido_at` es un instante (timestamptz), no una fecha: se lee en la zona de
@@ -56,6 +57,9 @@ const IcoReloj = () => (
 
 // Los formatos que el servidor acepta (`TIPOS` en expediente-actions.ts). El
 // selector sólo ofrece ésos, para no dejar elegir uno que después rebota.
+/** Los años que se ofrecen para una vigencia por año: éste y los 15 siguientes. */
+const ANIOS = Array.from({ length: 16 }, (_, i) => String(new Date().getFullYear() + i));
+
 const ACEPTA = "application/pdf,image/jpeg,image/png,image/heic,.pdf,.jpg,.jpeg,.png,.heic";
 
 export default function RenglonDoc({
@@ -92,22 +96,30 @@ export default function RenglonDoc({
     ref.current?.click();
   };
 
+  // Dos viajes cortos y uno largo: el servidor da una liga firmada, el archivo
+  // sube DIRECTO al bucket (no por la server action, que corta en 1 MB y
+  // tumbaba la página con la foto de una INE), y el servidor lo registra.
+  // Todo error termina en el renglón, nunca en una excepción sin atrapar.
   const guardar = (f: File, vence: string | null) => {
     setError(null);
     arranca(async () => {
-      const fd = new FormData();
-      fd.set("archivo", f);
-      fd.set("actividad", actividad ?? "");
-      fd.set("documento", d.slug);
-      fd.set("operadora", operadora ?? "");
-      if (vence) fd.set("venceAt", vence);
-      const r = await subirDocumento(fd);
-      if (r.ok) {
+      try {
+        const base = { operadora: operadora ?? "", actividad: actividad ?? "", documento: d.slug };
+        const p = await prepararSubida({ ...base, nombre: f.name, tipo: f.type, bytes: f.size });
+        if (!p.ok) return setError(p.error);
+        const { error: eSubida } = await createSupabaseBrowserClient()
+          .storage.from("expedientes")
+          .uploadToSignedUrl(p.path, p.token, f, { contentType: p.tipo });
+        if (eSubida) return setError("No se pudo subir el archivo. Revisa tu conexión e intenta de nuevo.");
+        const r = await registrarSubida({ ...base, path: p.path, nombre: f.name, venceAt: vence });
+        if (!r.ok) return setError(r.error);
         setPend(null);
         // La acción revalida el expediente; Mi alta es otra ruta y hay que
         // pedirle al servidor que la vuelva a dibujar.
         router.refresh();
-      } else setError(r.error);
+      } catch {
+        setError("No se pudo subir el archivo. Revisa tu conexión e intenta de nuevo.");
+      }
     });
   };
 
@@ -158,7 +170,8 @@ export default function RenglonDoc({
         <b>{d.nombre}</b>
         <small>
           {d.porQue}
-          {d.caduca && d.estado === "falta" ? " · pide fecha de vencimiento" : ""}
+          {d.opcional ? " · opcional" : ""}
+          {d.caduca && d.estado === "falta" ? (d.vencePorAnio ? " · pide el año de vigencia" : " · pide fecha de vencimiento") : ""}
         </small>
       </span>
       <span className="fl">
@@ -189,9 +202,13 @@ export default function RenglonDoc({
             {d.venceAt ? (
               <span className={"venc" + (vencido ? " vencido" : dias !== null && dias <= 30 ? " pronto" : "")}>
                 <s>{"//"}</s>
-                {vencido
-                  ? `Venció el ${diaEnPalabras(d.venceAt)}`
-                  : `Vence el ${diaEnPalabras(d.venceAt)}${dias !== null && dias <= 30 ? ` · en ${dias} ${dias === 1 ? "día" : "días"}` : ""}`}
+                {d.vencePorAnio
+                  ? vencido
+                    ? `Venció en ${d.venceAt.slice(0, 4)}`
+                    : `Vigente hasta ${d.venceAt.slice(0, 4)}`
+                  : vencido
+                    ? `Venció el ${diaEnPalabras(d.venceAt)}`
+                    : `Vence el ${diaEnPalabras(d.venceAt)}${dias !== null && dias <= 30 ? ` · en ${dias} ${dias === 1 ? "día" : "días"}` : ""}`}
               </span>
             ) : null}
           </>
@@ -224,19 +241,38 @@ export default function RenglonDoc({
           <span className="g">
             <b>{pend.f.name}</b>
             <small>
-              Este documento vence. Escribe la fecha que dice el papel: con ella te avisamos 30 días
-              antes.
+              {d.vencePorAnio
+                ? "Escribe el año de vigencia que dice tu identificación (la INE dice «VIGENCIA» y un año). Te avisamos antes de que venza."
+                : "Este documento vence. Escribe la fecha que dice el papel: con ella te avisamos 30 días antes."}
             </small>
           </span>
-          <label style={{ display: "grid", gap: 4, fontSize: 12 }}>
-            <span className="mut">Fecha de vencimiento</span>
-            <input
-              type="date"
-              required
-              value={pend.vence}
-              onChange={(e) => setPend({ ...pend, vence: e.target.value })}
-            />
-          </label>
+          {d.vencePorAnio ? (
+            // Sólo el año. Se guarda como el 31 de diciembre: la INE vale
+            // todo su último año.
+            <label style={{ display: "grid", gap: 4, fontSize: 12 }}>
+              <span className="mut">Vigente hasta</span>
+              <select
+                required
+                value={pend.vence.slice(0, 4)}
+                onChange={(e) => setPend({ ...pend, vence: e.target.value ? `${e.target.value}-12-31` : "" })}
+              >
+                <option value="">Año</option>
+                {ANIOS.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label style={{ display: "grid", gap: 4, fontSize: 12 }}>
+              <span className="mut">Fecha de vencimiento</span>
+              <input
+                type="date"
+                required
+                value={pend.vence}
+                onChange={(e) => setPend({ ...pend, vence: e.target.value })}
+              />
+            </label>
+          )}
           <span className="ac">
             <button
               type="button"
@@ -251,6 +287,25 @@ export default function RenglonDoc({
             </button>
           </span>
         </div>
+      ) : null}
+
+      {d.leido ? (
+        // Lo que la plataforma leyó de la CSF y lo que dijo el SAT. Aviso, no
+        // veredicto: la aprobación sigue siendo de una persona.
+        <p className="motivo" style={d.leido.tono === "ok" ? { borderColor: "var(--olive)" } : undefined}>
+          <s>{"//"}</s>
+          <span>
+            {d.leido.texto}
+            {d.leido.satUrl ? (
+              <>
+                {" "}
+                <a className="flink" href={d.leido.satUrl} target="_blank" rel="noopener">
+                  Ver en el SAT
+                </a>
+              </>
+            ) : null}
+          </span>
+        </p>
       ) : null}
 
       {error ? (

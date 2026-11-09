@@ -39,7 +39,7 @@ export const TODAVIA_NO = "Todavía no · puedes verlo";
 
 /** Lo que se lee al asomarse a un paso que todavía no toca (el 01 no tiene: siempre enseña su contenido). */
 export const LECTURA_PASO: Record<1 | 2 | 3, string> = {
-  1: "Aquí te vamos a pedir papeles de tu operación: diez generales que sirven para todo, y una carpeta por cada actividad que quieras ofrecer. Se abre después de la llamada.",
+  1: "Aquí te vamos a pedir papeles de tu operación: cinco generales que sirven para todo (según seas persona física o empresa), y una carpeta por cada actividad que quieras ofrecer. Se abre después de la llamada.",
   2: "Aquí vas a leer el convenio completo y firmarlo. Es lo único de todo el camino que bloquea lo que viene: al firmarlo se abre tu catálogo el mismo día. Se habilita cuando tu expediente tenga al menos una actividad aprobada.",
   3: "Aquí armas tu experiencia y conectas tu cobro, en el orden que se te dé la gana: no se bloquean entre sí. Se abre en cuanto firmes el convenio.",
 };

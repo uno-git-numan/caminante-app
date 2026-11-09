@@ -106,7 +106,7 @@ describe("candadosDe", () => {
   it("operadora en Connect y lista: vende; en Connect y a medias: no, con sus faltas", async () => {
     sim.operadora = conectadaLista;
     expect((await candadosDe("vender", { data: completa, operator_id: "op", actividad: "senderismo" })).ok).toBe(true);
-    sim.operadora = { ...conectadaLista, commission_pct: null, csd_key_path: null };
+    sim.operadora = { ...conectadaLista, commission_pct: null, comision_desde: null, convenio_firmado_at: null };
     const r = await candadosDe("vender", { data: completa, operator_id: "op", actividad: "senderismo" });
     expect(r.ok).toBe(false);
     if (!r.ok) {

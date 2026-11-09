@@ -289,3 +289,22 @@ de patrón se estampan por índice — no se le piden a la IA.
 - **Empalme de contacto**: si el contacto de la reserva aún no tiene correo, se
   **completa ese** en vez de crear otro. Si no, quedan dos fichas de la misma
   persona y un roster que no cuadra.
+
+## El expediente de la operadora (9 nov 2026, Luis en vivo con Nomádika)
+
+- **Física o moral se pregunta ANTES** del expediente (`mi-alta/TipoPersona.tsx`);
+  sin respuesta no se enseña la lista y el expediente no cierra.
+- Lo general (`GENERALES` en `lib/operadores/actividades.ts`): RNT · identificación
+  (vigencia **por año**, `vencePor:"anio"`, se guarda el 31 dic) · identificación de
+  quien opera (opcional) · acta constitutiva (sólo morales, **opcional**) · CSF
+  (**no vence**) · póliza RC (anual o por integrante por día) · póliza colectiva de
+  accidentes y enfermedades. **Salieron** primeros auxilios (va en la credencial de
+  guía SECTUR), protocolo, inventario del botiquín y bitácora: el botiquín es una
+  **declaración** en el anexo por actividad (marco v2, `subconvenio-doc.ts`).
+- **La subida va directo al bucket** con liga firmada (`prepararSubida` →
+  `uploadToSignedUrl` → `registrarSubida`). Antes pasaba por la server action,
+  que corta en 1 MB: la foto de una INE tumbaba la página («Application error»).
+- **La CSF se lee sola** al subirla (`lib/operadores/csf.ts`): IA (RFC, fecha de
+  emisión, idCIF, señales de manipulación) + **validador público del SAT** con
+  `idCIF_RFC`. Se avisa si tiene más de 90 días (decisión de producto, por
+  confirmar). Guarda en `operator_documents.analisis` (**0077**).

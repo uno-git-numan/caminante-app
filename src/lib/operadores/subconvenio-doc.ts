@@ -19,8 +19,16 @@ import "server-only";
 
 import { requisitosDe, nombreDeActividad, ACTIVIDADES, type Documento } from "./actividades";
 
-/** Sube cuando cambia el MARCO. La versión del anexo es `${MARCO}.${catálogo}`. */
-export const MARCO_ANEXO = "v1";
+/**
+ * Sube cuando cambia el MARCO. La versión del anexo es `${MARCO}.${catálogo}`.
+ *
+ * v2 (9 nov 2026): la declaración del botiquín y los seguros por salida. Luis
+ * cambió tres archivos (protocolo de emergencia, inventario del botiquín,
+ * bitácora) por una obligación de cada salida que la operadora ACEPTA aquí, y
+ * pidió que el contrato diga que la póliza puede ser por integrante por día.
+ * Son obligaciones nuevas: por eso se vuelve a firmar.
+ */
+export const MARCO_ANEXO = "v2";
 
 const lista = (docs: readonly Documento[]): string =>
   docs
@@ -62,13 +70,17 @@ ${lista(req.propios)}
 
 **Cuarta. Del expediente general.** Además, esta actividad vuelve críticos los siguientes documentos generales, que se entregan una sola vez y sirven para todas las actividades del Operador: ${generales || "ninguno en particular"}.
 
-**Quinta. Vigencias.** Un documento vencido **no cuenta como entregado**. La plataforma avisa a 30 y a 7 días. Vencido un documento indispensable, esta actividad se suspende hasta regularizarlo: las salidas ya vendidas se operan y se honran, y lo que se detiene es publicar y vender lo nuevo.
+**Quinta. Botiquín.** El Operador declara y acepta que en cada salida de esta actividad lleva un botiquín completo y adecuado a la actividad, al número de participantes y a la duración de la salida, revisado y con su contenido vigente, y que el guía responsable sabe usarlo. Esta declaración sustituye la entrega de un inventario: es una obligación de cada salida, no un papel que se entrega una vez.
 
-**Sexta. Alcance.** Este anexo no autoriza ninguna otra actividad. Ofrecer una distinta exige su propio anexo y su propio expediente.
+**Sexta. Seguros de cada salida.** La póliza de responsabilidad civil y la póliza colectiva de seguro de accidentes y enfermedades deben cubrir a todas las personas de cada salida, todos los días que dure. Vale una póliza anual o una contratada por integrante y por día. Si es por salida, el Operador la contrata antes de cada una, la conserva, y la entrega cuando Caminante se la pida. La póliza debe estar emitida por una aseguradora autorizada.
 
-**Séptima. Responsabilidad.** Nada en este anexo traslada a Caminante la operación, la seguridad ni el cumplimiento de la actividad, que son y siguen siendo responsabilidad exclusiva del Operador (Convenio, Cláusulas Primera y Novena).
+**Séptima. Vigencias.** Un documento vencido **no cuenta como entregado**. La plataforma avisa a 30 y a 7 días. Vencido un documento indispensable, esta actividad se suspende hasta regularizarlo: las salidas ya vendidas se operan y se honran, y lo que se detiene es publicar y vender lo nuevo.
 
-**Octava. Vigencia.** Este anexo entra en vigor al suscribirse y dura lo que dure el Convenio. Se versiona y se vuelve a firmar con el mismo procedimiento y los mismos plazos que el Convenio (Cláusula Décima segunda) y con la misma firma electrónica (Cláusula Décima sexta).
+**Octava. Alcance.** Este anexo no autoriza ninguna otra actividad. Ofrecer una distinta exige su propio anexo y su propio expediente.
+
+**Novena. Responsabilidad.** Nada en este anexo traslada a Caminante la operación, la seguridad ni el cumplimiento de la actividad, que son y siguen siendo responsabilidad exclusiva del Operador (Convenio, Cláusulas Primera y Novena).
+
+**Décima. Vigencia.** Este anexo entra en vigor al suscribirse y dura lo que dure el Convenio. Se versiona y se vuelve a firmar con el mismo procedimiento y los mismos plazos que el Convenio (Cláusula Décima segunda) y con la misma firma electrónica (Cláusula Décima sexta).
 `;
 }
 
