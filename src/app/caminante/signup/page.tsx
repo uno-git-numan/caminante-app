@@ -16,13 +16,14 @@ function friendlyError(raw: string): string {
   const map: Record<string, string> = {
     invalid_email: "Escribe un correo válido.",
     weak_password: "La contraseña debe tener al menos 8 caracteres.",
-    "User already registered": "Ya existe una cuenta con ese correo. Entra con tu contraseña, con Google, o pide un enlace por correo.",
+    "User already registered": "Ya existe una cuenta con ese correo. Entra con tu contraseña, con Google, o pide un código de acceso.",
+    sin_cuenta: "Ese correo todavía no tiene cuenta. Créala aquí: es un paso.",
   };
   return map[raw] ?? raw;
 }
 
 export default async function SignupPage({ searchParams }: SignupPageProps) {
-  const { sent, email, error, next, tipo } = await searchParams;
+  const { email, error, next, tipo } = await searchParams;
   const esOperador = tipo === "operador";
   const apple = process.env.NEXT_PUBLIC_AUTH_APPLE === "1";
 
@@ -110,11 +111,6 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
       ) : null}
 
       <div className="mt-6 space-y-5 rounded-2xl border border-sand bg-white p-6">
-        {sent === "1" && email ? (
-          <div className="rounded-lg bg-cream p-3 text-sm text-lagoon">
-            Te enviamos un enlace a <strong>{email}</strong>. Ábrelo desde donde leas tu correo.
-          </div>
-        ) : null}
         {error ? (
           <div className="rounded-lg bg-clay/10 p-3 text-sm text-clay">{friendlyError(decodeURIComponent(error))}</div>
         ) : null}
@@ -153,6 +149,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
               id="email"
               name="email"
               type="email"
+              defaultValue={email ?? ""}
               required
               placeholder="tu@correo.com"
             />
@@ -181,9 +178,11 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           <button
             type="submit"
             formAction={sendMagicLink}
+            name="crear"
+            value="1"
             className="w-full rounded-xl border border-sand bg-white px-4 py-3 text-sm font-semibold text-lagoon transition hover:border-dune"
           >
-            Prefiero un enlace por correo
+            Prefiero un código por correo
           </button>
         </form>
       </div>

@@ -27,14 +27,52 @@ function safeNext(raw: string | null, requestUrl: string): string {
   return fallback;
 }
 
+const esc = (x: string) => x.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
+
+/**
+ * GET NO GASTA LA LIGA (9 nov 2026). Hotmail/Outlook (Safe Links), varios
+ * antivirus y las vistas previas de las apps de correo ABREN cada liga del
+ * correo antes que la persona; si este GET canjeaba el token, cuando la persona
+ * tocaba «Entrar» ya estaba gastado: «Ese enlace ya venció o se usó». Le pasó a
+ * Ana Malvido (hotmail.com) con la liga de contraseña: se canjeó 22 s después de
+ * mandarse y la contraseña nunca se definió.
+ *
+ * Por eso el GET sólo enseña un botón, y el canje vive en el POST que ese botón
+ * manda. Los escáneres hacen GET; no envían formularios.
+ */
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const tokenHash = url.searchParams.get("token_hash");
-  const type = url.searchParams.get("type") as EmailOtpType | null;
+  const type = url.searchParams.get("type");
   const next = safeNext(url.searchParams.get("next"), request.url);
-
   if (!tokenHash || !type) {
     return NextResponse.redirect(new URL("/caminante/login?error=missing_token", request.url));
+  }
+  const titulo = type === "recovery" ? "Crea tu contraseña" : "Entra a Caminante";
+  const boton = type === "recovery" ? "Continuar" : "Entrar";
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(titulo)} · Caminante</title>
+<style>body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f5f0e8;color:#20211c;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
+.c{max-width:380px;width:100%;background:#fff;border:1px solid #d4c5b0;border-radius:18px;padding:32px 26px;text-align:center}
+.e{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#5f5f40}h1{font-size:26px;font-weight:600;margin:10px 0 8px;color:#1e3147}
+p{font-size:15px;line-height:1.55;color:#5f5f40;margin:0 0 22px}button{width:100%;border:0;border-radius:999px;background:#ff5d36;color:#fff;font-size:16px;font-weight:700;padding:16px;cursor:pointer}</style></head>
+<body><form class="c" method="post" action="/caminante/auth/confirm"><div class="e">Caminante</div><h1>${esc(titulo)}</h1><p>Toca el botón para continuar.</p>
+<input type="hidden" name="token_hash" value="${esc(tokenHash)}"><input type="hidden" name="type" value="${esc(type)}"><input type="hidden" name="next" value="${esc(next)}">
+<button type="submit">${esc(boton)} →</button></form></body></html>`;
+  return new NextResponse(html, {
+    status: 200,
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" },
+  });
+}
+
+/** El canje de verdad: sólo cuando una persona toca el botón. */
+export async function POST(request: NextRequest) {
+  const form = await request.formData();
+  const tokenHash = String(form.get("token_hash") ?? "");
+  const type = String(form.get("type") ?? "") as EmailOtpType;
+  const next = safeNext(String(form.get("next") ?? ""), request.url);
+
+  if (!tokenHash || !type) {
+    return NextResponse.redirect(new URL("/caminante/login?error=missing_token", request.url), 303);
   }
 
   // La sesión vieja NO se borra: se IGNORA. `createSupabaseAuthClient` no la lee,
@@ -50,7 +88,7 @@ export async function GET(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.redirect(new URL(`/caminante/login?error=${encodeURIComponent(error.message)}`, request.url));
+    return NextResponse.redirect(new URL(`/caminante/login?error=${encodeURIComponent(error.message)}`, request.url), 303);
   }
 
   // Liga el user recién logueado con su contact del CRM (por correo, solo si el
@@ -72,5 +110,5 @@ export async function GET(request: NextRequest) {
     dest = destinoPorRol(role);
   }
 
-  return NextResponse.redirect(new URL(dest, request.url));
+  return NextResponse.redirect(new URL(dest, request.url), 303);
 }

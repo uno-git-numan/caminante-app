@@ -7,6 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAuthClient, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseOtpClient } from "@/lib/supabase/otp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { ensureContactLink } from "@/lib/crm/contacts";
 import { sendViaResend } from "@/lib/email/resend";
 import { boton, h1, marco, p as parrafo, saludo } from "@/lib/email/plantilla";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -74,36 +75,76 @@ function parseEmail(formData: FormData) {
   return email;
 }
 
-export async function sendMagicLink(formData: FormData) {
-  const email = parseEmail(formData);
-  if (!email) {
-    redirect("/caminante/login?error=invalid_email");
-  }
-
-  const rawNext = typeof formData.get("next") === "string" ? String(formData.get("next")) : "/caminante";
-  // Solo rutas internas (el confirm valida origen de todos modos)
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/caminante";
+/**
+ * EL CÓDIGO DE ACCESO (9 nov 2026). Manda el correo de acceso —trae la liga Y un
+ * código de 8 dígitos— y lleva a la pantalla donde se ESCRIBE el código
+ * (`/caminante/login/codigo`). El código es lo que salva a quien no puede usar
+ * la liga: Hotmail/Outlook la «pre-abre» con su escáner y la gasta, el correo se
+ * abre en otro teléfono, o la app de correo la abre en su navegador interno. Ana
+ * Malvido quedó atrapada así: cuenta sin contraseña, liga gastada, «ya existe».
+ *
+ * `crear=false` (login, «ya existe»): si el correo no tiene cuenta, Supabase no
+ * la inventa y se le manda a crearla.
+ */
+async function pedirCodigo(email: string, next: string, crear: boolean): Promise<{ ok: true } | { ok: false; error: string; sinCuenta?: boolean }> {
   const origin = await getOrigin();
-  // ⚠️ Cliente SIN PKCE a propósito (lib/supabase/otp.ts): la liga tiene que
-  // abrir desde el Mail del teléfono, la app de Gmail o Safari, no sólo desde
-  // el navegador que la pidió.
+  // ⚠️ Cliente SIN PKCE a propósito (lib/supabase/otp.ts): la liga abre desde
+  // cualquier dispositivo; el código se escribe donde sea.
   const supabase = createSupabaseOtpClient();
-
-  // emailRedirectTo lleva el DESTINO FINAL (no la URL del confirm): el template
-  // del correo arma el link del confirm con {{ .TokenHash }} + {{ .SiteURL }} y
-  // pasa esto como ?next=. Así el link nunca depende del matching de la allowlist.
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: {
-      emailRedirectTo: `${origin}${next}`,
-    },
+    options: { emailRedirectTo: `${origin}${next}`, shouldCreateUser: crear },
   });
+  if (!error) return { ok: true };
+  if (/signups not allowed|user not found|not allowed for otp/i.test(error.message)) return { ok: false, error: error.message, sinCuenta: true };
+  return { ok: false, error: error.message };
+}
 
-  if (error) {
-    redirect(`/caminante/login?error=${encodeURIComponent(error.message)}`);
+const aCodigo = (email: string, next: string, extra = "") =>
+  `/caminante/login/codigo?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}${extra}`;
+
+export async function sendMagicLink(formData: FormData) {
+  const email = parseEmail(formData);
+  const next = parseNext(formData);
+  if (!email) redirect(`/caminante/login?error=invalid_email&next=${encodeURIComponent(next)}`);
+  // Desde /signup («Prefiero un enlace por correo») sí se crea la cuenta; desde
+  // /login no: un correo con un typo no debe volverse una cuenta fantasma.
+  const crear = formData.get("crear") === "1";
+  const r = await pedirCodigo(email as string, next, crear);
+  if (!r.ok) {
+    if (r.sinCuenta) redirect(`/caminante/signup?tipo=viajero&email=${encodeURIComponent(email as string)}&next=${encodeURIComponent(next)}&error=sin_cuenta`);
+    redirect(`/caminante/login?error=${encodeURIComponent(r.error)}&next=${encodeURIComponent(next)}`);
   }
+  redirect(aCodigo(email as string, next));
+}
 
-  redirect(`/caminante/login?sent=1&email=${encodeURIComponent(email)}`);
+/** «Mandar otro código» desde la pantalla del código. */
+export async function reenviarCodigo(formData: FormData) {
+  const email = parseEmail(formData);
+  const next = parseNext(formData);
+  if (!email) redirect(`/caminante/login?next=${encodeURIComponent(next)}`);
+  const r = await pedirCodigo(email as string, next, false);
+  if (!r.ok) redirect(aCodigo(email as string, next, `&error=${encodeURIComponent(r.error)}`));
+  redirect(aCodigo(email as string, next, "&otro=1"));
+}
+
+/** Escribe el código del correo → sesión en ESTE navegador → a donde iba. */
+export async function entrarConCodigo(formData: FormData) {
+  const email = parseEmail(formData);
+  const next = parseNext(formData);
+  const codigo = String(formData.get("codigo") ?? "").replace(/\D/g, "");
+  if (!email) redirect(`/caminante/login?next=${encodeURIComponent(next)}`);
+  if (codigo.length < 6 || codigo.length > 10) redirect(aCodigo(email as string, next, "&error=formato"));
+  // El cliente que IGNORA la sesión entrante (ver signInWithPassword).
+  const supabase = await createSupabaseAuthClient();
+  const { data, error } = await supabase.auth.verifyOtp({ email: email as string, token: codigo, type: "email" });
+  if (error || !data.user) redirect(aCodigo(email as string, next, `&error=${encodeURIComponent(error?.message || "codigo")}`));
+  try {
+    await ensureContactLink(createSupabaseAdminClient(), data.user);
+  } catch {
+    /* el login nunca falla por el CRM */
+  }
+  redirect(await postAuthDestination(supabase, next));
 }
 
 export async function signInWithPassword(formData: FormData) {
@@ -154,7 +195,17 @@ export async function signUpWithPassword(formData: FormData) {
     user_metadata: nombre ? { full_name: nombre } : {},
   });
   if (creado.error) {
-    if (/already|exists|registered/i.test(creado.error.message)) volver("User already registered");
+    if (/already|exists|registered/i.test(creado.error.message)) {
+      // Ya tiene cuenta. NO es un callejón (Ana Malvido, 9 nov 2026): si la
+      // contraseña que escribió es la suya, entra; si no tiene contraseña o no
+      // la recuerda, le llega un código y lo escribe en la pantalla siguiente.
+      const sb = await createSupabaseAuthClient();
+      const { error: e2 } = await sb.auth.signInWithPassword({ email: email as string, password });
+      if (!e2) redirect(await postAuthDestination(sb, next));
+      const r = await pedirCodigo(email as string, next, false);
+      if (r.ok) redirect(aCodigo(email as string, next, "&aviso=existe"));
+      volver("User already registered");
+    }
     console.error("signUpWithPassword createUser:", creado.error.message);
     volver(creado.error.message);
   }
@@ -280,4 +331,10 @@ export async function definirContrasena(formData: FormData) {
   const { error } = await supabase.auth.updateUser({ password });
   if (error) volver(/same password|different from the old/i.test(error.message) ? "misma" : error.message);
   redirect(next && next !== "/caminante" ? next : await postAuthDestination(supabase, "/caminante"));
+}
+
+/** Para el espacio del grupo: el mismo puente «ya existe → código», sin redirigir. */
+export async function mandarCodigoACuentaExistente(email: string, next: string): Promise<boolean> {
+  const r = await pedirCodigo(email, next, false);
+  return r.ok;
 }

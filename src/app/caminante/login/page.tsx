@@ -48,7 +48,7 @@ function friendlyError(raw: string): string {
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { sent, email, error, next } = await searchParams;
+  const { error, next } = await searchParams;
   const nextPath = next?.startsWith("/") ? next : "/caminante";
 
   // Con sesión activa el login no tiene nada que ofrecer: directo a tu página.
@@ -63,15 +63,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <p className="text-[10px] uppercase tracking-[0.25em] text-olive">Tu cuenta</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight text-lagoon">Entra a Caminante</h1>
       <p className="mt-2 text-sm text-olive">
-        Entra con {apple ? "Apple, Google" : "Google"}, con tu correo y contraseña, o pide un enlace por correo.
+        Entra con {apple ? "Apple, Google" : "Google"}, con tu correo y contraseña, o pide un código a tu correo.
       </p>
 
       <div className="mt-8 space-y-5 rounded-2xl border border-sand bg-white p-6">
-        {sent === "1" && email ? (
-          <div className="rounded-lg bg-cream p-3 text-sm text-lagoon">
-            Te enviamos un enlace a <strong>{email}</strong>. Ábrelo desde donde leas tu correo: entra con un toque.
-          </div>
-        ) : null}
         {error ? (
           <div className="rounded-lg bg-clay/10 p-3 text-sm text-clay">
             {friendlyError(decodeURIComponent(error))}
@@ -126,14 +121,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             formAction={sendMagicLink}
             className="w-full rounded-xl border border-sand bg-white px-4 py-3 text-sm font-semibold text-lagoon transition hover:border-dune"
           >
-            Enviar enlace por correo
+            Mándame un código de acceso
           </button>
           <p className="text-xs leading-relaxed text-olive">
             ¿Sin contraseña, o la olvidaste?{" "}
             <Link className="font-semibold text-forest underline" href={`/caminante/login/contrasena?next=${encodeURIComponent(nextPath)}`}>
               Créala o cámbiala aquí
             </Link>
-            . O pide el enlace: te llega al correo y abre desde cualquier dispositivo.
+            . O pide un código: te llega al correo y lo escribes aquí mismo, sin contraseña.
           </p>
         </form>
       </div>

@@ -85,6 +85,27 @@ en `error`. El middleware atiende los dos caminos y borra la cookie en sus
 variantes de path/domain (`matarCookie`), porque un borrado sólo surte efecto
 con el mismo path y domain con que se puso.
 
+**El caso Ana Malvido (9 nov 2026): tres trampas que se encadenaban.**
+1. Su cuenta nació del código viejo del grupo **sin contraseña**: «Ya tengo
+   cuenta» con contraseña no podía funcionar, y «Crear cuenta» respondía «ya
+   existe» — un callejón. **Ahora «ya existe» nunca es callejón**: si la
+   contraseña que escribió es la suya, entra; si no, le llega un código y cae en
+   la pantalla para escribirlo (`signUpWithPassword`, `entrarAlGrupo`).
+2. **Hotmail/Outlook (Safe Links) y antivirus abren cada liga del correo antes que
+   la persona.** Si `auth/confirm` canjeaba el token en el GET, la liga llegaba
+   gastada (la de Ana se canjeó 22 s después de mandarse). **El GET de
+   `auth/confirm` sólo enseña un botón; el canje vive en el POST.** Los
+   escáneres no envían formularios.
+3. Liga que se abre en otro navegador/teléfono o en el navegador interno de la app
+   de correo. **El correo de acceso trae también un CÓDIGO** (`{{ .Token }}`, 8
+   dígitos, `mailer_otp_length`) que se escribe en `/caminante/login/codigo`
+   (`entrarConCodigo` → `verifyOtp({email, token, type:"email"})` con el cliente
+   que ignora la sesión). «Mándame un código de acceso» en /login usa
+   `shouldCreateUser:false`: un correo con typo no se vuelve cuenta fantasma.
+   ⚠️ La plantilla hospedada en Supabase (Auth → Email templates → Magic Link) es
+   la que manda; el archivo `supabase/templates/magic-link.html` es su copia. Si
+   no trae `{{ .Token }}`, la pantalla del código pide algo que el correo no trae.
+
 **Contraseña por liga** (`pedirLigaDeContrasena` → correo por Resend con
 `generateLink({type:"recovery"})` y NUESTRO confirm → `/caminante/cuenta/contrasena`
 → `definirContrasena`). La casa nunca teclea ni conoce contraseñas: la persona

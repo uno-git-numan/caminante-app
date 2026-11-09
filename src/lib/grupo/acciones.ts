@@ -20,6 +20,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseAuthClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { mandarCodigoACuentaExistente } from "@/lib/auth/actions";
 import { puedeEditarSlot } from "@/lib/auth/alcance";
 import { findOrCreateContact } from "@/lib/crm/contacts";
 import { cleanGrupoToken } from "@/lib/experiences/availability";
@@ -117,19 +118,36 @@ export async function entrarAlGrupo(formData: FormData): Promise<void> {
       user_metadata: { full_name: nombre },
     });
     if (creado.error) {
-      if (/already|exists|registered/i.test(creado.error.message)) redirect(conError(token, "/entrar", "existe"));
-      console.error("entrarAlGrupo createUser:", creado.error.message);
-      redirect(conError(token, "/entrar", "No pudimos crear tu cuenta. Inténtalo otra vez."));
+      if (/already|exists|registered/i.test(creado.error.message)) {
+        // Ya tiene cuenta (Ana Malvido, 9 nov 2026: cuenta nacida del código
+        // viejo, SIN contraseña; «ya existe» la dejaba sin salida). Si la
+        // contraseña que escribió es la suya, entra; si no, le llega un código
+        // que escribe en la pantalla siguiente y vuelve aquí, ya con sesión.
+        const probar = await createSupabaseAuthClient();
+        const { data: ok } = await probar.auth.signInWithPassword({ email: correoForm, password });
+        if (!ok?.user) {
+          const destino = ruta(token, "/entrar");
+          const mandado = await mandarCodigoACuentaExistente(correoForm, destino);
+          if (mandado) redirect(`/caminante/login/codigo?email=${encodeURIComponent(correoForm)}&next=${encodeURIComponent(destino)}&aviso=existe`);
+          redirect(conError(token, "/entrar", "existe"));
+        }
+        user = ok.user;
+      } else {
+        console.error("entrarAlGrupo createUser:", creado.error.message);
+        redirect(conError(token, "/entrar", "No pudimos crear tu cuenta. Inténtalo otra vez."));
+      }
     }
-    // La sesión queda en cookies en este mismo request. Cliente que IGNORA la
-    // sesión entrante: una sesión muerta en la cookie no debe pelear con ésta.
-    const auth = await createSupabaseAuthClient();
-    const { data, error } = await auth.auth.signInWithPassword({ email: correoForm, password });
-    if (error || !data.user) {
-      console.error("entrarAlGrupo signIn:", error?.message);
-      redirect(conError(token, "/entrar", "Tu cuenta ya existe; entra con tu contraseña."));
+    if (!user) {
+      // La sesión queda en cookies en este mismo request. Cliente que IGNORA la
+      // sesión entrante: una sesión muerta en la cookie no debe pelear con ésta.
+      const auth = await createSupabaseAuthClient();
+      const { data, error } = await auth.auth.signInWithPassword({ email: correoForm, password });
+      if (error || !data.user) {
+        console.error("entrarAlGrupo signIn:", error?.message);
+        redirect(conError(token, "/entrar", "Tu cuenta ya existe; entra con tu contraseña."));
+      }
+      user = data.user;
     }
-    user = data.user;
   }
 
   const email = (user.email ?? correoForm).toLowerCase();
