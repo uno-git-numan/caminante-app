@@ -226,6 +226,45 @@ de Stripe para cuentas conectadas (Luis), `createCheckout` bifurcando por
 canal (la última pieza, a propósito), y la cuenta Express de cada operadora
 desde «Mi alta» (pantalla ya construida). **Entra como Fase 2b** del plan.
 
+### 0.9 La columna vertebral: los «recibos» de Facturapi (Luis, 9 nov: recibo sencillo → factura si la piden → global si no)
+
+Facturapi trae exactamente el flujo que Luis pidió, por organización:
+
+```
+pago cobrado ──▶ RECIBO (nota de venta no fiscal, PDF, liga de autofactura)   POST /receipts
+                    │  el cliente pide factura (Mi espacio → «Facturar», o el link del comprobante)
+                    ├──▶ FACTURA al RFC del cliente                           POST /receipts/{id}/invoice
+                    │  nadie la pidió antes de que cerrara el mes
+                    └──▶ FACTURA GLOBAL a público en general (XAXX010101000)   POST /receipts/global-invoice
+```
+
+- **Un recibo por pago** en la organización de la operadora que vende
+  (`payments.facturapi_receipt_id`, 0076). Lo crea `lib/facturacion/recibos.ts`
+  desacoplado del webhook (cron `recibos` cada hora + intento best-effort al
+  cobrar); idempotente por pago. El comprobante llega por correo nuestro
+  (Resend, remitente «Luis · Caminante») con el PDF del recibo y la llamada:
+  «pide tu factura antes del último día del mes».
+- **«Facturar»** factura ESE recibo (`emitir.ts` → `facturarRecibo`); Facturapi
+  lo saca de la global. Los pagos anteriores al sistema (sin recibo) se
+  facturan directo con los mismos conceptos (`conceptos.ts`).
+- **Global** el día 1 (cron `factura-global`, 13:00 UTC) por cada emisor con
+  organización: `lib/facturacion/global.ts` → `cfdi_globales` + los pagos
+  absorbidos quedan `publico-general` con `cfdi_global_id`. La organización se
+  configura con periodicidad mensual y `duration_days: 0` (el recibo se puede
+  facturar hasta el último día del periodo).
+- **La organización de cada operadora** (`lib/facturacion/organizacion.ts`): se
+  crea con la llave de USUARIO (`FACTURAPI_USER_KEY`), recibe sus datos legales
+  (lo que ya captura Mi alta → Cobrar) y su CSD con la contraseña que la
+  operadora teclea en ese formulario (va a Facturapi, no se guarda). Sus llaves
+  de emisión quedan cifradas (AES-256-GCM, `FACTURAPI_KEY_SECRET`) en
+  `operators.facturapi_*_key_enc`. La casa usa `FACTURAPI_SECRET_KEY`.
+- **Sandbox**: mientras la llave de la casa sea `sk_test_`, las operadoras usan
+  su llave Test. Los recibos sólo se emiten para pagos desde
+  `FACTURAPI_RECIBOS_DESDE` (default 2026-11-10): lo anterior lo cuadra Marisol.
+- Pendiente de Facturapi/Luis: firmar la **Carta Manifiesto** del PAC por cada
+  organización (dashboard o `facturapi.io/embedded/manifiesto`) y contratar el
+  feature de factura global si el plan no lo incluye.
+
 ### Fuentes consultadas (9 nov 2026)
 
 - Airbnb en México: **[Guía oficial de pago de impuestos en México (PDF de Airbnb, 84 pp.)](https://assets.contentstack.io/v3/assets/bltb428ce5d46f8efd8/blt149e452d316dcaa9/5fdd215cb80b0a1a68f9f371/Airbnb_Guia_de_Pago_de_Impuestos_en_Mexico.pdf)** · [Facturación CFDI para hosts de Airbnb (Host Tax)](https://hosttax.mx/recursos/facturacion-airbnb) · [¿Se puede facturar Airbnb? (Praxium)](https://praxiumconsultores.com/blog/puedo-pedir-factura-de-airbnb-como-huesped) · [Impuestos Airbnb 2026 (Heru)](https://www.heru.app/blog/impuestos-airbnb-mexico/) · [Ayuda de Airbnb](https://es-l.airbnb.com/help/article/1857)

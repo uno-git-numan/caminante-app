@@ -25,6 +25,7 @@
 // transferencia no la tiene, y ponerle 0 no es lo mismo que dejarla nula — el
 // tablero de rentabilidad distingue "sin Stripe" de "Stripe en cero".
 
+import { crearRecibosPendientes } from "@/lib/facturacion/recibos";
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
@@ -220,6 +221,9 @@ export async function registrarPagoManual(input: TransferenciaInput): Promise<Tr
     // La reserva ya existe pero sin pago: mejor decirlo que dejar un fantasma.
     return { ok: false, error: `Reserva creada pero el pago falló: ${payErr.message}` };
   }
+
+  // Recibo del pago (0076): best-effort y desacoplado; el cron lo reintenta.
+  void crearRecibosPendientes(5).catch(() => {});
 
   // El deslinde es la razón de ser de todo esto. Regla de la casa: nunca un
   // evento sin deslinde.

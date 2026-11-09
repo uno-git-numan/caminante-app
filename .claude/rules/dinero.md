@@ -118,6 +118,16 @@ operadora externa dice «cuando su facturación quede conectada» (Fase 2:
 `operators.facturapi_org_id`, una organización por operadora). Clave por defecto
 **90121501** (no 90121500, que es la familia), o `experience.data.fiscal`.
 
+**Fase 1.5 (9 nov):** el flujo es el de **recibos de Facturapi** (MAPA §0.9):
+cada pago → recibo (`lib/facturacion/recibos.ts`, cron `recibos` cada hora +
+best-effort al cobrar; comprobante por Resend con PDF) → si piden factura,
+`facturarRecibo` → si no, **global** el día 1 (`global.ts`, cron `factura-global`,
+`cfdi_globales`, pagos `publico-general` + `cfdi_global_id`). Emisor por pago en
+`emisor.ts`; organización por operadora en `organizacion.ts` (datos legales +
+CSD con contraseña desde Mi alta → Cobrar; llaves cifradas con
+`FACTURAPI_KEY_SECRET`). Env: `FACTURAPI_SECRET_KEY` (la casa), `FACTURAPI_USER_KEY`
+(organizaciones), `FACTURAPI_KEY_SECRET` (32 bytes base64), `FACTURAPI_RECIBOS_DESDE`.
+
 Todo apagado mientras no exista `FACTURAPI_SECRET_KEY` (`facturacionActiva()`):
 Mi espacio enseña los pagos como «Por facturar». **Sandbox primero.**
 

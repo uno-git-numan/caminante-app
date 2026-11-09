@@ -7,6 +7,7 @@
 //
 // Idempotente por payments.provider_ref (unique). NO depende de 0014/0015.
 
+import { crearRecibosPendientes } from "@/lib/facturacion/recibos";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -264,6 +265,8 @@ export async function finalizeSelfServeCheckout(
   if (payErr && payErr.code !== "23505") {
     throw new Error(`No se pudo registrar el pago: ${payErr.message}`);
   }
+  // Recibo del pago (0076): best-effort y desacoplado; el cron lo reintenta.
+  void crearRecibosPendientes(5).catch(() => {});
 
   // Cola de sync a Notion — SOLO comercial (Pipeline: Paid + operador atribuido).
   await sb.from("notion_sync_log").insert({

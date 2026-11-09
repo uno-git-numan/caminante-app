@@ -7,6 +7,8 @@
 // Devuelven `{ok, error}` en vez de `redirect()` porque las consumen componentes
 // cliente, como el resto del panel (ConvenioForm, OperadorForm).
 
+import { conectarCsdFacturapi, sincronizarLegalFacturapi } from "@/lib/facturacion/organizacion";
+import { organizacionesActivas } from "@/lib/facturacion/facturapi";
 import { revalidatePath } from "next/cache";
 import { operadoraObjetivo } from "@/lib/auth/alcance";
 
@@ -105,6 +107,19 @@ export async function guardarCsd(formData: FormData): Promise<ConnectActionResul
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
+  // Con la contraseña, el CSD sube a la organización de Facturapi de la
+  // operadora (se crea si no existe) y quedan sus llaves de emisión (0076). Sin
+  // contraseña, o sin conexión activa, el expediente se guarda igual y el sello
+  // se conecta después desde este mismo formulario.
+  const password = String(formData.get("password") ?? "");
+  if (password && organizacionesActivas()) {
+    const org = await conectarCsdFacturapi(id, password);
+    if (!org.ok) {
+      revalidatePath(RUTA);
+      return { ok: false, error: `CSD guardado en el expediente, pero no quedó conectado al PAC: ${org.error}` };
+    }
+  }
+
   revalidatePath(RUTA);
   return { ok: true };
 }
@@ -166,6 +181,16 @@ export async function guardarFiscales(formData: FormData): Promise<ConnectAction
     })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
+
+  // Si la operadora ya tiene organización en Facturapi, sus datos legales se
+  // actualizan allá también (best-effort: el dato nuestro ya quedó guardado).
+  if (organizacionesActivas() && rfc && razonSocial && regimenFiscal && cpFiscal) {
+    const { data: op } = await sb.from("operators").select("facturapi_org_id, es_la_casa").eq("id", id).maybeSingle();
+    if (op?.facturapi_org_id && !op.es_la_casa) {
+      const r = await sincronizarLegalFacturapi(id);
+      if (!r.ok) console.error("[fiscales] Facturapi legal:", r.error);
+    }
+  }
 
   revalidatePath(RUTA);
   return { ok: true };

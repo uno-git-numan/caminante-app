@@ -88,7 +88,7 @@ export async function fetchMisFacturas(contactId: string): Promise<MiFactura[]> 
       estado = "no-facturable";
       motivo = p.status === "refunded" ? "Pago devuelto." : "Este pago no se factura por separado.";
     } else {
-      const f = await estadoFacturable({ id: p.id, reservation_id: p.reservation_id, contact_id: p.contact_id, amount_mxn: p.amount_mxn, status: p.status, status_cfdi: p.status_cfdi, method: p.method });
+      const f = await estadoFacturable({ id: p.id, reservation_id: p.reservation_id, contact_id: p.contact_id, amount_mxn: p.amount_mxn, status: p.status, status_cfdi: p.status_cfdi, method: p.method, paid_at: p.paid_at });
       if (f.ok) estado = "facturable";
       else {
         estado = f.porEmitir ? "pendiente" : "no-facturable";

@@ -41,7 +41,10 @@ cobrar hacia atrás.
 **2 · El CSD son DOS archivos.** El SAT entrega `.cer` y `.key` y timbrar necesita
 ambos (`csd_cer_path` + `csd_key_path`, 0038). Con uno solo el expediente se ve
 completo en pantalla y falla en producción. **La contraseña del CSD no tiene
-columna y no se guarda**: va directo a Facturapi al crear la organización.
+columna y no se guarda**: desde el 9 nov 2026 el formulario de Cobrar la pide y
+`guardarCsd` la manda a Facturapi en la misma llamada
+(`lib/facturacion/organizacion.ts` → `conectarCsdFacturapi`), que crea la
+organización de la operadora, sube el CSD y deja sus llaves cifradas (0076).
 
 **3 · El webhook verifica con DOS secretos.** En Stripe el alcance de un endpoint
 es *tu cuenta* **o** *cuentas conectadas*, nunca los dos, y solo se fija al

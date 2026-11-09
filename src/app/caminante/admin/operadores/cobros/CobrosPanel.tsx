@@ -50,6 +50,8 @@ export default function CobrosPanel({
   const [cpFiscal, setCpFiscal] = useState(o.cpFiscal);
   const [tipoPersona, setTipoPersona] = useState(o.tipoPersona);
   const [vence, setVence] = useState(o.csdVenceAt ?? "");
+  // La contraseña del CSD viaja a Facturapi en la misma llamada; aquí no se guarda.
+  const [passCsd, setPassCsd] = useState("");
 
   async function conectar() {
     setOcupado("stripe");
@@ -103,7 +105,9 @@ export default function CobrosPanel({
       fd.set("cerPath", rutas[0]);
       fd.set("keyPath", rutas[1]);
       fd.set("vence", vence);
+      fd.set("password", passCsd);
       const r = await guardarCsd(fd);
+      setPassCsd("");
       setOcupado("");
       setEstado(r.ok ? "✓ CSD guardado" : `Error: ${r.error}`);
       if (r.ok) window.location.reload();
@@ -245,7 +249,14 @@ export default function CobrosPanel({
             Vigente hasta
             <input type="date" value={vence} onChange={(ev) => setVence(ev.target.value)} />
           </label>
+          <label>
+            Contraseña del CSD
+            <input type="password" value={passCsd} onChange={(ev) => setPassCsd(ev.target.value)} autoComplete="off" placeholder="La del .key" />
+          </label>
         </div>
+        <p className="mut" style={{ fontSize: 12, margin: "6px 0 0" }}>
+          La contraseña va directo al PAC (Facturapi) para activar su sello; Caminante no la guarda.
+        </p>
         <button type="submit" className="btn btn-sm" style={{ marginTop: 10 }} disabled={ocupado !== ""}>
           {ocupado === "csd" ? "Subiendo…" : "Subir CSD"}
         </button>
