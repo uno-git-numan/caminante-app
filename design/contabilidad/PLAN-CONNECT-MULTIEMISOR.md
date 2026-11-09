@@ -306,9 +306,9 @@ Aplica la matriz acordada:
 | Operador, fuerza mayor | 100% | Se devuelve | No |
 | Operador, sin causa | 100% | Se devuelve | **Sí** |
 
-⚠️ **La comisión de Stripe la absorbe el operador** (decisión de Luis: por eso se le
-descuenta). Única excepción: si la cancelación es por falla de Numan, la absorbe
-Numan. Va escrito en el convenio.
+⚠️ ~~La comisión de Stripe la absorbe el operador~~ **Corregido el 9 nov 2026: la
+absorbe NUMAN, dentro de su comisión, también cuando la venta se deshace**
+(`MAPA-FACTURACION.md` §0.3; `CONVENIO-v2.md` Cuarta §3 y Quinta §6).
 
 ### 4.3 La pantalla de reembolso (admin)
 El reembolso lo dispara **una persona**, nunca el sistema solo. La pantalla muestra
@@ -377,8 +377,11 @@ ejecuta el refund contra Stripe.
 
 1. ✅ **Reembolsos** — matriz de 4.2, con penalización al operador que cancela sin
    causa (tomado del precedente de GetYourGuide).
-2. ✅ **Comisión de Stripe** — la absorbe el operador; por eso se le descuenta.
-   Excepción: falla de Numan.
+2. ~~✅ **Comisión de Stripe** — la absorbe el operador; por eso se le descuenta.~~
+   **CORREGIDA el 9 nov 2026 (Luis): la comisión de Stripe va DENTRO de la comisión
+   de NUMAN y la absorbe NUMAN, también en cancelaciones.** El código ya lo hacía
+   así (liquidación = cobrado − devuelto − comisión). Ver `MAPA-FACTURACION.md`
+   §0.3 y `design/operadores/CONVENIO-v2.md` Cuarta §3.
 3. ✅ **Panel del operador** — «todo menos lo que no deben saber», en superficie
    aparte. Datos médicos: solo el bloque de seguridad en campo, con registro.
 4. ✅ **Convenio** — se genera. Claude redacta el borrador, Jorge lo vuelve

@@ -1,6 +1,7 @@
 # Convenio de operación en la plataforma Caminante
 ### v1 — LISTO PARA REVISIÓN LEGAL · 8 de septiembre de 2026
 
+> ⚠️ **SUSTITUIDO por `CONVENIO-v2.md` (9 nov 2026).** Se conserva porque el código y las reglas lo citan por nombre (Cuarta §7). Toda redacción nueva va al v2.
 > **Sigue sin ser un documento firmable.** Ningún abogado lo ha revisado. Se
 > acompaña de `MEMO-REVISION-LEGAL.md`, que explica el negocio y hace las
 > preguntas concretas.

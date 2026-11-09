@@ -1,7 +1,7 @@
 # Memo para revisión legal — Convenio de operación Caminante
 
 **Para:** abogado(a) · **De:** Luis de la Rosa, NUMAN · **Fecha:** 8 de septiembre de 2026
-**Documento a revisar:** `CONVENIO-v1.md` (adjunto)
+**Documento a revisar:** `CONVENIO-v1.md` (adjunto) · **9 nov 2026: la versión vigente es `CONVENIO-v2.md`** (modelo fiscal, Stripe dentro de la comisión, retenciones con números, cancelaciones)
 
 ---
 

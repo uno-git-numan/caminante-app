@@ -78,16 +78,19 @@ las confirma la contadora** porque las fuentes se contradicen en una (ver ⚠️
    - IVA: **50 % del IVA trasladado** (8 % del precio sin IVA) si da RFC; **100 %**
      si no.
    - ISR por «prestación de servicios» (lo nuestro: no es hospedaje ni
-     transporte): la LISR dice **1 %**; varias guías afirman que la **Ley de
-     Ingresos 2026 lo subió a 2.5 %**. ⚠️ Marisol lo confirma contra la LIF 2026.
-     Sin RFC: **20 %**.
+     transporte): la LISR 113-A III dice **1 %**; la **LIF 2026, art. 25 fracc.
+     VI** (DOF 07-11-2025, leída el 9 nov) lo sustituye por **2.5 %** y extiende
+     la retención a **personas morales** (2.5 %; 20 % sin RFC; IVA 50 % por la
+     fracc. IX). ⚠️ Marisol lo confirma (`MEMO-MARISOL-2026-11.md`). Sin RFC: **20 %**.
 2. **CFDI de retenciones mensual** (complemento «Servicios Plataformas
    Tecnológicas») de NUMAN a cada operadora, y la declaración informativa.
    Es el documento **R1** del mapa; se emite por Facturapi.
 3. **La operadora cambia de régimen**: debe darse de alta en el **Régimen de
    actividades empresariales con ingresos a través de plataformas tecnológicas
-   (625)**. ⚠️ **RESICO es incompatible** con ingresos por plataformas (113-E y
-   RMF 3.13.3): una operadora en RESICO tiene que salirse o no puede vender por
+   (625)**. ⚠️ **RESICO es incompatible** con ingresos por plataformas (la exclusión
+   NO está en el texto del 113-E —verificado 9 nov contra el PDF oficial—; la
+   traen la RMF y los criterios del SAT: Marisol cita la regla exacta,
+   `MEMO-MARISOL-2026-11.md` pregunta c): una operadora en RESICO tiene que salirse o no puede vender por
    Caminante. Esto va en el **onboarding** («Mi alta»): el expediente pide el
    régimen y el gate `listo-para-vender` rechaza RESICO y «sin régimen».
 4. **Pago definitivo**: si sus ingresos anuales no pasan de **$300,000**, puede
