@@ -106,10 +106,19 @@ con el mismo path y domain con que se puso.
    la que manda; el archivo `supabase/templates/magic-link.html` es su copia. Si
    no trae `{{ .Token }}`, la pantalla del código pide algo que el correo no trae.
 
-**Contraseña por liga** (`pedirLigaDeContrasena` → correo por Resend con
-`generateLink({type:"recovery"})` y NUESTRO confirm → `/caminante/cuenta/contrasena`
-→ `definirContrasena`). La casa nunca teclea ni conoce contraseñas: la persona
-la define. Entradas: «Créala o cámbiala aquí» en /login y en Mi espacio.
+**Contraseña por CÓDIGO** (9 nov 2026; antes era una liga de recuperación por
+Resend que el escáner de Outlook le gastó a Ana): `pedirLigaDeContrasena` manda
+el mismo código de acceso con destino `/caminante/cuenta/contrasena` →
+`definirContrasena`. La casa nunca teclea ni conoce contraseñas. Entradas:
+«Créala o cámbiala aquí» en /login y en Mi espacio.
+
+**El destino sobrevive a la liga** (`cam_destino`, lib/auth/destino-cookie.ts):
+Supabase tira `emailRedirectTo` si no está en su lista permitida (una ruta como
+/caminante/g/<token>/entrar caía a la portada); `pedirCodigo` lo guarda en cookie
+y `auth/confirm` lo usa.
+
+**Plantilla Magic Link hospedada con `{{ .Token }}` y remitente «Luis · Caminante»
+(SMTP Settings) desde el 9 nov 2026**, aplicados desde el dashboard.
 
 **Apple**: `signInWithApple` existe y el botón (`AppleButton`) se dibuja sólo con
 `NEXT_PUBLIC_AUTH_APPLE=1`. Darlo de alta es de Luis: en Supabase → Auth →
