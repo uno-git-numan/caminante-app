@@ -1,6 +1,12 @@
 # Convenio de operación en la plataforma Caminante
 ### v2 — PARA QUE JORGE LO VUELVA EXIGIBLE · 9 de noviembre de 2026
 
+> ⚠️ **SUSTITUIDO por `CONVENIO-v3.md` la noche del 9 nov 2026.** El alta de operadoras
+> nueva (commit 8486047) contradijo este v2 el mismo día: facturar ya no es
+> condición para cobrar, el CSD salió del candado, el expediente se pide por tipo
+> de persona y el sistema no retiene ISR ni IVA. Se conserva como historial; lo
+> que se manda a Jorge y lo que se publica es el v3 (`CONVENIO-v3-FIRMABLE.md`).
+
 > **Sigue sin ser un documento firmable** hasta que Jorge Zubarán (Ekko) lo
 > revise. Este v2 incorpora el **modelo fiscal definido con Luis el 9 nov 2026**
 > (`design/contabilidad/MAPA-FACTURACION.md` §0) y deja de tener huecos en los
