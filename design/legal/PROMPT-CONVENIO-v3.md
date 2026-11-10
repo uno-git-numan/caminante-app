@@ -24,6 +24,14 @@ firmado y comisión definida (`src/lib/operators/listo-para-vender.ts`). El CSD 
 los datos fiscales salieron del candado. Facturar desde la plataforma es un paso
 **opcional y posterior** («Cobrar → Facturación desde Caminante · opcional»).
 
+**El flujo de facturas que quiere Luis** (corrección del 9 nov): NUMAN le
+factura a la operadora **su comisión** con Facturapi, con los datos fiscales de
+la operadora bien capturados; la operadora les factura a sus clientes, en una
+global a **público en general** lo que nadie pidió. Hoy ninguna operadora cobra
+por cuenta conectada: NUMAN cobra todo y a Nomádika le paga por transferencia
+contra su factura de servicios. El convenio describe el modelo de plataforma
+que va a arrancar, no el de hoy.
+
 Contradicen esto:
 - **Décima tercera §1**: da por hecho que el portal timbra. Reescribir: el
   Operador **siempre** está obligado a facturarle a su cliente. Puede hacerlo

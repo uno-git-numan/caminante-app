@@ -62,23 +62,26 @@ el CFDI de retenciones mensual. La comisión de Stripe va dentro de la de NUMAN.
 | **f** | **Global «público en general»** mensual **por emisor** (una de NUMAN para comisiones a quien no pida factura —si aplica— y una por operadora por sus ventas sin factura), RFC XAXX010101000, al cierre de mes. ¿Periodicidad mensual, clave y uso S01? | RMF 2.7.1.21 (global). | |
 | **g** | **Precio de transferencia NUMAN→DRUIDAS** (partes relacionadas): proponemos cobrarle a DRUIDAS **la misma escala pública** que paga Nomádika (20/18/16/14/14 por tramos, tope 20 %, mínimo $250), con el mismo convenio. ¿Basta como soporte de precio de mercado? ¿DRUIDAS queda eximida del estudio del 76 fracc. IX por el umbral de ingresos? | LISR 179 (partes relacionadas), 76 fracc. IX y XII; Marisol dijo el 2 sep que las cuotas entre empresas deben ser variables y ligadas a indicadores: la comisión por venta lo es. | |
 
-### h · Agregada el 9 nov 2026 (tarde): cobrar sin RFC y sin retener
+### h · Agregada el 9 nov 2026 (tarde): retener desde la primera venta por Connect
 
-Desde hoy, una operadora puede empezar a cobrar por cuenta conectada **sin**
-haber capturado su RFC ni su CSD: facturar desde la plataforma pasó a ser un
-paso opcional y posterior (decisión de Luis, para que el alta no sea un cuello
-de botella). Su Constancia de Situación Fiscal sí se pide en el expediente y se
-valida contra el SAT, pero **no detiene el cobro**. Además, **el sistema todavía
-no retiene ISR ni IVA a nadie**: en cada venta sólo se queda con la comisión
-más su IVA. Ya hubo ventas por cuenta conectada a una persona física (Nomádika)
-sin esa retención; el monto exacto sale de Stripe antes de mandarte esto.
+**Cómo está hoy (corregido por Luis el 9 nov):** ninguna operadora cobra
+todavía por cuenta conectada. NUMAN cobra todo con su cuenta y a Nomádika le
+deposita desde la cuenta de NUMAN, contra la factura de servicios que Nomádika
+le emite. No hay ventas por plataforma sin retener que regularizar.
+
+**Cómo va a ser (Luis):** primero tiene que funcionar el cobro por cuenta
+conectada, con los datos fiscales de la operadora bien. NUMAN le factura su
+comisión con Facturapi, y la operadora le factura a sus clientes en una global
+a público en general. El sistema **todavía no retiene ISR ni IVA**: hoy sólo
+separa la comisión más su IVA. La retención se construye antes de que la
+primera operadora cobre por esa vía.
 
 | # | Pregunta | **Respuesta de Marisol · fecha** |
 |---|---|---|
-| **h1** | Si la operadora cobra sin habernos dado su RFC, ¿estamos obligados a retenerle **20 % de ISR y 100 % del IVA** desde la primera venta? ¿Cuenta como «RFC proporcionado» que su CSD esté en el expediente, aunque no lo haya capturado en sus datos fiscales? | |
-| **h2** | Mientras el sistema no retenga, ¿podemos seguir cobrando? ¿O el alta con cobro debe esperar a que la retención funcione? | |
-| **h3** | Por lo que ya se cobró sin retener (Nomádika y lo que se venda mientras), ¿cómo se regulariza? ¿NUMAN entera de su bolsa y se lo descuenta después a la operadora, presenta complementarias, u otra vía? ¿Con qué fecha límite? | |
-| **h4** | En el cobro por cuenta conectada, el cargo se hace **a nombre de la operadora** (`on_behalf_of`: ella es el comercio que ve el cliente), pero el dinero pasa por la cuenta de NUMAN y ahí se separa la comisión. ¿Eso basta para que NUMAN sea «plataforma tecnológica» obligada a retener (113-A, 18-J)? ¿O cambia algo frente al cobro por cuenta de la operadora? | |
+| **h1** | ¿Qué necesitamos de la operadora para retenerle la tasa con RFC (2.5 % / 50 %) y no la de sin RFC (20 % / 100 %)? ¿Basta su Constancia de Situación Fiscal validada contra el SAT, o hace falta algo más? | |
+| **h2** | ¿La retención tiene que funcionar desde la **primera** venta por cuenta conectada, o hay forma válida de arrancar y retener después? (Nuestra intención: no arrancar sin ella.) | |
+| **h3** | En el cobro por cuenta conectada, el cargo se hace **a nombre de la operadora** (`on_behalf_of`: ella es el comercio que ve el cliente), pero el dinero pasa por la cuenta de NUMAN y ahí se separa la comisión. ¿Eso basta para que NUMAN sea «plataforma tecnológica» obligada a retener (113-A, 18-J)? ¿Cambia algo frente a cobrar por cuenta de la operadora? | |
+| **h4** | Hoy NUMAN le compra el servicio a Nomádika (persona física) contra factura de servicios. ¿Ese esquema le obliga a NUMAN alguna retención mientras no pasemos a la plataforma? | |
 
 ### Dos cosas más que caen de las respuestas
 
