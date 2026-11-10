@@ -68,6 +68,10 @@ el CFDI de retenciones mensual. La comisión de Stripe va dentro de la de NUMAN.
 todavía por cuenta conectada. NUMAN cobra todo con su cuenta y a Nomádika le
 deposita desde la cuenta de NUMAN, contra la factura de servicios que Nomádika
 le emite. No hay ventas por plataforma sin retener que regularizar.
+**Verificado en Stripe LIVE el 9 nov 2026** (llave de solo lectura de La Caja):
+96 cargos en la cuenta de NUMAN, 0 con `transfer_data`/`on_behalf_of`, 0
+transferencias a cuentas conectadas, 0 `application_fees`. El correo a Marisol
+lleva la pregunta h con este dato (borrador actualizado esa noche).
 
 **Cómo va a ser (Luis):** primero tiene que funcionar el cobro por cuenta
 conectada, con los datos fiscales de la operadora bien. NUMAN le factura su

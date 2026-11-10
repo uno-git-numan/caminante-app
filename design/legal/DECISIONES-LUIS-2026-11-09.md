@@ -21,7 +21,7 @@ manda a Jorge, Marisol o Laura hasta que Luis lo diga.
 |---|---|---|
 | 7 | ~~**Porcentajes de cancelación**~~ **DECIDIDO 9 nov (noche)**: ventanas 30/15 y 60/30 → 100/50/0 %, arrepentimiento 24 h si la salida está a 7+ días, penalización a la operadora 0/10/20/30 %, mín. $500, tope $15,000, fuerza mayor exenta, descontada de la siguiente liquidación | `design/operadores/CONVENIO-v3.md` Quinta |
 | 8 | **Mandar el convenio v3 a Jorge** (`CONVENIO-v3.md` + `CONVENIO-v3-FIRMABLE.md`) con la tabla «Lo que falta para publicar». El v2 quedó superado la misma noche por el alta nueva | `CONVENIO-v3.md`, tabla final |
-| 8b | **Decidir qué pasa con Nomádika mientras Marisol contesta h2**: hoy cobra por cuenta conectada sin convenio publicado ni retención. Opciones: seguir cobrando (riesgo fiscal de NUMAN) · pausar sus ventas hasta publicar el v3 | `MEMO-MARISOL-2026-11.md` h1–h4 |
+| 8b | ~~Nomádika cobra por cuenta conectada sin retención~~ **Falso, corregido la noche del 9 nov**: verificado en Stripe LIVE, ninguna venta ha pasado por cuenta conectada; a Nomádika NUMAN le paga contra factura de servicios (pregunta h4 a Marisol). No hay nada que pausar ni regularizar | `MEMO-MARISOL-2026-11.md` h |
 | 9 | **Mensaje a Cat/Laura (Nomádika)** pidiendo su CSF para saber su régimen (¿RESICO?) | `design/legal/ONBOARDING-FISCAL-OPERADORA-PF.md` |
 | 10 | **Alta de NUMAN como retenedora** ante el SAT: lo presenta Marisol con la e.firma de Luis cuando conteste el memo | `design/contabilidad/NUMAN-PLATAFORMA-RETENEDORA.md` §3 |
 

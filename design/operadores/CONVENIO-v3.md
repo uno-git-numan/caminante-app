@@ -14,7 +14,11 @@
 > del candado, el expediente se pide por tipo de persona, y el sistema **no
 > retiene ISR ni IVA**. Hoy ninguna operadora puede cobrar por cuenta conectada
 > porque no hay un convenio publicado (`operator_agreement_versions` vacía): el
-> gate `operadorListo` exige `convenio_firmado_at`.
+> gate `operadorListo` exige `convenio_firmado_at`. (Desde la noche del 9 nov el
+> gate tiene **cinco** condiciones: Stripe verificada, datos fiscales tomados de la
+> CSF validada por el SAT, física o moral, convenio firmado y comisión resuelta;
+> sin trato negociado se firma la escala pública y `comision_desde` = día de la
+> firma. El CSD sigue fuera.)
 >
 > **Restricción de formato que manda sobre todo el texto:** la pantalla de firma
 > (`admin/mi-alta/convenio/Convenio.tsx`) pinta **sólo títulos (`#`) y negritas
@@ -118,7 +122,7 @@ Más de $40,000 MXN: **8 %**.
 
 **10 · Descuentos.** Los descuentos no cambian la comisión en porcentaje: la comisión se calcula sobre lo efectivamente cobrado al cliente, después del descuento, y el Operador y Caminante absorben el descuento en proporción.
 
-**11 · Fecha de arranque.** Lo vendido antes de la fecha de arranque que consta en la carátula no genera comisión y no se suma retroactivamente.
+**11 · Fecha de arranque.** La fecha de arranque es la de la firma de este convenio, salvo que en la carátula conste otra. Lo vendido antes de esa fecha no genera comisión y no se suma retroactivamente.
 
 > *Trazabilidad:* las dos escalas son las que el motor de cobro aplica desde el 8 sep 2026 (`reglaComisionDeOperador`); el guardián de invariantes detiene el despliegue si se separan o si B supera a A en algún tramo (invariantes 17 y 18). La comisión pactada es `operators.commission_pct`.
 
@@ -166,7 +170,7 @@ Cuando Caminante inicie las retenciones que la ley le imponga, lo **notificará 
 
 Si la autoridad fiscal determinara que Caminante debió retener y enterar impuestos del Operador por periodos en los que no lo hizo, y Caminante los enterara, el Operador **reembolsará a Caminante** las cantidades enteradas por su cuenta, por compensación contra liquidaciones futuras o por transferencia, sin perjuicio de su derecho a acreditarlas.
 
-🔸 **Para Marisol (h1–h4 del memo) y luego Jorge — ESTE PUNTO DECIDE QUÉ SE PUBLICA.** La redacción de arriba es la **variante A (hoy: sin retener)** y es la que lleva el firmable, porque es la única verdadera. Depende de h2 («¿podemos seguir cobrando mientras el sistema no retiene?»): si Marisol dice que no, no se publica nada hasta que el sistema retenga, y entonces va la **variante B**, abajo. El último párrafo (reembolso de lo que Caminante entere por periodos pasados) es la consecuencia de h3 y necesita el visto de Jorge. El régimen 625 y la incompatibilidad con RESICO del v2 salen del convenio hasta que Marisol cite la regla (113-E no lo dice).
+🔸 **Para Marisol (h1–h4 del memo) y luego Jorge — ESTE PUNTO DECIDE QUÉ SE PUBLICA.** La redacción de arriba es la **variante A (hoy: sin retener)** y es la que lleva el firmable, porque es la única verdadera hoy. **Hecho verificado en Stripe LIVE el 9 nov (llave de solo lectura):** ninguna venta ha pasado por cuenta conectada (0 cargos con destino, 0 transferencias, 0 comisiones de aplicación); a Nomádika NUMAN le paga contra factura de servicios. La intención de Luis es **no arrancar el cobro por cuenta conectada sin retención** (memo h2). Si Marisol confirma que debe retenerse desde la primera venta, el firmable se publica con la **variante B** cuando el sistema retenga (se cambia aquí y se vuelve a derivar); si admite arrancar y retener después, se publica la A. El último párrafo (reembolso de lo que Caminante entere por periodos pasados) es la consecuencia de h3 y necesita el visto de Jorge. El régimen 625 y la incompatibilidad con RESICO del v2 salen del convenio hasta que Marisol cite la regla (113-E no lo dice).
 
 > **Variante B — cuando el sistema retenga (sustituye los párrafos 2 a 4 del punto 8):**
 >
@@ -437,7 +441,7 @@ RFC, régimen fiscal, código postal fiscal y tipo de persona (física o moral),
 
 | # | Qué | De quién | Bloquea publicar |
 |---|---|---|---|
-| 1 | **h2 del memo**: ¿se puede cobrar mientras el sistema no retiene? Si sí, se publica con la variante A de la Cuarta §8; si no, nada se publica hasta que el sistema retenga (variante B) | **Marisol** | **Sí** |
+| 1 | **h2 del memo**: ¿la retención debe funcionar desde la primera venta por cuenta conectada? Si sí, el firmable se publica con la variante B de la Cuarta §8 cuando el sistema retenga; si se puede arrancar y retener después, se publica la A (la de hoy) | **Marisol** | **Sí** |
 | 2 | Revisión de exigibilidad: Cuarta §7 (contrato con Stripe directo, inciso e), Cuarta §8 último párrafo (reembolso de lo enterado por periodos pasados), Quinta §3 pena convencional y fuerza mayor, Quinta §5 garante o intermediaria, Quinta §7 contracargos, Octava §2 proveedor de IA y transferencia internacional, Novena tope, Décima tercera §1 forma de la autorización para timbrar, Décima octava sede | **Jorge** | **Sí** (es lo que lo vuelve firmable) |
 | 3 | Confirmar que el representante de NUMAN HUB puede identificarse por escritura en la carátula, o pasar nombre y carácter a la carátula | Jorge | Sí |
 | 4 | Mandar este documento y `CONVENIO-v3-FIRMABLE.md` a Jorge con la lista de arriba | **Luis** | — |

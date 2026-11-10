@@ -66,7 +66,7 @@ Más de $40,000 MXN: **8 %**.
 
 **10 · Descuentos.** Los descuentos no cambian la comisión en porcentaje: la comisión se calcula sobre lo efectivamente cobrado al cliente, después del descuento, y el Operador y Caminante absorben el descuento en proporción.
 
-**11 · Fecha de arranque.** Lo vendido antes de la fecha de arranque que consta en la carátula no genera comisión y no se suma retroactivamente.
+**11 · Fecha de arranque.** La fecha de arranque es la de la firma de este convenio, salvo que en la carátula conste otra. Lo vendido antes de esa fecha no genera comisión y no se suma retroactivamente.
 
 ## Cuarta · Cobro, retención y pago
 
