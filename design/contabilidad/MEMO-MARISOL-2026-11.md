@@ -62,6 +62,24 @@ el CFDI de retenciones mensual. La comisión de Stripe va dentro de la de NUMAN.
 | **f** | **Global «público en general»** mensual **por emisor** (una de NUMAN para comisiones a quien no pida factura —si aplica— y una por operadora por sus ventas sin factura), RFC XAXX010101000, al cierre de mes. ¿Periodicidad mensual, clave y uso S01? | RMF 2.7.1.21 (global). | |
 | **g** | **Precio de transferencia NUMAN→DRUIDAS** (partes relacionadas): proponemos cobrarle a DRUIDAS **la misma escala pública** que paga Nomádika (20/18/16/14/14 por tramos, tope 20 %, mínimo $250), con el mismo convenio. ¿Basta como soporte de precio de mercado? ¿DRUIDAS queda eximida del estudio del 76 fracc. IX por el umbral de ingresos? | LISR 179 (partes relacionadas), 76 fracc. IX y XII; Marisol dijo el 2 sep que las cuotas entre empresas deben ser variables y ligadas a indicadores: la comisión por venta lo es. | |
 
+### h · Agregada el 9 nov 2026 (tarde): cobrar sin RFC y sin retener
+
+Desde hoy, una operadora puede empezar a cobrar por cuenta conectada **sin**
+haber capturado su RFC ni su CSD: facturar desde la plataforma pasó a ser un
+paso opcional y posterior (decisión de Luis, para que el alta no sea un cuello
+de botella). Su Constancia de Situación Fiscal sí se pide en el expediente y se
+valida contra el SAT, pero **no detiene el cobro**. Además, **el sistema todavía
+no retiene ISR ni IVA a nadie**: en cada venta sólo se queda con la comisión
+más su IVA. Ya hubo ventas por cuenta conectada a una persona física (Nomádika)
+sin esa retención; el monto exacto sale de Stripe antes de mandarte esto.
+
+| # | Pregunta | **Respuesta de Marisol · fecha** |
+|---|---|---|
+| **h1** | Si la operadora cobra sin habernos dado su RFC, ¿estamos obligados a retenerle **20 % de ISR y 100 % del IVA** desde la primera venta? ¿Cuenta como «RFC proporcionado» que su CSD esté en el expediente, aunque no lo haya capturado en sus datos fiscales? | |
+| **h2** | Mientras el sistema no retenga, ¿podemos seguir cobrando? ¿O el alta con cobro debe esperar a que la retención funcione? | |
+| **h3** | Por lo que ya se cobró sin retener (Nomádika y lo que se venda mientras), ¿cómo se regulariza? ¿NUMAN entera de su bolsa y se lo descuenta después a la operadora, presenta complementarias, u otra vía? ¿Con qué fecha límite? | |
+| **h4** | En el cobro por cuenta conectada, el cargo se hace **a nombre de la operadora** (`on_behalf_of`: ella es el comercio que ve el cliente), pero el dinero pasa por la cuenta de NUMAN y ahí se separa la comisión. ¿Eso basta para que NUMAN sea «plataforma tecnológica» obligada a retener (113-A, 18-J)? ¿O cambia algo frente al cobro por cuenta de la operadora? | |
+
 ### Dos cosas más que caen de las respuestas
 
 - **Alta de NUMAN como retenedora**: qué aviso presenta NUMAN (actualización de
