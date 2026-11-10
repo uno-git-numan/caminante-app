@@ -10,7 +10,11 @@ archivo y línea) se hizo el 9 nov 2026 sobre el commit 2d67be4. Aquí sólo va
 lo que se puede automatizar, ordenado por cuánto tiempo le quita al camino
 hacia el primer cobro.
 
-## Ya hecho (9 nov 2026, commit cef03c3)
+## Construido el 9 nov 2026 (commits cef03c3 y e5786dd)
+
+Luis dijo sí a las tres decisiones de abajo (la llamada queda **como interruptor**, hoy obligatoria). Construido: 1 (comisión por omisión), 2 y 3 (revisión automática y envío solo), 4 (interruptor `ALTA_LLAMADA`), 5, 7, 9 (fechas y CSD leídos), 12 y 13 (Stripe precargado) y la liga rota. Falta: 6 y 8 (leer el nombre de la INE para precargar la firma), 10, 11, 14, 15–18.
+
+### Constancia (cef03c3)
 
 **La constancia fiscal llena sola** el RFC, la razón social, el régimen, el
 código postal y física/moral, en cuanto el SAT la confirma

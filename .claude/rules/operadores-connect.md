@@ -60,19 +60,23 @@ cuando Stripe ya lo apagó.
 si el flujo no está completo, **no se vende**. ⚠️ Hasta el 22 sep 2026 **nadie lo
 llamaba en ninguna puerta** aunque su encabezado prometiera tres; hoy lo llama
 `candadosDe` (`lib/experiences/candados-venta.ts`), que es la única puerta de
-publicar y cobrar. **Cuatro condiciones desde el 9 nov 2026**, todas verificables:
+publicar y cobrar. **Cinco condiciones desde el 9 nov 2026**, todas verificables:
 
 1. `stripe_charges_enabled` — lo dice **Stripe**, no nosotros.
-2. `tipo_persona` (física o moral): define retenciones y qué papeles se piden.
-3. `convenio_firmado_at` — la fecha de firma, no una casilla marcada.
-4. Comisión resuelta: `commission_pct` o `comision_desde`.
+2. **Datos fiscales** (`rfc`, `razon_social`, `regimen_fiscal`, `cp_fiscal`):
+   NUMAN le factura su comisión con Facturapi. ⚠️ **Nadie los teclea**: salen
+   de la constancia confirmada por el SAT (ver abajo).
+3. `tipo_persona` (física o moral): también sale del RFC de la constancia.
+4. `convenio_firmado_at` — la fecha de firma, no una casilla marcada.
+5. Comisión resuelta: `commission_pct` o `comision_desde`. ⚠️ Sin trato
+   negociado se firma **la escala pública** y `firmarConvenio` escribe
+   `comision_desde` = el día de la firma. La casa ya no teclea nada para que
+   la operadora pueda firmar.
 
-⚠️ **El CSD y los datos fiscales YA NO detienen la venta** (Luis, 9 nov 2026,
-haciendo el alta de Nomádika en vivo: «si quieren facturación, que se prenda en
-un paso posterior, pero no sea un cuello para empezar a cobrar»). La facturación
-desde la plataforma es opcional y vive en Cobrar, sección 2. Si no la prende, la
-operadora le factura a su cliente por fuera. En los seis candados del tablero el
-del CSD se volvió «Física o moral».
+⚠️ **El CSD YA NO detiene la venta** (Luis, 9 nov 2026, haciendo el alta de
+Nomádika en vivo: «si quieren facturación, que se prenda en un paso posterior,
+pero no sea un cuello para empezar a cobrar»). Facturarle a SU cliente desde la
+plataforma es opcional y vive en Cobrar; si no la prende, factura por fuera.
 
 Un operador **sin** `stripe_account_id` no está en Connect y el gate lo deja pasar
 (`requiereConnect`). Esa es la bandera por operador: el camino que hoy mueve
@@ -95,6 +99,34 @@ plataforma: el reparto del dinero no cambió. ⚠️ La bandera `COBRO_EN_PLATAF
 crea cuentas con pérdidas a la plataforma y **no se puede prender tal cual** en
 LIVE.
 
+## El alta en 15 minutos: un dato se obtiene, no se pide (9 nov 2026)
+
+Meta de Luis: pasar de la solicitud a cobrar tan rápido como se abre una cuenta
+de Revolut. Lista completa y lo que falta: `design/operadores/ALTA-EN-15-MINUTOS.md`.
+
+- **Constancia → datos fiscales** (`lib/operadores/fiscal-de-csf.ts`): con
+  `sat === "validada"`, `analizarCsf` escribe RFC, razón social, CP,
+  física/moral y el régimen (si hay UNO de negocio; con dos, la pantalla ofrece
+  sólo los de su constancia: `elegirRegimen`). Nunca pisa un RFC distinto.
+- **Revisión automática** (`lib/operadores/revision-ia.ts`): la IA lee cada
+  documento contra el catálogo. Limpio (es lo que se pide, legible, a su
+  nombre, vigente, sin alertas) → **aprobado solo** (`revisado_por =
+  "revisión automática"`). Cualquier duda → se queda en revisión con las
+  razones escritas. **Nunca rechaza sola.** La constancia se aprueba sola con
+  el SAT, sin alertas y con ≤ 90 días. La carpeta pasa sola a revisión y la
+  actividad se aprueba sola con todo aprobado (`cerrarActividadSiCompleta`).
+- **Fechas de vencimiento**: se leen del documento; el renglón ya no las pide.
+- **CSD**: vigencia y RFC salen del `.cer` (`lib/facturacion/cer.ts`); si el RFC
+  no es el de la operadora, no se guarda.
+- **Stripe precargado** (`lib/payments/identidad-stripe.ts`): la cuenta v2 nace
+  con RFC, razón social (moral) y CP, y `completarIdentidadStripe` se los manda
+  si la constancia llega después (sólo mientras no cobre). El nombre de una
+  persona física NO se manda: partirlo sería adivinar.
+- **La llamada es un interruptor** (`lib/operadores/llamada.ts`): obligatoria
+  por omisión (hoy). Con `ALTA_LLAMADA=opcional` en Vercel (y un redeploy) la
+  solicitud se aprueba sola al llegar (`lib/admin/aprobar-solicitud.ts`, el
+  núcleo sin guarda, FUERA del archivo `use server`).
+
 ## Dónde vive qué
 
 | | |
@@ -106,7 +138,7 @@ LIVE.
 | Cobrar, marca y expediente (la operadora, lo suyo; la casa por ella con `?operadora=`) | `admin/mi-alta/cobrar/`, `admin/mi-alta/marca/`, `admin/mi-alta/expediente/` |
 | Los candados de venta, UNA puerta para publicar×2 y cobrar | `lib/experiences/candados-venta.ts` (invariante #20) |
 | Dispensa del candado de actividad (con dueño y caducidad) | `operator_activity_dispensas` (0060), `lib/operadores/candado-actividad.ts` |
-| Convenio y datos fiscales | `admin/operadores/ConvenioForm.tsx` |
+| Comisión y entidad legal (los datos fiscales sólo se enseñan) | `admin/operadores/ConvenioForm.tsx` |
 | Perfil público | `admin/operadores/OperadorForm.tsx` → `/caminante/operador/<slug>` |
 | Portal con su marca | `lib/operators/branding.ts` → `/caminante/o/<slug>` |
 | Alta idempotente | `lib/operators/alta.ts` (`ensureOperador`) |
