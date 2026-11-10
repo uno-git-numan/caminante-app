@@ -6,7 +6,8 @@ DRUIDAS opera las experiencias propias de Caminante y factura al cliente;
 NUMAN HUB queda como plataforma y factura sólo su comisión.
 
 > ⚠️ **Este documento NO se manda a Jorge todavía.** Lleva decisiones que son de
-> Luis (socios, figura, domicilio, nombre). Están marcadas **DECIDE LUIS**. Cuando
+> Luis (figura, domicilio, nombre; **socios ya decididos el 9 nov: espejo de NUMAN**).
+> Las pendientes están marcadas **DECIDE LUIS**. Cuando
 > él las conteste, se limpia y se manda con el correo del final. Regla:
 > `feedback-pasar-decisiones-por-luis`.
 
@@ -97,17 +98,32 @@ de la RMF vigente al momento del alta**, y fija la **actividad preponderante**):
 
 | Tema | Propuesta | Por qué | Fuente |
 |---|---|---|---|
-| Figura | **S.A. de C.V.** (igual que NUMAN) o **S.A.P.I. de C.V.** si va a entrar un socio operativo con vesting/veto de seguridad | La S.A.P.I. admite pactos de socios en estatutos (veto, tag/drag, vesting) sin forzar la ley; la S.A. simple basta si los socios son los mismos de NUMAN | LGSM; LMV 12–13 (S.A.P.I.) |
+| Figura | **S.A. de C.V.** (igual que NUMAN). Con socios espejo ya no hace falta la S.A.P.I.; sólo si Luis quiere dejar preparados pactos para una entrada futura | La S.A.P.I. admite pactos de socios en estatutos (veto, tag/drag, vesting) sin forzar la ley; la S.A. simple basta si los socios son los mismos de NUMAN | LGSM; LMV 12–13 (S.A.P.I.) |
 | Régimen fiscal | **601 General de Ley PM** | RESICO PM (626) queda excluido si un socio participa en otra sociedad donde tenga el control o sean partes relacionadas: Luis es socio de NUMAN | LISR 206 fracc. I (texto oficial, verificado 9 nov) |
 | Capital mínimo | El que fije la notaría; sin mínimo legal | — | LGSM 89 |
 | Domicilio fiscal | **Físico y verificable** (no el particular) | Marisol, 2 sep 2026: vigilancia a factureras | guía Ekko §4 |
-| Administración | Administrador único (Luis) o consejo si hay socio operativo con veto de seguridad | pregunta 28 de la guía | — |
+| Administración | **Administrador único (Luis)**, como en NUMAN; socios espejo, sin consejo | pregunta 28 de la guía | — |
 
-**DECIDE LUIS — socios.** El PDF de estructura (sep 2026) ilustraba Druidas con
-*Mario 56 · Luis 30 · Concha 14*, «no es propuesta cerrada». Para constituir
-hay que fijar hoy quién firma el acta. Opciones:
+**DECIDIDO (Luis, 9 nov 2026) — socios: (a) espejo de NUMAN.** Firman el acta
+**Concepción Orvañanos Corcuera y Luis de la Rosa Orvañanos**, los mismos socios
+y en la misma proporción que NUMAN HUB (instrumento 107,629, Notaría 1 CDMX,
+18 ago 2025; Jorge toma los porcentajes de esa acta, que es un escaneo sin texto
+en `~/Expediente-NUMAN/corporativo/`). Mario, León o quien sea entran, si entran,
+por aumento de capital cuando haya acuerdo firmado. Consecuencias:
 
-- **(a) Espejo de NUMAN** — Luis y Concepción, mismos porcentajes que NUMAN.
+- Basta la **S.A. de C.V.** (no hace falta S.A.P.I.: no hay socio operativo con
+  veto ni vesting que pactar).
+- Administrador único: Luis, como en NUMAN.
+- Documentos para la notaría: los mismos de los dos socios que ya se usaron en
+  2025 (identificación, CURP, CSF y comprobante de domicilio vigentes).
+- DRUIDAS y NUMAN son **partes relacionadas** (LISR 179): el contrato de
+  servicios NUMAN→DRUIDAS va a la escala pública y queda documentado (§5).
+
+El PDF de estructura (sep 2026) ilustraba Druidas con *Mario 56 · Luis 30 ·
+Concha 14*, «no es propuesta cerrada». Las opciones que se compararon, para el
+historial:
+
+- **(a) Espejo de NUMAN** — Luis y Concepción, mismos porcentajes que NUMAN. **← elegida.**
   Más rápido (los mismos documentos de identidad); deja la entrada de Mario,
   León o quien sea para un aumento de capital posterior.
 - **(b) NUMAN HUB como socia mayoritaria + Luis** — holding de facto: los
@@ -118,8 +134,8 @@ hay que fijar hoy quién firma el acta. Opciones:
   (Cat y León: cero equity decidido el 28 sep; Mario: sin acuerdo escrito).
   Retrasa la constitución semanas o meses.
 
-Recomendación operativa: **(a) o (b) ahora**, y la entrada de otros socios por
-aumento de capital cuando haya acuerdo firmado. Lo que importa para la caja es
+Se recomendó **(a) o (b) ahora** y la entrada de otros socios por aumento de
+capital cuando haya acuerdo firmado; Luis eligió (a). Lo que importa para la caja es
 que DRUIDAS exista con CSD antes de la temporada alta (Sardine run nov 2026
 ya se vendió por NUMAN; ver §4).
 
@@ -135,10 +151,10 @@ tramos presenciales los hace Luis (o apoderado) — Claude prepara.
 
 | # | Paso | Quién | Tiempo | Depende de | Salida |
 |---|---|---|---|---|---|
-| 1 | Decisiones de §2.3 (socios, figura, nombre, domicilio) | **Luis** | día 0 | — | este doc limpio → Jorge |
+| 1 | Decisiones de §2.3 (socios ✅ 9 nov; faltan figura, nombre, domicilio) | **Luis** | día 0 | — | este doc limpio → Jorge |
 | 2 | Autorización de denominación ante la SE (3 opciones) | Jorge/notaría | 2–5 días hábiles | 1 | oficio de denominación |
 | 3 | Proyecto de estatutos (objeto §2.1, veto de seguridad, cláusulas de salida) | Jorge | 1 semana | 1 | borrador para firma |
-| 4 | Firma del acta ante notario + **inscripción al RFC por el fedatario** (el notario puede inscribir a la PM al protocolizar) | Luis + socios, notaría | 1 día (cita) | 2, 3; identificaciones, CSF y comprobante de domicilio de cada socio; CURP | acta + **RFC** |
+| 4 | Firma del acta ante notario + **inscripción al RFC por el fedatario** (el notario puede inscribir a la PM al protocolizar) | Luis + Concepción, notaría | 1 día (cita) | 2, 3; identificaciones, CSF y comprobante de domicilio vigentes de Luis y de Concepción; CURP | acta + **RFC** |
 | 5 | Inscripción en el Registro Público de Comercio | notaría | 1–3 semanas | 4 | boleta de inscripción (la piden los bancos) |
 | 6 | **e.firma de la PM** — cita en el SAT, va el representante legal con su propia e.firma vigente + acta + comprobante de domicilio | **Luis** | cita a 1–3 semanas | 4 | .cer/.key de DRUIDAS |
 | 7 | **Alta de actividades y obligaciones** (§2.2) si no quedaron en la inscripción; Opinión de cumplimiento | Marisol | mismo día que 6 | 6 | CSF con turismo |
@@ -219,8 +235,9 @@ Lo que hay que decidir con Jorge/Eduardo (pregunta 35 de la guía):
 
 ---
 
-**Decisiones que le tocan a Luis antes de mandar esto:** socios (a/b/c),
-figura (S.A. vs S.A.P.I.), nombre (3 opciones), domicilio fiscal, y la regla de
+**Decisiones que le tocan a Luis antes de mandar esto:** ~~socios (a/b/c)~~
+**socios decididos el 9 nov: espejo de NUMAN**; faltan figura (S.A. recomendada
+tras la decisión de socios), nombre (3 opciones), domicilio fiscal, y la regla de
 transición del §4 (que NUMAN termine las salidas ya cobradas).
 
 **Fuentes verificadas el 9 nov 2026:** LISR 206 fracc. I (RESICO PM) y LISR

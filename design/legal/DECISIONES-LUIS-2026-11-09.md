@@ -10,8 +10,8 @@ manda a Jorge, Marisol o Laura hasta que Luis lo diga.
 |---|---|---|---|
 | 1 | **Mandar el correo a Marisol** (borrador en Gmail: «Caminante · 7 confirmaciones fiscales + exportación del SAT») | Revisar y enviar tal cual · pedir cambios | `design/contabilidad/MEMO-MARISOL-2026-11.md` |
 | 2 | **Contratar Facturapi** (plan «API de Facturación CFDI», $299/mes) y subir el CSD de NUMAN | Hoy · esperar a Marisol | `design/contabilidad/FACTURAPI-ALTA-PASOS.md` |
-| 3 | **Socios de DRUIDAS** | (a) espejo de NUMAN: Luis + Concha · (b) NUMAN HUB socia mayoritaria + Luis · (c) cap table nuevo con Mario/León (retrasa) | `design/legal/DRUIDAS-CONSTITUCION.md` §2.3 |
-| 4 | **Figura y nombre de DRUIDAS** | S.A. de C.V. vs S.A.P.I. de C.V. · 3 opciones de denominación · domicilio fiscal físico | ídem |
+| 3 | ~~**Socios de DRUIDAS**~~ **DECIDIDO 9 nov: (a) espejo de NUMAN** — Luis + Concepción, misma proporción que NUMAN HUB; otros entran por aumento de capital | (b) NUMAN HUB socia y (c) cap table con Mario/León quedaron descartadas | `design/legal/DRUIDAS-CONSTITUCION.md` §2.3 |
+| 4 | **Figura y nombre de DRUIDAS** | S.A. de C.V. (recomendada: con socios espejo la S.A.P.I. sobra) · 3 opciones de denominación · domicilio fiscal físico | ídem |
 | 5 | **Regla de transición**: NUMAN termina (cobra, factura y paga proveedores de) las salidas ya cobradas; DRUIDAS emite desde que tenga CSD | sí · otra regla | ídem §4 |
 | 6 | **Guardar en Drive** `numan/CAMINANTE/legal/` el PDF «Numan Propuesta servicios 27 oct 26.pdf» que Jorge mandó el 3 nov (no está en Drive; hay que cruzarlo con el brief de DRUIDAS) | — | correo de Jorge, 3 nov |
 
