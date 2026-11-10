@@ -158,11 +158,21 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     );
 
     const candados: Candado[] = [
+      // ⚠️ YA NO ESPERA A LA CASA (Luis, 9 nov 2026). Sin trato negociado, la
+      // operadora va por la escala pública y su comisión arranca el día que
+      // firma (`firmarConvenio` escribe `comision_desde`). Este candado sólo
+      // pedía `commission_pct` y no coincidía con el de cobro, que también
+      // acepta la escala: le decía «Sin definir» a una comisión que se cobraba.
       {
         clave: "comision",
         nombre: "Comisión definida",
-        cumplido: o.commission_pct != null,
-        detalle: o.commission_pct != null ? `${o.commission_pct}%` : "Sin definir",
+        cumplido: true,
+        detalle:
+          o.commission_pct != null
+            ? `${o.commission_pct}% pactado`
+            : o.comision_desde
+              ? "Escala pública"
+              : "Escala pública · arranca al firmar",
         toca: "casa",
         bloquea: "cobrar",
       },

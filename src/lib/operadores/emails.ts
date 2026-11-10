@@ -166,28 +166,8 @@ export async function emailInvitacionLlamada(
   });
 }
 
-// 4 · Petición de expediente (link privado con token).
-export async function emailPedirExpediente(
-  to: string,
-  responsable: string | null,
-  url: string,
-  cuantos: number,
-  mensaje: string,
-): Promise<boolean> {
-  const n = saludo(responsable);
-  // Mismo caso que la invitación: el mensaje propio tiene que llegar por los dos
-  // caminos, o quien lee en texto plano recibe otro correo.
-  const cuerpo = mensaje.trim()
-    ? parrafosDe(mensaje)
-    : [p(`Para darte de alta necesitamos ${cuantos} documentos. Se suben en un link privado; se guarda solo y puedes volver cuando quieras.`)];
-  const correo = shell([
-    h1(`Tu expediente${n}.`),
-    ...cuerpo,
-    boton("Subir mis documentos", url),
-    p("Si algo te falta o está en trámite, dilo ahí mismo: varios se resuelven. La liga vence en 30 días."),
-  ]);
-  return enviar(to, "Tus documentos para operar con Caminante", correo);
-}
+// 4 · (Petición de expediente por link con token: quitada el 9 nov 2026. La
+//     ruta del link nunca existió y el expediente vive en Mi alta.)
 
 // 5 · Bienvenida (al APROBAR).
 export async function emailBienvenidaOperador(to: string, responsable: string | null): Promise<boolean> {

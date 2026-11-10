@@ -24,10 +24,13 @@ import "server-only";
 // piden bancos y clientes en México), no un dato del SAT. Luis lo confirma.
 //
 // Nunca detiene una subida: corre DESPUÉS de registrar el documento, y si
-// algo falla queda dicho en `analisis` y la persona que revisa decide.
+// algo falla queda dicho en `analisis` y la persona que revisa decide. Si
+// todo sale limpio (SAT, sin alertas, reciente), se APRUEBA SOLA.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cambiosFiscales, datosFiscalesDeCsf } from "./fiscal-de-csf";
+import { REVISOR_AUTOMATICO } from "./revision-ia";
+import { completarIdentidadStripe } from "@/lib/payments/connect";
 
 const MODEL = "claude-opus-5-5";
 const API = "https://api.anthropic.com/v1/messages";
@@ -243,6 +246,19 @@ export async function analizarCsf(docId: string): Promise<AnalisisCsf | null> {
       else {
         const { error: eOp } = await sb.from("operators").update(escribir).eq("id", doc.operator_id);
         if (eOp) console.error("analizarCsf: no se pudieron guardar los datos fiscales:", eOp.message);
+        // Si ya abrió su cuenta de cobro, Stripe recibe lo que faltaba.
+        else await completarIdentidadStripe(doc.operator_id);
+      }
+      // SE APRUEBA SOLA cuando el SAT la confirmó, la IA no vio nada raro, es
+      // reciente y sus datos se pudieron usar (Luis, 9 nov 2026: la casa sólo
+      // revisa lo dudoso). Sólo si sigue en revisión: una decisión humana manda.
+      const reciente = analisis.diasDeAntiguedad !== null && analisis.diasDeAntiguedad <= DIAS_RECIENTE;
+      if (!motivo && reciente && analisis.alertas.length === 0) {
+        await sb
+          .from("operator_documents")
+          .update({ estado: "aprobado", revisado_at: new Date().toISOString(), revisado_por: REVISOR_AUTOMATICO, motivo: null })
+          .eq("id", doc.id)
+          .eq("estado", "en_revision");
       }
     }
     return analisis;

@@ -26,6 +26,8 @@ import {
   emailAvisoAdminOperador,
 } from "@/lib/operadores/emails";
 import { ACTIVIDADES } from "./actividades";
+import { aprobarSolicitud } from "@/lib/admin/aprobar-solicitud";
+import { llamadaObligatoria } from "./llamada";
 
 // Los códigos válidos salen de la misma lista que dibuja el formulario: un
 // código nuevo en el formulario que el servidor no conociera rebotaría la
@@ -116,7 +118,7 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
   if (!aceptaCobro || !aceptaDeslinde || !aceptaEncuesta) back("error=compromisos");
 
   const sb = createSupabaseAdminClient();
-  const { error } = await sb.from("operator_applications").insert({
+  const { data: creada, error } = await sb.from("operator_applications").insert({
     nombre_operadora: nombreOperadora,
     responsable,
     email,
@@ -142,7 +144,7 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
     acepta_encuesta: aceptaEncuesta,
     branding: marca,
     branding_despues: marcaDespues,
-  });
+  }).select("id").single();
 
   if (error) {
     // Único índice de la tabla: una aplicación PENDIENTE por correo.
@@ -151,10 +153,24 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
     back("error=guardar");
   }
 
+  // SIN LLAMADA OBLIGATORIA, ENTRA SOLA (llamada.ts). Se aprueba aquí mismo y
+  // le llega la bienvenida con la liga para entrar; la casa se entera por el
+  // aviso de abajo, igual que siempre. Si la aprobación falla, la solicitud
+  // queda pendiente para la casa: nunca se pierde.
+  let aprobada = false;
+  if (!llamadaObligatoria() && creada?.id) {
+    const r = await aprobarSolicitud((creada as { id: string }).id).catch((e) => {
+      console.error("aprobación automática:", e);
+      return { ok: false as const };
+    });
+    aprobada = r.ok;
+  }
+
   // Best-effort: la solicitud YA está guardada; un fallo de correo jamás le
   // enseña un error a quien acaba de aplicar.
   const res = await Promise.allSettled([
-    emailConfirmacionOperador(email, responsable),
+    // Aprobada sola, el correo que le toca es la bienvenida (ya salió).
+    aprobada ? Promise.resolve(true) : emailConfirmacionOperador(email, responsable),
     emailAvisoAdminOperador({
       nombreOperadora,
       responsable,
@@ -169,5 +185,5 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
   ]);
   for (const r of res) if (r.status === "rejected") console.error("correo operador:", r.reason);
 
-  back("ok=1");
+  back(aprobada ? "ok=1&aprobada=1" : "ok=1");
 }

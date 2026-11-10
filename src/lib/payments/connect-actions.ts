@@ -11,6 +11,7 @@ import { conectarCsdFacturapi, sincronizarLegalFacturapi } from "@/lib/facturaci
 import { organizacionesActivas } from "@/lib/facturacion/facturapi";
 import { constanciasDe } from "@/lib/operadores/constancia-fiscal";
 import { analizarCsf } from "@/lib/operadores/csf";
+import { leerCer } from "@/lib/facturacion/cer";
 import { revalidatePath } from "next/cache";
 import { operadoraObjetivo } from "@/lib/auth/alcance";
 
@@ -90,14 +91,20 @@ export async function guardarCsd(formData: FormData): Promise<ConnectActionResul
   if (!(await puedeTocarOperador(id))) return { ok: false, error: "No autorizado." };
   const cer = String(formData.get("cerPath") ?? "").trim();
   const key = String(formData.get("keyPath") ?? "").trim();
-  const vence = String(formData.get("vence") ?? "").trim();
   if (!id) return { ok: false, error: "Falta el operador." };
   if (!cer || !key) return { ok: false, error: "Faltan los dos archivos: el .cer y el .key." };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(vence)) {
-    return { ok: false, error: "Falta la fecha de vigencia del CSD (la trae el acuse del SAT)." };
-  }
 
+  // La vigencia y el RFC se LEEN del .cer (cer.ts); ya no se teclean.
   const sb = createSupabaseAdminClient();
+  const { data: archivoCer } = await sb.storage.from("csd").download(cer);
+  const lectura = archivoCer ? leerCer(Buffer.from(await archivoCer.arrayBuffer())) : null;
+  if (!lectura) return { ok: false, error: "Ese .cer no se pudo leer como certificado. ¿Es el que te dio el SAT?" };
+  const { data: suyo } = await sb.from("operators").select("rfc").eq("id", id).maybeSingle();
+  const rfcSuyo = ((suyo as { rfc?: string | null } | null)?.rfc ?? "").trim().toUpperCase();
+  if (rfcSuyo && lectura.rfc && lectura.rfc !== rfcSuyo) {
+    return { ok: false, error: `Ese sello es del RFC ${lectura.rfc}, y el de la operadora es ${rfcSuyo}.` };
+  }
+  const vence = lectura.venceAt;
   const { error } = await sb
     .from("operators")
     .update({

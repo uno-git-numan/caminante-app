@@ -1,8 +1,9 @@
 "use client";
 
 // Tarjeta de una SOLICITUD DE OPERADOR. Calcada de EmbajadorCard en look y
-// clases, pero con los cuatro escalones que pidió Luis: llegó → se agenda la
-// llamada → se le pide el expediente → se aprueba y entra al panel.
+// clases: llegó → se agenda la llamada → se aprueba y entra al panel, donde
+// sube su expediente (Mi alta). «Pedir expediente» por link con token se quitó
+// el 9 nov 2026: su liga daba 404 y pedía una lista vieja de papeles.
 //
 // ⚠️ Aprobar aquí NO es lo mismo que aprobar a un embajador: le abre SU panel
 // (`operators.panel_activo`, podado a sus experiencias). Por eso la confirmación lo dice
@@ -17,7 +18,6 @@ import {
 } from "@/lib/operadores/solicitud-opciones";
 import {
   agendarLlamada,
-  pedirExpediente,
   aprobarOperadorApp,
   rechazarOperadorApp,
 } from "@/lib/admin/operadores-app-actions";
@@ -35,16 +35,6 @@ const ESTADO: Record<string, { txt: string; cls: string }> = {
   calling: { txt: "Llamada agendada", cls: "c-sol" },
   docs: { txt: "Expediente pedido", cls: "c-sol" },
 };
-
-// Lo que se le suele pedir. Editable antes de mandar: a una operadora de
-// montaña no se le pide certificación de buceo.
-const DOCS_SUGERIDOS = [
-  "Póliza de responsabilidad civil vigente",
-  "Identificación oficial del responsable",
-  "Constancia de situación fiscal",
-  "Certificaciones de primeros auxilios",
-  "Registro Nacional de Turismo (si aplica)",
-];
 
 export type OpAppView = {
   id: string;
@@ -80,11 +70,10 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<"ok" | "no" | null>(null);
   const [opId, setOpId] = useState<string | null>(null);
-  const [panel, setPanel] = useState<"llamada" | "docs" | null>(null);
+  const [panel, setPanel] = useState<"llamada" | null>(null);
   const [meet, setMeet] = useState(app.meetUrl ?? "");
   const [cuando, setCuando] = useState(app.llamadaAt?.slice(0, 16) ?? "");
   const [msg, setMsg] = useState("");
-  const [docs, setDocs] = useState<string[]>(DOCS_SUGERIDOS.slice(0, 3));
   const est = ESTADO[app.status] ?? { txt: app.status, cls: "c-sol" };
 
   async function correr(tag: string, fn: () => Promise<Res>) {
@@ -203,29 +192,6 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
         </div>
       ) : null}
 
-      {panel === "docs" ? (
-        <div className="cmwin" style={{ marginTop: 14, padding: 14, border: "1px solid #ddd6c9" }}>
-          <p className="mut" style={{ fontSize: 12.5, marginBottom: 10 }}>
-            Le llega un link privado con token, que expira en 21 días.
-          </p>
-          {DOCS_SUGERIDOS.map((d) => (
-            <label key={d} style={{ display: "block", fontSize: 13.5, marginBottom: 5 }}>
-              <input type="checkbox" checked={docs.includes(d)}
-                onChange={(e) => setDocs(e.target.checked ? [...docs, d] : docs.filter((x) => x !== d))} />{" "}
-              {d}
-            </label>
-          ))}
-          <textarea style={{ marginTop: 8 }} rows={3} placeholder="Mensaje para el correo (opcional)" value={msg} onChange={(e) => setMsg(e.target.value)} />
-          <div className="act-row">
-            <button className="btn btn-orange btn-sm" disabled={busy !== null}
-              onClick={() => correr("docs", () => pedirExpediente(app.id, docs, msg))}>
-              {busy === "docs" ? "Mandando…" : `Pedir ${docs.length} documento(s)`}
-            </button>
-            <button className="btn btn-sm" onClick={() => setPanel(null)}>Cancelar</button>
-          </div>
-        </div>
-      ) : null}
-
       <div className="act-row">
         {done === "ok" ? (
           <>
@@ -244,9 +210,6 @@ export default function OperadorAppCard({ app }: { app: OpAppView }) {
           <>
             <button className="btn btn-sm" disabled={busy !== null} onClick={() => setPanel(panel === "llamada" ? null : "llamada")}>
               {app.meetUrl ? "Reagendar llamada" : "Agendar llamada"}
-            </button>
-            <button className="btn btn-sm" disabled={busy !== null} onClick={() => setPanel(panel === "docs" ? null : "docs")}>
-              Pedir expediente
             </button>
             <button className="btn btn-orange btn-sm" disabled={busy !== null}
               onClick={() => {

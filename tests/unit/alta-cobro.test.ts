@@ -207,14 +207,16 @@ describe("completarAltaCobro", () => {
     expect(st.creadas).toHaveLength(0);
     const c = st.creadasV2[0] as {
       dashboard?: string;
-      identity?: { country?: string; entity_type?: string };
+      identity?: { country?: string; entity_type?: string; individual?: unknown };
       configuration?: { merchant?: unknown; recipient?: { capabilities?: { stripe_balance?: { stripe_transfers?: { requested?: boolean } } } } };
       defaults?: { responsibilities?: { losses_collector?: string; fees_collector?: string } };
       metadata?: { operator_id?: string };
     };
     expect(c.dashboard).toBe("full");
     expect(c.defaults?.responsibilities).toEqual({ fees_collector: "stripe", losses_collector: "stripe" });
-    expect(c.identity).toEqual({ country: "mx", entity_type: "individual" });
+    // Lo que ya sabemos viaja (identidad-stripe.ts): aquí sólo hay correo; sin
+    // constancia no hay RFC ni CP que mandar.
+    expect(c.identity).toEqual({ country: "mx", entity_type: "individual", individual: { email: "k@example.com" } });
     expect(c.configuration?.merchant).toBeDefined();
     // Sin `recipient` el cargo con destino rebota (probado en test el 9 nov).
     expect(c.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.requested).toBe(true);

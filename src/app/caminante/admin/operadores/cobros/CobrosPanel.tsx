@@ -52,7 +52,6 @@ export default function CobrosPanel({
   const [ocupado, setOcupado] = useState("");
   const [estado, setEstado] = useState("");
 
-  const [vence, setVence] = useState(o.csdVenceAt ?? "");
   // La contraseña del CSD viaja a Facturapi en la misma llamada; aquí no se guarda.
   const [passCsd, setPassCsd] = useState("");
 
@@ -107,7 +106,6 @@ export default function CobrosPanel({
       fd.set("id", o.id);
       fd.set("cerPath", rutas[0]);
       fd.set("keyPath", rutas[1]);
-      fd.set("vence", vence);
       fd.set("password", passCsd);
       const r = await guardarCsd(fd);
       setPassCsd("");
@@ -283,9 +281,9 @@ export default function CobrosPanel({
       <h3 style={{ fontSize: 14, margin: "18px 0 6px" }}>Su CSD (para timbrar)</h3>
       <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
         Los <b>dos</b> archivos que le dio el SAT: el <code>.cer</code> y el <code>.key</code>. Van a
-        un bucket privado y solo se ven por liga firmada de 5 minutos.{" "}
-        <b>Su contraseña no se pide aquí y no se guarda en nuestra base</b> — va directo a Facturapi
-        al crear su organización.
+        un bucket privado y solo se ven por liga firmada de 5 minutos. La vigencia y el RFC los
+        leemos del propio <code>.cer</code>. <b>Su contraseña no se guarda en nuestra base</b>: va
+        directo a Facturapi al crear su organización.
       </p>
       {o.csdCerPath && o.csdKeyPath ? (
         <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
@@ -302,10 +300,6 @@ export default function CobrosPanel({
           <label>
             Llave privada (.key)
             <input type="file" name="key" accept=".key" />
-          </label>
-          <label>
-            Vigente hasta
-            <input type="date" value={vence} onChange={(ev) => setVence(ev.target.value)} />
           </label>
           <label>
             Contraseña del CSD

@@ -170,15 +170,14 @@ export async function firmarConvenio(f: FirmaConvenio): Promise<{ ok: true } | {
   // cambiaría el trato hacia arriba —$566 de más en una venta de $21,000— el
   // día que firma, y en silencio. Ver la 0062.
   const pactada = o.commission_pct == null ? null : Number(o.commission_pct);
-  const generaComision = pactada != null || !!(o.comision_desde as string | null);
-  if (!generaComision) {
-    // Ni porcentaje pactado ni fecha de arranque: no hay trato que firmar.
-    // Firmar así sería firmar en blanco.
-    return {
-      ok: false,
-      error: "Falta definir la comisión antes de firmar: ni un porcentaje pactado ni una fecha de arranque.",
-    };
-  }
+  // ⚠️ LA ESCALA ES EL TRATO POR OMISIÓN (Luis, 9 nov 2026). Aquí se negaba la
+  // firma si no había ni porcentaje pactado ni fecha de arranque, y como
+  // NINGUNA pantalla escribe `comision_desde` (sólo existía por el backfill de
+  // la 0047), toda operadora nueva quedaba esperando a que la casa tecleara
+  // algo para poder firmar. Ahora: sin trato negociado, firma la escala
+  // pública, y la comisión arranca EL DÍA QUE FIRMA. Una fecha que ya existía
+  // se respeta (Nomádika arrancó el 28 ago).
+  const desde = (o.comision_desde as string | null) ?? (pactada == null ? new Date().toISOString() : null);
   const reglaFirmada = pactada != null ? "plano" : "escala";
 
   const { error } = await sb.from("operator_agreements").insert({
@@ -193,7 +192,7 @@ export async function firmarConvenio(f: FirmaConvenio): Promise<{ ok: true } | {
     comision_regla: reglaFirmada,
     // NULL a propósito cuando va por escala: ahí no hay una tasa, hay una tabla.
     comision_pct: pactada,
-    comision_desde: o.comision_desde ?? null,
+    comision_desde: desde,
     entidad_snapshot: {
       razon_social: o.razon_social ?? null,
       rfc: o.rfc ?? null,
@@ -207,6 +206,19 @@ export async function firmarConvenio(f: FirmaConvenio): Promise<{ ok: true } | {
   if (error) {
     if (error.code === "23505") return { ok: true };
     return { ok: false, error: error.message };
+  }
+  // La fecha de arranque se escribe DESPUÉS de la firma, nunca antes: una
+  // operadora que no firmó no genera comisión. Sólo si no tenía una.
+  if (desde && !o.comision_desde) {
+    const { error: eDesde } = await sb
+      .from("operators")
+      .update({ comision_desde: desde })
+      .eq("id", f.operadorId)
+      .is("comision_desde", null);
+    if (eDesde) {
+      console.error("firmarConvenio comision_desde:", eDesde.message);
+      return { ok: false, error: "Quedó firmado, pero no se guardó desde cuándo genera comisión. Avísale a la casa." };
+    }
   }
   return { ok: true };
 }

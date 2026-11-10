@@ -10,8 +10,10 @@
 // un campo de fecha y un botón: había que ir al expediente, elegir el archivo,
 // teclear la fecha y apretar «Subir» — y si se apretaba sin archivo, el navegador
 // contestaba «Please select a file». Ahora el botón naranja ABRE el selector; al
-// elegir el archivo se sube solo. Si el documento caduca, aparece en el mismo
-// renglón el cuadrito de la fecha, porque sin ella el servidor no lo acepta.
+// elegir el archivo se sube solo. ⚠️ Y YA NO PIDE LA FECHA (9 nov 2026): la
+// revisión automática la LEE del documento (revision-ia.ts). El cuadrito de
+// fecha que aparecía aquí para los que caducan se quitó: era un paso más que
+// sólo copiaba lo que el papel ya dice.
 //
 // Era DOS renglones —uno en Mi alta que sólo llevaba al expediente y otro en el
 // expediente con el formulario— y ahora es uno. El cuadrito de fecha ocupa
@@ -58,7 +60,6 @@ const IcoReloj = () => (
 // Los formatos que el servidor acepta (`TIPOS` en expediente-actions.ts). El
 // selector sólo ofrece ésos, para no dejar elegir uno que después rebota.
 /** Los años que se ofrecen para una vigencia por año: éste y los 15 siguientes. */
-const ANIOS = Array.from({ length: 16 }, (_, i) => String(new Date().getFullYear() + i));
 
 const ACEPTA = "application/pdf,image/jpeg,image/png,image/heic,.pdf,.jpg,.jpeg,.png,.heic";
 
@@ -75,7 +76,6 @@ export default function RenglonDoc({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const [pend, setPend] = useState<{ f: File; vence: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subiendo, arranca] = useTransition();
   const [quitando, arrancaQuitar] = useTransition();
@@ -100,7 +100,7 @@ export default function RenglonDoc({
   // sube DIRECTO al bucket (no por la server action, que corta en 1 MB y
   // tumbaba la página con la foto de una INE), y el servidor lo registra.
   // Todo error termina en el renglón, nunca en una excepción sin atrapar.
-  const guardar = (f: File, vence: string | null) => {
+  const guardar = (f: File) => {
     setError(null);
     arranca(async () => {
       try {
@@ -111,9 +111,8 @@ export default function RenglonDoc({
           .storage.from("expedientes")
           .uploadToSignedUrl(p.path, p.token, f, { contentType: p.tipo });
         if (eSubida) return setError("No se pudo subir el archivo. Revisa tu conexión e intenta de nuevo.");
-        const r = await registrarSubida({ ...base, path: p.path, nombre: f.name, venceAt: vence });
+        const r = await registrarSubida({ ...base, path: p.path, nombre: f.name });
         if (!r.ok) return setError(r.error);
-        setPend(null);
         // La acción revalida el expediente; Mi alta es otra ruta y hay que
         // pedirle al servidor que la vuelva a dibujar.
         router.refresh();
@@ -139,8 +138,7 @@ export default function RenglonDoc({
     const f = e.target.files?.[0];
     e.target.value = ""; // para que elegir el mismo archivo otra vez vuelva a disparar
     if (!f) return;
-    if (d.caduca) setPend({ f, vence: "" });
-    else guardar(f, null);
+    guardar(f);
   };
 
   // Vive en Lo general: se enseña, no se vuelve a pedir.
@@ -171,7 +169,6 @@ export default function RenglonDoc({
         <small>
           {d.porQue}
           {d.opcional ? " · opcional" : ""}
-          {d.caduca && d.estado === "falta" ? (d.vencePorAnio ? " · pide el año de vigencia" : " · pide fecha de vencimiento") : ""}
         </small>
       </span>
       <span className="fl">
@@ -236,62 +233,10 @@ export default function RenglonDoc({
       </span>
       <input ref={ref} type="file" hidden accept={ACEPTA} onChange={onFile} />
 
-      {pend ? (
-        <div className="upfecha">
-          <span className="g">
-            <b>{pend.f.name}</b>
-            <small>
-              {d.vencePorAnio
-                ? "Escribe el año de vigencia que dice tu identificación (la INE dice «VIGENCIA» y un año). Te avisamos antes de que venza."
-                : "Este documento vence. Escribe la fecha que dice el papel: con ella te avisamos 30 días antes."}
-            </small>
-          </span>
-          {d.vencePorAnio ? (
-            // Sólo el año. Se guarda como el 31 de diciembre: la INE vale
-            // todo su último año.
-            <label style={{ display: "grid", gap: 4, fontSize: 12 }}>
-              <span className="mut">Vigente hasta</span>
-              <select
-                required
-                value={pend.vence.slice(0, 4)}
-                onChange={(e) => setPend({ ...pend, vence: e.target.value ? `${e.target.value}-12-31` : "" })}
-              >
-                <option value="">Año</option>
-                {ANIOS.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            <label style={{ display: "grid", gap: 4, fontSize: 12 }}>
-              <span className="mut">Fecha de vencimiento</span>
-              <input
-                type="date"
-                required
-                value={pend.vence}
-                onChange={(e) => setPend({ ...pend, vence: e.target.value })}
-              />
-            </label>
-          )}
-          <span className="ac">
-            <button
-              type="button"
-              className="btn btn-orange btn-sm"
-              disabled={!pend.vence || subiendo}
-              onClick={() => guardar(pend.f, pend.vence)}
-            >
-              {subiendo ? "Subiendo…" : "Guardar"}
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={subiendo} onClick={() => setPend(null)}>
-              Cancelar
-            </button>
-          </span>
-        </div>
-      ) : null}
-
       {d.leido ? (
-        // Lo que la plataforma leyó de la CSF y lo que dijo el SAT. Aviso, no
-        // veredicto: la aprobación sigue siendo de una persona.
+        // Lo que la plataforma leyó del documento (y, en la CSF, lo que dijo el
+        // SAT). Si salió limpio ya se aprobó solo; si no, dice por qué lo mira
+        // una persona.
         <p className="motivo" style={d.leido.tono === "ok" ? { borderColor: "var(--olive)" } : undefined}>
           <s>{"//"}</s>
           <span>

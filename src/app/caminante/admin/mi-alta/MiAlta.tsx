@@ -102,7 +102,11 @@ export default function MiAlta({
           const estado = hecho
             ? i === 2 && firmadoEl
               ? FIRMADO_EL + fecha(firmadoEl)
-              : p.cerrado
+              : // La llamada ya no es obligatoria (llamada.ts): quien entró sin
+                // ella no «hizo la llamada», fue aprobada.
+                i === 0 && !s?.llamadaAt
+                ? "Aprobada"
+                : p.cerrado
             : actual
               ? AQUI_ESTAS
               : TODAVIA_NO;

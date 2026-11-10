@@ -15,6 +15,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resumenCsf, type AnalisisCsf } from "./csf";
+import { resumenRevision, type RevisionIa } from "./revision-ia";
 import { ACTIVIDADES, GENERALES, generalesPara, requisitosDe, nombreDeActividad, type Documento } from "./actividades";
 
 export type EstadoDoc = "falta" | "en_revision" | "aprobado" | "rechazado";
@@ -180,18 +181,29 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
     await tamanosDe(operatorId),
     tipoDe((op as { tipo_persona?: string } | null)?.tipo_persona),
   );
-  // La lectura de la CSF va en su propia consulta: si la 0077 no está
-  // aplicada, la columna no existe y esto falla SOLO, sin tumbar el expediente.
-  const { data: leida, error: eLeida } = await sb
+  // Lo que se LEYÓ de cada documento (csf.ts y revision-ia.ts) va en su propia
+  // consulta: si la columna faltara, esto falla SOLO, sin tumbar el expediente.
+  const { data: leidos, error: eLeida } = await sb
     .from("operator_documents")
-    .select("analisis")
+    .select("id, documento, estado, analisis")
     .eq("operator_id", operatorId)
-    .eq("documento", "csf")
-    .is("actividad", null)
-    .maybeSingle();
-  const a = !eLeida ? ((leida as { analisis?: AnalisisCsf | null } | null)?.analisis ?? null) : null;
-  const csf = e.generales.find((d) => d.slug === "csf");
-  if (csf && a && csf.estado !== "falta") csf.leido = { ...resumenCsf(a), satUrl: a.satUrl };
+    .not("analisis", "is", null);
+  if (!eLeida) {
+    const porId = new Map(
+      ((leidos ?? []) as { id: string; documento: string; estado: string; analisis: AnalisisCsf | RevisionIa }[]).map((x) => [x.id, x]),
+    );
+    const todos = [...e.generales, ...e.actividades.flatMap((a) => a.propios)];
+    for (const d of todos) {
+      const x = d.id ? porId.get(d.id) : undefined;
+      if (!x || d.estado === "falta") continue;
+      if (x.documento === "csf") {
+        const a = x.analisis as AnalisisCsf;
+        d.leido = { ...resumenCsf(a), satUrl: a.satUrl };
+      } else if ((x.analisis as RevisionIa).tipo === "revision") {
+        d.leido = { ...resumenRevision(x.analisis as RevisionIa, x.estado), satUrl: null };
+      }
+    }
+  }
   return e;
 }
 

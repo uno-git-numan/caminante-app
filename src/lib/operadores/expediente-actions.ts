@@ -21,6 +21,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { analizarCsf } from "./csf";
+import { cerrarActividadSiCompleta, revisarDocumento } from "./revision-ia";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { operadoraObjetivo, puedeOnboarding } from "@/lib/auth/alcance";
 import { correoEnSesion } from "@/lib/auth/authorization";
@@ -147,18 +148,13 @@ export async function registrarSubida(input: {
     return { ok: false, error: "Ese archivo no se puede guardar: máximo 10 MB, PDF o foto." };
   }
 
-  // `vence_at` es fecha, no casilla (ver la 0058). Si el catálogo dice que este
-  // documento caduca, la fecha es obligatoria: sin ella el expediente se vería
-  // completo para siempre.
+  // `vence_at` es fecha, no casilla (ver la 0058). ⚠️ YA NO SE EXIGE AL
+  // SUBIR (9 nov 2026): la fecha se LEE del documento (revision-ia.ts), y si
+  // no se alcanza a leer, el papel se queda en revisión con ese motivo para
+  // la casa. Si alguien la manda escrita, la lectura la compara y, si no
+  // coinciden, también lo deja en revisión.
   const venceAt = String(input.venceAt ?? "").trim() || null;
   if (venceAt && !/^\d{4}-\d{2}-\d{2}$/.test(venceAt)) return { ok: false, error: "La fecha de vencimiento no es válida." };
-  const caduca = actividad === null
-    ? GENERALES.find((g) => g.slug === documento)?.vence
-    : requisitosDe(actividad).propios.find((x) => x.slug === documento)?.vence;
-  if (caduca && !venceAt) {
-    await sb.storage.from(BUCKET).remove([path]);
-    return { ok: false, error: "Falta la fecha de vencimiento." };
-  }
 
   // ⚠️ NADA DE `upsert` CON `onConflict` AQUÍ, y la razón cuesta encontrarla:
   // el índice de los documentos GENERALES es PARCIAL (`where actividad is null`,
@@ -226,6 +222,14 @@ export async function registrarSubida(input: {
   const docId = (escrita as { id?: string } | null)?.id ?? anterior?.id ?? null;
   if (documento === "csf" && actividad === null && docId) {
     after(() => analizarCsf(docId).then(() => undefined));
+  } else if (docId) {
+    // Todo lo demás lo lee la revisión automática (revision-ia.ts): lo limpio
+    // se aprueba solo, lo dudoso espera a una persona. Y si con esto ya están
+    // todos los papeles de la actividad, la carpeta pasa sola a revisión.
+    after(async () => {
+      await revisarDocumento(docId);
+      if (actividad) await cerrarActividadSiCompleta(operatorId, actividad);
+    });
   }
 
   revalidatePath(RUTA);

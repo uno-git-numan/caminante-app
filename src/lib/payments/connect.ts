@@ -1,3 +1,4 @@
+import { identidadParaStripe } from "./identidad-stripe";
 import { getStripeServerClient } from "@/lib/payments/stripe";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emailStripeListo } from "@/lib/operadores/emails";
@@ -35,10 +36,13 @@ export type OperadorConnect = {
   stripe_charges_enabled: boolean | null;
   stripe_payouts_enabled: boolean | null;
   stripe_onboarded_at: string | null;
+  rfc: string | null;
+  razon_social: string | null;
+  cp_fiscal: string | null;
 };
 
 export const COLUMNAS_CONNECT =
-  "id,name,email,slug,tipo_persona,stripe_account_id,stripe_charges_enabled,stripe_payouts_enabled,stripe_onboarded_at";
+  "id,name,email,slug,tipo_persona,stripe_account_id,stripe_charges_enabled,stripe_payouts_enabled,stripe_onboarded_at,rfc,razon_social,cp_fiscal";
 
 export type ConnectResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -91,7 +95,9 @@ async function crearCuentaV2(
     dashboard: "full",
     // `entity_type` se omite si no lo ha dicho, en vez de adivinar: mandar
     // «individual» a una S.A. de C.V. le pediría el KYC equivocado.
-    identity: { country: "mx", ...(entidad ? { entity_type: entidad } : {}) },
+    // Y lo que ya sabemos de su constancia (identidad-stripe.ts), para que
+    // Stripe no se lo vuelva a preguntar.
+    identity: { country: "mx", ...(entidad ? { entity_type: entidad } : {}), ...identidadParaStripe(op) },
     configuration: {
       merchant: { capabilities: { card_payments: { requested: true } }, mcc: MCC_TURISMO },
       recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } },
@@ -110,6 +116,25 @@ async function crearCuentaV2(
     metadata: { operator_id: op.id },
   });
   return { id: cuenta.id };
+}
+
+/**
+ * Cuando su constancia se confirma DESPUÉS de crear la cuenta (la creó con el
+ * primer clic, antes de subirla), se le manda a Stripe lo que faltaba. Sólo
+ * mientras Stripe no la haya verificado: una cuenta que ya cobra no se toca.
+ * Nunca lanza; si Stripe no acepta, la operadora lo llena en su verificación
+ * como antes.
+ */
+export async function completarIdentidadStripe(operadorId: string): Promise<void> {
+  try {
+    const op = await leerOperador(operadorId);
+    if (!op?.stripe_account_id || op.stripe_charges_enabled) return;
+    const identity = identidadParaStripe(op);
+    if (!Object.keys(identity).length) return;
+    await getStripeServerClient().v2.core.accounts.update(op.stripe_account_id, { identity });
+  } catch (e) {
+    console.error("completarIdentidadStripe:", (e as Error).message);
+  }
 }
 
 /**
