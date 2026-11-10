@@ -9,6 +9,8 @@
 
 import { conectarCsdFacturapi, sincronizarLegalFacturapi } from "@/lib/facturacion/organizacion";
 import { organizacionesActivas } from "@/lib/facturacion/facturapi";
+import { constanciasDe } from "@/lib/operadores/constancia-fiscal";
+import { analizarCsf } from "@/lib/operadores/csf";
 import { revalidatePath } from "next/cache";
 import { operadoraObjetivo } from "@/lib/auth/alcance";
 
@@ -125,84 +127,72 @@ export async function guardarCsd(formData: FormData): Promise<ConnectActionResul
 }
 
 /**
- * Datos fiscales del EMISOR del CFDI.
+ * LOS DATOS FISCALES YA NO SE TECLEAN (Luis, 9 nov 2026: «que salgan de la
+ * constancia y no pidamos»). `analizarCsf` los escribe cuando el SAT confirma
+ * la constancia (`fiscal-de-csf.ts`). Aquí sólo quedan las dos cosas que una
+ * persona todavía puede tener que hacer:
  *
- * ⚠️ Escribe las columnas PLANAS (`rfc`, `razon_social`, …), que son las que lee
- * `operadorListo` y las que consumirá Facturapi. NO toca `operators.legal`, el
- * jsonb del convenio: ese describe a la entidad que responde por el deslinde y
- * lo edita su propio formulario.
- *
- * Se solapan en dos campos —RFC y razón social— y eso ya mordió: Kéntro tenía su
- * RFC en `legal` y las columnas planas en NULL, así que el gate lo reportaba como
- * faltante estando capturado. Mientras las dos existan, la pantalla PRE-LLENA
- * desde `legal` para que nadie lo teclee dos veces, y la fuente de verdad para
- * facturar es esta. Unificarlas es una migración aparte, con decisión de Luis.
+ * 1 · ELEGIR RÉGIMEN, cuando la constancia trae más de uno de negocio (p. ej.
+ *     612 y 625). Sólo se acepta uno de LOS QUE TRAE su constancia: no es un
+ *     campo libre, es escoger entre lo que el SAT ya dijo.
  */
-export async function guardarFiscales(formData: FormData): Promise<ConnectActionResult> {
-  const id = String(formData.get("id") ?? "").trim();
+export async function elegirRegimen(operadorId: string, clave: string): Promise<ConnectActionResult> {
+  const id = (operadorId ?? "").trim();
   if (!(await puedeTocarOperador(id))) return { ok: false, error: "No autorizado." };
   if (!id) return { ok: false, error: "Falta el operador." };
-
-  const t = (k: string, max: number) => String(formData.get(k) ?? "").trim().slice(0, max);
-  const rfc = t("rfc", 13).toUpperCase();
-  const razonSocial = t("razonSocial", 200);
-  const regimenFiscal = t("regimenFiscal", 3);
-  const cpFiscal = t("cpFiscal", 5);
-  const tipoPersona = t("tipoPersona", 10);
-
-  // Un RFC a medias es peor que ninguno: se timbra mal y se corrige tarde.
-  // Mismo criterio (y misma expresión) que el formulario del convenio.
-  if (rfc && !/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfc)) {
-    return { ok: false, error: "Ese RFC no tiene forma de RFC. Déjalo vacío si aún no lo tienes." };
+  const constancia = (await constanciasDe([id])).get(id);
+  if (!constancia?.resultado.ok) return { ok: false, error: "Primero tiene que estar confirmada su constancia fiscal." };
+  if (!constancia.resultado.datos.regimenes.includes(clave)) {
+    return { ok: false, error: "Ese régimen no está en su constancia." };
   }
-  if (cpFiscal && !/^\d{5}$/.test(cpFiscal)) {
-    return { ok: false, error: "El código postal fiscal son 5 dígitos." };
-  }
-  // El régimen es una clave del catálogo del SAT (601, 612, 626…). Se valida la
-  // forma, no el valor: el catálogo completo vive en `lib/facturacion`.
-  if (regimenFiscal && !/^\d{3}$/.test(regimenFiscal)) {
-    return { ok: false, error: "El régimen fiscal es la clave de 3 dígitos del SAT (601, 612, 626…)." };
-  }
-  if (tipoPersona && tipoPersona !== "fisica" && tipoPersona !== "moral") {
-    return { ok: false, error: "Persona física o moral." };
-  }
-
   const sb = createSupabaseAdminClient();
-  const { error } = await sb
-    .from("operators")
-    .update({
-      // Vacío se guarda como NULL, no como cadena vacía: el gate pregunta por
-      // ausencia y un "" respondería que sí hay dato.
-      rfc: rfc || null,
-      razon_social: razonSocial || null,
-      regimen_fiscal: regimenFiscal || null,
-      cp_fiscal: cpFiscal || null,
-      tipo_persona: tipoPersona || null,
-    })
-    .eq("id", id);
+  const { error } = await sb.from("operators").update({ regimen_fiscal: clave }).eq("id", id);
   if (error) return { ok: false, error: error.message };
-
-  // Si la operadora ya tiene organización en Facturapi, sus datos legales se
-  // actualizan allá también (best-effort: el dato nuestro ya quedó guardado).
-  if (organizacionesActivas() && rfc && razonSocial && regimenFiscal && cpFiscal) {
-    const { data: op } = await sb.from("operators").select("facturapi_org_id, es_la_casa").eq("id", id).maybeSingle();
-    if (op?.facturapi_org_id && !op.es_la_casa) {
-      const r = await sincronizarLegalFacturapi(id);
-      if (!r.ok) console.error("[fiscales] Facturapi legal:", r.error);
-    }
-  }
-
+  await sincronizarSiHayOrganizacion(id);
   revalidatePath(RUTA);
+  revalidatePath("/caminante/admin/mi-alta");
   return { ok: true };
+}
+
+/**
+ * 2 · VOLVER A LEER la constancia: cuando el SAT no respondió la primera vez o
+ *     la lectura falló. Corre lo mismo que al subirla.
+ */
+export async function releerConstancia(operadorId: string): Promise<ConnectActionResult> {
+  const id = (operadorId ?? "").trim();
+  if (!(await puedeTocarOperador(id))) return { ok: false, error: "No autorizado." };
+  if (!id) return { ok: false, error: "Falta el operador." };
+  const constancia = (await constanciasDe([id])).get(id);
+  if (!constancia) return { ok: false, error: "No hay constancia subida en el expediente." };
+  const a = await analizarCsf(constancia.docId);
+  if (!a) return { ok: false, error: "No se pudo leer la constancia." };
+  await sincronizarSiHayOrganizacion(id);
+  revalidatePath(RUTA);
+  revalidatePath("/caminante/admin/mi-alta");
+  return { ok: true };
+}
+
+// Si la operadora ya tiene organización en Facturapi, sus datos legales se
+// actualizan allá también (best-effort: el dato nuestro ya quedó guardado).
+async function sincronizarSiHayOrganizacion(id: string) {
+  if (!organizacionesActivas()) return;
+  const sb = createSupabaseAdminClient();
+  const { data: op } = await sb
+    .from("operators")
+    .select("facturapi_org_id, es_la_casa, rfc, razon_social, regimen_fiscal, cp_fiscal")
+    .eq("id", id)
+    .maybeSingle();
+  if (!op?.facturapi_org_id || op.es_la_casa) return;
+  if (!(op.rfc && op.razon_social && op.regimen_fiscal && op.cp_fiscal)) return;
+  const r = await sincronizarLegalFacturapi(id);
+  if (!r.ok) console.error("[fiscales] Facturapi legal:", r.error);
 }
 
 /**
  * «¿Quién firma?» — persona física o moral, SOLA.
  *
- * Existe aparte de `guardarFiscales` porque ésa escribe los cinco campos
- * fiscales a la vez: llamarla con sólo la persona habría puesto en NULL el RFC,
- * la razón social, el régimen y el código postal de quien ya los capturó. Lo
- * pide el paso 03 de Mi alta (lámina «Panel Operadora»), antes de firmar,
+ * Cuando la constancia ya está confirmada, la persona la dice su RFC y este
+ * botón sobra (`fiscal-de-csf.ts` la corrige). Lo pide el paso 03 de Mi alta (lámina «Panel Operadora»), antes de firmar,
  * porque cambia qué documento sostiene la firma: la identificación, o el acta y
  * el poder del representante.
  */

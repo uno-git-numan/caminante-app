@@ -2,10 +2,10 @@
 //
 // La regla de la casa es la misma que la del deslinde (caso Enyd, 9 jul): si el
 // flujo no está completo, NO SE VENDE. Aquí el flujo es el del operador externo:
-// para que su experiencia cobre por Connect tienen que existir cuatro cosas, y
-// las cuatro son verificables — ninguna es una casilla de honor. Facturar a su
-// nombre (CSD + datos fiscales) dejó de ser condición el 9 nov 2026: se prende
-// después, desde Cobrar.
+// para que su experiencia cobre por Connect tienen que existir cinco cosas, y
+// las cinco son verificables — ninguna es una casilla de honor. El CSD dejó de
+// ser condición el 9 nov 2026 (facturar a su cliente desde el portal se prende
+// después); los datos fiscales se quedan, pero salen solos de su constancia.
 //
 // Lo consulta `candadosDe` (`lib/experiences/candados-venta.ts`), que es la
 // única puerta de publicar y cobrar. ⚠️ Hasta el 22 sep 2026 este encabezado
@@ -112,16 +112,28 @@ export function operadorListo(
     );
   }
 
-  // 2 · ⚠️ EL CSD Y LOS DATOS FISCALES YA NO DETIENEN LA VENTA (Luis, 9 nov
-  // 2026, haciendo el alta de una operadora en vivo: «si quieren facturación,
-  // que se prenda en un paso posterior, pero no sea un cuello para empezar a
-  // cobrar»). Eran dos de las seis faltas y las dos más tediosas: un CSD es un
-  // trámite del SAT con contraseña, y con eso sin hacer la operadora no cobraba
-  // ni un peso. Facturar es SU obligación con su cliente; si no la prende en la
-  // plataforma, factura por fuera. La facturación desde Caminante es opcional y
-  // vive aparte, en Cobrar (`organizacion.ts`), y `csdVigente` sigue aquí para
-  // esa pantalla.
+  // 2 · DATOS FISCALES, SÍ; CSD, NO. Dos decisiones de Luis el 9 nov 2026.
   //
+  // En la mañana, haciendo el alta de una operadora en vivo: el CSD no detiene
+  // la venta («si quieren facturación, que se prenda en un paso posterior,
+  // pero no sea un cuello para empezar a cobrar»). Facturarle a su cliente es
+  // SU obligación; si no prende la facturación del portal, factura por fuera.
+  // `csdVigente` sigue aquí para la pantalla de Cobrar.
+  //
+  // En la noche: los datos fiscales SÍ, porque NUMAN le factura su comisión con
+  // Facturapi y el CFDI exige RFC, razón social, régimen y CP — pero «que
+  // salgan de la constancia y no pidamos». Los escribe `analizarCsf` cuando el
+  // SAT confirma la constancia (fiscal-de-csf.ts). Lo que este candado exige
+  // es que estén; la operadora no teclea ninguno.
+  const fiscales = [op?.rfc, op?.razon_social, op?.regimen_fiscal, op?.cp_fiscal];
+  if (fiscales.some((v) => !v?.trim())) {
+    faltantes.push(
+      op?.rfc?.trim() && !op?.regimen_fiscal?.trim()
+        ? "Su constancia fiscal trae más de un régimen de negocio: falta decidir con cuál se le factura la comisión."
+        : "Falta su Constancia de Situación Fiscal confirmada con el SAT: de ahí salen sus datos fiscales para facturarle la comisión.",
+    );
+  }
+
   // 3 · Física o moral SÍ se queda.
   // `tipo_persona` define si aplica retención de ISR e IVA. Vender sin saberlo
   // deja a Numan expuesta como corresponsable solidaria.

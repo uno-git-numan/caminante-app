@@ -1,11 +1,13 @@
 "use client";
 
 // Los pasos del onboarding de Connect para UN operador, con su semáforo arriba.
-// El orden (9 nov 2026): conectar la cuenta de cobro, que es lo único que hace
-// falta para cobrar · y aparte, opcional, la facturación (datos fiscales → CSD).
+// El orden (9 nov 2026): sus datos fiscales —que salen solos de su constancia—
+// y la cuenta de cobro, que es lo que hace falta para cobrar · y aparte,
+// opcional, el CSD para facturarle a su cliente desde aquí.
 
 import { useState } from "react";
-import { pedirLinkStripe, refrescarConexion, guardarFiscales, guardarCsd } from "@/lib/payments/connect-actions";
+import { pedirLinkStripe, refrescarConexion, elegirRegimen, releerConstancia, guardarCsd } from "@/lib/payments/connect-actions";
+import { REGIMENES } from "@/lib/facturacion/catalogos";
 
 export type OperadorCobros = {
   id: string;
@@ -22,6 +24,11 @@ export type OperadorCobros = {
   regimenFiscal: string;
   cpFiscal: string;
   tipoPersona: string;
+  /**
+   * Lo que dice su constancia fiscal (constancia-fiscal.ts). `regimenes` son
+   * los de negocio que trae: si son varios, la pantalla ofrece SÓLO ésos.
+   */
+  constancia: { subida: boolean; ok: boolean; porque: string | null; regimenes: string[] };
   csdCerPath: string | null;
   csdKeyPath: string | null;
   csdVenceAt: string | null;
@@ -45,11 +52,6 @@ export default function CobrosPanel({
   const [ocupado, setOcupado] = useState("");
   const [estado, setEstado] = useState("");
 
-  const [rfc, setRfc] = useState(o.rfc);
-  const [razonSocial, setRazonSocial] = useState(o.razonSocial);
-  const [regimenFiscal, setRegimenFiscal] = useState(o.regimenFiscal);
-  const [cpFiscal, setCpFiscal] = useState(o.cpFiscal);
-  const [tipoPersona, setTipoPersona] = useState(o.tipoPersona);
   const [vence, setVence] = useState(o.csdVenceAt ?? "");
   // La contraseña del CSD viaja a Facturapi en la misma llamada; aquí no se guarda.
   const [passCsd, setPassCsd] = useState("");
@@ -118,20 +120,20 @@ export default function CobrosPanel({
     }
   }
 
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
-    setOcupado("fiscales");
+  async function regimen(clave: string) {
+    setOcupado("regimen");
     setEstado("");
-    const fd = new FormData();
-    fd.set("id", o.id);
-    fd.set("rfc", rfc);
-    fd.set("razonSocial", razonSocial);
-    fd.set("regimenFiscal", regimenFiscal);
-    fd.set("cpFiscal", cpFiscal);
-    fd.set("tipoPersona", tipoPersona);
-    const r = await guardarFiscales(fd);
+    const r = await elegirRegimen(o.id, clave);
     setOcupado("");
-    setEstado(r.ok ? "✓ Guardado" : `Error: ${r.error}`);
+    setEstado(r.ok ? "✓ Régimen elegido" : `Error: ${r.error}`);
+  }
+
+  async function releer() {
+    setOcupado("releer");
+    setEstado("");
+    const r = await releerConstancia(o.id);
+    setOcupado("");
+    setEstado(r.ok ? "✓ Constancia leída otra vez" : `Error: ${r.error}`);
   }
 
   const listo = faltantes.length === 0 && Boolean(o.stripeAccountId);
@@ -165,6 +167,48 @@ export default function CobrosPanel({
             ))}
           </ul>
         </div>
+      )}
+
+      {/* ── Datos fiscales: salen de la constancia (Luis, 9 nov 2026) ── */}
+      {/* «Que salgan de la constancia y no pidamos.» NUMAN le factura su
+          comisión con ellos, así que sí detienen el cobro; pero nadie los
+          teclea: los escribe la lectura de la constancia cuando el SAT la
+          confirma. Aquí sólo se enseñan, y quedan dos botones para lo que una
+          persona todavía puede tener que hacer. */}
+      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>Sus datos fiscales</h3>
+      {o.rfc && o.regimenFiscal ? (
+        <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
+          {o.razonSocial} · RFC {o.rfc} · régimen {etiquetaRegimen(o.regimenFiscal)} · C.P. {o.cpFiscal}.{" "}
+          Salen de su constancia fiscal confirmada con el SAT.
+        </p>
+      ) : o.rfc && o.constancia.ok && o.constancia.regimenes.length > 1 ? (
+        <>
+          <p className="mut" style={{ fontSize: 12.5, margin: "0 0 8px" }}>
+            {o.razonSocial} · RFC {o.rfc}. Su constancia trae más de un régimen de negocio: ¿con cuál
+            le facturamos la comisión?
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {o.constancia.regimenes.map((c) => (
+              <button key={c} type="button" className="btn btn-sm" onClick={() => regimen(c)} disabled={ocupado !== ""}>
+                {etiquetaRegimen(c)}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : !o.constancia.subida ? (
+        <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
+          Salen solos de su Constancia de Situación Fiscal: súbela en el{" "}
+          <a href={`/caminante/admin/mi-alta/expediente?operadora=${encodeURIComponent(o.id)}`}>expediente</a> y aquí aparecen en un minuto.
+        </p>
+      ) : (
+        <>
+          <p className="mut" style={{ fontSize: 12.5, margin: "0 0 8px" }}>
+            Su constancia está subida pero todavía no da sus datos: {o.constancia.porque ?? "falta leerla."}
+          </p>
+          <button type="button" className="btn btn-sm" onClick={releer} disabled={ocupado !== ""}>
+            {ocupado === "releer" ? "Leyendo…" : "Volver a leer la constancia"}
+          </button>
+        </>
       )}
 
       {/* ── Paso 1 · Conecta tu cuenta ─────────────────────────────── */}
@@ -235,45 +279,8 @@ export default function CobrosPanel({
         No hace falta para cobrar. Si la prendes, timbramos a tu nombre las facturas de tus viajeros y el
         comprobante de cada pago. Si no, facturas por tu cuenta como siempre.
       </p>
-      <h3 style={{ fontSize: 14, margin: "14px 0 6px" }}>A · Sus datos fiscales</h3>
-      <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
-        Son los del <b>emisor</b> del CFDI que recibirá su cliente. También se editan desde su
-        convenio: es el mismo dato, no dos.
-      </p>
-      <form onSubmit={guardar}>
-        <div className="mini-form" style={{ alignItems: "start" }}>
-          <label>
-            RFC
-            <input value={rfc} onChange={(e) => setRfc(e.target.value)} maxLength={13} placeholder="XAXX010101000" />
-          </label>
-          <label>
-            Razón social
-            <input value={razonSocial} onChange={(e) => setRazonSocial(e.target.value)} maxLength={200} />
-          </label>
-          <label>
-            Régimen fiscal (clave SAT)
-            <input value={regimenFiscal} onChange={(e) => setRegimenFiscal(e.target.value)} maxLength={3} placeholder="601" />
-          </label>
-          <label>
-            C.P. fiscal
-            <input value={cpFiscal} onChange={(e) => setCpFiscal(e.target.value)} maxLength={5} placeholder="56760" />
-          </label>
-          <label>
-            Persona
-            <select value={tipoPersona} onChange={(e) => setTipoPersona(e.target.value)}>
-              <option value="">Sin definir</option>
-              <option value="fisica">Física</option>
-              <option value="moral">Moral</option>
-            </select>
-          </label>
-        </div>
-        <button type="submit" className="btn btn-orange btn-sm" style={{ marginTop: 10 }} disabled={ocupado !== ""}>
-          {ocupado === "fiscales" ? "Guardando…" : "Guardar datos fiscales"}
-        </button>
-      </form>
-
       {/* ── B · CSD ─────────────────────────────────────────────────── */}
-      <h3 style={{ fontSize: 14, margin: "18px 0 6px" }}>B · Su CSD (para timbrar)</h3>
+      <h3 style={{ fontSize: 14, margin: "18px 0 6px" }}>Su CSD (para timbrar)</h3>
       <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
         Los <b>dos</b> archivos que le dio el SAT: el <code>.cer</code> y el <code>.key</code>. Van a
         un bucket privado y solo se ven por liga firmada de 5 minutos.{" "}
@@ -318,4 +325,9 @@ export default function CobrosPanel({
       ) : null}
     </div>
   );
+}
+
+/** «612 · Personas físicas con actividades…» desde la clave; si no está en el catálogo, la clave sola. */
+function etiquetaRegimen(clave: string): string {
+  return REGIMENES.find((r) => r.clave === clave)?.label ?? clave;
 }

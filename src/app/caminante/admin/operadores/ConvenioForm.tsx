@@ -21,15 +21,14 @@ export default function ConvenioForm({
   nombre: string;
   commissionPct: number | null;
   legal: OperadorLegal | null;
-  // ⚠️ Llegan por separado de `legal` desde la 0038: el RFC y la razón social
-  // son del EMISOR del CFDI y viven en columnas planas. La pantalla no cambia —
-  // se siguen capturando aquí— pero ya no tienen dos casas donde divergir.
+  // ⚠️ SÓLO SE ENSEÑAN, ya no se capturan (9 nov 2026). Salen de la
+  // constancia que confirmó el SAT (fiscal-de-csf.ts). Este formulario los
+  // escribía —y un campo vacío los ponía en NULL, borrando lo que la
+  // constancia acababa de llenar.
   rfcActual: string;
   razonSocialActual: string;
 }) {
   const [pct, setPct] = useState(commissionPct == null ? "" : String(commissionPct));
-  const [razonSocial, setRazonSocial] = useState(razonSocialActual);
-  const [rfc, setRfc] = useState(rfcActual);
   const [domicilio, setDomicilio] = useState(legal?.domicilio ?? "");
   const [responsable, setResponsable] = useState(legal?.responsable ?? "");
   const [guardando, setGuardando] = useState(false);
@@ -42,8 +41,6 @@ export default function ConvenioForm({
     const fd = new FormData();
     fd.set("id", id);
     fd.set("commissionPct", pct.trim());
-    fd.set("razonSocial", razonSocial);
-    fd.set("rfc", rfc);
     fd.set("domicilio", domicilio);
     fd.set("responsable", responsable);
     const r = await saveOperatorConvenio(fd);
@@ -94,29 +91,15 @@ export default function ConvenioForm({
           </small>
         </label>
 
-        <label style={lbl}>
-          <span>Razón social</span>
-          <input
-            style={inp}
-            value={razonSocial}
-            onChange={(e) => setRazonSocial(e.target.value)}
-            placeholder="Kéntro Hospitalidad, S.A. de C.V."
-          />
-        </label>
-
-        <label style={lbl}>
-          <span>RFC</span>
-          <input
-            style={inp}
-            value={rfc}
-            onChange={(e) => setRfc(e.target.value.toUpperCase())}
-            placeholder="KHO230512AB1"
-            maxLength={13}
-          />
+        <div style={lbl}>
+          <span>Datos fiscales</span>
+          <span style={{ fontSize: 13, color: "var(--ink)" }}>
+            {rfcActual ? `${razonSocialActual || "—"} · ${rfcActual}` : "Sin constancia confirmada"}
+          </span>
           <small className="mut" style={hint}>
-            Déjalo vacío si aún no lo tienes. A medias se factura mal.
+            Salen de su Constancia de Situación Fiscal cuando el SAT la confirma. No se teclean.
           </small>
-        </label>
+        </div>
 
         <label style={lbl}>
           <span>Responsable</span>

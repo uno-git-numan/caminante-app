@@ -95,7 +95,7 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
     sb
       .from("operators")
       .select(
-        "id, slug, name, es_la_casa, estado, tipo_persona, rfc, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, branding, created_at",
+        "id, slug, name, es_la_casa, estado, tipo_persona, rfc, razon_social, regimen_fiscal, cp_fiscal, commission_pct, comision_desde, panel_activo, stripe_charges_enabled, convenio_firmado_at, convenio_version, csd_subido_at, branding, created_at",
       ),
     sb.from("experiences").select("id, status, operator_id"),
     sb.from("reservations").select("experience_id, status, total_amount_mxn, created_at"),
@@ -178,15 +178,22 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
         bloquea: "armar",
       },
       // ⚠️ AQUÍ ESTABA EL CSD (hasta el 9 nov 2026). Luis lo sacó de las
-      // condiciones para cobrar: la facturación desde la plataforma se prende
-      // después y es opcional. Lo que sí se exige —y es de la operadora— es
-      // decir si es persona física o moral: de eso dependen sus papeles y las
-      // retenciones (`operadorListo`, condición 3).
+      // condiciones para cobrar: la facturación a SU cliente desde la
+      // plataforma se prende después y es opcional. Lo que sí se exige son sus
+      // datos fiscales —NUMAN le factura la comisión— y salen SOLOS de su
+      // constancia confirmada con el SAT (fiscal-de-csf.ts), igual que física
+      // o moral, que lo dice el RFC. Espejo de `operadorListo`, condiciones 2 y 3.
       {
-        clave: "persona",
-        nombre: "Física o moral",
-        cumplido: o.tipo_persona === "fisica" || o.tipo_persona === "moral",
-        detalle: o.tipo_persona === "fisica" ? "Persona física" : o.tipo_persona === "moral" ? "Persona moral" : "Sin decir",
+        clave: "fiscal",
+        nombre: "Constancia fiscal",
+        cumplido:
+          (o.tipo_persona === "fisica" || o.tipo_persona === "moral") &&
+          [o.rfc, o.razon_social, o.regimen_fiscal, o.cp_fiscal].every((v) => typeof v === "string" && v.trim() !== ""),
+        detalle: !o.rfc
+          ? "Sin constancia confirmada"
+          : !o.regimen_fiscal
+            ? `${o.rfc} · falta elegir régimen`
+            : `${o.rfc} · ${o.tipo_persona === "moral" ? "moral" : "física"} · ${o.regimen_fiscal}`,
         toca: "operadora",
         bloquea: "cobrar",
       },

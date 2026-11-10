@@ -80,18 +80,21 @@ describe("operadorListo", () => {
     expect(r.faltantes.join(" ")).toMatch(/no genera comisión/i);
   });
 
-  it("LUIS, 9 NOV: sin CSD ni datos fiscales SÍ vende — facturar es un paso posterior", () => {
-    const sinFacturacion = {
-      ...completo,
-      csd_cer_path: null,
-      csd_key_path: null,
-      csd_vence_at: null,
-      rfc: null,
-      razon_social: null,
-      regimen_fiscal: null,
-      cp_fiscal: null,
-    };
-    expect(operadorListo(sinFacturacion, HOY)).toEqual({ ok: true, faltantes: [] });
+  it("LUIS, 9 NOV: sin CSD SÍ vende — facturar a su cliente desde el portal es un paso posterior", () => {
+    const sinCsd = { ...completo, csd_cer_path: null, csd_key_path: null, csd_vence_at: null };
+    expect(operadorListo(sinCsd, HOY)).toEqual({ ok: true, faltantes: [] });
+  });
+
+  it("LUIS, 9 NOV (noche): sin datos fiscales NO vende — salen de la constancia confirmada", () => {
+    const sinFiscales = { ...completo, rfc: null, razon_social: null, regimen_fiscal: null, cp_fiscal: null };
+    const r = operadorListo(sinFiscales, HOY);
+    expect(r.ok).toBe(false);
+    expect(r.faltantes.join(" ")).toMatch(/Constancia de Situación Fiscal confirmada con el SAT/);
+  });
+
+  it("con RFC y sin régimen dice lo que de verdad falta: elegir entre dos regímenes", () => {
+    const r = operadorListo({ ...completo, regimen_fiscal: null }, HOY);
+    expect(r.faltantes.join(" ")).toMatch(/más de un régimen/);
   });
 
   it("física o moral sí detiene: de eso dependen las retenciones", () => {
@@ -105,17 +108,17 @@ describe("operadorListo", () => {
     expect(r.faltantes[0]).toMatch(/cuenta de cobro todavía no está verificada/);
   });
 
-  it("con todo vacío enumera las cuatro faltas, una por condición", () => {
+  it("con todo vacío enumera las cinco faltas, una por condición", () => {
     const r = operadorListo({ stripe_account_id: "acct_x" }, HOY);
     expect(r.ok).toBe(false);
-    expect(r.faltantes).toHaveLength(4);
+    expect(r.faltantes).toHaveLength(5);
   });
 
   it("el select del gate pide TODAS las columnas que el gate lee", () => {
     // Un campo ausente llega como `undefined` y el gate lo reporta faltante
     // aunque en la base esté lleno. `comision_desde` entró al gate el 22 sep y
     // por poco se queda fuera de COLUMNAS_GATE.
-    for (const c of ["commission_pct", "comision_desde", "convenio_firmado_at", "tipo_persona"]) {
+    for (const c of ["commission_pct", "comision_desde", "convenio_firmado_at", "tipo_persona", "rfc", "razon_social", "regimen_fiscal", "cp_fiscal"]) {
       expect(COLUMNAS_GATE).toContain(c);
     }
   });

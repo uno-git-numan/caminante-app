@@ -27,6 +27,7 @@ import "server-only";
 // algo falla queda dicho en `analisis` y la persona que revisa decide.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { cambiosFiscales, datosFiscalesDeCsf } from "./fiscal-de-csf";
 
 const MODEL = "claude-opus-5-5";
 const API = "https://api.anthropic.com/v1/messages";
@@ -58,7 +59,7 @@ const SISTEMA = `Lees una Constancia de Situación Fiscal (CSF) del SAT de Méxi
 Extrae SOLO lo que está escrito en el documento. Si un dato no aparece, devuélvelo como null: no lo deduzcas ni lo completes.
 - esConstancia: true sólo si el documento es una Constancia de Situación Fiscal / Cédula de Identificación Fiscal del SAT.
 - rfc: el RFC del contribuyente, en mayúsculas.
-- nombre: nombre, denominación o razón social tal como aparece.
+- nombre: para persona moral, la Denominación o Razón Social SIN el régimen capital (sin «S.A. de C.V.» ni similares, que la constancia trae en otro renglón); para persona física, nombre(s) y apellidos en ese orden. Tal como están escritos.
 - idCif: el idCIF (número de identificación de la cédula), sólo dígitos.
 - fechaEmision: la fecha de emisión ("Lugar y Fecha de Emisión"), en formato YYYY-MM-DD.
 - codigoPostal: el código postal del domicilio fiscal.
@@ -231,6 +232,19 @@ export async function analizarCsf(docId: string): Promise<AnalisisCsf | null> {
     // Sin la 0077 aplicada la columna no existe: se dice en el log y la
     // subida sigue intacta.
     if (error) console.error("analizarCsf (¿falta la 0077?):", error.message);
+
+    // Los datos fiscales de la operadora SALEN de aquí (fiscal-de-csf.ts):
+    // sólo de una constancia que el SAT confirmó, y sin pisar un RFC distinto.
+    const fiscal = datosFiscalesDeCsf(analisis);
+    if (fiscal.ok) {
+      const { data: actual } = await sb.from("operators").select("rfc, tipo_persona").eq("id", doc.operator_id).maybeSingle();
+      const { escribir, motivo } = cambiosFiscales(fiscal.datos, (actual ?? { rfc: null, tipo_persona: null }) as { rfc: string | null; tipo_persona: string | null });
+      if (motivo) console.warn("analizarCsf: no se tocan los datos fiscales:", motivo);
+      else {
+        const { error: eOp } = await sb.from("operators").update(escribir).eq("id", doc.operator_id);
+        if (eOp) console.error("analizarCsf: no se pudieron guardar los datos fiscales:", eOp.message);
+      }
+    }
     return analisis;
   } catch (e) {
     console.error("analizarCsf:", e);

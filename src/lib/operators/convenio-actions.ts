@@ -32,8 +32,9 @@ export type ConvenioResult = { ok: boolean; error?: string };
  * Tenerlos en dos casas ya costó: Kéntro tenía su RFC aquí y las planas en NULL,
  * así que `operadorListo` lo reportaba como faltante estando capturado.
  *
- * Este formulario SIGUE capturando RFC y razón social — solo que ahora los
- * escribe en las planas. Para quien llena la pantalla no cambia nada.
+ * ⚠️ Desde el 9 nov 2026 este formulario YA NO los escribe: salen de la
+ * constancia que confirmó el SAT (`fiscal-de-csf.ts`). Escribirlos aquí, con
+ * un campo vacío convertido en NULL, borraba lo que la constancia llenó.
  */
 export type OperadorLegal = {
   domicilio: string;
@@ -61,15 +62,6 @@ export async function saveOperatorConvenio(formData: FormData): Promise<Convenio
     domicilio: txt(formData, "domicilio", 400),
     responsable: txt(formData, "responsable", 160),
   };
-  // Emisor del CFDI: columnas planas (0038), no el jsonb.
-  const rfc = txt(formData, "rfc", 13).toUpperCase();
-  const razonSocial = txt(formData, "razonSocial", 200);
-
-  // Un RFC a medias es peor que ninguno: se factura mal y se corrige tarde.
-  if (rfc && !/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfc)) {
-    return { ok: false, error: "Ese RFC no tiene forma de RFC. Déjalo vacío si aún no lo tienes." };
-  }
-
   const todoVacio = !legal.domicilio && !legal.responsable;
 
   const sb = createSupabaseAdminClient();
@@ -78,10 +70,6 @@ export async function saveOperatorConvenio(formData: FormData): Promise<Convenio
     .update({
       commission_pct: commissionPct,
       legal: todoVacio ? null : legal,
-      // Vacío se guarda como NULL, no como "": el gate pregunta por ausencia y
-      // una cadena vacía respondería que sí hay dato.
-      rfc: rfc || null,
-      razon_social: razonSocial || null,
     })
     .eq("id", id)
     .select("slug")

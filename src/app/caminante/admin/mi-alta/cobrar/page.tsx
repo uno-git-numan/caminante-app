@@ -7,7 +7,7 @@
 // a una pantalla que la operadora no podía abrir. Un candado con dueño pero sin
 // puerta es un reproche.
 //
-// Las acciones (`pedirLinkStripe`, `guardarCsd`, `guardarFiscales`) ya
+// Las acciones (`pedirLinkStripe`, `guardarCsd`, `elegirRegimen`) ya
 // aceptaban a la operadora sobre sí misma; lo que faltaba era la puerta.
 // La casa entra POR una operadora con `?operadora=<id>`.
 
@@ -24,6 +24,7 @@ import { refrescarEstado } from "@/lib/payments/connect";
 import { altaCobroEnPlataforma, erroresDeVerificacion, traducirPendientes } from "@/lib/payments/alta-cobro";
 import CobrosPanel from "../../operadores/cobros/CobrosPanel";
 import AltaCobro from "./AltaCobro";
+import { constanciaParaPanel, constanciasDe } from "@/lib/operadores/constancia-fiscal";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -93,6 +94,7 @@ export default async function CobrarPage({
     .eq("id", operatorId)
     .maybeSingle();
   const r = data as Row | null;
+  const constancias = await constanciasDe(r ? [r.id] : []);
   if (!r) redirect("/caminante/admin/mi-alta");
 
   const altaAqui = enPlataforma && (!r.stripe_account_id || recauda === true);
@@ -110,8 +112,9 @@ export default async function CobrarPage({
           </h2>
           <p className="desc">
             Conecta tu cuenta de cobro para que el dinero de tus ventas entre <b>a tu nombre</b> y
-            Caminante retenga sólo su comisión. Tus datos fiscales y tu CSD son para que tú le factures
-            a tu cliente. Mientras esto no esté completo, tus experiencias no cobran por aquí.
+            Caminante retenga sólo su comisión. Tus datos fiscales salen solos de tu constancia, y con
+            ellos te facturamos la comisión. El CSD es opcional: sólo si quieres facturarle a tu cliente
+            desde aquí. Mientras esto no esté completo, tus experiencias no cobran por aquí.
           </p>
           <p className="desc" style={{ marginTop: 10 }}>
             {porOtra ? (
@@ -138,6 +141,7 @@ export default async function CobrarPage({
           regimenFiscal: r.regimen_fiscal ?? "",
           cpFiscal: r.cp_fiscal ?? "",
           tipoPersona: r.tipo_persona ?? "",
+          constancia: constanciaParaPanel(constancias.get(r.id)),
           csdCerPath: r.csd_cer_path ?? null,
           csdKeyPath: r.csd_key_path ?? null,
           csdVenceAt: r.csd_vence_at ?? null,
