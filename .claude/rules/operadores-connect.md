@@ -216,10 +216,12 @@ el complemento «Servicios Plataformas Tecnológicas» 1.0, una sección por ven
   (base del mes × tasa, TRUNCADO), XML del complemento **validado contra el XSD
   oficial** (`tests/fixtures/sat/`, la prueba corre si hay `xmllint`), cuerpo
   de `POST /v2/retentions` de Facturapi (`complements: [xml]`).
-- ⚠️ **`CATALOGO` en null = no se emite.** Tipo de servicio, periodicidad,
-  tipo de impuesto, tipo de pago de la retención y forma de pago de prepago
-  los confirma la sesión legal (pregunta del 12 nov). `catalogoListo()` dice
-  cuál falta. Tampoco se emite sin `FACTURAPI_SECRET_KEY` (llave de NUMAN).
+- **`CATALOGO` confirmado por legal (12 nov, XLS oficial Rev. E):** TipoDeServ
+  06, Periodicidad 02 (mensual), IVA 02 en el complemento, ISR `tipo_pago_ret`
+  **04 provisional por omisión** (el 03 definitivo sólo para la física que
+  acredite haber optado, 113-B: campo por construir), IVA 01, prepago → 06
+  débito (M16). Si una vuelve a null, `catalogoListo()` lo dice y no se emite.
+  Sin `FACTURAPI_SECRET_KEY` (llave de NUMAN) tampoco se emite.
 - **Emisión** (`emitir-retenciones.ts`): aparta una fila VIVA por operadora y
   mes en `cfdi_retenciones` (índice parcial) ANTES de llamar al PAC; idempotency
   `ret-<mes>-<operadora>`; una «pendiente» de más de 15 min se reintenta. Al

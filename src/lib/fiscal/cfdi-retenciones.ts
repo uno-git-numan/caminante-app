@@ -10,11 +10,9 @@
 // Facturapi timbra con la organización de NUMAN: POST /v2/retentions con
 // `complements: [<xml del complemento>]` (su OpenAPI, 11 nov 2026).
 //
-// ⚠️ LAS CLAVES DE CATÁLOGO NO SE ADIVINAN. Las que dependen del XLS del SAT
-// (tipo de servicio, periodicidad, tipo de impuesto, tipo de pago de la
-// retención, forma de pago de una tarjeta prepago) las confirma la sesión
-// legal. Mientras alguna esté en null, `catalogoListo()` dice cuál falta y NO
-// se emite.
+// ⚠️ LAS CLAVES DE CATÁLOGO NO SE ADIVINAN. Las confirmó la sesión legal del
+// XLS oficial (12 nov 2026, abajo). Si alguna vuelve a null, `catalogoListo()`
+// dice cuál falta y NO se emite.
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 /** Trunca a centavos (regla del SAT para montoRet). Mismo criterio que retencion.ts. */
@@ -39,18 +37,31 @@ export type Catalogo = {
 };
 
 /**
- * Pendiente de la sesión legal (pregunta del 12 nov 2026). Lo verificado en los
- * XSD: c_TipoDeServ 01–09 y 11 (una carta técnica de 2020 da «06 Otro tipo de
- * servicios»), c_Periodicidad 01–05, c_TipoImpuesto 01–03.
+ * Confirmadas por la sesión legal el 12 nov 2026, leídas de los catálogos
+ * oficiales del SAT (XLS del complemento Rev. E, 31/12/2025, y catálogos del
+ * CFDI de retenciones 2.0). Detalle y URLs: REPORTE-MENSUAL-RETENCIONES §2.2.
+ *
+ *   06 «Otro tipo de servicios» · tasa ISR 2026 0.025 en c_TipoDeServ v8.0
+ *   02 «Mensual» (c_Periodicidad: 01 Semanal, 02 Mensual, 03 Diario, 04 Quincenal, 05 Otro)
+ *   02 IVA en el complemento (c_TipodeImpuesto: 01 ISR, 02 IVA, 03 IEPS)
+ *   04 «Pago provisional ISR» POR OMISIÓN (LISR 113-A 3º). El 03 «definitivo
+ *      plataformas» es sólo para la persona física que acredite haber optado
+ *      (113-B); ese campo de su ficha todavía no existe.
+ *   01 «Pago definitivo IVA» (la única de IVA)
+ *   06 débito para una tarjeta PREPAGO (el catálogo no tiene prepago; M16)
+ *
+ * En `imp_retenidos.impuesto` Facturapi recibe «ISR»/«IVA» (su OpenAPI) y el
+ * XML sale con 001/002 (catCFDI:c_Impuesto). Se verifica en la primera emisión
+ * de prueba.
  */
 export const CATALOGO: Catalogo = {
-  tipoDeServ: null,
-  periodicidadMensual: null,
-  impuestoIva: null,
-  tipoPagoRetIsr: null,
-  tipoPagoRetIva: null,
-  formaPagoPrepago: null,
-  fuente: "Pendiente: claves pedidas a la sesión legal el 12 nov 2026.",
+  tipoDeServ: "06",
+  periodicidadMensual: "02",
+  impuestoIva: "02",
+  tipoPagoRetIsr: "04",
+  tipoPagoRetIva: "01",
+  formaPagoPrepago: "06",
+  fuente: "Sesión legal, 12 nov 2026: catálogo Rev. E (31/12/2025) y catálogos del CFDI de retenciones 2.0.",
 };
 
 export function catalogoListo(c: Catalogo = CATALOGO): { ok: true } | { ok: false; faltan: string[] } {

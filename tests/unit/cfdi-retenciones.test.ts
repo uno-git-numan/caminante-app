@@ -18,12 +18,16 @@ const ventas = [
   { paymentId: "p2", fecha: "2026-11-20", base: 754.31, comision: 150.86, medio: "card:debit" },
 ];
 
-describe("catálogo", () => {
-  it("mientras legal no confirme las claves, NO se emite", () => {
-    const r = catalogoListo(CATALOGO);
-    // Si este test falla porque ya se confirmaron, bórralo: fue el candado de arranque.
-    expect(r.ok).toBe(false);
-    expect(xmlComplemento(ventas, { isr: 0.025, iva: 0.5 }).ok).toBe(false);
+describe("catálogo confirmado por legal (12 nov 2026)", () => {
+  it("las 6 claves están y son las del XLS oficial", () => {
+    expect(catalogoListo(CATALOGO)).toEqual({ ok: true });
+    expect(CATALOGO).toMatchObject({ tipoDeServ: "06", periodicidadMensual: "02", impuestoIva: "02", tipoPagoRetIsr: "04", tipoPagoRetIva: "01", formaPagoPrepago: "06" });
+  });
+  it("si una clave vuelve a null, no se emite y dice cuál", () => {
+    expect(catalogoListo({ ...CATALOGO, tipoDeServ: null })).toEqual({ ok: false, faltan: ["tipoDeServ"] });
+  });
+  it("una tarjeta prepago se reporta como débito (M16)", () => {
+    expect(formaPagoServ("card:prepaid")).toBe("06");
   });
 });
 
@@ -55,9 +59,11 @@ describe("xmlComplemento", () => {
     expect(r.ok).toBe(false);
   });
   it("el porcentaje de la comisión va como fracción (20 % ⇒ 0.200)", () => {
-    const r = xmlComplemento(ventas, { isr: 0.025, iva: 0.5 }, DE_PRUEBA);
+    const r = xmlComplemento(ventas, { isr: 0.025, iva: 0.5 }, CATALOGO);
     if (!r.ok) throw new Error(r.porque);
     expect(r.xml).toContain('Porcentaje="0.200"');
+    expect(r.xml).toContain('Periodicidad="02"');
+    expect(r.xml).toContain('TipoDeServ="06"');
     expect(r.xml).toContain('NumServ="2"');
   });
 
@@ -67,8 +73,8 @@ describe("xmlComplemento", () => {
   } catch {
     hayXmllint = false;
   }
-  it.skipIf(!hayXmllint)("VALIDA contra el XSD oficial del SAT", () => {
-    const r = xmlComplemento(ventas, { isr: 0.025, iva: 0.5 }, DE_PRUEBA);
+  it.skipIf(!hayXmllint)("VALIDA contra el XSD oficial del SAT, con el catálogo confirmado", () => {
+    const r = xmlComplemento(ventas, { isr: 0.025, iva: 0.5 }, CATALOGO);
     if (!r.ok) throw new Error(r.porque);
     const dir = mkdtempSync(join(tmpdir(), "spt-"));
     const f = join(dir, "c.xml");
@@ -80,9 +86,9 @@ describe("xmlComplemento", () => {
 
 describe("payloadRetencion", () => {
   it("clave 26, un mes, totales y los dos impuestos con su tipo de pago", () => {
-    const r = xmlComplemento(ventas, { isr: 0.025, iva: 0.5 }, DE_PRUEBA);
+    const r = xmlComplemento(ventas, { isr: 0.025, iva: 0.5 }, CATALOGO);
     if (!r.ok) throw new Error(r.porque);
-    const p = payloadRetencion("2026-11", { rfc: "ROBL990531HI3", razonSocial: "LAURA CATALINA ROMERO BARRAGAN", regimen: "626", cp: "76230", email: "a@b.mx" }, r, DE_PRUEBA, "ret-2026-11-op");
+    const p = payloadRetencion("2026-11", { rfc: "ROBL990531HI3", razonSocial: "LAURA CATALINA ROMERO BARRAGAN", regimen: "626", cp: "76230", email: "a@b.mx" }, r, CATALOGO, "ret-2026-11-op");
     expect(p).toMatchObject({
       cve_retenc: "26",
       periodo: { mes_ini: 11, mes_fin: 11, ejerc: 2026 },
@@ -91,7 +97,8 @@ describe("payloadRetencion", () => {
       idempotency_key: "ret-2026-11-op",
     });
     expect(p.totales.imp_retenidos).toEqual([
-      { impuesto: "ISR", base_ret: 2262.93, monto_ret: 56.57, tipo_pago_ret: "03" },
+      // 04 «Pago provisional ISR» por omisión (LISR 113-A 3º).
+      { impuesto: "ISR", base_ret: 2262.93, monto_ret: 56.57, tipo_pago_ret: "04" },
       { impuesto: "IVA", base_ret: 362.07, monto_ret: 181.03, tipo_pago_ret: "01" },
     ]);
   });
