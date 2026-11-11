@@ -185,6 +185,24 @@ ficha llegó a leerse con la llave pública hasta la 0080.
   (`lib/fiscal/clabe.ts`), y sólo se teclea si no está.
 - Las pantallas reciben `FiscalPrivadoPanel`: si está y la CLABE enmascarada.
 
+## El reporte mensual de retenciones (11 nov 2026)
+
+Marisol lo pidió para presentar las informativas. Pantalla de la casa
+`/caminante/admin/plataforma/retenciones?mes=AAAA-MM` (enlazada desde Recursos
+→ «Lo que se declara») y CSV en `/caminante/api/admin/retenciones?mes=…`
+(`&detalle=1` venta por venta). Cálculo puro en `lib/fiscal/reporte-retenciones.ts`.
+
+- Un mes = ventas por Connect COBRADAS en el mes (hora CDMX) − devoluciones
+  CONFIRMADAS en el mes, con su retención proporcional (D9: se corrige el mes
+  de la devolución, no el de la venta).
+- Van TODAS las operadoras externas en Connect aunque el mes vaya en cero
+  (18-J III «aun cuando no se haya cobrado»).
+- Lo que falta para la informativa (CURP, domicilio, banco, CLABE) se lista en
+  `faltan`; no se rellena. En pantalla CURP y CLABE enmascaradas; completas
+  sólo en el CSV, sólo para la casa.
+- ⚠️ El formato EXACTO de cada declaración lo define la sesión legal (pregunta
+  enviada el 11 nov); las columnas del CSV se ajustan a lo que diga.
+
 ## El alta en 15 minutos: un dato se obtiene, no se pide (9 nov 2026)
 
 Meta de Luis: pasar de la solicitud a cobrar tan rápido como se abre una cuenta

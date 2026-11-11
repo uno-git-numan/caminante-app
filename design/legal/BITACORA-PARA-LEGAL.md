@@ -12,6 +12,18 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 11 nov 2026 (noche) · Producto: reporte mensual de retenciones (lo pidió Marisol)
+
+- Pantalla de la casa «Retenciones del mes» + CSV para la contadora (resumen por
+  operadora y detalle venta por venta).
+- Columnas hoy: mes, operadora (razón social o nombre), RFC, CURP, domicilio
+  fiscal, banco, CLABE, ventas, cobrado con IVA, base sin IVA, IVA cobrado, ISR
+  retenido, IVA retenido, devoluciones, «faltan».
+- Mes = ventas cobradas en el mes − devoluciones confirmadas en el mes (retención
+  proporcional). Todas las operadoras en Connect aparecen aunque vayan en cero.
+- **Espera tu respuesta** sobre el formato exacto de cada informativa (pregunta
+  del 11 nov): se ajustan columnas y orden a lo que digas.
+
 ## 11 nov 2026 (noche) · Producto: CURP, domicilio fiscal y CLABE (fase 2)
 
 - **Dónde viven:** tabla `operator_fiscal_privado` (0081), con RLS y sin

@@ -281,6 +281,15 @@ export default async function RecursosPlataformaPage() {
             haya habido comisión: si el mes fue cero, se declara en cero.
           </span>
         </p>
+        <p className="desc" style={{ margin: "10px 0 12px" }}>
+          <Link className="btn btn-sm" href="/caminante/admin/plataforma/retenciones">
+            Retenciones del mes →
+          </Link>{" "}
+          <span className="mut" style={{ fontSize: 13 }}>
+            ISR e IVA retenidos a las operadoras: el reporte para el CFDI de retenciones (día 5), la
+            informativa de plataformas (día 10) y el entero (día 17), con CSV para la contadora.
+          </span>
+        </p>
         <Hueco
           que="El estatus de cada mes no está en la base."
           donde="Hoy vive en el Drive de contabilidad y en los acuses del SAT. Aquí se marcaría al presentar, pero necesita su tabla — la maqueta no lo inventa."
