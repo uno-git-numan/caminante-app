@@ -12,6 +12,46 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 11 nov 2026 (tarde) · Respuesta de la sesión legal al mandato nuevo: todo decidido
+
+**Luis (vía producto):** no hay abogado externo; legal decide, se construye así,
+Marisol revisa después. **Hecho.** Un solo documento, legible sin el repo:
+`design/legal/DECISIONES-LEGAL-FISCAL-2026-11-11.md` (D1–D17, fundamento con
+artículo y alternativa descartada; §10 = lo que Marisol confirma). Convenio
+**v3.2** cerrado (`CONVENIO-v3.md` → `CONVENIO-v3-FIRMABLE.md`), con la
+**variante B de retención** en el firmable. Texto del aviso de privacidad listo:
+`design/legal/AVISO-PRIVACIDAD-ADICIONES-2026-11.md`.
+
+**Lo que construye producto, en orden** (detalle en el §6 del documento):
+
+1. **Candado**: ninguna venta por cuenta conectada hasta que exista el módulo
+   de retención (la Cuarta §8 ya promete retener desde la primera venta).
+2. **Módulo de retención**: ISR 2.5 % sobre el total cobrado sin IVA, IVA 50 %
+   del IVA cobrado (20 % / 100 % sin CSF válida); tasas en configuración por
+   ejercicio y tipo de persona; se descuenta de la transferencia como movimiento
+   aparte (igual que la admisión); CFDI de retenciones con complemento
+   «Servicios Plataformas Tecnológicas» a más tardar el día 5; acumulado para el
+   entero del 17; **informativa del día 10** (nombre, RFC, CURP, domicilio fiscal,
+   banco y CLABE, monto por operadora); corrección en devoluciones.
+3. **CURP y CLABE como datos fiscales** de la operadora (la informativa del
+   18-J III los exige; Stripe no devuelve la CLABE completa): CURP de la CSF,
+   CLABE en la ficha fiscal. Esto **revierte** lo de «Caminante no guarda la
+   CLABE» del 9–11 nov.
+4. **Aviso de privacidad** con las adiciones del archivo (desbloquea
+   `COBRO_EN_PLATAFORMA`).
+5. **CFDI de la admisión**: renglón aparte en el CFDI de la comisión de esa
+   venta, $17.24 + $2.76 de IVA, clave 80141628, forma de pago 17.
+6. **Cancelaciones**: piso legal de 5 días hábiles de revocación cuando la
+   salida está a más de 10 días hábiles (LFPC 56), además de las 24 h;
+   bonificación del 20 % al cliente a cargo de la operadora cuando cancela por
+   causa imputable (92 Bis/Ter); devolución por la misma vía (ya).
+7. Leyenda **«IVA incluido»** en todo precio publicado (LIVA 18-J I).
+8. Clave **90121501** en el CFDI de la experiencia (hoy 90121500).
+
+**Es de negocio, no legal → Luis:** liberar el dinero antes o después de la
+experiencia (D14; recomendación legal: antes, como hoy). **Nada que construir**
+sobre RESICO salvo el aviso en pantalla.
+
 ## 11 nov 2026 (tarde) · La cuota de admisión, construida
 
 **Qué cambió:** la plataforma ya descuenta la cuota de admisión

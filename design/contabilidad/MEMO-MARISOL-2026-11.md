@@ -1,5 +1,14 @@
 # Memo a Marisol — las 7 confirmaciones del modelo fiscal (nov 2026)
 
+> ⚠️ **11 nov 2026 (tarde) — cambió el mandato.** Luis decidió que no hay abogado
+> externo y que la sesión legal **decide** con su criterio; Marisol revisa después.
+> Las preguntas a–i de este memo ya están **contestadas por la sesión legal** en
+> `design/legal/DECISIONES-LEGAL-FISCAL-2026-11-11.md` (D1–D17), con fundamento y
+> alternativa descartada. Lo que Marisol debe confirmar o corregir está en su §10
+> (M1–M8). Este memo se conserva como historial de las preguntas; sus respuestas
+> se registran abajo con fecha cuando lleguen.
+
+
 **Preparado el 9 nov 2026** por la sesión legal/fiscal de Caminante. Se manda
 desde el correo de Luis (borrador en Gmail: «Caminante · 7 confirmaciones
 fiscales + exportación del SAT»). **Marisol contesta en la columna derecha;
