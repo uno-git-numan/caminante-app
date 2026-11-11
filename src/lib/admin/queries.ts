@@ -14,6 +14,7 @@ import type { Experience } from "@/lib/experiences/types";
 // re-exportarlos dejaría el mismo hoyo, un componente cliente importándolos
 // de un módulo que arrastra next/headers.
 import { repartoTotal } from "@/lib/payments/lo-que-recibe";
+import { admisionDescontada, type EstadoAdmision } from "@/lib/operadores/admision";
 import { cdmxDay, formatDiaMes, formatFechaCorta, iniciales, metodoLabel } from "./formato";
 
 // Zona horaria de negocio: cortes de mes y "próximas salidas" se calculan aquí.
@@ -303,8 +304,23 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
   // misma— y por eso el reparto sólo se aplica cuando hay `operatorId`.
   const repartoHist = repartoTotal(paidPays);
   const repartoMes = repartoTotal(paidPays.filter(delMes));
-  const ingresosTotal = operatorId ? repartoHist.recibeOperadora : repartoHist.cobrado;
-  const ingresosMes = operatorId ? repartoMes.recibeOperadora : repartoMes.cobrado;
+  // La cuota de admisión (admision.ts) sale de su primera transferencia: su
+  // banco recibe $20 menos esa vez. Sólo se resta la «cobrada»; sin la 0078
+  // aplicada la consulta falla y se resta cero, que es lo que pasó.
+  let admision = 0;
+  let admisionMes = 0;
+  if (operatorId) {
+    const { data: adm } = await sb
+      .from("operator_admisiones")
+      .select("estado, monto_mxn, cobrada_at")
+      .eq("operator_id", operatorId)
+      .maybeSingle();
+    admision = admisionDescontada(adm as { estado: EstadoAdmision; monto_mxn: number } | null);
+    const cobradaAt = (adm as { cobrada_at?: string | null } | null)?.cobrada_at;
+    if (cobradaAt && cdmxDay(cobradaAt).slice(0, 7) === hoyMesCdmx.slice(0, 7)) admisionMes = admision;
+  }
+  const ingresosTotal = operatorId ? Math.round((repartoHist.recibeOperadora - admision) * 100) / 100 : repartoHist.cobrado;
+  const ingresosMes = operatorId ? Math.round((repartoMes.recibeOperadora - admisionMes) * 100) / 100 : repartoMes.cobrado;
   const mesLabel = new Date().toLocaleDateString("es-MX", {
     timeZone: TZ,
     month: "long",

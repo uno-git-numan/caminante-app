@@ -14,7 +14,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { tarjetaPagada } from "@/lib/comunidad/automatico";
 import { lugaresPagados } from "@/lib/grupo/pagos";
 import { vendedorParaPago } from "@/lib/equipo/atribucion";
-import { fromStripeAmount } from "@/lib/payments/stripe";
+import { fromStripeAmount, getStripeServerClient } from "@/lib/payments/stripe";
+import { cobrarAdmisionSiToca } from "@/lib/operadores/admision";
 import { findOrCreateContact } from "@/lib/crm/contacts";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
 import { capiPurchase } from "@/lib/meta/capi";
@@ -247,7 +248,7 @@ export async function finalizeSelfServeCheckout(
     slotId,
   });
 
-  const { error: payErr } = await sb.from("payments").insert({
+  const { data: pagoNuevo, error: payErr } = await sb.from("payments").insert({
     reservation_id: reservationId,
     contact_id: contact.id,
     amount_mxn: amountPaid,
@@ -261,9 +262,29 @@ export async function finalizeSelfServeCheckout(
     method: "stripe",
     provider_ref: providerRef,
     paid_at: new Date().toISOString(),
-  });
+  }).select("id").maybeSingle();
   if (payErr && payErr.code !== "23505") {
     throw new Error(`No se pudo registrar el pago: ${payErr.message}`);
+  }
+
+  // LA CUOTA DE ADMISIÓN (admision.ts): en la primera venta por Connect se le
+  // descuentan $20 a la operadora de esta transferencia, una sola vez. Va
+  // DESPUÉS de registrar el pago y nunca lanza: si falla, la fila queda
+  // «fallida» y la siguiente venta lo reintenta. Un reintento del webhook
+  // (23505) no trae `pagoNuevo` y no vuelve a intentarlo.
+  if (canalReal === "connect" && pagoNuevo?.id) {
+    try {
+      const admision = await cobrarAdmisionSiToca(sb, getStripeServerClient(), {
+        operatorId: (session.metadata?.operator_id ?? "").trim() || null,
+        paymentId: pagoNuevo.id as string,
+        transferId,
+      });
+      if (admision.resultado === "fallida" || admision.resultado === "sin_tabla" || admision.resultado === "sin_datos") {
+        console.error("[finalize] admisión de la operadora:", admision, providerRef);
+      }
+    } catch (e) {
+      console.error("[finalize] admisión de la operadora:", e, providerRef);
+    }
   }
   // Recibo del pago (0076): best-effort y desacoplado; el cron lo reintenta.
   void crearRecibosPendientes(5).catch(() => {});

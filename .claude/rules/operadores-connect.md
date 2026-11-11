@@ -114,8 +114,18 @@ pone a la plataforma en B:
 - **NUMAN responde por pérdidas por fraude de la operadora y saldos negativos.**
 - NUMAN revisa a cada operadora (categorías restringidas) y le da soporte.
 - **Radar Standard: MX$20.00 por cuenta conectada** (MX$0 por transacción).
-  Luis: se le cobra a la operadora como costo de primera admisión
-  (pendiente de construir y de escribir en el convenio).
+  Luis: se le cobra a la operadora como **cuota de admisión**, descontada del
+  primer pago que se le manda (la cláusula la redacta la sesión legal, i1).
+
+**La admisión** (`lib/operadores/admision.ts`, tabla `operator_admisiones`,
+0078): en la primera venta por Connect, el webhook revierte $20 de SU
+transferencia (`transfers.createReversal`). ⚠️ **No se suma a la comisión**:
+el `application_fee`, `platform_fee_mxn`, `fee_retenido_mxn` (= total del
+CFDI de la comisión) y el tope del 20 % quedan intactos. Una fila por
+operadora (PK = el «una sola vez»); `fallida` se reintenta en la siguiente
+venta; una `pendiente` abandonada busca primero si la reversión ya llegó a
+Stripe. Nunca tumba un pago. El panel de la operadora resta sólo la
+`cobrada`. Sin la 0078 aplicada no cobra nada y lo registra.
 
 Con ese perfil Stripe SÍ aceptó la cuenta como la crea `crearCuentaV2`
 (merchant + recipient). La primera fue Nomádika, `acct_1UaiUdGRRBL2rPeh`.

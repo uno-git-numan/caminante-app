@@ -12,6 +12,27 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 11 nov 2026 (tarde) · La cuota de admisión, construida
+
+**Qué cambió:** la plataforma ya descuenta la cuota de admisión
+(`src/lib/operadores/admision.ts`; falta aplicar la migración 0078 y promover).
+
+- **Monto:** MX$20.00, una sola vez por operadora. Es lo que Stripe le cobra a
+  NUMAN por cada cuenta conectada (Radar Standard). **Hoy va sin IVA**: lo que
+  diga i1 se ajusta antes de la primera venta.
+- **Cuándo:** en su primera venta cobrada por su cuenta conectada.
+- **Cómo:** de la transferencia que Stripe le hace por esa venta se revierten
+  $20 (reversión de transferencia, con concepto «Cuota de admisión
+  Caminante»). **No toca la comisión**: la comisión, su IVA y el total del
+  CFDI de la comisión quedan exactos.
+- **Si no alcanza o Stripe la rechaza**, se reintenta en su siguiente venta.
+- Su panel muestra lo que recibe ya con los $20 descontados.
+
+**Lo que necesito de ti (i1):** la cláusula tiene que describir exactamente
+esto: cuota única de admisión, compensada contra la primera transferencia.
+Dime también si lleva IVA y si NUMAN la factura (y con qué clave), para que
+el CFDI de la comisión de esa primera venta la incluya o salga aparte.
+
 ## 11 nov 2026 · Stripe Connect LIVE: perfil de plataforma «modelo Airbnb»
 
 **Qué cambió (hecho, no plan):**
