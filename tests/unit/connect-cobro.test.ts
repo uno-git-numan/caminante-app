@@ -40,15 +40,15 @@ describe("planDeCobro", () => {
   const base = sinIva(1750);
   const comision = comisionDeVenta({ viaje: { precioUnitario: base, cantidad: 1 } }, { tipo: "escala", escala: "venta" }).monto;
 
-  it("una venta de $1,750: comisión $350, retención $158.41, a la operadora $1,241.59", () => {
+  it("una venta de $1,750: comisión $350, retención $158.40, a la operadora $1,241.60", () => {
     const p = planDeCobro(lista, comision, 1750, EN_2026);
     expect(p.canal).toBe("connect");
     if (p.canal === "connect") {
       expect(p.cuenta).toBe("acct_operadora");
       expect(p.retenidoMxn).toBe(350);
-      expect(p.retencion.isr).toBe(37.72);
+      expect(p.retencion.isr).toBe(37.71); // truncado (M15)
       expect(p.retencion.iva).toBe(120.69);
-      expect(p.transferCentavos).toBe(124159);
+      expect(p.transferCentavos).toBe(124160);
     }
   });
 
@@ -114,7 +114,7 @@ describe("paraStripe", () => {
     // («mutually exclusive», probado en test el 11 nov 2026).
     expect(paraStripe(plan("acct_x"))).toEqual({
       on_behalf_of: "acct_x",
-      transfer_data: { destination: "acct_x", amount: 124159 },
+      transfer_data: { destination: "acct_x", amount: 124160 },
     });
   });
 

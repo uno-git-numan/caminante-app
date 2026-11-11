@@ -147,7 +147,7 @@ describe.skipIf(!prendida)("cobro por Connect contra Stripe (test)", () => {
       );
       if (plan.canal !== "connect") throw new Error("se esperaba connect");
       const s = paraStripe(plan);
-      expect(s.transfer_data?.amount).toBe(124159); // $1,750 − $350 − $158.41
+      expect(s.transfer_data?.amount).toBe(124160); // $1,750 − $350 − $158.40 (ISR truncado, M15)
 
       // De aquí se mide todo. Ver `saldoHastaQueSea`.
       const antes = await saldoPendiente(cuenta);
@@ -167,13 +167,13 @@ describe.skipIf(!prendida)("cobro por Connect contra Stripe (test)", () => {
       expect(pi.on_behalf_of).toBe(cuenta);
 
       // Desde el 11 nov el saldo de la operadora sube EXACTAMENTE lo transferido.
-      const conLaVenta = antes + 124159;
+      const conLaVenta = antes + 124160;
       expect(await saldoHastaQueSea(cuenta, conLaVenta)).toBe(conLaVenta);
 
       // La mitad devuelta revierte la mitad de lo transferido: lo de Numan
       // (comisión + retención) queda en proporción, sin cuentas a mano.
       await api("refunds", { payment_intent: pi.id as string, amount: String((PRECIO * 100) / 2), reverse_transfer: "true" });
-      const aLaMitad = antes + 124159 - 62080;
+      const aLaMitad = antes + 124160 - 62080;
       expect(await saldoHastaQueSea(cuenta, aLaMitad)).toBe(aLaMitad);
 
       // Y el resto la deja como estaba.

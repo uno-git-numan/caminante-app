@@ -92,10 +92,10 @@ describe("repartoTotal", () => {
 });
 
 describe("la retención de ISR e IVA (modelo Airbnb)", () => {
-  it("$1,750 por Connect: comisión $350, retención $158.41, recibe $1,241.59", () => {
+  it("$1,750 por Connect: comisión $350, retención $158.40, recibe $1,241.60", () => {
     expect(
-      repartoDe({ amount_mxn: 1750, fee_retenido_mxn: 350, isr_retenido_mxn: 37.72, iva_retenido_mxn: 120.69 }),
-    ).toEqual({ cobrado: 1750, retenido: 350, retenciones: 158.41, recibeOperadora: 1241.59 });
+      repartoDe({ amount_mxn: 1750, fee_retenido_mxn: 350, isr_retenido_mxn: 37.71, iva_retenido_mxn: 120.69 }),
+    ).toEqual({ cobrado: 1750, retenido: 350, retenciones: 158.4, recibeOperadora: 1241.6 });
   });
   it("por la casa no hay retención", () => {
     expect(repartoDe({ amount_mxn: 1750, platform_fee_mxn: 301.72 }).retenciones).toBe(0);

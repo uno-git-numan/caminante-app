@@ -32,8 +32,9 @@
 // reembolso PARCIAL la retención de más se queda en Numan y habría que
 // devolverla a mano. Con la transferencia ya neta, Stripe revierte en
 // proporción (`reverse_transfer`) y todo cuadra solo. Medido en test con
-// $1,750: transferencia $1,241.59; reembolso de $875 revirtió $620.80 (la
-// mitad exacta); reembolso del resto revirtió lo que quedaba.
+// $1,750: transferencia $1,241.59 (con el ISR redondeado; desde M15 se trunca y
+// son $1,241.60); reembolso de $875 revirtió $620.80 (la mitad exacta);
+// reembolso del resto revirtió lo que quedaba.
 //   · El fee de Stripe lo paga Numan, y sale de la comisión. Eso ya está
 //     contabilizado: `comision.ts` cuenta a Stripe como costo de la plataforma
 //     (4.85–5% de la base) al fijar las escalas.
@@ -55,7 +56,7 @@
 // la casa, y es el número con el que cuadra el corte. Lo retenido se deriva.
 //
 // Desde el 11 nov el `transfer.amount` SÍ es lo que recibe la operadora
-// ($1,241.59 de una venta de $1,750): ya no hay application_fee que se le
+// ($1,241.60 de una venta de $1,750): ya no hay application_fee que se le
 // cargue después. Lo de Numan se deriva de lo congelado en el pago:
 // `fee_retenido_mxn` (comisión + IVA) e `isr_retenido_mxn` + `iva_retenido_mxn`
 // (la retención). La cuota de admisión (admision.ts) sí es una reversión

@@ -159,7 +159,8 @@ ella: retiene, le da su CFDI de retenciones y entera.
   comisión con IVA − retención) y **ya no hay `application_fee`**: Stripe no
   acepta los dos juntos («mutually exclusive», probado en test). Así los
   reembolsos (`reverse_transfer`) revierten en proporción y todo cuadra solo:
-  $1,750 → transfiere $1,241.59; devolver $875 revirtió $620.80. Probado en
+  $1,750 → transfiere $1,241.60 (ISR TRUNCADO por venta, M15: $37.71);
+  devolver $875 revirtió la mitad. Probado en
   `tests/e2e/connect.test.ts` (PROBAR_CONNECT=1).
 - **Se congela al cobrar** en `payments.isr_retenido_mxn`,
   `iva_retenido_mxn`, `retencion_regla` (0079). Lo vigente tras devoluciones

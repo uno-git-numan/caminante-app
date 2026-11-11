@@ -6,15 +6,25 @@ import { ejercicioDe, retencionDeVenta, retencionVigente } from "@/lib/fiscal/re
 const EN_2026 = new Date("2026-11-11T18:00:00Z");
 
 describe("retencionDeVenta", () => {
-  it("el ejemplo de legal: $1,750 ⇒ base $1,508.62, IVA $241.38, ISR $37.72, IVA ret. $120.69", () => {
+  it("el ejemplo de legal (M15): $1,750 ⇒ base $1,508.62, IVA $241.38, ISR $37.71 (truncado), IVA ret. $120.69", () => {
     const r = retencionDeVenta(1750, { conRfc: true, fecha: EN_2026 });
-    expect(r).toMatchObject({ base: 1508.62, ivaCobrado: 241.38, isr: 37.72, iva: 120.69, total: 158.41, ejercicio: 2026 });
+    // 1,508.62 × 2.5 % = 37.7155: el SAT trunca a 37.71, no redondea a 37.72.
+    expect(r).toMatchObject({ base: 1508.62, ivaCobrado: 241.38, isr: 37.71, iva: 120.69, total: 158.4, ejercicio: 2026 });
     expect(r?.regla).toBe("2026:isr=0.025;iva=0.5;rfc");
   });
   it("base + IVA = lo cobrado, al centavo", () => {
     for (const c of [1750, 3500, 999.99, 12345.67, 0.5]) {
       const r = retencionDeVenta(c, { conRfc: true, fecha: EN_2026 })!;
       expect(Math.round((r.base + r.ivaCobrado) * 100)).toBe(Math.round(c * 100));
+    }
+  });
+  it("truncar nunca retiene de más que redondear", () => {
+    for (const c of [1750, 999.99, 3333.33, 12345.67]) {
+      const r = retencionDeVenta(c, { conRfc: true, fecha: EN_2026 })!;
+      expect(r.isr).toBeLessThanOrEqual(Math.round(r.base * 0.025 * 100) / 100);
+      const dif = r.base * 0.025 - r.isr;
+      expect(dif).toBeGreaterThanOrEqual(-1e-9);
+      expect(dif).toBeLessThan(0.01);
     }
   });
   it("sin RFC: 20 % de ISR y 100 % del IVA", () => {
@@ -39,9 +49,9 @@ describe("ejercicioDe", () => {
 });
 
 describe("retencionVigente — lo que sigue en pie tras devoluciones", () => {
-  const pago = { amount_mxn: 1750, isr_retenido_mxn: 37.72, iva_retenido_mxn: 120.69 };
+  const pago = { amount_mxn: 1750, isr_retenido_mxn: 37.71, iva_retenido_mxn: 120.69 };
   it("sin devolución, todo", () => {
-    expect(retencionVigente(pago, 0)).toEqual({ isr: 37.72, iva: 120.69 });
+    expect(retencionVigente(pago, 0)).toEqual({ isr: 37.71, iva: 120.69 });
   });
   it("devuelta la mitad, la mitad", () => {
     expect(retencionVigente(pago, 875)).toEqual({ isr: 18.86, iva: 60.35 });

@@ -18,7 +18,7 @@
 //   IVA ............ 50 % del IVA cobrado (LIVA 18-J II; 100 % sin RFC).
 //   Física y moral . igual (LIF 2026 extiende la retención a las morales).
 //
-//   $1,750 → base $1,508.62 + IVA $241.38 → ISR $37.72 · IVA $120.69
+//   $1,750 → base $1,508.62 + IVA $241.38 → ISR $37.71 · IVA $120.69 (truncados)
 //
 // ⚠️ LAS TASAS SON DE LA LIF, Y LA LIF ES ANUAL. Viven aquí por ejercicio. Un
 // ejercicio sin tasas NO cobra por cuenta conectada (`planDeCobro` cae a la
@@ -54,6 +54,11 @@ export const TASAS_POR_EJERCICIO: Readonly<Record<number, TasasDelEjercicio>> = 
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
+/**
+ * Trunca a centavos. El épsilon evita que un producto exacto en papel
+ * (241.38 × 0.5 = 120.69) caiga a 120.68 por la representación binaria.
+ */
+export const trunc2 = (n: number) => Math.floor(n * 100 + 1e-7) / 100;
 
 /** El ejercicio fiscal de una fecha, en hora de la Ciudad de México. */
 export function ejercicioDe(fecha: Date): number {
@@ -99,8 +104,12 @@ export function retencionDeVenta(
   const ivaCobrado = r2(total - base);
   const tasaIsr = opts.conRfc ? t.isr : t.isrSinRfc;
   const tasaIva = opts.conRfc ? t.iva : t.ivaSinRfc;
-  const isr = r2(base * tasaIsr);
-  const iva = r2(ivaCobrado * tasaIva);
+  // ⚠️ TRUNCADO, NO REDONDEO (legal, M15, 11 nov 2026): el SAT valida el CFDI de
+  // retenciones con BaseRet × tasa TRUNCADO a centavos. Truncando por venta,
+  // NUMAN nunca retiene de más; los centavos que el CFDI del mes pida de más
+  // frente a la suma por venta los pone NUMAN al enterar.
+  const isr = trunc2(base * tasaIsr);
+  const iva = trunc2(ivaCobrado * tasaIva);
   return {
     ejercicio,
     conRfc: opts.conRfc,

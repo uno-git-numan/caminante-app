@@ -27,8 +27,8 @@
 // bruto menos la comisión de Caminante, y ya.
 //
 // ⚠️ DESDE EL 11 NOV 2026 (modelo Airbnb) también se le retienen ISR e IVA, y
-// la transferencia llega ya neta: de $1,750 recibe $1,241.59 (comisión $350,
-// ISR $37.72, IVA $120.69). `retenciones` es eso, aparte de la comisión.
+// la transferencia llega ya neta: de $1,750 recibe $1,241.60 (comisión $350,
+// ISR $37.71 truncado, IVA $120.69). `retenciones` es eso, aparte de la comisión.
 //
 // Este módulo existe para que el panel diga exactamente eso y no lo derive cada
 // pantalla a su manera — que es como el cupo acabó en tres lugares.
