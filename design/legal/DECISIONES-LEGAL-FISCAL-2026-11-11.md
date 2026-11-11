@@ -484,6 +484,7 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M6 | Que el complemento «Servicios Plataformas Tecnológicas» va sólo en el CFDI de retenciones de NUMAN y no en el CFDI de la operadora al cliente | D8 |
 | M7 | El aviso exacto de alta como retenedora y si conviene agregar «intermediación / comisión mercantil» a las actividades de NUMAN en la CSF | D11 |
 | M8 | Clave 80141628 para la cuota de admisión (o la que ella prefiera) | D7 |
+| M9 | CFDI de retenciones e información de pagos: clave de retención **26** «Servicios mediante Plataformas Tecnológicas», complemento «Servicios Plataformas Tecnológicas» y versión 2.0 del comprobante, timbrado por Facturapi (verificado por producto en su especificación el 11 nov; la versión se confirma con la primera emisión de prueba) | D4 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.

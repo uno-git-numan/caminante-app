@@ -272,7 +272,7 @@ En ningún caso Caminante emite ese comprobante a nombre propio: pone la herrami
 
 **2 · De Caminante al Operador.** Caminante emite CFDI al Operador **únicamente por su comisión de plataforma**, más el IVA, con la clave de producto que corresponda a la intermediación (a la fecha, 80141628 «Servicio de distribuidores por comisión»), por cada cobro confirmado. Esa comisión es el único ingreso de Caminante derivado de la operación.
 
-**3 · El CFDI de retenciones.** Cuando Caminante efectúe retenciones conforme a la Cláusula Cuarta, punto 8, emite al Operador, a más tardar el día 5 de cada mes, el **CFDI de retenciones e información de pagos** del mes anterior con el complemento que corresponda.
+**3 · El CFDI de retenciones.** Por las retenciones de la Cláusula Cuarta, punto 8, Caminante emite al Operador, a más tardar el día 5 de cada mes, el **CFDI de retenciones e información de pagos** del mes anterior, con la clave de retención 26 «Servicios mediante Plataformas Tecnológicas» y el complemento de plataformas tecnológicas, timbrado por su proveedor autorizado de certificación. Las devoluciones del mes se reflejan en él (Cláusula Quinta, punto 4).
 
 **4 · La retención es el pago de la factura de comisión.** El importe separado al momento del cobro por concepto de comisión equivale exactamente al total del CFDI de comisión —comisión más IVA—, y ambos se saldan entre sí sin transferencia adicional. Caminante entrega el desglose que permita conciliarlos reserva por reserva.
 
