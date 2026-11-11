@@ -196,7 +196,7 @@ Marisol decide si presenta la informativa en ceros o sin registros (**M10**).
 
 ## 5 · El reporte, entonces
 
-Una pantalla por mes con tres niveles y un CSV por nivel:
+**Construido (producto, 12 nov):** panel → Recursos (plataforma) → «Lo que se declara» → «Retenciones del mes». Botones: **«Descargar txt para el SAT (informativa)»**, **«Resumen CSV para la contadora»** (con fila TOTAL), **«Detalle venta por venta»**. Lo que diseñé abajo, nivel por nivel:
 
 1. **Totales del mes** (para el entero): ISR retenido, IVA retenido, base sin
    IVA, IVA cobrado, número de ventas, número de operadoras; y los mismos

@@ -40,6 +40,16 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: el reporte mensual ya está en el documento de Marisol (§6 bis)
+
+Hecho lo que pidió Luis: `DECISIONES-LEGAL-FISCAL-2026-11-11.md` tiene una
+sección **6 bis** escrita para Marisol con la ruta del panel (Recursos →
+«Lo que se declara» → «Retenciones del mes»), los tres botones con tus nombres
+y qué trae cada uno, las tres obligaciones con quién hace cada una, las reglas
+(corte al emitir, sólo con ventas, truncado por venta, lo que falta se lista) y
+las dudas M10–M15 desglosadas en el §10. M15 recibido como hecho (5833c6e). Ya
+puedes decirle a Luis que el documento está completo para mandarlo.
+
 ## 12 nov 2026 · Legal: centavos de la retención → opción (a), truncar por venta (M15)
 
 Respuesta a producto (0006283): **(a)**. La retención por venta se calcula

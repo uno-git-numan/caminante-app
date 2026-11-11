@@ -455,6 +455,54 @@ nada sobre RESICO salvo el aviso en pantalla.
 
 ---
 
+## 6 bis · El reporte mensual de retenciones: lo que el sistema le entrega a Marisol
+
+Marisol pidió «el reporte de las retenciones del mes para presentar las
+informativas». Está construido (12 nov 2026). El detalle completo, con la fuente
+de cada formato del SAT, está en `REPORTE-MENSUAL-RETENCIONES-2026-11-12.md`;
+esto es lo que ella necesita para operarlo.
+
+**Dónde:** panel de Caminante → **Recursos (plataforma)** → **«Lo que se
+declara»** → **«Retenciones del mes»** (abre el mes anterior; se puede elegir
+otro). Tres descargas:
+
+| Botón | Qué trae | Para qué |
+|---|---|---|
+| **«Descargar txt para el SAT (informativa)»** | Una línea por operadora, 8 columnas separadas por `\|`: `5` (tipo de servicio: enajenación de bienes y prestación de servicios con retención) · RFC · monto de las operaciones para ISR · monto para IVA · ISR retenido · IVA retenido · CLABE · `TA4` (prestación de servicios). Pesos enteros, UTF-8, sin encabezado: es el formato del instructivo de carga masiva del aplicativo del SAT | Se sube tal cual en «Agregar desde archivo» de la **declaración informativa por el uso de plataformas tecnológicas**, a más tardar el **día 10** (LISR 113-C III; LIVA 18-J III; RMF 12.2.7) |
+| **«Resumen CSV para la contadora»** | Por operadora: nombre o razón social, RFC, CURP, domicilio fiscal, banco, CLABE, número de ventas, base sin IVA, IVA cobrado, ISR retenido, IVA retenido, comisión sin IVA, y qué dato falta si falta; una fila **TOTAL** con los dos montos del entero | El **entero del día 17** (ISR retenido e IVA retenido del mes) en la declaración mensual de NUMAN bajo las obligaciones de retenedora (LISR 113-C IV; LIVA 18-J II b); y la captura por RFC si el aplicativo la pide |
+| **«Detalle venta por venta»** | Fecha de cobro, operadora, cobrado, devuelto antes del corte, base sin IVA, IVA, comisión y %, ISR retenido, IVA retenido, y si la venta se reporta | Soporte de contabilidad; es lo mismo que alimenta el CFDI de retenciones |
+
+**Las tres obligaciones del mes y quién hace cada una:**
+
+1. **Día 5 · CFDI de retenciones e información de pagos**, uno por operadora,
+   clave 26 «Servicios mediante Plataformas Tecnológicas» con el complemento de
+   plataformas: **lo emite el sistema** por Facturapi (en construcción; hasta
+   entonces, Marisol lo ve pendiente en la misma pantalla).
+2. **Día 10 · Informativa de operadoras**: **Marisol** sube el txt.
+3. **Día 17 · Entero** de ISR e IVA retenidos: **Marisol**, con la fila TOTAL.
+
+**Reglas que el sistema aplica, para que el reporte se lea bien:**
+
+- **Corte al emitir.** Una devolución confirmada antes de emitir el CFDI del mes
+  de la venta se neta en esa venta (si fue total, la venta no se reporta); una
+  posterior **no toca el mes**: la retención enterada queda a favor de la
+  operadora (su CFDI la ampara) y ella reintegra a Caminante ese importe
+  (convenio, Quinta §4 y §9). Mientras el CFDI no exista, el corte es «ahora».
+- **Sólo operadoras con ventas** en el mes; el formato del SAT no acepta ceros.
+- **Truncado por venta** (M15): la retención se calcula por cada venta y se
+  trunca a centavos; el CFDI del mes lleva el truncado del total, como exige el
+  instructivo; los centavos que falten entre una cosa y otra **los pone NUMAN
+  al enterar**. Ejemplo: $1,750 → ISR $37.71, IVA $120.69, la operadora recibe
+  $1,241.60.
+- **Lo que falta se lista, no se rellena**: si a una operadora le falta RFC o
+  un monto redondea a cero, no entra al txt y la pantalla dice por qué.
+- Todos los montos sin IVA, salvo «IVA cobrado»; redondeo al peso **sólo** en
+  el txt.
+
+**Lo que Marisol confirma de esta parte: M10–M15** (§10). Lo más probable que
+cambie: en qué aplicativo entera NUMAN (M10) y si el «monto para IVA» del txt
+va con IVA (M11).
+
 ## 7 · Lo que hace Luis
 
 - Mandar este documento a Marisol (y el correo con las preguntas, que ahora son
@@ -489,7 +537,12 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M7 | El aviso exacto de alta como retenedora y si conviene agregar «intermediación / comisión mercantil» a las actividades de NUMAN en la CSF | D11 |
 | M8 | Clave 80141628 para la cuota de admisión (o la que ella prefiera) | D7 |
 | M9 | CFDI de retenciones e información de pagos: clave de retención **26** «Servicios mediante Plataformas Tecnológicas», complemento «Servicios Plataformas Tecnológicas» y versión 2.0 del comprobante, timbrado por Facturapi (verificado por producto en su especificación el 11 nov; la versión se confirma con la primera emisión de prueba) | D4 |
-| M10–M15 | El reporte mensual de retenciones (aplicativo del entero, DIOT, monto «para IVA» de la informativa, devoluciones después del corte, comisión sin IVA en el complemento, forma de pago por venta): ver `REPORTE-MENSUAL-RETENCIONES-2026-11-12.md` §6 | D4 |
+| M10 | Aplicativo del entero para NUMAN (declaración mensual con las obligaciones de retenedora, o «retenciones por el uso de plataformas»); mes sin ventas: ¿informativa en ceros o sin registros?; DIOT: que las retenciones a operadoras no van ahí | §6 bis |
+| M11 | «Monto de las operaciones para IVA» del txt: ¿base sin IVA (como sale hoy) o con IVA? | §6 bis |
+| M12 | Devoluciones después del corte: ¿se queda la retención a favor de la operadora (decidido) o se cancela y sustituye el CFDI y se compensa en el siguiente entero? | §6 bis |
+| M13 | En el complemento, la comisión va sin IVA y la cuota de admisión no se incluye | `REPORTE-MENSUAL-RETENCIONES` §2.2 |
+| M14 | Forma de pago por venta en el complemento: la real del cliente (03/06/02), no 08 «Intermediario pagos» | ídem |
+| M15 | Truncado por venta y centavos a cargo de NUMAN al enterar (decidido y en producción) | §6 bis |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.
