@@ -12,6 +12,35 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 11 nov 2026 (noche) · Producto: retención construida (fase 1)
+
+**Qué hace el código desde el commit de esta entrada** (falta aplicar la 0079 y
+promover):
+
+- Calcula al cobrar ISR 2.5 % de lo cobrado sin IVA y 50 % del IVA cobrado
+  (sin RFC 20 % / 100 %), con las tasas del ejercicio en curso (D2, D3). Ejemplo
+  verificado: $1,750 → ISR $37.72, IVA $120.69, la operadora recibe $1,241.59.
+- **Candado (lista §6 punto 1):** sin tasas para el ejercicio, no se cobra por
+  cuenta conectada.
+- **Cambio de mecánica que conviene que el convenio describa así:** NUMAN ya
+  NO cobra la comisión como «comisión de aplicación» de Stripe. Le transfiere a
+  la operadora **sólo lo que le corresponde** (cobrado − comisión con IVA −
+  retenciones) y se queda lo demás desde el cobro. Razón: Stripe no deja
+  combinar las dos cosas, y así un reembolso parcial revierte en proporción
+  automáticamente (comisión y retención incluidas). Probado contra Stripe en
+  modo test. Si la Cuarta habla de «comisión de aplicación» o de retener de la
+  transferencia DESPUÉS, conviene decir «la transferencia al Operador se hace
+  neta de la comisión, su IVA y las retenciones».
+- La admisión ($20) sigue siendo una reversión aparte, una vez. Si la venta
+  que la pagó se devuelve completa, Stripe se los regresa y se cobra en la
+  siguiente venta (encaja con tu §3 bis).
+
+**Pendiente de construir (fases siguientes):** CURP/CLABE/domicilio fiscal,
+CFDI de retenciones (día 5), acumulado para el entero (día 17), informativa
+(día 10), aviso de privacidad, desglose del CFDI de la admisión,
+cancelaciones LFPC, leyenda «IVA incluido». La clave 90121501 ya estaba en el
+código.
+
 ## 11 nov 2026 (noche) · Luis eligió B (Airbnb): se construye con retención
 
 Luis preguntó si la operadora podía recibir el dinero y pagar ella sus

@@ -24,6 +24,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
 import { marcarYCerrar } from "@/lib/payments/refunds";
+import { admisionDevuelta } from "@/lib/operadores/admision";
 
 export type ResultadoReembolso =
   | { ok: true; reembolsados: number; monto: number; avisos: string[] }
@@ -39,6 +40,11 @@ type PagoVivo = {
   method: string | null;
   /** Por dónde entró (0061). Decide cómo se deshace. */
   canal_cobro: string | null;
+  /**
+   * ¿Se cobró con la transferencia ya neta (modelo Airbnb, 11 nov 2026)? Esos
+   * pagos no tienen application_fee: pedir `refund_application_fee` no aplica.
+   */
+  transferenciaNeta: boolean;
 };
 
 /** Lo que todavía se le puede devolver a este pago. */
@@ -60,10 +66,10 @@ async function pagosDe(
   if (!reservationIds.length) return [];
   const { data } = await sb
     .from("payments")
-    .select("id, reservation_id, amount_mxn, refunded_mxn, provider_ref, method, status, canal_cobro")
+    .select("id, reservation_id, amount_mxn, refunded_mxn, provider_ref, method, status, canal_cobro, isr_retenido_mxn")
     .in("reservation_id", reservationIds)
     .eq("status", "paid");
-  return ((data ?? []) as (PagoVivo & { status: string })[]).map((p) => ({
+  return ((data ?? []) as (PagoVivo & { status: string; isr_retenido_mxn: number | null })[]).map((p) => ({
     id: p.id,
     reservation_id: p.reservation_id,
     amount_mxn: Number(p.amount_mxn || 0),
@@ -71,6 +77,7 @@ async function pagosDe(
     provider_ref: p.provider_ref,
     method: p.method,
     canal_cobro: p.canal_cobro ?? "casa",
+    transferenciaNeta: p.isr_retenido_mxn != null,
   }));
 }
 
@@ -167,7 +174,15 @@ async function devolver(
     const refund = await stripe.refunds.create({
       payment_intent: pago.provider_ref,
       amount: toStripeAmount(pedido),
-      ...(porConnect ? { reverse_transfer: true, refund_application_fee: true } : {}),
+      // Con la transferencia ya neta (desde el 11 nov 2026) no hay comisión
+      // de aplicación que devolver: `reverse_transfer` revierte en proporción
+      // lo transferido y lo que Numan se quedó (comisión + retención) queda en
+      // proporción también. Medido en test: $875 de $1,750 revirtió $620.80.
+      ...(porConnect
+        ? pago.transferenciaNeta
+          ? { reverse_transfer: true }
+          : { reverse_transfer: true, refund_application_fee: true }
+        : {}),
       metadata: { origen: "caminante", reembolso_id: fila.id as string, canal: pago.canal_cobro ?? "casa" },
     });
     await sb.from("reembolsos").update({ stripe_refund_id: refund.id }).eq("id", fila.id);
@@ -182,6 +197,12 @@ async function devolver(
     // como RED, no como único camino.
     if (refund.status === "succeeded") {
       await marcarYCerrar(sb, pago.id);
+    }
+    // La venta que pagó la cuota de admisión se devolvió COMPLETA: Stripe ya le
+    // regresó esos $20 al revertir lo que quedaba de la transferencia (medido
+    // en test). Se vuelve a cobrar en su siguiente venta.
+    if (porConnect && pedido >= restante) {
+      await admisionDevuelta(sb, pago.id).catch(() => {});
     }
     return { monto: pedido, aviso: null };
   } catch (e) {

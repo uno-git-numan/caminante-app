@@ -143,6 +143,33 @@ la casa lo abre. El camino es el alta dentro de la plataforma
 al prender el alta en plataforma se cierra (no tiene movimientos) y se crea
 la nueva.
 
+## La retención de ISR e IVA: modelo Airbnb (11 nov 2026)
+
+Luis: «Hay que hacerlo como hace airbnb entonces. Construye.» Con el dinero
+pasando por NUMAN, NUMAN retiene ISR e IVA a la operadora y los entera (D1 de
+`design/legal/DECISIONES-LEGAL-FISCAL-2026-11-11.md`). NUMAN no declara por
+ella: retiene, le da su CFDI de retenciones y entera.
+
+- **Cálculo** (`lib/fiscal/retencion.ts`): base = lo cobrado sin IVA (con
+  complementos, menos descuentos; la comisión NO se resta). 2026: ISR 2.5 %,
+  IVA 50 % del IVA cobrado; sin RFC 20 % / 100 %. Tasas POR EJERCICIO.
+- ⚠️ **Candado:** un ejercicio sin tasas no cobra por cuenta conectada
+  (`planDeCobro` cae a la casa). Cobrar sin retener = retención omitida.
+- ⚠️ **La transferencia sale NETA** (`transfer_data.amount` = cobrado −
+  comisión con IVA − retención) y **ya no hay `application_fee`**: Stripe no
+  acepta los dos juntos («mutually exclusive», probado en test). Así los
+  reembolsos (`reverse_transfer`) revierten en proporción y todo cuadra solo:
+  $1,750 → transfiere $1,241.59; devolver $875 revirtió $620.80. Probado en
+  `tests/e2e/connect.test.ts` (PROBAR_CONNECT=1).
+- **Se congela al cobrar** en `payments.isr_retenido_mxn`,
+  `iva_retenido_mxn`, `retencion_regla` (0079). Lo vigente tras devoluciones
+  se DERIVA en proporción (`retencionVigente`).
+- El panel de la operadora resta comisión y retención (`lo-que-recibe.ts`,
+  campo `retenciones`).
+- Si se devuelve completa la venta que pagó la **admisión**, Stripe ya le
+  regresó los $20 al revertir lo que quedaba: `admisionDevuelta` la deja
+  «fallida» para cobrarla en la siguiente.
+
 ## El alta en 15 minutos: un dato se obtiene, no se pide (9 nov 2026)
 
 Meta de Luis: pasar de la solicitud a cobrar tan rápido como se abre una cuenta

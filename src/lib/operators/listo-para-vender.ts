@@ -151,8 +151,8 @@ export function operadorListo(
 
   // 5 · Comisión RESUELTA. ⚠️ ESTE ES EL CANDADO QUE MÁS DINERO CUIDA.
   //
-  // Lo que Numan retiene de una venta por Connect es el `application_fee`. Si
-  // sale cero, la venta se cobra perfecta, el cliente viaja contento y Numan
+  // Lo que Numan retiene de una venta por Connect es la comisión (desde el 11
+  // nov 2026 la transferencia sale neta, ver connect-cobro.ts). Si sale cero, la venta se cobra perfecta, el cliente viaja contento y Numan
   // gana NADA, sin un solo error en pantalla — y como la atribución se congela
   // al vender (0016), tampoco se puede cobrar después.
   //

@@ -10,6 +10,7 @@ describe("repartoDe", () => {
     expect(repartoDe({ amount_mxn: 1750, platform_fee_mxn: 301.72, fee_retenido_mxn: 350 })).toEqual({
       cobrado: 1750,
       retenido: 350,
+      retenciones: 0,
       recibeOperadora: 1400,
     });
   });
@@ -19,6 +20,7 @@ describe("repartoDe", () => {
     expect(repartoDe({ amount_mxn: 1750, platform_fee_mxn: 301.72 })).toEqual({
       cobrado: 1750,
       retenido: 350,
+      retenciones: 0,
       recibeOperadora: 1400,
     });
   });
@@ -37,6 +39,7 @@ describe("repartoDe", () => {
     expect(repartoDe({ amount_mxn: 1750 })).toEqual({
       cobrado: 1750,
       retenido: 0,
+      retenciones: 0,
       recibeOperadora: 1750,
     });
   });
@@ -46,7 +49,7 @@ describe("repartoDe", () => {
   });
 
   it("no revienta con nulos ni con basura", () => {
-    expect(repartoDe({ amount_mxn: null })).toEqual({ cobrado: 0, retenido: 0, recibeOperadora: 0 });
+    expect(repartoDe({ amount_mxn: null })).toEqual({ cobrado: 0, retenido: 0, retenciones: 0, recibeOperadora: 0 });
     expect(repartoDe({ amount_mxn: "x" as unknown as string }).cobrado).toBe(0);
   });
 });
@@ -61,6 +64,7 @@ describe("repartoTotal", () => {
     expect(repartoTotal(doce)).toEqual({
       cobrado: 21000,
       retenido: 4200,
+      retenciones: 0,
       recibeOperadora: 16800,
     });
   });
@@ -71,11 +75,11 @@ describe("repartoTotal", () => {
       { amount_mxn: 1750, platform_fee_mxn: 301.72 }, // casa
       { amount_mxn: 1750 }, // sin comisión
     ]);
-    expect(r).toEqual({ cobrado: 5250, retenido: 700, recibeOperadora: 4550 });
+    expect(r).toEqual({ cobrado: 5250, retenido: 700, retenciones: 0, recibeOperadora: 4550 });
   });
 
   it("sin pagos, ceros — no null ni NaN", () => {
-    expect(repartoTotal([])).toEqual({ cobrado: 0, retenido: 0, recibeOperadora: 0 });
+    expect(repartoTotal([])).toEqual({ cobrado: 0, retenido: 0, retenciones: 0, recibeOperadora: 0 });
   });
 
   it("las tres cifras siempre cuadran entre sí", () => {
@@ -84,5 +88,16 @@ describe("repartoTotal", () => {
       { amount_mxn: 2550, fee_retenido_mxn: 290 },
     ]);
     expect(Math.round((r.retenido + r.recibeOperadora) * 100)).toBe(Math.round(r.cobrado * 100));
+  });
+});
+
+describe("la retención de ISR e IVA (modelo Airbnb)", () => {
+  it("$1,750 por Connect: comisión $350, retención $158.41, recibe $1,241.59", () => {
+    expect(
+      repartoDe({ amount_mxn: 1750, fee_retenido_mxn: 350, isr_retenido_mxn: 37.72, iva_retenido_mxn: 120.69 }),
+    ).toEqual({ cobrado: 1750, retenido: 350, retenciones: 158.41, recibeOperadora: 1241.59 });
+  });
+  it("por la casa no hay retención", () => {
+    expect(repartoDe({ amount_mxn: 1750, platform_fee_mxn: 301.72 }).retenciones).toBe(0);
   });
 });

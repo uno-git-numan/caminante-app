@@ -18,9 +18,22 @@
 //   · `on_behalf_of` = la cuenta conectada ⇒ la OPERADORA es el comerciante de
 //     liquidación: su nombre en el estado de cuenta del cliente, y ella es
 //     quien presta el servicio. Eso es lo que hace coherente que ella facture.
-//   · `transfer_data.destination` = la cuenta conectada ⇒ el dinero, menos la
-//     comisión, se transfiere a ella.
-//   · `application_fee_amount` = lo que se queda Numan.
+//   · `transfer_data.destination` = la cuenta conectada, y
+//     `transfer_data.amount` = LO QUE LE TOCA: lo cobrado menos la comisión
+//     (con su IVA) menos la retención de ISR e IVA (lib/fiscal/retencion.ts).
+//     Lo demás se queda en Numan desde el cobro.
+//
+// ── POR QUÉ `transfer_data.amount` Y NO `application_fee_amount` ────────────
+// (cambiado el 11 nov 2026, antes de la primera venta por Connect)
+//
+// Con el modelo Airbnb Numan RETIENE ISR e IVA (decisión D1 de legal). Stripe
+// no deja mandar las dos cosas a la vez («mutually exclusive», probado en test
+// el 11 nov). Retener por reversión después del cargo sí funciona, pero en un
+// reembolso PARCIAL la retención de más se queda en Numan y habría que
+// devolverla a mano. Con la transferencia ya neta, Stripe revierte en
+// proporción (`reverse_transfer`) y todo cuadra solo. Medido en test con
+// $1,750: transferencia $1,241.59; reembolso de $875 revirtió $620.80 (la
+// mitad exacta); reembolso del resto revirtió lo que quedaba.
 //   · El fee de Stripe lo paga Numan, y sale de la comisión. Eso ya está
 //     contabilizado: `comision.ts` cuenta a Stripe como costo de la plataforma
 //     (4.85–5% de la base) al fijar las escalas.
@@ -41,19 +54,12 @@
 // `platform_fee_mxn` sigue guardando la comisión SIN IVA: ése es el ingreso de
 // la casa, y es el número con el que cuadra el corte. Lo retenido se deriva.
 //
-// ⚠️ EL `transfer.amount` NO ES LO QUE RECIBIÓ LA OPERADORA. Probado contra
-// Stripe en test el 22 sep 2026, con una venta de $1,750 y $350 de comisión:
-//
-//   transfer.amount .............. $1,750.00   ← el BRUTO. Engaña.
-//   saldo de la cuenta conectada .. $1,400.00   ← lo que de verdad recibió
-//   application_fee ............... $350.00     cobrado contra esa cuenta
-//
-// Stripe transfiere el bruto y después le carga la comisión a la cuenta
-// conectada; el saldo es el neto. Quien concilie leyendo `transfer.amount` va a
-// reportarle a la operadora $350 de más por venta. Para conciliar se usa
-// `fee_retenido_mxn` (lo nuestro) contra `amount_mxn` (lo cobrado): la resta es
-// lo suyo. El `transfer_id` se guarda para poder rastrear el movimiento, no
-// para leer su monto.
+// Desde el 11 nov el `transfer.amount` SÍ es lo que recibe la operadora
+// ($1,241.59 de una venta de $1,750): ya no hay application_fee que se le
+// cargue después. Lo de Numan se deriva de lo congelado en el pago:
+// `fee_retenido_mxn` (comisión + IVA) e `isr_retenido_mxn` + `iva_retenido_mxn`
+// (la retención). La cuota de admisión (admision.ts) sí es una reversión
+// aparte, una sola vez.
 //
 // ⚠️ UN SOLO MOTOR. El monto sale del mismo `comisionDeVenta` que ya congela
 // `platform_fee_mxn` desde julio. Dos caminos de cobro, una sola aritmética: si
@@ -63,6 +69,7 @@
 import { IVA } from "@/lib/operadores/comision";
 import { toStripeAmount } from "@/lib/payments/stripe";
 import { requiereConnect, operadorListo, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
+import { retencionDeVenta, type Retencion } from "@/lib/fiscal/retencion";
 
 /** Los dos caminos. Se guarda en `payments.canal_cobro`. */
 export type CanalCobro = "casa" | "connect";
@@ -73,10 +80,12 @@ export type PlanDeCobro =
       canal: "connect";
       /** `acct_…` de la operadora. Va a `on_behalf_of` y a `transfer_data`. */
       cuenta: string;
-      /** Comisión + IVA, en centavos. Es el `application_fee_amount`. */
-      feeCentavos: number;
-      /** El mismo monto en pesos, para decirlo y para conciliar. */
+      /** Comisión + IVA, en pesos: lo que Caminante le factura a la operadora. */
       retenidoMxn: number;
+      /** ISR e IVA retenidos, congelados al cobrar (lib/fiscal/retencion.ts). */
+      retencion: Retencion;
+      /** Lo que le llega: cobrado − comisión con IVA − retención. Es `transfer_data.amount`. */
+      transferCentavos: number;
     };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -107,6 +116,7 @@ export function planDeCobro(
   operador: (OperadorParaGate & { stripe_account_id?: string | null }) | null | undefined,
   comisionSinIva: number,
   cobrado: number,
+  fecha: Date = new Date(),
 ): PlanDeCobro {
   if (!requiereConnect(operador)) return { canal: "casa" };
   if (!operadorListo(operador).ok) return { canal: "casa" };
@@ -119,8 +129,17 @@ export function planDeCobro(
   // 100% y Numan ganaría cero, que es justo lo que el gate existe para impedir.
   if (!(retenido > 0)) return { canal: "casa" };
 
-  const feeCentavos = Math.min(toStripeAmount(retenido), toStripeAmount(cobrado));
-  return { canal: "connect", cuenta, feeCentavos, retenidoMxn: retenido };
+  // ⚠️ EL CANDADO DE LA RETENCIÓN (legal, lista §6 punto 1): sin tasas del
+  // ejercicio no se cobra por cuenta conectada. Cobrar por cuenta de ella sin
+  // retener sería una retención omitida de la que Numan responde.
+  const retencion = retencionDeVenta(cobrado, { conRfc: Boolean(operador?.rfc?.trim()), fecha });
+  if (!retencion) return { canal: "casa" };
+
+  const transferCentavos = toStripeAmount(cobrado) - toStripeAmount(retenido) - toStripeAmount(retencion.total);
+  // Un caso imposible con precios reales, pero un cargo que le transfiriera
+  // cero o menos lo rechazaría Stripe en la caja, con el cliente enfrente.
+  if (!(transferCentavos > 0)) return { canal: "casa" };
+  return { canal: "connect", cuenta, retenidoMxn: retenido, retencion, transferCentavos };
 }
 
 /**
@@ -131,13 +150,11 @@ export function planDeCobro(
  */
 export function paraStripe(plan: PlanDeCobro): {
   on_behalf_of?: string;
-  transfer_data?: { destination: string };
-  application_fee_amount?: number;
+  transfer_data?: { destination: string; amount: number };
 } {
   if (plan.canal === "casa") return {};
   return {
     on_behalf_of: plan.cuenta,
-    transfer_data: { destination: plan.cuenta },
-    application_fee_amount: plan.feeCentavos,
+    transfer_data: { destination: plan.cuenta, amount: plan.transferCentavos },
   };
 }

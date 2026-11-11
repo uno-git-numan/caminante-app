@@ -13,10 +13,12 @@
 // TRANSFERENCIA que Stripe crea con la venta. La admisión se cobra revirtiendo
 // $20 de la primera de esas transferencias (`transfers.createReversal`).
 //
-// ⚠️ NO SE MEZCLA CON LA COMISIÓN. Sumarla al `application_fee_amount` habría
-// sido más corto y habría ensuciado tres cosas que hoy cuadran al centavo: la
-// comisión congelada (`platform_fee_mxn`), lo retenido (`fee_retenido_mxn`,
-// que es el total del CFDI de la comisión) y los candados del tope del 20 %.
+// ⚠️ NO SE MEZCLA CON LA COMISIÓN NI CON LA RETENCIÓN. Restarla de la
+// transferencia de la venta (`transfer_data.amount`) habría ensuciado lo que
+// hoy cuadra al centavo: la comisión congelada (`platform_fee_mxn`), lo
+// retenido (`fee_retenido_mxn`, el total del CFDI de la comisión), la
+// retención de ISR e IVA y los candados del tope del 20 %. Además «la primera
+// venta» sólo se sabe cuando se PAGA, no cuando se abre la caja.
 // La admisión es un movimiento aparte, con su propia fila y su propio id de
 // Stripe, y así se concilia sola.
 //
@@ -203,5 +205,28 @@ async function reversionExistente(stripe: Pick<Stripe, "transfers">, transferId:
     return hallada?.id ?? null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * La venta con la que se cobró la admisión se devolvió completa. Stripe, al
+ * revertir lo que quedaba de esa transferencia, ya le regresó los $20 a la
+ * operadora (medido en test el 11 nov 2026: la última reversión toma «lo que
+ * queda», que ya no incluye la admisión). La fila vuelve a «fallida» para que
+ * su siguiente venta la cobre. Nunca lanza.
+ */
+export async function admisionDevuelta(sb: SupabaseClient, paymentId: string): Promise<void> {
+  try {
+    await sb
+      .from("operator_admisiones")
+      .update({
+        estado: "fallida",
+        error: "La venta que la pagó se devolvió completa; se cobra en la siguiente.",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("payment_id", paymentId)
+      .eq("estado", "cobrada");
+  } catch {
+    // best-effort: la fila sigue diciendo «cobrada» y el corte lo señalará.
   }
 }

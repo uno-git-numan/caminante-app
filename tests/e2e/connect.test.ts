@@ -2,7 +2,7 @@
 //
 // Las pruebas unitarias dicen qué parámetros produce el código. Ésta dice si
 // STRIPE los acepta y cómo reparte el dinero, que es otra pregunta y es la que
-// importa: un `application_fee_amount` perfectamente calculado sobre una cuenta
+// importa: una transferencia perfectamente calculada sobre una cuenta
 // sin la capacidad `transfers` se rechaza en la caja, con el cliente enfrente.
 //
 // ⚠️ NO CORRE SOLA. Cobra y reembolsa de verdad contra la API de Stripe, así
@@ -16,7 +16,8 @@
 // CONNECT_CUENTA_PRUEBA=acct_…; si no, crea una operadora mexicana ya
 // verificada. Hoy existe: acct_1UIY1PGsHqvvIJpt («Operadora Cero»).
 import { beforeAll, describe, expect, it } from "vitest";
-import { retencionDe } from "@/lib/payments/connect-cobro";
+import { paraStripe, planDeCobro, retencionDe } from "@/lib/payments/connect-cobro";
+import type { OperadorParaGate } from "@/lib/operators/listo-para-vender";
 import { comisionDeVenta, sinIva } from "@/lib/operadores/comision";
 
 const KEY = process.env.STRIPE_SECRET_KEY ?? "";
@@ -122,10 +123,31 @@ describe.skipIf(!prendida)("cobro por Connect contra Stripe (test)", () => {
   }, 60_000);
 
   it(
-    "cobra a nombre de la operadora, retiene comisión+IVA y lo deshace entero",
+    "cobra a nombre de la operadora, le transfiere SÓLO lo suyo (comisión y retención fuera) y se deshace en proporción",
     async () => {
       expect(COMISION).toBe(301.72);
-      expect(FEE).toBe(35000); // $350.00
+      expect(FEE).toBe(35000); // $350.00 de comisión + IVA
+
+      // Exactamente lo que produce el código: `planDeCobro` + `paraStripe`.
+      const plan = planDeCobro(
+        {
+          stripe_account_id: cuenta,
+          stripe_charges_enabled: true,
+          rfc: "ROBL990531HI3",
+          razon_social: "Operadora Cero",
+          regimen_fiscal: "612",
+          cp_fiscal: "06700",
+          tipo_persona: "fisica",
+          convenio_firmado_at: "2026-09-01",
+          commission_pct: 20,
+        } as OperadorParaGate,
+        COMISION,
+        PRECIO,
+        new Date("2026-11-11T18:00:00Z"),
+      );
+      if (plan.canal !== "connect") throw new Error("se esperaba connect");
+      const s = paraStripe(plan);
+      expect(s.transfer_data?.amount).toBe(124159); // $1,750 − $350 − $158.41
 
       // De aquí se mide todo. Ver `saldoHastaQueSea`.
       const antes = await saldoPendiente(cuenta);
@@ -136,33 +158,27 @@ describe.skipIf(!prendida)("cobro por Connect contra Stripe (test)", () => {
         confirm: "true",
         payment_method: "pm_card_visa",
         "payment_method_types[]": "card",
-        // Exactamente lo que produce `paraStripe()`.
-        on_behalf_of: cuenta,
-        "transfer_data[destination]": cuenta,
-        application_fee_amount: String(FEE),
+        on_behalf_of: s.on_behalf_of!,
+        "transfer_data[destination]": s.transfer_data!.destination,
+        "transfer_data[amount]": String(s.transfer_data!.amount),
         "metadata[canal_cobro]": "connect",
       });
       expect(pi.status).toBe("succeeded");
       expect(pi.on_behalf_of).toBe(cuenta);
-      expect(pi.application_fee_amount).toBe(FEE);
 
-      // ⚠️ EL SALDO ES LA VERDAD, no `transfer.amount` — que es el BRUTO y
-      // reportaría $350 de más por venta. Ver connect-cobro.ts.
-      const conLaVenta = antes + (PRECIO * 100 - FEE);
+      // Desde el 11 nov el saldo de la operadora sube EXACTAMENTE lo transferido.
+      const conLaVenta = antes + 124159;
       expect(await saldoHastaQueSea(cuenta, conLaVenta)).toBe(conLaVenta);
 
-      // Deshacerlo: la transferencia Y la comisión. Quedarse la comisión de una
-      // venta cancelada es cobrar por un servicio que no se prestó.
-      await api("refunds", {
-        payment_intent: pi.id as string,
-        amount: String(PRECIO * 100),
-        reverse_transfer: "true",
-        refund_application_fee: "true",
-        "metadata[origen]": "caminante-prueba",
-      });
+      // La mitad devuelta revierte la mitad de lo transferido: lo de Numan
+      // (comisión + retención) queda en proporción, sin cuentas a mano.
+      await api("refunds", { payment_intent: pi.id as string, amount: String((PRECIO * 100) / 2), reverse_transfer: "true" });
+      const aLaMitad = antes + 124159 - 62080;
+      expect(await saldoHastaQueSea(cuenta, aLaMitad)).toBe(aLaMitad);
+
+      // Y el resto la deja como estaba.
+      await api("refunds", { payment_intent: pi.id as string, reverse_transfer: "true", "metadata[origen]": "caminante-prueba" });
       expect(await saldoHastaQueSea(cuenta, antes)).toBe(antes);
-      const fees = await api("application_fees?limit=1");
-      expect(((fees.data as { amount_refunded: number }[])[0]).amount_refunded).toBe(FEE);
     },
     120_000,
   );

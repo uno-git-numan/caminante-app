@@ -138,6 +138,8 @@ type PayRow = {
   amount_mxn: number;
   platform_fee_mxn?: number | null;
   fee_retenido_mxn?: number | null;
+  isr_retenido_mxn?: number | null;
+  iva_retenido_mxn?: number | null;
   status: string;
   method: string | null;
   paid_at: string | null;
@@ -250,7 +252,7 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
     sb
       .from("payments")
       .select(
-        "reservation_id, contact_id, amount_mxn, status, method, paid_at, platform_fee_mxn, fee_retenido_mxn",
+        "reservation_id, contact_id, amount_mxn, status, method, paid_at, platform_fee_mxn, fee_retenido_mxn, isr_retenido_mxn, iva_retenido_mxn",
       ),
     sb.from("registrations").select("reservation_id, contact_id, signed_at"),
     sb
@@ -859,7 +861,7 @@ export async function fetchReservas(f: ReservasFiltro = {}): Promise<{
     sb
       .from("payments")
       .select(
-        "reservation_id, contact_id, amount_mxn, status, method, paid_at, platform_fee_mxn, fee_retenido_mxn",
+        "reservation_id, contact_id, amount_mxn, status, method, paid_at, platform_fee_mxn, fee_retenido_mxn, isr_retenido_mxn, iva_retenido_mxn",
       ),
     sb.from("registrations").select("reservation_id, signed_at, participants, minors"),
   ]).then((rs) => rs.map((r) => (r.data || []) as unknown[]))) as [

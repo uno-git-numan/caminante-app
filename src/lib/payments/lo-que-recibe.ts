@@ -19,12 +19,16 @@
 // conectada, la operadora ve las TRES:
 //
 //   bruto        $1,750.00
-//   comisiones   $  350.00   (fee_details: application_fee)
+//   comisiones   $  350.00   (fee_details: application_fee; hasta el 11 nov)
 //   NETO         $1,400.00   ← y su saldo es éste
 //
 // La comisión de proceso de Stripe ($86.71) NO aparece de su lado: la paga
 // Numan (`controller[fees][payer]=application`). Así que su cuenta es limpia:
 // bruto menos la comisión de Caminante, y ya.
+//
+// ⚠️ DESDE EL 11 NOV 2026 (modelo Airbnb) también se le retienen ISR e IVA, y
+// la transferencia llega ya neta: de $1,750 recibe $1,241.59 (comisión $350,
+// ISR $37.72, IVA $120.69). `retenciones` es eso, aparte de la comisión.
 //
 // Este módulo existe para que el panel diga exactamente eso y no lo derive cada
 // pantalla a su manera — que es como el cupo acabó en tres lugares.
@@ -36,6 +40,9 @@ export type PagoParaRepartir = {
   platform_fee_mxn?: number | string | null;
   /** Comisión + IVA, tal como Stripe la retuvo. Sólo en cobros por Connect. */
   fee_retenido_mxn?: number | string | null;
+  /** ISR e IVA retenidos a la operadora (modelo Airbnb, 0079). Sólo por Connect. */
+  isr_retenido_mxn?: number | string | null;
+  iva_retenido_mxn?: number | string | null;
 };
 
 export type Reparto = {
@@ -43,6 +50,12 @@ export type Reparto = {
   cobrado: number;
   /** Lo que se queda la plataforma, CON IVA: es lo que sale de la transferencia. */
   retenido: number;
+  /**
+   * ISR + IVA retenidos a la operadora para enterarlos al SAT (lib/fiscal/
+   * retencion.ts). No son ingreso de la plataforma ni gasto de la operadora:
+   * son SUS impuestos, adelantados. Por eso van aparte de `retenido`.
+   */
+  retenciones: number;
   /** Lo que recibe la operadora. Es el número que su banco va a confirmar. */
   recibeOperadora: number;
 };
@@ -76,7 +89,8 @@ export function repartoDe(pago: PagoParaRepartir): Reparto {
   const retenidoReal = pago.fee_retenido_mxn != null ? n(pago.fee_retenido_mxn) : null;
   const derivado = pago.platform_fee_mxn != null ? n(pago.platform_fee_mxn) * (1 + IVA) : null;
   const retenido = r2(retenidoReal ?? derivado ?? 0);
-  return { cobrado, retenido, recibeOperadora: r2(cobrado - retenido) };
+  const retenciones = r2(n(pago.isr_retenido_mxn) + n(pago.iva_retenido_mxn));
+  return { cobrado, retenido, retenciones, recibeOperadora: r2(cobrado - retenido - retenciones) };
 }
 
 /** La suma de varios pagos, ya repartida. Para los KPI del panel. */
@@ -87,9 +101,10 @@ export function repartoTotal(pagos: PagoParaRepartir[]): Reparto {
       return {
         cobrado: r2(acc.cobrado + r.cobrado),
         retenido: r2(acc.retenido + r.retenido),
+        retenciones: r2(acc.retenciones + r.retenciones),
         recibeOperadora: r2(acc.recibeOperadora + r.recibeOperadora),
       };
     },
-    { cobrado: 0, retenido: 0, recibeOperadora: 0 },
+    { cobrado: 0, retenido: 0, retenciones: 0, recibeOperadora: 0 },
   );
 }

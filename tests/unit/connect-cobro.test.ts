@@ -7,6 +7,9 @@ import { planDeCobro, paraStripe, retencionDe } from "@/lib/payments/connect-cob
 import { comisionDeVenta, sinIva } from "@/lib/operadores/comision";
 import type { OperadorParaGate } from "@/lib/operators/listo-para-vender";
 
+// Toda prueba cobra en 2026: las tasas de retención son por ejercicio.
+const EN_2026 = new Date("2026-11-11T18:00:00Z");
+
 const lista: OperadorParaGate = {
   stripe_account_id: "acct_operadora",
   stripe_charges_enabled: true,
@@ -37,14 +40,26 @@ describe("planDeCobro", () => {
   const base = sinIva(1750);
   const comision = comisionDeVenta({ viaje: { precioUnitario: base, cantidad: 1 } }, { tipo: "escala", escala: "venta" }).monto;
 
-  it("una venta de $1,750: Numan retiene $350 y el resto va a la cuenta de la operadora", () => {
-    const p = planDeCobro(lista, comision, 1750);
+  it("una venta de $1,750: comisión $350, retención $158.41, a la operadora $1,241.59", () => {
+    const p = planDeCobro(lista, comision, 1750, EN_2026);
     expect(p.canal).toBe("connect");
     if (p.canal === "connect") {
       expect(p.cuenta).toBe("acct_operadora");
       expect(p.retenidoMxn).toBe(350);
-      expect(p.feeCentavos).toBe(35000);
+      expect(p.retencion.isr).toBe(37.72);
+      expect(p.retencion.iva).toBe(120.69);
+      expect(p.transferCentavos).toBe(124159);
     }
+  });
+
+  it("EL CANDADO: un ejercicio sin tasas de retención no cobra por cuenta conectada", () => {
+    expect(planDeCobro(lista, comision, 1750, new Date("2031-06-01T18:00:00Z"))).toEqual({ canal: "casa" });
+  });
+
+  it("sin RFC: retiene 20 % / 100 %", () => {
+    const p = planDeCobro({ ...lista, rfc: null } as OperadorParaGate, comision, 1750, EN_2026);
+    // Sin RFC el gate ya no la deja vender; si algún día lo hiciera, la tasa sería la de sin RFC.
+    if (p.canal === "connect") expect(p.retencion.regla).toContain("sin_rfc");
   });
 
   it("sin cuenta conectada: el camino de siempre", () => {
@@ -63,16 +78,15 @@ describe("planDeCobro", () => {
     expect(planDeCobro(lista, 0, 1750)).toEqual({ canal: "casa" });
   });
 
-  it("el fee nunca pasa de lo cobrado: Stripe rechazaría el cargo", () => {
+  it("si no le quedara nada que transferir, no se cobra por Connect: Stripe rechazaría el cargo", () => {
     // Un caso imposible hoy, pero fallar en la caja con el cliente enfrente es
     // el peor lugar para descubrirlo.
-    const p = planDeCobro(lista, 5000, 100);
-    if (p.canal === "connect") expect(p.feeCentavos).toBe(10000);
+    expect(planDeCobro(lista, 5000, 100, EN_2026)).toEqual({ canal: "casa" });
   });
 
   it("dos boletos: la retención acompaña a la comisión, que es por cabeza", () => {
     const dos = comisionDeVenta({ viaje: { precioUnitario: base, cantidad: 2 } }, { tipo: "escala", escala: "venta" }).monto;
-    const p = planDeCobro(lista, dos, 3500);
+    const p = planDeCobro(lista, dos, 3500, EN_2026);
     if (p.canal === "connect") {
       expect(dos).toBe(603.44);
       // 603.44 × 1.16 = 699.9904 → $699.99, no $700. El centavo se pierde
@@ -89,11 +103,18 @@ describe("paraStripe", () => {
     expect(paraStripe({ canal: "casa" })).toEqual({});
   });
 
-  it("por Connect: on_behalf_of + transfer_data + application_fee", () => {
-    expect(paraStripe({ canal: "connect", cuenta: "acct_x", feeCentavos: 35000, retenidoMxn: 350 })).toEqual({
+  const plan = (cuenta: string) => {
+    const p = planDeCobro({ ...lista, stripe_account_id: cuenta }, 301.72, 1750, EN_2026);
+    if (p.canal !== "connect") throw new Error("se esperaba connect");
+    return p;
+  };
+
+  it("por Connect: on_behalf_of + transfer_data con el monto NETO, sin application_fee", () => {
+    // Stripe no acepta application_fee_amount y transfer_data[amount] juntos
+    // («mutually exclusive», probado en test el 11 nov 2026).
+    expect(paraStripe(plan("acct_x"))).toEqual({
       on_behalf_of: "acct_x",
-      transfer_data: { destination: "acct_x" },
-      application_fee_amount: 35000,
+      transfer_data: { destination: "acct_x", amount: 124159 },
     });
   });
 
@@ -101,7 +122,7 @@ describe("paraStripe", () => {
     // Si divergieran, el comerciante de registro y quien recibe el dinero serían
     // distintos: el cliente vería un nombre en su estado de cuenta y el dinero
     // llegaría a otro lado. La factura de la operadora dejaría de sostenerse.
-    const r = paraStripe({ canal: "connect", cuenta: "acct_y", feeCentavos: 1, retenidoMxn: 0.01 });
+    const r = paraStripe(plan("acct_y"));
     expect(r.on_behalf_of).toBe(r.transfer_data?.destination);
   });
 });
@@ -111,7 +132,7 @@ describe("la comisión de la escala es una comisión resuelta", () => {
     // Las 12 ventas de Nomádika tenían commission_pct NULL y retuvieron $301.72
     // cada una. El candado que exigía un plano la habría bloqueado.
     const porEscala = { ...lista, commission_pct: null, comision_desde: "2026-08-28T00:00:00Z" };
-    const p = planDeCobro(porEscala, 301.72, 1750);
+    const p = planDeCobro(porEscala, 301.72, 1750, EN_2026);
     expect(p.canal).toBe("connect");
   });
 

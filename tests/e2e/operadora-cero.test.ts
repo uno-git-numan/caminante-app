@@ -382,12 +382,12 @@ describe.skipIf(!prendida)("Operadora Cero · de cero a vender", () => {
     if (plan.canal !== "connect") return;
     expect(plan.cuenta).toBe("acct_operadora_cero_e2e");
     expect(plan.retenidoMxn).toBe(retencionDe(comision));
-    // Lo retenido no puede pasar de lo cobrado: si pasara, Stripe rechazaría el
-    // cargo con el cliente enfrente.
-    expect(plan.feeCentavos).toBeLessThanOrEqual(PRECIO * 100);
-    // Y la operadora recibe el resto. Ojo: NO es `transfer.amount`, que es el
-    // bruto (ver connect-cobro.ts).
-    expect(PRECIO - plan.retenidoMxn).toBeCloseTo(PRECIO - comision * 1.16, 2);
+    // Desde el 11 nov 2026 (modelo Airbnb) también se retienen ISR e IVA, y la
+    // transferencia sale neta: lo cobrado − comisión con IVA − retención.
+    expect(plan.retencion.total).toBeGreaterThan(0);
+    expect(plan.transferCentavos).toBe(
+      Math.round(PRECIO * 100) - Math.round(plan.retenidoMxn * 100) - Math.round(plan.retencion.total * 100),
+    );
   });
 
   // ── 11 ─── LA DISPENSA ────────────────────────────────────────────────────

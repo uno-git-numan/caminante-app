@@ -209,6 +209,17 @@ export async function finalizeSelfServeCheckout(
   const feeRetenido = session.metadata?.fee_retenido_mxn
     ? Number(session.metadata.fee_retenido_mxn)
     : null;
+  // La retención de ISR e IVA (modelo Airbnb): se escribe tal como se calculó
+  // al cobrar. Volver a calcularla aquí sería usar las tasas de hoy para una
+  // venta de ayer.
+  const numMeta = (k: string): number | null => {
+    const v = session.metadata?.[k];
+    const n = v != null && v !== "" ? Number(v) : NaN;
+    return Number.isFinite(n) ? n : null;
+  };
+  const isrRetenido = numMeta("isr_retenido_mxn");
+  const ivaRetenido = numMeta("iva_retenido_mxn");
+  const retencionRegla = (session.metadata?.retencion_regla ?? "").trim() || null;
   // La transferencia hacia la cuenta conectada, para poder conciliar contra el
   // estado de cuenta de Stripe. Sólo existe en un cargo con destino.
   const transferId =
@@ -258,6 +269,9 @@ export async function finalizeSelfServeCheckout(
     ...(canalReal === "connect" ? { stripe_account_id: connectAccount } : {}),
     ...(transferId ? { transfer_id: transferId } : {}),
     ...(feeRetenido != null && Number.isFinite(feeRetenido) ? { fee_retenido_mxn: feeRetenido } : {}),
+    ...(canalReal === "connect" && isrRetenido != null && ivaRetenido != null
+      ? { isr_retenido_mxn: isrRetenido, iva_retenido_mxn: ivaRetenido, retencion_regla: retencionRegla }
+      : {}),
     status: "paid",
     method: "stripe",
     provider_ref: providerRef,

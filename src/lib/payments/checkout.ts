@@ -306,9 +306,14 @@ export async function createCheckout(formData: FormData) {
     ...(plan.canal === "connect"
       ? {
           connect_account: plan.cuenta,
-          // Comisión + IVA. Es lo que Stripe retiene y el total del CFDI que
-          // Caminante le va a emitir a la operadora.
+          // Comisión + IVA: el total del CFDI que Caminante le va a emitir a
+          // la operadora. Se queda en Numan porque la transferencia ya va neta.
           fee_retenido_mxn: String(plan.retenidoMxn),
+          // La retención de ISR e IVA (modelo Airbnb, lib/fiscal/retencion.ts),
+          // congelada al cobrar con la regla que la produjo.
+          isr_retenido_mxn: String(plan.retencion.isr),
+          iva_retenido_mxn: String(plan.retencion.iva),
+          retencion_regla: plan.retencion.regla,
         }
       : {}),
     // CONGELADO: id + nombre + precio unitario de cada complemento al momento

@@ -6,9 +6,9 @@ import { altaCobroEnPlataforma, MCC_TURISMO, recaudaLaPlataforma } from "./alta-
 
 // Stripe Connect · alta y estado de la cuenta del operador.
 //
-// Qué hace posible: que el operador cobre en SU cuenta (cargo directo) y Numan
-// retenga su comisión como `application_fee`. Hoy el 100% cae en NUMAN HUB y se
-// le transfiere a mano.
+// Qué hace posible: que la venta salga a nombre del operador (cargo con destino
+// + `on_behalf_of`) y Numan se quede su comisión y la retención de ISR e IVA:
+// la transferencia sale neta (connect-cobro.ts).
 //
 // ⚠️ ESTE MÓDULO NO COBRA. Solo da de alta la cuenta y lee su estado. El cobro
 // sigue corriendo por `createCheckout` sin un solo cambio — esa bifurcación es
@@ -18,8 +18,8 @@ import { altaCobroEnPlataforma, MCC_TURISMO, recaudaLaPlataforma } from "./alta-
 // ⚠️ NADA AQUÍ ESCRIBE `commission_pct`. La comisión sale de esa columna y de
 // ningún otro lado (ver el comentario de la columna en la base). Que un operador
 // termine su onboarding de Stripe NO le pone comisión: si `commission_pct` está
-// en NULL, `operadorListo` lo rechaza a propósito, porque con NULL el
-// `application_fee` sería 0 y el operador se quedaría el 100% de la venta.
+// en NULL, `operadorListo` lo rechaza a propósito, porque con NULL la comisión
+// sería 0 y el operador se quedaría el 100% de la venta.
 
 const CANONICAL = "https://caminante.numanhub.com";
 
@@ -76,8 +76,8 @@ async function leerOperador(operadorId: string): Promise<OperadorConnect | null>
  * sale a su nombre— y `recipient` con `stripe_transfers` le deja recibir la
  * transferencia. Sin la segunda, Stripe contestó en test: «Your destination
  * account needs to have … stripe_transfers capability enabled». Con las dos,
- * el PaymentIntent con `on_behalf_of` + `transfer_data` + `application_fee`
- * se creó en test. En un cargo con destino el fee de Stripe lo sigue pagando
+ * el PaymentIntent con `on_behalf_of` + `transfer_data` (desde el 11 nov
+ * 2026 con `amount` neto, sin application_fee) se creó en test. En un cargo con destino el fee de Stripe lo sigue pagando
  * la plataforma, así que el dinero se reparte EXACTAMENTE como antes.
  *
  * El estado se sigue leyendo por la API v1 (`accounts.retrieve`), que ve estas
