@@ -66,8 +66,9 @@ como cierta**: di que falta verificarla y dónde.
   la operadora, con **Facturapi**, y le **retiene** lo que la ley obligue.
 - **Comisión**: escala marginal, tope del 20 %, mínimo $250 por reserva. La
   comisión del procesador (Stripe) va **dentro** de la de NUMAN.
-- **Cobro por cuenta conectada** (Stripe Connect, cuentas v2 con panel
-  completo): cargo con destino y `on_behalf_of`. La operadora es el comercio
+- **Cobro por cuenta conectada** (Stripe Connect, cuentas v2; perfil de
+  plataforma «modelo Airbnb» aceptado el 11 nov 2026): cargo con destino y
+  `on_behalf_of`. La operadora es el comercio
   que ve el cliente; el dinero pasa por la cuenta de NUMAN y ahí se separa la
   comisión.
 
@@ -152,6 +153,25 @@ Y además:
 Antes de redactar las cláusulas de cancelación, pregúntale a Luis las
 ventanas del cliente y la penalización a la operadora (Quinta y Anexo C), con
 la propuesta del v2 como opción por defecto. No las des por confirmadas.
+
+### D · Actualización del 11 nov 2026 (léela antes que lo demás)
+
+Lo que cambió después de escribir este prompt vive en
+`design/legal/BITACORA-PARA-LEGAL.md`, lo más nuevo arriba. La sesión de
+producto la sigue llenando: **léela al empezar y cada vez que te avise**.
+Hoy trae:
+
+- NUMAN aceptó en Stripe el **modelo B (Airbnb)** y con él **reembolsos,
+  contracargos, multas, fraude y saldos negativos** de las operadoras.
+- **Cuota de admisión de $20 por operadora** (lo que Stripe cobra por cuenta
+  conectada), descontada del primer pago que se le transfiere. **Va como
+  cláusula** (pregunta i1).
+- Cómo trasladarle a la operadora esas responsabilidades (i2).
+- **El alta dentro de la plataforma**: la operadora nunca entra a Stripe, y
+  la plataforma pide los datos y se los manda (i3: aceptación del contrato de
+  Stripe dentro del convenio, aviso de privacidad, revisión de operadoras).
+- **h3 sube de prioridad**: con el modelo B, la retención tiene que estar
+  antes de la primera venta de Nomádika por su cuenta conectada.
 
 ## Entregables
 
