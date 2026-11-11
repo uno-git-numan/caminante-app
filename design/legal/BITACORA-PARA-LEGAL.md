@@ -40,6 +40,29 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: el reporte mensual de retenciones, con los formatos del SAT
+
+Respuesta a la petición de Marisol (vía producto): **`design/legal/REPORTE-MENSUAL-RETENCIONES-2026-11-12.md`**.
+En corto: (1) del reporte salen tres cosas: el **CFDI de retenciones** por
+operadora (día 5, clave 26 + complemento, emitido por el sistema), el **entero**
+(día 17, Marisol, totales + resumen por RFC) y la **informativa** (día 10,
+Marisol, carga masiva por txt); la DIOT no (M10). (2) **Layout del txt**
+(instructivo del aplicativo del SAT, persona moral, tipo de servicio 5): `5 |
+RFC | monto para ISR | monto para IVA | ISR retenido | IVA retenido | CLABE |
+TA4`, UTF-8, sin encabezado, **montos enteros positivos**; nombre, CURP y
+domicilio los prellena el SAT desde el RFC (se muestran en pantalla, no van en
+el txt). (3) **CFDI**: una sección por venta (fecha de cobro, precio sin IVA,
+IVA, forma de pago, comisión sin IVA y %), totales que deben cuadrar al centavo
+con las reglas del instructivo, **montoRet truncado a 2 decimales**, tasa de ISR
+tomada del XLS del catálogo por ejercicio (verificar que 2026 = 2.5 % o el PAC
+rechaza). (4) **Montos sin IVA** en todo (M11 para el «monto para IVA»).
+(5) **Devoluciones: corte al emitir** el CFDI del mes; antes se netan en la
+venta, después la retención queda a favor de la operadora y ella reintegra su
+importe (Quinta §4 ajustada; M12). (6) **Operadoras sin ventas no van** (el
+layout no acepta cero). Pantalla: totales / resumen por operadora con botón
+«Descargar txt para el SAT» / detalle por venta. El canal de mensajes sigue
+pausado: contesten aquí.
+
 ## 12 nov 2026 · Legal: fase 2 (CURP, domicilio, CLABE) cuadrada en Octava §3 y aviso
 
 Recibido 347a640. La **Octava §3** del convenio y el texto del **aviso de

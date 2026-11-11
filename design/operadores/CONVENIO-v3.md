@@ -259,7 +259,7 @@ La penalización es una pena convencional, de al menos **$500 MXN** y de a lo m�
 
 > **Decidido (legal, 11 nov; D12, D14).** Fuerza mayor definida; pena convencional dentro del CCF 1843 (no excede la obligación principal). Los números son de Luis (9 nov).
 
-**4 · La comisión sigue al dinero.** Cuando proceda una devolución, se reintegra al cliente el importe que corresponda y **la comisión de Caminante y su IVA se ajustan en la misma proporción**: si se devuelve todo, se devuelve toda la comisión; si el Operador retiene una parte conforme a su política, Caminante conserva su comisión únicamente sobre esa parte. Si Caminante hubiera efectuado retenciones de impuestos sobre esa venta, se corrigen en el CFDI de retenciones del mes.
+**4 · La comisión sigue al dinero.** Cuando proceda una devolución, se reintegra al cliente el importe que corresponda y **la comisión de Caminante y su IVA se ajustan en la misma proporción**: si se devuelve todo, se devuelve toda la comisión; si el Operador retiene una parte conforme a su política, Caminante conserva su comisión únicamente sobre esa parte. Las retenciones de impuestos de esa venta se ajustan en la misma proporción **si la devolución ocurre antes de que Caminante emita el CFDI de retenciones del mes de la venta**; si ocurre después, la retención ya enterada queda a favor del Operador, que la acredita con ese CFDI, y el Operador reintegra a Caminante su importe conforme al punto 9.
 
 **5 · Caminante devuelve al cliente y recupera del Operador.** Cuando proceda una devolución, Caminante la hace al cliente **de inmediato** y por la misma forma de pago, aunque el Operador ya haya dispuesto de su parte; el Operador la reintegra a Caminante conforme al punto 9 (reversión de la transferencia, compensación contra ventas futuras o pago en 5 días hábiles). Frente al cliente, Caminante responde por la devolución; frente a Caminante, responde el Operador.
 
@@ -418,6 +418,8 @@ En ningún caso Caminante emite ese comprobante a nombre propio: pone la herrami
 **8 · Partes relacionadas.** Cuando el Operador sea parte relacionada de Caminante, la comisión es la de la escala pública de la Cláusula Tercera sin trato preferente, y ambas partes conservan la documentación que acredite que la operación se pactó como entre partes independientes.
 
 > **Decidido (legal, 11 nov; D7–D10, §5).** Claves 90121501 / 80141628, uso G03/S01, PUE, forma de pago real del cliente, devoluciones y global como en el documento de decisiones; la autorización del inciso a) es mandato (CCF 2546). 🔸 *Marisol confirma* M1 (forma de pago 04/28/03 o 31) y M6 (complemento sólo en el CFDI de retenciones).
+
+> **Decidido (legal, 12 nov; `REPORTE-MENSUAL-RETENCIONES-2026-11-12.md` §3).** El complemento del CFDI de retenciones no admite importes negativos ni fechas fuera del mes: por eso el corte es la emisión. 🔸 *Marisol confirma* M12.
 
 ## Décima cuarta · Confidencialidad
 
