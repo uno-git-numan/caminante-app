@@ -133,6 +133,16 @@ Con ese perfil Stripe SÍ aceptó la cuenta como la crea `crearCuentaV2`
 h3 a Marisol (¿plataforma que cobra por cuenta de terceros ⇒ retiene ISR/IVA
 a personas físicas?). Tiene que estar contestada antes de su primera venta.
 
+**La operadora no va al enlace de Stripe (11 nov 2026).** Luis: «nosotros no
+queremos que entren nunca a Stripe». En su propio panel (Mi alta → Cobrar) el
+paso 1 ya no ofrece «Conectar» ni «Continuar la verificación» (`sinEnlaceExterno`
+en `CobrosPanel`), y `pedirLinkStripe` le niega el enlace en el servidor. Sólo
+la casa lo abre. El camino es el alta dentro de la plataforma
+(`COBRO_EN_PLATAFORMA`), que espera la pregunta i3 a legal. ⚠️ Nomádika
+(`acct_1UaiUdGRRBL2rPeh`) nació con panel completo y ese tipo no se cambia:
+al prender el alta en plataforma se cierra (no tiene movimientos) y se crea
+la nueva.
+
 ## El alta en 15 minutos: un dato se obtiene, no se pide (9 nov 2026)
 
 Meta de Luis: pasar de la solicitud a cobrar tan rápido como se abre una cuenta

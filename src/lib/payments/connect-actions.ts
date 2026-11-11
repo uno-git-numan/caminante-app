@@ -13,7 +13,7 @@ import { constanciasDe } from "@/lib/operadores/constancia-fiscal";
 import { analizarCsf } from "@/lib/operadores/csf";
 import { leerCer } from "@/lib/facturacion/cer";
 import { revalidatePath } from "next/cache";
-import { operadoraObjetivo } from "@/lib/auth/alcance";
+import { alcanceActual, esOperador, operadoraObjetivo } from "@/lib/auth/alcance";
 
 /**
  * ¿Puede tocar el expediente de ESTA operadora?
@@ -53,6 +53,14 @@ export async function pedirLinkStripe(
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   if (!(await puedeTocarOperador(operadorId))) return { ok: false, error: "No autorizado." };
   if (!operadorId) return { ok: false, error: "Falta el operador." };
+  // ⚠️ LA OPERADORA NO VA AL ENLACE DE STRIPE (Luis, 11 nov 2026: «nosotros no
+  // queremos que entren nunca a Stripe»). Sus datos se van a pedir aquí y
+  // mandar desde aquí (alta dentro de la plataforma, pendiente de la pregunta
+  // i3 a legal). Mientras tanto el enlace sólo lo abre la casa. Se cierra en
+  // el servidor, no sólo en la pantalla: un botón escondido no es un candado.
+  if (esOperador(await alcanceActual())) {
+    return { ok: false, error: "Tu cuenta de cobro la preparamos nosotros: no tienes que entrar a ningún otro sitio. Te avisamos cuando haga falta un dato tuyo." };
+  }
   const r = await crearLinkOnboarding(operadorId, origen);
   return r.ok ? { ok: true, url: r.data.url } : { ok: false, error: r.error };
 }

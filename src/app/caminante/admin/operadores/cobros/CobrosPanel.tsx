@@ -38,6 +38,7 @@ export default function CobrosPanel({
   operador: o,
   faltantes,
   altaEnPlataforma,
+  sinEnlaceExterno = false,
 }: {
   operador: OperadorCobros;
   faltantes: string[];
@@ -48,6 +49,11 @@ export default function CobrosPanel({
    * bandera (alta-cobro.ts); este panel sólo pinta lo que le den.
    */
   altaEnPlataforma?: React.ReactNode;
+  /**
+   * La operadora mirando lo suyo: NO se le ofrece el enlace de Stripe (Luis,
+   * 11 nov 2026). `pedirLinkStripe` también se lo niega en el servidor.
+   */
+  sinEnlaceExterno?: boolean;
 }) {
   const [ocupado, setOcupado] = useState("");
   const [estado, setEstado] = useState("");
@@ -213,6 +219,11 @@ export default function CobrosPanel({
       <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>1 · Conecta su cuenta de cobro</h3>
       {altaEnPlataforma ? (
         altaEnPlataforma
+      ) : sinEnlaceExterno && !o.chargesEnabled ? (
+        <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
+          Tu cuenta de cobro la preparamos nosotros. Cuando necesitemos un dato tuyo (identificación,
+          CLABE) te lo pedimos aquí mismo; no tienes que entrar a ningún otro sitio.
+        </p>
       ) : !o.stripeAccountId ? (
         <>
           <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>

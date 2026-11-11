@@ -147,6 +147,7 @@ export default async function CobrarPage({
           csdVenceAt: r.csd_vence_at ?? null,
         }}
         faltantes={operadorListo(r).faltantes}
+        sinEnlaceExterno={!porOtra}
         altaEnPlataforma={
           altaAqui ? (
             <AltaCobro
