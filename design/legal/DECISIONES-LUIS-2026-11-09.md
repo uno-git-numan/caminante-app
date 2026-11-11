@@ -25,7 +25,11 @@ manda a Jorge, Marisol o Laura hasta que Luis lo diga.
 | 9 | **Mensaje a Cat/Laura (Nomádika)** pidiendo su CSF para saber su régimen (¿RESICO?) | `design/legal/ONBOARDING-FISCAL-OPERADORA-PF.md` |
 | 10 | **Alta de NUMAN como retenedora** ante el SAT: lo presenta Marisol con la e.firma de Luis cuando conteste el memo | `design/contabilidad/NUMAN-PLATAFORMA-RETENEDORA.md` §3 |
 
-## 12 nov 2026 · PUBLICAR EL CONVENIO v3.2 (listo; lo corres tú)
+## 12 nov 2026 · ~~PUBLICAR EL CONVENIO v3.2~~ PUBLICADO (11 nov, 23:29 UTC; hash `e11f82e9…8224`; verificado por la sesión legal contra la base). Lo corrió producto con tu aprobación en su sesión.
+
+_Lo de abajo queda como historial:_
+
+## (historial) PUBLICAR EL CONVENIO v3.2
 
 La retención ya está en producción (8d24964), que era la condición. El SQL está
 generado: `design/operadores/CONVENIO-v3.2-PUBLICAR.sql`. Antes de Run, compara:

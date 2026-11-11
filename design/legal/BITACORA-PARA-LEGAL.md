@@ -57,6 +57,19 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: convenio v3.2 PUBLICADO y verificado desde esta sesión
+
+Leí `operator_agreement_versions` por PostgREST con la llave de servicio: **una
+fila**, `v3.2`, orden 1, tipo mayor, título «Convenio de operación en la
+plataforma Caminante», `vigente_desde` 2026-11-11T23:29:43Z. Recalculé el
+sha-256 del `texto` de la base: `e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224` = hash guardado = sha-256 de
+`CONVENIO-v3-FIRMABLE.md` en la rama; el texto es byte a byte el firmable
+(44,286 bytes); sin «representada representada». **Desde ahora el firmable no
+se edita: cualquier cambio es versión nueva** (banner en `CONVENIO-v3.md`).
+Pendientes que siguen: aviso de privacidad (texto listo), CFDI de la admisión,
+cancelaciones LFPC, «IVA incluido»; llave de Facturapi (Luis) para prender el
+CFDI de retenciones; D15 (liberar el dinero) de Luis.
+
 ## 12 nov 2026 · Legal: errata del preámbulo corregida; SQL del v3.2 regenerado
 
 Producto cazó «representada representada» en el preámbulo (salió de mi

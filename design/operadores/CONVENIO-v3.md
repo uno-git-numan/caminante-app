@@ -1,5 +1,15 @@
 # Convenio de operación en la plataforma Caminante — v3 (documento de trabajo)
 
+### v3.2 · PUBLICADO el 11 nov 2026 (23:29 UTC) · hash `e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224`
+
+> ⚠️ **Esta versión ya está publicada en producción** (`operator_agreement_versions`,
+> orden 1, tipo mayor, vigente desde el 11 nov 2026; verificado por la sesión legal
+> contra la base: el texto de la base, su hash guardado y `CONVENIO-v3-FIRMABLE.md`
+> en la rama son idénticos). **Lo que firman las operadoras es ese texto y ya no se
+> edita.** Cualquier cambio al firmable es una **versión nueva** (menor o mayor,
+> Décima segunda) que se publica aparte con `scripts/publicar-convenio.mjs`; este
+> archivo de trabajo sigue siendo la fuente, pero su edición ya no cambia lo publicado.
+
 ### v3.2 · 11 de noviembre de 2026 · CERRADO POR LA SESIÓN LEGAL; MARISOL REVISA; LUIS PUBLICA
 
 > **v3.2 · 11 nov 2026 (tarde).** Luis decidió que no hay abogado externo: la sesión
@@ -499,7 +509,7 @@ RFC, régimen fiscal, domicilio y código postal fiscal, CURP (persona física) 
 | # | Qué | De quién | Bloquea publicar |
 |---|---|---|---|
 | ~~1~~ | ~~Candado en el código~~ **Hecho y EN PRODUCCIÓN** (8d24964 promovido el 11 nov; 0079/0080/0081 aplicadas): toda venta por cuenta conectada retiene al cobrar; sin tasas del ejercicio no cobra por Connect | — | No |
-| 2 | **Publicar (listo para Luis, 12 nov):** el SQL ya está generado en `design/operadores/CONVENIO-v3.2-PUBLICAR.sql` (versión `v3.2`, mayor, `vigente_desde` = al correrlo). sha-256 del firmable `e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224`; sha-256 del archivo SQL `c371d92952d6a815a061aa0f68d266b40503401181e2331996df73bc4f2cae5f`. Luis lo corre en el SQL Editor (o con `scripts/aplicar-migracion.mjs`) comparando el hash del SQL antes de Run; el `DO` del final revienta si el texto llegó distinto. Es la primera versión publicada: nadie vende con una vieja, así que puede entrar en vigor el mismo día | **Luis** | — |
+| ~~2~~ | **PUBLICADO el 11 nov 2026, 23:29 UTC** por la sesión de producto con la aprobación de Luis en su sesión (SQL `c371d929…cae5f`, 201 sin error del `DO`). Verificado por la sesión legal por PostgREST: una fila, `v3.2`, orden 1, mayor, hash `e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224` = sha-256 del texto en la base = sha-256 del firmable en la rama; sin «representada representada». Las operadoras ya pueden firmar en `/caminante/admin/mi-alta/convenio` | — | — |
 | 3 | Marisol revisa `DECISIONES-LEGAL-FISCAL-2026-11-11.md`; si cambia una línea (M1–M8), se ajusta esa línea y se publica versión menor o mayor según toque | Marisol → Luis | No |
 | 4 | D15 (liberar el dinero antes o después de la experiencia): si Luis elige «después», cambian Cuarta §5 y §6 antes de publicar | **Luis** | Sólo si elige «después» |
 | 5 | Aviso de privacidad con las adiciones (`AVISO-PRIVACIDAD-ADICIONES-2026-11.md`) antes de prender el alta dentro de la plataforma | Sesión de producto | No para publicar; **sí** para `COBRO_EN_PLATAFORMA` |
