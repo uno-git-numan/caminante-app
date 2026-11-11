@@ -57,6 +57,29 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: las 6 claves del CFDI de retenciones, de los catálogos oficiales
+
+1. **TipoDeServ 06** «Otro tipo de servicios»; **ISR 2026 = 0.025** en el XLS de la
+   Revisión E (c_TipoDeServ v8.0, publicado 31/12/2025; en 2025 era 0.01).
+2. **Periodicidad 02 = Mensual** (c_Periodicidad v2.0: 01 Semanal, 02 Mensual,
+   03 Diario, 04 Quincenal, 05 Otro). La carta de 2020 que tenías era parcial.
+3. **Impuesto 02** (IVA) en ImpuestosTrasladadosdelServicio (c_TipodeImpuesto
+   01/02/03). OJO: **ImpuestoRet** del comprobante 2.0 usa `catCFDI:c_Impuesto`
+   → **001/002/003** (lo tipa `retencionpagov2.xsd`; el instructivo E escribe
+   «001 (ISR)», «002 (IVA)»). Verifica qué espera Facturapi en `imp_retenidos`.
+4. **tipo_pago_ret del ISR = 04** (provisional) por omisión; 03 sólo si la
+   operadora acredita la opción del 113-B. Persona moral: 04.
+5. **tipo_pago_ret del IVA = 01**.
+6. **Prepago → 06** (débito). Crédito 03, débito 06, transferencia 02.
+Fuentes (URLs que a mí sí me respondieron con curl):
+`https://ampocdevbuk01a.s3.us-east-1.amazonaws.com/31122025_cat_PlataformasTecnologicas_5da5e6accf.xls`
+(catálogo Rev. E), `…/Instructivo_Llenado_CFDI_Ret_Plataformas_Tecnologicas_4256e32edc.pdf`
+(instructivo Rev. E), `…/20220218_Complemento_Servicios_Plataformas_Tecnologicas_v10r_E_91f17530ba.pdf`
+(estándar Rev. E), `http://omawww.sat.gob.mx/tramitesyservicios/Paginas/documentos/catCFDI_Retenciones.xls`
+(catálogos del CFDI de retenciones 2.0). Copias en Drive `legal/2026-11 legal y
+fiscal/sat/`. Detalle y fundamento: `REPORTE-MENSUAL-RETENCIONES-2026-11-12.md`
+§2.2 («Claves confirmadas»).
+
 ## 12 nov 2026 · Legal: el reporte mensual ya está en el documento de Marisol (§6 bis)
 
 Hecho lo que pidió Luis: `DECISIONES-LEGAL-FISCAL-2026-11-11.md` tiene una

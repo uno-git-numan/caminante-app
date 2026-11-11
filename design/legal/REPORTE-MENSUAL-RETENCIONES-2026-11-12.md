@@ -117,6 +117,23 @@ Facturapi:
 | ImpuestosTrasladadosdelServicio: Base, Impuesto, TipoFactor, TasaCuota, Importe | Base = PrecioServSinIVA; Impuesto = IVA (clave de c_TipodeImpuesto de retenciones); TipoFactor «Tasa»; TasaCuota de c_TasaCuota (0.160000); Importe = Base × TasaCuota; **sin negativos** | IVA de esa venta |
 | ComisionDelServicio: Base, Porcentaje, Importe | Importe obligatorio y > 0 | Comisión de esa venta sin IVA, su % y su base |
 
+**Claves confirmadas el 12 nov 2026 en los catálogos oficiales** (XLS de la
+Revisión E del complemento, publicado por el SAT el 31/12/2025 en su portal
+nuevo, y XLS de catálogos del CFDI de retenciones 2.0 en omawww.sat.gob.mx;
+copias en Drive `legal/2026-11 legal y fiscal/sat/`):
+
+| Campo | Clave | Fuente |
+|---|---|---|
+| TipoDeServ | **06** «Otro tipo de servicios» | c_TipoDeServ v8.0 (Rev. E). Para el **ejercicio 2026**: ISR **0.025** (2.5 %), IVA 50 % del trasladado; vigente desde 01/01/2026 (en 2025 era 0.01). Cuadra con la LIF 2026 art. 25 VI |
+| Periodicidad | **02** «Mensual» | c_Periodicidad v2.0 del CFDI de retenciones: 01 Semanal, **02 Mensual**, 03 Diario, 04 Quincenal, 05 Otro |
+| Impuesto (en ImpuestosTrasladadosdelServicio, del complemento) | **02** IVA | c_TipodeImpuesto del CFDI de retenciones: 01 ISR, 02 IVA, 03 IEPS |
+| ImpuestoRet (en ImpRetenidos, del comprobante 2.0) | **001** ISR, **002** IVA | El esquema `retencionpagov2.xsd` tipa `ImpuestoRet` con `catCFDI:c_Impuesto` (001/002/003), no con el catálogo de retenciones; el instructivo E lo escribe así («001 (ISR)», «002 (IVA)») |
+| TipoPagoRet del ISR | **04** «Pago provisional ISR» por omisión; **03** «Pago definitivo ISR plataformas» sólo para la operadora que acredite haber optado por el pago definitivo | LISR 113-A párrafo 3: «esta retención tendrá el carácter de pago provisional»; 113-B: la opción de definitivo es de la persona física (≤ $300,000, con aviso); la plataforma no la conoce salvo que la operadora se lo diga. Persona moral: siempre 04 |
+| TipoPagoRet del IVA | **01** «Pago definitivo IVA» | Única clave de IVA en c_TipoPagoRet (01 IVA, 02 IEPS, 03 ISR definitivo, 04 ISR provisional) |
+| FormaPagoServ | 03 tarjeta de crédito · 06 tarjeta de débito · **06 también para tarjeta prepago** · 02 transferencia | c_FormaPagoServ v2.0; no existe «prepago»: 04 «Monedero electrónico» es el de vales y 05 «Dinero electrónico» el de fondos de pago electrónico; una prepago de red bancaria se carga como débito (**M16**, Marisol confirma) |
+| ComisionDelServicio/@Porcentaje | Fracción con 3 decimales (20 % ⇒ 0.200) | XSD del complemento (verificado por producto) |
+| TasaCuota del IVA | 0.160000 | c_TasaCuota v3.0 (Rev. E) |
+
 Dos consecuencias de diseño que salen de estas reglas:
 
 1. **Todo es por venta** (una sección por cada cobro). El reporte tiene que
@@ -230,6 +247,7 @@ nunca al mes cerrado.
 | M12 | Devoluciones después del corte: ¿se queda la retención a favor de la operadora (como se decidió) o se cancela y sustituye el CFDI y se compensa en el siguiente entero? | §3 |
 | M13 | MonTotalporUsoPlataforma / ComisionDelServicio: comisión **sin** IVA; la cuota de admisión no se incluye | §2.2 |
 | M14 | FormaPagoServ por venta: la forma real del cliente (03/06/02) y no 08 «Intermediario pagos» | §2.2 |
+| M16 | Tarjeta **prepago** en FormaPagoServ: 06 (débito), no 04 ni 05 | §2.2 |
 | M15 | **Centavos: truncar por venta.** El SAT valida `montoRet` del CFDI como BaseRet **del mes** × tasa, **truncado** a 2 decimales; retener por venta redondeando puede dejar a NUMAN con hasta n centavos retenidos de más frente a lo que certifica. **Decidido (legal, 12 nov):** la retención por venta se calcula **truncando** (nunca se retiene de más); el `montoRet` del CFDI se calcula del total del mes como manda el instructivo, y los centavos que falten entre la suma de lo retenido por venta y ese `montoRet` **los pone NUMAN al enterar**. La operadora acredita lo que dice su CFDI. Marisol confirma que prefiere esto a devolver centavos | §2.2 |
 
 **Centavos (M15, decidido el 12 nov).** La retención se calcula **por venta,

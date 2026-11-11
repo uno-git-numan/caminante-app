@@ -543,6 +543,7 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M13 | En el complemento, la comisión va sin IVA y la cuota de admisión no se incluye | `REPORTE-MENSUAL-RETENCIONES` §2.2 |
 | M14 | Forma de pago por venta en el complemento: la real del cliente (03/06/02), no 08 «Intermediario pagos» | ídem |
 | M15 | Truncado por venta y centavos a cargo de NUMAN al enterar (decidido y en producción) | §6 bis |
+| M16 | Claves del CFDI de retenciones confirmadas en los catálogos oficiales el 12 nov (TipoDeServ 06 con 2.5 % en 2026, Periodicidad 02 mensual, TipoPagoRet 04 ISR provisional por omisión y 01 IVA, tarjeta prepago como débito 06): sólo la prepago y el «04 por omisión» son criterio nuestro | `REPORTE-MENSUAL-RETENCIONES` §2.2 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.
