@@ -57,6 +57,12 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: D15 cerrada (Luis: el dinero se libera ANTES)
+
+«El dinero se libera antes. Casi cuando le caiga el pago del cliente.» Cerrado en el documento de decisiones (tabla, sección D15 y §7), en
+`CONVENIO-v3.md` (nota de la Cuarta §6) y en la hoja de Luis. Sin cambio en
+código ni en el firmable publicado. PDF para Marisol regenerado.
+
 ## 12 nov 2026 · Legal: convenio v3.2 PUBLICADO y verificado desde esta sesión
 
 Leí `operator_agreement_versions` por PostgREST con la llave de servicio: **una

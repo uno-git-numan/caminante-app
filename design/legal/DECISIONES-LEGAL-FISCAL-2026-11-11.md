@@ -35,7 +35,7 @@ donde no hay dato, se dice y se dice de dónde saldría.
 | D12 | Cancelación del cliente: **piso legal de 5 días hábiles** de revocación cuando la salida está a más de 10 días hábiles (LFPC 56) **además** de las 24 h de Luis; cuando cancela la operadora por causa imputable, el cliente recibe **100 % + bonificación del 20 %** (LFPC 92 Bis y 92 Ter), a cargo de la operadora | Lógica de cancelación y texto en /reservar; la bonificación se descuenta a la operadora |
 | D13 | **Caminante devuelve al cliente de inmediato y recupera de la operadora** (es garante frente al cliente) | Ya es así en reembolsos (Stripe es la verdad); Quinta §9 lo respalda |
 | D14 | **Fuerza mayor** definida (clima, cierre por autoridad, contingencia o bloqueo, emergencia del guía) y la penalización es pena convencional dentro del CCF 1843 | Motivos de fuerza mayor en el registro de cancelación |
-| D15 | Liberar el dinero antes o después de la experiencia: **es de negocio, no legal** → Luis. Recomendación: antes, como hoy (así se queda hasta que decida) | Nada hasta que Luis decida |
+| D15 | Liberar el dinero antes o después de la experiencia: era de negocio y **Luis lo decidió el 12 nov: ANTES**, «El dinero se libera antes. Casi cuando le caiga el pago del cliente.» | Nada: es lo que el código hace (transferencia neta en el acto del cobro; Stripe deposita según el calendario de la cuenta) |
 | D16 | Datos a Stripe = **transferencia** (no encargo); consentimiento **expreso** en el convenio; el aviso de privacidad se actualiza con texto listo | Publicar el aviso nuevo antes de prender el alta dentro de la plataforma |
 | D17 | Anthropic (lectura de CSF) = **persona encargada**; la CLABE y la CURP se conservan como datos fiscales | Mención en el aviso; nada más |
 | D18 | NUMAN **no** realiza actividad vulnerable (LFPIORPI 17) **ni** emite fondos de pago electrónico (LRITF 22) | Nada |
@@ -320,6 +320,10 @@ reservas, cumple.
 
 ### D15 · Liberar el dinero antes o después de la experiencia — es de negocio
 
+**Decidido por Luis el 12 nov 2026: antes.** «El dinero se libera antes. Casi cuando le caiga el pago del cliente.» Coincide con la
+recomendación legal y con el código (transferencia neta en el acto del cobro);
+nada cambia en el convenio (Cuarta §5 y §6). Lo que sigue era el análisis:
+
 **Qué.** No es una decisión legal: es de riesgo y de flujo de la operadora.
 **Va a Luis.** Recomendación de la sesión legal: **antes, como hoy**, porque el
 convenio ya tiene los dos candados que importan (Quinta §9: reversión,
@@ -509,7 +513,7 @@ va con IVA (M11).
 
 - Mandar este documento a Marisol (y el correo con las preguntas, que ahora son
   «confirma estas decisiones»).
-- Decidir D15 (liberar antes o después).
+- ~~Decidir D15 (liberar antes o después).~~ Decidido el 12 nov: antes.
 - ~~Publicar el convenio v3.2~~ Hecho: publicado el 11 nov 2026 con el hash
   comparado; las operadoras ya pueden firmar.
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
