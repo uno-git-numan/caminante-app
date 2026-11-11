@@ -4,7 +4,7 @@
 (https://caminante.numanhub.com/caminante/privacidad). Se **agregan** las
 secciones de abajo y se **cambian** tres frases; todo lo demás se queda. Cambiar
 «Última actualización: julio 2026» por «noviembre 2026». Fundamento y decisión:
-`DECISIONES-LEGAL-FISCAL-2026-11-11.md` D4, D15 y D16.
+`DECISIONES-LEGAL-FISCAL-2026-11-11.md` D4, D16 y D17.
 
 ## Cambios a frases existentes
 
@@ -79,5 +79,5 @@ secciones de abajo y se **cambian** tres frases; todo lo demás se queda. Cambia
   LFPDPPP 2025 art. 35 (el aviso «contendrá una cláusula en la que se indique si
   la persona titular acepta o no la transferencia»).
 - La mención de Anthropic como encargado y de la CLABE/CURP conservadas sale de
-  las decisiones D16 y D4.
+  las decisiones D17 y D4.
 - El mecanismo de revocación lo exige el art. 7, último párrafo.

@@ -12,11 +12,23 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 11 nov 2026 (noche) · Luis eligió B (Airbnb): se construye con retención
+
+Luis preguntó si la operadora podía recibir el dinero y pagar ella sus
+impuestos; se le compararon A (cargo directo, sin retención, sólo informativa),
+B (cargo con destino, con retención) y C (NUMAN vende) en
+`RETENCION-TRES-CAMINOS-2026-11-11.md`. **Decidió B**: «Hay que hacerlo como
+hace airbnb entonces. Construye.» Producto construye el §6 del documento de
+decisiones en orden: candado, módulo de retención, CURP/CLABE/domicilio
+fiscal, aviso de privacidad, CFDI de la admisión, cancelaciones LFPC, «IVA
+incluido», clave 90121501. D15 (liberar el dinero) se queda como hoy. Numeración
+del documento de decisiones corregida (D1–D18; producto cita los títulos).
+
 ## 11 nov 2026 (tarde) · Respuesta de la sesión legal al mandato nuevo: todo decidido
 
 **Luis (vía producto):** no hay abogado externo; legal decide, se construye así,
 Marisol revisa después. **Hecho.** Un solo documento, legible sin el repo:
-`design/legal/DECISIONES-LEGAL-FISCAL-2026-11-11.md` (D1–D17, fundamento con
+`design/legal/DECISIONES-LEGAL-FISCAL-2026-11-11.md` (D1–D18, fundamento con
 artículo y alternativa descartada; §10 = lo que Marisol confirma). Convenio
 **v3.2** cerrado (`CONVENIO-v3.md` → `CONVENIO-v3-FIRMABLE.md`), con la
 **variante B de retención** en el firmable. Texto del aviso de privacidad listo:
@@ -49,7 +61,7 @@ artículo y alternativa descartada; §10 = lo que Marisol confirma). Convenio
 8. Clave **90121501** en el CFDI de la experiencia (hoy 90121500).
 
 **Es de negocio, no legal → Luis:** liberar el dinero antes o después de la
-experiencia (D14; recomendación legal: antes, como hoy). **Nada que construir**
+experiencia (D15; recomendación legal: antes, como hoy). **Nada que construir**
 sobre RESICO salvo el aviso en pantalla.
 
 ## 11 nov 2026 (tarde) · La cuota de admisión, construida

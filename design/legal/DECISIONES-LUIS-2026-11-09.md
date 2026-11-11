@@ -25,17 +25,25 @@ manda a Jorge, Marisol o Laura hasta que Luis lo diga.
 | 9 | **Mensaje a Cat/Laura (Nomádika)** pidiendo su CSF para saber su régimen (¿RESICO?) | `design/legal/ONBOARDING-FISCAL-OPERADORA-PF.md` |
 | 10 | **Alta de NUMAN como retenedora** ante el SAT: lo presenta Marisol con la e.firma de Luis cuando conteste el memo | `design/contabilidad/NUMAN-PLATAFORMA-RETENEDORA.md` §3 |
 
+## 11 nov 2026 (noche) · DECIDIDO: camino B (Airbnb, con retención)
+
+Luis: «Hay que hacerlo como hace airbnb entonces. Construye.» La comparación A/B/C
+queda en `RETENCION-TRES-CAMINOS-2026-11-11.md`. Le queda a Luis: D15 (liberar el
+dinero antes o después; hoy antes), mandar `DECISIONES-LEGAL-FISCAL-2026-11-11.md`
+a Marisol, publicar el convenio v3.2 cuando producto confirme el candado, pedir la
+CSF de Nomádika, y firmar el alta de retenedora que presente Marisol.
+
 ## 11 nov 2026 (tarde) · Cambió el mandato: legal decide, Marisol revisa
 
 Luis: «Jorge ya no existe… quiero que legal tome esas decisiones con su criterio
 y vayamos construyendo así». Todo lo que arriba decía «Jorge» o «Marisol
 confirma» quedó **decidido** en `DECISIONES-LEGAL-FISCAL-2026-11-11.md`. Lo que
 le queda a Luis de esa lista: **mandar ese documento a Marisol** (sustituye al
-correo de preguntas, o lo acompaña), **D14** (liberar el dinero antes o después:
+correo de preguntas, o lo acompaña), **D15** (liberar el dinero antes o después:
 es de negocio), publicar el convenio v3.2 con el hash cuando producto confirme
 el candado de retención, pedir la CSF de Nomádika, y firmar con la e.firma el
 aviso de retenedora que presente Marisol. Las filas 11–13 de abajo quedan así:
-11 → sigue siendo de Luis (D14); 12 → decidido por legal (piso legal + 24 h);
+11 → sigue siendo de Luis (D15); 12 → decidido por legal (piso legal + 24 h);
 13 → ya no aplica: el correo a Marisol lleva el documento de decisiones.
 
 ## Agregadas el 11 nov 2026 (bitácora de la sesión de producto, preguntas i1–i3)

@@ -1,5 +1,10 @@
 # Retención de impuestos a las operadoras: tres caminos comparados por simpleza
 
+> **DECIDIDO (Luis, 11 nov 2026, noche): camino B**, el de Airbnb: «Hay que hacerlo
+> como hace airbnb entonces. Construye.» Este documento queda como registro de lo
+> que se comparó y se descartó. El convenio v3.2 y el documento de decisiones
+> (D1–D5) se quedan como estaban; la lista de construcción del §6 sigue.
+
 **11 nov 2026 (noche) · Sesión legal y fiscal, para Luis.** Luis frenó la
 construcción con tres preguntas: «¿Qué pasa si le das a la operadora el cash que
 le corresponde y ellos retienen su IVA y su ISR? ¿Cómo lo hace Airbnb? Nosotros no

@@ -21,22 +21,25 @@ donde no hay dato, se dice y se dice de dónde saldría.
 
 | # | Decisión | Qué cambia en la plataforma |
 |---|---|---|
-| D1 | **NUMAN retiene ISR e IVA a las operadoras desde la primera venta cobrada por cuenta conectada** (modelo B de Stripe) | Módulo de retención **antes** de la primera venta de Nomádika; mientras no exista, el sistema no vende por cuenta conectada |
+| D1 | **NUMAN retiene ISR e IVA a las operadoras desde la primera venta cobrada por cuenta conectada** (modelo B de Stripe, el de Airbnb; **confirmado por Luis el 11 nov en la noche**) | Módulo de retención **antes** de la primera venta de Nomádika; mientras no exista, el sistema no vende por cuenta conectada |
 | D2 | Tasas 2026: **ISR 2.5 %** sobre lo cobrado sin IVA; **IVA 50 %** del IVA cobrado; sin RFC válido **20 % / 100 %**. Personas físicas y morales igual | Tasas en configuración por ejercicio y tipo de persona |
 | D3 | Base = **todo lo que el cliente paga, sin IVA**, incluidos complementos; la comisión de NUMAN **no** reduce la base | El cálculo parte del total cobrado, no del neto de la operadora |
-| D4 | Calendario: entero **día 17**; CFDI de retenciones **día 5**; informativa de operadoras **día 10** (nombre, RFC, **CURP**, domicilio fiscal, **banco y CLABE**, monto) | La plataforma **sí guarda la CLABE y la CURP** de la operadora (cambia lo dicho el 9–11 nov); salen de la CSF y de la captura fiscal |
+| D4 | Calendario: entero **día 17**; CFDI de retenciones **día 5**; informativa de operadoras **día 10** (nombre, RFC, **CURP**, domicilio fiscal, **banco y CLABE**, monto) | La plataforma **sí guarda la CLABE y la CURP** de la operadora (cambia lo dicho el 9–11 nov); salen de la CSF y de la ficha fiscal |
 | D5 | CSF validada contra el SAT = RFC proporcionado = tasa con RFC | Ya está; sin CSF válida, tasa sin RFC |
 | D6 | Pagos actuales a Nomádika contra factura: **sin retención de ISR del 10 %** (no es servicio profesional); **1.25 % sólo si es RESICO**; IVA sin retención | Depende de su CSF (pendiente de pedirla) |
 | D7 | **Cuota de admisión**: servicio gravado, **$20 con IVA incluido** ($17.24 + $2.76), **renglón aparte en el CFDI de la comisión** de esa venta, clave 80141628, forma de pago 17 (compensación) | Desglose del CFDI de la admisión |
 | D8 | Claves y CFDI: experiencia **90121501**; comisión **80141628**; uso **G03** (S01 si no deduce); **PUE**; forma de pago en el CFDI de la operadora al cliente = **la real del cliente** (04/28/03/01), no 31 | Sin cambio salvo la clave (hoy 90121500 → 90121501) |
 | D9 | Devoluciones: parcial → CFDI de egreso relacionado; total mismo mes → cancelar motivo 03; total mes cerrado → egreso; comisión devuelta → egreso proporcional de NUMAN | Ya está en el diseño de facturación |
 | D10 | Global mensual «público en general» **por emisor**, RFC XAXX010101000 | Ya está |
-| D11 | Cancelación del cliente: **piso legal de 5 días hábiles** de revocación cuando la salida está a más de 10 días hábiles (LFPC 56) **además** de las 24 h de Luis; cuando cancela la operadora por causa imputable, el cliente recibe **100 % + bonificación del 20 %** (LFPC 92 Bis y 92 Ter), a cargo de la operadora | Lógica de cancelación y texto en /reservar; la bonificación se descuenta a la operadora |
-| D12 | **Caminante devuelve al cliente de inmediato y recupera de la operadora** (es garante frente al cliente) | Ya es así en reembolsos (Stripe es la verdad); Quinta §9 lo respalda |
-| D13 | Liberar el dinero antes o después de la experiencia: **es de negocio, no legal** → Luis. Recomendación: antes, como hoy | Nada hasta que Luis decida |
-| D14 | Datos a Stripe = **transferencia** (no encargo); consentimiento **expreso** en el convenio; Anthropic (lectura de CSF) = **persona encargada**; el aviso de privacidad se actualiza con texto listo | Publicar el aviso nuevo antes de prender el alta dentro de la plataforma |
-| D15 | NUMAN **no** realiza actividad vulnerable (LFPIORPI 17) **ni** emite fondos de pago electrónico (LRITF 22) | Nada |
-| D16 | Convenio v3.2 cerrado: representante por nombre, tope de responsabilidad, sede CDMX, mandato de timbrado, fuerza mayor definida, **variante B de retención** | Luis publica con el hash comparado; producto bloquea la venta por cuenta conectada hasta que retenga |
+| D11 | **Alta de NUMAN como retenedora** antes de la primera retención (la presenta Marisol con la e.firma de Luis); RESICO es problema del régimen de la operadora, no de la retención | Aviso en pantalla a personas físicas en RESICO |
+| D12 | Cancelación del cliente: **piso legal de 5 días hábiles** de revocación cuando la salida está a más de 10 días hábiles (LFPC 56) **además** de las 24 h de Luis; cuando cancela la operadora por causa imputable, el cliente recibe **100 % + bonificación del 20 %** (LFPC 92 Bis y 92 Ter), a cargo de la operadora | Lógica de cancelación y texto en /reservar; la bonificación se descuenta a la operadora |
+| D13 | **Caminante devuelve al cliente de inmediato y recupera de la operadora** (es garante frente al cliente) | Ya es así en reembolsos (Stripe es la verdad); Quinta §9 lo respalda |
+| D14 | **Fuerza mayor** definida (clima, cierre por autoridad, contingencia o bloqueo, emergencia del guía) y la penalización es pena convencional dentro del CCF 1843 | Motivos de fuerza mayor en el registro de cancelación |
+| D15 | Liberar el dinero antes o después de la experiencia: **es de negocio, no legal** → Luis. Recomendación: antes, como hoy (así se queda hasta que decida) | Nada hasta que Luis decida |
+| D16 | Datos a Stripe = **transferencia** (no encargo); consentimiento **expreso** en el convenio; el aviso de privacidad se actualiza con texto listo | Publicar el aviso nuevo antes de prender el alta dentro de la plataforma |
+| D17 | Anthropic (lectura de CSF) = **persona encargada**; la CLABE y la CURP se conservan como datos fiscales | Mención en el aviso; nada más |
+| D18 | NUMAN **no** realiza actividad vulnerable (LFPIORPI 17) **ni** emite fondos de pago electrónico (LRITF 22) | Nada |
+| §5 | Convenio v3.2 cerrado: representante por nombre, tope de responsabilidad, sede CDMX, mandato de timbrado, **variante B de retención** | Luis publica con el hash comparado; producto bloquea la venta por cuenta conectada hasta que retenga |
 
 ---
 
@@ -66,11 +69,20 @@ efectivamente cobrada); una venta cobrada sin retener es una retención omitida,
 no un periodo de gracia. Por eso no existe la opción de «arrancar y retener
 después» (pregunta h2).
 
-**Alternativa descartada.** Cargos directos en la cuenta de la operadora (el
-dinero nunca entra a NUMAN; Stripe cobra la comisión de aplicación). Luis eligió
-el modelo B el 11 nov y Stripe lo configuró así; además con cargos directos el
-113-A seguiría aplicando (la operadora percibe «por conducto» de la plataforma)
-y sólo se perdería el control del dinero. No se reabre.
+**Confirmado por Luis el 11 nov (noche).** Preguntó si la operadora podía
+recibir el dinero y «retener» ella misma, cómo lo hace Airbnb y si NUMAN iba a
+declarar por la operadora. Se le compararon tres caminos en
+`RETENCION-TRES-CAMINOS-2026-11-11.md`: **A**, cargo directo en la cuenta de la
+operadora (NUMAN no retiene; sólo la informativa del día 10; la ley lo prevé en
+LIVA 18-M y LISR 113-A párrafo 4; la operadora paga el procesador y una
+operadora sin cuenta conectada no vende); **B**, cargo con destino, el de
+Airbnb (NUMAN cobra por cuenta de la operadora y retiene); **C**, NUMAN vende a
+nombre propio (IVA e ISR sobre dinero ajeno, toda la responsabilidad LFPC,
+rompe el modelo). Luis: «Hay que hacerlo como hace airbnb entonces. Construye.»
+**Decidido: B.** A queda documentado como alternativa válida por si algún día
+el costo de retener pesa más que el control del dinero; C no se recomienda.
+NUMAN nunca declara por la operadora: entera lo que retuvo y ella declara lo
+suyo.
 
 **Lo que NO retiene NUMAN.** Las ventas de las experiencias propias (operadora
 `numan-caminante`, 100 % casa) no son ingresos de un tercero: no hay retención.
@@ -246,7 +258,7 @@ RESICO que consulte a su contador. *Marisol cita la regla (§10).*
 
 ## 2 · Cancelaciones y protección al consumidor
 
-### D11 · Piso legal para el cliente (LFPC 56) y bonificación (92 Bis y 92 Ter)
+### D12 · Piso legal para el cliente (LFPC 56) y bonificación (92 Bis y 92 Ter)
 
 **Qué.** Se conservan los números de Luis (30/15 y 60/30 → 100/50/0 %; 24 h de
 arrepentimiento si la salida está a 7 días o más). Se agrega el **piso legal**:
@@ -274,7 +286,7 @@ omitirse en la política que el cliente acepta.
 no puede ser menor que la ley; si PROFECO la revisa, la cláusula cae y el daño
 es la reputación.
 
-### D12 · Caminante devuelve al cliente y recupera de la operadora
+### D13 · Caminante devuelve al cliente y recupera de la operadora
 
 **Qué.** Cuando proceda una devolución, Caminante la hace al cliente **de
 inmediato** por la misma vía del cobro y la recupera de la operadora
@@ -289,7 +301,7 @@ contracargos (perfil B, 11 nov); y el sistema ya opera así (la verdad de un
 reembolso es Stripe). Decir «intermediaria» en el convenio y actuar como
 garante sería un texto que miente.
 
-### D13 · Fuerza mayor y pena convencional
+### D14 · Fuerza mayor y pena convencional
 
 **Fuerza mayor** (exime la penalización y la bonificación): condiciones
 meteorológicas que impidan operar con seguridad conforme al protocolo de la
@@ -302,7 +314,7 @@ $15,000) es pena convencional; CCF 1843: «no puede exceder ni en valor ni en
 cuantía a la obligación principal», y como el máximo es 30 % del valor de las
 reservas, cumple.
 
-### D14 · Liberar el dinero antes o después de la experiencia — es de negocio
+### D15 · Liberar el dinero antes o después de la experiencia — es de negocio
 
 **Qué.** No es una decisión legal: es de riesgo y de flujo de la operadora.
 **Va a Luis.** Recomendación de la sesión legal: **antes, como hoy**, porque el
@@ -315,7 +327,7 @@ actual de Nomádika el saldo negativo es de Stripe, no de NUMAN. Si Luis elige
 
 ## 3 · Datos personales
 
-### D15 · Los datos que van a Stripe son una transferencia; el consentimiento es expreso
+### D16 · Los datos que van a Stripe son una transferencia; el consentimiento es expreso
 
 **Qué.** Comunicar a Stripe los datos de la operadora (identidad, nacimiento,
 domicilio, teléfono, RFC, identificación, CLABE) es una **transferencia** (no un
@@ -343,7 +355,7 @@ consentimiento. No cuadra: la operadora firma el contrato de Stripe
 directamente (Cuarta §7 a) y Stripe decide finalidades propias (verificación,
 prevención de fraude).
 
-### D16 · Anthropic (lectura de la CSF) es persona encargada; la CLABE y la CURP se conservan
+### D17 · Anthropic (lectura de la CSF) es persona encargada; la CLABE y la CURP se conservan
 
 **Qué.** La herramienta que lee la Constancia y la identificación (API de
 Claude) trata los datos **por cuenta de Caminante y bajo sus instrucciones**:
@@ -360,7 +372,7 @@ informativa mensual: el aviso lo dice y da el fundamento (LIVA 18-J III).
 
 ## 4 · Lavado de dinero y Ley Fintech
 
-### D17 · NUMAN no realiza actividad vulnerable ni es institución de fondos de pago electrónico
+### D18 · NUMAN no realiza actividad vulnerable ni es institución de fondos de pago electrónico
 
 **Qué.** No hay obligación de aviso ante la UIF ni autorización de la CNBV.
 
@@ -399,10 +411,10 @@ restringidos; el convenio ya lo dice (Cuarta §7 e).
 |---|---|---|
 | Preámbulo | NUMAN HUB representada por **Luis de la Rosa Orvañanos** con las facultades de la escritura 107,629; el carácter exacto (administrador único / apoderado) se toma del acta y se escribe en la carátula | La carátula la genera el sistema; un nombre en el texto evita la duda de «quién firma» |
 | Cuarta §8 | **Variante B** (retiene) en el firmable | D1. El firmable dice la verdad desde la primera venta porque la venta por cuenta conectada se bloquea hasta que el sistema retenga |
-| Quinta §2 | Piso legal de 5 días hábiles (salida a más de 10 días hábiles) | D11 |
-| Quinta §3 | Fuerza mayor definida; bonificación del 20 % al cliente a cargo de la operadora | D11, D13 |
-| Quinta §5 | Caminante devuelve y recupera | D12 |
-| Octava §2 y §3 | Encargado (IA) y transferencia (Stripe); CLABE y CURP conservadas | D15, D16, D4 |
+| Quinta §2 | Piso legal de 5 días hábiles (salida a más de 10 días hábiles) | D12 |
+| Quinta §3 | Fuerza mayor definida; bonificación del 20 % al cliente a cargo de la operadora | D12, D14 |
+| Quinta §5 | Caminante devuelve y recupera | D13 |
+| Octava §2 y §3 | Encargado (IA) y transferencia (Stripe); CLABE y CURP conservadas | D16, D17, D4 |
 | Novena | Tope: la responsabilidad total de Caminante frente al Operador no excede las comisiones cobradas a ese Operador en los 12 meses anteriores; sin daños indirectos ni lucro cesante | CCF 2110: los daños deben ser consecuencia «inmediata y directa»; el tope es la práctica estándar de plataformas y proporcional al ingreso |
 | Décima tercera §1 a) | La autorización para timbrar con el CSD de la operadora es **mandato** limitado a generar, timbrar y conservar CFDI por su cuenta; la operadora es la emisora | CCF 2546: el mandatario ejecuta por cuenta del mandante los actos que éste le encarga; el CSD es de ella y el PAC (Facturapi) timbra |
 | Décima octava | Leyes federales; tribunales de la **Ciudad de México**; antes, 15 días hábiles de negociación directa por escrito | Domicilio de NUMAN; la mediación obligatoria descartada por costo y porque frena cobros pequeños |
@@ -423,17 +435,17 @@ restringidos; el convenio ya lo dice (Cuarta §7 e).
    CLABE; corrección en devoluciones.
 3. **CURP y CLABE como datos fiscales** de la operadora (D4): CURP de la CSF;
    CLABE en la ficha fiscal; aviso de privacidad actualizado.
-4. **Aviso de privacidad** (D15, D16): texto listo en
+4. **Aviso de privacidad** (D16, D17): texto listo en
    `AVISO-PRIVACIDAD-ADICIONES-2026-11.md`. Desbloquea el alta dentro de la
    plataforma.
 5. **CFDI de la admisión** (D7): renglón aparte, IVA incluido, forma de pago 17.
-6. **Cancelaciones** (D11, D12): piso legal de 5 días hábiles; bonificación del
+6. **Cancelaciones** (D12, D13): piso legal de 5 días hábiles; bonificación del
    20 % a cargo de la operadora cuando cancela por causa imputable; devolución
    por la misma vía (ya).
 7. **Leyenda «IVA incluido»** en todo precio publicado (LIVA 18-J I).
 8. Clave 90121501 en el CFDI de la experiencia (hoy 90121500).
 
-Lo que **no** se construye: nada sobre liberar el dinero después (D14, Luis);
+Lo que **no** se construye: nada sobre liberar el dinero después (D15, Luis);
 nada sobre RESICO salvo el aviso en pantalla.
 
 ---
@@ -442,7 +454,7 @@ nada sobre RESICO salvo el aviso en pantalla.
 
 - Mandar este documento a Marisol (y el correo con las preguntas, que ahora son
   «confirma estas decisiones»).
-- Decidir D14 (liberar antes o después).
+- Decidir D15 (liberar antes o después).
 - Publicar el convenio v3.2 con el hash comparado cuando producto confirme el
   candado del punto 1.
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
