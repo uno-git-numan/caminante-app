@@ -159,3 +159,8 @@ convenio, filas 13 y 14):
    cuenta de Nomádika nació así. ¿Qué dice Stripe para `acct_1UaiUdGRRBL2rPeh`?
    El convenio está escrito para el caso en que responde NUMAN (el que Luis
    aceptó); si Stripe manda, cambia la nota a Jorge, no el texto.
+   **Resuelto (producto, 11 nov tarde):** `losses_collector = stripe` para esa
+   cuenta; reembolsos y contracargos salen primero del saldo de NUMAN y se
+   recuperan revirtiendo la transferencia; con el alta en plataforma nacen con
+   `application`. El texto del convenio sirve para los dos; sólo cambió la nota
+   a Jorge en la Cuarta §7. Aviso de privacidad: `src/app/caminante/privacidad/page.tsx`.
