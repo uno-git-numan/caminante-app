@@ -235,6 +235,25 @@ export function clienteFacturapi(key: string) {
       await llamar(key, "POST", `/invoices/${facturapiId}/email`, email ? { email } : {}).catch(() => {});
     },
 
+    /**
+     * CFDI de retenciones e información de pagos (POST /v2/retentions, OpenAPI de
+     * Facturapi). El cuerpo lo arma `payloadRetencion` (lib/fiscal/cfdi-retenciones.ts).
+     * Sin `status: "draft"` se timbra en la misma llamada.
+     */
+    async crearRetencion(cuerpo: Json): Promise<{ id: string; uuid: string; status: string }> {
+      const json = await llamar<{ id?: string; uuid?: string | null; status?: string }>(key, "POST", "/retentions", cuerpo);
+      if (!json?.id || !json.uuid) throw new Error("Facturapi no devolvió el folio de la retención.");
+      return { id: json.id, uuid: json.uuid, status: json.status ?? "valid" };
+    },
+
+    descargarRetencion: (retentionId: string, formato: "xml" | "pdf") =>
+      bajar(key, `/retentions/${retentionId}/${formato}`, `el ${formato.toUpperCase()} de la retención`),
+
+    /** Manda XML y PDF al correo del receptor (o al que se diga). */
+    async enviarRetencionPorCorreo(retentionId: string, email?: string): Promise<void> {
+      await llamar(key, "POST", `/retentions/${retentionId}/email`, email ? { email } : {});
+    },
+
     /** Cancela un CFDI. motivo: 01 con relación · 02 sin relación · 03 no se llevó a cabo · 04 nominativa en global. */
     async cancelarCFDI(facturapiId: string, motivo: "01" | "02" | "03" | "04", sustituto?: string): Promise<void> {
       const q = new URLSearchParams({ motive: motivo, ...(sustituto ? { substitution: sustituto } : {}) });

@@ -39,6 +39,10 @@
     {
       "path": "/caminante/api/cron/factura-global",
       "schedule": "0 13 1 * *"
+    },
+    {
+      "path": "/caminante/api/cron/retenciones",
+      "schedule": "0 16 2 * *"
     }
   ]
 }

@@ -207,6 +207,33 @@ Marisol lo pidió para presentar las informativas. Pantalla de la casa
 - Formatos: `design/legal/REPORTE-MENSUAL-RETENCIONES-2026-11-12.md`. Dudas
   abiertas para Marisol: M10–M14 de ese documento.
 
+## El CFDI de retenciones (0082, 12 nov 2026)
+
+Uno por operadora y mes, a más tardar el día 5 (LISR 113-C II): clave 26 con
+el complemento «Servicios Plataformas Tecnológicas» 1.0, una sección por venta.
+
+- **Puro** (`lib/fiscal/cfdi-retenciones.ts`): montos con la regla del SAT
+  (base del mes × tasa, TRUNCADO), XML del complemento **validado contra el XSD
+  oficial** (`tests/fixtures/sat/`, la prueba corre si hay `xmllint`), cuerpo
+  de `POST /v2/retentions` de Facturapi (`complements: [xml]`).
+- ⚠️ **`CATALOGO` en null = no se emite.** Tipo de servicio, periodicidad,
+  tipo de impuesto, tipo de pago de la retención y forma de pago de prepago
+  los confirma la sesión legal (pregunta del 12 nov). `catalogoListo()` dice
+  cuál falta. Tampoco se emite sin `FACTURAPI_SECRET_KEY` (llave de NUMAN).
+- **Emisión** (`emitir-retenciones.ts`): aparta una fila VIVA por operadora y
+  mes en `cfdi_retenciones` (índice parcial) ANTES de llamar al PAC; idempotency
+  `ret-<mes>-<operadora>`; una «pendiente» de más de 15 min se reintenta. Al
+  timbrar la manda por correo a la operadora. Su `timbrado_at` es el CORTE del
+  reporte. Botones en «Retenciones del mes» y cron el día 2
+  (`/caminante/api/cron/retenciones`).
+- **Forma de pago por venta** (M14): `payments.medio_pago` (card:credit,
+  card:debit, oxxo…), crudo de Stripe; la clave SAT se deriva al emitir.
+- ⚠️ **El webhook trae `payment_intent` como id, sin expandir.** Hasta el 12 nov
+  el `transfer_id` nunca se llenaba (la admisión no se habría cobrado).
+  `finalize-selfserve` ahora pide el PaymentIntent con `expand: latest_charge`.
+- Lo que se ENTERA el 17 es lo que dicen los CFDI (`totales.isrEnterar`); lo
+  retenido por venta puede diferir unos centavos: los pone NUMAN (M15).
+
 ## El alta en 15 minutos: un dato se obtiene, no se pide (9 nov 2026)
 
 Meta de Luis: pasar de la solicitud a cobrar tan rápido como se abre una cuenta

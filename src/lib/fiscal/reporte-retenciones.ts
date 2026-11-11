@@ -26,6 +26,8 @@
 
 import { IVA } from "@/lib/operadores/comision";
 import type { Domicilio } from "@/lib/operadores/fiscal-privado";
+import { montosSegunSat, type MontosSat } from "./cfdi-retenciones";
+import { TASAS_POR_EJERCICIO } from "./retencion";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -46,6 +48,8 @@ export type VentaRetenida = {
   /** Comisión de NUMAN SIN IVA (platform_fee_mxn), para el complemento. */
   comision: number | null;
   regla: string | null;
+  /** payments.medio_pago (card:credit, card:debit, oxxo…). */
+  medio?: string | null;
 };
 
 export type Devolucion = { paymentId: string; confirmadoAt: string; monto: number };
@@ -75,6 +79,7 @@ export type VentaDelReporte = {
   iva: number;
   comision: number | null;
   comisionPct: number | null;
+  medio: string | null;
   /** false = devuelta completa antes del corte: no se reporta. */
   seReporta: boolean;
 };
@@ -93,6 +98,13 @@ export type RenglonOperadora = {
   isrRetenido: number;
   ivaRetenido: number;
   comision: number;
+  /**
+   * Lo que dirá el CFDI de retenciones con la regla del SAT (base del mes ×
+   * tasa, TRUNCADO): es lo que se ENTERA. Puede diferir unos centavos de
+   * `isrRetenido`/`ivaRetenido` (suma por venta); la diferencia la pone NUMAN
+   * (legal, M15). null si el ejercicio no tiene tasas.
+   */
+  sat: MontosSat | null;
   faltan: string[];
 };
 
@@ -100,7 +112,17 @@ export type ReporteMes = {
   mes: string;
   corte: string;
   renglones: RenglonOperadora[];
-  totales: { ventas: number; base: number; ivaCobrado: number; isrRetenido: number; ivaRetenido: number; devueltoNetado: number };
+  totales: {
+    ventas: number;
+    base: number;
+    ivaCobrado: number;
+    isrRetenido: number;
+    ivaRetenido: number;
+    devueltoNetado: number;
+    /** Lo que se entera el día 17: suma de lo que dicen los CFDI (regla del SAT). */
+    isrEnterar: number;
+    ivaEnterar: number;
+  };
   detalle: VentaDelReporte[];
 };
 
@@ -116,11 +138,15 @@ export function armarReporte(
   ventas: VentaRetenida[],
   devoluciones: Devolucion[],
   corte: Date = new Date(),
+  /** El corte de cada operadora con CFDI ya timbrado: su `timbrado_at`. */
+  cortePorOperadora: Map<string, string> = new Map(),
 ): ReporteMes {
   const corteIso = corte.toISOString();
+  const opDePago = new Map(ventas.map((v) => [v.paymentId, v.operatorId]));
   const devueltoDe = new Map<string, number>();
   for (const d of devoluciones) {
-    if (d.confirmadoAt > corteIso) continue; // después del corte: no toca el mes
+    const corteOp = cortePorOperadora.get(opDePago.get(d.paymentId) ?? "") ?? corteIso;
+    if (d.confirmadoAt > corteOp) continue; // después del corte: no toca el mes
     devueltoDe.set(d.paymentId, (devueltoDe.get(d.paymentId) ?? 0) + d.monto);
   }
 
@@ -145,6 +171,7 @@ export function armarReporte(
         iva: r2(v.iva * prop),
         comision,
         comisionPct: comision != null && base > 0 ? r2((comision / base) * 100) : null,
+        medio: v.medio ?? null,
         seReporta: neto > 0,
       };
     })
@@ -156,6 +183,7 @@ export function armarReporte(
     porOp.get(d.operatorId)!.push(d);
   }
   const ops = new Map(operadoras.map((o) => [o.id, o]));
+  const tasas = TASAS_POR_EJERCICIO[Number(mes.slice(0, 4))];
 
   const renglones: RenglonOperadora[] = [...porOp.entries()]
     .map(([id, vs]) => {
@@ -193,6 +221,12 @@ export function armarReporte(
         isrRetenido: suma("isr"),
         ivaRetenido: suma("iva"),
         comision: r2(vs.reduce((n, x) => n + (x.comision ?? 0), 0)),
+        sat: tasas
+          ? montosSegunSat(
+              vs.map((x) => ({ paymentId: x.paymentId, fecha: x.fecha.slice(0, 10), base: x.base, comision: x.comision, medio: x.medio })),
+              { isr: tasas.isr, iva: tasas.iva },
+            )
+          : null,
         faltan,
       };
     })
@@ -210,6 +244,8 @@ export function armarReporte(
       isrRetenido: t("isrRetenido"),
       ivaRetenido: t("ivaRetenido"),
       devueltoNetado: r2(detalle.reduce((n, x) => n + x.devuelto, 0)),
+      isrEnterar: r2(renglones.reduce((n, x) => n + (x.sat?.isr ?? x.isrRetenido), 0)),
+      ivaEnterar: r2(renglones.reduce((n, x) => n + (x.sat?.iva ?? x.ivaRetenido), 0)),
     },
     detalle,
   };

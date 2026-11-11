@@ -21,6 +21,8 @@ import { formatMXN } from "@/lib/admin/formato";
 import { MES_VALIDO, reporteRetenciones } from "@/lib/fiscal/reporte-retenciones-server";
 import { mesCdmx, txtInformativa } from "@/lib/fiscal/reporte-retenciones";
 import { clabeEnmascarada } from "@/lib/fiscal/clabe";
+import { puedeEmitir } from "@/lib/fiscal/emitir-retenciones";
+import EmitirCfdi from "./EmitirCfdi";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +45,7 @@ export default async function RetencionesPage({ searchParams }: { searchParams: 
   const despues = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
   const incompletas = rep.renglones.filter((r) => r.faltan.length);
   const { fuera } = txtInformativa(rep);
+  const emision = puedeEmitir();
 
   return (
     <AdminShell active="pl-recursos">
@@ -76,12 +79,12 @@ export default async function RetencionesPage({ searchParams }: { searchParams: 
         <div className="card pad">
           <div className="dl">
             <div>
-              <span>ISR retenido a enterar</span>
-              <b className="mono">{formatMXN(rep.totales.isrRetenido)}</b>
+              <span>ISR a enterar (día 17)</span>
+              <b className="mono">{formatMXN(rep.totales.isrEnterar)}</b>
             </div>
             <div>
-              <span>IVA retenido a enterar</span>
-              <b className="mono">{formatMXN(rep.totales.ivaRetenido)}</b>
+              <span>IVA a enterar (día 17)</span>
+              <b className="mono">{formatMXN(rep.totales.ivaEnterar)}</b>
             </div>
             <div>
               <span>Operaciones sin IVA ({rep.totales.ventas} ventas)</span>
@@ -106,6 +109,26 @@ export default async function RetencionesPage({ searchParams }: { searchParams: 
             Detalle venta por venta
           </a>
         </p>
+
+        <p className="desc" style={{ marginTop: 6, fontSize: 13 }}>
+          Lo que se entera es lo que dicen los CFDI de retenciones (base del mes × tasa, truncado, regla
+          del SAT). Retenido venta por venta: ISR {formatMXN(rep.totales.isrRetenido)} · IVA{" "}
+          {formatMXN(rep.totales.ivaRetenido)}. Si el CFDI pide unos centavos más, los pone NUMAN.
+        </p>
+
+        {rep.renglones.length ? (
+          emision.ok ? (
+            <p className="desc" style={{ marginTop: 6 }}>
+              <EmitirCfdi mes={mes} etiqueta="Emitir los CFDI de retenciones que falten" />
+            </p>
+          ) : (
+            <div className="empty" style={{ marginTop: 14 }}>
+              Los CFDI de retenciones todavía no se pueden emitir.
+              <br />
+              <span style={{ fontSize: 13 }}>{emision.porque}</span>
+            </div>
+          )
+        ) : null}
 
         {fuera.length ? (
           <div className="empty" style={{ marginTop: 14 }}>
@@ -137,6 +160,7 @@ export default async function RetencionesPage({ searchParams }: { searchParams: 
                   <th className="num right">Sin IVA</th>
                   <th className="num right">ISR retenido</th>
                   <th className="num right">IVA retenido</th>
+                  <th>CFDI de retenciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,6 +182,30 @@ export default async function RetencionesPage({ searchParams }: { searchParams: 
                     <td className="num right">{formatMXN(r.base)}</td>
                     <td className="num right">{formatMXN(r.isrRetenido)}</td>
                     <td className="num right">{formatMXN(r.ivaRetenido)}</td>
+                    <td>
+                      {(() => {
+                        const c = rep.cfdis.get(r.operatorId);
+                        if (c?.estado === "timbrado") {
+                          return (
+                            <>
+                              <span className="mono" style={{ fontSize: 12 }}>{c.uuid}</span>
+                              <small style={{ display: "block" }}>
+                                <a href={`/caminante/api/admin/retenciones/cfdi?id=${c.id}&formato=pdf`}>PDF</a> ·{" "}
+                                <a href={`/caminante/api/admin/retenciones/cfdi?id=${c.id}&formato=xml`}>XML</a>
+                                {c.enviado_a ? ` · enviado a ${c.enviado_a}` : " · sin enviar"}
+                              </small>
+                            </>
+                          );
+                        }
+                        if (c?.estado === "pendiente") return <small>Timbrando…</small>;
+                        return (
+                          <>
+                            {c?.estado === "fallido" ? <small style={{ display: "block" }}>Falló: {c.error}</small> : null}
+                            {emision.ok ? <EmitirCfdi mes={mes} operatorId={r.operatorId} etiqueta="Emitir" /> : <small>—</small>}
+                          </>
+                        );
+                      })()}
+                    </td>
                   </tr>
                 ))}
               </tbody>

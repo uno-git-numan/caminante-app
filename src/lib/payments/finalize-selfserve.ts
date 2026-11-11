@@ -16,6 +16,7 @@ import { lugaresPagados } from "@/lib/grupo/pagos";
 import { vendedorParaPago } from "@/lib/equipo/atribucion";
 import { fromStripeAmount, getStripeServerClient } from "@/lib/payments/stripe";
 import { cobrarAdmisionSiToca } from "@/lib/operadores/admision";
+import { medioDeStripe } from "@/lib/fiscal/cfdi-retenciones";
 import { findOrCreateContact } from "@/lib/crm/contacts";
 import { notifyNuevaReserva } from "@/lib/notifications/notify-admin";
 import { capiPurchase } from "@/lib/meta/capi";
@@ -220,14 +221,35 @@ export async function finalizeSelfServeCheckout(
   const isrRetenido = numMeta("isr_retenido_mxn");
   const ivaRetenido = numMeta("iva_retenido_mxn");
   const retencionRegla = (session.metadata?.retencion_regla ?? "").trim() || null;
-  // La transferencia hacia la cuenta conectada, para poder conciliar contra el
-  // estado de cuenta de Stripe. Sólo existe en un cargo con destino.
-  const transferId =
-    typeof session.payment_intent === "object" && session.payment_intent
-      ? ((session.payment_intent as { transfer_data?: { destination?: string } | null }).transfer_data
-          ? ((session.payment_intent as unknown as { latest_charge?: { transfer?: string } }).latest_charge?.transfer ?? null)
-          : null)
-      : null;
+  // EL CARGO, LEÍDO DE STRIPE. ⚠️ El evento del webhook trae la sesión con
+  // `payment_intent` como un simple id (sin expandir). Hasta el 12 nov 2026 el
+  // código leía la transferencia de un objeto que nunca llegaba: el
+  // `transfer_id` quedaba vacío y la cuota de admisión no se podía cobrar. Se
+  // pregunta a Stripe por el cargo, una vez, y de ahí salen dos datos:
+  //   · la transferencia a la cuenta conectada (conciliar, admisión);
+  //   · con qué pagó el cliente: el complemento de plataformas lo pide POR
+  //     VENTA (FormaPagoServ, M14). Se guarda crudo; la clave del SAT se
+  //     deriva al emitir (cfdi-retenciones.ts).
+  // Si Stripe no contesta, el pago se registra igual: ninguno de los dos datos
+  // vale perder una venta.
+  type CargoLeido = { transfer?: string | null; payment_method_details?: { type?: string; card?: { funding?: string | null } | null } | null };
+  let cargo: CargoLeido | null = null;
+  const piRef = session.payment_intent;
+  if (piRef) {
+    try {
+      const pi =
+        typeof piRef === "string"
+          ? await getStripeServerClient().paymentIntents.retrieve(piRef, { expand: ["latest_charge"] })
+          : piRef;
+      const lc = (pi as unknown as { latest_charge?: CargoLeido | string | null }).latest_charge;
+      cargo = lc && typeof lc === "object" ? lc : null;
+    } catch (e) {
+      console.error("[finalize] no se pudo leer el cargo en Stripe:", e, providerRef);
+    }
+  }
+  const medioPago = medioDeStripe(cargo?.payment_method_details ?? null);
+  // La transferencia hacia la cuenta conectada. Sólo existe en un cargo con destino.
+  const transferId = cargo?.transfer ?? null;
 
   // ⚠️ `canal_cobro = 'connect'` SIN CUENTA lo rechaza la base (0061), y está
   // bien que lo haga: un pago que dice haber entrado a la cuenta de alguien sin
@@ -269,6 +291,7 @@ export async function finalizeSelfServeCheckout(
     ...(canalReal === "connect" ? { stripe_account_id: connectAccount } : {}),
     ...(transferId ? { transfer_id: transferId } : {}),
     ...(feeRetenido != null && Number.isFinite(feeRetenido) ? { fee_retenido_mxn: feeRetenido } : {}),
+    ...(medioPago ? { medio_pago: medioPago } : {}),
     ...(canalReal === "connect" && isrRetenido != null && ivaRetenido != null
       ? { isr_retenido_mxn: isrRetenido, iva_retenido_mxn: ivaRetenido, retencion_regla: retencionRegla }
       : {}),

@@ -21,14 +21,28 @@ function rango(mes: string): { desde: string; hasta: string } {
 
 export const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-export async function reporteRetenciones(mes: string, corte: Date = new Date()): Promise<ReporteMes & { nombres: Map<string, string> }> {
+export type CfdiDelMes = {
+  id: string;
+  operator_id: string;
+  estado: "pendiente" | "timbrado" | "fallido" | "cancelado";
+  uuid: string | null;
+  facturapi_id: string | null;
+  timbrado_at: string | null;
+  error: string | null;
+  enviado_a: string | null;
+};
+
+export async function reporteRetenciones(
+  mes: string,
+  corte: Date = new Date(),
+): Promise<ReporteMes & { nombres: Map<string, string>; cfdis: Map<string, CfdiDelMes> }> {
   if (!MES_VALIDO.test(mes)) throw new Error("Mes inválido (AAAA-MM).");
   const sb = createSupabaseAdminClient();
   const { desde, hasta } = rango(mes);
 
   const { data: pagos } = await sb
     .from("payments")
-    .select("id, paid_at, amount_mxn, isr_retenido_mxn, iva_retenido_mxn, platform_fee_mxn, retencion_regla, reservations(operator_id)")
+    .select("id, paid_at, amount_mxn, isr_retenido_mxn, iva_retenido_mxn, platform_fee_mxn, retencion_regla, medio_pago, reservations(operator_id)")
     .eq("canal_cobro", "connect")
     .not("isr_retenido_mxn", "is", null)
     .gte("paid_at", desde)
@@ -52,6 +66,7 @@ export async function reporteRetenciones(mes: string, corte: Date = new Date()):
       iva: Number(p.iva_retenido_mxn ?? 0),
       comision: p.platform_fee_mxn != null ? Number(p.platform_fee_mxn) : null,
       regla: (p.retencion_regla as string | null) ?? null,
+      medio: (p.medio_pago as string | null) ?? null,
     });
   }
 
@@ -88,6 +103,22 @@ export async function reporteRetenciones(mes: string, corte: Date = new Date()):
     };
   });
 
-  const rep = armarReporte(mes, operadoras, ventas, devoluciones, corte);
-  return { ...rep, nombres: new Map(operadoras.map((o) => [o.id, o.nombre])) };
+  // El corte de quien ya tiene su CFDI timbrado es su timbrado (legal §3).
+  const { data: cfdis } = await sb
+    .from("cfdi_retenciones")
+    .select("id, operator_id, estado, uuid, facturapi_id, timbrado_at, error, enviado_a")
+    .eq("mes", mes)
+    .in("estado", ["pendiente", "timbrado", "fallido"]);
+  const cfdiDe = new Map<string, CfdiDelMes>();
+  for (const c of (cfdis ?? []) as CfdiDelMes[]) {
+    // Uno vivo por operadora (índice parcial); un «fallido» sólo si no hay otro.
+    const prev = cfdiDe.get(c.operator_id);
+    if (!prev || prev.estado === "fallido") cfdiDe.set(c.operator_id, c);
+  }
+  const cortes = new Map(
+    [...cfdiDe.values()].filter((c) => c.estado === "timbrado" && c.timbrado_at).map((c) => [c.operator_id, c.timbrado_at as string]),
+  );
+
+  const rep = armarReporte(mes, operadoras, ventas, devoluciones, corte, cortes);
+  return { ...rep, nombres: new Map(operadoras.map((o) => [o.id, o.nombre])), cfdis: cfdiDe };
 }

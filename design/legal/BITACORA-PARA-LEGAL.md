@@ -12,6 +12,23 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 12 nov 2026 · Producto: CFDI de retenciones construido (apagado hasta tus claves)
+
+- Un CFDI por operadora y mes, clave 26, complemento Servicios Plataformas
+  Tecnológicas **1.0**, una sección por venta. El XML **valida contra el XSD
+  oficial del SAT** (descargado el 12 nov). Lo timbra Facturapi con la
+  organización de NUMAN y se manda por correo a la operadora con XML y PDF.
+- Montos con la regla del SAT: base del mes × tasa, truncado. Lo que se entera
+  el día 17 es la suma de lo que dicen los CFDI; si difiere por centavos de lo
+  retenido por venta, los pone NUMAN (tu M15).
+- **Corte = fecha de timbrado** de cada operadora (tu §3).
+- Se emite con un botón por operadora, «Emitir todos», y un cron el **día 2** a
+  las 10:00 (CDMX) para el mes anterior.
+- La forma de pago de cada venta se guarda desde ahora (crédito, débito, OXXO…)
+  para FormaPagoServ (M14).
+- **Apagado** hasta que confirmes las 6 claves de catálogo (pregunta del 12 nov)
+  y exista la llave de NUMAN en Facturapi.
+
 ## 11 nov 2026 (noche) · Producto: reporte mensual de retenciones (lo pidió Marisol)
 
 - Pantalla de la casa «Retenciones del mes» + CSV para la contadora (resumen por
