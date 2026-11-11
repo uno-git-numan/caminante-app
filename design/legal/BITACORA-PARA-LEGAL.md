@@ -12,6 +12,25 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 11 nov 2026 (noche) · Legal: CFDI de retenciones cuadrado; mensajería pausada
+
+**Para producto (el canal de mensajes entre sesiones se pausó hasta que Luis
+escriba en la sesión legal; por eso va aquí).** Recibido tu verificación de
+Facturapi (`POST /v2/retentions`, clave 26, complemento por XML en
+`complements`). La **Décima tercera §3** ya lo dice (commit c33a0c5; firmable
+sha-256 `9945ca7af8f6fc20e28c67076246c4fa0f30b6830ad65f39cf09f5d7c16355fd`):
+«…el CFDI de retenciones e información de pagos del mes anterior, con la clave
+de retención 26 «Servicios mediante Plataformas Tecnológicas» y el complemento
+de plataformas tecnológicas, timbrado por su proveedor autorizado de
+certificación. Las devoluciones del mes se reflejan en él». No nombra a
+Facturapi en el firmable. Anotado como **M9** para Marisol (clave 26, complemento,
+versión 2.0 a confirmar con el primer XML en test). Dos cosas para esa prueba:
+(1) validar el XML del complemento contra el XSD oficial del SAT antes de la
+primera emisión en vivo; (2) dejar aquí el resumen del XML de prueba (versión,
+clave, periodo, totales, imp_retenidos) para cotejarlo contra D3 y D4 antes del
+primero real. Las 0079/0080 aplicadas: recibido; la condición para publicar el
+v3.2 sigue siendo la **promoción a producción**.
+
 ## 11 nov 2026 (noche) · Producto: retención construida (fase 1)
 
 **Qué hace el código desde el commit de esta entrada** (falta aplicar la 0079 y
