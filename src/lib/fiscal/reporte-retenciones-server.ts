@@ -9,7 +9,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Domicilio } from "@/lib/operadores/fiscal-privado";
-import { armarReporte, type DevolucionRetenida, type OperadoraFiscal, type ReporteMes, type VentaRetenida } from "./reporte-retenciones";
+import { armarReporte, type Devolucion, type OperadoraFiscal, type ReporteMes, type VentaRetenida } from "./reporte-retenciones";
 
 /** Límites UTC holgados del mes (CDMX es UTC−6 todo el año desde 2022); el filtro fino lo hace `mesCdmx`. */
 function rango(mes: string): { desde: string; hasta: string } {
@@ -21,26 +21,18 @@ function rango(mes: string): { desde: string; hasta: string } {
 
 export const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-export async function reporteRetenciones(mes: string): Promise<ReporteMes & { nombres: Map<string, string> }> {
+export async function reporteRetenciones(mes: string, corte: Date = new Date()): Promise<ReporteMes & { nombres: Map<string, string> }> {
   if (!MES_VALIDO.test(mes)) throw new Error("Mes inválido (AAAA-MM).");
   const sb = createSupabaseAdminClient();
   const { desde, hasta } = rango(mes);
 
-  const [{ data: pagos }, { data: devs }] = await Promise.all([
-    sb
-      .from("payments")
-      .select("id, paid_at, amount_mxn, isr_retenido_mxn, iva_retenido_mxn, retencion_regla, reservations(operator_id)")
-      .eq("canal_cobro", "connect")
-      .not("isr_retenido_mxn", "is", null)
-      .gte("paid_at", desde)
-      .lt("paid_at", hasta),
-    sb
-      .from("reembolsos")
-      .select("payment_id, monto_mxn, confirmado_at, payments(amount_mxn, isr_retenido_mxn, iva_retenido_mxn, canal_cobro, reservations(operator_id))")
-      .eq("estado", "confirmado")
-      .gte("confirmado_at", desde)
-      .lt("confirmado_at", hasta),
-  ]);
+  const { data: pagos } = await sb
+    .from("payments")
+    .select("id, paid_at, amount_mxn, isr_retenido_mxn, iva_retenido_mxn, platform_fee_mxn, retencion_regla, reservations(operator_id)")
+    .eq("canal_cobro", "connect")
+    .not("isr_retenido_mxn", "is", null)
+    .gte("paid_at", desde)
+    .lt("paid_at", hasta);
 
   const opDe = (r: unknown): string | null => {
     const x = Array.isArray(r) ? r[0] : r;
@@ -58,59 +50,44 @@ export async function reporteRetenciones(mes: string): Promise<ReporteMes & { no
       cobrado: Number(p.amount_mxn ?? 0),
       isr: Number(p.isr_retenido_mxn ?? 0),
       iva: Number(p.iva_retenido_mxn ?? 0),
+      comision: p.platform_fee_mxn != null ? Number(p.platform_fee_mxn) : null,
       regla: (p.retencion_regla as string | null) ?? null,
     });
   }
 
-  const devoluciones: DevolucionRetenida[] = [];
-  for (const d of (devs ?? []) as Record<string, unknown>[]) {
-    const pg = (Array.isArray(d.payments) ? d.payments[0] : d.payments) as Record<string, unknown> | null;
-    // Sólo devoluciones de ventas que retuvieron: las demás no corrigen nada.
-    if (!pg || pg.canal_cobro !== "connect" || pg.isr_retenido_mxn == null || !d.confirmado_at) continue;
-    const op = opDe(pg.reservations);
-    if (!op) continue;
-    devoluciones.push({
-      paymentId: d.payment_id as string,
-      operatorId: op,
-      confirmadoAt: d.confirmado_at as string,
-      monto: Number(d.monto_mxn ?? 0),
-      cobradoVenta: Number(pg.amount_mxn ?? 0),
-      isrVenta: Number(pg.isr_retenido_mxn ?? 0),
-      ivaVenta: Number(pg.iva_retenido_mxn ?? 0),
-    });
-  }
+  // Las devoluciones de ESAS ventas, confirmadas en cualquier fecha: el corte
+  // (armarReporte) decide cuáles netean el mes.
+  const ids = ventas.map((v) => v.paymentId);
+  const { data: devs } = ids.length
+    ? await sb.from("reembolsos").select("payment_id, monto_mxn, confirmado_at").eq("estado", "confirmado").in("payment_id", ids)
+    : { data: [] };
+  const devoluciones: Devolucion[] = ((devs ?? []) as { payment_id: string; monto_mxn: number; confirmado_at: string | null }[])
+    .filter((d) => d.confirmado_at)
+    .map((d) => ({ paymentId: d.payment_id, confirmadoAt: d.confirmado_at as string, monto: Number(d.monto_mxn ?? 0) }));
 
-  // TODAS las operadoras externas en Connect (18-J III: aun sin cobro en el
-  // mes), más cualquiera que aparezca en las ventas aunque ya no tenga cuenta.
-  const conMovimiento = new Set([...ventas, ...devoluciones].map((x) => x.operatorId));
-  const { data: ops } = await sb
-    .from("operators")
-    .select("id, name, razon_social, rfc, tipo_persona, stripe_account_id, propia");
-  const elegidas = ((ops ?? []) as { id: string; name: string | null; razon_social: string | null; rfc: string | null; tipo_persona: string | null; stripe_account_id: string | null; propia: boolean | null }[])
-    .filter((o) => (o.stripe_account_id && !o.propia) || conMovimiento.has(o.id));
-
-  const ids = elegidas.map((o) => o.id);
-  const { data: priv } = ids.length
-    ? await sb.from("operator_fiscal_privado").select("operator_id, curp, domicilio_fiscal, banco, clabe").in("operator_id", ids)
+  const conVentas = [...new Set(ventas.map((v) => v.operatorId))];
+  const { data: ops } = conVentas.length
+    ? await sb.from("operators").select("id, name, razon_social, rfc, tipo_persona").in("id", conVentas)
+    : { data: [] };
+  const { data: priv } = conVentas.length
+    ? await sb.from("operator_fiscal_privado").select("operator_id, curp, domicilio_fiscal, banco, clabe").in("operator_id", conVentas)
     : { data: [] };
   const privDe = new Map(((priv ?? []) as { operator_id: string; curp: string | null; domicilio_fiscal: Domicilio | null; banco: string | null; clabe: string | null }[]).map((x) => [x.operator_id, x]));
 
-  const operadoras: OperadoraFiscal[] = elegidas
-    .map((o) => {
-      const p = privDe.get(o.id);
-      return {
-        id: o.id,
-        nombre: o.razon_social || o.name || o.id,
-        rfc: o.rfc,
-        tipoPersona: o.tipo_persona,
-        curp: p?.curp ?? null,
-        domicilio: p?.domicilio_fiscal ?? null,
-        banco: p?.banco ?? null,
-        clabe: p?.clabe ?? null,
-      };
-    })
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  const operadoras: OperadoraFiscal[] = ((ops ?? []) as { id: string; name: string | null; razon_social: string | null; rfc: string | null; tipo_persona: string | null }[]).map((o) => {
+    const p = privDe.get(o.id);
+    return {
+      id: o.id,
+      nombre: o.razon_social || o.name || o.id,
+      rfc: o.rfc,
+      tipoPersona: o.tipo_persona,
+      curp: p?.curp ?? null,
+      domicilio: p?.domicilio_fiscal ?? null,
+      banco: p?.banco ?? null,
+      clabe: p?.clabe ?? null,
+    };
+  });
 
-  const rep = armarReporte(mes, operadoras, ventas, devoluciones);
+  const rep = armarReporte(mes, operadoras, ventas, devoluciones, corte);
   return { ...rep, nombres: new Map(operadoras.map((o) => [o.id, o.nombre])) };
 }

@@ -192,16 +192,19 @@ Marisol lo pidió para presentar las informativas. Pantalla de la casa
 → «Lo que se declara») y CSV en `/caminante/api/admin/retenciones?mes=…`
 (`&detalle=1` venta por venta). Cálculo puro en `lib/fiscal/reporte-retenciones.ts`.
 
-- Un mes = ventas por Connect COBRADAS en el mes (hora CDMX) − devoluciones
-  CONFIRMADAS en el mes, con su retención proporcional (D9: se corrige el mes
-  de la devolución, no el de la venta).
-- Van TODAS las operadoras externas en Connect aunque el mes vaya en cero
-  (18-J III «aun cuando no se haya cobrado»).
+- Un mes = ventas por Connect COBRADAS en el mes (hora CDMX). **Corte al
+  emitir** (legal, REPORTE-MENSUAL-RETENCIONES §3): una devolución confirmada
+  antes del corte se neta en SU venta (total ⇒ no se reporta); una posterior no
+  toca el mes (lo enterado queda a favor de la operadora, Quinta §4). El
+  complemento del SAT no admite negativos.
+- Sólo operadoras con ventas: el layout del SAT «no acepta cero» (legal §4).
+- `&formato=txt` = carga masiva PTEv2 de la informativa: «|», UTF-8, sin
+  encabezado, `5|RFC|base|base|ISR|IVA|CLABE|TA4`, pesos enteros.
 - Lo que falta para la informativa (CURP, domicilio, banco, CLABE) se lista en
   `faltan`; no se rellena. En pantalla CURP y CLABE enmascaradas; completas
   sólo en el CSV, sólo para la casa.
-- ⚠️ El formato EXACTO de cada declaración lo define la sesión legal (pregunta
-  enviada el 11 nov); las columnas del CSV se ajustan a lo que diga.
+- Formatos: `design/legal/REPORTE-MENSUAL-RETENCIONES-2026-11-12.md`. Dudas
+  abiertas para Marisol: M10–M14 de ese documento.
 
 ## El alta en 15 minutos: un dato se obtiene, no se pide (9 nov 2026)
 
