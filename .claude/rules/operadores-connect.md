@@ -99,6 +99,30 @@ plataforma: el reparto del dinero no cambió. ⚠️ La bandera `COBRO_EN_PLATAF
 crea cuentas con pérdidas a la plataforma y **no se puede prender tal cual** en
 LIVE.
 
+## El perfil de plataforma en Stripe: modelo Airbnb (11 nov 2026)
+
+Crear cuentas en LIVE pedía tres cosas de la cuenta numan, no del código: la
+llave restringida «caminante-app (Vercel produccion)» con **Accounts v2 →
+Write**, la identidad de Luis verificada y el cuestionario «Confirm your
+integration choices». Luis eligió **B, «Buyers will purchase from you»**
+(modelo Airbnb: el dinero pasa por NUMAN y se transfiere a la operadora,
+pagos individuales, sin cargos y transferencias separados, alta hospedada por
+Stripe, Express por omisión) y aceptó las responsabilidades que Stripe le
+pone a la plataforma en B:
+
+- **NUMAN responde por reembolsos, contracargos y multas.**
+- **NUMAN responde por pérdidas por fraude de la operadora y saldos negativos.**
+- NUMAN revisa a cada operadora (categorías restringidas) y le da soporte.
+- **Radar Standard: MX$20.00 por cuenta conectada** (MX$0 por transacción).
+  Luis: se le cobra a la operadora como costo de primera admisión
+  (pendiente de construir y de escribir en el convenio).
+
+Con ese perfil Stripe SÍ aceptó la cuenta como la crea `crearCuentaV2`
+(merchant + recipient). La primera fue Nomádika, `acct_1UaiUdGRRBL2rPeh`.
+⚠️ Ojo con la retención: cobrar como Airbnb es justo el caso de la pregunta
+h3 a Marisol (¿plataforma que cobra por cuenta de terceros ⇒ retiene ISR/IVA
+a personas físicas?). Tiene que estar contestada antes de su primera venta.
+
 ## El alta en 15 minutos: un dato se obtiene, no se pide (9 nov 2026)
 
 Meta de Luis: pasar de la solicitud a cobrar tan rápido como se abre una cuenta
