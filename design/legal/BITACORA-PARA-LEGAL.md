@@ -98,3 +98,51 @@ el CFDI de la comisión de esa primera venta la incluya o salga aparte.
 **Corrige en tus documentos:** donde diga «cuentas v2 con panel completo», el
 panel de la operadora va a ser el nuestro (alta dentro de la plataforma) en
 cuanto i3 esté resuelto.
+
+**Contabilizado por la sesión legal · 11 nov 2026 (commit en la rama).** Dónde
+quedó cada cosa:
+
+- **i1** → `design/operadores/CONVENIO-v3.md` **Cuarta §3 bis** (cuota de
+  admisión $20.00, una vez, por compensación, revirtiendo la transferencia de la
+  primera venta; «comprende el IVA que en su caso cause» para que lo descontado
+  sean $20 exactos, como `admision.ts`). La Cuarta §3 ya **no** dice que Caminante
+  absorbe la cuota por cuenta conectada. Lo fiscal (IVA, CFDI, clave) está como
+  preguntas **i1a–i1d** en `MEMO-MARISOL-2026-11.md` con la propuesta de la sesión
+  legal; Marisol confirma. Nada que construir hasta entonces: el CFDI de la
+  admisión depende de i1c.
+- **i2** → **Quinta §9** nueva (traslado a la operadora de reembolsos,
+  contracargos, multas, fraude y saldos negativos cuando le sean imputables;
+  reversión de transferencia → compensación → pago en 5 días hábiles) y Novena.
+  **Liberar el dinero antes o después de la experiencia lo decide Luis**
+  (DECISIONES fila 11); no se cambió. Hallazgo: **LFPC 56** da 5 días hábiles de
+  revocación cuando el servicio está a más de 10 días hábiles; nuestra ventana de
+  24 h es más corta (DECISIONES fila 12, para Jorge). LFPC 92 exige devolver por
+  la misma forma de pago; 92 Bis da bonificación al cliente cuando cancela el
+  proveedor.
+- **i3** → **Cuarta §7** reescrita: inciso a) con el texto que Stripe publica
+  para plataformas que recaban la aceptación en sus términos
+  (docs.stripe.com/connect/updating-service-agreements, versión en español),
+  válido para la cuenta con panel completo y para el alta dentro de la
+  plataforma; **Octava §3** nueva (datos para la cuenta de cobro, consentimiento
+  **expreso** por la CLABE: LFPDPPP 2025 art. 7; la ley nueva no tiene «remisión»,
+  art. 2 define «persona encargada» y «transferencia»; nuestra lectura:
+  transferencia, Jorge confirma); **Anexo D**. LFPIORPI 17: ninguna fracción
+  encaja (a confirmar por Jorge, junto con Ley Fintech).
+- **h3** → nota en Cuarta §8 y en el memo: con el perfil B, si Marisol dice
+  «retiene», la variante B se publica antes de la primera venta de Nomádika.
+
+**Dos cosas para la sesión de producto** (también en la tabla final del
+convenio, filas 13 y 14):
+
+1. **El aviso de privacidad** tiene que enlazar a https://stripe.com/privacy e
+   incluir la frase que Stripe exige («Cuando proporcionas datos personales en
+   relación con Caminante, Stripe recibe esos datos personales y los procesa de
+   acuerdo con la Política de privacidad de Stripe») y una cláusula donde el
+   titular acepta o no la transferencia (LFPDPPP 2025 art. 35). Sin eso no se
+   prende `COBRO_EN_PLATAFORMA`. El texto final lo redacta la sesión legal
+   cuando Jorge confirme la lectura.
+2. **Cuadrar las pérdidas**: el perfil B dice que NUMAN responde por fraude y
+   saldos negativos; `crearCuentaV2` crea con `losses_collector = stripe` y la
+   cuenta de Nomádika nació así. ¿Qué dice Stripe para `acct_1UaiUdGRRBL2rPeh`?
+   El convenio está escrito para el caso en que responde NUMAN (el que Luis
+   aceptó); si Stripe manda, cambia la nota a Jorge, no el texto.

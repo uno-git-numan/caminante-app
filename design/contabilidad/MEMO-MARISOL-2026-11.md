@@ -87,6 +87,36 @@ primera operadora cobre por esa vía.
 | **h3** | En el cobro por cuenta conectada, el cargo se hace **a nombre de la operadora** (`on_behalf_of`: ella es el comercio que ve el cliente), pero el dinero pasa por la cuenta de NUMAN y ahí se separa la comisión. ¿Eso basta para que NUMAN sea «plataforma tecnológica» obligada a retener (113-A, 18-J)? ¿Cambia algo frente a cobrar por cuenta de la operadora? | |
 | **h4** | Hoy NUMAN le compra el servicio a Nomádika (persona física) contra factura de servicios. ¿Ese esquema le obliga a NUMAN alguna retención mientras no pasemos a la plataforma? | |
 
+### i · Agregada el 11 nov 2026: la cuota de admisión de $20 y el modelo B en Stripe
+
+**Qué pasó (hecho):** el 11 nov Luis eligió en Stripe el perfil de plataforma B
+(«Buyers will purchase from you», el de Airbnb: el dinero pasa por NUMAN y se
+transfiere a la operadora en el mismo cargo) y aceptó que NUMAN responde ante
+Stripe por reembolsos, contracargos, multas, fraude y saldos negativos de las
+cuentas conectadas, más **MX$20.00 por cuenta conectada** (Radar Standard).
+Nomádika ya tiene cuenta conectada en LIVE, restringida (aún no cobra). Con
+esto **h3 deja de ser hipotética**: la retención tiene que estar resuelta antes
+de la primera venta de Nomádika por esa vía.
+
+**Lo que decidió Luis:** los $20 los paga la operadora **una sola vez**,
+descontados de su primer pago (el código revierte $20.00 exactos de la primera
+transferencia; `admision.ts`, migración 0078). Está redactado en el convenio v3,
+Cuarta §3 bis.
+
+| # | Pregunta | **Lo que propone la sesión legal (fundamento)** | **Respuesta de Marisol · fecha** |
+|---|---|---|---|
+| **i1a** | ¿La cuota de admisión es **servicio de NUMAN gravado al 16 %** o **reembolso de un gasto** sin IVA? | Servicio gravado: Stripe le factura el cargo a NUMAN, no a nombre de la operadora, así que no cabe en la regla de erogaciones por cuenta de terceros (RMF 2.7.1.12 / 2.7.1.13 según el año, exige el CFDI a nombre del tercero); y LIVA 14 y 18 incluyen en el valor del servicio «reembolsos» y «cualquier otro concepto» que se cobre a quien lo recibe. | |
+| **i1b** | Si lleva IVA: ¿los **$20 lo incluyen** ($17.24 + $2.76, que es lo que el sistema descuenta) o es **$20 + IVA** ($23.20)? | $20 con IVA incluido, porque Luis fijó los $20 como lo descontado y el código lo revierte así; la cláusula dice «comprende el IVA que en su caso cause». Si Marisol dice «sin IVA», se quita la frase. | |
+| **i1c** | ¿Va como **renglón aparte** en el CFDI de la comisión de esa primera venta, o como **CFDI propio**? ¿Clave de producto **80141628** (la de la comisión) u otra? | Renglón aparte en el mismo CFDI de comisión (un solo comprobante, dos conceptos, PUE), con la misma clave 80141628 y descripción «Cuota de admisión a la plataforma, única». Lo importante es que **no se sume a la comisión**: el tope del 20 % y la comisión congelada se calculan sin ella. | |
+| **i1d** | El descuento se hace **por compensación** contra la transferencia de la primera venta. ¿Algún requisito fiscal para que el CFDI diga «pagado» si nunca hubo transferencia aparte? | Forma de pago **17 «Compensación»** del catálogo c_FormaPago; igual que la comisión (que ya se salda por compensación, Décima tercera §4). | |
+
+**Sobre h3 con el perfil B:** el cargo es a nombre de la operadora
+(`on_behalf_of`), el dinero entra a la cuenta de NUMAN en Stripe y de ahí se
+transfiere; NUMAN **sí** responde ante Stripe por el dinero (reembolsos, saldos
+negativos). Es el caso más parecido a Airbnb. Si la respuesta a h3 es «sí
+retiene», la variante B del convenio (Cuarta §8) se publica **antes** de la
+primera venta de Nomádika.
+
 ### Dos cosas más que caen de las respuestas
 
 - **Alta de NUMAN como retenedora**: qué aviso presenta NUMAN (actualización de

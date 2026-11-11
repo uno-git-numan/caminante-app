@@ -25,6 +25,16 @@ manda a Jorge, Marisol o Laura hasta que Luis lo diga.
 | 9 | **Mensaje a Cat/Laura (Nomádika)** pidiendo su CSF para saber su régimen (¿RESICO?) | `design/legal/ONBOARDING-FISCAL-OPERADORA-PF.md` |
 | 10 | **Alta de NUMAN como retenedora** ante el SAT: lo presenta Marisol con la e.firma de Luis cuando conteste el memo | `design/contabilidad/NUMAN-PLATAFORMA-RETENEDORA.md` §3 |
 
+## Agregadas el 11 nov 2026 (bitácora de la sesión de producto, preguntas i1–i3)
+
+| # | Decisión / acción | Dónde |
+|---|---|---|
+| 11 | **¿Liberar el dinero a la operadora antes de la salida (como hoy, a propósito) o después de la experiencia (como Airbnb)?** Con el perfil B que aceptaste en Stripe, NUMAN responde por reembolsos y saldos negativos: si la operadora ya dispuso y hay que devolver, el hueco lo cubre NUMAN y lo persigue. Liberar después reduce ese riesgo; liberar antes le da el anticipo a la operadora. No lo cambié | `CONVENIO-v3.md` Cuarta §6, nota 🔸 |
+| 12 | **Ventana de arrepentimiento vs. LFPC 56**: la ley da al cliente 5 días hábiles para revocar una compra fuera del establecimiento (la web lo es), salvo que el servicio esté a 10 días hábiles o menos. Tus 24 h (salida a 7+ días) son más cortas cuando la salida está a más de 10 días hábiles. Propuesta: «24 horas, o el plazo mayor que la ley conceda al cliente». Lo decide Jorge contigo; no cambié los números | `CONVENIO-v3.md` Quinta, nota 🔸 i2 |
+| 13 | **¿Agrego la pregunta i1 (IVA y CFDI de la cuota de admisión) al correo a Marisol** antes de que lo mandes? Son cuatro renglones; ya están en el memo | `MEMO-MARISOL-2026-11.md` sección i |
+| 14 | **Decidido y redactado sin preguntarte** (era tu instrucción a la sesión de producto): cuota de admisión $20 una sola vez por compensación (Cuarta §3 bis); aceptación del contrato de Stripe dentro del convenio con el texto que Stripe exige (Cuarta §7 a); traslado de reembolsos/contracargos/multas/fraude a la operadora cuando le sean imputables (Quinta §9); consentimiento expreso por la CLABE (Octava §3). Jorge revisa los cuatro | `CONVENIO-v3.md`, tabla final filas 9–15 |
+| 15 | **Para la sesión de producto, no para ti:** el aviso de privacidad tiene que enlazar al de Stripe con la frase que Stripe exige y llevar la cláusula de aceptación de la transferencia (LFPDPPP 2025 art. 35) antes de prender `COBRO_EN_PLATAFORMA`; y cuadrar en Stripe si la cuenta de Nomádika quedó con pérdidas a cargo de Stripe o de NUMAN | bitácora, respuesta del 11 nov |
+
 ## Lo que NO le toca a Luis (ya quedó listo o es de otros)
 
 - La sesión de código tiene spec para: tasas por configuración (año × tipo de
