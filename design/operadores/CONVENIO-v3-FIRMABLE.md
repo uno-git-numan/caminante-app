@@ -72,7 +72,7 @@ Más de $40,000 MXN: **8 %**.
 
 **1 · Las dos formas de cobrar.** El cobro se hace por una de dos vías, según si el Operador tiene cuenta de cobro conectada a la plataforma.
 
-**(a) Cobro a nombre del Operador**, cuando tiene cuenta conectada. El cargo se genera desde la plataforma pero **a nombre del Operador**, que es quien aparece como comercio en el estado de cuenta del cliente y quien presta el servicio. El procesador divide el importe **en el mismo acto del cobro**: la comisión de Caminante y su IVA se quedan con Caminante, y el resto entra **directamente a la cuenta del Operador**. Caminante no recibe, ni retiene en su poder, la parte del Operador.
+**(a) Cobro a nombre del Operador**, cuando tiene cuenta conectada. El cargo se genera desde la plataforma pero **a nombre del Operador**, que es quien aparece como comercio en el estado de cuenta del cliente y quien presta el servicio. El importe entra a la cuenta de Caminante en el procesador y, **en el mismo acto del cobro**, Caminante transfiere a la cuenta de cobro del Operador **lo que le corresponde**: el importe cobrado menos la comisión de Caminante, su IVA y las retenciones de impuestos del punto 8. Caminante se queda únicamente con esas cantidades; la parte del Operador no permanece en su poder.
 
 **(b) Cobro por cuenta del Operador**, mientras no tenga cuenta conectada. Caminante cobra el importe total **por cuenta y orden del Operador**, retiene su comisión más el IVA, y **transfiere el remanente al Operador a los 7 días naturales posteriores al regreso** de la salida correspondiente. El importe cobrado por esta vía es dinero del Operador en poder de Caminante, no ingreso de Caminante.
 
@@ -86,7 +86,7 @@ Más de $40,000 MXN: **8 %**.
 
 **5 · Momento en que el Operador dispone del dinero.** En la vía (b) dispone de él al recibir la transferencia. En la vía (a) el importe entra a su cuenta al momento del cobro y queda sujeto al calendario de pagos de su propio procesador, que **no lo fija Caminante**.
 
-**6 · El Operador dispone de su parte antes de la salida, a propósito.** En la vía (a) no se le fija retraso de pago: tener el dinero disponible antes de la fecha es, muchas veces, lo que le permite operar. La contrapartida está en la Cláusula Quinta: **si procede una devolución, el Operador reintegra su parte**, aunque ya la haya dispuesto. El sistema la toma de vuelta de su cuenta de cobro, revirtiendo total o parcialmente la transferencia de esa venta; si no hay saldo, la cuenta queda en descubierto y el adeudo es del Operador, quien podrá cubrirlo por transferencia o por compensación contra liquidaciones futuras.
+**6 · El Operador dispone de su parte antes de la salida, a propósito.** En la vía (a) no se le fija retraso de pago: tener el dinero disponible antes de la fecha es, muchas veces, lo que le permite operar. La contrapartida está en la Cláusula Quinta: **si procede una devolución, el Operador reintegra su parte**, aunque ya la haya dispuesto. El sistema la toma de vuelta de su cuenta de cobro, revirtiendo total o parcialmente la transferencia de esa venta; la reversión es proporcional a lo devuelto e incluye, en la misma proporción, la comisión y las retenciones de esa venta (Cláusula Quinta, punto 4). Si no hay saldo, la cuenta queda en descubierto y el adeudo es del Operador, quien podrá cubrirlo por transferencia o por compensación contra liquidaciones futuras.
 
 **7 · El procesador de pagos.** El cobro se procesa a través de un **procesador de pagos tercero** —a la fecha, **Stripe**—, que es quien presta al Operador el servicio de procesamiento y depósito. Para recibir cobros por la vía (a), el Operador tiene una **cuenta de cobro propia** en el procesador, abierta a través de la plataforma. El Operador puede completar y mantener esa cuenta **desde la plataforma**, sin salir de ella, o en la pantalla del propio procesador cuando la plataforma lo lleve ahí. En ambos casos:
 
@@ -104,7 +104,7 @@ Para el procesador, el Operador captura su cuenta bancaria directamente; Caminan
 
 **8 · Retenciones de ley.** Caminante es una plataforma tecnológica de intermediación y la ley puede obligarla a **retener y enterar** al SAT impuestos del Operador y a emitirle el comprobante correspondiente (Ley del Impuesto sobre la Renta, artículos 113-A a 113-C; Ley del Impuesto al Valor Agregado, artículos 1-A BIS y 18-J; Ley de Ingresos de la Federación del ejercicio).
 
-Caminante cobra por cuenta del Operador a través de una plataforma tecnológica y, por ello, la ley la obliga a **retener y enterar** al SAT impuestos del Operador y a emitirle el comprobante correspondiente. El Operador lo reconoce y acepta que esas retenciones se descuenten de cada venta, conforme a las tasas vigentes en cada ejercicio. Para el ejercicio 2026:
+Caminante cobra por cuenta del Operador a través de una plataforma tecnológica y, por ello, la ley la obliga a **retener y enterar** al SAT impuestos del Operador y a emitirle el comprobante correspondiente. El Operador lo reconoce y acepta que la transferencia de cada venta se haga **neta de esas retenciones**, conforme a las tasas vigentes en cada ejercicio. Para el ejercicio 2026:
 
 Operador persona física con RFC: ISR **2.5 %** del importe cobrado sin IVA, e IVA **50 %** del IVA cobrado (Ley del ISR 113-A y 113-C; Ley de Ingresos 2026 artículo 25 fracción VI; Ley del IVA 1-A BIS y 18-J fracción II inciso a).
 
@@ -116,7 +116,7 @@ La base es **todo lo que el cliente paga por la reserva, sin IVA**, incluidos co
 
 Si la autoridad fiscal determinara que Caminante debió retener y enterar impuestos del Operador por operaciones en las que no lo hizo, y Caminante los enterara, el Operador **reembolsará a Caminante** las cantidades enteradas por su cuenta, por compensación contra ventas futuras o por transferencia, sin perjuicio de su derecho a acreditarlas.
 
-**9 · La liquidación, en una línea.** Lo que recibe el Operador por cada venta es: **importe cobrado, menos devoluciones, menos comisión de plataforma, menos IVA de la comisión, menos los impuestos retenidos conforme al punto 8** y, una sola vez, la cuota de admisión del punto 3 bis. Nada más se descuenta.
+**9 · La liquidación, en una línea.** Lo que recibe el Operador por cada venta es: **importe cobrado, menos devoluciones, menos comisión de plataforma, menos IVA de la comisión, menos los impuestos retenidos conforme al punto 8** y, una sola vez, la cuota de admisión del punto 3 bis. Nada más se descuenta. La transferencia al Operador se hace **neta de la comisión, su IVA y las retenciones** en el mismo acto del cobro; la cuota de admisión se descuenta aparte, como dice el punto 3 bis.
 
 Ejemplo con la escala A: precio al cliente $1,750.00 (base sin IVA $1,508.62, IVA $241.38); comisión 20 % sobre la base = $301.72, más IVA $48.28, total separado para Caminante **$350.00**; ISR retenido 2.5 % de $1,508.62 = **$37.72**; IVA retenido 50 % de $241.38 = **$120.69**; **el Operador recibe $1,241.59**, y lo retenido consta en su CFDI de retenciones del mes.
 

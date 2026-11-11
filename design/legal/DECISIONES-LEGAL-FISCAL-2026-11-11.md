@@ -428,8 +428,9 @@ restringidos; el convenio ya lo dice (Cuarta §7 e).
    retención no exista (y ninguna operadora puede firmar un convenio que no esté
    publicado: eso ya está).
 2. **Módulo de retención** (D1–D5): tasas por ejercicio y tipo de persona; base
-   = total cobrado sin IVA; cálculo al cobrar; descuento de la transferencia
-   (como la admisión, movimiento aparte); CFDI de retenciones con complemento
+   = total cobrado sin IVA; cálculo al cobrar; **la transferencia a la operadora se hace neta** de
+   comisión, IVA y retenciones en el acto del cobro (construido en 555129e;
+   la admisión sí es movimiento aparte); CFDI de retenciones con complemento
    «Servicios Plataformas Tecnológicas» el día 5; acumulado mensual para el
    entero del 17; informativa del día 10 con CURP, domicilio fiscal, banco y
    CLABE; corrección en devoluciones.
