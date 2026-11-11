@@ -1,10 +1,10 @@
 -- Convenio v3.2 (mayor) · generado por scripts/publicar-convenio.mjs
 -- Fuente: design/operadores/CONVENIO-v3-FIRMABLE.md
--- sha-256 del texto: 9a0bdb6df2af4aa41fbcdee7fcf77c3ba44e0fce16966c9dda45f9296eec3de0
+-- sha-256 del texto: 519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73
 --
 -- Verifica el hash ANTES de correr:
 --   shasum -a 256 design/operadores/CONVENIO-v3-FIRMABLE.md
--- Tiene que dar exactamente 9a0bdb6df2af4aa41fbcdee7fcf77c3ba44e0fce16966c9dda45f9296eec3de0
+-- Tiene que dar exactamente 519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73
 --
 -- El INSERT recalcula el hash del texto que de verdad aterrizó, y el CHECK de
 -- abajo revienta si no coincide: si el pegado perdió un carácter, no se publica.
@@ -131,13 +131,13 @@ Operador persona moral con RFC: ISR **2.5 %** del importe cobrado sin IVA, e IVA
 
 Operador sin RFC válido en el expediente: ISR **20 %** e IVA **100 %** (Ley del ISR 113-C fracción IV; Ley del IVA 18-J fracción II inciso a).
 
-La base es **todo lo que el cliente paga por la reserva, sin IVA**, incluidos complementos y descontadas las devoluciones; la comisión de Caminante no la reduce. Las tasas son **las que fije la ley en cada ejercicio**; su cambio por reforma no constituye modificación de este convenio y se refleja desde la fecha en que entre en vigor. Caminante entrega al Operador, **a más tardar el día 5 de cada mes**, el CFDI de retenciones e información de pagos del mes anterior con el complemento de plataformas tecnológicas, entera los impuestos retenidos a más tardar el día 17 y presenta al SAT la información mensual de operadores que la ley exige. Las retenciones son impuestos del Operador pagados por su cuenta: él las acredita en sus declaraciones. El Operador declara a Caminante, bajo protesta de decir verdad, si es persona física o moral, su RFC y su régimen, mediante su Constancia de Situación Fiscal.
+La base es **todo lo que el cliente paga por la reserva, sin IVA**, incluidos complementos y descontadas las devoluciones; la comisión de Caminante no la reduce. Las retenciones se calculan por cada venta y se truncan a centavos; si el comprobante mensual de retenciones resulta por centavos superior a la suma de lo retenido, la diferencia la cubre Caminante. Las tasas son **las que fije la ley en cada ejercicio**; su cambio por reforma no constituye modificación de este convenio y se refleja desde la fecha en que entre en vigor. Caminante entrega al Operador, **a más tardar el día 5 de cada mes**, el CFDI de retenciones e información de pagos del mes anterior con el complemento de plataformas tecnológicas, entera los impuestos retenidos a más tardar el día 17 y presenta al SAT la información mensual de operadores que la ley exige. Las retenciones son impuestos del Operador pagados por su cuenta: él las acredita en sus declaraciones. El Operador declara a Caminante, bajo protesta de decir verdad, si es persona física o moral, su RFC y su régimen, mediante su Constancia de Situación Fiscal.
 
 Si la autoridad fiscal determinara que Caminante debió retener y enterar impuestos del Operador por operaciones en las que no lo hizo, y Caminante los enterara, el Operador **reembolsará a Caminante** las cantidades enteradas por su cuenta, por compensación contra ventas futuras o por transferencia, sin perjuicio de su derecho a acreditarlas.
 
 **9 · La liquidación, en una línea.** Lo que recibe el Operador por cada venta es: **importe cobrado, menos devoluciones, menos comisión de plataforma, menos IVA de la comisión, menos los impuestos retenidos conforme al punto 8** y, una sola vez, la cuota de admisión del punto 3 bis. Nada más se descuenta. La transferencia al Operador se hace **neta de la comisión, su IVA y las retenciones** en el mismo acto del cobro; la cuota de admisión se descuenta aparte, como dice el punto 3 bis.
 
-Ejemplo con la escala A: precio al cliente $1,750.00 (base sin IVA $1,508.62, IVA $241.38); comisión 20 % sobre la base = $301.72, más IVA $48.28, total separado para Caminante **$350.00**; ISR retenido 2.5 % de $1,508.62 = **$37.72**; IVA retenido 50 % de $241.38 = **$120.69**; **el Operador recibe $1,241.59**, y lo retenido consta en su CFDI de retenciones del mes.
+Ejemplo con la escala A: precio al cliente $1,750.00 (base sin IVA $1,508.62, IVA $241.38); comisión 20 % sobre la base = $301.72, más IVA $48.28, total separado para Caminante **$350.00**; ISR retenido 2.5 % de $1,508.62 = **$37.71**; IVA retenido 50 % de $241.38 = **$120.69**; **el Operador recibe $1,241.60**, y lo retenido consta en su CFDI de retenciones del mes.
 
 ## Quinta · Devoluciones, cancelaciones y contracargos
 
@@ -372,8 +372,8 @@ do $$
 declare h text;
 begin
   select hash into h from public.operator_agreement_versions where version = 'v3.2';
-  if h is distinct from '9a0bdb6df2af4aa41fbcdee7fcf77c3ba44e0fce16966c9dda45f9296eec3de0' then
-    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '9a0bdb6df2af4aa41fbcdee7fcf77c3ba44e0fce16966c9dda45f9296eec3de0';
+  if h is distinct from '519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73' then
+    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73';
   end if;
   raise notice 'convenio v3.2 publicado · hash %', h;
 end $$;

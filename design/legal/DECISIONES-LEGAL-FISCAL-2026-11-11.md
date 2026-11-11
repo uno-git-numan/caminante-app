@@ -130,7 +130,11 @@ total de los ingresos que efectivamente perciban… sin incluir el IVA». LIVA
 $241.38. Comisión de NUMAN 20 % sobre la base = $301.72 + IVA $48.28 = $350.00.
 ISR retenido 2.5 % × $1,508.62 = **$37.72**. IVA retenido 50 % × $241.38 =
 **$120.69**. La operadora recibe $1,750.00 − $350.00 − $37.72 − $120.69 =
-**$1,241.59**. (Es el ejemplo del mapa de facturación §0.2.)
+**$1,241.59**. (Es el ejemplo del mapa de facturación §0.2.) **Precisión del 12
+nov (M15):** la retención por venta se **trunca** a centavos, no se redondea,
+porque el SAT valida el CFDI de retenciones con el truncado: ISR **$37.71**, IVA
+$120.69, la operadora recibe **$1,241.60**; los centavos que falten frente al
+CFDI del mes los pone NUMAN al enterar.
 
 **Alternativa descartada.** Retener sobre el neto que recibe la operadora
 ($1,400). La ley dice «total de los ingresos que efectivamente perciban por
@@ -485,7 +489,7 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M7 | El aviso exacto de alta como retenedora y si conviene agregar «intermediación / comisión mercantil» a las actividades de NUMAN en la CSF | D11 |
 | M8 | Clave 80141628 para la cuota de admisión (o la que ella prefiera) | D7 |
 | M9 | CFDI de retenciones e información de pagos: clave de retención **26** «Servicios mediante Plataformas Tecnológicas», complemento «Servicios Plataformas Tecnológicas» y versión 2.0 del comprobante, timbrado por Facturapi (verificado por producto en su especificación el 11 nov; la versión se confirma con la primera emisión de prueba) | D4 |
-| M10–M14 | El reporte mensual de retenciones (aplicativo del entero, DIOT, monto «para IVA» de la informativa, devoluciones después del corte, comisión sin IVA en el complemento, forma de pago por venta): ver `REPORTE-MENSUAL-RETENCIONES-2026-11-12.md` §6 | D4 |
+| M10–M15 | El reporte mensual de retenciones (aplicativo del entero, DIOT, monto «para IVA» de la informativa, devoluciones después del corte, comisión sin IVA en el complemento, forma de pago por venta): ver `REPORTE-MENSUAL-RETENCIONES-2026-11-12.md` §6 | D4 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.

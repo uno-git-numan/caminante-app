@@ -230,6 +230,19 @@ nunca al mes cerrado.
 | M12 | Devoluciones después del corte: ¿se queda la retención a favor de la operadora (como se decidió) o se cancela y sustituye el CFDI y se compensa en el siguiente entero? | §3 |
 | M13 | MonTotalporUsoPlataforma / ComisionDelServicio: comisión **sin** IVA; la cuota de admisión no se incluye | §2.2 |
 | M14 | FormaPagoServ por venta: la forma real del cliente (03/06/02) y no 08 «Intermediario pagos» | §2.2 |
+| M15 | **Centavos: truncar por venta.** El SAT valida `montoRet` del CFDI como BaseRet **del mes** × tasa, **truncado** a 2 decimales; retener por venta redondeando puede dejar a NUMAN con hasta n centavos retenidos de más frente a lo que certifica. **Decidido (legal, 12 nov):** la retención por venta se calcula **truncando** (nunca se retiene de más); el `montoRet` del CFDI se calcula del total del mes como manda el instructivo, y los centavos que falten entre la suma de lo retenido por venta y ese `montoRet` **los pone NUMAN al enterar**. La operadora acredita lo que dice su CFDI. Marisol confirma que prefiere esto a devolver centavos | §2.2 |
+
+**Centavos (M15, decidido el 12 nov).** La retención se calcula **por venta,
+truncando a 2 decimales** (1,508.62 × 2.5 % = 37.7155 → **37.71**; IVA 241.38 ×
+50 % = 120.69). El `montoRet` del CFDI se calcula como manda el instructivo:
+BaseRet del mes × tasa, truncado. Como Σ trunc(xᵢ) ≤ trunc(Σ xᵢ), la suma de lo
+retenido por venta nunca supera lo que el CFDI certifica, y la diferencia (a lo
+más un centavo por venta) **la pone NUMAN al enterar**: se entera el `montoRet`
+del CFDI, no la suma. Alternativas descartadas: redondear por venta y emitir el
+CFDI con la suma (el PAC lo rechaza o el SAT lo observa, porque la regla es
+truncado del total); o redondear por venta y devolver los centavos a la
+operadora a fin de mes (un movimiento más por nada). El ejemplo de D3 ($37.72)
+queda en **$37.71** y la operadora recibe **$1,241.60**.
 
 Y para producto, **tres verificaciones antes de la primera emisión real**: la
 clave y la tasa 2026 de «Otro tipo de servicios» en el XLS del catálogo (si la

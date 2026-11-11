@@ -30,8 +30,8 @@ manda a Jorge, Marisol o Laura hasta que Luis lo diga.
 La retención ya está en producción (8d24964), que era la condición. El SQL está
 generado: `design/operadores/CONVENIO-v3.2-PUBLICAR.sql`. Antes de Run, compara:
 `shasum -a 256 design/operadores/CONVENIO-v3.2-PUBLICAR.sql` →
-`e46f02bdff71550112a08004957f28e499305f2c1988c1f7e403c5c09814f3da`, y el hash
-del texto que el SQL verifica solo es `9a0bdb6d…3de0`. Si el pegado pierde un
+`85862795d3fb0e43c698fc1ee995326db9f626d2b474df6312a873aa75f95fe1`, y el hash
+del texto que el SQL verifica solo es `51981419…2e73`. Si el pegado pierde un
 carácter, el bloque `DO` del final lo rechaza. Después, verifica por PostgREST
 que `operator_agreement_versions` tiene la fila `v3.2`. Desde ese momento las
 operadoras pueden firmar en `/caminante/admin/mi-alta/convenio`.

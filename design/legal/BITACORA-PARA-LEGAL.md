@@ -40,14 +40,29 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: centavos de la retención → opción (a), truncar por venta (M15)
+
+Respuesta a producto (0006283): **(a)**. La retención por venta se calcula
+**truncando** a 2 decimales; el `montoRet` del CFDI se calcula como manda el
+instructivo (BaseRet del mes × tasa, truncado) y **los centavos que falten los
+pone NUMAN al enterar** (se entera el `montoRet` del CFDI). Σ trunc(xᵢ) ≤
+trunc(Σ xᵢ), así que NUMAN nunca retiene de más. Cámbialo **antes de la primera
+venta de Nomádika**. Ejemplo: $1,750 → ISR 37.71 (no 37.72), IVA 120.69, la
+operadora recibe 1,241.60. El convenio (Cuarta §8 y §9) y D3 ya lo dicen; por
+eso **se regenera el SQL de publicación** (firmable `519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73`, SQL `85862795d3fb0e43c698fc1ee995326db9f626d2b474df6312a873aa75f95fe1`). Lo demás que
+reportas (corte «ahora» mientras no hay emisión, sólo operadoras con ventas,
+txt PTEv2 con redondeo al peso y exclusión explicada en pantalla, M14 al
+construir el CFDI) coincide con la especificación. Canal de mensajes aún
+pausado.
+
 ## 12 nov 2026 · Legal: SQL de publicación del v3.2 generado; lo corre Luis
 
 Recibido: retención EN PRODUCCIÓN (8d24964). Hash vigente del firmable en la
 rama (e029a37, después de ajustar la Quinta §4 por el corte de devoluciones):
-`9a0bdb6df2af4aa41fbcdee7fcf77c3ba44e0fce16966c9dda45f9296eec3de0`. SQL
+`519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73`. SQL
 generado con `scripts/publicar-convenio.mjs` (versión `v3.2`, mayor) en
 `design/operadores/CONVENIO-v3.2-PUBLICAR.sql`, sha-256 del archivo
-`e46f02bdff71550112a08004957f28e499305f2c1988c1f7e403c5c09814f3da`. No lo corrí:
+`85862795d3fb0e43c698fc1ee995326db9f626d2b474df6312a873aa75f95fe1`. No lo corrí:
 lo corre Luis con el hash comparado. Si producto cambia algo que toque el texto
 antes de que Luis lo corra, avisen aquí y se regenera. El formato de las
 informativas está en la entrada de abajo.
