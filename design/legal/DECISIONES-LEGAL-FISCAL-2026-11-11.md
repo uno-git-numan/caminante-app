@@ -39,7 +39,7 @@ donde no hay dato, se dice y se dice de dónde saldría.
 | D16 | Datos a Stripe = **transferencia** (no encargo); consentimiento **expreso** en el convenio; el aviso de privacidad se actualiza con texto listo | Publicar el aviso nuevo antes de prender el alta dentro de la plataforma |
 | D17 | Anthropic (lectura de CSF) = **persona encargada**; la CLABE y la CURP se conservan como datos fiscales | Mención en el aviso; nada más |
 | D18 | NUMAN **no** realiza actividad vulnerable (LFPIORPI 17) **ni** emite fondos de pago electrónico (LRITF 22) | Nada |
-| §5 | Convenio v3.2 cerrado: representante por nombre, tope de responsabilidad, sede CDMX, mandato de timbrado, **variante B de retención** | Luis publica con el hash comparado; producto bloquea la venta por cuenta conectada hasta que retenga |
+| §5 | Convenio v3.2 cerrado: representante por nombre, tope de responsabilidad, sede CDMX, mandato de timbrado, **variante B de retención** | **Publicado el 11 nov 2026** (hash `e11f82e9…8224`, verificado contra la base); la retención ya está en producción, así que la primera venta por cuenta conectada retiene |
 
 ---
 
@@ -510,8 +510,8 @@ va con IVA (M11).
 - Mandar este documento a Marisol (y el correo con las preguntas, que ahora son
   «confirma estas decisiones»).
 - Decidir D15 (liberar antes o después).
-- Publicar el convenio v3.2 con el hash comparado cuando producto confirme el
-  candado del punto 1.
+- ~~Publicar el convenio v3.2~~ Hecho: publicado el 11 nov 2026 con el hash
+  comparado; las operadoras ya pueden firmar.
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
 - Firmar con la e.firma el aviso de NUMAN como retenedora que presente Marisol.
 
