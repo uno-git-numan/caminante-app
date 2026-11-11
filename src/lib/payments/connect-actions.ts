@@ -13,6 +13,7 @@ import { constanciasDe } from "@/lib/operadores/constancia-fiscal";
 import { analizarCsf } from "@/lib/operadores/csf";
 import { leerCer } from "@/lib/facturacion/cer";
 import { revalidatePath } from "next/cache";
+import { guardarClabe } from "@/lib/operadores/fiscal-privado";
 import { alcanceActual, esOperador, operadoraObjetivo } from "@/lib/auth/alcance";
 
 /**
@@ -73,6 +74,23 @@ export async function pedirLinkStripe(
  * del flujo, y que el endpoint todavía no esté suscrito a eventos de cuentas
  * conectadas (una casilla del dashboard de Stripe, fácil de olvidar).
  */
+/**
+ * La CLABE donde la operadora recibe sus depósitos, para la informativa
+ * mensual de plataformas (LIVA 18-J III, D4). Se valida el dígito de control
+ * y el banco sale de sus 3 primeros dígitos (lib/fiscal/clabe.ts). Sólo se
+ * teclea el banco si el prefijo no está en el listado de Banxico.
+ */
+export async function guardarClabeAction(
+  operadorId: string,
+  clabe: string,
+  banco?: string | null,
+): Promise<{ ok: true; banco: string } | { ok: false; error: string; pideBanco?: boolean }> {
+  if (!(await puedeTocarOperador(operadorId))) return { ok: false, error: "No autorizado." };
+  const r = await guardarClabe(createSupabaseAdminClient(), operadorId, clabe, banco);
+  if (r.ok) revalidatePath(RUTA);
+  return r;
+}
+
 export async function refrescarConexion(operadorId: string): Promise<ConnectActionResult> {
   if (!(await puedeTocarOperador(operadorId))) return { ok: false, error: "No autorizado." };
   if (!operadorId) return { ok: false, error: "Falta el operador." };

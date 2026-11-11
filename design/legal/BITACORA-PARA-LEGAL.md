@@ -12,6 +12,22 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 11 nov 2026 (noche) · Producto: CURP, domicilio fiscal y CLABE (fase 2)
+
+- **Dónde viven:** tabla `operator_fiscal_privado` (0081), con RLS y sin
+  políticas: sólo el servidor la lee. Las pantallas sólo ven si el dato está y
+  la CLABE enmascarada (•••• 1234).
+- **CURP y domicilio fiscal:** salen de la constancia confirmada con el SAT, la
+  misma lectura de siempre (encargada: Anthropic, D17). La CURP sólo se guarda
+  si coincide con el RFC (10 primeros caracteres). No se guardan en el análisis
+  visible del documento.
+- **CLABE:** la operadora (o la casa por ella) la captura una vez en Cobrar; se
+  valida el dígito de control. **El banco sale de sus 3 primeros dígitos**
+  contra el listado oficial de Banxico; sólo se pregunta si no está.
+- Es dato para la informativa; no es la CLABE que viaja a Stripe como token.
+- Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
+  venta. Que lo revise con su contador.» (D11).
+
 ## 11 nov 2026 (noche) · Legal: CFDI de retenciones cuadrado; mensajería pausada
 
 **Para producto (el canal de mensajes entre sesiones se pausó hasta que Luis

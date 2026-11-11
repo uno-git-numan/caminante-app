@@ -27,6 +27,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { COLUMNAS_GATE, operadorListo, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
 import CobrosPanel from "./CobrosPanel";
 import { constanciaParaPanel, constanciasDe } from "@/lib/operadores/constancia-fiscal";
+import { fiscalPrivadoParaPanel } from "@/lib/operadores/fiscal-privado";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Cobros del operador · Admin" };
@@ -53,6 +54,7 @@ export default async function CobrosPage() {
     .order("created_at");
   const rows = (data ?? []) as Row[];
   const constancias = await constanciasDe(rows.map((x) => x.id));
+  const privados = await fiscalPrivadoParaPanel(createSupabaseAdminClient(), rows.map((x) => x.id));
 
   return (
     <AdminShell active="operador">
@@ -92,6 +94,7 @@ export default async function CobrosPage() {
                 cpFiscal: r.cp_fiscal ?? "",
                 tipoPersona: r.tipo_persona ?? "",
                 constancia: constanciaParaPanel(constancias.get(r.id)),
+                privado: privados.get(r.id) ?? null,
                 csdCerPath: r.csd_cer_path ?? null,
                 csdKeyPath: r.csd_key_path ?? null,
                 csdVenceAt: r.csd_vence_at ?? null,

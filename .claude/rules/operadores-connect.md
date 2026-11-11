@@ -170,6 +170,21 @@ ella: retiene, le da su CFDI de retenciones y entera.
   regresó los $20 al revertir lo que quedaba: `admisionDevuelta` la deja
   «fallida» para cobrarla en la siguiente.
 
+## CURP, domicilio fiscal y CLABE: la tabla cerrada (0081, 11 nov 2026)
+
+La informativa mensual de plataformas (LIVA 18-J III, D4) pide CURP,
+domicilio fiscal, banco y CLABE de cada operadora. Viven en
+`operator_fiscal_privado` (RLS sin políticas), **nunca en `operators`**: esa
+ficha llegó a leerse con la llave pública hasta la 0080.
+
+- CURP y domicilio: de la constancia confirmada (`csf.ts` →
+  `guardarDeConstancia`), sin pasar por `analisis` (que ve el panel). La CURP
+  sólo si sus 10 primeros caracteres son los del RFC (`curpDeRfc`).
+- CLABE: se captura una vez en Cobrar (`guardarClabeAction`), con dígito de
+  control; el banco sale del prefijo contra el listado de Banxico
+  (`lib/fiscal/clabe.ts`), y sólo se teclea si no está.
+- Las pantallas reciben `FiscalPrivadoPanel`: si está y la CLABE enmascarada.
+
 ## El alta en 15 minutos: un dato se obtiene, no se pide (9 nov 2026)
 
 Meta de Luis: pasar de la solicitud a cobrar tan rápido como se abre una cuenta

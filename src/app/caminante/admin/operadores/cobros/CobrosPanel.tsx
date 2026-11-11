@@ -6,7 +6,8 @@
 // opcional, el CSD para facturarle a su cliente desde aquí.
 
 import { useState } from "react";
-import { pedirLinkStripe, refrescarConexion, elegirRegimen, releerConstancia, guardarCsd } from "@/lib/payments/connect-actions";
+import { pedirLinkStripe, refrescarConexion, elegirRegimen, releerConstancia, guardarCsd, guardarClabeAction } from "@/lib/payments/connect-actions";
+import type { FiscalPrivadoPanel } from "@/lib/operadores/fiscal-privado";
 import { REGIMENES } from "@/lib/facturacion/catalogos";
 
 export type OperadorCobros = {
@@ -32,6 +33,11 @@ export type OperadorCobros = {
   csdCerPath: string | null;
   csdKeyPath: string | null;
   csdVenceAt: string | null;
+  /**
+   * CURP, domicilio y CLABE para la informativa del SAT (0081). Nunca llegan
+   * completos: sólo si están y la CLABE enmascarada.
+   */
+  privado?: FiscalPrivadoPanel | null;
 };
 
 export default function CobrosPanel({
@@ -60,6 +66,24 @@ export default function CobrosPanel({
 
   // La contraseña del CSD viaja a Facturapi en la misma llamada; aquí no se guarda.
   const [passCsd, setPassCsd] = useState("");
+  const [clabe, setClabe] = useState("");
+  const [banco, setBanco] = useState("");
+  const [pideBanco, setPideBanco] = useState(false);
+
+  async function guardarLaClabe(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setOcupado("clabe");
+    setEstado("");
+    const r = await guardarClabeAction(o.id, clabe, pideBanco ? banco : null);
+    setOcupado("");
+    if (r.ok) {
+      setEstado(`✓ CLABE guardada (${r.banco})`);
+      window.location.reload();
+    } else {
+      setPideBanco(Boolean(r.pideBanco));
+      setEstado(`Error: ${r.error}`);
+    }
+  }
 
   async function conectar() {
     setOcupado("stripe");
@@ -214,6 +238,53 @@ export default function CobrosPanel({
           </button>
         </>
       )}
+
+      {/* ── Para el SAT: CURP, domicilio y CLABE (0081) ────────────────
+          La informativa mensual de plataformas los pide (LIVA 18-J III). CURP
+          y domicilio salen de la constancia; la CLABE se captura una vez y el
+          banco sale de ella. */}
+      {o.rfc ? (
+        <div style={{ margin: "10px 0 0" }}>
+          <p className="mut" style={{ fontSize: 12.5, margin: "0 0 6px" }}>
+            {o.tipoPersona === "fisica" ? (
+              <>CURP: {o.privado?.curp ? "✓ de su constancia" : "pendiente (sale de su constancia)"} · </>
+            ) : null}
+            Domicilio fiscal: {o.privado?.domicilio ?? "pendiente (sale de su constancia)"}
+          </p>
+          {o.privado?.clabe ? (
+            <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
+              CLABE para sus depósitos: {o.privado.clabe} · {o.privado.banco}
+            </p>
+          ) : (
+            <form onSubmit={guardarLaClabe} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <label className="mut" style={{ fontSize: 12.5 }}>
+                CLABE donde recibe sus depósitos{" "}
+                <input
+                  value={clabe}
+                  onChange={(e) => setClabe(e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="18 dígitos"
+                  style={{ width: 190 }}
+                />
+              </label>
+              {pideBanco ? (
+                <label className="mut" style={{ fontSize: 12.5 }}>
+                  Banco <input value={banco} onChange={(e) => setBanco(e.target.value)} style={{ width: 160 }} />
+                </label>
+              ) : null}
+              <button type="submit" className="btn btn-sm" disabled={ocupado !== "" || clabe.replace(/\D/g, "").length !== 18}>
+                {ocupado === "clabe" ? "Guardando…" : "Guardar CLABE"}
+              </button>
+            </form>
+          )}
+          {o.tipoPersona === "fisica" && o.regimenFiscal === "626" ? (
+            <p className="mut" style={{ fontSize: 12, margin: "6px 0 0" }}>
+              Está en RESICO: Caminante le retiene ISR e IVA por cada venta. Que lo revise con su contador.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* ── Paso 1 · Conecta tu cuenta ─────────────────────────────── */}
       <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>1 · Conecta su cuenta de cobro</h3>

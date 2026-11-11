@@ -25,6 +25,7 @@ import { altaCobroEnPlataforma, erroresDeVerificacion, traducirPendientes } from
 import CobrosPanel from "../../operadores/cobros/CobrosPanel";
 import AltaCobro from "./AltaCobro";
 import { constanciaParaPanel, constanciasDe } from "@/lib/operadores/constancia-fiscal";
+import { fiscalPrivadoParaPanel } from "@/lib/operadores/fiscal-privado";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -95,6 +96,7 @@ export default async function CobrarPage({
     .maybeSingle();
   const r = data as Row | null;
   const constancias = await constanciasDe(r ? [r.id] : []);
+  const privados = await fiscalPrivadoParaPanel(createSupabaseAdminClient(), r ? [r.id] : []);
   if (!r) redirect("/caminante/admin/mi-alta");
 
   const altaAqui = enPlataforma && (!r.stripe_account_id || recauda === true);
@@ -142,6 +144,7 @@ export default async function CobrarPage({
           cpFiscal: r.cp_fiscal ?? "",
           tipoPersona: r.tipo_persona ?? "",
           constancia: constanciaParaPanel(constancias.get(r.id)),
+                privado: privados.get(r.id) ?? null,
           csdCerPath: r.csd_cer_path ?? null,
           csdKeyPath: r.csd_key_path ?? null,
           csdVenceAt: r.csd_vence_at ?? null,

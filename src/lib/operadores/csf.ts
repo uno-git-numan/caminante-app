@@ -31,6 +31,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cambiosFiscales, datosFiscalesDeCsf } from "./fiscal-de-csf";
 import { REVISOR_AUTOMATICO } from "./revision-ia";
 import { completarIdentidadStripe } from "@/lib/payments/connect";
+import { curpDeRfc, domicilioUtil, guardarDeConstancia, type Domicilio } from "./fiscal-privado";
 
 const MODEL = "claude-opus-5-5";
 const API = "https://api.anthropic.com/v1/messages";
@@ -70,7 +71,8 @@ Extrae SOLO lo que está escrito en el documento. Si un dato no aparece, devuél
 - estatus: el "Estatus en el padrón" (p. ej. ACTIVO).
 - alertas: SÓLO señales de que el ARCHIVO fue manipulado o no lo generó el SAT: falta el QR, la cadena original o el sello digital; tipografías o alineaciones distintas en datos clave; el RFC o el nombre no son los mismos en todas las secciones; recortes o empalmes visibles. Una frase por señal. Lista vacía si no ves ninguna.
   NO son alertas las fechas del historial fiscal (inicio de operaciones, último cambio de estado, altas de régimen u obligaciones): es normal que no coincidan entre sí, porque cuentan la historia del contribuyente.
-NO copies CURP ni domicilio completo: no se piden.`;
+- curp: la CURP, sólo si la constancia es de persona física; null en persona moral.
+- domicilio: el domicilio fiscal tal como está en la constancia: calle (nombre de vialidad), numeroExterior, numeroInterior, colonia, localidad, municipio (municipio o demarcación territorial), estado (entidad federativa), codigoPostal. null en cada campo que no aparezca.`;
 
 const ESQUEMA = {
   type: "object",
@@ -84,8 +86,15 @@ const ESQUEMA = {
     regimenes: { type: "array", items: { type: "string" } },
     estatus: { type: ["string", "null"] },
     alertas: { type: "array", items: { type: "string" } },
+    curp: { type: ["string", "null"] },
+    domicilio: {
+      type: ["object", "null"],
+      properties: Object.fromEntries(
+        ["calle", "numeroExterior", "numeroInterior", "colonia", "localidad", "municipio", "estado", "codigoPostal"].map((k) => [k, { type: ["string", "null"] }]),
+      ),
+    },
   },
-  required: ["esConstancia", "rfc", "nombre", "idCif", "fechaEmision", "codigoPostal", "regimenes", "estatus", "alertas"],
+  required: ["esConstancia", "rfc", "nombre", "idCif", "fechaEmision", "codigoPostal", "regimenes", "estatus", "alertas", "curp", "domicilio"],
   additionalProperties: false,
 };
 
@@ -99,6 +108,9 @@ type Leido = {
   regimenes: string[];
   estatus: string | null;
   alertas: string[];
+  /** ⚠️ NUNCA va al análisis visible: sólo a operator_fiscal_privado (0081). */
+  curp: string | null;
+  domicilio: Partial<Domicilio> | null;
 };
 
 const vacio = (error: string): AnalisisCsf => ({
@@ -171,6 +183,8 @@ async function leerConIa(bytes: ArrayBuffer, tipo: string): Promise<Leido | { er
       regimenes: Array.isArray(crudo.regimenes) ? crudo.regimenes.filter((x): x is string => typeof x === "string").slice(0, 8) : [],
       estatus: t(crudo.estatus),
       alertas: Array.isArray(crudo.alertas) ? crudo.alertas.filter((x): x is string => typeof x === "string").slice(0, 8) : [],
+      curp: t(crudo.curp),
+      domicilio: crudo.domicilio && typeof crudo.domicilio === "object" ? (crudo.domicilio as Partial<Domicilio>) : null,
     };
   } catch {
     return { error: "La lectura de la IA no se pudo interpretar." };
@@ -201,6 +215,9 @@ export async function analizarCsf(docId: string): Promise<AnalisisCsf | null> {
     const { data: archivo, error: eDescarga } = await sb.storage.from(BUCKET).download(doc.archivo_path);
 
     let analisis: AnalisisCsf;
+    // CURP y domicilio NO entran a `analisis` (que ve el panel): se guardan
+    // aparte, en la tabla cerrada, más abajo.
+    let privado: { curp: string | null; domicilio: Partial<Domicilio> | null } = { curp: null, domicilio: null };
     if (eDescarga || !archivo) {
       analisis = vacio("No se pudo abrir el archivo para leerlo.");
     } else {
@@ -208,6 +225,7 @@ export async function analizarCsf(docId: string): Promise<AnalisisCsf | null> {
       if ("error" in leido) {
         analisis = vacio(leido.error);
       } else {
+        privado = { curp: leido.curp, domicilio: leido.domicilio };
         const { data: op } = await sb.from("operators").select("rfc").eq("id", doc.operator_id).maybeSingle();
         const rfcCapturado = ((op as { rfc?: string | null } | null)?.rfc ?? "").trim().toUpperCase();
         const sat = leido.idCif && leido.rfc ? await preguntarAlSat(leido.idCif, leido.rfc) : "sin_datos";
@@ -244,6 +262,15 @@ export async function analizarCsf(docId: string): Promise<AnalisisCsf | null> {
       const { escribir, motivo } = cambiosFiscales(fiscal.datos, (actual ?? { rfc: null, tipo_persona: null }) as { rfc: string | null; tipo_persona: string | null });
       if (motivo) console.warn("analizarCsf: no se tocan los datos fiscales:", motivo);
       else {
+        // CURP y domicilio fiscal para la informativa de plataformas (D4): sólo
+        // de una constancia confirmada y de ESTA operadora, y la CURP sólo si
+        // coincide con su RFC.
+        const priv = await guardarDeConstancia(sb, doc.operator_id, {
+          curp: curpDeRfc(privado.curp, fiscal.datos.rfc),
+          domicilio: domicilioUtil(privado.domicilio),
+          documentoId: doc.id,
+        });
+        if (!priv.ok) console.error("analizarCsf: no se guardaron CURP/domicilio (¿falta la 0081?):", priv.error);
         const { error: eOp } = await sb.from("operators").update(escribir).eq("id", doc.operator_id);
         if (eOp) console.error("analizarCsf: no se pudieron guardar los datos fiscales:", eOp.message);
         // Si ya abrió su cuenta de cobro, Stripe recibe lo que faltaba.
