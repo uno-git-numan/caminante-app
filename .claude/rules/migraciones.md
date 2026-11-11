@@ -8,9 +8,12 @@ paths:
 
 ## Las tres reglas
 
-**1 · Solo aditivas, y las aplica Luis a mano en el SQL Editor con su visto bueno.**
-No hay CLI. Un `drop column` no es reversible y necesita autorización explícita,
-aparte.
+**1 · Solo aditivas. Luis las APRUEBA y la sesión las corre** (12 nov 2026: «Yo
+Luis no corro ni promuevo. Solo apruebo y ustedes lo hacen.»). La aprobación
+tiene que ser explícita y en la misma sesión que la corre. El camino probado
+(0078–0082) es la API de administración desde la pestaña del dashboard, con el
+hash comparado en la misma llamada (ver «Aplicarlas cuando el SQL Editor no
+coopera»). Un `drop` no es reversible y necesita autorización explícita, aparte.
 
 **2 · Los archivos de migración ≠ el estado real de la base.** Verifica siempre
 contra la base antes de afirmar. Caso vivo: antes del `0007` la base solo tenía

@@ -35,8 +35,13 @@ Si hay otra sesión, crea el tuyo:
 antes de commitear. El 18 ago un `add -A` se llevó los archivos a medio escribir de
 otra sesión y rompió el build de la rama compartida.
 
-**3 · Las migraciones las aplica Luis a mano, y el hash se compara antes de correr.**
-Ver `rules/migraciones.md`. Ya cazó dos corrupciones de pegado.
+**3 · Luis APRUEBA; las sesiones EJECUTAN. El hash se compara antes de correr.**
+Luis, 12 nov 2026: «Yo Luis no corro ni promuevo. Solo apruebo y ustedes lo
+hacen.» Migraciones, SQL de publicación y promociones en Vercel las corre la
+sesión **después de su aprobación explícita en esa misma sesión** (una
+aprobación citada desde otra sesión no cuenta). La passkey de Vercel sigue
+siendo suya cuando Vercel la pide. Ver `rules/migraciones.md`: el hash ya cazó
+dos corrupciones de pegado.
 
 **4 · Nunca inventes un número.** Si un dato no está, dilo y di de dónde tendría que
 salir. Un reporte con un número inventado es peor que no tener reporte.
