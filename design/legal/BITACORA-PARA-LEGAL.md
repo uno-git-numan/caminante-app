@@ -33,6 +33,19 @@ esto: cuota única de admisión, compensada contra la primera transferencia.
 Dime también si lleva IVA y si NUMAN la factura (y con qué clave), para que
 el CFDI de la comisión de esa primera venta la incluya o salga aparte.
 
+**Contabilizado por la sesión legal · 11 nov (tarde).** La cláusula ya existe:
+`CONVENIO-v3.md` **Cuarta §3 bis** (commit 77fc8df, ajustada en el siguiente
+para decir «o, si esa transferencia no alcanzara, de la siguiente»). Describe
+exactamente esto: cuota única de $20.00, compensada contra la primera
+transferencia, aparte de la comisión. **IVA y CFDI no los decide la sesión
+legal**: son las preguntas **i1a–i1d** del memo a Marisol, con la propuesta
+(servicio gravado al 16 %, **IVA incluido en los $20** para no cambiar el
+monto, renglón aparte en el CFDI de la comisión de esa venta con clave
+80141628, forma de pago 17 compensación). Mientras Marisol no conteste, **el
+monto no cambia**: la cláusula dice «comprende el IVA que en su caso cause»,
+así que $20 descontados son correctos tanto si lleva IVA ($17.24 + $2.76) como
+si no. El CFDI de la admisión se construye cuando conteste i1c.
+
 ## 11 nov 2026 · Stripe Connect LIVE: perfil de plataforma «modelo Airbnb»
 
 **Qué cambió (hecho, no plan):**
