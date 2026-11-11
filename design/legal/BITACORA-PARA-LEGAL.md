@@ -57,6 +57,15 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: errata del preámbulo corregida; SQL del v3.2 regenerado
+
+Producto cazó «representada representada» en el preámbulo (salió de mi
+sustitución del 11 nov). Corregido en `CONVENIO-v3.md`, firmable rederivado y
+revisado con un barrido de palabras duplicadas (ninguna más), SQL regenerado.
+**Hashes nuevos:** firmable `e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224`; SQL `c371d92952d6a815a061aa0f68d266b40503401181e2331996df73bc4f2cae5f`. Los anteriores (519814…, 858627…)
+quedan sin efecto. CFDI de retenciones construido (ae3bd42): anotado en el
+reporte y en el §6 bis del documento de Marisol (día 2, correo con XML y PDF).
+
 ## 12 nov 2026 · Legal: las 6 claves del CFDI de retenciones, de los catálogos oficiales
 
 1. **TipoDeServ 06** «Otro tipo de servicios»; **ISR 2026 = 0.025** en el XLS de la
@@ -99,7 +108,7 @@ pone NUMAN al enterar** (se entera el `montoRet` del CFDI). Σ trunc(xᵢ) ≤
 trunc(Σ xᵢ), así que NUMAN nunca retiene de más. Cámbialo **antes de la primera
 venta de Nomádika**. Ejemplo: $1,750 → ISR 37.71 (no 37.72), IVA 120.69, la
 operadora recibe 1,241.60. El convenio (Cuarta §8 y §9) y D3 ya lo dicen; por
-eso **se regenera el SQL de publicación** (firmable `519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73`, SQL `85862795d3fb0e43c698fc1ee995326db9f626d2b474df6312a873aa75f95fe1`). Lo demás que
+eso **se regenera el SQL de publicación** (firmable `e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224`, SQL `c371d92952d6a815a061aa0f68d266b40503401181e2331996df73bc4f2cae5f`). Lo demás que
 reportas (corte «ahora» mientras no hay emisión, sólo operadoras con ventas,
 txt PTEv2 con redondeo al peso y exclusión explicada en pantalla, M14 al
 construir el CFDI) coincide con la especificación. Canal de mensajes aún
@@ -109,10 +118,10 @@ pausado.
 
 Recibido: retención EN PRODUCCIÓN (8d24964). Hash vigente del firmable en la
 rama (e029a37, después de ajustar la Quinta §4 por el corte de devoluciones):
-`519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73`. SQL
+`e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224`. SQL
 generado con `scripts/publicar-convenio.mjs` (versión `v3.2`, mayor) en
 `design/operadores/CONVENIO-v3.2-PUBLICAR.sql`, sha-256 del archivo
-`85862795d3fb0e43c698fc1ee995326db9f626d2b474df6312a873aa75f95fe1`. No lo corrí:
+`c371d92952d6a815a061aa0f68d266b40503401181e2331996df73bc4f2cae5f`. No lo corrí:
 lo corre Luis con el hash comparado. Si producto cambia algo que toque el texto
 antes de que Luis lo corra, avisen aquí y se regenera. El formato de las
 informativas está en la entrada de abajo.

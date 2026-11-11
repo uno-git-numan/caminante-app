@@ -1,10 +1,10 @@
 -- Convenio v3.2 (mayor) · generado por scripts/publicar-convenio.mjs
 -- Fuente: design/operadores/CONVENIO-v3-FIRMABLE.md
--- sha-256 del texto: 519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73
+-- sha-256 del texto: e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224
 --
 -- Verifica el hash ANTES de correr:
 --   shasum -a 256 design/operadores/CONVENIO-v3-FIRMABLE.md
--- Tiene que dar exactamente 519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73
+-- Tiene que dar exactamente e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224
 --
 -- El INSERT recalcula el hash del texto que de verdad aterrizó, y el CHECK de
 -- abajo revienta si no coincide: si el pegado perdió un carácter, no se publica.
@@ -23,7 +23,7 @@ Versión 3 · noviembre de 2026
 
 ## Preámbulo
 
-Convenio de prestación de servicios de plataforma que celebran, por una parte, **NUMAN HUB, S.A. de C.V.**, RFC **NHU250826CS8**, con domicilio en Prado Norte 525, interior 204, Lomas de Chapultepec I Sección, Miguel Hidalgo, C.P. 11000, Ciudad de México, titular de la plataforma y de la marca **Caminante**, representada representada por Luis de la Rosa Orvañanos, con las facultades que constan en la escritura pública 107,629 otorgada ante la Notaría 1 de la Ciudad de México (en adelante **«Caminante»** o **«la Plataforma»**); y por la otra, la persona física o moral identificada en la **carátula de firma** de este documento (en adelante **«el Operador»**), representada por quien lo acepta electrónicamente, quien declara contar con facultades suficientes para obligarlo.
+Convenio de prestación de servicios de plataforma que celebran, por una parte, **NUMAN HUB, S.A. de C.V.**, RFC **NHU250826CS8**, con domicilio en Prado Norte 525, interior 204, Lomas de Chapultepec I Sección, Miguel Hidalgo, C.P. 11000, Ciudad de México, titular de la plataforma y de la marca **Caminante**, representada por Luis de la Rosa Orvañanos, con las facultades que constan en la escritura pública 107,629 otorgada ante la Notaría 1 de la Ciudad de México (en adelante **«Caminante»** o **«la Plataforma»**); y por la otra, la persona física o moral identificada en la **carátula de firma** de este documento (en adelante **«el Operador»**), representada por quien lo acepta electrónicamente, quien declara contar con facultades suficientes para obligarlo.
 
 Los datos del Operador —nombre o razón social, RFC, régimen fiscal, código postal fiscal y tipo de persona— se toman de su expediente en la plataforma, en particular de su Constancia de Situación Fiscal, y quedan registrados junto con la firma. Si al firmar algún dato fiscal no estuviera capturado, el Operador se obliga a completarlo en su expediente; su falta no invalida este convenio.
 
@@ -372,8 +372,8 @@ do $$
 declare h text;
 begin
   select hash into h from public.operator_agreement_versions where version = 'v3.2';
-  if h is distinct from '519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73' then
-    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '519814193a55916a4cceabb3329a41e79d433ec96fe1586e940a0eba80e62e73';
+  if h is distinct from 'e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224' then
+    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, 'e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224';
   end if;
   raise notice 'convenio v3.2 publicado · hash %', h;
 end $$;

@@ -476,8 +476,10 @@ otro). Tres descargas:
 
 1. **Día 5 · CFDI de retenciones e información de pagos**, uno por operadora,
    clave 26 «Servicios mediante Plataformas Tecnológicas» con el complemento de
-   plataformas: **lo emite el sistema** por Facturapi (en construcción; hasta
-   entonces, Marisol lo ve pendiente en la misma pantalla).
+   plataformas: **lo emite el sistema** por Facturapi el **día 2** (tarea
+   programada a las 10:00) o antes a mano desde «Retenciones del mes»; la
+   operadora lo recibe por correo con XML y PDF. Construido el 12 nov; se
+   prende cuando Facturapi tenga la llave de NUMAN.
 2. **Día 10 · Informativa de operadoras**: **Marisol** sube el txt.
 3. **Día 17 · Entero** de ISR e IVA retenidos: **Marisol**, con la fila TOTAL.
 
