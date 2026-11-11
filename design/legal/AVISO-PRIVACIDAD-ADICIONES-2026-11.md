@@ -38,7 +38,10 @@ secciones de abajo y se **cambian** tres frases; todo lo demás se queda. Cambia
 > que exige la Ley del Impuesto al Valor Agregado (artículo 18-J, fracción III:
 > nombre, RFC, CURP, domicilio fiscal, banco y CLABE, y monto de operaciones).
 > Tu Constancia de Situación Fiscal se valida contra el servicio público del
-> SAT.
+> SAT; de ella tomamos tu CURP y tu domicilio fiscal. La CLABE la capturas una
+> sola vez; el banco se deduce de ella. Esos datos fiscales se guardan en un
+> registro de acceso restringido que sólo nuestro sistema lee, y la CLABE se
+> muestra siempre enmascarada en pantalla.
 >
 > Para abrir tu cuenta de cobro, los datos que el procesador exige (nombre,
 > fecha de nacimiento, domicilio, teléfono, RFC, identificación oficial y
@@ -79,5 +82,7 @@ secciones de abajo y se **cambian** tres frases; todo lo demás se queda. Cambia
   LFPDPPP 2025 art. 35 (el aviso «contendrá una cláusula en la que se indique si
   la persona titular acepta o no la transferencia»).
 - La mención de Anthropic como encargado y de la CLABE/CURP conservadas sale de
-  las decisiones D17 y D4.
+  las decisiones D17 y D4; el registro restringido, la CLABE enmascarada y el
+  origen en la Constancia son lo que construyó producto (commit 347a640,
+  migración 0081).
 - El mecanismo de revocación lo exige el art. 7, último párrafo.

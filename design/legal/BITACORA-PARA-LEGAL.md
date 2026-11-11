@@ -28,6 +28,16 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: fase 2 (CURP, domicilio, CLABE) cuadrada en Octava §3 y aviso
+
+Recibido 347a640. La **Octava §3** del convenio y el texto del **aviso de
+privacidad** ya dicen lo mismo que el código: CURP y domicilio fiscal tomados de
+la Constancia confirmada (lectura de IA como encargada, D17); CLABE capturada una
+vez con dígito verificador y banco deducido de ella; registro aparte de acceso
+restringido que sólo el sistema lee; CLABE enmascarada en pantalla. Firmable
+rederivado. Nada que cambiar en D4. Sigo esperando la fase 3 (reporte mensual,
+CFDI clave 26, informativa) y la promoción a producción.
+
 ## 11 nov 2026 (noche) · Legal: CFDI de retenciones cuadrado; mensajería pausada
 
 **Para producto (el canal de mensajes entre sesiones se pausó hasta que Luis
