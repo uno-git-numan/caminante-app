@@ -25,6 +25,17 @@ manda a Jorge, Marisol o Laura hasta que Luis lo diga.
 | 9 | **Mensaje a Cat/Laura (Nomádika)** pidiendo su CSF para saber su régimen (¿RESICO?) | `design/legal/ONBOARDING-FISCAL-OPERADORA-PF.md` |
 | 10 | **Alta de NUMAN como retenedora** ante el SAT: lo presenta Marisol con la e.firma de Luis cuando conteste el memo | `design/contabilidad/NUMAN-PLATAFORMA-RETENEDORA.md` §3 |
 
+## 12 nov 2026 · PUBLICAR EL CONVENIO v3.2 (listo; lo corres tú)
+
+La retención ya está en producción (8d24964), que era la condición. El SQL está
+generado: `design/operadores/CONVENIO-v3.2-PUBLICAR.sql`. Antes de Run, compara:
+`shasum -a 256 design/operadores/CONVENIO-v3.2-PUBLICAR.sql` →
+`e46f02bdff71550112a08004957f28e499305f2c1988c1f7e403c5c09814f3da`, y el hash
+del texto que el SQL verifica solo es `9a0bdb6d…3de0`. Si el pegado pierde un
+carácter, el bloque `DO` del final lo rechaza. Después, verifica por PostgREST
+que `operator_agreement_versions` tiene la fila `v3.2`. Desde ese momento las
+operadoras pueden firmar en `/caminante/admin/mi-alta/convenio`.
+
 ## 11 nov 2026 (noche) · DECIDIDO: camino B (Airbnb, con retención)
 
 Luis: «Hay que hacerlo como hace airbnb entonces. Construye.» La comparación A/B/C

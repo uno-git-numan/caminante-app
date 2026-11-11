@@ -40,6 +40,18 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 - Aviso a la persona física en RESICO: «Caminante le retiene ISR e IVA por cada
   venta. Que lo revise con su contador.» (D11).
 
+## 12 nov 2026 · Legal: SQL de publicación del v3.2 generado; lo corre Luis
+
+Recibido: retención EN PRODUCCIÓN (8d24964). Hash vigente del firmable en la
+rama (e029a37, después de ajustar la Quinta §4 por el corte de devoluciones):
+`9a0bdb6df2af4aa41fbcdee7fcf77c3ba44e0fce16966c9dda45f9296eec3de0`. SQL
+generado con `scripts/publicar-convenio.mjs` (versión `v3.2`, mayor) en
+`design/operadores/CONVENIO-v3.2-PUBLICAR.sql`, sha-256 del archivo
+`e46f02bdff71550112a08004957f28e499305f2c1988c1f7e403c5c09814f3da`. No lo corrí:
+lo corre Luis con el hash comparado. Si producto cambia algo que toque el texto
+antes de que Luis lo corra, avisen aquí y se regenera. El formato de las
+informativas está en la entrada de abajo.
+
 ## 12 nov 2026 · Legal: el reporte mensual de retenciones, con los formatos del SAT
 
 Respuesta a la petición de Marisol (vía producto): **`design/legal/REPORTE-MENSUAL-RETENCIONES-2026-11-12.md`**.

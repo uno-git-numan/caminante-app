@@ -498,8 +498,8 @@ RFC, régimen fiscal, domicilio y código postal fiscal, CURP (persona física) 
 
 | # | Qué | De quién | Bloquea publicar |
 |---|---|---|---|
-| 1 | **Candado en el código**: ninguna venta por cuenta conectada mientras no exista el módulo de retención (la Cuarta §8 lo promete desde la primera venta) | **Sesión de producto** | **Sí** |
-| 2 | Publicar: el firmable ya está derivado (`python3 design/operadores/derivar-firmable.py`); Luis corre `scripts/publicar-convenio.mjs design/operadores/CONVENIO-v3-FIRMABLE.md v3 mayor AAAA-MM-DD`, compara el hash y corre el SQL. Es la primera versión: `vigente_desde` puede ser el mismo día | **Luis** | — |
+| ~~1~~ | ~~Candado en el código~~ **Hecho y EN PRODUCCIÓN** (8d24964 promovido el 11 nov; 0079/0080/0081 aplicadas): toda venta por cuenta conectada retiene al cobrar; sin tasas del ejercicio no cobra por Connect | — | No |
+| 2 | **Publicar (listo para Luis, 12 nov):** el SQL ya está generado en `design/operadores/CONVENIO-v3.2-PUBLICAR.sql` (versión `v3.2`, mayor, `vigente_desde` = al correrlo). sha-256 del firmable `9a0bdb6df2af4aa41fbcdee7fcf77c3ba44e0fce16966c9dda45f9296eec3de0`; sha-256 del archivo SQL `e46f02bdff71550112a08004957f28e499305f2c1988c1f7e403c5c09814f3da`. Luis lo corre en el SQL Editor (o con `scripts/aplicar-migracion.mjs`) comparando el hash del SQL antes de Run; el `DO` del final revienta si el texto llegó distinto. Es la primera versión publicada: nadie vende con una vieja, así que puede entrar en vigor el mismo día | **Luis** | — |
 | 3 | Marisol revisa `DECISIONES-LEGAL-FISCAL-2026-11-11.md`; si cambia una línea (M1–M8), se ajusta esa línea y se publica versión menor o mayor según toque | Marisol → Luis | No |
 | 4 | D15 (liberar el dinero antes o después de la experiencia): si Luis elige «después», cambian Cuarta §5 y §6 antes de publicar | **Luis** | Sólo si elige «después» |
 | 5 | Aviso de privacidad con las adiciones (`AVISO-PRIVACIDAD-ADICIONES-2026-11.md`) antes de prender el alta dentro de la plataforma | Sesión de producto | No para publicar; **sí** para `COBRO_EN_PLATAFORMA` |
