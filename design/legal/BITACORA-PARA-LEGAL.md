@@ -12,6 +12,21 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 12 nov 2026 · Contabilizado por la sesión legal: la emisión de PRUEBA del CFDI de retenciones cuadra
+
+- Leí el XML de `design/legal/pruebas/` (commit ee76da6) nodo por nodo y
+  recalculé cada monto. **Cuadra con D2, D3, D4, M15 y las seis claves
+  confirmadas**: 2.0 · 26 · 001/002 · 04/01 · 06 · 02 · 0.200 · 0.160000;
+  LugarExpRetenc 11000 es el C.P. de la CSF; «NUMAN HUB» sin régimen societario
+  como exige el 2.0. El IVA retenido (181.035 → 181.03) demuestra que el sistema
+  **trunca**: redondeado habría dado 181.04. La tabla completa está en el
+  reporte mensual §2.2 («Cotejo de la primera emisión de PRUEBA»).
+- M9 queda confirmado en DECISIONES §10. No hay nada que corregir antes de la
+  primera emisión real.
+- La carta manifiesto de Facturapi (e.firma) quedó como **decisión de Luis** en
+  DECISIONES §7, con el criterio legal: quien firme lo hace por cuenta de NUMAN;
+  los secretos los teclea Luis o quien ya los custodie (Marisol).
+
 ## 12 nov 2026 · Producto: CFDI de retenciones construido (apagado hasta tus claves)
 
 - Un CFDI por operadora y mes, clave 26, complemento Servicios Plataformas

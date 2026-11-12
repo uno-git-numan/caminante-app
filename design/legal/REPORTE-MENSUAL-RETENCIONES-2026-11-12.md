@@ -143,6 +143,40 @@ Dos consecuencias de diseño que salen de estas reglas:
 2. **No hay negativos ni fechas fuera del mes**: una devolución **no** se
    reporta como renglón negativo. Ver §3.
 
+**Cotejo de la primera emisión de PRUEBA (sandbox de Facturapi, 11 nov 2026,
+18:54 CDMX; `design/legal/pruebas/cfdi-retenciones-sandbox-2026-11.xml`, UUID
+de prueba 89876b8d…35a8; receptor = la persona de prueba del SAT
+EKU9003173C9; sin validez fiscal).** La sesión legal lo leyó nodo por nodo y
+recalculó cada monto. **Todo cuadra con D2, D3, D4, M15 y la tabla de claves
+de arriba; no hay nada que corregir antes de la primera emisión real.**
+
+| Qué se verificó | En el XML | Esperado | Cuadra |
+|---|---|---|---|
+| Versión del comprobante y clave de retención | 2.0 · CveRetenc 26 | 2.0 · 26 (M9, ahora confirmado) | ✔ |
+| Emisor | NHU250826CS8, «NUMAN HUB», régimen 601, CSD 00001000000725993952 | RFC y régimen de la CSF; razón social **sin** «S.A. de C.V.» como exige el 2.0; CSD vigente a 2030 | ✔ |
+| LugarExpRetenc | 11000 | C.P. del domicilio fiscal de la CSF (Prado Norte 525, 11000) | ✔ |
+| Receptor nacional | RFC, nombre y DomicilioFiscalR 26015 | El C.P. fiscal de la operadora sale de su ficha (0038); para la persona de prueba el SAT publica 26015 | ✔ |
+| Periodo | MesIni = MesFin = 11, ejercicio 2026 | Un mes; FechaServ 05 y 11 de nov caen dentro | ✔ |
+| Base (D3) | MontoTotOperacion = MonTotServSIVA = 2,262.93 = 1,508.62 + 754.31 | Σ precios sin IVA (cobros de $1,750.00 y $875.00 ÷ 1.16); la comisión no reduce la base | ✔ |
+| IVA trasladado | 241.38 + 120.69 = 362.07, Impuesto 02, Tasa 0.160000 | Base × 0.16 por venta | ✔ |
+| ISR retenido (D2, M15) | BaseRet 2,262.93 · 001 · **56.57** · TipoPagoRet 04 | 2,262.93 × 2.5 % = 56.57325 → **truncado** 56.57 (redondeado daría lo mismo aquí) | ✔ |
+| IVA retenido (D2, M15) | BaseRet 362.07 · 002 · **181.03** · TipoPagoRet 01 | 362.07 × 50 % = 181.035 → **truncado** 181.03; **redondeado habría dado 181.04**: la prueba demuestra que el sistema trunca | ✔ |
+| MontoTotRet y MontoTotExent | 237.60 · 0.00 | 56.57 + 181.03; exento siempre 0.00 | ✔ |
+| DifIVAEntregadoPrestServ | 181.04 | 362.07 − 181.03 | ✔ |
+| Comisión (M13) | 301.72 + 150.86 = 452.58, Porcentaje 0.200 | 20 % de cada base, sin IVA, 3 decimales | ✔ |
+| Periodicidad · TipoDeServ · FormaPagoServ | 02 · 06 · 03 y 06 | Mensual · «Otro tipo de servicios» · crédito y débito (M14) | ✔ |
+| Timbre | PAC de pruebas SPR190613I52, certificado SAT 2000100000030002… | Es el sello del ambiente de pruebas; sin validez | ✔ |
+
+Dos notas que salen de la prueba:
+
+- **M15 en vivo.** Por venta y truncando, el ISR sería 37.71 + 18.85 =
+  **56.56**; el CFDI certifica **56.57** porque se calcula del total del mes.
+  Ese centavo lo pone NUMAN al enterar, exactamente como se decidió. En el IVA
+  no hay diferencia (120.69 + 60.34 = 181.03).
+- **Facturapi rechaza `monto_tot_grav` y `monto_tot_ret`** aunque su OpenAPI los
+  liste, y los deriva él. Los valores derivados (2,262.93 y 237.60) son los
+  correctos, así que no cambia nada: el sistema ya no los manda.
+
 ### 2.3 · El entero del día 17 (B)
 
 Lo entera Marisol en la declaración mensual de NUMAN. Lo que el sistema le da:

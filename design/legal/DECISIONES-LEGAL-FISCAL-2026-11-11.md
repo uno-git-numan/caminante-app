@@ -518,6 +518,16 @@ va con IVA (M11).
   comparado; las operadoras ya pueden firmar.
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
 - Firmar con la e.firma el aviso de NUMAN como retenedora que presente Marisol.
+- **Carta manifiesto de Facturapi** (para activar la llave Live): Facturapi la
+  pide firmada con la e.firma de NUMAN. Producto propone que la firme Marisol
+  como usuaria invitada de la organización, para que la e.firma no viaje por el
+  chat ni por el correo. Criterio legal: la carta sólo autoriza a Facturapi a
+  timbrar por NUMAN (certificación de CFDI); la e.firma es de la persona moral
+  y quien la use lo hace por cuenta de NUMAN, sin delegar la representación; la
+  responsabilidad fiscal sigue siendo de NUMAN. Es un secreto, y **la regla es
+  que los secretos los teclea Luis**: si Marisol ya la custodia para las
+  declaraciones, puede firmarla ella; si no, la firma Luis. **Decisión de Luis.**
+  Además hay que activar la suscripción de Facturapi (pago de NUMAN).
 
 ## 8 · Lo que hace Marisol
 
@@ -542,7 +552,7 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M6 | Que el complemento «Servicios Plataformas Tecnológicas» va sólo en el CFDI de retenciones de NUMAN y no en el CFDI de la operadora al cliente | D8 |
 | M7 | El aviso exacto de alta como retenedora y si conviene agregar «intermediación / comisión mercantil» a las actividades de NUMAN en la CSF | D11 |
 | M8 | Clave 80141628 para la cuota de admisión (o la que ella prefiera) | D7 |
-| M9 | CFDI de retenciones e información de pagos: clave de retención **26** «Servicios mediante Plataformas Tecnológicas», complemento «Servicios Plataformas Tecnológicas» y versión 2.0 del comprobante, timbrado por Facturapi (verificado por producto en su especificación el 11 nov; la versión se confirma con la primera emisión de prueba) | D4 |
+| M9 | CFDI de retenciones e información de pagos: clave de retención **26** «Servicios mediante Plataformas Tecnológicas», complemento «Servicios Plataformas Tecnológicas» y versión 2.0 del comprobante, timbrado por Facturapi (verificado por producto en su especificación el 11 nov; **confirmado el 11 nov con la primera emisión de prueba en sandbox**, UUID 89876b8d…35a8, cotejada nodo por nodo por la sesión legal: clave 26, versión 2.0, 001/002, TipoPagoRet 04/01, truncado, complemento 1.0 — ver el reporte mensual §2.2) | D4 |
 | M10 | Aplicativo del entero para NUMAN (declaración mensual con las obligaciones de retenedora, o «retenciones por el uso de plataformas»); mes sin ventas: ¿informativa en ceros o sin registros?; DIOT: que las retenciones a operadoras no van ahí | §6 bis |
 | M11 | «Monto de las operaciones para IVA» del txt: ¿base sin IVA (como sale hoy) o con IVA? | §6 bis |
 | M12 | Devoluciones después del corte: ¿se queda la retención a favor de la operadora (decidido) o se cancela y sustituye el CFDI y se compensa en el siguiente entero? | §6 bis |
