@@ -12,6 +12,21 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 12 nov 2026 · Contabilizado por la sesión legal: Facturapi completo, correo a Marisol, dos candados antes de la llave Live
+
+- Carta manifiesto firmada por Luis con la e.firma y suscripción pagada: cerrado
+  en DECISIONES §7. La llave Live se crea cuando Marisol conteste.
+- El correo a Marisol (PREGUNTA-MARISOL-FACTURACION-2026-11-12.md) abre **M17**
+  (actividad de turismo en la CSF: aviso de actualización de actividades, CFF
+  27) y **M18** (qué ventas del pasado ya facturó). Sus respuestas también
+  cierran M7 (alta como retenedora). Nada de D8–D11 cambia por ahora.
+- Criterio legal sobre el riesgo que encontró producto (una llave prende toda la
+  facturación): **dos interruptores**, retenciones con la llave sola y lo de
+  clientes con su propio interruptor apagado; y **la fecha de corte como candado
+  en el código**: nada se emite sobre cobros anteriores al corte, y lo que
+  Marisol ya facturó después se marca con su UUID. Un CFDI duplicado es ingreso
+  duplicado ante el SAT y cancelarlo deja rastro. Está en DECISIONES §6.
+
 ## 12 nov 2026 · Contabilizado por la sesión legal: la emisión de PRUEBA del CFDI de retenciones cuadra
 
 - Leí el XML de `design/legal/pruebas/` (commit ee76da6) nodo por nodo y

@@ -459,6 +459,27 @@ nada sobre RESICO salvo el aviso en pantalla.
 
 ---
 
+**Dos candados antes de crear la llave Live (criterio legal, 12 nov):**
+
+1. **Fecha de corte como candado en el código, no como acuerdo.** Un CFDI
+   emitido por el sistema sobre una venta que Marisol ya facturó o ya metió en
+   una global es un **ingreso duplicado ante el SAT**, y la cura es cancelarlo
+   (motivo 01 o 02 con sustitución), que deja rastro y a veces pide la
+   aceptación del receptor. Por eso el sistema **no emite nada** (recibo,
+   autofactura ni global) sobre cobros anteriores a la fecha de corte que
+   Marisol confirme (propuesta: 10 nov 2026), y las ventas posteriores que
+   ella ya haya facturado se marcan como «facturada fuera del sistema» con el
+   UUID de su CFDI. La global de noviembre sale **sólo** con lo que esté
+   después del corte y sin marca. Fundamento: CFF 29 y 29-A (un comprobante por
+   operación), regla de la factura global de la RMF (2.7.1.21 vigente, M18).
+2. **Dos interruptores, no uno.** Las retenciones a las operadoras (LISR 113-C,
+   LIVA 18-J) son una obligación de NUMAN **independiente** de cómo facture
+   sus propias ventas, y la primera venta por cuenta conectada puede llegar
+   antes de que Marisol conteste sobre lo demás. El CFDI de retenciones se
+   prende **con la llave Live sola**; los recibos, la autofactura y la global
+   de clientes llevan **su propio interruptor**, apagado hasta el visto bueno
+   de Marisol (punto 1 del correo). Producto lo construye.
+
 ## 6 bis · El reporte mensual de retenciones: lo que el sistema le entrega a Marisol
 
 Marisol pidió «el reporte de las retenciones del mes para presentar las
@@ -518,16 +539,14 @@ va con IVA (M11).
   comparado; las operadoras ya pueden firmar.
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
 - Firmar con la e.firma el aviso de NUMAN como retenedora que presente Marisol.
-- **Carta manifiesto de Facturapi** (para activar la llave Live): Facturapi la
-  pide firmada con la e.firma de NUMAN. Producto propone que la firme Marisol
-  como usuaria invitada de la organización, para que la e.firma no viaje por el
-  chat ni por el correo. Criterio legal: la carta sólo autoriza a Facturapi a
-  timbrar por NUMAN (certificación de CFDI); la e.firma es de la persona moral
-  y quien la use lo hace por cuenta de NUMAN, sin delegar la representación; la
-  responsabilidad fiscal sigue siendo de NUMAN. Es un secreto, y **la regla es
-  que los secretos los teclea Luis**: si Marisol ya la custodia para las
-  declaraciones, puede firmarla ella; si no, la firma Luis. **Decisión de Luis.**
-  Además hay que activar la suscripción de Facturapi (pago de NUMAN).
+- ~~Carta manifiesto de Facturapi y suscripción.~~ Hecho el 12 nov: Luis la
+  firmó con la e.firma de NUMAN y pagó la suscripción. La llave Live está
+  desbloqueada pero **no creada**: se crea cuando Marisol conteste (abajo).
+- **Esperar la respuesta de Marisol** al correo del 12 nov («Visto bueno para
+  prender la facturación de la plataforma», texto en
+  `design/contabilidad/PREGUNTA-MARISOL-FACTURACION-2026-11-12.md`) antes de
+  crear la llave Live. Sus respuestas cierran M7 (alta como retenedora), M17 y
+  M18.
 
 ## 8 · Lo que hace Marisol
 
@@ -560,6 +579,8 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M14 | Forma de pago por venta en el complemento: la real del cliente (03/06/02), no 08 «Intermediario pagos» | ídem |
 | M15 | Truncado por venta y centavos a cargo de NUMAN al enterar (decidido y en producción) | §6 bis |
 | M16 | Claves del CFDI de retenciones confirmadas en los catálogos oficiales el 12 nov (TipoDeServ 06 con 2.5 % en 2026, Periodicidad 02 mensual, TipoPagoRet 04 ISR provisional por omisión y 01 IVA, tarjeta prepago como débito 06): sólo la prepago y el «04 por omisión» son criterio nuestro | `REPORTE-MENSUAL-RETENCIONES` §2.2 |
+| M17 | **Actividad económica de turismo en la CSF de NUMAN** (27 ene 2026: producción audiovisual, software, procesamiento de información). La clave de producto 90121501 del CFDI no depende de la actividad registrada, pero el SAT cruza actividad contra lo facturado y puede observar. Criterio legal: presentar el **aviso de actualización de actividades económicas y obligaciones** (CFF 27, apartado B fracción II del RCFF 29) agregando organización de excursiones / agencia de viajes, mientras DRUIDAS se constituye. Marisol confirma si ya lo presentó o lo presenta | D8 |
+| M18 | **El pasado: qué ventas ya facturó o metió en global** de las 75 (12 jun–9 nov, $879,775) y las 3 desde el 10 nov ($25,650). Con su lista (o los XML) el sistema las marca como facturadas fuera y el corte queda confirmado. Hasta entonces, el sistema no factura nada de clientes (§6, candado 1) | D8, D10 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.
