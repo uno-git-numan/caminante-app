@@ -39,6 +39,8 @@ donde no hay dato, se dice y se dice de dónde saldría.
 | D16 | Datos a Stripe = **transferencia** (no encargo); consentimiento **expreso** en el convenio; el aviso de privacidad se actualiza con texto listo | Publicar el aviso nuevo antes de prender el alta dentro de la plataforma |
 | D17 | Anthropic (lectura de CSF) = **persona encargada**; la CLABE y la CURP se conservan como datos fiscales | Mención en el aviso; nada más |
 | D18 | NUMAN **no** realiza actividad vulnerable (LFPIORPI 17) **ni** emite fondos de pago electrónico (LRITF 22) | Nada |
+| D19 | Devolución **después** de facturar al cliente: **CFDI de egreso** relacionado (tipo 01) en todos los casos, el mismo día en que Stripe confirma la devolución; **cancelar** (motivo 03) sólo si es total y aún no requiere aceptación del receptor. Antes de cualquier CFDI: el recibo se cancela o se reexpide por lo neto | Afina D9; el reembolso dispara el egreso o la baja del recibo (M19) |
+| D20 | NUMAN **sí** puede facturar por cuenta de la operadora con su CSD: ya hay mandato (Décima tercera §1 a). Faltan tres candados: la operadora firma **ella** la carta manifiesto con su e.firma, sube **ella** su CSD y responde de él (CFF 17-J); NUMAN lo usa sólo para esas facturas y lo da de baja al terminar | Convenio **v3.3 (menor)** + texto de consentimiento al activar la facturación en el panel + párrafo en el aviso de privacidad |
 | §5 | Convenio v3.2 cerrado: representante por nombre, tope de responsabilidad, sede CDMX, mandato de timbrado, **variante B de retención** | **Publicado el 11 nov 2026** (hash `e11f82e9…8224`, verificado contra la base); la retención ya está en producción, así que la primera venta por cuenta conectada retiene |
 
 ---
@@ -413,6 +415,83 @@ restringidos; el convenio ya lo dice (Cuarta §7 e).
 
 ---
 
+### D19 · Devolución después de facturar al cliente (M19 de producto)
+
+D9 ya decidía el documento; esto fija **cuándo** y **qué pasa con el recibo**.
+
+- **Recibo sin CFDI** (nota de venta de Facturapi, no fiscal): una devolución
+  total **cancela el recibo** en el mismo acto; una parcial lo cancela y lo
+  reexpide por lo neto cobrado (cómo lo haga Facturapi lo define producto). Así
+  la global nunca se detiene por un recibo devuelto, y el cliente que pida
+  factura después recibe la del importe real.
+- **Con CFDI ya emitido** (autofactura o global): **CFDI de egreso** relacionado
+  al original con tipo de relación 01, por el importe devuelto con su IVA, la
+  misma clave de producto, forma de pago la de la devolución (la misma vía del
+  cobro, LFPC 92) y método PUE. Se emite **el mismo día en que Stripe confirma
+  la devolución** (es el evento que ya dispara la reversión a la operadora), con
+  fecha de ese día. Un egreso **no depende del receptor** y deja el ingreso
+  original intacto en su mes: por eso es la regla general.
+- **Cancelar** el CFDI original (motivo 03 «no se llevó a cabo la operación»)
+  sólo cuando la devolución es **total** y la cancelación **no requiere
+  aceptación** del receptor (comprobante de hasta $1,000 o dentro del plazo
+  corto que la RMF da tras la emisión; **M19**, Marisol confirma el numeral y el
+  plazo vigentes). Fuera de eso, egreso: una cancelación pendiente de aceptación
+  en el Buzón de un cliente que no contesta se queda «en proceso» y el ingreso
+  sigue vivo. Y nunca fuera del ejercicio (CFF 29-A, cuarto párrafo).
+- **Global**: si la venta ya entró en una global, el egreso se relaciona con la
+  global (receptor público en general). La global del mes **no** incluye lo
+  devuelto antes de timbrarla (candado 4 de producto).
+- La comisión devuelta sigue D9: egreso proporcional de NUMAN a la operadora;
+  las retenciones, Quinta §4 del convenio.
+
+### D20 · NUMAN factura por cuenta de la operadora con el CSD de ella (pregunta de Luis)
+
+**Sí se puede, y el convenio v3.2 ya lo contempla en lo esencial**: la Décima
+tercera §1 a) es un **mandato** (CCF 2546) limitado a generar, timbrar con su
+CSD y conservar los comprobantes de sus ventas por la plataforma, ejecutado por
+conducto de un proveedor autorizado de certificación; el Operador sigue siendo
+el emisor y responde del contenido. Un CFDI timbrado con el CSD del
+contribuyente **es del contribuyente** aunque lo genere un tercero: la ley sólo
+exige que se expida por un PAC (CFF 29 II y IV) y presume que lo que lleva su
+sello lo firmó su titular (CFF 17-D). Lo que falta son **tres candados**, y de
+ahí sale una versión **v3.3 menor** del convenio (precisa un servicio opcional
+ya pactado; quien ya firmó v3.2 no tiene que volver a firmar, y acepta estos
+términos **al activar la facturación en su panel**, que es el acto que importa):
+
+1. **La carta manifiesto la firma la operadora, con su e.firma, ella misma.** El
+   PAC la exige de cada RFC que timbra; la e.firma es la firma de la persona y
+   **nunca pasa por Caminante** (ni por chat ni por correo: la regla de los
+   secretos vale también para ellas). Va en el convenio como obligación del
+   Operador **para usar** la facturación desde el portal, no como obligación
+   general: quien no la firma, factura por sus medios (inciso b).
+2. **El CSD lo sube la operadora** (archivos .cer y .key y su contraseña) en su
+   panel, directo al proveedor de certificación; Caminante **no lo recibe por
+   otra vía** y no lo puede extraer. El CSD **no es la e.firma**: sólo sirve
+   para sellar comprobantes (CFF 29 II), que es exactamente lo que el mandato
+   cubre. La obligación de resguardar la clave privada es del titular (CFF
+   17-J): el convenio lo dice y la operadora **responde de todo comprobante
+   sellado con su CSD mientras no lo revoque**; puede revocarlo ante el SAT o
+   darlo de baja en el panel en cualquier momento, y Caminante deja de emitir en
+   ese instante.
+3. **Uso limitado, baja y datos.** Caminante usa el CSD **sólo** para los
+   comprobantes de ventas por la plataforma, sus egresos por devolución y su
+   global; cancela comprobantes sólo por instrucción de la operadora o por las
+   devoluciones de la Quinta; al terminar el convenio (o al desactivar la
+   facturación) da de baja el CSD en el proveedor y conserva únicamente los
+   XML emitidos por el plazo legal (CFF 30: 5 años) para entregárselos. El
+   CSD y su contraseña son **información confidencial** (Décima cuarta) y, en
+   persona física, datos personales: el aviso de privacidad nombra la
+   finalidad («facturación desde el portal, por tu cuenta») y al proveedor de
+   certificación como **persona encargada** (LFPDPPP 2025 art. 2 XII).
+
+**Lo que no cambia:** el modelo Airbnb (la operadora factura al cliente;
+NUMAN sólo su comisión). La organización de la operadora en Facturapi es una
+herramienta de NUMAN para ejecutar el mandato, no un cambio de emisor. **Lo
+que no hace falta:** poder notarial (el mandato puede ser privado, CCF 2551–2552,
+y la aceptación electrónica del convenio vale, Décima sexta); ni aviso al SAT
+(no existe la figura de «facturador por cuenta de terceros» con aviso; el PAC
+es el único autorizado y ya está).
+
 ## 5 · El convenio, cerrado (v3.2)
 
 | Punto | Decisión | Fundamento / por qué |
@@ -453,6 +532,13 @@ restringidos; el convenio ya lo dice (Cuarta §7 e).
    por la misma vía (ya).
 7. **Leyenda «IVA incluido»** en todo precio publicado (LIVA 18-J I).
 8. Clave 90121501 en el CFDI de la experiencia (hoy 90121500).
+9. **Devoluciones y recibos** (D19): el reembolso confirmado por Stripe cancela o
+   reexpide el recibo, o emite el egreso relacionado el mismo día.
+10. **Facturación por cuenta de la operadora** (D20): texto de consentimiento al
+    activar («Activar facturación desde el portal»), con los tres candados; carga
+    del CSD y firma de la carta manifiesto **por la propia operadora**; baja del
+    CSD al desactivar o terminar. Se prende sólo con `FACTURACION_CLIENTES=1` y
+    después de publicar v3.3.
 
 Lo que **no** se construye: nada sobre liberar el dinero después (D15, Luis);
 nada sobre RESICO salvo el aviso en pantalla.
@@ -538,6 +624,9 @@ va con IVA (M11).
 - ~~Publicar el convenio v3.2~~ Hecho: publicado el 11 nov 2026 con el hash
   comparado; las operadoras ya pueden firmar.
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
+- **Aprobar el convenio v3.3 (menor)** con los tres candados de D20 (texto en
+  `CONVENIO-v3.md`, Décima tercera §1 bis, Octava §4 y Quinta §8) para que
+  una sesión lo publique con el hash; y el texto de consentimiento del panel.
 - Firmar con la e.firma el aviso de NUMAN como retenedora que presente Marisol.
 - ~~Carta manifiesto de Facturapi y suscripción.~~ Hecho el 12 nov: Luis la
   firmó con la e.firma de NUMAN y pagó la suscripción. La llave Live está
@@ -581,6 +670,7 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M16 | Claves del CFDI de retenciones confirmadas en los catálogos oficiales el 12 nov (TipoDeServ 06 con 2.5 % en 2026, Periodicidad 02 mensual, TipoPagoRet 04 ISR provisional por omisión y 01 IVA, tarjeta prepago como débito 06): sólo la prepago y el «04 por omisión» son criterio nuestro | `REPORTE-MENSUAL-RETENCIONES` §2.2 |
 | M17 | **Actividad económica de turismo en la CSF de NUMAN** (27 ene 2026: producción audiovisual, software, procesamiento de información). La clave de producto 90121501 del CFDI no depende de la actividad registrada, pero el SAT cruza actividad contra lo facturado y puede observar. Criterio legal: presentar el **aviso de actualización de actividades económicas y obligaciones** (CFF 27, apartado B fracción II del RCFF 29) agregando organización de excursiones / agencia de viajes, mientras DRUIDAS se constituye. Marisol confirma si ya lo presentó o lo presenta | D8 |
 | M18 | **El pasado: qué ventas ya facturó o metió en global** de las 75 (12 jun–9 nov, $879,775) y las 3 desde el 10 nov ($25,650). Con su lista (o los XML) el sistema las marca como facturadas fuera y el corte queda confirmado. Hasta entonces, el sistema no factura nada de clientes (§6, candado 1) | D8, D10 |
+| M19 | **Cancelación sin aceptación del receptor**: numeral vigente de la RMF 2026 (en 2025, 2.7.1.35) y su plazo corto tras la emisión (un día hábil); y que prefiera el **egreso** como regla general frente a cancelar con sustitución (D19) | D19 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.

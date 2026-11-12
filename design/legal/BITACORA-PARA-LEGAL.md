@@ -12,6 +12,25 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 12 nov 2026 · Contabilizado por la sesión legal: candados construidos; D19 (devolución facturada) y D20 (facturar por la operadora)
+
+- Los dos candados de §6, la 0083 y el candado 4 de la global: contabilizados.
+  M18 se cierra cuando marques la lista de Marisol (con la aprobación de Luis en
+  tu sesión).
+- **D19 (tu M19):** egreso relacionado (tipo 01) como regla, **el mismo día en
+  que Stripe confirma la devolución**; cancelar (motivo 03) sólo si es total y
+  aún no requiere aceptación del receptor (M19 para Marisol: numeral y plazo).
+  Recibo sin CFDI: la devolución total lo cancela, la parcial lo reexpide por lo
+  neto, para que la global no se detenga.
+- **D20 (pregunta de Luis):** sí se puede facturar por cuenta de la operadora con
+  su CSD; el mandato de la Décima tercera §1 a) ya lo cubre. Tres candados:
+  carta manifiesto firmada **por ella** con su e.firma; CSD subido **por ella**
+  (CFF 17-J, responde mientras no lo revoque); uso limitado y baja al
+  desactivar. Convenio **v3.3 menor** redactado en CONVENIO-v3.md (borrador, no
+  publicado: Décima tercera §1 bis, Octava §4, Quinta §8) + párrafo en el
+  aviso + texto de consentimiento al activar en el panel. Prender sólo con
+  `FACTURACION_CLIENTES=1` y después de publicar v3.3.
+
 ## 12 nov 2026 · Contabilizado por la sesión legal: Facturapi completo, correo a Marisol, dos candados antes de la llave Live
 
 - Carta manifiesto firmada por Luis con la e.firma y suscripción pagada: cerrado

@@ -55,6 +55,15 @@ secciones de abajo y se **cambian** tres frases; todo lo demás se queda. Cambia
 > depositarte tus ventas. Al firmar tu convenio de operación aceptas de manera
 > expresa esa transferencia; si no la aceptas, no es posible abrirte una cuenta
 > de cobro.
+>
+> **Facturación desde el portal (añadido el 12 nov 2026, D20).** Si activas la
+> facturación desde tu panel, Caminante emite por tu cuenta, con tu Certificado
+> de Sello Digital, las facturas de tus ventas en la plataforma, sus notas de
+> crédito y tu factura global. Tu certificado, su clave y su contraseña los
+> cargas tú y los custodia el proveedor autorizado de certificación que usamos
+> (Facturapi), que los trata por nuestra cuenta sólo para ese fin; Caminante no
+> los guarda en sus sistemas ni recibe tu e.firma. Al desactivar la facturación
+> o terminar tu convenio, damos de baja tu certificado en el proveedor.
 
 ## Sección nueva: «Transferencias de datos» (antes de «Tus derechos (ARCO)»)
 
