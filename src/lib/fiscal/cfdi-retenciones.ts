@@ -240,9 +240,10 @@ export function payloadRetencion(
     periodo: { mes_ini: mm, mes_fin: mm, ejerc },
     totales: {
       monto_tot_operacion: m.montoOperacion,
-      monto_tot_grav: m.montoOperacion,
+      // ⚠️ `monto_tot_grav` y `monto_tot_ret` NO se mandan: su OpenAPI los
+      // lista, pero el API los rechaza («El campo … no está permitido»,
+      // sandbox, 11 nov 2026). Facturapi los deriva de lo demás.
       monto_tot_exent: 0,
-      monto_tot_ret: r2(m.isr + m.iva),
       imp_retenidos: [
         { impuesto: "ISR", base_ret: m.montoOperacion, monto_ret: m.isr, tipo_pago_ret: c.tipoPagoRetIsr },
         { impuesto: "IVA", base_ret: m.ivaTrasladado, monto_ret: m.iva, tipo_pago_ret: c.tipoPagoRetIva },

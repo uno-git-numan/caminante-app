@@ -92,10 +92,13 @@ describe("payloadRetencion", () => {
     expect(p).toMatchObject({
       cve_retenc: "26",
       periodo: { mes_ini: 11, mes_fin: 11, ejerc: 2026 },
-      totales: { monto_tot_operacion: 2262.93, monto_tot_exent: 0, monto_tot_ret: 237.6 },
+      totales: { monto_tot_operacion: 2262.93, monto_tot_exent: 0 },
       complements: [r.xml],
       idempotency_key: "ret-2026-11-op",
     });
+    // Facturapi rechaza monto_tot_grav y monto_tot_ret (los deriva): sandbox, 11 nov 2026.
+    expect(p.totales).not.toHaveProperty("monto_tot_grav");
+    expect(p.totales).not.toHaveProperty("monto_tot_ret");
     expect(p.totales.imp_retenidos).toEqual([
       // 04 «Pago provisional ISR» por omisión (LISR 113-A 3º).
       { impuesto: "ISR", base_ret: 2262.93, monto_ret: 56.57, tipo_pago_ret: "04" },
