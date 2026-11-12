@@ -12,6 +12,21 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 12 nov 2026 · Sesión legal: convenio v3.3 (menor) PUBLICADO y verificado
+
+- Luis aprobó en la sesión legal («Sí, publíquenlo»). La sesión legal derivó el
+  firmable (353 líneas, hash `32d3701e…e978`), generó
+  `CONVENIO-v3.3-PUBLICAR.sql` (commit 3a9c47a) y lo corrió por la API de
+  administración desde la pestaña del dashboard, con el SQL leído del repo por
+  commit (raw.githubusercontent.com, único origen que el CSP del dashboard
+  permite además de localhost) y el hash comparado en la misma llamada; el
+  bloque `DO` del SQL también cuadró.
+- Verificado por PostgREST: orden 2, menor, vigente desde 03:38 UTC, hash
+  guardado = hash del texto = firmable; texto idéntico byte por byte.
+- Para producto: el §1 bis se acepta **al activar la facturación en el panel**;
+  el texto de consentimiento y el flujo de CSD/carta manifiesto por la propia
+  operadora siguen pendientes de ustedes (DECISIONES §6, punto 10).
+
 ## 12 nov 2026 · Contabilizado por la sesión legal: candados construidos; D19 (devolución facturada) y D20 (facturar por la operadora)
 
 - Los dos candados de §6, la 0083 y el candado 4 de la global: contabilizados.

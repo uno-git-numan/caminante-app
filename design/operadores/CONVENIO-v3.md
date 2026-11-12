@@ -1,20 +1,20 @@
 # Convenio de operación en la plataforma Caminante — v3 (documento de trabajo)
 
-### v3.2 · PUBLICADO el 11 nov 2026 (23:29 UTC) · hash `e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224`
+### v3.3 · PUBLICADO el 12 nov 2026 (03:38 UTC) · menor · hash `32d3701eff720e8e0e24972f2834e034fb997c3da18a4c958f7ed2ac8383e978`
 
 > ⚠️ **Esta versión ya está publicada en producción** (`operator_agreement_versions`,
-> orden 1, tipo mayor, vigente desde el 11 nov 2026; verificado por la sesión legal
-> contra la base: el texto de la base, su hash guardado y `CONVENIO-v3-FIRMABLE.md`
-> en la rama son idénticos). **Lo que firman las operadoras es ese texto y ya no se
-> edita.** Cualquier cambio al firmable es una **versión nueva** (menor o mayor,
-> Décima segunda) que se publica aparte con `scripts/publicar-convenio.mjs`; este
-> archivo de trabajo sigue siendo la fuente, pero su edición ya no cambia lo publicado.
+> orden 2, tipo menor, vigente desde el 12 nov 2026 03:38 UTC; aprobada por Luis en la
+> sesión legal («Sí, publíquenlo») y ejecutada por ella con el hash comparado en la
+> misma llamada; verificado contra la base por PostgREST: hash guardado, hash del
+> texto y `CONVENIO-v3-FIRMABLE.md` idénticos, 46,641 bytes). Cambios respecto de
+> v3.2 (D19 y D20): Décima tercera §1 bis, Octava §4 y Quinta §8. Por ser menor,
+> quien firmó v3.2 no refirma; acepta el §1 bis al activar la facturación en su panel.
+> **Lo que firman las operadoras es ese texto y ya no se edita.** Cualquier cambio al
+> firmable es una **versión nueva** que se publica aparte con
+> `scripts/publicar-convenio.mjs`; este archivo de trabajo sigue siendo la fuente.
 >
-> **v3.3 · BORRADOR (12 nov 2026, sesión legal; D19 y D20) · menor · NO publicado.**
-> Cambios al firmable respecto de v3.2: Décima tercera §1 bis (facturación
-> desde el portal: carta manifiesto, CSD y baja), Octava §4 (el CSD como dato
-> confidencial y el PAC como encargado) y Quinta §8 (egreso como regla; plazo).
-> Luis aprueba; una sesión lo publica con `scripts/publicar-convenio.mjs … v3.3 menor`.
+> v3.2 · publicada el 11 nov 2026 (23:29 UTC), orden 1, mayor, hash
+> `e11f82e944d49ba8611a9e7ef1f28d00fa41f2672e82516f958fe5bed22a8224` (sigue en la base).
 
 ### v3.2 · 11 de noviembre de 2026 · CERRADO POR LA SESIÓN LEGAL; MARISOL REVISA; LUIS PUBLICA
 

@@ -492,7 +492,16 @@ y la aceptación electrónica del convenio vale, Décima sexta); ni aviso al SAT
 (no existe la figura de «facturador por cuenta de terceros» con aviso; el PAC
 es el único autorizado y ya está).
 
-## 5 · El convenio, cerrado (v3.2)
+## 5 · El convenio, cerrado (v3.2 → v3.3)
+
+**v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash
+`32d3701eff720e8e0e24972f2834e034fb997c3da18a4c958f7ed2ac8383e978`, aprobada por
+Luis en la sesión legal y ejecutada por ella con el hash comparado; verificada
+por PostgREST (texto de la base = firmable, 46,641 bytes). Añade, por D19 y
+D20, la Décima tercera §1 bis (facturación desde el portal: carta manifiesto y
+CSD por la propia operadora, uso limitado y baja), la Octava §4 (el CSD como
+información confidencial; el PAC como encargado) y la Quinta §8 (egreso como
+regla). La v3.2 sigue en la base como orden 1.
 
 | Punto | Decisión | Fundamento / por qué |
 |---|---|---|
@@ -624,9 +633,9 @@ va con IVA (M11).
 - ~~Publicar el convenio v3.2~~ Hecho: publicado el 11 nov 2026 con el hash
   comparado; las operadoras ya pueden firmar.
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
-- **Aprobar el convenio v3.3 (menor)** con los tres candados de D20 (texto en
-  `CONVENIO-v3.md`, Décima tercera §1 bis, Octava §4 y Quinta §8) para que
-  una sesión lo publique con el hash; y el texto de consentimiento del panel.
+- ~~Aprobar el convenio v3.3 (menor).~~ Aprobado y **publicado el 12 nov 2026
+  (03:38 UTC)**, orden 2, hash `32d3701e…e978`, verificado contra la base. Queda
+  el texto de consentimiento del panel (producto).
 - Firmar con la e.firma el aviso de NUMAN como retenedora que presente Marisol.
 - ~~Carta manifiesto de Facturapi y suscripción.~~ Hecho el 12 nov: Luis la
   firmó con la e.firma de NUMAN y pagó la suscripción. La llave Live está
