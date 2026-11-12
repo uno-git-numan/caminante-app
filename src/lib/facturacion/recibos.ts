@@ -13,7 +13,8 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emisorDePago, facturapiDe } from "@/lib/facturacion/emisor";
 import { conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
-import { facturacionActiva } from "@/lib/facturacion/facturapi";
+import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
+import { corteEnPalabras, dentroDelCorte, inicioDelCorte } from "@/lib/facturacion/corte";
 import { sendViaResend } from "@/lib/email/resend";
 import { boton, h1, marco, p, saludo } from "@/lib/email/plantilla";
 import { SITE } from "@/lib/payments/pago-token";
@@ -24,7 +25,7 @@ export type ResultadoRecibo = { ok: true; receiptId: string; yaExistia: boolean 
 
 /** Crea el recibo de UN pago (y manda el comprobante). Inerte si ya lo tiene. */
 export async function crearReciboDePago(paymentId: string): Promise<ResultadoRecibo> {
-  if (!facturacionActiva()) return { ok: false, error: "Facturación inactiva.", reintentar: true };
+  if (!facturacionClientesActiva()) return { ok: false, error: "Facturación a clientes apagada.", reintentar: true };
   const sb = createSupabaseAdminClient();
   const { data } = await sb.from("payments").select(COLS).eq("id", paymentId).maybeSingle();
   const pay = data as PagoParaComprobante | null;
@@ -32,6 +33,8 @@ export async function crearReciboDePago(paymentId: string): Promise<ResultadoRec
   if (pay.facturapi_receipt_id) return { ok: true, receiptId: pay.facturapi_receipt_id, yaExistia: true };
   if (pay.status !== "paid") return { ok: false, error: "Sólo se emite recibo de un pago cobrado.", reintentar: false };
   if (pay.status_cfdi !== "por-emitir") return { ok: false, error: "Este pago ya tiene su documento fiscal.", reintentar: false };
+  // Candado del corte: lo cobrado antes lo factura o lo cuadra la contadora.
+  if (!dentroDelCorte(pay.paid_at)) return { ok: false, error: `Cobro anterior al ${corteEnPalabras()}: no lo factura la plataforma.`, reintentar: false };
   if (!(Number(pay.amount_mxn) > 0)) return { ok: false, error: "Monto en cero.", reintentar: false };
 
   const emisor = await emisorDePago(pay.id);
@@ -64,7 +67,7 @@ export async function crearReciboDePago(paymentId: string): Promise<ResultadoRec
 
 /** Los pagos cobrados sin recibo, en orden de antigüedad. Devuelve cuántos salieron y cuántos siguen esperando emisor. */
 export async function crearRecibosPendientes(limit = 25): Promise<{ emitidos: number; esperando: number; errores: string[] }> {
-  if (!facturacionActiva()) return { emitidos: 0, esperando: 0, errores: [] };
+  if (!facturacionClientesActiva()) return { emitidos: 0, esperando: 0, errores: [] };
   const sb = createSupabaseAdminClient();
   const { data } = await sb
     .from("payments")
@@ -72,9 +75,10 @@ export async function crearRecibosPendientes(limit = 25): Promise<{ emitidos: nu
     .eq("status", "paid")
     .eq("status_cfdi", "por-emitir")
     .is("facturapi_receipt_id", null)
-    // Sólo lo cobrado desde que el sistema de recibos existe: lo anterior lo
-    // cuadra Marisol (MAPA §0.6) y se marca a mano, no se le inventa un recibo.
-    .gte("paid_at", process.env.FACTURAPI_RECIBOS_DESDE || "2026-11-10")
+    // Sólo lo cobrado desde el corte (00:00 CDMX, lib/facturacion/corte.ts): lo
+    // anterior lo cuadra la contadora y no se le inventa un recibo. Lo que ella
+    // facturó después del corte está `externo` y ya no entra por el filtro de arriba.
+    .gte("paid_at", inicioDelCorte().toISOString())
     .order("paid_at", { ascending: true })
     .limit(limit);
   let emitidos = 0;

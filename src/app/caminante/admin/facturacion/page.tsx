@@ -4,7 +4,8 @@
 // emitido y qué sigue por-emitir, y baja los XML/PDF.
 import AdminShell from "../ui/AdminShell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { facturacionActiva } from "@/lib/facturacion/facturapi";
+import { facturacionActiva, facturacionClientesActiva } from "@/lib/facturacion/facturapi";
+import { corteEnPalabras, dentroDelCorte } from "@/lib/facturacion/corte";
 import { reenviarCFDI } from "@/lib/facturacion/admin-actions";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,8 @@ const fecha = (s: string | null) => (s ? new Date(s).toLocaleDateString("es-MX",
 
 export default async function FacturacionAdminPage() {
   const activa = facturacionActiva();
+  const clientes = facturacionClientesActiva();
+  let externos = 0;
   let emitidos: Inv[] = [];
   let porEmitir: PorEmitir[] = [];
   let signed: Record<string, { xml?: string; pdf?: string }> = {};
@@ -50,6 +53,10 @@ export default async function FacturacionAdminPage() {
       .eq("status_cfdi", "por-emitir")
       .order("paid_at", { ascending: false });
     porEmitir = (pend ?? []) as PorEmitir[];
+
+    // Lo que la contadora facturó fuera del sistema (0083): ni recibo ni global.
+    const { count } = await sb.from("payments").select("id", { count: "exact", head: true }).eq("status_cfdi", "externo");
+    externos = count ?? 0;
 
     // Signed URLs para descargar los pares XML/PDF (bucket privado).
     signed = Object.fromEntries(
@@ -74,7 +81,11 @@ export default async function FacturacionAdminPage() {
   }
 
   const totalEmitido = emitidos.reduce((n, i) => n + Number(i.total_mxn || 0), 0);
+  // El corte (lib/facturacion/corte.ts): lo anterior no lo factura la plataforma.
+  const antesDelCorte = porEmitir.filter((p) => !dentroDelCorte(p.paid_at));
+  porEmitir = porEmitir.filter((p) => dentroDelCorte(p.paid_at));
   const totalPorEmitir = porEmitir.reduce((n, p) => n + Number(p.amount_mxn || 0), 0);
+  const totalAntesDelCorte = antesDelCorte.reduce((n, p) => n + Number(p.amount_mxn || 0), 0);
 
   return (
     <AdminShell active="recursos">
@@ -97,6 +108,12 @@ export default async function FacturacionAdminPage() {
           Facturación aún <b>no activa</b>: falta la llave de Facturapi (<code>FACTURAPI_SECRET_KEY</code>) en el
           entorno. Mientras tanto los cobros quedan <b>por-emitir</b>.
         </div>
+      ) : !clientes ? (
+        <div className="empty">
+          La llave está puesta: sólo sale el <b>CFDI de retenciones</b> a las operadoras. Recibos, autofactura y
+          factura global a clientes siguen <b>apagados</b> (<code>FACTURACION_CLIENTES</code>) hasta el visto bueno de
+          la contadora.
+        </div>
       ) : !tablaLista ? (
         <div className="empty">
           La tabla de facturas aún no existe — aplica la migración <b>0019_facturacion_cfdi.sql</b> en Supabase.
@@ -113,7 +130,17 @@ export default async function FacturacionAdminPage() {
         <div className="card" style={{ padding: 18 }}>
           <div className="mut" style={{ fontSize: 12.5 }}>Por emitir (pagos cobrados sin CFDI)</div>
           <div style={{ fontSize: 26, fontWeight: 600 }}>{porEmitir.length}</div>
-          <div className="mut" style={{ fontSize: 13 }}>{money(totalPorEmitir)}</div>
+          <div className="mut" style={{ fontSize: 13 }}>{money(totalPorEmitir)} · desde el {corteEnPalabras()}</div>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div className="mut" style={{ fontSize: 12.5 }}>Antes del corte (los cuadra la contadora)</div>
+          <div style={{ fontSize: 26, fontWeight: 600 }}>{antesDelCorte.length}</div>
+          <div className="mut" style={{ fontSize: 13 }}>{money(totalAntesDelCorte)}</div>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div className="mut" style={{ fontSize: 12.5 }}>Facturados fuera del sistema</div>
+          <div style={{ fontSize: 26, fontWeight: 600 }}>{externos}</div>
+          <div className="mut" style={{ fontSize: 13 }}>con el folio de la contadora</div>
         </div>
       </div>
 

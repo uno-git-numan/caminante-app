@@ -9,7 +9,7 @@
 
 import { redirect } from "next/navigation";
 import { tokenValido } from "@/lib/facturacion/token";
-import { facturacionActiva } from "@/lib/facturacion/facturapi";
+import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
 import { emitirCFDIDePago } from "@/lib/facturacion/emitir";
 
 function volver(paymentId: string, token: string, error: string): never {
@@ -28,7 +28,7 @@ export async function emitirCFDI(formData: FormData): Promise<void> {
   if (!paymentId || !tokenValido(paymentId, token)) {
     redirect("/caminante/facturacion?error=sesion");
   }
-  if (!facturacionActiva()) volver(paymentId, token, "La facturación aún no está disponible.");
+  if (!facturacionClientesActiva()) volver(paymentId, token, "La facturación aún no está disponible.");
 
   // 1 · El núcleo valida la ficha con los catálogos, arma los conceptos, timbra,
   //     archiva y manda el correo (lib/facturacion/emitir.ts).

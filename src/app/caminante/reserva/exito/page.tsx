@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripeServerClient } from "@/lib/payments/stripe";
-import { facturacionActiva } from "@/lib/facturacion/facturapi";
+import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
 import { firmarPago } from "@/lib/facturacion/token";
 import { fetchThemeForExperience, fetchThemeForReservation } from "@/lib/operators/branding";
 import type { Experience } from "@/lib/experiences/types";
@@ -121,9 +121,9 @@ export default async function ReservaExitoPage({
     (safeSlug ? await fetchThemeForExperience(safeSlug) : null);
 
   const facturaHref =
-    facturacionActiva() && paymentId
+    facturacionClientesActiva() && paymentId
       ? `/caminante/facturacion?p=${paymentId}&t=${firmarPago(paymentId)}`
-      : facturacionActiva()
+      : facturacionClientesActiva()
         ? "/caminante/facturacion"
         : null;
   const deslindeHref =

@@ -7,7 +7,8 @@
 // se puede re-skinnear con Claude Design sin tocar la lógica.
 import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { facturacionActiva } from "@/lib/facturacion/facturapi";
+import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
+import { corteEnPalabras, dentroDelCorte } from "@/lib/facturacion/corte";
 import { firmarPago, tokenValido } from "@/lib/facturacion/token";
 import FacturacionForm from "./FacturacionForm";
 
@@ -38,7 +39,7 @@ export default async function FacturacionPage({
   const sp = await searchParams;
   const errorMsg = sp.error || "";
 
-  if (!facturacionActiva()) {
+  if (!facturacionClientesActiva()) {
     return (
       <Shell>
         <h1 className="text-3xl font-semibold tracking-tight text-lagoon">Facturación</h1>
@@ -153,16 +154,18 @@ export default async function FacturacionPage({
   if (paymentId && token) {
     const { data: pay } = await sb
       .from("payments")
-      .select("amount_mxn, status, status_cfdi, contact_id")
+      .select("amount_mxn, status, status_cfdi, contact_id, paid_at")
       .eq("id", paymentId)
       .maybeSingle();
-    if (!pay || pay.status !== "paid" || pay.status_cfdi !== "por-emitir") {
+    if (!pay || pay.status !== "paid" || pay.status_cfdi !== "por-emitir" || !dentroDelCorte(pay.paid_at as string | null)) {
       return (
         <Shell>
           <h1 className="text-3xl font-semibold tracking-tight text-lagoon">Facturación</h1>
           <p className="mt-4 text-sm leading-relaxed text-olive">
-            {pay?.status_cfdi === "emitido"
+            {pay?.status_cfdi === "emitido" || pay?.status_cfdi === "externo"
               ? "Este pago ya fue facturado. Si no recibiste tu CFDI, escríbenos."
+              : pay && pay.status === "paid" && pay.status_cfdi === "por-emitir"
+              ? `Este pago es anterior al ${corteEnPalabras()}: su factura la emite nuestro equipo. Escríbenos y te la mandamos.`
               : "No pudimos preparar la factura de ese pago. Escríbenos y lo resolvemos."}
           </p>
           <Link href="/caminante/facturacion" className="mt-8 inline-block text-sm font-semibold text-forest underline">

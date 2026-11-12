@@ -17,6 +17,8 @@
 // Precios al público INCLUYEN IVA 16% → `tax_included: true` y Facturapi
 // desglosa. Método PUE (se paga antes del viaje).
 
+import { interruptorClientes } from "@/lib/facturacion/corte";
+
 const API = "https://www.facturapi.io/v2";
 
 // Clave de Producto/Servicio SAT por defecto para una experiencia:
@@ -29,9 +31,17 @@ const CLAVE_UNIDAD = process.env.FACTURAPI_CLAVE_UNIDAD || "E48"; // Unidad de s
 // Forma de pago default: 04 = Tarjeta (Stripe). Transferencia = 03, efectivo = 01.
 const FORMA_PAGO_DEFAULT = process.env.FACTURAPI_FORMA_PAGO || "04";
 
-/** ¿Hay con qué emitir? La llave de la casa (su organización) o la de usuario. */
+/**
+ * ¿Hay llave de la casa? Basta para el CFDI de retenciones a las operadoras y
+ * nada más. Para todo lo de CLIENTES (recibos, autofactura, global) se pregunta
+ * `facturacionClientesActiva()` — ver lib/facturacion/corte.ts.
+ */
 export function facturacionActiva(): boolean {
   return !!process.env.FACTURAPI_SECRET_KEY;
+}
+/** Recibos, autofactura y global a clientes: la llave Y el interruptor `FACTURACION_CLIENTES=1`. */
+export function facturacionClientesActiva(): boolean {
+  return facturacionActiva() && interruptorClientes();
 }
 /** ¿Podemos administrar organizaciones de operadoras? */
 export function organizacionesActivas(): boolean {

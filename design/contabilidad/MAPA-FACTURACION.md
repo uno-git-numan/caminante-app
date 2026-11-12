@@ -245,8 +245,8 @@ pago cobrado ──▶ RECIBO (nota de venta no fiscal, PDF, liga de autofactura
   (Resend, remitente «Luis · Caminante») con el PDF del recibo y la llamada:
   «pide tu factura antes del último día del mes».
 - **«Facturar»** factura ESE recibo (`emitir.ts` → `facturarRecibo`); Facturapi
-  lo saca de la global. Los pagos anteriores al sistema (sin recibo) se
-  facturan directo con los mismos conceptos (`conceptos.ts`).
+  lo saca de la global. Un pago posterior al corte sin recibo se factura
+  directo con los mismos conceptos (`conceptos.ts`); uno anterior al corte, no.
 - **Global** el día 1 (cron `factura-global`, 13:00 UTC) por cada emisor con
   organización: `lib/facturacion/global.ts` → `cfdi_globales` + los pagos
   absorbidos quedan `publico-general` con `cfdi_global_id`. La organización se
@@ -259,8 +259,13 @@ pago cobrado ──▶ RECIBO (nota de venta no fiscal, PDF, liga de autofactura
   de emisión quedan cifradas (AES-256-GCM, `FACTURAPI_KEY_SECRET`) en
   `operators.facturapi_*_key_enc`. La casa usa `FACTURAPI_SECRET_KEY`.
 - **Sandbox**: mientras la llave de la casa sea `sk_test_`, las operadoras usan
-  su llave Test. Los recibos sólo se emiten para pagos desde
-  `FACTURAPI_RECIBOS_DESDE` (default 2026-11-10): lo anterior lo cuadra Marisol.
+  su llave Test.
+- **Candados del 12 nov (legal, DECISIONES §6; 0083; `lib/facturacion/corte.ts`):**
+  la llave sola prende sólo el CFDI de retenciones; lo de clientes pide además
+  `FACTURACION_CLIENTES=1`. Nada (recibo, autofactura, global) sale sobre un
+  cobro anterior a `CORTE_FACTURACION_CLIENTES` (00:00 CDMX del 10 nov 2026, lo
+  confirma Marisol); lo que ella facturó después se marca `externo` con su UUID.
+  La global se detiene si un recibo abierto es de un pago que no nos toca.
 - Pendiente de Facturapi/Luis: firmar la **Carta Manifiesto** del PAC por cada
   organización (dashboard o `facturapi.io/embedded/manifiesto`) y contratar el
   feature de factura global si el plan no lo incluye.

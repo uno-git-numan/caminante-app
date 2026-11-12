@@ -11,7 +11,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { descifrar } from "@/lib/facturacion/crypto";
-import { clienteFacturapi, facturacionActiva, llaveDeLaCasa, modoPrueba } from "@/lib/facturacion/facturapi";
+import { clienteFacturapi, facturacionClientesActiva, llaveDeLaCasa, modoPrueba } from "@/lib/facturacion/facturapi";
 
 export type Emisor = {
   operatorId: string | null; // null = la casa sin fila (no debería pasar; se trata como casa)
@@ -35,7 +35,8 @@ type OpRow = {
 const COLS = "id, name, es_la_casa, facturapi_org_id, facturapi_live_key_enc, facturapi_test_key_enc, facturapi_csd_at";
 
 function emisorDeFila(op: OpRow | null): EmisorResuelto {
-  if (!facturacionActiva()) return { ok: false, error: "La facturación en línea aún no está activa.", porEmitir: true };
+  // Todo lo de aquí es facturación a CLIENTES: llave + interruptor (lib/facturacion/corte.ts).
+  if (!facturacionClientesActiva()) return { ok: false, error: "La facturación en línea aún no está activa.", porEmitir: true };
   if (!op || op.es_la_casa) {
     return { ok: true, emisor: { operatorId: op?.id ?? null, nombre: op?.name ?? "Caminante", esLaCasa: true, key: llaveDeLaCasa() } };
   }
@@ -73,7 +74,7 @@ export async function emisorDeOperadora(operatorId: string): Promise<EmisorResue
 
 /** Todas las operadoras que hoy pueden emitir (la casa + las conectadas). */
 export async function emisoresActivos(): Promise<Emisor[]> {
-  if (!facturacionActiva()) return [];
+  if (!facturacionClientesActiva()) return [];
   const sb = createSupabaseAdminClient();
   const { data } = await sb.from("operators").select(COLS).or("es_la_casa.eq.true,facturapi_org_id.not.is.null");
   const out: Emisor[] = [];

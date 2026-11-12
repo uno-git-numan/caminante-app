@@ -126,10 +126,30 @@ best-effort al cobrar; comprobante por Resend con PDF) → si piden factura,
 `emisor.ts`; organización por operadora en `organizacion.ts` (datos legales +
 CSD con contraseña desde Mi alta → Cobrar; llaves cifradas con
 `FACTURAPI_KEY_SECRET`). Env: `FACTURAPI_SECRET_KEY` (la casa), `FACTURAPI_USER_KEY`
-(organizaciones), `FACTURAPI_KEY_SECRET` (32 bytes base64), `FACTURAPI_RECIBOS_DESDE`.
+(organizaciones), `FACTURAPI_KEY_SECRET` (32 bytes base64), `FACTURACION_CLIENTES`.
 
-Todo apagado mientras no exista `FACTURAPI_SECRET_KEY` (`facturacionActiva()`):
-Mi espacio enseña los pagos como «Por facturar». **Sandbox primero.**
+**Dos interruptores y un corte (candados legales, 12 nov 2026, 0083 —
+`lib/facturacion/corte.ts`):**
+- `FACTURAPI_SECRET_KEY` sola (`facturacionActiva()`) prende **sólo el CFDI de
+  retenciones** a las operadoras. Retener es obligación de NUMAN aunque lo demás espere.
+- Recibos, autofactura y global a clientes piden además `FACTURACION_CLIENTES=1`
+  (`facturacionClientesActiva()`; lo usan `emisor.ts`, `recibos.ts`, las pantallas).
+  Apagado hasta el visto bueno de la contadora.
+- **El corte es código:** `CORTE_FACTURACION_CLIENTES` (00:00 CDMX del 10 nov 2026,
+  la confirma Marisol, M18). Nada se emite sobre un cobro anterior: ni recibo
+  (`crearReciboDePago`), ni autofactura (`estadoFacturable`), ni global. Cambiar la
+  fecha es un commit, no una variable. (Sustituyó a `FACTURAPI_RECIBOS_DESDE`, que
+  además comparaba contra medianoche UTC.)
+- Lo posterior al corte que la contadora ya facturó: `status_cfdi = 'externo'` +
+  `cfdi_externo_uuid` (su folio) + `cfdi_externo_nota`. El check de la 0083 exige el
+  UUID y prohíbe marcar un pago que ya tenga recibo nuestro. Se marca por SQL con la
+  lista de ella y aprobación de Luis.
+- **La global se detiene** si cualquier recibo abierto del periodo es de un pago
+  que no nos toca (anterior al corte, `externo`, devuelto, con devolución parcial,
+  o sin pago): `recibosQueNoEntranALaGlobal`. ⚠️ Hoy un reembolso NO cancela el
+  recibo: si pasa, la global se detiene y avisa en vez de facturar ingreso devuelto.
+
+Sin la llave, Mi espacio enseña los pagos como «Por facturar». **Sandbox primero.**
 
 Cobros reales sin CFDI entran como `status_cfdi = por-emitir`.
 

@@ -17,6 +17,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emisorDePago, facturapiDe } from "@/lib/facturacion/emisor";
 import { conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
 import type { ReceptorFiscal } from "@/lib/facturacion/facturapi";
+import { corteEnPalabras, dentroDelCorte } from "@/lib/facturacion/corte";
 import { esCpValido, esRfcValido, regimenCompatible, usoCfdiValido } from "@/lib/facturacion/catalogos";
 
 export type ResultadoEmision = { ok: true; invoiceId: string; uuid: string } | { ok: false; error: string };
@@ -40,8 +41,13 @@ export async function estadoFacturable(pay: PagoParaComprobante): Promise<{ ok: 
   if (pay.status !== "paid") return { ok: false, motivo: "Sólo se factura un pago cobrado.", porEmitir: false };
   if (pay.status_cfdi === "emitido") return { ok: false, motivo: "Este pago ya tiene factura.", porEmitir: false };
   if (pay.status_cfdi === "publico-general") return { ok: false, motivo: "Este pago ya entró en la factura global del mes.", porEmitir: false };
+  if (pay.status_cfdi === "externo") return { ok: false, motivo: "Este pago ya se facturó. Si no recibiste tu CFDI, escríbenos.", porEmitir: false };
   if (pay.status_cfdi !== "por-emitir") return { ok: false, motivo: "Este pago ya no se puede facturar por separado.", porEmitir: false };
   if (!(Number(pay.amount_mxn) > 0)) return { ok: false, motivo: "El monto no permite facturación.", porEmitir: false };
+  // Candado del corte (lib/facturacion/corte.ts): un CFDI nuestro sobre lo que ya
+  // facturó la contadora sería ingreso duplicado ante el SAT.
+  if (!dentroDelCorte(pay.paid_at))
+    return { ok: false, motivo: `Este pago es anterior al ${corteEnPalabras()}: su factura la emite nuestro equipo. Escríbenos y te la mandamos.`, porEmitir: false };
   const emisor = await emisorDePago(pay.id);
   if (!emisor.ok) return { ok: false, motivo: emisor.error, porEmitir: emisor.porEmitir };
   return { ok: true };

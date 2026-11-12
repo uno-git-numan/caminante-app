@@ -11,6 +11,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emisoresActivos, facturapiDe, type Emisor } from "@/lib/facturacion/emisor";
+import { recibosQueNoEntranALaGlobal, type PagoDeRecibo } from "@/lib/facturacion/corte";
 
 const TZ_OFFSET = "-06:00"; // CDMX sin horario de verano desde 2022
 
@@ -57,6 +58,20 @@ async function globalDe(emisor: Emisor, periodo: ReturnType<typeof periodoAnteri
   const api = facturapiDe(emisor);
 
   try {
+    // Candado (lib/facturacion/corte.ts): ningún recibo de un cobro que no nos
+    // toca — anterior al corte, facturado fuera, devuelto — entra a la global.
+    const abiertos = await api.listarRecibos({ desde: periodo.desde, hasta: periodo.hasta, status: "open", limit: 500 });
+    if (abiertos.length >= 500) throw new Error("Más de 500 recibos abiertos en el periodo: la revisión no alcanza a verlos todos; global detenida.");
+    if (abiertos.length) {
+      const { data: pagos } = await sb
+        .from("payments")
+        .select("facturapi_receipt_id, status, status_cfdi, paid_at, refunded_mxn")
+        .in("facturapi_receipt_id", abiertos.map((r) => r.id));
+      const fuera = recibosQueNoEntranALaGlobal(abiertos.map((r) => r.id), (pagos ?? []) as PagoDeRecibo[]);
+      if (fuera.length) {
+        throw new Error(`Global detenida: ${fuera.length} recibo(s) que no deben facturarse — ${fuera.slice(0, 5).map((f) => `${f.receiptId}: ${f.porque}`).join("; ")}. Cancelarlos en Facturapi y volver a correrla.`);
+      }
+    }
     const factura = await api.facturaGlobal({ desde: periodo.desde, hasta: periodo.hasta, periodicidad: "month", mes: periodo.mes, anio: periodo.anio });
     if (!factura) {
       await sb.from("cfdi_globales").delete().eq("id", globalId);

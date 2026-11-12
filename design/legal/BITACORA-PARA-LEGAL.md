@@ -460,3 +460,39 @@ convenio, filas 13 y 14):
    recuperan revirtiendo la transferencia; con el alta en plataforma nacen con
    `application`. El texto del convenio sirve para los dos; sólo cambió la nota
    a Jorge en la Cuarta §7. Aviso de privacidad: `src/app/caminante/privacidad/page.tsx`.
+
+---
+
+## 12 nov 2026 (noche) · Producto: los dos candados de §6, construidos (Luis aprobó)
+
+Luis aprobó en la sesión de producto los dos candados, la 0083 y la promoción.
+
+1. **Dos interruptores.** `FACTURAPI_SECRET_KEY` sola prende **únicamente** el CFDI
+   de retenciones. Recibos, autofactura y global a clientes piden además
+   `FACTURACION_CLIENTES=1` (`facturacionClientesActiva()`), apagado hasta el visto
+   bueno de Marisol. Aplica a todos los emisores (la casa y las organizaciones de
+   operadoras): es la facturación a clientes entera.
+2. **El corte en el código.** `CORTE_FACTURACION_CLIENTES = 2026-11-10`, a las
+   00:00 de CDMX (`lib/facturacion/corte.ts`). Antes el corte era una variable de
+   entorno, comparaba contra medianoche UTC (dejaba entrar cobros del 9 nov después
+   de las 18:00) y sólo filtraba el cron de recibos; un recibo o una autofactura
+   pedidos a mano no lo veían. Ahora lo checan el recibo, la autofactura (y la
+   pantalla, que ya no ofrece el formulario) y la global. Cambiar la fecha = commit.
+3. **«Facturada fuera del sistema» (0083, aplicada con hash `acf26056…`).**
+   `status_cfdi = 'externo'` + `cfdi_externo_uuid` + `cfdi_externo_at` +
+   `cfdi_externo_nota`. El check exige el UUID con forma de UUID y prohíbe marcar un
+   pago que ya tenga recibo de la plataforma. Probado contra la base con
+   transacciones revertidas; ninguna fila cambió (los cobros siguen `por-emitir`).
+   El UUID no es único: una global de Marisol puede cubrir varios pagos.
+4. **Candado extra en la global:** antes de timbrar, cada recibo abierto del periodo
+   tiene que ser de un pago cobrado, `por-emitir`, posterior al corte y sin
+   devolución; si uno no, la global no se timbra y avisa.
+
+**Hallazgo para tu criterio (M19 propuesto):** hoy un reembolso **no cancela el
+recibo** de Facturapi. Con el candado 4 la global no facturaría un ingreso
+devuelto, pero se detendría hasta que alguien cancele el recibo a mano. Y la
+devolución **después** de una factura al cliente pide CFDI de egreso o
+cancelación con sustitución: ¿cuál quieres y en qué plazo?
+
+**Para M18:** cuando Marisol mande su lista, la marco por SQL con la aprobación de
+Luis (`externo` + UUID + nota «lista de Marisol, correo del …»).

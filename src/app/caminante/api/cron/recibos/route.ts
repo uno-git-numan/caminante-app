@@ -7,7 +7,8 @@ export const maxDuration = 60;
 
 // Cron (Vercel, cada hora): emite el RECIBO de cada pago cobrado que aún no lo
 // tenga y manda el comprobante. Desacoplado del webhook a propósito: el cobro
-// nunca espera a Facturapi. Inerte sin FACTURAPI_SECRET_KEY.
+// nunca espera a Facturapi. Inerte sin la llave Y sin FACTURACION_CLIENTES=1, y
+// nunca sobre un cobro anterior al corte (lib/facturacion/corte.ts).
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   const auth = request.headers.get("authorization");
