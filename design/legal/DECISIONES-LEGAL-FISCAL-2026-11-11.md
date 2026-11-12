@@ -484,6 +484,33 @@ términos **al activar la facturación en su panel**, que es el acto que importa
    finalidad («facturación desde el portal, por tu cuenta») y al proveedor de
    certificación como **persona encargada** (LFPDPPP 2025 art. 2 XII).
 
+**D20 bis · Dónde vive el CSD (12 nov, pregunta de producto).** Hoy el `.cer` y
+el `.key` se guardan en el bucket `csd` de la plataforma y el servidor los
+reenvía a Facturapi; la contraseña no se guarda. Eso contradice lo que **ya
+está publicado** en v3.3 (Octava §4: «Caminante no los almacena en sus propios
+sistemas»; Décima tercera §1 bis: viajan «de su navegador al proveedor de
+certificación»). Criterio: **nunca se almacenan, ni de paso.** Borrarlos al
+confirmar no basta: mientras existan en el bucket son una copia de la clave
+privada de la operadora bajo nuestra custodia, y es la clave que sella sus
+facturas (CFF 17-J); un respaldo del bucket la conservaría aunque la borráramos.
+Orden de preferencia: (1) del navegador **directo** a Facturapi, si su módulo
+incrustable o su API lo permiten desde el cliente, como la carta manifiesto;
+(2) si no, el servidor **reenvía en memoria** en la misma petición (archivos y
+contraseña juntos, sin escribir a disco, bucket ni log) y sólo guarda la
+confirmación de Facturapi (número de certificado, vigencia). `csd_cer_path` y
+`csd_key_path` (0038) dejan de usarse: se migran a esa confirmación y los
+archivos que haya hoy en el bucket se **borran** una vez que Facturapi confirme
+que tiene el CSD de esa organización. Para el CSD de **NUMAN** vale lo mismo
+(es decisión de Luis, no del convenio): hoy ya está en Facturapi; recomiendo
+borrar la copia del bucket.
+
+**Carta manifiesto incrustada (módulo de Facturapi dentro del panel):** cumple
+el candado 1 de D20 tal cual, porque la e.firma viaja del navegador de la
+operadora a Facturapi; el panel sólo lee el estado por API. Dos condiciones: el
+marco debe decir que es una página de Facturapi (quien firma tiene que saber a
+quién le entrega su e.firma) y el aviso de privacidad ya lo cubre («ni recibe
+tu e.firma»; Facturapi como encargado).
+
 **Lo que no cambia:** el modelo Airbnb (la operadora factura al cliente;
 NUMAN sólo su comisión). La organización de la operadora en Facturapi es una
 herramienta de NUMAN para ejecutar el mandato, no un cambio de emisor. **Lo
@@ -545,9 +572,11 @@ regla). La v3.2 sigue en la base como orden 1.
    reexpide el recibo, o emite el egreso relacionado el mismo día.
 10. **Facturación por cuenta de la operadora** (D20): texto de consentimiento al
     activar («Activar facturación desde el portal»), con los tres candados; carga
-    del CSD y firma de la carta manifiesto **por la propia operadora**; baja del
-    CSD al desactivar o terminar. Se prende sólo con `FACTURACION_CLIENTES=1` y
-    después de publicar v3.3.
+    del CSD y firma de la carta manifiesto **por la propia operadora** (módulo
+    incrustado de Facturapi); **el CSD no se almacena ni de paso** (D20 bis:
+    directo o reenvío en memoria; borrar lo que hoy hay en el bucket `csd`);
+    baja del CSD al desactivar o terminar. Se prende sólo con
+    `FACTURACION_CLIENTES=1`; v3.3 ya está publicada.
 
 Lo que **no** se construye: nada sobre liberar el dinero después (D15, Luis);
 nada sobre RESICO salvo el aviso en pantalla.

@@ -12,6 +12,18 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 12 nov 2026 · Contabilizado por la sesión legal: carta manifiesto incrustada (bien) y el CSD no se almacena ni de paso (D20 bis)
+
+- Manifiesto con el módulo incrustable de Facturapi: cumple el candado 1 de D20
+  (la e.firma va del navegador de la operadora a Facturapi). Que el marco diga
+  que es una página de Facturapi.
+- El CSD en el bucket `csd` contradice lo publicado en v3.3 (Octava §4 y Décima
+  tercera §1 bis). Criterio: **nunca se almacena**: directo del navegador a
+  Facturapi si se puede; si no, reenvío en memoria en la misma petición, sin
+  disco, bucket ni log; se guarda sólo la confirmación de Facturapi. Borrar lo
+  que hoy haya en el bucket una vez confirmado el CSD en Facturapi (incluido el
+  de NUMAN, recomendación para Luis). Detalle en DECISIONES, D20 bis.
+
 ## 12 nov 2026 · Sesión legal: convenio v3.3 (menor) PUBLICADO y verificado
 
 - Luis aprobó en la sesión legal («Sí, publíquenlo»). La sesión legal derivó el
