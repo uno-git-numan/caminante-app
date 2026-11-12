@@ -23,6 +23,10 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
   disco, bucket ni log; se guarda sólo la confirmación de Facturapi. Borrar lo
   que hoy haya en el bucket una vez confirmado el CSD en Facturapi (incluido el
   de NUMAN, recomendación para Luis). Detalle en DECISIONES, D20 bis.
+- **Cerrado (producto, 12 nov):** vía de reenvío en memoria (la API de
+  certificados de Facturapi exige la llave secreta); bucket `csd` vacío y ningún
+  `csd_cer_path` en la base: no hay copias que borrar. Marco del manifiesto con
+  aviso visible de Facturapi. Se construye cuando Luis lo apruebe en producto.
 
 ## 12 nov 2026 · Sesión legal: convenio v3.3 (menor) PUBLICADO y verificado
 

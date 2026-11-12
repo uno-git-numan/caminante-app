@@ -500,9 +500,11 @@ contraseña juntos, sin escribir a disco, bucket ni log) y sólo guarda la
 confirmación de Facturapi (número de certificado, vigencia). `csd_cer_path` y
 `csd_key_path` (0038) dejan de usarse: se migran a esa confirmación y los
 archivos que haya hoy en el bucket se **borran** una vez que Facturapi confirme
-que tiene el CSD de esa organización. Para el CSD de **NUMAN** vale lo mismo
-(es decisión de Luis, no del convenio): hoy ya está en Facturapi; recomiendo
-borrar la copia del bucket.
+que tiene el CSD de esa organización. **Resuelto (producto, 12 nov):** va la vía (2), porque la API de certificados de
+Facturapi exige la llave secreta y no puede vivir en el navegador; se guardan
+sólo número de certificado y vigencia. Producto revisó base y bucket: ninguna
+operadora tiene `csd_cer_path` y el bucket `csd` está vacío, así que **no hay
+copias que borrar**, tampoco de NUMAN.
 
 **Carta manifiesto incrustada (módulo de Facturapi dentro del panel):** cumple
 el candado 1 de D20 tal cual, porque la e.firma viaja del navegador de la
