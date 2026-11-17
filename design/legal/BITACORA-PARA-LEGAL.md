@@ -597,3 +597,9 @@ confirma (en `finalizeRefund`) y el cron de cada hora reintenta lo que falle.
    cual en `/caminante/privacidad`.
 
 Todo sigue detrás de `FACTURACION_CLIENTES=1` (el visto bueno de Marisol).
+
+**En producción (17 nov 2026).** Luis aprobó y quedó así: la 0084 se aplicó con
+el hash comparado (`0fe7e135…`) y seis candados probados en una transacción
+revertida; se promovió ab71c42 (que lleva también los candados del 12 nov,
+6193859, que no se habían promovido); la 0085 se aplicó después (`3f88840a…`):
+las columnas del CSD ya no existen y el almacenamiento `csd`, vacío, se borró.
