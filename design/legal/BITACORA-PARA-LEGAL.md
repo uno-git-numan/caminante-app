@@ -12,6 +12,23 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 17 nov 2026 · Contabilizado por la sesión legal: respuesta de Marisol y global sin recibos (D21)
+
+- Visto bueno al punto 1: dado. Prender `FACTURACION_CLIENTES` cuando: corte
+  movido, la operación de noviembre de Marisol marcada `externo` con UUID,
+  prueba de la global cotejada por legal y aprobación de Luis.
+- **Corte al 1 nov 2026** (meses completos). Octubre y las diferencias de junio
+  a agosto las cierra Marisol tras conciliar contra banco y Stripe; el sistema
+  no emite sobre números sin conciliar. El ingreso de octubre se declara hoy.
+- Concepto de la global: se queda 01010101 / ACT / «Venta» / folio (M20).
+- Pago capturado tarde: global complementaria del mismo mes + aviso (M21).
+- Factura individual hasta fin de mes: aceptado si se avisa al comprar y en el
+  comprobante. El comprobante lleva RFC, régimen, lugar, fecha, descripción,
+  total y folio.
+- Sin versión nueva del convenio. M17 cerrada; M7 y el corte, sin respuesta
+  expresa: Luis los repregunta. **No verifiqué hoy la RMF ni la guía del CFDI
+  global en la fuente** (sin búsqueda web): van como M20.
+
 ## 12 nov 2026 · Contabilizado por la sesión legal: carta manifiesto incrustada (bien) y el CSD no se almacena ni de paso (D20 bis)
 
 - Manifiesto con el módulo incrustable de Facturapi: cumple el candado 1 de D20

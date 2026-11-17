@@ -521,6 +521,62 @@ y la aceptación electrónica del convenio vale, Décima sexta); ni aviso al SAT
 (no existe la figura de «facturador por cuenta de terceros» con aviso; el PAC
 es el único autorizado y ya está).
 
+### D21 · Respuesta de Marisol (12 nov, leída el 17 nov): corte, pasado y la global sin recibos
+
+Marisol contestó el correo del visto bueno (texto íntegro en la bitácora de
+producto, 17 nov) y adjuntó 7 XML: globales de junio a septiembre y dos
+facturas de junio. Criterio de la sesión legal sobre lo que dejó abierto:
+
+1. **El visto bueno al punto 1 está dado** («el sistema debe configurarse para
+   emitir toda la facturación individual y factura global»). Basta para prender
+   `FACTURACION_CLIENTES` **cuando se cumplan cuatro cosas**: el corte movido
+   (punto 2); la operación de noviembre que ella ya facturó marcada `externo`
+   con su UUID (no vino el XML: se le pide); la emisión de prueba de la global
+   nueva cotejada por legal; y la aprobación de Luis en la sesión que lo prenda.
+2. **El corte se mueve al 1 de noviembre de 2026** (00:00 CDMX). Es su propio
+   argumento: si un mes lo trabajan dos manos hay discrepancias. El sistema
+   factura **meses completos**; noviembre es el primero. Cambiar la fecha es un
+   commit de producto, con la aprobación de Luis.
+3. **Octubre y lo anterior los cierra Marisol**, no el sistema. Tres razones:
+   ella lleva la contabilidad y las declaraciones de esos meses; las cifras de
+   la plataforma no cuadran con las suyas en junio, julio y agosto y **nadie
+   sabe todavía cuál es la buena**; y el sistema no emite documentos fiscales
+   sobre números sin conciliar (regla 5: nada de parches). La verdad del
+   ingreso es **lo que entró al banco de NUMAN y a Stripe**, no lo que dice la
+   plataforma: puede haber transferencias registradas que no cobró NUMAN. Con
+   los estados de cuenta que pidió, ella emite la global extemporánea de
+   octubre y, si procede, las complementarias de junio a agosto; el sistema le
+   da el detalle pago por pago y luego marca esos pagos `externo` con el UUID.
+   ⚠️ **El ingreso de octubre se declara en el pago provisional de octubre, que
+   vence hoy 17 nov, tenga o no CFDI todavía**: Luis lo ve con Marisol hoy.
+4. **Siguen sin respuesta M7** (aviso de NUMAN como retenedora) y la
+   confirmación expresa del corte. Luis se lo vuelve a preguntar en el mismo
+   hilo (§7). **M17 queda cerrada**: ella presenta la actualización de
+   actividades.
+5. **Concepto de la global: se queda 01010101 / ACT / «Venta» / cantidad 1 /
+   folio como número de identificación**, un concepto por pago, no la clave de
+   la experiencia. Es la forma de la guía de llenado del CFDI global del SAT
+   (la leyó producto; hoy no pude releerla en la fuente, queda como **M20**
+   porque las globales de Marisol usan un solo concepto con clave 90121502).
+6. **Pago capturado después de timbrada la global de su mes**: sale en una
+   **global complementaria del mismo mes** (nodo de información global con el
+   mes del cobro, fechada el día en que se emite), automática en la siguiente
+   corrida, con aviso a Marisol porque cambia un mes que quizá ya declaró
+   (**M21**).
+7. **Factura individual sólo hasta el fin del mes del cobro**: aceptado, si el
+   plazo se le dice al cliente **al comprar y en el comprobante** (LFPC 7). La
+   excepción se hace a mano: egreso contra la global y factura individual.
+8. **El comprobante de la plataforma** sustituye al recibo: debe llevar RFC y
+   régimen del emisor, lugar y fecha, descripción, total y el folio, que son
+   los requisitos del comprobante de operaciones con el público en general
+   (regla de la factura global de la RMF, citada de memoria: **M20**, igual que
+   el plazo de 24 horas tras el cierre del periodo; el cron del día 1 a las
+   7:00 cumple ese plazo y el de 72 horas que cita Marisol).
+9. **D19 no cambia de fondo**: sin recibos de Facturapi, una devolución antes de
+   la factura sólo reduce lo que entra a la global. El «recibo pendiente» de la
+   Quinta §8 del convenio es el comprobante de la plataforma; **no hace falta
+   versión nueva**. La cancelación con motivo 03 sigue manual hasta M19.
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash
@@ -664,6 +720,15 @@ va con IVA (M11).
 - ~~Publicar el convenio v3.2~~ Hecho: publicado el 11 nov 2026 con el hash
   comparado; las operadoras ya pueden firmar.
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
+- **Hoy 17 nov, con Marisol:** que el ingreso de octubre entre en el pago
+  provisional que vence hoy; mandarle los **estados de cuenta** que pidió; y
+  preguntarle en el mismo hilo: (a) ¿confirmas que el sistema factura desde el
+  **1 de noviembre** y tú cierras octubre y las diferencias de junio a agosto?;
+  (b) ¿nos mandas el XML de la operación de noviembre que ya facturaste?;
+  (c) ¿presentas el **aviso de NUMAN como retenedora** antes de la primera
+  retención?; (d) ¿te parece la global con un concepto por pago (01010101,
+  «Venta», folio)?
+- Aprobar en la sesión de producto el cambio del corte al 1 nov.
 - ~~Aprobar el convenio v3.3 (menor).~~ Aprobado y **publicado el 12 nov 2026
   (03:38 UTC)**, orden 2, hash `32d3701e…e978`, verificado contra la base. Queda
   el texto de consentimiento del panel (producto).
@@ -711,6 +776,8 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M17 | **Actividad económica de turismo en la CSF de NUMAN** (27 ene 2026: producción audiovisual, software, procesamiento de información). La clave de producto 90121501 del CFDI no depende de la actividad registrada, pero el SAT cruza actividad contra lo facturado y puede observar. Criterio legal: presentar el **aviso de actualización de actividades económicas y obligaciones** (CFF 27, apartado B fracción II del RCFF 29) agregando organización de excursiones / agencia de viajes, mientras DRUIDAS se constituye. Marisol confirma si ya lo presentó o lo presenta | D8 |
 | M18 | **El pasado: qué ventas ya facturó o metió en global** de las 75 (12 jun–9 nov, $879,775) y las 3 desde el 10 nov ($25,650). Con su lista (o los XML) el sistema las marca como facturadas fuera y el corte queda confirmado. Hasta entonces, el sistema no factura nada de clientes (§6, candado 1) | D8, D10 |
 | M19 | **Cancelación sin aceptación del receptor**: numeral vigente de la RMF 2026 (en 2025, 2.7.1.35) y su plazo corto tras la emisión (un día hábil); y que prefiera el **egreso** como regla general frente a cancelar con sustitución (D19) | D19 |
+| M20 | Global armada por la plataforma: un concepto por pago 01010101 / ACT / «Venta» / folio (sus globales llevan un solo concepto con 90121502); requisitos del comprobante de operación con el público en general; y el plazo de 24 horas tras el cierre del mes | D21 |
+| M21 | Pago capturado tarde: global complementaria del mismo mes, con aviso a ella; factura individual sólo hasta el fin del mes del cobro | D21 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.
