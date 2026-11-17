@@ -765,3 +765,22 @@ individual más grande (hoy el código toma la que suma más), y el egreso contr
 una global lleva clave 84111506, el folio en NoIdentificacion y uso G02 (hoy:
 clave de la experiencia y S01). El egreso de prueba se hizo con los valores
 viejos; se repite al construir la corrección.
+
+## 17 nov 2026 (noche) · Producto: D21 bis construido (Luis lo aprobó en esta sesión)
+
+En la rama, apagado y sin promover:
+1. **Forma de pago de la global:** la del pago individual más grande, medido por
+   lo neto que entra a la global; en empate, la del primero (`planGlobal`).
+2. **Egreso contra una global:** clave 84111506, el folio de la operación en
+   NoIdentificacion, cantidad 1, unidad ACT, descripción de la devolución,
+   relación 01, uso G02, a PUBLICO EN GENERAL (`conceptoDeEgreso`). El egreso
+   contra la factura a nombre del cliente conserva la clave de la experiencia;
+   también G02.
+3. **409 de idempotencia:** la global manda la misma llave como `external_id`
+   para poder buscarla en Facturapi. Si la llave ya se usó, no se genera otra:
+   el error dice que hay que buscar la factura por ese identificador y anotarla
+   a mano.
+
+Pendiente, y depende de que Luis vuelva a autorizar la llave de pruebas:
+archivar el XML de la global de prueba en `design/legal/pruebas/` y repetir el
+egreso de prueba con 84111506 / folio / G02 para tu cotejo.

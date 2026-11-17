@@ -130,8 +130,9 @@ cobro** (`enPlazoParaFacturar`; ese plazo es lo que impide facturar dos veces)
 → si no, **global** de cada mes cerrado (`global.ts` + `global-plan.ts` puro,
 cron `factura-global` **diario**, 7:00 CDMX): un CFDI a XAXX010101000 con el
 nodo `global`, **un concepto por pago** (01010101, ACT, «Venta», el folio como
-número de identificación; D21 lo confirmó), por lo neto, forma de pago la de
-mayor importe, y **fechada el último día del mes que factura** (lo pidió
+número de identificación; D21 lo confirmó), por lo neto, **forma de pago la
+del PAGO INDIVIDUAL más grande** (D21 bis, guía del CFDI global 4.0; NO la que
+suma más en el mes), y **fechada el último día del mes que factura** (lo pidió
 Marisol el 12 nov; el SAT deja hasta 72 h atrás — si corre más tarde sale con
 fecha de hoy y avisa). **Pago capturado tarde** (su mes ya tiene global) →
 **global COMPLEMENTARIA** de ese mismo mes en la siguiente corrida, con fecha
@@ -177,8 +178,14 @@ el MISMO día en que Stripe confirma, `finalizeRefund` corrige el documento; el
 cron `comprobantes` reintenta lo que falle. Qué toca lo decide `planDevolucion`
 (puro, `devolucion-plan.ts`): sin CFDI → **nada** (la factura o la global que
 salgan después ya van por lo neto); con CFDI (factura del cliente o global) →
-**CFDI de egreso** relacionado 01, misma clave, forma de pago del cobro, PUE, a
-público en general si el original fue la global. La cancelación del original
+**CFDI de egreso** relacionado 01, uso G02, forma de pago del cobro, PUE. El
+concepto lo arma `conceptoDeEgreso` (D21 bis): **contra una global**, a público
+en general, clave **84111506** con el folio de la operación como número de
+identificación, cantidad 1, unidad ACT; **contra la factura del cliente**, la
+clave de la experiencia. ⚠️ La llave de idempotencia de la global repetida tras
+un timbrado exitoso contesta **409** (no duplica ni devuelve la factura): nunca
+se genera una llave nueva para el mismo emisor, mes y modo; se busca en
+Facturapi por `external_id` y se anota. La cancelación del original
 (motivo 03) NO es automática: el egreso es la regla general y el numeral/plazo
 de la cancelación sin aceptación lo confirma la contadora (M19). Lo `externo`
 lo documenta la contadora (la pantalla de facturación lo cuenta).

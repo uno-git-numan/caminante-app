@@ -67,6 +67,35 @@ export function planDevolucion(p: PagoDevuelto, egresoCubierto = 0): PlanDevoluc
   }
 }
 
+/** Clave del egreso contra una factura global (Apéndice 2 de la guía del CFDI global 4.0). */
+export const CLAVE_EGRESO_CONTRA_GLOBAL = "84111506";
+
+export type ConceptoDeEgreso = {
+  descripcion: string;
+  cantidad: number;
+  precioUnitarioConIva: number;
+  claveProdServ?: string;
+  claveUnidad?: string;
+  noIdentificacion?: string;
+};
+
+/**
+ * El concepto de la nota de crédito, según contra qué va (D21 bis de legal,
+ * leído en la guía de llenado del CFDI global 4.0, Apéndice 2):
+ *   · contra una GLOBAL: clave 84111506, el FOLIO de la operación como número de
+ *     identificación (el mismo que lleva su concepto en la global), cantidad 1,
+ *     unidad ACT y la descripción de la devolución;
+ *   · contra la factura a nombre del cliente: la clave de la experiencia, igual
+ *     que el ingreso que corrige.
+ * En los dos casos el uso es G02 y la relación 01 (lo pone quien timbra).
+ */
+export function conceptoDeEgreso(i: { contraGlobal: boolean; folio: string; importe: number; servicio: string; claveExperiencia?: string }): ConceptoDeEgreso {
+  const comun = { descripcion: `Devolución · ${i.servicio}`, cantidad: 1, precioUnitarioConIva: r2(i.importe) };
+  return i.contraGlobal
+    ? { ...comun, claveProdServ: CLAVE_EGRESO_CONTRA_GLOBAL, claveUnidad: "ACT", noIdentificacion: i.folio }
+    : { ...comun, ...(i.claveExperiencia ? { claveProdServ: i.claveExperiencia } : {}) };
+}
+
 /** Lo que se factura de un pago: lo cobrado menos lo devuelto. */
 export const netoDePago = (p: { amount_mxn: number | null; refunded_mxn?: number | null }): number =>
   r2(Number(p.amount_mxn ?? 0) - Number(p.refunded_mxn ?? 0));

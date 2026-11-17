@@ -28,9 +28,10 @@ import { cpFiscalDe, emisorDeOperadora, emisorDePago, facturapiDe } from "@/lib/
 import { conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
 import { facturacionClientesActiva, type ReceptorFiscal } from "@/lib/facturacion/facturapi";
 import { inicioDelCorte } from "@/lib/facturacion/corte";
-import { planDevolucion, type PlanDevolucion } from "@/lib/facturacion/devolucion-plan";
+import { conceptoDeEgreso, planDevolucion, type PlanDevolucion } from "@/lib/facturacion/devolucion-plan";
+import { folioDePago } from "@/lib/facturacion/global-plan";
 
-const COLS = "id, reservation_id, contact_id, amount_mxn, refunded_mxn, status, status_cfdi, method, paid_at, devuelto_al_facturar_mxn, cfdi_global_id";
+const COLS = "id, folio, reservation_id, contact_id, amount_mxn, refunded_mxn, status, status_cfdi, method, paid_at, devuelto_al_facturar_mxn, cfdi_global_id";
 
 type Pago = PagoParaComprobante & {
   refunded_mxn: number | null;
@@ -125,7 +126,7 @@ async function emitirEgreso(pay: Pago, plan: Extract<PlanDevolucion, { accion: "
       rfc: r?.rfc ?? "XAXX010101000",
       razon_social: r?.razonSocial ?? "PUBLICO EN GENERAL",
       regimen_fiscal: r?.regimenFiscal ?? "616",
-      uso_cfdi: r ? "G02" : "S01",
+      uso_cfdi: "G02",
       codigo_postal: cpEmisor,
       email: r?.email || null,
       total_mxn: plan.importe,
@@ -149,7 +150,17 @@ async function emitirEgreso(pay: Pago, plan: Extract<PlanDevolucion, { accion: "
       cpEmisor,
       formaPago: d.formaPago,
       uuidRelacionado: original.uuid,
-      conceptos: [{ descripcion: `Devolución · ${[d.titulo, d.salida].filter(Boolean).join(" · ")}`, cantidad: 1, precioUnitarioConIva: plan.importe, claveProdServ: clave }],
+      // Contra la global: clave 84111506 con el folio; contra la factura del
+      // cliente: la clave de la experiencia (D21 bis, `conceptoDeEgreso`).
+      conceptos: [
+        conceptoDeEgreso({
+          contraGlobal: !r,
+          folio: folioDePago(pay.folio ?? pay.id),
+          importe: plan.importe,
+          servicio: [d.titulo, d.salida].filter(Boolean).join(" · "),
+          claveExperiencia: clave,
+        }),
+      ],
     });
     const now = new Date();
     const base = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/egreso-${egreso.uuid}`;

@@ -108,6 +108,10 @@ export type Concepto = {
   /** Descuento total de la línea CON IVA (p. ej. un código de descuento). */
   descuentoConIva?: number;
   claveProdServ?: string;
+  /** Clave de unidad; por defecto la de servicio (E48). El egreso contra una global lleva ACT. */
+  claveUnidad?: string;
+  /** Número de identificación del concepto (p. ej. el folio de la operación en un egreso contra la global). */
+  noIdentificacion?: string;
 };
 
 export type FacturaTimbrada = {
@@ -125,7 +129,8 @@ const items = (conceptos: Concepto[]) =>
     product: {
       description: c.descripcion,
       product_key: c.claveProdServ || CLAVE_PROD_SERV_EXPERIENCIA,
-      unit_key: CLAVE_UNIDAD,
+      unit_key: c.claveUnidad || CLAVE_UNIDAD,
+      ...(c.noIdentificacion ? { sku: c.noIdentificacion } : {}),
       price: Number(c.precioUnitarioConIva.toFixed(2)),
       tax_included: true,
       taxes: [{ type: "IVA", rate: 0.16, factor: "Tasa" }],
@@ -205,6 +210,9 @@ export function clienteFacturapi(key: string) {
         payment_method: "PUE",
         global: { periodicity: input.periodicidad, months: input.mes, year: input.anio },
         ...(input.fecha ? { date: input.fecha } : {}),
+        // La misma llave como `external_id`: si la plataforma no alcanzó a anotar
+        // una global ya timbrada, así se le encuentra en Facturapi.
+        external_id: input.idempotencyKey,
         idempotency_key: input.idempotencyKey,
       });
       return desglose(json, total);
@@ -237,10 +245,12 @@ export function clienteFacturapi(key: string) {
 
     /**
      * CFDI de EGRESO (nota de crédito) por una devolución (D19): relacionado al
-     * ingreso original con tipo de relación 01, la misma clave de producto, la
-     * forma de pago de la devolución (la del cobro) y PUE. `receptor: null` =
-     * público en general, cuando el original fue la global; entonces el CP es
-     * el del emisor (lugar de expedición) y el uso S01.
+     * ingreso original con tipo de relación 01, uso G02, la forma de pago de la
+     * devolución (la del cobro) y PUE. El concepto lo arma `conceptoDeEgreso`
+     * (devolucion-plan.ts): contra una global, clave 84111506 con el folio de
+     * la operación; contra la factura del cliente, la clave de la experiencia.
+     * `receptor: null` = público en general, cuando el original fue la global;
+     * entonces el CP es el del emisor (lugar de expedición).
      */
     async crearEgreso(input: {
       receptor: ReceptorFiscal | null;
@@ -258,7 +268,9 @@ export function clienteFacturapi(key: string) {
         type: "E",
         customer: cliente,
         items: items(input.conceptos),
-        use: input.receptor ? "G02" : "S01",
+        // G02 «Devoluciones, descuentos o bonificaciones» también a público en
+        // general (guía del CFDI global 4.0, Apéndice 2; D21 bis).
+        use: "G02",
         payment_form: input.formaPago,
         payment_method: "PUE",
         related_documents: [{ relationship: "01", documents: [input.uuidRelacionado] }],

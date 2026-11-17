@@ -185,11 +185,37 @@ describe("qué entra a la global", () => {
     expect(planGlobal([pago({ paid_at: "2026-12-01T05:59:59.000Z" })], NOV).renglones).toHaveLength(1);
   });
 
-  it("la forma de pago es la de mayor importe del periodo", () => {
+  // D21 bis (guía del CFDI global 4.0): la forma de pago es la del PAGO más
+  // grande, no la que suma más en el mes.
+  it("la forma de pago es la del pago individual más grande", () => {
     const plan = planGlobal(
       [pago({ amount_mxn: 2550 }), pago({ id: "t1", method: "transfer", amount_mxn: 16500 }), pago({ id: "c1", method: "cash", amount_mxn: 500 })],
       NOV,
     );
     expect(plan.formaPago).toBe("03");
+  });
+
+  it("aunque otra forma de pago sume más en el mes", () => {
+    // Tres pagos con tarjeta suman $15,000; una sola transferencia de $9,000 es el pago mayor.
+    const plan = planGlobal(
+      [
+        pago({ id: "a", amount_mxn: 5000 }),
+        pago({ id: "b", amount_mxn: 5000 }),
+        pago({ id: "c", amount_mxn: 5000 }),
+        pago({ id: "t", method: "transfer", amount_mxn: 9000 }),
+      ],
+      NOV,
+    );
+    expect(plan.formaPago).toBe("03");
+  });
+
+  it("se mide por lo neto: una devolución parcial puede cambiar cuál es el pago mayor", () => {
+    const plan = planGlobal([pago({ id: "t", method: "transfer", amount_mxn: 9000, refunded_mxn: 5000 }), pago({ id: "a", amount_mxn: 5000 })], NOV);
+    expect(plan.formaPago).toBe("04");
+  });
+
+  it("en empate de monto con formas distintas, la del primero", () => {
+    const plan = planGlobal([pago({ id: "a", amount_mxn: 5000 }), pago({ id: "t", method: "transfer", amount_mxn: 5000 })], NOV);
+    expect(plan.formaPago).toBe("04");
   });
 });

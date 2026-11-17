@@ -59,7 +59,13 @@ export type RenglonGlobal = { paymentId: string; folio: string; neto: number; de
 export type PlanGlobal = {
   renglones: RenglonGlobal[];
   total: number;
-  /** La forma de pago con la que se liquidó el mayor importe del periodo. */
+  /**
+   * La forma de pago del PAGO INDIVIDUAL más grande de la global (D21 bis). La
+   * guía del CFDI global 4.0 dice: «la clave de forma de pago con la que se
+   * liquidó el comprobante de operaciones con el público en general de mayor
+   * monto de entre los contenidos en el CFDI global». NO es la forma que suma
+   * más en el periodo. En empate de monto, la del primero.
+   */
   formaPago: string;
   /** Los que no entran, y por qué (para el reporte; no detienen la global). */
   fuera: { paymentId: string; porque: string }[];
@@ -76,7 +82,6 @@ export function planGlobal(pagos: PagoParaGlobal[], periodo: { desde: string; ha
   const hasta = new Date(periodo.hasta).getTime();
   const renglones: RenglonGlobal[] = [];
   const fuera: PlanGlobal["fuera"] = [];
-  const porForma = new Map<string, number>();
   for (const p of pagos) {
     const t = p.paid_at ? new Date(p.paid_at).getTime() : NaN;
     if (!Number.isFinite(t) || t < desde || t > hasta) continue; // de otro periodo: ni se reporta
@@ -85,14 +90,11 @@ export function planGlobal(pagos: PagoParaGlobal[], periodo: { desde: string; ha
     else if (!dentroDelCorte(p.paid_at)) fuera.push({ paymentId: p.id, porque: "cobro anterior al corte" });
     else if (p.status !== "paid") fuera.push({ paymentId: p.id, porque: `el pago está ${p.status}` });
     else if (!(neto > 0.009)) fuera.push({ paymentId: p.id, porque: "se devolvió completo" });
-    else {
-      const formaPago = formaPagoDe(p.method);
-      renglones.push({ paymentId: p.id, folio: folioDePago(p.folio), neto, devuelto: r2(Number(p.refunded_mxn ?? 0)), formaPago });
-      porForma.set(formaPago, r2((porForma.get(formaPago) ?? 0) + neto));
-    }
+    else renglones.push({ paymentId: p.id, folio: folioDePago(p.folio), neto, devuelto: r2(Number(p.refunded_mxn ?? 0)), formaPago: formaPagoDe(p.method) });
   }
-  const formaPago = [...porForma.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? "04";
-  return { renglones, total: r2(renglones.reduce((n, r) => n + r.neto, 0)), formaPago, fuera };
+  // El renglón de mayor monto manda la forma de pago; en empate, el primero.
+  const mayor = renglones.reduce<RenglonGlobal | null>((m, r) => (!m || r.neto > m.neto ? r : m), null);
+  return { renglones, total: r2(renglones.reduce((n, r) => n + r.neto, 0)), formaPago: mayor?.formaPago ?? "04", fuera };
 }
 
 const TZ_OFFSET = "-06:00"; // CDMX sin horario de verano desde 2022

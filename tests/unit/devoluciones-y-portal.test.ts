@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { netoDePago, planDevolucion, type PagoDevuelto } from "@/lib/facturacion/devolucion-plan";
+import { CLAVE_EGRESO_CONTRA_GLOBAL, conceptoDeEgreso, netoDePago, planDevolucion, type PagoDevuelto } from "@/lib/facturacion/devolucion-plan";
 import { parrafoUnoBis } from "@/lib/facturacion/uno-bis";
 
 // D19 · qué documento toca cada devolución.
@@ -57,6 +57,32 @@ describe("lo que no es de la plataforma", () => {
 
   it("un cobro anterior al corte no se toca", () => {
     expect(planDevolucion({ ...base, status_cfdi: "emitido", paid_at: "2026-10-31T12:00:00-06:00", refunded_mxn: 10000 }).accion).toBe("nada");
+  });
+});
+
+// D21 bis · el concepto de la nota de crédito, según contra qué va.
+describe("el concepto del egreso", () => {
+  const datos = { folio: "CAM-000079", importe: 1500, servicio: "Sardine run · Nov 26-29", claveExperiencia: "90121501" };
+
+  it("contra una global: clave 84111506, el folio de la operación, cantidad 1 y unidad ACT", () => {
+    expect(conceptoDeEgreso({ ...datos, contraGlobal: true })).toEqual({
+      descripcion: "Devolución · Sardine run · Nov 26-29",
+      cantidad: 1,
+      precioUnitarioConIva: 1500,
+      claveProdServ: "84111506",
+      claveUnidad: "ACT",
+      noIdentificacion: "CAM-000079",
+    });
+    expect(CLAVE_EGRESO_CONTRA_GLOBAL).toBe("84111506");
+  });
+
+  it("contra la factura a nombre del cliente: la clave de la experiencia, sin folio ni unidad especial", () => {
+    expect(conceptoDeEgreso({ ...datos, contraGlobal: false })).toEqual({
+      descripcion: "Devolución · Sardine run · Nov 26-29",
+      cantidad: 1,
+      precioUnitarioConIva: 1500,
+      claveProdServ: "90121501",
+    });
   });
 });
 

@@ -268,7 +268,7 @@ pago cobrado ──▶ COMPROBANTE nuestro (correo con el FOLIO de la operación
   emisor: `global.ts` + `global-plan.ts` (puro). **Un concepto por pago**, como
   pide la guía de llenado del CFDI global: clave 01010101, unidad ACT, «Venta»,
   cantidad 1, el folio como número de identificación; por lo neto; forma de
-  pago la de mayor importe del periodo; `cfdi_globales` + los pagos quedan
+  pago la del pago individual más grande (D21 bis); `cfdi_globales` + los pagos quedan
   `publico-general` con `cfdi_global_id`. **Fechada el último día del mes que
   factura** (20:00 CDMX): lo pidió Marisol el 12 nov («la fecha de emisión debe
   ser del mes al que corresponde») y el SAT permite hasta 72 horas atrás; si

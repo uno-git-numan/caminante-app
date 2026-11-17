@@ -180,7 +180,14 @@ async function globalDe(emisor: Emisor, periodo: Periodo, pagos: PagoParaGlobal[
       ...(avisos.length ? { error: avisos.join(" ") } : {}),
     };
   } catch (e) {
-    const msg = (e as Error).message;
+    const crudo = (e as Error).message;
+    // Facturapi contesta 409 cuando la llave de idempotencia ya se usó en un
+    // timbrado exitoso (probado en sandbox el 17 nov 2026): NO duplica, pero
+    // tampoco devuelve la factura. Regla de legal: nunca generar una llave nueva
+    // para el mismo emisor, mes y modo; se busca la factura y se anota.
+    const msg = /idempotency key/i.test(crudo)
+      ? `Facturapi ya había recibido esta misma global (identificador ${modo.idempotencyKey}) y no la volvió a timbrar. Búscala en Facturapi por ese identificador externo: si quedó timbrada, hay que anotarla a mano en la plataforma; no se pide con otra llave.`
+      : crudo;
     await sb.from("cfdi_globales").update({ status: "error", error: msg.slice(0, 500) }).eq("id", globalId);
     return { ...res, ok: false, error: msg };
   }
