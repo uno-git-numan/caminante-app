@@ -118,11 +118,22 @@ operadora externa dice «cuando su facturación quede conectada» (Fase 2:
 `operators.facturapi_org_id`, una organización por operadora). Clave por defecto
 **90121501** (no 90121500, que es la familia), o `experience.data.fiscal`.
 
-**Fase 1.5 (9 nov):** el flujo es el de **recibos de Facturapi** (MAPA §0.9):
-cada pago → recibo (`lib/facturacion/recibos.ts`, cron `recibos` cada hora +
-best-effort al cobrar; comprobante por Resend con PDF) → si piden factura,
-`facturarRecibo` → si no, **global** el día 1 (`global.ts`, cron `factura-global`,
-`cfdi_globales`, pagos `publico-general` + `cfdi_global_id`). Emisor por pago en
+**Fase 1.5 (9 nov, rehecha el 17 nov — SIN recibos de Facturapi, 0086/0087):**
+⚠️ **No usar los recibos (E-Receipts) de Facturapi**: son un producto aparte de
+**$599/mes POR ORGANIZACIÓN** + $0.40 por recibo (visto en la cuenta el 17 nov);
+la API de $299 no los incluye, pero sí emite la global como CFDI normal. El
+flujo: cada pago → **comprobante nuestro** por correo con su **folio**
+(`payments.folio` → `CAM-000123`; `lib/facturacion/comprobantes.ts`, cron
+`comprobantes` cada hora + best-effort al cobrar) → si piden factura, **factura
+de ingreso directa** por lo neto (`emitir.ts`), sólo **hasta el fin del mes del
+cobro** (`enPlazoParaFacturar`; ese plazo es lo que impide facturar dos veces)
+→ si no, **global** el día 1 (`global.ts` + `global-plan.ts` puro, cron
+`factura-global`): un CFDI a XAXX010101000 con el nodo `global`, **un concepto
+por pago** (01010101, ACT, «Venta», el folio como número de identificación),
+por lo neto, forma de pago la de mayor importe, y **fechada el último día del
+mes que factura** (lo pidió Marisol el 12 nov; el SAT deja hasta 72 h atrás —
+si el cron corre más tarde sale con fecha de hoy y avisa). Los pagos quedan
+`publico-general` + `cfdi_global_id` (`cfdi_globales.pagos`). Emisor por pago en
 `emisor.ts`; organización por operadora en `organizacion.ts` (datos legales +
 CSD en memoria desde Mi alta → Cobrar; llaves cifradas con
 `FACTURAPI_KEY_SECRET`). Env: `FACTURAPI_SECRET_KEY` (la casa), `FACTURAPI_USER_KEY`
@@ -132,35 +143,36 @@ CSD en memoria desde Mi alta → Cobrar; llaves cifradas con
 `lib/facturacion/corte.ts`):**
 - `FACTURAPI_SECRET_KEY` sola (`facturacionActiva()`) prende **sólo el CFDI de
   retenciones** a las operadoras. Retener es obligación de NUMAN aunque lo demás espere.
-- Recibos, autofactura y global a clientes piden además `FACTURACION_CLIENTES=1`
-  (`facturacionClientesActiva()`; lo usan `emisor.ts`, `recibos.ts`, las pantallas).
+- Comprobantes, autofactura y global a clientes piden además `FACTURACION_CLIENTES=1`
+  (`facturacionClientesActiva()`; lo usan `emisor.ts`, `comprobantes.ts`, las pantallas).
   Apagado hasta el visto bueno de la contadora.
 - **El corte es código:** `CORTE_FACTURACION_CLIENTES` (00:00 CDMX del 10 nov 2026,
-  la confirma Marisol, M18). Nada se emite sobre un cobro anterior: ni recibo
-  (`crearReciboDePago`), ni autofactura (`estadoFacturable`), ni global. Cambiar la
-  fecha es un commit, no una variable. (Sustituyó a `FACTURAPI_RECIBOS_DESDE`, que
-  además comparaba contra medianoche UTC.)
+  la confirma Marisol, M18). Nada se emite sobre un cobro anterior: ni
+  comprobante, ni autofactura (`estadoFacturable`), ni global (`planGlobal`).
+  Cambiar la fecha es un commit, no una variable. (Sustituyó a
+  `FACTURAPI_RECIBOS_DESDE`, que además comparaba contra medianoche UTC.)
 - Lo posterior al corte que la contadora ya facturó: `status_cfdi = 'externo'` +
-  `cfdi_externo_uuid` (su folio) + `cfdi_externo_nota`. El check de la 0083 exige el
-  UUID y prohíbe marcar un pago que ya tenga recibo nuestro. Se marca por SQL con la
-  lista de ella y aprobación de Luis.
-- **La global se detiene** si cualquier recibo abierto del periodo es de un pago
-  que no nos toca (anterior al corte, `externo`, devuelto, con devolución parcial,
-  o sin pago): `recibosQueNoEntranALaGlobal`. Un recibo ya reexpedido por lo
-  neto (`recibo_neto_de_mxn` ≥ `refunded_mxn`) sí entra.
+  `cfdi_externo_uuid` (su folio) + `cfdi_externo_nota`. El check exige el UUID.
+  Se marca por SQL con la lista de ella y aprobación de Luis.
+- **A la global sólo entra** lo `por-emitir`, cobrado en el periodo y desde el
+  corte, con algo neto por facturar (`planGlobal`): lo facturado al cliente, lo
+  `externo`, lo devuelto completo y lo anterior al corte quedan fuera solos.
+  ⚠️ Un pago que se capture DESPUÉS de timbrada la global de su mes (una
+  transferencia registrada tarde) no entra en ninguna: hay que resolverlo con
+  la contadora, no hay camino automático.
 
 **Devoluciones en los papeles (D19, 0084, 17 nov 2026 — `lib/facturacion/devoluciones.ts`):**
 el MISMO día en que Stripe confirma, `finalizeRefund` corrige el documento; el
-cron `recibos` reintenta lo que falle. Qué toca lo decide `planDevolucion`
-(puro, `devolucion-plan.ts`): sin CFDI → el recibo se **cancela** (total) o se
-**reexpide por lo neto** (parcial); con CFDI (factura del cliente o global) →
+cron `comprobantes` reintenta lo que falle. Qué toca lo decide `planDevolucion`
+(puro, `devolucion-plan.ts`): sin CFDI → **nada** (la factura o la global que
+salgan después ya van por lo neto); con CFDI (factura del cliente o global) →
 **CFDI de egreso** relacionado 01, misma clave, forma de pago del cobro, PUE, a
 público en general si el original fue la global. La cancelación del original
 (motivo 03) NO es automática: el egreso es la regla general y el numeral/plazo
 de la cancelación sin aceptación lo confirma la contadora (M19). Lo `externo`
 lo documenta la contadora (la pantalla de facturación lo cuenta).
-`recibo_neto_de_mxn` = lo devuelto que el comprobante vigente YA descuenta; un
-egreso sólo ampara lo devuelto después. Cada egreso se identifica por el
+`devuelto_al_facturar_mxn` = lo devuelto que el CFDI de ingreso YA salió
+descontando; un egreso sólo ampara lo devuelto después. Cada egreso se identifica por el
 acumulado que documenta (índice único): webhook + panel no timbran dos.
 ⚠️ **`marcarYCerrar` ya no existe**: ponía `refunded` a ciegas (una devolución
 parcial desde el panel quedaba como total). Ahora el panel lee el cargo de

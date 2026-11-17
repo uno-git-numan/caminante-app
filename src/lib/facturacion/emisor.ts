@@ -2,8 +2,8 @@ import "server-only";
 
 // QUIÉN EMITE cada comprobante y con qué llave.
 //
-// Modelo Airbnb (MAPA-FACTURACION.md §0): la factura al cliente —y su recibo, y
-// la global donde cae si nadie la pide— la emite la OPERADORA de la experiencia,
+// Modelo Airbnb (MAPA-FACTURACION.md §0): la factura al cliente —y la global
+// donde cae si nadie la pide— la emite la OPERADORA de la experiencia,
 // desde SU organización de Facturapi. La casa (NUMAN HUB hoy; DRUIDAS cuando
 // exista) usa la organización de `FACTURAPI_SECRET_KEY`; cada operadora externa
 // la suya (`operators.facturapi_org_id` + su llave cifrada, 0076). Sandbox:
@@ -97,3 +97,11 @@ export async function emisoresActivos(): Promise<Emisor[]> {
 }
 
 export const facturapiDe = (e: Emisor) => clienteFacturapi(e.key);
+
+/** El CP fiscal del emisor = lugar de expedición, y domicilio del receptor «público en general». */
+export async function cpFiscalDe(emisor: Emisor): Promise<string | null> {
+  const sb = createSupabaseAdminClient();
+  const q = sb.from("operators").select("cp_fiscal");
+  const { data } = emisor.operatorId ? await q.eq("id", emisor.operatorId).maybeSingle() : await q.eq("es_la_casa", true).limit(1).maybeSingle();
+  return ((data as { cp_fiscal?: string | null } | null)?.cp_fiscal ?? "").trim() || null;
+}

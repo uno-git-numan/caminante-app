@@ -81,7 +81,6 @@ export async function sincronizarLegalFacturapi(operatorId: string): Promise<Res
       codigoPostal: op.cp_fiscal!,
       correoSoporte: op.email ?? undefined,
     });
-    await organizaciones.configurarRecibos(orgId);
     await sb.from("operators").update({ facturapi_legal_at: new Date().toISOString() }).eq("id", op.id);
     return { ok: true, orgId, paso: "legal" };
   } catch (e) {

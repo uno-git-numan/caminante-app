@@ -151,9 +151,9 @@ export async function finalizeRefund(
 }
 
 /**
- * D19: el recibo se cancela o se reexpide, o sale el CFDI de egreso, el MISMO
- * día en que Stripe confirma. Va DESPUÉS del dinero y del panel, y no puede
- * tirar nada: si falla, el cron de recibos lo reintenta cada hora
+ * D19: si el pago ya tenía CFDI, sale el egreso el MISMO día en que Stripe
+ * confirma (sin CFDI no hay nada que corregir: lo que se emita va por lo neto).
+ * Va DESPUÉS del dinero y del panel, y no puede tirar nada: si falla, el cron de comprobantes lo reintenta cada hora
  * (`documentarDevolucionesPendientes`).
  */
 async function documentarEnPapeles(paymentId: string): Promise<void> {

@@ -9,9 +9,9 @@ import "server-only";
 //
 // Modelo Airbnb (MAPA-FACTURACION.md §0): la emite la OPERADORA de la
 // experiencia con su CSD, desde su organización de Facturapi (`emisor.ts`).
-// Si el pago ya tiene su RECIBO (0076), se factura ese recibo (Facturapi lo
-// saca de la global); si no lo tiene, se emite la factura directa con los
-// mismos conceptos (`conceptos.ts`).
+// Es una factura de ingreso directa, por lo neto del pago (`conceptos.ts`). Un
+// pago se factura por separado hasta el fin de su mes; después entra en la
+// global de ese mes (`global.ts`). Ya no hay recibos de Facturapi de por medio.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emisorDePago, facturapiDe } from "@/lib/facturacion/emisor";
@@ -19,6 +19,7 @@ import { COLS_PAGO_COMPROBANTE, conceptosDePago, type PagoParaComprobante } from
 import { netoDePago } from "@/lib/facturacion/devolucion-plan";
 import type { ReceptorFiscal } from "@/lib/facturacion/facturapi";
 import { corteEnPalabras, dentroDelCorte } from "@/lib/facturacion/corte";
+import { enPlazoParaFacturar, limiteParaFacturar } from "@/lib/facturacion/global-plan";
 import { esCpValido, esRfcValido, regimenCompatible, usoCfdiValido } from "@/lib/facturacion/catalogos";
 
 export type ResultadoEmision = { ok: true; invoiceId: string; uuid: string } | { ok: false; error: string };
@@ -45,16 +46,18 @@ export async function estadoFacturable(pay: PagoParaComprobante): Promise<{ ok: 
   if (pay.status_cfdi === "externo") return { ok: false, motivo: "Este pago ya se facturó. Si no recibiste tu CFDI, escríbenos.", porEmitir: false };
   if (pay.status_cfdi !== "por-emitir") return { ok: false, motivo: "Este pago ya no se puede facturar por separado.", porEmitir: false };
   if (!(netoDePago(pay) > 0)) return { ok: false, motivo: "El monto no permite facturación.", porEmitir: false };
-  // Devolución parcial que el recibo todavía no descuenta (D19): primero se
-  // reexpide el recibo por lo neto; facturar el viejo sería facturar dinero devuelto.
-  if (pay.facturapi_receipt_id && Number(pay.refunded_mxn ?? 0) > Number(pay.recibo_neto_de_mxn ?? 0) + 0.009)
-    return { ok: false, motivo: "Este pago tuvo una devolución y estamos ajustando su comprobante. Intenta de nuevo en unos minutos.", porEmitir: true };
   // Candado del corte (lib/facturacion/corte.ts): un CFDI nuestro sobre lo que ya
   // facturó la contadora sería ingreso duplicado ante el SAT.
   if (!dentroDelCorte(pay.paid_at))
     return { ok: false, motivo: `Este pago es anterior al ${corteEnPalabras()}: su factura la emite nuestro equipo. Escríbenos y te la mandamos.`, porEmitir: false };
   const emisor = await emisorDePago(pay.id);
   if (!emisor.ok) return { ok: false, motivo: emisor.error, porEmitir: emisor.porEmitir };
+  // El plazo: hasta el fin del mes del cobro. Después el pago es de la global de
+  // ese mes, que corre el día 1; dejarlo facturar aparte sería facturarlo dos veces.
+  if (!enPlazoParaFacturar(pay.paid_at)) {
+    const limite = new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "long" }).format(limiteParaFacturar(pay.paid_at as string));
+    return { ok: false, motivo: `El plazo para facturar este pago por separado terminó el ${limite}: entra en la factura global de ese mes.`, porEmitir: false };
+  }
   return { ok: true };
 }
 
@@ -93,7 +96,6 @@ export async function emitirCFDIDePago(input: { paymentId: string; receptor: Rec
       contact_id: pay.contact_id,
       tipo: "cliente",
       emisor_operator_id: emisor.emisor.operatorId,
-      facturapi_receipt_id: pay.facturapi_receipt_id ?? null,
       rfc: receptor.rfc,
       razon_social: receptor.razonSocial,
       regimen_fiscal: receptor.regimenFiscal,
@@ -111,11 +113,9 @@ export async function emitirCFDIDePago(input: { paymentId: string; receptor: Rec
   }
   const invoiceId = inv.id as string;
 
-  // ── Timbrar (recibo → factura, o factura directa), archivar, marcar, mandar ─
+  // ── Timbrar, archivar, marcar, mandar ───────────────────────────────────
   try {
-    const factura = pay.facturapi_receipt_id
-      ? await api.facturarRecibo(pay.facturapi_receipt_id, receptor, d.total)
-      : await api.crearFacturaIngreso({ receptor, conceptos: d.conceptos, formaPago: d.formaPago });
+    const factura = await api.crearFacturaIngreso({ receptor, conceptos: d.conceptos, formaPago: d.formaPago });
     const now = new Date();
     const base = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${factura.uuid}`;
     let xmlPath: string | null = null;
@@ -144,7 +144,7 @@ export async function emitirCFDIDePago(input: { paymentId: string; receptor: Rec
       .eq("id", invoiceId);
     // Lo devuelto antes de facturar ya va descontado en esta factura (D19): un
     // egreso posterior sólo ampara lo que se devuelva después.
-    await sb.from("payments").update({ status_cfdi: "emitido", recibo_neto_de_mxn: Number(pay.refunded_mxn ?? 0) || null }).eq("id", pay.id);
+    await sb.from("payments").update({ status_cfdi: "emitido", devuelto_al_facturar_mxn: Number(pay.refunded_mxn ?? 0) || null }).eq("id", pay.id);
     await api.enviarCFDIPorCorreo(factura.id, receptor.email);
     return { ok: true, invoiceId, uuid: factura.uuid };
   } catch (e) {

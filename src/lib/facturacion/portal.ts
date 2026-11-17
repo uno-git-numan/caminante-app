@@ -113,7 +113,7 @@ export async function desactivarFacturacionPortal(i: {
 /**
  * Al terminar el convenio (operadora en `baja`, 0052) el CSD se da de baja en
  * Facturapi (D20 punto 3). Ninguna pantalla da de baja a una operadora —se hace
- * con su motivo escrito—, así que esto lo revisa el cron de recibos cada hora:
+ * con su motivo escrito—, así que esto lo revisa el cron de comprobantes cada hora:
  * quien esté en baja con la facturación prendida o el CSD registrado, se apaga.
  */
 export async function bajasPorTerminacion(): Promise<{ hechas: number; errores: string[] }> {

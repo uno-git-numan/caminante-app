@@ -4,7 +4,6 @@ import {
   dentroDelCorte,
   inicioDelCorte,
   interruptorClientes,
-  recibosQueNoEntranALaGlobal,
   UUID_CFDI,
 } from "@/lib/facturacion/corte";
 
@@ -44,28 +43,5 @@ describe("el folio de la contadora", () => {
     expect(UUID_CFDI.test("6F1B2C3D-4E5F-4a7b-8c9d-0e1f2a3b4c5d")).toBe(true);
     expect(UUID_CFDI.test("6F1B2C3D4E5F4a7b8c9d0e1f2a3b4c5d")).toBe(false);
     expect(UUID_CFDI.test("")).toBe(false);
-  });
-});
-
-describe("el candado de la global", () => {
-  const bueno = { facturapi_receipt_id: "r1", status: "paid", status_cfdi: "por-emitir", paid_at: "2026-11-15T12:00:00-06:00", refunded_mxn: 0 };
-
-  it("deja pasar los recibos de pagos que sí factura la plataforma", () => {
-    expect(recibosQueNoEntranALaGlobal(["r1"], [bueno])).toEqual([]);
-  });
-
-  it("detiene la global por cada recibo que no debe entrar, y dice por qué", () => {
-    const pagos = [
-      bueno,
-      { ...bueno, facturapi_receipt_id: "r2", paid_at: "2026-11-09T12:00:00-06:00" },
-      { ...bueno, facturapi_receipt_id: "r3", status_cfdi: "externo" },
-      { ...bueno, facturapi_receipt_id: "r4", status: "refunded" },
-      { ...bueno, facturapi_receipt_id: "r5", refunded_mxn: 1500 },
-    ];
-    const fuera = recibosQueNoEntranALaGlobal(["r1", "r2", "r3", "r4", "r5", "r6"], pagos);
-    expect(fuera.map((f) => f.receiptId)).toEqual(["r2", "r3", "r4", "r5", "r6"]);
-    expect(fuera.find((f) => f.receiptId === "r2")?.porque).toMatch(/anterior al corte/);
-    expect(fuera.find((f) => f.receiptId === "r3")?.porque).toMatch(/externo/);
-    expect(fuera.find((f) => f.receiptId === "r6")?.porque).toMatch(/ningún pago/);
   });
 });

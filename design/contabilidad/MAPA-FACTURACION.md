@@ -165,9 +165,9 @@ el código la lee como configuración (`mismo_mes → cancelar | egreso`).
 > `lib/facturacion/devoluciones.ts`):** legal fijó el **egreso como regla
 > general** (no depende del receptor y deja el ingreso intacto en su mes) y la
 > cancelación motivo 03 sólo como caso permitido (total + sin aceptación del
-> receptor, M19). El código hace: **sin CFDI** → el **recibo** se cancela
-> (total) o se reexpide por lo neto (parcial), para que la global nunca tome
-> dinero devuelto; **con CFDI** (autofactura o global) → **egreso** relacionado
+> receptor, M19). El código hace: **sin CFDI** → nada (la factura o la global
+> que salgan después ya van por lo neto; desde el 17 nov no hay recibo que
+> cancelar, §0.9); **con CFDI** (autofactura o global) → **egreso** relacionado
 > 01 el mismo día en que Stripe confirma, por lo devuelto que aún no ampara
 > otro egreso. La cancelación del original **no es automática** hasta que
 > Marisol confirme numeral y plazo (M19). El egreso de comisión B2 y la
@@ -238,32 +238,44 @@ de Stripe para cuentas conectadas (Luis), `createCheckout` bifurcando por
 canal (la última pieza, a propósito), y la cuenta Express de cada operadora
 desde «Mi alta» (pantalla ya construida). **Entra como Fase 2b** del plan.
 
-### 0.9 La columna vertebral: los «recibos» de Facturapi (Luis, 9 nov: recibo sencillo → factura si la piden → global si no)
+### 0.9 La columna vertebral: comprobante → factura si la piden → global si no (Luis, 9 nov; sin recibos de Facturapi desde el 17 nov)
 
-Facturapi trae exactamente el flujo que Luis pidió, por organización:
+El flujo que Luis pidió es el mismo; lo que cambió el 17 nov 2026 es quién lo
+arma. Primero se hizo con los **recibos (E-Receipts) de Facturapi**, hasta ver
+en la cuenta que son un producto aparte: **$599 al mes POR ORGANIZACIÓN** +
+$0.40 por recibo, y habría que contratarlo para NUMAN y para cada operadora. La
+API de $299 que ya se paga emite todo lo demás, incluida la global como CFDI
+normal. Así que el comprobante y la global los arma la plataforma (0086/0087):
 
 ```
-pago cobrado ──▶ RECIBO (nota de venta no fiscal, PDF, liga de autofactura)   POST /receipts
-                    │  el cliente pide factura (Mi espacio → «Facturar», o el link del comprobante)
-                    ├──▶ FACTURA al RFC del cliente                           POST /receipts/{id}/invoice
+pago cobrado ──▶ COMPROBANTE nuestro (correo con el FOLIO de la operación)    lib/facturacion/comprobantes.ts
+                    │  el cliente pide factura (Mi espacio → «Facturar»), hasta el fin del mes del cobro
+                    ├──▶ FACTURA de ingreso al RFC del cliente, por lo neto     POST /invoices
                     │  nadie la pidió antes de que cerrara el mes
-                    └──▶ FACTURA GLOBAL a público en general (XAXX010101000)   POST /receipts/global-invoice
+                    └──▶ FACTURA GLOBAL a público en general (XAXX010101000)    POST /invoices con nodo `global`
 ```
 
-- **Un recibo por pago** en la organización de la operadora que vende
-  (`payments.facturapi_receipt_id`, 0076). Lo crea `lib/facturacion/recibos.ts`
-  desacoplado del webhook (cron `recibos` cada hora + intento best-effort al
-  cobrar); idempotente por pago. El comprobante llega por correo nuestro
-  (Resend, remitente «Luis · Caminante») con el PDF del recibo y la llamada:
-  «pide tu factura antes del último día del mes».
-- **«Facturar»** factura ESE recibo (`emitir.ts` → `facturarRecibo`); Facturapi
-  lo saca de la global. Un pago posterior al corte sin recibo se factura
-  directo con los mismos conceptos (`conceptos.ts`); uno anterior al corte, no.
-- **Global** el día 1 (cron `factura-global`, 13:00 UTC) por cada emisor con
-  organización: `lib/facturacion/global.ts` → `cfdi_globales` + los pagos
-  absorbidos quedan `publico-general` con `cfdi_global_id`. La organización se
-  configura con periodicidad mensual y `duration_days: 0` (el recibo se puede
-  facturar hasta el último día del periodo).
+- **Un comprobante por pago**: nuestro correo (Resend, «Luis · Caminante») con
+  el folio (`payments.folio` → `CAM-000123`) y la llamada «pide tu factura a
+  más tardar el último día del mes». Cron `comprobantes` cada hora + intento
+  best-effort al cobrar; idempotente por `comprobante_enviado_at`. Sólo donde la
+  factura se puede pedir aquí (emisor activo).
+- **«Facturar»** emite la factura directa por lo neto (`emitir.ts`,
+  `conceptos.ts`), **sólo hasta el fin del mes del cobro** (`enPlazoParaFacturar`).
+  Ese plazo es el candado contra la doble facturación: la global corre después,
+  sobre el mes cerrado. Un pago anterior al corte, no.
+- **Global** el día 1 (cron `factura-global`, 13:00 UTC = 7:00 CDMX) por cada
+  emisor: `global.ts` + `global-plan.ts` (puro). **Un concepto por pago**, como
+  pide la guía de llenado del CFDI global: clave 01010101, unidad ACT, «Venta»,
+  cantidad 1, el folio como número de identificación; por lo neto; forma de
+  pago la de mayor importe del periodo; `cfdi_globales` + los pagos quedan
+  `publico-general` con `cfdi_global_id`. **Fechada el último día del mes que
+  factura** (20:00 CDMX): lo pidió Marisol el 12 nov («la fecha de emisión debe
+  ser del mes al que corresponde») y el SAT permite hasta 72 horas atrás; si
+  el cron corriera más tarde, sale con fecha de hoy y el resultado avisa.
+  Idempotente por emisor + periodo (`idempotency_key`).
+- ⚠️ Pendiente de probar en **sandbox** que Facturapi acepta esta global sin el
+  producto E-Receipts (está documentado en su API; falta la emisión de prueba).
 - **La organización de cada operadora** (`lib/facturacion/organizacion.ts`): se
   crea con la llave de USUARIO (`FACTURAPI_USER_KEY`), recibe sus datos legales
   (lo que ya captura Mi alta → Cobrar) y su CSD con la contraseña que la
@@ -274,13 +286,12 @@ pago cobrado ──▶ RECIBO (nota de venta no fiscal, PDF, liga de autofactura
   su llave Test.
 - **Candados del 12 nov (legal, DECISIONES §6; 0083; `lib/facturacion/corte.ts`):**
   la llave sola prende sólo el CFDI de retenciones; lo de clientes pide además
-  `FACTURACION_CLIENTES=1`. Nada (recibo, autofactura, global) sale sobre un
-  cobro anterior a `CORTE_FACTURACION_CLIENTES` (00:00 CDMX del 10 nov 2026, lo
-  confirma Marisol); lo que ella facturó después se marca `externo` con su UUID.
-  La global se detiene si un recibo abierto es de un pago que no nos toca.
-- Pendiente de Facturapi/Luis: firmar la **Carta Manifiesto** del PAC por cada
-  organización (dashboard o `facturapi.io/embedded/manifiesto`) y contratar el
-  feature de factura global si el plan no lo incluye.
+  `FACTURACION_CLIENTES=1`. Nada (comprobante, autofactura, global) sale sobre
+  un cobro anterior a `CORTE_FACTURACION_CLIENTES` (00:00 CDMX del 10 nov 2026,
+  lo confirma Marisol); lo que ella facturó después se marca `externo` con su
+  UUID. A la global sólo entra lo `por-emitir` del periodo y desde el corte.
+- La **Carta Manifiesto** de cada operadora la firma ella en su panel, en el
+  módulo incrustado de Facturapi (D20, `portal.ts`).
 
 ### Fuentes consultadas (9 nov 2026)
 

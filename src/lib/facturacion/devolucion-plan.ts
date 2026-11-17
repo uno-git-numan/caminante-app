@@ -3,12 +3,11 @@
 // Módulo puro a propósito: decide, no ejecuta. Lo prueba tests/unit sin
 // servidor y lo ejecuta lib/facturacion/devoluciones.ts.
 //
-// · Sin CFDI todavía (pago `por-emitir`):
-//     - sin recibo: nada que cancelar; el recibo o la factura que salgan
-//       después ya van por lo neto (conceptos.ts descuenta lo devuelto).
-//     - con recibo: devolución TOTAL → se cancela el recibo; PARCIAL → se
-//       cancela y se reexpide por lo neto cobrado. Así la global nunca toma
-//       un recibo por dinero que ya volvió.
+// · Sin CFDI todavía (pago `por-emitir`): NADA. No hay documento que corregir:
+//   la factura que pida el cliente, o la global del mes, salen ya por lo neto
+//   —lo cobrado menos lo devuelto— (conceptos.ts, global-plan.ts). Hasta el 17
+//   nov 2026 aquí se cancelaba o reexpedía un recibo de Facturapi; la
+//   plataforma ya no usa recibos.
 // · Con CFDI (`emitido` o `publico-general`): CFDI de EGRESO relacionado (01)
 //   al original —la factura del cliente o la global— por lo devuelto que aún
 //   no ampara ningún egreso. El egreso no depende del receptor y deja el
@@ -27,14 +26,12 @@ export type PagoDevuelto = {
   refunded_mxn: number | null;
   status_cfdi: string;
   paid_at: string | null;
-  facturapi_receipt_id: string | null;
-  recibo_neto_de_mxn: number | null;
+  /** Lo devuelto que el CFDI de ingreso YA salió descontando (0086). */
+  devuelto_al_facturar_mxn: number | null;
 };
 
 export type PlanDevolucion =
   | { accion: "nada"; porque: string }
-  | { accion: "cancelar-recibo"; devuelto: number }
-  | { accion: "reexpedir-recibo"; devuelto: number; neto: number }
   | { accion: "egreso"; devuelto: number; importe: number }
   | { accion: "contadora"; porque: string };
 
@@ -42,12 +39,11 @@ export type PlanDevolucion =
  * @param egresoCubierto lo devuelto que ya amparan los egresos vivos del pago
  *   (el mayor `devuelto_acumulado_mxn` pending/stamped), 0 si no hay.
  *
- * `recibo_neto_de_mxn` es lo devuelto que el comprobante vigente (recibo o
- * CFDI de ingreso) YA descuenta: se escribe al reexpedir el recibo y al emitir
- * un recibo o una factura sobre un pago con devolución previa.
+ * `devuelto_al_facturar_mxn` es lo devuelto ANTES de facturar: la factura del
+ * cliente o la global ya salieron por lo neto, así que un egreso sólo ampara lo
+ * que se devuelva después.
  */
 export function planDevolucion(p: PagoDevuelto, egresoCubierto = 0): PlanDevolucion {
-  const cobrado = r2(Number(p.amount_mxn ?? 0));
   const devuelto = r2(Number(p.refunded_mxn ?? 0));
   if (!(devuelto > 0)) return { accion: "nada", porque: "sin devolución" };
   if (!dentroDelCorte(p.paid_at)) return { accion: "nada", porque: "cobro anterior al corte: lo cuadra la contadora" };
@@ -57,19 +53,13 @@ export function planDevolucion(p: PagoDevuelto, egresoCubierto = 0): PlanDevoluc
       return { accion: "contadora", porque: "la factura de este cobro la emitió la contadora: el egreso también es suyo" };
     case "no-facturable":
       return { accion: "nada", porque: "pago sin documento fiscal" };
-    case "por-emitir": {
-      if (!p.facturapi_receipt_id) return { accion: "nada", porque: "sin recibo: lo que se emita después ya va por lo neto" };
-      if (r2(Number(p.recibo_neto_de_mxn ?? 0)) >= devuelto) return { accion: "nada", porque: "el recibo ya está ajustado" };
-      const neto = r2(cobrado - devuelto);
-      return neto > 0.009 ? { accion: "reexpedir-recibo", devuelto, neto } : { accion: "cancelar-recibo", devuelto };
-    }
+    case "por-emitir":
+      return { accion: "nada", porque: "sin CFDI todavía: lo que se emita ya va por lo neto" };
     case "emitido":
     case "publico-general": {
-      // Lo que el ingreso ya salió descontando (se facturó o entró a la global
-      // por lo neto) no lleva egreso: sólo lo devuelto DESPUÉS.
-      const base = Math.max(r2(egresoCubierto), r2(Number(p.recibo_neto_de_mxn ?? 0)));
+      const base = Math.max(r2(egresoCubierto), r2(Number(p.devuelto_al_facturar_mxn ?? 0)));
       const importe = r2(devuelto - base);
-      if (!(importe > 0.009)) return { accion: "nada", porque: "lo devuelto ya tiene su egreso" };
+      if (!(importe > 0.009)) return { accion: "nada", porque: "lo devuelto ya está documentado" };
       return { accion: "egreso", devuelto, importe };
     }
     default:
@@ -77,6 +67,6 @@ export function planDevolucion(p: PagoDevuelto, egresoCubierto = 0): PlanDevoluc
   }
 }
 
-/** Lo que se factura o se recibe de un pago: lo cobrado menos lo devuelto. */
+/** Lo que se factura de un pago: lo cobrado menos lo devuelto. */
 export const netoDePago = (p: { amount_mxn: number | null; refunded_mxn?: number | null }): number =>
   r2(Number(p.amount_mxn ?? 0) - Number(p.refunded_mxn ?? 0));

@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { netoDePago, planDevolucion, type PagoDevuelto } from "@/lib/facturacion/devolucion-plan";
-import { recibosQueNoEntranALaGlobal } from "@/lib/facturacion/corte";
 import { parrafoUnoBis } from "@/lib/facturacion/uno-bis";
 
 // D19 · qué documento toca cada devolución.
@@ -11,33 +10,17 @@ const base: PagoDevuelto = {
   refunded_mxn: 0,
   status_cfdi: "por-emitir",
   paid_at: "2026-11-15T12:00:00-06:00",
-  facturapi_receipt_id: "rec_1",
-  recibo_neto_de_mxn: null,
+  devuelto_al_facturar_mxn: null,
 };
 
-describe("la devolución sin CFDI: el recibo", () => {
+describe("la devolución sin CFDI", () => {
   it("sin devolución no hace nada", () => {
     expect(planDevolucion(base).accion).toBe("nada");
   });
 
-  it("total: se cancela el recibo", () => {
-    expect(planDevolucion({ ...base, refunded_mxn: 10000 })).toEqual({ accion: "cancelar-recibo", devuelto: 10000 });
-  });
-
-  it("parcial: se reexpide por lo neto", () => {
-    expect(planDevolucion({ ...base, refunded_mxn: 3500 })).toEqual({ accion: "reexpedir-recibo", devuelto: 3500, neto: 6500 });
-  });
-
-  it("un recibo ya reexpedido por ese monto no se vuelve a tocar (webhook + panel)", () => {
-    expect(planDevolucion({ ...base, refunded_mxn: 3500, recibo_neto_de_mxn: 3500 }).accion).toBe("nada");
-  });
-
-  it("una segunda devolución sobre un recibo ya ajustado lo vuelve a reexpedir", () => {
-    expect(planDevolucion({ ...base, refunded_mxn: 5000, recibo_neto_de_mxn: 3500 })).toEqual({ accion: "reexpedir-recibo", devuelto: 5000, neto: 5000 });
-  });
-
-  it("sin recibo todavía no hay nada que cancelar: lo que salga después ya va por lo neto", () => {
-    expect(planDevolucion({ ...base, facturapi_receipt_id: null, refunded_mxn: 3500 }).accion).toBe("nada");
+  it("total o parcial: no hay documento que corregir; lo que se emita va por lo neto", () => {
+    expect(planDevolucion({ ...base, refunded_mxn: 10000 }).accion).toBe("nada");
+    expect(planDevolucion({ ...base, refunded_mxn: 3500 }).accion).toBe("nada");
   });
 });
 
@@ -52,7 +35,7 @@ describe("la devolución con CFDI: el egreso", () => {
     expect(planDevolucion({ ...facturado, status_cfdi: "publico-general", refunded_mxn: 10000 }).accion).toBe("egreso");
   });
 
-  it("un egreso por el mismo acumulado no se repite", () => {
+  it("un egreso por el mismo acumulado no se repite (webhook + panel)", () => {
     expect(planDevolucion({ ...facturado, refunded_mxn: 2000 }, 2000).accion).toBe("nada");
   });
 
@@ -61,19 +44,19 @@ describe("la devolución con CFDI: el egreso", () => {
   });
 
   it("lo que la factura ya salió descontando no lleva egreso", () => {
-    // Se devolvieron $2,000, luego el cliente facturó (por $8,000) y después se devolvieron $1,000 más.
-    expect(planDevolucion({ ...facturado, refunded_mxn: 3000, recibo_neto_de_mxn: 2000 })).toEqual({ accion: "egreso", devuelto: 3000, importe: 1000 });
-    expect(planDevolucion({ ...facturado, refunded_mxn: 2000, recibo_neto_de_mxn: 2000 }).accion).toBe("nada");
+    // Se devolvieron $2,000, luego se facturó (por $8,000) y después se devolvieron $1,000 más.
+    expect(planDevolucion({ ...facturado, refunded_mxn: 3000, devuelto_al_facturar_mxn: 2000 })).toEqual({ accion: "egreso", devuelto: 3000, importe: 1000 });
+    expect(planDevolucion({ ...facturado, refunded_mxn: 2000, devuelto_al_facturar_mxn: 2000 }).accion).toBe("nada");
   });
 });
 
 describe("lo que no es de la plataforma", () => {
   it("lo que facturó la contadora: su egreso es suyo", () => {
-    expect(planDevolucion({ ...base, status_cfdi: "externo", facturapi_receipt_id: null, refunded_mxn: 500 }).accion).toBe("contadora");
+    expect(planDevolucion({ ...base, status_cfdi: "externo", refunded_mxn: 500 }).accion).toBe("contadora");
   });
 
   it("un cobro anterior al corte no se toca", () => {
-    expect(planDevolucion({ ...base, paid_at: "2026-11-09T12:00:00-06:00", refunded_mxn: 10000 }).accion).toBe("nada");
+    expect(planDevolucion({ ...base, status_cfdi: "emitido", paid_at: "2026-11-09T12:00:00-06:00", refunded_mxn: 10000 }).accion).toBe("nada");
   });
 });
 
@@ -81,18 +64,6 @@ describe("lo neto", () => {
   it("es lo cobrado menos lo devuelto, al centavo", () => {
     expect(netoDePago({ amount_mxn: 11500, refunded_mxn: 2875.5 })).toBe(8624.5);
     expect(netoDePago({ amount_mxn: 11500 })).toBe(11500);
-  });
-});
-
-describe("la global con un recibo reexpedido", () => {
-  const pago = { facturapi_receipt_id: "r1", status: "paid", status_cfdi: "por-emitir", paid_at: "2026-11-15T12:00:00-06:00" };
-
-  it("entra si el recibo ya descuenta lo devuelto", () => {
-    expect(recibosQueNoEntranALaGlobal(["r1"], [{ ...pago, refunded_mxn: 3500, recibo_neto_de_mxn: 3500 }])).toEqual([]);
-  });
-
-  it("se detiene si hay devolución que el recibo no descuenta", () => {
-    expect(recibosQueNoEntranALaGlobal(["r1"], [{ ...pago, refunded_mxn: 5000, recibo_neto_de_mxn: 3500 }])).toHaveLength(1);
   });
 });
 

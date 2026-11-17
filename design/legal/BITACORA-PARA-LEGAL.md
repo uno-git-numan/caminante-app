@@ -603,3 +603,60 @@ el hash comparado (`0fe7e135…`) y seis candados probados en una transacción
 revertida; se promovió ab71c42 (que lleva también los candados del 12 nov,
 6193859, que no se habían promovido); la 0085 se aplicó después (`3f88840a…`):
 las columnas del CSD ya no existen y el almacenamiento `csd`, vacío, se borró.
+
+## 17 nov 2026 (tarde) · Producto: fuera los recibos de Facturapi; la global la arma la plataforma (Luis aprobó)
+
+**Por qué.** Visto en la cuenta de Facturapi (Suscripción): la API de $299 al mes
+no incluye recibos. «E-Receipts y autofactura» cuesta **$599 al mes por
+organización** más $0.40 por recibo, y trae los recibos, la global hecha con
+recibos y el portal de autofactura. El flujo anterior lo habría exigido en NUMAN
+y en cada operadora. Luis decidió quitarlo.
+
+**Qué cambia (0086 aditiva; 0087 quita las columnas de recibos después de
+promover; ninguna tenía datos).**
+- **Comprobante**: correo de la plataforma con el **folio** de la operación
+  (`payments.folio`, se muestra `CAM-000123`). Ya no hay recibo ni PDF de
+  Facturapi.
+- **Factura al cliente**: CFDI de ingreso directo, por lo neto, **sólo hasta el
+  fin del mes del cobro**. Ese plazo es el candado contra facturar dos veces:
+  la global corre después, sobre el mes cerrado.
+- **Global**: un CFDI de ingreso a XAXX010101000 (régimen 616, uso S01, CP del
+  emisor) con el nodo de información global (periodicidad mensual, mes, año) y
+  **un concepto por pago**: clave 01010101, unidad ACT, descripción «Venta»,
+  cantidad 1, el folio como número de identificación, importe neto con IVA
+  incluido al 16 %, método PUE y la forma de pago de mayor importe del periodo.
+  Entra lo `por-emitir` del periodo y desde el corte; queda fuera lo facturado
+  al cliente, lo `externo`, lo devuelto completo y lo anterior al corte.
+- **Devoluciones (D19)**: sin CFDI ya no hay nada que cancelar; con CFDI, el
+  egreso sigue igual.
+
+**Para tu criterio:**
+1. ¿El concepto por pago de la global está bien así (01010101 / ACT / «Venta» /
+   folio)? Lo tomé de la guía de llenado del CFDI global. La alternativa sería
+   la clave de la experiencia (90121501).
+2. **Hueco conocido:** un pago que se capture después de timbrada la global de
+   su mes (una transferencia registrada tarde) no entra en ninguna global ni se
+   puede facturar por separado. Hoy no tiene camino automático.
+3. **No está probado en sandbox** que Facturapi acepte esta global sin el
+   producto E-Receipts. Está documentado en su API; falta la emisión de prueba,
+   que te paso para cotejo como la de retenciones.
+
+## 17 nov 2026 (tarde) · Marisol contestó el 12 nov (el correo de «Visto bueno»)
+
+Su respuesta está en el hilo de Gmail de Luis «Visto bueno para prender la
+facturación de la plataforma (NUMAN HUB)», con siete XML adjuntos. Te la mando
+íntegra por mensaje. Lo que dice, en corto:
+1. **El sistema debe emitir TODA la facturación, individual y global**; si una
+   parte la hace ella y otra el sistema hay discrepancias. Y la **fecha de
+   emisión de la global debe ser del mes que factura** (el SAT deja hasta 72
+   horas atrás). → Ya construido: la global se fecha el último día del periodo.
+2. Necesita **conciliar ingresos**: pidió los primeros estados de cuenta y dice
+   que no tiene registrada esa cantidad de ingresos. De noviembre sólo ha
+   facturado «la operación que solicitaste».
+3. Ella hace la **actualización de actividades** ante el SAT.
+4. Para la nueva empresa, hay que **iniciar el proceso con el notario**.
+
+No contestó de forma expresa la fecha de corte (M18) ni el aviso de retenedora
+(M7). Los XML son globales suyas de junio a septiembre y facturas de junio; no
+viene nada de octubre. La comparación mes por mes contra la plataforma se la
+pasé a Luis y a ti por mensaje (no va en el repo).

@@ -7,7 +7,7 @@
 //
 // Idempotente por payments.provider_ref (unique). NO depende de 0014/0015.
 
-import { crearRecibosPendientes } from "@/lib/facturacion/recibos";
+import { mandarComprobantesPendientes } from "@/lib/facturacion/comprobantes";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -323,8 +323,8 @@ export async function finalizeSelfServeCheckout(
       console.error("[finalize] admisión de la operadora:", e, providerRef);
     }
   }
-  // Recibo del pago (0076): best-effort y desacoplado; el cron lo reintenta.
-  void crearRecibosPendientes(5).catch(() => {});
+  // Comprobante del pago: best-effort y desacoplado; el cron lo reintenta.
+  void mandarComprobantesPendientes(5).catch(() => {});
 
   // Cola de sync a Notion — SOLO comercial (Pipeline: Paid + operador atribuido).
   await sb.from("notion_sync_log").insert({

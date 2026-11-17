@@ -33,7 +33,7 @@
       "schedule": "0 15 * * *"
     },
     {
-      "path": "/caminante/api/cron/recibos",
+      "path": "/caminante/api/cron/comprobantes",
       "schedule": "15 * * * *"
     },
     {

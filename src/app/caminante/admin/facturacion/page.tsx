@@ -57,7 +57,7 @@ export default async function FacturacionAdminPage() {
       .order("paid_at", { ascending: false });
     porEmitir = (pend ?? []) as PorEmitir[];
 
-    // Lo que la contadora facturó fuera del sistema (0083): ni recibo ni global.
+    // Lo que la contadora facturó fuera del sistema (0083): ni factura ni global nuestras.
     const { count } = await sb.from("payments").select("id", { count: "exact", head: true }).eq("status_cfdi", "externo");
     externos = count ?? 0;
     // D19: una devolución sobre lo que facturó la contadora la documenta ella (su egreso).
@@ -120,7 +120,7 @@ export default async function FacturacionAdminPage() {
         </div>
       ) : !clientes ? (
         <div className="empty">
-          La llave está puesta: sólo sale el <b>CFDI de retenciones</b> a las operadoras. Recibos, autofactura y
+          La llave está puesta: sólo sale el <b>CFDI de retenciones</b> a las operadoras. Comprobantes, autofactura y
           factura global a clientes siguen <b>apagados</b> (<code>FACTURACION_CLIENTES</code>) hasta el visto bueno de
           la contadora.
         </div>

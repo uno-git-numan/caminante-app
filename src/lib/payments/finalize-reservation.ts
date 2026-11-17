@@ -11,7 +11,7 @@
 // Idempotente por payments.provider_ref (unique) — Stripe reintenta el webhook y el
 // usuario puede pagar/cerrar varias veces; solo se registra un pago por PaymentIntent.
 
-import { crearRecibosPendientes } from "@/lib/facturacion/recibos";
+import { mandarComprobantesPendientes } from "@/lib/facturacion/comprobantes";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -108,8 +108,8 @@ export async function finalizeReservationCheckout(
   }
   const paymentRecorded = !payErr;
 
-  // Recibo del pago (0076): best-effort y desacoplado; el cron lo reintenta.
-  void crearRecibosPendientes(5).catch(() => {});
+  // Comprobante del pago: best-effort y desacoplado; el cron lo reintenta.
+  void mandarComprobantesPendientes(5).catch(() => {});
 
   // Recalcular estado: Σ pagos 'paid' vs target (amount_due → total → lo pagado).
   const { data: paidRows } = await sb

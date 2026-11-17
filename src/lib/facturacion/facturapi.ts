@@ -4,15 +4,16 @@
 //   · La llave de USUARIO (`FACTURAPI_USER_KEY`, sk_user_…) administra
 //     ORGANIZACIONES: crearlas, mandar datos fiscales, subir el CSD, sacar sus
 //     llaves. Una organización por emisor: NUMAN HUB, DRUIDAS, cada operadora.
-//   · La llave de una ORGANIZACIÓN (sk_live_… / sk_test_…) emite: recibos,
-//     facturas, factura global. Viene de `lib/facturacion/emisor.ts`, que sabe
+//   · La llave de una ORGANIZACIÓN (sk_live_… / sk_test_…) emite: facturas,
+//     egresos, factura global. Viene de `lib/facturacion/emisor.ts`, que sabe
 //     de quién es la venta.
 //
-// El flujo es el de «recibos» de Facturapi (MAPA-FACTURACION.md §0.9): cada
-// pago → RECIBO (nota de venta con PDF); si el cliente pide factura → el recibo
-// se FACTURA a su RFC; lo que quede abierto al cerrar el mes → FACTURA GLOBAL
-// a público en general. El CSD nunca pasa por aquí más que en la subida: lo
-// guarda Facturapi y sella con él.
+// El flujo (MAPA-FACTURACION.md §0.9, desde el 17 nov 2026): cada pago manda
+// NUESTRO comprobante; si el cliente pide factura → CFDI de ingreso a su RFC;
+// lo que nadie facturó al cerrar el mes → FACTURA GLOBAL a público en general,
+// armada aquí con un concepto por pago. NO se usan los recibos (E-Receipts) de
+// Facturapi: son un producto aparte de $599/mes por organización. El CSD nunca
+// pasa por aquí más que en la subida: lo guarda Facturapi y sella con él.
 //
 // Precios al público INCLUYEN IVA 16% → `tax_included: true` y Facturapi
 // desglosa. Método PUE (se paga antes del viaje).
@@ -33,13 +34,13 @@ const FORMA_PAGO_DEFAULT = process.env.FACTURAPI_FORMA_PAGO || "04";
 
 /**
  * ¿Hay llave de la casa? Basta para el CFDI de retenciones a las operadoras y
- * nada más. Para todo lo de CLIENTES (recibos, autofactura, global) se pregunta
+ * nada más. Para todo lo de CLIENTES (comprobantes, autofactura, global) se pregunta
  * `facturacionClientesActiva()` — ver lib/facturacion/corte.ts.
  */
 export function facturacionActiva(): boolean {
   return !!process.env.FACTURAPI_SECRET_KEY;
 }
-/** Recibos, autofactura y global a clientes: la llave Y el interruptor `FACTURACION_CLIENTES=1`. */
+/** Comprobantes, autofactura y global a clientes: la llave Y el interruptor `FACTURACION_CLIENTES=1`. */
 export function facturacionClientesActiva(): boolean {
   return facturacionActiva() && interruptorClientes();
 }
@@ -117,16 +118,6 @@ export type FacturaTimbrada = {
   iva: number;
 };
 
-export type Recibo = {
-  id: string;
-  key: string;
-  status: "open" | "canceled" | "invoiced_to_customer" | "invoiced_globally";
-  total: number;
-  expiresAt: string;
-  selfInvoiceUrl: string | null;
-  invoice: string | null;
-};
-
 const items = (conceptos: Concepto[]) =>
   conceptos.map((c) => ({
     quantity: c.cantidad,
@@ -156,18 +147,6 @@ function desglose(json: { id?: string; uuid?: string; total?: number }, totalEsp
   return { id: json.id, uuid: json.uuid, total, subtotal, iva: Number((total - subtotal).toFixed(2)) };
 }
 
-function recibo(json: Json): Recibo {
-  return {
-    id: String(json.id),
-    key: String(json.key ?? ""),
-    status: (json.status as Recibo["status"]) ?? "open",
-    total: Number(json.total ?? 0),
-    expiresAt: String(json.expires_at ?? ""),
-    selfInvoiceUrl: (json.self_invoice_url as string | undefined) ?? null,
-    invoice: (json.invoice as string | null | undefined) ?? null,
-  };
-}
-
 // ── Emitir, con la llave de UNA organización ─────────────────────────────────
 
 export function clienteFacturapi(key: string) {
@@ -186,62 +165,49 @@ export function clienteFacturapi(key: string) {
       return desglose(json, total);
     },
 
-    /** Recibo (nota de venta) de un pago. `idempotencyKey` = id del pago: dos webhooks no hacen dos recibos. */
-    async crearRecibo(input: { conceptos: Concepto[]; formaPago?: string; fecha?: string; idempotencyKey: string }): Promise<Recibo> {
-      if (!input.conceptos.length) throw new Error("El recibo no tiene conceptos.");
-      const json = await llamar<Json>(key, "POST", "/receipts", {
-        items: items(input.conceptos),
-        payment_form: input.formaPago || FORMA_PAGO_DEFAULT,
+    /**
+     * FACTURA GLOBAL a público en general, como CFDI de ingreso normal con el
+     * nodo `global` (no usa recibos). Un concepto por operación, como pide la
+     * guía de llenado: clave 01010101, unidad ACT, «Venta», cantidad 1 y el
+     * folio de la operación como número de identificación (`sku`). El receptor
+     * genérico lleva el CP del emisor (lugar de expedición), régimen 616 y uso
+     * S01. `idempotencyKey` = emisor + periodo: reintentar no timbra dos.
+     */
+    async crearFacturaGlobal(input: {
+      cpEmisor: string;
+      renglones: { folio: string; netoConIva: number }[];
+      formaPago: string;
+      periodicidad: "day" | "week" | "fortnight" | "month" | "two_months";
+      mes: string;
+      anio: number;
+      /** Fecha de expedición (ISO), hasta 72 h atrás: para que caiga en el mes que factura. Sin ella, ahora. */
+      fecha?: string | null;
+      idempotencyKey: string;
+    }): Promise<FacturaTimbrada> {
+      if (!input.renglones.length) throw new Error("La global no tiene operaciones.");
+      const total = input.renglones.reduce((n, r) => n + r.netoConIva, 0);
+      const json = await llamar<{ id?: string; uuid?: string; total?: number }>(key, "POST", "/invoices", {
+        customer: { legal_name: "PUBLICO EN GENERAL", tax_id: "XAXX010101000", tax_system: "616", address: { zip: input.cpEmisor } },
+        items: input.renglones.map((r) => ({
+          quantity: 1,
+          product: {
+            description: "Venta",
+            product_key: "01010101",
+            unit_key: "ACT",
+            sku: r.folio,
+            price: Number(r.netoConIva.toFixed(2)),
+            tax_included: true,
+            taxes: [{ type: "IVA", rate: 0.16, factor: "Tasa" }],
+          },
+        })),
+        use: "S01",
+        payment_form: input.formaPago,
+        payment_method: "PUE",
+        global: { periodicity: input.periodicidad, months: input.mes, year: input.anio },
         ...(input.fecha ? { date: input.fecha } : {}),
         idempotency_key: input.idempotencyKey,
       });
-      return recibo(json);
-    },
-
-    async leerRecibo(receiptId: string): Promise<Recibo> {
-      return recibo(await llamar<Json>(key, "GET", `/receipts/${receiptId}`));
-    },
-
-    /** Cancela un recibo abierto (DELETE /receipts/{id}). Un recibo no es CFDI: no pasa por el SAT. */
-    async cancelarRecibo(receiptId: string): Promise<Recibo> {
-      return recibo(await llamar<Json>(key, "DELETE", `/receipts/${receiptId}`));
-    },
-
-    /** El cliente pidió factura: el recibo se factura a su RFC. */
-    async facturarRecibo(receiptId: string, receptor: ReceptorFiscal, totalEsperado: number): Promise<FacturaTimbrada> {
-      const json = await llamar<{ id?: string; uuid?: string; total?: number }>(key, "POST", `/receipts/${receiptId}/invoice`, {
-        customer: customer(receptor),
-        use: receptor.usoCfdi.trim(),
-      });
-      return desglose(json, totalEsperado);
-    },
-
-    /** Manda el recibo (PDF + botón de facturar) con la plantilla de Facturapi. */
-    async enviarReciboPorCorreo(receiptId: string, email: string): Promise<void> {
-      await llamar(key, "POST", `/receipts/${receiptId}/email`, { email });
-    },
-
-    descargarReciboPDF: (receiptId: string) => bajar(key, `/receipts/${receiptId}/pdf`, "el PDF del recibo"),
-
-    /** Factura global del periodo: todos los recibos `open` entre `desde` y `hasta` (ISO). null si no había ninguno. */
-    async facturaGlobal(input: { desde: string; hasta: string; periodicidad: "day" | "week" | "fortnight" | "month" | "two_months"; mes: string; anio: number }): Promise<FacturaTimbrada | null> {
-      const json = await llamar<{ id?: string; uuid?: string; total?: number } | null>(key, "POST", "/receipts/global-invoice", {
-        from: input.desde,
-        to: input.hasta,
-        periodicity: input.periodicidad,
-        months: input.mes,
-        year: input.anio,
-        limit_to_max_receipts: true,
-      });
-      if (!json || !json.id) return null;
-      return desglose(json, Number(json.total ?? 0));
-    },
-
-    /** Recibos de un periodo con cierto estado (para cuadrar la global contra `payments`). */
-    async listarRecibos(q: { desde: string; hasta: string; status: Recibo["status"]; limit?: number }): Promise<Recibo[]> {
-      const params = new URLSearchParams({ "date[gte]": q.desde, "date[lte]": q.hasta, status: q.status, limit: String(q.limit ?? 50) });
-      const json = await llamar<{ data?: Json[] }>(key, "GET", `/receipts?${params}`);
-      return (json.data ?? []).map(recibo);
+      return desglose(json, total);
     },
 
     descargarCFDI: (facturapiId: string, formato: "xml" | "pdf") => bajar(key, `/invoices/${facturapiId}/${formato}`, `el ${formato.toUpperCase()}`),
@@ -384,14 +350,6 @@ export const organizaciones = {
     fd.set("key", key, "csd.key");
     fd.set("password", password);
     await llamar(llaveUsuario(), "PUT", `/organizations/${orgId}/certificate`, fd);
-  },
-
-  /** Recibos: la global se arma por mes y el recibo se puede facturar hasta el último día del periodo. */
-  async configurarRecibos(orgId: string): Promise<void> {
-    await llamar(llaveUsuario(), "PUT", `/organizations/${orgId}/receipts`, {
-      periodicity: "month",
-      duration_days: 0,
-    });
   },
 
   llaveTest: (orgId: string) => llamar<string>(llaveUsuario(), "GET", `/organizations/${orgId}/apikeys/test`),

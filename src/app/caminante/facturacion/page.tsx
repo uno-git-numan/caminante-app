@@ -10,6 +10,7 @@ import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
 import { corteEnPalabras, dentroDelCorte } from "@/lib/facturacion/corte";
+import { enPlazoParaFacturar } from "@/lib/facturacion/global-plan";
 import { firmarPago, tokenValido } from "@/lib/facturacion/token";
 import FacturacionForm from "./FacturacionForm";
 
@@ -159,13 +160,16 @@ export default async function FacturacionPage({
       .select("amount_mxn, refunded_mxn, status, status_cfdi, contact_id, paid_at")
       .eq("id", paymentId)
       .maybeSingle();
-    if (!pay || pay.status !== "paid" || pay.status_cfdi !== "por-emitir" || !dentroDelCorte(pay.paid_at as string | null)) {
+    const enPlazo = enPlazoParaFacturar(pay?.paid_at as string | null);
+    if (!pay || pay.status !== "paid" || pay.status_cfdi !== "por-emitir" || !dentroDelCorte(pay.paid_at as string | null) || !enPlazo) {
       return (
         <Shell>
           <h1 className="text-3xl font-semibold tracking-tight text-lagoon">Facturación</h1>
           <p className="mt-4 text-sm leading-relaxed text-olive">
             {pay?.status_cfdi === "emitido" || pay?.status_cfdi === "externo"
               ? "Este pago ya fue facturado. Si no recibiste tu CFDI, escríbenos."
+              : pay?.status_cfdi === "publico-general" || (pay && pay.status === "paid" && pay.status_cfdi === "por-emitir" && dentroDelCorte(pay.paid_at as string | null) && !enPlazo)
+              ? "El plazo para facturar este pago por separado terminó al cierre de su mes: entra en la factura global de ese mes."
               : pay && pay.status === "paid" && pay.status_cfdi === "por-emitir"
               ? `Este pago es anterior al ${corteEnPalabras()}: su factura la emite nuestro equipo. Escríbenos y te la mandamos.`
               : "No pudimos preparar la factura de ese pago. Escríbenos y lo resolvemos."}

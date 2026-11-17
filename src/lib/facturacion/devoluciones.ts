@@ -6,8 +6,8 @@ import "server-only";
 // corrige el MISMO DÍA. Qué documento, lo decide `planDevolucion`
 // (devolucion-plan.ts, puro y probado); aquí se ejecuta:
 //
-//   · cancelar-recibo   → devolución total de un pago con recibo y sin CFDI.
-//   · reexpedir-recibo  → parcial: se cancela y se vuelve a emitir por lo neto.
+//   · sin CFDI todavía   → nada: lo que se emita después (la factura del
+//                         cliente o la global) ya sale por lo neto.
 //   · egreso            → ya había CFDI (factura del cliente o global): CFDI de
 //                         egreso relacionado (01) por lo devuelto que aún no ampara
 //                         ningún egreso.
@@ -16,28 +16,25 @@ import "server-only";
 //
 // Lo llaman dos vías, y las dos pueden ser la primera: `finalizeRefund` en
 // cuanto Stripe confirma (webhook o respuesta directa del panel) y el cron de
-// recibos cada hora, que recoge lo que haya fallado. Idempotente: el egreso se
-// identifica por el acumulado devuelto que documenta (índice único de la 0084)
-// y el recibo por su `idempotency_key`.
+// comprobantes cada hora, que recoge lo que haya fallado. Idempotente: el
+// egreso se identifica por el acumulado devuelto que documenta (índice único
+// de la 0084).
 //
 // NUNCA tira el cierre del reembolso: el dinero ya volvió. Un fallo se registra
 // y lo reintenta el cron.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { emisorDeOperadora, emisorDePago, facturapiDe, type Emisor } from "@/lib/facturacion/emisor";
+import { cpFiscalDe, emisorDeOperadora, emisorDePago, facturapiDe } from "@/lib/facturacion/emisor";
 import { conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
 import { facturacionClientesActiva, type ReceptorFiscal } from "@/lib/facturacion/facturapi";
 import { inicioDelCorte } from "@/lib/facturacion/corte";
 import { planDevolucion, type PlanDevolucion } from "@/lib/facturacion/devolucion-plan";
 
-const COLS =
-  "id, reservation_id, contact_id, amount_mxn, refunded_mxn, status, status_cfdi, method, paid_at, facturapi_receipt_id, recibo_neto_de_mxn, recibos_cancelados, cfdi_global_id";
+const COLS = "id, reservation_id, contact_id, amount_mxn, refunded_mxn, status, status_cfdi, method, paid_at, devuelto_al_facturar_mxn, cfdi_global_id";
 
 type Pago = PagoParaComprobante & {
-  facturapi_receipt_id: string | null;
   refunded_mxn: number | null;
-  recibo_neto_de_mxn: number | null;
-  recibos_cancelados: string[] | null;
+  devuelto_al_facturar_mxn: number | null;
   cfdi_global_id: string | null;
 };
 
@@ -45,7 +42,6 @@ export type ResultadoDevolucion =
   | { ok: true; accion: PlanDevolucion["accion"]; detalle: string }
   | { ok: false; error: string; reintentar: boolean };
 
-const centavos = (x: number) => Math.round(x * 100);
 
 /** Corrige el documento fiscal de UN pago según lo que Stripe ya devolvió. */
 export async function documentarDevolucion(paymentId: string): Promise<ResultadoDevolucion> {
@@ -69,71 +65,9 @@ export async function documentarDevolucion(paymentId: string): Promise<Resultado
       return { ok: true, accion: "nada", detalle: plan.porque };
     case "contadora":
       return { ok: true, accion: "contadora", detalle: plan.porque };
-    case "cancelar-recibo":
-    case "reexpedir-recibo":
-      return ajustarRecibo(pay, plan);
     case "egreso":
       return emitirEgreso(pay, plan);
   }
-}
-
-// ── Sin CFDI: el recibo ──────────────────────────────────────────────────────
-
-async function ajustarRecibo(
-  pay: Pago,
-  plan: Extract<PlanDevolucion, { accion: "cancelar-recibo" | "reexpedir-recibo" }>,
-): Promise<ResultadoDevolucion> {
-  const sb = createSupabaseAdminClient();
-  const viejo = pay.facturapi_receipt_id as string;
-  const emisor = await emisorDePago(pay.id);
-  if (!emisor.ok) return { ok: false, error: emisor.error, reintentar: emisor.porEmitir };
-  const api = facturapiDe(emisor.emisor);
-
-  try {
-    const actual = await api.leerRecibo(viejo);
-    if (actual.status === "invoiced_to_customer" || actual.status === "invoiced_globally") {
-      // Facturapi ya lo facturó y la base no se enteró: no se cancela a ciegas.
-      return { ok: false, error: `El recibo ${viejo} ya está facturado en Facturapi (${actual.status}) y el pago dice por-emitir: revisar a mano antes de documentar la devolución.`, reintentar: false };
-    }
-    if (actual.status === "open") await api.cancelarRecibo(viejo);
-  } catch (e) {
-    return { ok: false, error: `Facturapi (cancelar recibo): ${(e as Error).message}`, reintentar: true };
-  }
-  const cancelados = [...new Set([...(pay.recibos_cancelados ?? []), viejo])];
-
-  if (plan.accion === "cancelar-recibo") {
-    const { error } = await sb
-      .from("payments")
-      .update({ facturapi_receipt_id: null, facturapi_receipt_key: null, recibo_expira_at: null, recibos_cancelados: cancelados, recibo_neto_de_mxn: plan.devuelto, status_cfdi: "no-facturable" })
-      .eq("id", pay.id)
-      .eq("facturapi_receipt_id", viejo);
-    if (error) return { ok: false, error: error.message, reintentar: true };
-    return { ok: true, accion: "cancelar-recibo", detalle: `Recibo ${viejo} cancelado: se devolvió todo.` };
-  }
-
-  // Parcial: el recibo nuevo por lo neto, con la fecha del cobro (cae en la
-  // global de su mes) y una llave que no se repite por el mismo acumulado.
-  const d = await conceptosDePago(pay);
-  let nuevo;
-  try {
-    nuevo = await api.crearRecibo({
-      conceptos: d.conceptos,
-      formaPago: d.formaPago,
-      fecha: pay.paid_at ?? undefined,
-      idempotencyKey: `pago-${pay.id}-neto-${centavos(plan.devuelto)}`,
-    });
-  } catch (e) {
-    // El viejo ya quedó cancelado: el pago se queda sin recibo y el cron lo reintenta.
-    await sb.from("payments").update({ facturapi_receipt_id: null, facturapi_receipt_key: null, recibo_expira_at: null, recibos_cancelados: cancelados }).eq("id", pay.id).eq("facturapi_receipt_id", viejo);
-    return { ok: false, error: `Facturapi (reexpedir recibo): ${(e as Error).message}`, reintentar: true };
-  }
-  const { error } = await sb
-    .from("payments")
-    .update({ facturapi_receipt_id: nuevo.id, facturapi_receipt_key: nuevo.key || null, recibo_expira_at: nuevo.expiresAt || null, recibos_cancelados: cancelados, recibo_neto_de_mxn: plan.devuelto })
-    .eq("id", pay.id)
-    .eq("facturapi_receipt_id", viejo);
-  if (error) return { ok: false, error: error.message, reintentar: true };
-  return { ok: true, accion: "reexpedir-recibo", detalle: `Recibo ${viejo} cancelado y reexpedido por $${plan.neto} (${nuevo.id}).` };
 }
 
 // ── Con CFDI: el egreso ──────────────────────────────────────────────────────
@@ -166,21 +100,13 @@ async function originalDe(pay: Pago): Promise<Original | null> {
   return { uuid: g.uuid_cfdi, emisorId: g.emisor_operator_id, globalId: g.id, receptor: null };
 }
 
-/** El CP del emisor = lugar de expedición, que es el domicilio del receptor «público en general». */
-async function cpDe(emisor: Emisor): Promise<string | null> {
-  const sb = createSupabaseAdminClient();
-  const q = sb.from("operators").select("cp_fiscal");
-  const { data } = emisor.operatorId ? await q.eq("id", emisor.operatorId).maybeSingle() : await q.eq("es_la_casa", true).limit(1).maybeSingle();
-  return ((data as { cp_fiscal?: string | null } | null)?.cp_fiscal ?? "").trim() || null;
-}
-
 async function emitirEgreso(pay: Pago, plan: Extract<PlanDevolucion, { accion: "egreso" }>): Promise<ResultadoDevolucion> {
   const sb = createSupabaseAdminClient();
   const original = await originalDe(pay);
   if (!original) return { ok: false, error: "No encontramos el CFDI timbrado que corrige este egreso.", reintentar: false };
   const emisor = original.emisorId ? await emisorDeOperadora(original.emisorId) : await emisorDePago(pay.id);
   if (!emisor.ok) return { ok: false, error: emisor.error, reintentar: emisor.porEmitir };
-  const cpEmisor = original.receptor ? original.receptor.codigoPostal : await cpDe(emisor.emisor);
+  const cpEmisor = original.receptor ? original.receptor.codigoPostal : await cpFiscalDe(emisor.emisor);
   if (!cpEmisor) return { ok: false, error: "Falta el código postal fiscal del emisor para el egreso a público en general.", reintentar: false };
 
   const d = await conceptosDePago(pay);
@@ -254,7 +180,7 @@ async function emitirEgreso(pay: Pago, plan: Extract<PlanDevolucion, { accion: "
 
 // ── La red: lo que no se documentó al momento ───────────────────────────────
 
-/** Pagos con devolución desde el corte cuyo documento quizá falta corregir. Lo corre el cron de recibos. */
+/** Pagos con devolución desde el corte cuyo documento quizá falta corregir. Lo corre el cron de comprobantes. */
 export async function documentarDevolucionesPendientes(limit = 25): Promise<{ hechos: number; errores: string[] }> {
   if (!facturacionClientesActiva()) return { hechos: 0, errores: [] };
   const sb = createSupabaseAdminClient();
@@ -262,7 +188,7 @@ export async function documentarDevolucionesPendientes(limit = 25): Promise<{ he
     .from("payments")
     .select("id")
     .gt("refunded_mxn", 0)
-    .in("status_cfdi", ["por-emitir", "emitido", "publico-general"])
+    .in("status_cfdi", ["emitido", "publico-general"])
     .gte("paid_at", inicioDelCorte().toISOString())
     .order("paid_at", { ascending: false })
     .limit(limit);

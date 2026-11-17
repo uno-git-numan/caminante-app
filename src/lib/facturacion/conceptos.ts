@@ -1,7 +1,7 @@
 import "server-only";
 
-// LOS CONCEPTOS DE UN PAGO: lo que va en su recibo y en su factura. Una sola
-// función para que el recibo, la factura al cliente y la global digan lo mismo.
+// LOS CONCEPTOS DE UN PAGO: lo que va en su factura y en su egreso. (La global
+// lleva un concepto «Venta» por pago: global-plan.ts.)
 //
 // Viaje por persona (precio de lista; el código de descuento va como `discount`
 // de la línea) + cada complemento con su nombre. Lo que suma tiene que ser
@@ -16,6 +16,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { CLAVE_PROD_SERV_EXPERIENCIA, type Concepto } from "@/lib/facturacion/facturapi";
 import type { Experience } from "@/lib/experiences/types";
 import { netoDePago } from "@/lib/facturacion/devolucion-plan";
+import { formaPagoDe } from "@/lib/facturacion/global-plan";
 
 const r2 = (x: number) => Math.round(x * 100) / 100;
 
@@ -28,14 +29,14 @@ export type PagoParaComprobante = {
   status_cfdi: string;
   method: string | null;
   paid_at: string | null;
-  facturapi_receipt_id?: string | null;
   refunded_mxn?: number | null;
-  recibo_neto_de_mxn?: number | null;
+  devuelto_al_facturar_mxn?: number | null;
+  folio?: number | string | null;
 };
 
-/** Las columnas de `payments` que leen el recibo, la factura y la devolución. */
+/** Las columnas de `payments` que leen el comprobante, la factura y la devolución. */
 export const COLS_PAGO_COMPROBANTE =
-  "id, reservation_id, contact_id, amount_mxn, status, status_cfdi, method, paid_at, facturapi_receipt_id, refunded_mxn, recibo_neto_de_mxn";
+  "id, folio, reservation_id, contact_id, amount_mxn, status, status_cfdi, method, paid_at, refunded_mxn, devuelto_al_facturar_mxn";
 
 export type ConceptosDePago = {
   conceptos: Concepto[];
@@ -47,7 +48,6 @@ export type ConceptosDePago = {
   nombre: string | null;
 };
 
-export const formaPagoDe = (method: string | null) => (method === "transfer" ? "03" : method === "cash" ? "01" : "04");
 
 export async function conceptosDePago(pay: PagoParaComprobante): Promise<ConceptosDePago> {
   const sb = createSupabaseAdminClient();

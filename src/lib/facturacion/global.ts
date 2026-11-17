@@ -1,40 +1,67 @@
 import "server-only";
 
-// LA FACTURA GLOBAL A PÚBLICO EN GENERAL (0076), por emisor y por mes.
+// LA FACTURA GLOBAL A PÚBLICO EN GENERAL (0076, rehecha el 17 nov 2026), por
+// emisor y por mes.
 //
-// El día 1 (cron, dentro de las 72 h que marca el SAT) cada organización que
-// puede emitir factura en UNA global todos sus recibos `open` del mes anterior:
-// Facturapi los agrupa, timbra a XAXX010101000 y marca los recibos como
-// `invoiced_globally`. Aquí se deja el renglón en `cfdi_globales`, se archiva el
-// XML/PDF y los pagos cuyo recibo entró quedan `publico-general` apuntando a la
-// global (ya no se pueden facturar individual: el portal lo dice así).
+// El día 1 (cron) cada organización que puede emitir factura en UNA global los
+// pagos del mes anterior que nadie facturó. La arma la plataforma con sus
+// propios pagos (global-plan.ts): un concepto «Venta» por pago, por lo neto, con
+// su folio; se timbra como CFDI de ingreso a XAXX010101000 con el nodo `global`.
+// NO se usan los recibos de Facturapi ($599/mes por organización). Aquí se deja
+// el renglón en `cfdi_globales`, se archiva el XML/PDF y los pagos que entraron
+// quedan `publico-general` apuntando a la global.
+//
+// Por qué no choca con la autofactura: un pago sólo se factura por separado
+// hasta el fin de su mes (`enPlazoParaFacturar`, en `estadoFacturable`), y la
+// global corre después, sobre el mes ya cerrado.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { emisoresActivos, facturapiDe, type Emisor } from "@/lib/facturacion/emisor";
-import { recibosQueNoEntranALaGlobal, type PagoDeRecibo } from "@/lib/facturacion/corte";
+import { cpFiscalDe, emisoresActivos, facturapiDe, type Emisor } from "@/lib/facturacion/emisor";
+import { inicioDelCorte } from "@/lib/facturacion/corte";
+import { MAX_RENGLONES_GLOBAL, fechaDeEmisionGlobal, periodoAnterior, planGlobal, type PagoParaGlobal } from "@/lib/facturacion/global-plan";
 
-const TZ_OFFSET = "-06:00"; // CDMX sin horario de verano desde 2022
+export type ResultadoGlobal = { emisor: string; ok: boolean; uuid?: string; pagos?: number; total?: number; error?: string; nada?: boolean; fuera?: number };
 
-/** El mes anterior al de `hoy`, en fechas ISO con huso de CDMX. */
-export function periodoAnterior(hoy = new Date()): { desde: string; hasta: string; mes: string; anio: number; desdeFecha: string; hastaFecha: string } {
-  const y = hoy.getUTCFullYear();
-  const m = hoy.getUTCMonth(); // 0-11, mes actual
-  const inicio = new Date(Date.UTC(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1, 1));
-  const fin = new Date(Date.UTC(y, m, 0)); // último día del mes anterior
-  const ymd = (d: Date) => d.toISOString().slice(0, 10);
-  return {
-    desde: `${ymd(inicio)}T00:00:00.000${TZ_OFFSET}`,
-    hasta: `${ymd(fin)}T23:59:59.999${TZ_OFFSET}`,
-    mes: String(inicio.getUTCMonth() + 1).padStart(2, "0"),
-    anio: inicio.getUTCFullYear(),
-    desdeFecha: ymd(inicio),
-    hastaFecha: ymd(fin),
-  };
+type Periodo = ReturnType<typeof periodoAnterior>;
+
+/**
+ * Los pagos `por-emitir` del periodo, agrupados por la operadora de su
+ * experiencia. La llave `null` son las ventas de la casa (experiencia sin
+ * operadora). Un pago sin reserva o sin experiencia no tiene emisor: no entra.
+ */
+async function pagosPorOperadora(periodo: Periodo): Promise<Map<string | null, PagoParaGlobal[]>> {
+  const sb = createSupabaseAdminClient();
+  const desde = new Date(Math.max(new Date(periodo.desde).getTime(), inicioDelCorte().getTime())).toISOString();
+  const { data: pays, error } = await sb
+    .from("payments")
+    .select("id, folio, reservation_id, amount_mxn, refunded_mxn, status, status_cfdi, paid_at, method")
+    .eq("status_cfdi", "por-emitir")
+    .gte("paid_at", desde)
+    .lte("paid_at", new Date(periodo.hasta).toISOString())
+    .order("paid_at", { ascending: true })
+    .limit(MAX_RENGLONES_GLOBAL * 2);
+  if (error) throw new Error(`No se pudieron leer los pagos del periodo: ${error.message}`);
+  const pagos = (pays ?? []) as (PagoParaGlobal & { reservation_id: string | null })[];
+  const resvIds = [...new Set(pagos.map((p) => p.reservation_id).filter(Boolean))] as string[];
+  const out = new Map<string | null, PagoParaGlobal[]>();
+  if (!resvIds.length) return out;
+  const { data: resvs, error: e2 } = await sb.from("reservations").select("id, experience_id").in("id", resvIds);
+  if (e2) throw new Error(`No se pudieron leer las reservas: ${e2.message}`);
+  const expDe = new Map(((resvs ?? []) as { id: string; experience_id: string | null }[]).map((r) => [r.id, r.experience_id]));
+  const expIds = [...new Set([...expDe.values()].filter(Boolean))] as string[];
+  const { data: exps, error: e3 } = expIds.length ? await sb.from("experiences").select("id, operator_id").in("id", expIds) : { data: [], error: null };
+  if (e3) throw new Error(`No se pudieron leer las experiencias: ${e3.message}`);
+  const opDe = new Map(((exps ?? []) as { id: string; operator_id: string | null }[]).map((x) => [x.id, x.operator_id]));
+  for (const p of pagos) {
+    const exp = p.reservation_id ? expDe.get(p.reservation_id) : null;
+    if (!exp || !opDe.has(exp)) continue;
+    const op = opDe.get(exp) ?? null;
+    out.set(op, [...(out.get(op) ?? []), p]);
+  }
+  return out;
 }
 
-export type ResultadoGlobal = { emisor: string; ok: boolean; uuid?: string; recibos?: number; total?: number; error?: string; nada?: boolean };
-
-async function globalDe(emisor: Emisor, periodo: ReturnType<typeof periodoAnterior>): Promise<ResultadoGlobal> {
+async function globalDe(emisor: Emisor, periodo: Periodo, pagos: PagoParaGlobal[]): Promise<ResultadoGlobal> {
   const sb = createSupabaseAdminClient();
   const nombre = emisor.nombre;
   // Ya se hizo para este emisor y periodo: no dos veces.
@@ -48,6 +75,14 @@ async function globalDe(emisor: Emisor, periodo: ReturnType<typeof periodoAnteri
     .maybeSingle();
   if (ya) return { emisor: nombre, ok: true, nada: true };
 
+  const plan = planGlobal(pagos, periodo);
+  if (!plan.renglones.length) return { emisor: nombre, ok: true, nada: true, fuera: plan.fuera.length };
+  if (plan.renglones.length > MAX_RENGLONES_GLOBAL) {
+    return { emisor: nombre, ok: false, error: `${plan.renglones.length} operaciones en el periodo: pasa del tope de ${MAX_RENGLONES_GLOBAL} conceptos de un CFDI. Hay que partir la global.` };
+  }
+  const cpEmisor = await cpFiscalDe(emisor);
+  if (!cpEmisor) return { emisor: nombre, ok: false, error: "Falta el código postal fiscal del emisor." };
+
   const { data: fila, error: insErr } = await sb
     .from("cfdi_globales")
     .insert({ emisor_operator_id: emisor.operatorId, periodo_desde: periodo.desdeFecha, periodo_hasta: periodo.hastaFecha, periodicidad: "month", status: "pending" })
@@ -56,27 +91,20 @@ async function globalDe(emisor: Emisor, periodo: ReturnType<typeof periodoAnteri
   if (insErr || !fila) return { emisor: nombre, ok: false, error: insErr?.message ?? "No se pudo registrar la global." };
   const globalId = fila.id as string;
   const api = facturapiDe(emisor);
+  // Con fecha del mes que factura (pedido de la contadora), si aún se puede.
+  const fecha = fechaDeEmisionGlobal(periodo);
 
   try {
-    // Candado (lib/facturacion/corte.ts): ningún recibo de un cobro que no nos
-    // toca — anterior al corte, facturado fuera, devuelto — entra a la global.
-    const abiertos = await api.listarRecibos({ desde: periodo.desde, hasta: periodo.hasta, status: "open", limit: 500 });
-    if (abiertos.length >= 500) throw new Error("Más de 500 recibos abiertos en el periodo: la revisión no alcanza a verlos todos; global detenida.");
-    if (abiertos.length) {
-      const { data: pagos } = await sb
-        .from("payments")
-        .select("facturapi_receipt_id, status, status_cfdi, paid_at, refunded_mxn, recibo_neto_de_mxn")
-        .in("facturapi_receipt_id", abiertos.map((r) => r.id));
-      const fuera = recibosQueNoEntranALaGlobal(abiertos.map((r) => r.id), (pagos ?? []) as PagoDeRecibo[]);
-      if (fuera.length) {
-        throw new Error(`Global detenida: ${fuera.length} recibo(s) que no deben facturarse — ${fuera.slice(0, 5).map((f) => `${f.receiptId}: ${f.porque}`).join("; ")}. Cancelarlos en Facturapi y volver a correrla.`);
-      }
-    }
-    const factura = await api.facturaGlobal({ desde: periodo.desde, hasta: periodo.hasta, periodicidad: "month", mes: periodo.mes, anio: periodo.anio });
-    if (!factura) {
-      await sb.from("cfdi_globales").delete().eq("id", globalId);
-      return { emisor: nombre, ok: true, nada: true };
-    }
+    const factura = await api.crearFacturaGlobal({
+      cpEmisor,
+      renglones: plan.renglones.map((r) => ({ folio: r.folio, netoConIva: r.neto })),
+      formaPago: plan.formaPago,
+      periodicidad: "month",
+      mes: periodo.mes,
+      anio: periodo.anio,
+      fecha,
+      idempotencyKey: `global-${emisor.operatorId ?? "casa"}-${periodo.desdeFecha}`,
+    });
     const base = `${periodo.anio}/${periodo.mes}/global-${factura.uuid}`;
     let xmlPath: string | null = null;
     let pdfPath: string | null = null;
@@ -89,24 +117,34 @@ async function globalDe(emisor: Emisor, periodo: ReturnType<typeof periodoAnteri
     } catch {
       /* timbrada ya; archivar después */
     }
-    // Qué recibos entraron: los del periodo que ahora están `invoiced_globally`
-    // y cuyo pago sigue `por-emitir` (los facturados a un cliente ya no lo están).
-    const recibos = await api.listarRecibos({ desde: periodo.desde, hasta: periodo.hasta, status: "invoiced_globally", limit: 500 });
-    const ids = recibos.map((r) => r.id);
-    let absorbidos = 0;
-    if (ids.length) {
-      const { data: pagos } = await sb.from("payments").select("id").in("facturapi_receipt_id", ids).eq("status_cfdi", "por-emitir");
-      const pagoIds = ((pagos ?? []) as { id: string }[]).map((p) => p.id);
-      if (pagoIds.length) {
-        await sb.from("payments").update({ status_cfdi: "publico-general", cfdi_global_id: globalId }).in("id", pagoIds);
-        absorbidos = pagoIds.length;
-      }
+    // Los pagos que entraron: `publico-general`, apuntando a la global y con lo
+    // devuelto que ya iba descontado (un egreso posterior sólo ampara lo demás).
+    for (const r of plan.renglones) {
+      await sb
+        .from("payments")
+        .update({ status_cfdi: "publico-general", cfdi_global_id: globalId, devuelto_al_facturar_mxn: r.devuelto || null })
+        .eq("id", r.paymentId)
+        .eq("status_cfdi", "por-emitir");
     }
     await sb
       .from("cfdi_globales")
-      .update({ status: "stamped", facturapi_id: factura.id, uuid_cfdi: factura.uuid, total_mxn: factura.total, recibos: absorbidos, xml_url: xmlPath, pdf_url: pdfPath, stamped_at: new Date().toISOString() })
+      .update({ status: "stamped", facturapi_id: factura.id, uuid_cfdi: factura.uuid, total_mxn: factura.total, pagos: plan.renglones.length, xml_url: xmlPath, pdf_url: pdfPath, stamped_at: new Date().toISOString() })
       .eq("id", globalId);
-    return { emisor: nombre, ok: true, uuid: factura.uuid, recibos: absorbidos, total: factura.total };
+    // Lo que timbró Facturapi tiene que ser lo que sumamos: si no, se dice.
+    const descuadre = Math.abs(factura.total - plan.total) > 0.05;
+    const avisos = [
+      descuadre ? `La global se timbró por $${factura.total} y los pagos suman $${plan.total}: revisar.` : null,
+      fecha ? null : "Pasaron más de 72 horas del cierre del mes: la global salió con fecha de hoy, no del mes que factura. Avisar a la contadora.",
+    ].filter(Boolean);
+    return {
+      emisor: nombre,
+      ok: !avisos.length,
+      uuid: factura.uuid,
+      pagos: plan.renglones.length,
+      total: factura.total,
+      fuera: plan.fuera.length,
+      ...(avisos.length ? { error: avisos.join(" ") } : {}),
+    };
   } catch (e) {
     const msg = (e as Error).message;
     await sb.from("cfdi_globales").update({ status: "error", error: msg.slice(0, 500) }).eq("id", globalId);
@@ -116,8 +154,15 @@ async function globalDe(emisor: Emisor, periodo: ReturnType<typeof periodoAnteri
 
 /** La global del mes anterior para cada emisor que puede emitir. */
 export async function facturasGlobalesDelMesAnterior(hoy = new Date()): Promise<ResultadoGlobal[]> {
+  const emisores = await emisoresActivos();
+  if (!emisores.length) return [];
   const periodo = periodoAnterior(hoy);
+  const porOperadora = await pagosPorOperadora(periodo);
   const out: ResultadoGlobal[] = [];
-  for (const e of await emisoresActivos()) out.push(await globalDe(e, periodo));
+  for (const e of emisores) {
+    // La casa lleva también las ventas de experiencias sin operadora asignada.
+    const pagos = [...(e.operatorId ? porOperadora.get(e.operatorId) ?? [] : []), ...(e.esLaCasa ? porOperadora.get(null) ?? [] : [])];
+    out.push(await globalDe(e, periodo, pagos));
+  }
   return out;
 }
