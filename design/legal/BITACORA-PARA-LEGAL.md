@@ -710,3 +710,8 @@ Lo de D21, en la rama y apagado:
 Pendiente para prender: el XML de la operación de noviembre de Marisol (para
 marcarla `externo`), la emisión de prueba en sandbox para tu cotejo, y la
 aprobación de Luis.
+
+**D21 en producción (17 nov 2026, noche).** Luis aprobó y se promovió af13e36.
+El correo a Marisol con las cuatro preguntas de §7 salió en el mismo hilo, con
+el listado pago por pago de junio a octubre adjunto (78 pagos, sin nombres de
+clientes). Los estados de cuenta los manda Luis por separado.
