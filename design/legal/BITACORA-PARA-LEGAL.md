@@ -12,6 +12,24 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 17 nov 2026 (noche) · Sesión legal: D21 verificado en la fuente; dos correcciones para producto
+
+Leí la RMF 2026 compilada (3ª modificación) y la Guía de llenado del CFDI
+global 4.0 (rev. 8 mar 2023). Tabla completa en DECISIONES, «D21 bis».
+- Confirmado: regla 2.7.1.21 (global por operación con folio, 24 horas tras el
+  cierre, requisitos del comprobante); concepto 01010101 / folio / 1 / ACT /
+  «Venta» / subtotal; receptor «PUBLICO EN GENERAL», 616, S01; la
+  complementaria con el mes del cobro cabe en el nodo global.
+- **Corrección 1:** la forma de pago de la global es la del **pago individual
+  de mayor monto**, no la que suma más en el periodo.
+- **Corrección 2:** el egreso contra una global lleva clave **84111506** y el
+  folio del comprobante en NoIdentificacion (Apéndice 2 de la guía), uso G02,
+  relación 01.
+- La factura individual fuera de plazo tiene camino oficial (Apéndice 2,
+  fracción III): egreso contra la global + CFDI nominativo.
+- M19 resuelto en fuente: regla 2.7.1.35, fracciones I ($1,000), VII (público
+  en general) y IX (día hábil siguiente).
+
 ## 17 nov 2026 · Contabilizado por la sesión legal: respuesta de Marisol y global sin recibos (D21)
 
 - Visto bueno al punto 1: dado. Prender `FACTURACION_CLIENTES` cuando: corte

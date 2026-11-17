@@ -577,6 +577,34 @@ facturas de junio. Criterio de la sesión legal sobre lo que dejó abierto:
    Quinta §8 del convenio es el comprobante de la plataforma; **no hace falta
    versión nueva**. La cancelación con motivo 03 sigue manual hasta M19.
 
+### D21 bis · Lo de D21, verificado en la fuente oficial (17 nov, noche)
+
+Lo que en D21 iba citado de memoria ya está leído en el texto oficial. Fuentes:
+**RMF 2026 compilada hasta su Tercera Modificación** (sitio de normatividad del
+SAT, 859 pp.) y **«Guía de llenado del CFDI global, versión 4.0»** del SAT
+(publicada el 31 dic 2021, revisión 1 del 8 mar 2023). Copias en Drive
+`legal/2026-11 legal y fiscal/sat/`.
+
+| Qué | Lo que dice la fuente | Efecto |
+|---|---|---|
+| Regla de la factura global | **RMF 2026, regla 2.7.1.21**: CFDI diario, semanal o mensual con el importe de **cada una** de las operaciones y el **número de folio** de sus comprobantes, a la clave genérica del RFC; se remite «a más tardar dentro de las **24 horas siguientes al cierre**» del periodo; se separa el IVA | Confirma la global mensual por pago. El cron diario a las 7:00 del día 1 cumple las 24 horas |
+| El comprobante de la plataforma | Misma regla, segundo párrafo: requisitos del **CFF 29-A fracciones I y III** (RFC, nombre y régimen de quien expide; lugar y fecha), **valor total**, cantidad y **descripción del servicio** | Lo que producto ya puso en el correo (D21 punto 8). Confirmado |
+| Concepto de la global | Guía, nodo Concepto: ClaveProdServ **«01010101»**, NoIdentificacion = **folio** del comprobante, Cantidad **«1»**, ClaveUnidad **«ACT»**, Descripcion **«Venta»**, ValorUnitario = **subtotal** del comprobante; Unidad no debe existir | Confirmado tal cual. No es la clave de la experiencia |
+| Receptor de la global | RFC XAXX010101000, Nombre **«PUBLICO EN GENERAL»**, DomicilioFiscalReceptor = LugarExpedicion, régimen 616, uso S01 | Confirmado; cotejar el Nombre en la prueba |
+| Nodo de información global | Periodicidad, Meses (01–12 si no es bimestral) y Año («igual al año en curso o al inmediato anterior» respecto de la fecha de emisión) | La complementaria con el mes del cobro y fecha del día **cabe** en la regla |
+| **Forma de pago de la global** | «la clave de forma de pago con la que se liquidó **el comprobante… de mayor monto** de entre los contenidos en el CFDI global» | ⚠️ **Corrección para producto:** es la forma de pago del **pago individual más grande**, no la que suma más en el periodo |
+| **Egreso contra la global** | Apéndice 2 de la guía: egreso tipo de relación **01**, a PUBLICO EN GENERAL, uso **G02**, con el **folio** del comprobante en NoIdentificacion; el ejemplo usa la clave **84111506** y la descripción de la devolución | ⚠️ **Para producto:** en el egreso contra una global, clave 84111506 y el folio, como el ejemplo; no 01010101 |
+| **Factura individual después de la global** | Apéndice 2, fracción III: **egreso** por esa operación relacionado a la global y luego el **CFDI nominativo**. (La fracción II, cancelar y rehacer la global, también es válida) | La «excepción a mano» de D21 punto 7 tiene camino oficial: es exactamente ése |
+| **Cancelar sin aceptación del receptor** (M19) | **RMF 2026, regla 2.7.1.35**: I. hasta **$1,000**; III. egresos; VI. retenciones; **VII. los expedidos al público en general (2.7.1.21)**; **IX. dentro del día hábil siguiente** a su expedición. Fuera de eso, 2.7.1.34: el receptor tiene 3 días y su silencio es aceptación | D19 queda firme: cancelar (motivo 03) sólo si la devolución es total y la factura es de hasta $1,000 o del día hábil anterior; lo demás, egreso. La global y los CFDI de retenciones se pueden cancelar sin aceptación |
+
+Lo que **no** releí: el límite técnico de 72 horas entre la fecha de emisión y
+el timbrado (lo citan Marisol y Facturapi; es validación del Anexo 20). No
+cambia nada: la global se fecha el último día del mes y se timbra el día 1.
+
+Con esto **M19 y M20 dejan de ser dudas de fuente**: Marisol sólo confirma que
+está de acuerdo con el formato por pago (sus globales llevan un concepto único
+con clave 90121502) y con el egreso como regla.
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash
