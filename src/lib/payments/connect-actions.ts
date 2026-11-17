@@ -7,11 +7,10 @@
 // Devuelven `{ok, error}` en vez de `redirect()` porque las consumen componentes
 // cliente, como el resto del panel (ConvenioForm, OperadorForm).
 
-import { conectarCsdFacturapi, sincronizarLegalFacturapi } from "@/lib/facturacion/organizacion";
+import { sincronizarLegalFacturapi } from "@/lib/facturacion/organizacion";
 import { organizacionesActivas } from "@/lib/facturacion/facturapi";
 import { constanciasDe } from "@/lib/operadores/constancia-fiscal";
 import { analizarCsf } from "@/lib/operadores/csf";
-import { leerCer } from "@/lib/facturacion/cer";
 import { revalidatePath } from "next/cache";
 import { guardarClabe } from "@/lib/operadores/fiscal-privado";
 import { alcanceActual, esOperador, operadoraObjetivo } from "@/lib/auth/alcance";
@@ -96,65 +95,6 @@ export async function refrescarConexion(operadorId: string): Promise<ConnectActi
   if (!operadorId) return { ok: false, error: "Falta el operador." };
   const r = await refrescarEstado(operadorId);
   if (!r.ok) return { ok: false, error: r.error };
-  revalidatePath(RUTA);
-  return { ok: true };
-}
-
-/**
- * Guarda las rutas del CSD ya subido y su vigencia.
- *
- * ⚠️ Los DOS archivos o ninguno. El SAT entrega `.cer` y `.key` y timbrar necesita
- * ambos; guardar uno solo dejaría el expediente viéndose completo y fallando en
- * producción. Por eso esta acción los exige juntos en vez de aceptar el que
- * llegue (0038 les dio una columna a cada uno).
- *
- * ⚠️ AQUÍ NO PASA NI SE GUARDA LA CONTRASEÑA DEL CSD. Va directo a Facturapi al
- * crear la organización del operador. Si algún día llegara una en este FormData,
- * sería un bug, no una funcionalidad.
- */
-export async function guardarCsd(formData: FormData): Promise<ConnectActionResult> {
-  const id = String(formData.get("id") ?? "").trim();
-  if (!(await puedeTocarOperador(id))) return { ok: false, error: "No autorizado." };
-  const cer = String(formData.get("cerPath") ?? "").trim();
-  const key = String(formData.get("keyPath") ?? "").trim();
-  if (!id) return { ok: false, error: "Falta el operador." };
-  if (!cer || !key) return { ok: false, error: "Faltan los dos archivos: el .cer y el .key." };
-
-  // La vigencia y el RFC se LEEN del .cer (cer.ts); ya no se teclean.
-  const sb = createSupabaseAdminClient();
-  const { data: archivoCer } = await sb.storage.from("csd").download(cer);
-  const lectura = archivoCer ? leerCer(Buffer.from(await archivoCer.arrayBuffer())) : null;
-  if (!lectura) return { ok: false, error: "Ese .cer no se pudo leer como certificado. ¿Es el que te dio el SAT?" };
-  const { data: suyo } = await sb.from("operators").select("rfc").eq("id", id).maybeSingle();
-  const rfcSuyo = ((suyo as { rfc?: string | null } | null)?.rfc ?? "").trim().toUpperCase();
-  if (rfcSuyo && lectura.rfc && lectura.rfc !== rfcSuyo) {
-    return { ok: false, error: `Ese sello es del RFC ${lectura.rfc}, y el de la operadora es ${rfcSuyo}.` };
-  }
-  const vence = lectura.venceAt;
-  const { error } = await sb
-    .from("operators")
-    .update({
-      csd_cer_path: cer,
-      csd_key_path: key,
-      csd_vence_at: vence,
-      csd_subido_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) return { ok: false, error: error.message };
-
-  // Con la contraseña, el CSD sube a la organización de Facturapi de la
-  // operadora (se crea si no existe) y quedan sus llaves de emisión (0076). Sin
-  // contraseña, o sin conexión activa, el expediente se guarda igual y el sello
-  // se conecta después desde este mismo formulario.
-  const password = String(formData.get("password") ?? "");
-  if (password && organizacionesActivas()) {
-    const org = await conectarCsdFacturapi(id, password);
-    if (!org.ok) {
-      revalidatePath(RUTA);
-      return { ok: false, error: `CSD guardado en el expediente, pero no quedó conectado al PAC: ${org.error}` };
-    }
-  }
-
   revalidatePath(RUTA);
   return { ok: true };
 }

@@ -38,8 +38,6 @@ export type OperadorFlujo = {
 export type OperadorParaGate = {
   stripe_account_id?: string | null;
   stripe_charges_enabled?: boolean | null;
-  csd_cer_path?: string | null;
-  csd_key_path?: string | null;
   csd_vence_at?: string | null; // date (YYYY-MM-DD)
   rfc?: string | null;
   razon_social?: string | null;
@@ -57,7 +55,7 @@ export type OperadorParaGate = {
 // fuera una columna: un campo ausente llega como `undefined` y el gate lo
 // reportaría como faltante aunque en la base estuviera lleno.
 export const COLUMNAS_GATE =
-  "stripe_account_id,stripe_charges_enabled,csd_cer_path,csd_key_path,csd_vence_at,rfc,razon_social,regimen_fiscal,cp_fiscal,tipo_persona,convenio_firmado_at,commission_pct,comision_desde";
+  "stripe_account_id,stripe_charges_enabled,csd_vence_at,rfc,razon_social,regimen_fiscal,cp_fiscal,tipo_persona,convenio_firmado_at,commission_pct,comision_desde";
 
 // Un operador solo entra al camino nuevo cuando tiene cuenta conectada. Sin
 // ella opera por el flujo de siempre (Numan cobra y le transfiere a mano), y

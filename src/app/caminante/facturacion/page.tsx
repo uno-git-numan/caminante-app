@@ -5,6 +5,7 @@
 //   (nada)       → formulario de búsqueda (correo + monto).
 // Diseño provisional con los tokens de marca (lagoon/olive/forest/cream/sand);
 // se puede re-skinnear con Claude Design sin tocar la lógica.
+import { netoDePago } from "@/lib/facturacion/devolucion-plan";
 import Link from "next/link";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
@@ -62,6 +63,7 @@ export default async function FacturacionPage({
       .from("cfdi_invoices")
       .select("uuid_cfdi, xml_url, pdf_url, total_mxn, email")
       .eq("payment_id", sp.p)
+      .eq("tipo", "cliente")
       .eq("status", "stamped")
       .maybeSingle();
     let xmlUrl: string | null = null;
@@ -154,7 +156,7 @@ export default async function FacturacionPage({
   if (paymentId && token) {
     const { data: pay } = await sb
       .from("payments")
-      .select("amount_mxn, status, status_cfdi, contact_id, paid_at")
+      .select("amount_mxn, refunded_mxn, status, status_cfdi, contact_id, paid_at")
       .eq("id", paymentId)
       .maybeSingle();
     if (!pay || pay.status !== "paid" || pay.status_cfdi !== "por-emitir" || !dentroDelCorte(pay.paid_at as string | null)) {
@@ -185,7 +187,7 @@ export default async function FacturacionPage({
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-forest">{"//"} Factura tu experiencia</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-lagoon">Tus datos fiscales</h1>
         <p className="mt-3 text-sm leading-relaxed text-olive">
-          Monto a facturar: <span className="font-semibold">${Number(pay.amount_mxn).toLocaleString("es-MX")} MXN</span>{" "}
+          Monto a facturar: <span className="font-semibold">${netoDePago(pay as { amount_mxn: number | null; refunded_mxn: number | null }).toLocaleString("es-MX")} MXN</span>{" "}
           (IVA 16% incluido). Escribe tu razón social <span className="font-semibold">tal como está ante el SAT</span>.
         </p>
         <FacturacionForm

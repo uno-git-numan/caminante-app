@@ -65,7 +65,7 @@ async function globalDe(emisor: Emisor, periodo: ReturnType<typeof periodoAnteri
     if (abiertos.length) {
       const { data: pagos } = await sb
         .from("payments")
-        .select("facturapi_receipt_id, status, status_cfdi, paid_at, refunded_mxn")
+        .select("facturapi_receipt_id, status, status_cfdi, paid_at, refunded_mxn, recibo_neto_de_mxn")
         .in("facturapi_receipt_id", abiertos.map((r) => r.id));
       const fuera = recibosQueNoEntranALaGlobal(abiertos.map((r) => r.id), (pagos ?? []) as PagoDeRecibo[]);
       if (fuera.length) {

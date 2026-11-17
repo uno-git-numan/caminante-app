@@ -16,8 +16,6 @@ const HOY = new Date(2026, 8, 22, 12, 0, 0); // 22 sep 2026, mediodía
 const completo: OperadorParaGate = {
   stripe_account_id: "acct_123",
   stripe_charges_enabled: true,
-  csd_cer_path: "csd/a.cer",
-  csd_key_path: "csd/a.key",
   csd_vence_at: "2029-05-12",
   rfc: "ROBL990531HI3",
   razon_social: "Nomádika",
@@ -81,7 +79,7 @@ describe("operadorListo", () => {
   });
 
   it("LUIS, 9 NOV: sin CSD SÍ vende — facturar a su cliente desde el portal es un paso posterior", () => {
-    const sinCsd = { ...completo, csd_cer_path: null, csd_key_path: null, csd_vence_at: null };
+    const sinCsd = { ...completo, csd_vence_at: null };
     expect(operadorListo(sinCsd, HOY)).toEqual({ ok: true, faltantes: [] });
   });
 

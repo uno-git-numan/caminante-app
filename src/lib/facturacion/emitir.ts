@@ -15,7 +15,8 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emisorDePago, facturapiDe } from "@/lib/facturacion/emisor";
-import { conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
+import { COLS_PAGO_COMPROBANTE, conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
+import { netoDePago } from "@/lib/facturacion/devolucion-plan";
 import type { ReceptorFiscal } from "@/lib/facturacion/facturapi";
 import { corteEnPalabras, dentroDelCorte } from "@/lib/facturacion/corte";
 import { esCpValido, esRfcValido, regimenCompatible, usoCfdiValido } from "@/lib/facturacion/catalogos";
@@ -43,7 +44,11 @@ export async function estadoFacturable(pay: PagoParaComprobante): Promise<{ ok: 
   if (pay.status_cfdi === "publico-general") return { ok: false, motivo: "Este pago ya entró en la factura global del mes.", porEmitir: false };
   if (pay.status_cfdi === "externo") return { ok: false, motivo: "Este pago ya se facturó. Si no recibiste tu CFDI, escríbenos.", porEmitir: false };
   if (pay.status_cfdi !== "por-emitir") return { ok: false, motivo: "Este pago ya no se puede facturar por separado.", porEmitir: false };
-  if (!(Number(pay.amount_mxn) > 0)) return { ok: false, motivo: "El monto no permite facturación.", porEmitir: false };
+  if (!(netoDePago(pay) > 0)) return { ok: false, motivo: "El monto no permite facturación.", porEmitir: false };
+  // Devolución parcial que el recibo todavía no descuenta (D19): primero se
+  // reexpide el recibo por lo neto; facturar el viejo sería facturar dinero devuelto.
+  if (pay.facturapi_receipt_id && Number(pay.refunded_mxn ?? 0) > Number(pay.recibo_neto_de_mxn ?? 0) + 0.009)
+    return { ok: false, motivo: "Este pago tuvo una devolución y estamos ajustando su comprobante. Intenta de nuevo en unos minutos.", porEmitir: true };
   // Candado del corte (lib/facturacion/corte.ts): un CFDI nuestro sobre lo que ya
   // facturó la contadora sería ingreso duplicado ante el SAT.
   if (!dentroDelCorte(pay.paid_at))
@@ -67,7 +72,7 @@ export async function emitirCFDIDePago(input: { paymentId: string; receptor: Rec
 
   const { data } = await sb
     .from("payments")
-    .select("id, reservation_id, contact_id, amount_mxn, status, status_cfdi, method, paid_at, facturapi_receipt_id")
+    .select(COLS_PAGO_COMPROBANTE)
     .eq("id", input.paymentId)
     .maybeSingle();
   const pay = data as PagoParaComprobante | null;
@@ -137,7 +142,9 @@ export async function emitirCFDIDePago(input: { paymentId: string; receptor: Rec
         stamped_at: new Date().toISOString(),
       })
       .eq("id", invoiceId);
-    await sb.from("payments").update({ status_cfdi: "emitido" }).eq("id", pay.id);
+    // Lo devuelto antes de facturar ya va descontado en esta factura (D19): un
+    // egreso posterior sólo ampara lo que se devuelva después.
+    await sb.from("payments").update({ status_cfdi: "emitido", recibo_neto_de_mxn: Number(pay.refunded_mxn ?? 0) || null }).eq("id", pay.id);
     await api.enviarCFDIPorCorreo(factura.id, receptor.email);
     return { ok: true, invoiceId, uuid: factura.uuid };
   } catch (e) {

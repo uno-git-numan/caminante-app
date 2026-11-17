@@ -30,9 +30,12 @@ type OpRow = {
   facturapi_live_key_enc: string | null;
   facturapi_test_key_enc: string | null;
   facturapi_csd_at: string | null;
+  facturacion_portal_at: string | null;
+  facturapi_manifiesto_at: string | null;
+  estado: string | null;
 };
 
-const COLS = "id, name, es_la_casa, facturapi_org_id, facturapi_live_key_enc, facturapi_test_key_enc, facturapi_csd_at";
+const COLS = "id, name, es_la_casa, facturapi_org_id, facturapi_live_key_enc, facturapi_test_key_enc, facturapi_csd_at, facturacion_portal_at, facturapi_manifiesto_at, estado";
 
 function emisorDeFila(op: OpRow | null): EmisorResuelto {
   // Todo lo de aquí es facturación a CLIENTES: llave + interruptor (lib/facturacion/corte.ts).
@@ -41,7 +44,11 @@ function emisorDeFila(op: OpRow | null): EmisorResuelto {
     return { ok: true, emisor: { operatorId: op?.id ?? null, nombre: op?.name ?? "Caminante", esLaCasa: true, key: llaveDeLaCasa() } };
   }
   const enc = modoPrueba() ? op.facturapi_test_key_enc : op.facturapi_live_key_enc;
-  if (!op.facturapi_org_id || !enc || !op.facturapi_csd_at) {
+  // Los candados de D20: la operadora ACTIVÓ la facturación (aceptó el §1 bis),
+  // su CSD está en Facturapi y firmó ella su carta manifiesto. Desactivar o dar
+  // de baja el CSD apaga esto al instante: Caminante deja de emitir a su nombre.
+  if (op.estado === "baja") return { ok: false, error: `${op.name} ya no opera en la plataforma: sus comprobantes los emite ella por su cuenta.`, porEmitir: false };
+  if (!op.facturacion_portal_at || !op.facturapi_org_id || !enc || !op.facturapi_csd_at || !op.facturapi_manifiesto_at) {
     return { ok: false, error: `La factura de esta experiencia la emite ${op.name}; estará disponible cuando su facturación quede conectada.`, porEmitir: true };
   }
   try {

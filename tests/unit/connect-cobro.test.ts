@@ -13,8 +13,6 @@ const EN_2026 = new Date("2026-11-11T18:00:00Z");
 const lista: OperadorParaGate = {
   stripe_account_id: "acct_operadora",
   stripe_charges_enabled: true,
-  csd_cer_path: "a.cer",
-  csd_key_path: "a.key",
   csd_vence_at: "2030-01-01",
   rfc: "ROBL990531HI3",
   razon_social: "Nomádika",

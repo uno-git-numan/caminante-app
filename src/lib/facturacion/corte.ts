@@ -47,12 +47,14 @@ export type PagoDeRecibo = {
   status_cfdi: string;
   paid_at: string | null;
   refunded_mxn?: number | null;
+  /** Lo devuelto que el recibo vigente ya descuenta (0084, D19): reexpedido por lo neto. */
+  recibo_neto_de_mxn?: number | null;
 };
 
 /**
  * El candado de la GLOBAL: antes de timbrarla, cada recibo abierto del periodo
  * tiene que ser de un pago que la plataforma sí factura (cobrado, por-emitir,
- * después del corte y sin devolución). Devuelve los recibos que NO cumplen y por
+ * después del corte y sin devolución que el recibo no descuente). Devuelve los recibos que NO cumplen y por
  * qué; si hay uno solo, la global no se timbra y se avisa: se corrige a mano
  * (cancelar el recibo) antes de volver a intentarla. Facturapi agrupa TODOS los
  * recibos abiertos de la organización, no sólo los que nosotros creemos.
@@ -66,7 +68,9 @@ export function recibosQueNoEntranALaGlobal(reciboIds: string[], pagos: PagoDeRe
     else if (p.status !== "paid") fuera.push({ receiptId: id, porque: `el pago está ${p.status}` });
     else if (p.status_cfdi !== "por-emitir") fuera.push({ receiptId: id, porque: `el pago ya está ${p.status_cfdi}` });
     else if (!dentroDelCorte(p.paid_at)) fuera.push({ receiptId: id, porque: "el cobro es anterior al corte" });
-    else if (Number(p.refunded_mxn ?? 0) > 0) fuera.push({ receiptId: id, porque: "el pago tiene una devolución" });
+    // Una devolución ya descontada (el recibo se reexpidió por lo neto, D19) sí entra.
+    else if (Number(p.refunded_mxn ?? 0) > Number(p.recibo_neto_de_mxn ?? 0) + 0.009)
+      fuera.push({ receiptId: id, porque: "el pago tiene una devolución que el recibo no descuenta" });
   }
   return fuera;
 }

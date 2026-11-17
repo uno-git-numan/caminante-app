@@ -546,3 +546,54 @@ cancelación con sustitución: ¿cuál quieres y en qué plazo?
 
 **Para M18:** cuando Marisol mande su lista, la marco por SQL con la aprobación de
 Luis (`externo` + UUID + nota «lista de Marisol, correo del …»).
+
+## 17 nov 2026 · Producto: D19 y D20 construidos (Luis aprobó el 17 nov)
+
+**D19 · Devoluciones en los papeles** (`lib/facturacion/devoluciones.ts`, decisión
+pura en `devolucion-plan.ts` con pruebas). Corre el mismo día en que Stripe
+confirma (en `finalizeRefund`) y el cron de cada hora reintenta lo que falle.
+- Sin CFDI: devolución total → **se cancela el recibo** y el pago queda
+  `no-facturable`. Parcial → **se cancela y se reexpide por lo neto**, con la
+  fecha del cobro (cae en la global de su mes).
+- Con CFDI (autofactura o global): **CFDI de egreso** relacionado 01, por lo
+  devuelto que aún no ampara otro egreso, con la misma clave, la forma de pago
+  del cobro, PUE y uso G02. Si el original fue la global, va a público en
+  general (XAXX010101000, 616, S01, CP del emisor).
+- Lo que la factura ya salió descontando (un cliente que facturó después de una
+  devolución parcial) **no** lleva egreso: sólo lo devuelto después.
+- **La cancelación motivo 03 no se hace automática.** D19 la permite y no la
+  obliga, y el egreso es la regla general. Queda manual hasta que Marisol
+  confirme numeral y plazo (M19). Si la quieres automática en el caso
+  ≤ $1,000, dímelo.
+- `externo`: su egreso lo emite Marisol. La pantalla de facturación cuenta
+  cuántos hay.
+- **No construido todavía:** el egreso proporcional de la comisión B2 (el CFDI
+  de comisión mismo sigue en el backlog) y la corrección de retenciones en el
+  CFDI del mes.
+- **Hallazgo corregido de paso:** la devolución desde el panel marcaba el pago
+  como `refunded` a ciegas, aunque fuera parcial. Ahora lee el cargo de Stripe y
+  corre el mismo cierre que el webhook. Medido: las 9 devoluciones de la base
+  fueron totales, así que ningún dato quedó mal.
+
+**D20 · Facturación desde el portal** (`lib/facturacion/portal.ts`, Cobrar →
+«Facturación desde Caminante»). La operadora nunca ve Facturapi.
+1. **Activar**: el texto que acepta es el §1 bis **recortado del convenio
+   vigente en la base** (v3.3), no una copia en el código. Se guarda en
+   `operator_facturacion_portal` (0084, append-only) con texto, hash, versión,
+   nombre, correo de la sesión, IP y user-agent. Exige convenio firmado. Sólo la
+   operadora desde su sesión (o la casa sobre una operadora `propia`).
+2. **CSD (D20 bis, vía 2)**: los dos archivos y la contraseña viajan en memoria
+   a Facturapi en una sola petición. No hay bucket, disco ni log; sólo queda
+   número de serie y vigencia. Se retiró la ruta que subía al bucket `csd`. La
+   0085 quita `csd_cer_path`/`csd_key_path` (vacías) después de promover.
+3. **Carta manifiesto**: el módulo incrustado de Facturapi, con la franja «Esta
+   es una página de Facturapi (facturapi.io)… Caminante no recibe tu e.firma».
+   La firmada se lee de la API (`pending_steps`).
+4. **Baja**: desactivar (ella o la casa, con motivo en el rastro) apaga la
+   emisión al instante y da de baja el CSD en Facturapi. Una operadora en
+   `estado = baja` se apaga sola (revisión cada hora). El emisor exige
+   activación + CSD + carta + no estar de baja.
+5. **Aviso de privacidad**: párrafo «Facturación desde el portal» publicado tal
+   cual en `/caminante/privacidad`.
+
+Todo sigue detrás de `FACTURACION_CLIENTES=1` (el visto bueno de Marisol).

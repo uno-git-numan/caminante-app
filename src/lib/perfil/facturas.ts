@@ -39,12 +39,13 @@ export async function fetchMisFacturas(contactId: string): Promise<MiFactura[]> 
   const filtro = resvIds.length ? `contact_id.eq.${contactId},reservation_id.in.(${resvIds.join(",")})` : `contact_id.eq.${contactId}`;
   const { data: pays } = await sb
     .from("payments")
-    .select("id, reservation_id, contact_id, amount_mxn, refunded_mxn, status, status_cfdi, method, paid_at, created_at")
+    .select("id, reservation_id, contact_id, amount_mxn, refunded_mxn, recibo_neto_de_mxn, facturapi_receipt_id, status, status_cfdi, method, paid_at, created_at")
     .or(filtro)
     .in("status", ["paid", "refunded"])
     .order("paid_at", { ascending: false });
   const pagos = (pays ?? []) as {
     id: string; reservation_id: string | null; contact_id: string | null; amount_mxn: number | null; refunded_mxn: number | null;
+    recibo_neto_de_mxn: number | null; facturapi_receipt_id: string | null;
     status: string; status_cfdi: string; method: string | null; paid_at: string | null; created_at: string;
   }[];
   if (!pagos.length) return [];
@@ -57,6 +58,8 @@ export async function fetchMisFacturas(contactId: string): Promise<MiFactura[]> 
     sb
       .from("cfdi_invoices")
       .select("payment_id, uuid_cfdi, xml_url, pdf_url, stamped_at, status")
+      // Sólo la factura del cliente: un egreso por devolución es otro documento (D19).
+      .eq("tipo", "cliente")
       .in("payment_id", pagos.map((p) => p.id))
       .eq("status", "stamped"),
   ]);
@@ -88,7 +91,7 @@ export async function fetchMisFacturas(contactId: string): Promise<MiFactura[]> 
       estado = "no-facturable";
       motivo = p.status === "refunded" ? "Pago devuelto." : "Este pago no se factura por separado.";
     } else {
-      const f = await estadoFacturable({ id: p.id, reservation_id: p.reservation_id, contact_id: p.contact_id, amount_mxn: p.amount_mxn, status: p.status, status_cfdi: p.status_cfdi, method: p.method, paid_at: p.paid_at });
+      const f = await estadoFacturable({ id: p.id, reservation_id: p.reservation_id, contact_id: p.contact_id, amount_mxn: p.amount_mxn, status: p.status, status_cfdi: p.status_cfdi, method: p.method, paid_at: p.paid_at, refunded_mxn: p.refunded_mxn, recibo_neto_de_mxn: p.recibo_neto_de_mxn, facturapi_receipt_id: p.facturapi_receipt_id });
       if (f.ok) estado = "facturable";
       else {
         estado = f.porEmitir ? "pendiente" : "no-facturable";

@@ -23,7 +23,7 @@ import { alcanceActual, esOperador } from "@/lib/auth/alcance";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
-import { marcarYCerrar } from "@/lib/payments/refunds";
+import { cerrarDesdeStripe, marcarCerradoSinCargo } from "@/lib/payments/refunds";
 import { admisionDevuelta } from "@/lib/operadores/admision";
 
 export type ResultadoReembolso =
@@ -196,7 +196,9 @@ async function devolver(
     // «reembolso en curso» sin nada que lo destrabara. El webhook sigue, pero
     // como RED, no como único camino.
     if (refund.status === "succeeded") {
-      await marcarYCerrar(sb, pago.id);
+      const chargeId = typeof refund.charge === "string" ? refund.charge : refund.charge?.id;
+      if (chargeId) await cerrarDesdeStripe(sb, chargeId, pago.id);
+      else await marcarCerradoSinCargo(sb, pago.id);
     }
     // La venta que pagó la cuota de admisión se devolvió COMPLETA: Stripe ya le
     // regresó esos $20 al revertir lo que quedaba de la transferencia (medido
@@ -380,16 +382,19 @@ export async function verificarReembolso(
   }
 
   let estado: string;
+  let chargeId: string | null = null;
   try {
     const stripe = getStripeServerClient();
     const refund = await stripe.refunds.retrieve(r.stripe_refund_id as string);
     estado = refund.status ?? "desconocido";
+    chargeId = typeof refund.charge === "string" ? refund.charge : refund.charge?.id ?? null;
   } catch (e) {
     return { ok: false, error: `No se pudo consultar Stripe: ${(e as Error).message}` };
   }
 
   if (estado === "succeeded") {
-    await marcarYCerrar(sb, r.payment_id as string);
+    if (chargeId) await cerrarDesdeStripe(sb, chargeId, r.payment_id as string);
+    else await marcarCerradoSinCargo(sb, r.payment_id as string);
     revalidatePath("/caminante/admin/salidas");
     return { ok: true, estado, mensaje: "Stripe confirmó la devolución. Lugar liberado y correo enviado." };
   }

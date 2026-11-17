@@ -24,6 +24,10 @@ import { refrescarEstado } from "@/lib/payments/connect";
 import { altaCobroEnPlataforma, erroresDeVerificacion, traducirPendientes } from "@/lib/payments/alta-cobro";
 import CobrosPanel from "../../operadores/cobros/CobrosPanel";
 import AltaCobro from "./AltaCobro";
+import FacturacionPortal from "./FacturacionPortal";
+import { consentimientoVigente, estadoPortal } from "@/lib/facturacion/portal";
+import { organizacionesActivas } from "@/lib/facturacion/facturapi";
+import { cifradoActivo } from "@/lib/facturacion/crypto";
 import { constanciaParaPanel, constanciasDe } from "@/lib/operadores/constancia-fiscal";
 import { fiscalPrivadoParaPanel } from "@/lib/operadores/fiscal-privado";
 
@@ -40,6 +44,8 @@ type Row = OperadorParaGate & {
   stripe_payouts_enabled: boolean | null;
   stripe_requirements: unknown;
   stripe_onboarded_at: string | null;
+  es_la_casa: boolean | null;
+  propia: boolean | null;
 };
 
 export default async function CobrarPage({
@@ -91,7 +97,7 @@ export default async function CobrarPage({
   const sb = createSupabaseAdminClient();
   const { data } = await sb
     .from("operators")
-    .select(`id,name,email,stripe_payouts_enabled,stripe_requirements,stripe_onboarded_at,csd_subido_at,${COLUMNAS_GATE}`)
+    .select(`id,name,email,es_la_casa,propia,stripe_payouts_enabled,stripe_requirements,stripe_onboarded_at,csd_subido_at,${COLUMNAS_GATE}`)
     .eq("id", operatorId)
     .maybeSingle();
   const r = data as Row | null;
@@ -100,6 +106,12 @@ export default async function CobrarPage({
   if (!r) redirect("/caminante/admin/mi-alta");
 
   const altaAqui = enPlataforma && (!r.stripe_account_id || recauda === true);
+
+  // Facturación desde el portal (D20). La activa y la arma ELLA; la casa, desde
+  // aquí, sólo si la operadora es propia (la casa ES la operadora). Si no, la
+  // casa la ve y la puede desactivar, nada más.
+  const [consentimiento, estadoFact] = await Promise.all([consentimientoVigente(), estadoPortal(r.id)]);
+  const modoFact: "operadora" | "casa" = !porOtra || r.propia ? "operadora" : "casa";
 
   return (
     <AdminShell active="panorama">
@@ -145,12 +157,21 @@ export default async function CobrarPage({
           tipoPersona: r.tipo_persona ?? "",
           constancia: constanciaParaPanel(constancias.get(r.id)),
                 privado: privados.get(r.id) ?? null,
-          csdCerPath: r.csd_cer_path ?? null,
-          csdKeyPath: r.csd_key_path ?? null,
-          csdVenceAt: r.csd_vence_at ?? null,
         }}
         faltantes={operadorListo(r).faltantes}
         sinEnlaceExterno={!porOtra}
+        facturacion={
+          r.es_la_casa ? undefined : (
+            <FacturacionPortal
+              operatorId={r.id}
+              modo={modoFact}
+              disponible={organizacionesActivas() && cifradoActivo()}
+              convenioFirmado={Boolean(r.convenio_firmado_at)}
+              consentimiento={consentimiento}
+              estado={estadoFact}
+            />
+          )
+        }
         altaEnPlataforma={
           altaAqui ? (
             <AltaCobro

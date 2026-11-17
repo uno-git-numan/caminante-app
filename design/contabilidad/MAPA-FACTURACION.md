@@ -161,6 +161,18 @@ sostener un ingreso y un egreso iguales es ruido en la contabilidad y en la
 conciliación con La Caja. La regla de arriba es la propuesta; Marisol la fija y
 el código la lee como configuración (`mismo_mes → cancelar | egreso`).
 
+> **Lo que quedó construido (D19 de legal, 17 nov 2026, 0084 —
+> `lib/facturacion/devoluciones.ts`):** legal fijó el **egreso como regla
+> general** (no depende del receptor y deja el ingreso intacto en su mes) y la
+> cancelación motivo 03 sólo como caso permitido (total + sin aceptación del
+> receptor, M19). El código hace: **sin CFDI** → el **recibo** se cancela
+> (total) o se reexpide por lo neto (parcial), para que la global nunca tome
+> dinero devuelto; **con CFDI** (autofactura o global) → **egreso** relacionado
+> 01 el mismo día en que Stripe confirma, por lo devuelto que aún no ampara
+> otro egreso. La cancelación del original **no es automática** hasta que
+> Marisol confirme numeral y plazo (M19). El egreso de comisión B2 y la
+> corrección de retenciones siguen en el backlog.
+
 ### 0.6 El pasado: lo que Marisol emitió por fuera
 
 Marisol ha venido emitiendo los CFDI del 2026 por fuera, sin dejar registro en
@@ -503,10 +515,14 @@ el mismo ciclo.
 
 - `facturapiPara(operatorId)`: una organización de Facturapi por operadora
   (`operators.facturapi_org_id`), creada por API cuando la operadora sube su CSD
-  en Mi alta (el flujo de subida ya existe: bucket `csd`, `csd_cer_path`,
-  `csd_key_path`, gate `listo-para-vender` que exige los DOS archivos). La
-  contraseña del CSD la teclea la operadora y va directo a Facturapi; no se
-  guarda.
+  en Mi alta → Cobrar. **Desde el 17 nov 2026 (D20 / D20 bis) el CSD no se
+  guarda en la plataforma:** los dos archivos y la contraseña viajan en memoria
+  a Facturapi en una petición; sólo queda `facturapi_csd_serial` y
+  `csd_vence_at` (el bucket `csd` y `csd_cer_path`/`csd_key_path` se retiran en
+  la 0085). Antes del CSD la operadora **activa** la facturación aceptando el §1
+  bis del convenio (`operator_facturacion_portal`), y después firma su carta
+  manifiesto en el módulo incrustado de Facturapi. Nunca ve el portal de
+  Facturapi.
 - La autofactura del cliente resuelve **de quién es la venta** y timbra con esa
   organización. El cliente no nota la diferencia.
 - Vigencia del CSD (4 años): `csd_vence_at` ya existe; aviso 60 días antes y el

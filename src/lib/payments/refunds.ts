@@ -14,12 +14,25 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fromStripeAmount } from "@/lib/payments/stripe";
 import { emailReembolso } from "@/lib/payments/email-reembolso";
+import { getStripeServerClient } from "@/lib/payments/stripe";
+import { documentarDevolucion } from "@/lib/facturacion/devoluciones";
 
 export type RefundResult = {
   handled: boolean; // false = el cargo no corresponde a ningún pago nuestro
   reembolsoTotal?: boolean;
   paymentId?: string;
 };
+
+/**
+ * Sólo si Stripe contestó `succeeded` SIN decir de qué cargo (no debería pasar):
+ * se cierra el panel y el pago queda como estaba hasta que el webhook
+ * `charge.refunded` traiga el monto. Marcarlo `refunded` a ciegas es justo el
+ * error que `cerrarDesdeStripe` corrige.
+ */
+export async function marcarCerradoSinCargo(sb: SupabaseClient, paymentId: string): Promise<void> {
+  console.error("cerrarDesdeStripe: Stripe confirmó una devolución sin cargo; espera al webhook", paymentId);
+  await cerrarReembolsoDelPanel(sb, paymentId);
+}
 
 /**
  * Cierra un reembolso: marca el pago y ejecuta lo prometido.
@@ -36,9 +49,26 @@ export type RefundResult = {
  * nunca. Colgar el cierre de un evento que Stripe ya me había contestado en la
  * respuesta era el error; la configuración solo lo hizo visible.
  */
-export async function marcarYCerrar(sb: SupabaseClient, paymentId: string): Promise<void> {
-  await sb.from("payments").update({ status: "refunded" }).eq("id", paymentId);
-  await cerrarReembolsoDelPanel(sb, paymentId);
+export async function cerrarDesdeStripe(sb: SupabaseClient, chargeId: string, paymentId: string): Promise<RefundResult> {
+  // ⚠️ SE LEE EL CARGO DE STRIPE, NO SE SUPONE. Esto era `marcarYCerrar`, que
+  // ponía `status='refunded'` a secas: una devolución PARCIAL desde el panel
+  // dejaba el pago como devuelto completo y sin `refunded_mxn`, hasta que el
+  // webhook lo corrigiera (si llegaba). Con el cargo en la mano, las dos vías
+  // corren el mismo `finalizeRefund`: monto acumulado, status sólo si volvió
+  // todo, cierre del panel y el documento fiscal (D19). Medido el 17 nov 2026:
+  // ninguna devolución parcial había pasado todavía por aquí.
+  //
+  // Si Stripe no contesta la lectura, el dinero YA volvió: no se marca nada a
+  // ciegas, se cierra el panel y el webhook `charge.refunded` trae el monto.
+  let charge: Stripe.Charge;
+  try {
+    charge = await getStripeServerClient().charges.retrieve(chargeId);
+  } catch (e) {
+    console.error("cerrarDesdeStripe (leer cargo):", (e as Error).message);
+    await cerrarReembolsoDelPanel(sb, paymentId);
+    return { handled: false };
+  }
+  return finalizeRefund(charge, sb);
 }
 
 /**
@@ -97,6 +127,7 @@ export async function finalizeRefund(
     // por el camino de siempre: devolver una parte es el desenlace de una
     // cancelación con política, no un descuento a alguien que sí viene.
     await cerrarReembolsoDelPanel(sb, pago.id as string);
+    await documentarEnPapeles(pago.id as string);
     return { handled: true, reembolsoTotal: false, paymentId: pago.id as string };
   }
 
@@ -114,8 +145,24 @@ export async function finalizeRefund(
   // `reembolsos` (migración 0056) y aquí se ejecuta: cancelar, liberar el lugar
   // y avisarle a la persona. Ese es el orden — el aviso va DETRÁS del dinero.
   await cerrarReembolsoDelPanel(sb, pago.id as string);
+  await documentarEnPapeles(pago.id as string);
 
   return { handled: true, reembolsoTotal: total, paymentId: pago.id as string };
+}
+
+/**
+ * D19: el recibo se cancela o se reexpide, o sale el CFDI de egreso, el MISMO
+ * día en que Stripe confirma. Va DESPUÉS del dinero y del panel, y no puede
+ * tirar nada: si falla, el cron de recibos lo reintenta cada hora
+ * (`documentarDevolucionesPendientes`).
+ */
+async function documentarEnPapeles(paymentId: string): Promise<void> {
+  try {
+    const r = await documentarDevolucion(paymentId);
+    if (!r.ok && !r.reintentar) console.error("finalizeRefund/D19:", r.error);
+  } catch (e) {
+    console.error("finalizeRefund/D19:", (e as Error).message);
+  }
 }
 
 /**

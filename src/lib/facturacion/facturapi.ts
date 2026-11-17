@@ -202,6 +202,11 @@ export function clienteFacturapi(key: string) {
       return recibo(await llamar<Json>(key, "GET", `/receipts/${receiptId}`));
     },
 
+    /** Cancela un recibo abierto (DELETE /receipts/{id}). Un recibo no es CFDI: no pasa por el SAT. */
+    async cancelarRecibo(receiptId: string): Promise<Recibo> {
+      return recibo(await llamar<Json>(key, "DELETE", `/receipts/${receiptId}`));
+    },
+
     /** El cliente pidió factura: el recibo se factura a su RFC. */
     async facturarRecibo(receiptId: string, receptor: ReceptorFiscal, totalEsperado: number): Promise<FacturaTimbrada> {
       const json = await llamar<{ id?: string; uuid?: string; total?: number }>(key, "POST", `/receipts/${receiptId}/invoice`, {
@@ -264,6 +269,37 @@ export function clienteFacturapi(key: string) {
       await llamar(key, "POST", `/retentions/${retentionId}/email`, email ? { email } : {});
     },
 
+    /**
+     * CFDI de EGRESO (nota de crédito) por una devolución (D19): relacionado al
+     * ingreso original con tipo de relación 01, la misma clave de producto, la
+     * forma de pago de la devolución (la del cobro) y PUE. `receptor: null` =
+     * público en general, cuando el original fue la global; entonces el CP es
+     * el del emisor (lugar de expedición) y el uso S01.
+     */
+    async crearEgreso(input: {
+      receptor: ReceptorFiscal | null;
+      cpEmisor: string;
+      conceptos: Concepto[];
+      formaPago: string;
+      uuidRelacionado: string;
+    }): Promise<FacturaTimbrada> {
+      if (!input.conceptos.length) throw new Error("El egreso no tiene conceptos.");
+      const total = input.conceptos.reduce((n, c) => n + c.cantidad * c.precioUnitarioConIva - (c.descuentoConIva ?? 0), 0);
+      const cliente = input.receptor
+        ? customer(input.receptor)
+        : { legal_name: "PUBLICO EN GENERAL", tax_id: "XAXX010101000", tax_system: "616", address: { zip: input.cpEmisor } };
+      const json = await llamar<{ id?: string; uuid?: string; total?: number }>(key, "POST", "/invoices", {
+        type: "E",
+        customer: cliente,
+        items: items(input.conceptos),
+        use: input.receptor ? "G02" : "S01",
+        payment_form: input.formaPago,
+        payment_method: "PUE",
+        related_documents: [{ relationship: "01", documents: [input.uuidRelacionado] }],
+      });
+      return desglose(json, total);
+    },
+
     /** Cancela un CFDI. motivo: 01 con relación · 02 sin relación · 03 no se llevó a cabo · 04 nominativa en global. */
     async cancelarCFDI(facturapiId: string, motivo: "01" | "02" | "03" | "04", sustituto?: string): Promise<void> {
       const q = new URLSearchParams({ motive: motivo, ...(sustituto ? { substitution: sustituto } : {}) });
@@ -289,6 +325,18 @@ export type DatosLegalesOrganizacion = {
   correoSoporte?: string;
   telefono?: string;
   sitio?: string;
+};
+
+export type EstadoOrganizacion = {
+  legal: boolean;
+  rfc: string | null;
+  certificado: boolean;
+  serie: string | null;
+  venceAt: string | null; // YYYY-MM-DD
+  manifiesto: boolean;
+  listaParaLive: boolean;
+  /** Lo que Facturapi dice que falta, en sus palabras. */
+  pendientes: string[];
 };
 
 function llaveUsuario(): string {
@@ -326,7 +374,10 @@ export const organizaciones = {
     });
   },
 
-  /** Sube el CSD. La contraseña viaja a Facturapi y no se guarda en ningún lado nuestro. */
+  /**
+   * Sube el CSD. Los dos archivos y la contraseña viajan a Facturapi EN MEMORIA,
+   * en la misma petición, y no se escriben en ningún lado nuestro (D20 bis).
+   */
   async subirCSD(orgId: string, cer: Blob, key: Blob, password: string): Promise<void> {
     const fd = new FormData();
     fd.set("cer", cer, "csd.cer");
@@ -348,16 +399,34 @@ export const organizaciones = {
   /** La Live sólo se ve COMPLETA al crearla: hay que guardarla cifrada en ese momento. */
   crearLlaveLive: (orgId: string) => llamar<string>(llaveUsuario(), "POST", `/organizations/${orgId}/apikeys/live`),
 
-  async leer(orgId: string): Promise<{ certificado: boolean; legal: boolean; manifiesto: boolean }> {
-    const json = await llamar<{ certificate?: { has_certificate?: boolean }; legal?: { tax_id?: string }; manifest?: { signed?: boolean } }>(
-      llaveUsuario(),
-      "GET",
-      `/organizations/${orgId}`,
-    );
+  /** Da de baja el CSD de la organización (DELETE /organizations/{id}/certificate): desde ese momento no sella nada. */
+  async borrarCSD(orgId: string): Promise<void> {
+    await llamar(llaveUsuario(), "DELETE", `/organizations/${orgId}/certificate`);
+  },
+
+  /**
+   * Lo que Facturapi dice de la organización. La carta manifiesto NO tiene un
+   * campo propio en la respuesta: se sabe firmada cuando ya no aparece entre los
+   * `pending_steps` (tipo `manifiesto`). Antes esto leía un `manifest.signed`
+   * que el esquema de Facturapi no trae, y habría dicho «sin firmar» siempre.
+   */
+  async leer(orgId: string): Promise<EstadoOrganizacion> {
+    const json = await llamar<{
+      is_production_ready?: boolean;
+      pending_steps?: { type?: string; description?: string }[];
+      certificate?: { has_certificate?: boolean; serial_number?: string; expires_at?: string };
+      legal?: { tax_id?: string };
+    }>(llaveUsuario(), "GET", `/organizations/${orgId}`);
+    const pendientes = (json.pending_steps ?? []).map((p) => String(p.type ?? ""));
     return {
-      certificado: !!json.certificate?.has_certificate,
       legal: !!json.legal?.tax_id,
-      manifiesto: !!json.manifest?.signed,
+      rfc: json.legal?.tax_id ?? null,
+      certificado: !!json.certificate?.has_certificate,
+      serie: json.certificate?.serial_number ?? null,
+      venceAt: json.certificate?.expires_at ? String(json.certificate.expires_at).slice(0, 10) : null,
+      manifiesto: !pendientes.includes("manifiesto"),
+      listaParaLive: !!json.is_production_ready,
+      pendientes: (json.pending_steps ?? []).map((p) => String(p.description ?? p.type ?? "")),
     };
   },
 };

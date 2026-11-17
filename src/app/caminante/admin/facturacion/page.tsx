@@ -17,12 +17,13 @@ type Inv = {
   razon_social: string;
   uuid_cfdi: string | null;
   total_mxn: number;
-  email: string;
+  email: string | null;
   xml_url: string | null;
   pdf_url: string | null;
   stamped_at: string | null;
+  tipo: string;
 };
-type PorEmitir = { amount_mxn: number; paid_at: string | null; contact_id: string | null };
+type PorEmitir = { amount_mxn: number; refunded_mxn: number | null; paid_at: string | null; contact_id: string | null };
 
 const money = (n: number) => "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 });
 const fecha = (s: string | null) => (s ? new Date(s).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }) : "—");
@@ -31,6 +32,7 @@ export default async function FacturacionAdminPage() {
   const activa = facturacionActiva();
   const clientes = facturacionClientesActiva();
   let externos = 0;
+  let devueltosDeLaContadora = 0;
   let emitidos: Inv[] = [];
   let porEmitir: PorEmitir[] = [];
   let signed: Record<string, { xml?: string; pdf?: string }> = {};
@@ -40,7 +42,8 @@ export default async function FacturacionAdminPage() {
     const sb = createSupabaseAdminClient();
     const { data: invs, error } = await sb
       .from("cfdi_invoices")
-      .select("id, rfc, razon_social, uuid_cfdi, total_mxn, email, xml_url, pdf_url, stamped_at")
+      .select("id, rfc, razon_social, uuid_cfdi, total_mxn, email, xml_url, pdf_url, stamped_at, tipo")
+      .in("tipo", ["cliente", "egreso"])
       .eq("status", "stamped")
       .order("stamped_at", { ascending: false });
     if (error) throw error;
@@ -48,7 +51,7 @@ export default async function FacturacionAdminPage() {
 
     const { data: pend } = await sb
       .from("payments")
-      .select("amount_mxn, paid_at, contact_id")
+      .select("amount_mxn, refunded_mxn, paid_at, contact_id")
       .eq("status", "paid")
       .eq("status_cfdi", "por-emitir")
       .order("paid_at", { ascending: false });
@@ -57,6 +60,9 @@ export default async function FacturacionAdminPage() {
     // Lo que la contadora facturó fuera del sistema (0083): ni recibo ni global.
     const { count } = await sb.from("payments").select("id", { count: "exact", head: true }).eq("status_cfdi", "externo");
     externos = count ?? 0;
+    // D19: una devolución sobre lo que facturó la contadora la documenta ella (su egreso).
+    const { count: dev } = await sb.from("payments").select("id", { count: "exact", head: true }).eq("status_cfdi", "externo").gt("refunded_mxn", 0);
+    devueltosDeLaContadora = dev ?? 0;
 
     // Signed URLs para descargar los pares XML/PDF (bucket privado).
     signed = Object.fromEntries(
@@ -80,12 +86,16 @@ export default async function FacturacionAdminPage() {
     tablaLista = false;
   }
 
-  const totalEmitido = emitidos.reduce((n, i) => n + Number(i.total_mxn || 0), 0);
+  // Los egresos (notas de crédito por devolución, D19) restan: lo emitido neto es ingreso menos egreso.
+  const egresos = emitidos.filter((i) => i.tipo === "egreso");
+  const totalEgresos = egresos.reduce((n, i) => n + Number(i.total_mxn || 0), 0);
+  const totalEmitido = emitidos.filter((i) => i.tipo !== "egreso").reduce((n, i) => n + Number(i.total_mxn || 0), 0);
   // El corte (lib/facturacion/corte.ts): lo anterior no lo factura la plataforma.
   const antesDelCorte = porEmitir.filter((p) => !dentroDelCorte(p.paid_at));
   porEmitir = porEmitir.filter((p) => dentroDelCorte(p.paid_at));
-  const totalPorEmitir = porEmitir.reduce((n, p) => n + Number(p.amount_mxn || 0), 0);
-  const totalAntesDelCorte = antesDelCorte.reduce((n, p) => n + Number(p.amount_mxn || 0), 0);
+  // Lo cobrado menos lo devuelto: eso es lo que se va a facturar (D19).
+  const totalPorEmitir = porEmitir.reduce((n, p) => n + Number(p.amount_mxn || 0) - Number(p.refunded_mxn || 0), 0);
+  const totalAntesDelCorte = antesDelCorte.reduce((n, p) => n + Number(p.amount_mxn || 0) - Number(p.refunded_mxn || 0), 0);
 
   return (
     <AdminShell active="recursos">
@@ -124,8 +134,13 @@ export default async function FacturacionAdminPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginTop: 8 }}>
         <div className="card" style={{ padding: 18 }}>
           <div className="mut" style={{ fontSize: 12.5 }}>Emitidos</div>
-          <div style={{ fontSize: 26, fontWeight: 600 }}>{emitidos.length}</div>
+          <div style={{ fontSize: 26, fontWeight: 600 }}>{emitidos.length - egresos.length}</div>
           <div className="mut" style={{ fontSize: 13 }}>{money(totalEmitido)}</div>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div className="mut" style={{ fontSize: 12.5 }}>Egresos por devolución</div>
+          <div style={{ fontSize: 26, fontWeight: 600 }}>{egresos.length}</div>
+          <div className="mut" style={{ fontSize: 13 }}>{money(totalEgresos)} · notas de crédito</div>
         </div>
         <div className="card" style={{ padding: 18 }}>
           <div className="mut" style={{ fontSize: 12.5 }}>Por emitir (pagos cobrados sin CFDI)</div>
@@ -140,7 +155,10 @@ export default async function FacturacionAdminPage() {
         <div className="card" style={{ padding: 18 }}>
           <div className="mut" style={{ fontSize: 12.5 }}>Facturados fuera del sistema</div>
           <div style={{ fontSize: 26, fontWeight: 600 }}>{externos}</div>
-          <div className="mut" style={{ fontSize: 13 }}>con el folio de la contadora</div>
+          <div className="mut" style={{ fontSize: 13 }}>
+            con el folio de la contadora
+            {devueltosDeLaContadora ? ` · ${devueltosDeLaContadora} con devolución: su egreso lo emite ella` : ""}
+          </div>
         </div>
       </div>
 
@@ -164,22 +182,28 @@ export default async function FacturacionAdminPage() {
                 {emitidos.map((inv) => (
                   <tr key={inv.id}>
                     <td className="mut">{fecha(inv.stamped_at)}</td>
-                    <td style={{ fontWeight: 500 }}>{inv.rfc}</td>
+                    <td style={{ fontWeight: 500 }}>
+                      {inv.rfc}
+                      {inv.tipo === "egreso" ? <span className="mut" style={{ fontWeight: 400 }}> · egreso</span> : null}
+                    </td>
                     <td>{inv.razon_social}</td>
                     <td className="mut" style={{ fontSize: 11.5, fontFamily: "monospace" }}>{inv.uuid_cfdi || "—"}</td>
-                    <td style={{ textAlign: "right" }}>{money(inv.total_mxn)}</td>
+                    <td style={{ textAlign: "right" }}>{inv.tipo === "egreso" ? "−" : ""}{money(inv.total_mxn)}</td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       {signed[inv.id]?.pdf ? <a href={signed[inv.id].pdf} style={{ color: "#4f5d44", fontWeight: 600, textDecoration: "underline" }}>PDF</a> : null}
                       {signed[inv.id]?.pdf && signed[inv.id]?.xml ? " · " : null}
                       {signed[inv.id]?.xml ? <a href={signed[inv.id].xml} style={{ color: "#4f5d44", fontWeight: 600, textDecoration: "underline" }}>XML</a> : null}
                     </td>
                     <td>
-                      <form action={reenviarCFDI}>
-                        <input type="hidden" name="invoiceId" value={inv.id} />
-                        <button type="submit" className="btn btn-glass btn-sm" title={`Reenviar a ${inv.email}`}>
-                          Reenviar
-                        </button>
-                      </form>
+                      {/* Un egreso a público en general no tiene a quién reenviarse. */}
+                      {inv.email ? (
+                        <form action={reenviarCFDI}>
+                          <input type="hidden" name="invoiceId" value={inv.id} />
+                          <button type="submit" className="btn btn-glass btn-sm" title={`Reenviar a ${inv.email}`}>
+                            Reenviar
+                          </button>
+                        </form>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

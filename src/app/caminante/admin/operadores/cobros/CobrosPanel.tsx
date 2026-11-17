@@ -3,10 +3,11 @@
 // Los pasos del onboarding de Connect para UN operador, con su semáforo arriba.
 // El orden (9 nov 2026): sus datos fiscales —que salen solos de su constancia—
 // y la cuenta de cobro, que es lo que hace falta para cobrar · y aparte,
-// opcional, el CSD para facturarle a su cliente desde aquí.
+// opcional, la facturación desde el portal (FacturacionPortal, D20), que la
+// página pasa armada en `facturacion`.
 
 import { useState } from "react";
-import { pedirLinkStripe, refrescarConexion, elegirRegimen, releerConstancia, guardarCsd, guardarClabeAction } from "@/lib/payments/connect-actions";
+import { pedirLinkStripe, refrescarConexion, elegirRegimen, releerConstancia, guardarClabeAction } from "@/lib/payments/connect-actions";
 import type { FiscalPrivadoPanel } from "@/lib/operadores/fiscal-privado";
 import { REGIMENES } from "@/lib/facturacion/catalogos";
 
@@ -30,9 +31,6 @@ export type OperadorCobros = {
    * los de negocio que trae: si son varios, la pantalla ofrece SÓLO ésos.
    */
   constancia: { subida: boolean; ok: boolean; porque: string | null; regimenes: string[] };
-  csdCerPath: string | null;
-  csdKeyPath: string | null;
-  csdVenceAt: string | null;
   /**
    * CURP, domicilio y CLABE para la informativa del SAT (0081). Nunca llegan
    * completos: sólo si están y la CLABE enmascarada.
@@ -45,6 +43,7 @@ export default function CobrosPanel({
   faltantes,
   altaEnPlataforma,
   sinEnlaceExterno = false,
+  facturacion,
 }: {
   operador: OperadorCobros;
   faltantes: string[];
@@ -60,12 +59,15 @@ export default function CobrosPanel({
    * 11 nov 2026). `pedirLinkStripe` también se lo niega en el servidor.
    */
   sinEnlaceExterno?: boolean;
+  /**
+   * La facturación desde el portal (mi-alta/cobrar/FacturacionPortal, D20):
+   * activar, CSD y carta manifiesto. La arma la página, que sabe quién mira.
+   */
+  facturacion?: React.ReactNode;
 }) {
   const [ocupado, setOcupado] = useState("");
   const [estado, setEstado] = useState("");
 
-  // La contraseña del CSD viaja a Facturapi en la misma llamada; aquí no se guarda.
-  const [passCsd, setPassCsd] = useState("");
   const [clabe, setClabe] = useState("");
   const [banco, setBanco] = useState("");
   const [pideBanco, setPideBanco] = useState(false);
@@ -105,47 +107,6 @@ export default function CobrosPanel({
     setOcupado("");
     setEstado(r.ok ? "✓ Estado actualizado" : `Error: ${r.error}`);
     if (r.ok) window.location.reload();
-  }
-
-  // Sube los dos archivos por la ruta gateada y guarda las DOS rutas juntas.
-  // Si el .key falla después de que el .cer subió, no se escribe nada: mejor
-  // repetir la subida que dejar medio expediente en la base.
-  async function subirCsd(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const cer = (form.elements.namedItem("cer") as HTMLInputElement).files?.[0];
-    const key = (form.elements.namedItem("key") as HTMLInputElement).files?.[0];
-    if (!cer || !key) {
-      setEstado("Error: hacen falta los dos archivos, el .cer y el .key.");
-      return;
-    }
-    setOcupado("csd");
-    setEstado("");
-    try {
-      const rutas: string[] = [];
-      for (const f of [cer, key]) {
-        const fd = new FormData();
-        fd.set("file", f);
-        fd.set("operadorId", o.id);
-        const res = await fetch("/caminante/api/admin/csd", { method: "POST", body: fd });
-        const j = await res.json();
-        if (!res.ok) throw new Error(j?.error || "No se pudo subir.");
-        rutas.push(j.path as string);
-      }
-      const fd = new FormData();
-      fd.set("id", o.id);
-      fd.set("cerPath", rutas[0]);
-      fd.set("keyPath", rutas[1]);
-      fd.set("password", passCsd);
-      const r = await guardarCsd(fd);
-      setPassCsd("");
-      setOcupado("");
-      setEstado(r.ok ? "✓ CSD guardado" : `Error: ${r.error}`);
-      if (r.ok) window.location.reload();
-    } catch (err) {
-      setOcupado("");
-      setEstado(`Error: ${(err as Error).message}`);
-    }
   }
 
   async function regimen(clave: string) {
@@ -359,42 +320,9 @@ export default function CobrosPanel({
         No hace falta para cobrar. Si la prendes, timbramos a tu nombre las facturas de tus viajeros y el
         comprobante de cada pago. Si no, facturas por tu cuenta como siempre.
       </p>
-      {/* ── B · CSD ─────────────────────────────────────────────────── */}
-      <h3 style={{ fontSize: 14, margin: "18px 0 6px" }}>Su CSD (para timbrar)</h3>
-      <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
-        Los <b>dos</b> archivos que le dio el SAT: el <code>.cer</code> y el <code>.key</code>. Van a
-        un bucket privado y solo se ven por liga firmada de 5 minutos. La vigencia y el RFC los
-        leemos del propio <code>.cer</code>. <b>Su contraseña no se guarda en nuestra base</b>: va
-        directo a Facturapi al crear su organización.
-      </p>
-      {o.csdCerPath && o.csdKeyPath ? (
-        <p className="mut" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
-          CSD cargado{o.csdVenceAt ? `, vigente hasta ${o.csdVenceAt}` : ""}. Subir otro lo
-          reemplaza.
-        </p>
-      ) : null}
-      <form onSubmit={subirCsd}>
-        <div className="mini-form" style={{ alignItems: "start" }}>
-          <label>
-            Certificado (.cer)
-            <input type="file" name="cer" accept=".cer" />
-          </label>
-          <label>
-            Llave privada (.key)
-            <input type="file" name="key" accept=".key" />
-          </label>
-          <label>
-            Contraseña del CSD
-            <input type="password" value={passCsd} onChange={(ev) => setPassCsd(ev.target.value)} autoComplete="off" placeholder="La del .key" />
-          </label>
-        </div>
-        <p className="mut" style={{ fontSize: 12, margin: "6px 0 0" }}>
-          La contraseña va directo al PAC (Facturapi) para activar su sello; Caminante no la guarda.
-        </p>
-        <button type="submit" className="btn btn-sm" style={{ marginTop: 10 }} disabled={ocupado !== ""}>
-          {ocupado === "csd" ? "Subiendo…" : "Subir CSD"}
-        </button>
-      </form>
+      {facturacion ?? (
+        <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>Se activa desde el panel de la operadora.</p>
+      )}
 
       {estado ? (
         <p className="mut" style={{ fontSize: 12.5, margin: "10px 0 0" }}>{estado}</p>

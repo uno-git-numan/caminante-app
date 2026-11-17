@@ -12,14 +12,15 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emisorDePago, facturapiDe } from "@/lib/facturacion/emisor";
-import { conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
+import { COLS_PAGO_COMPROBANTE as COLS, conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
 import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
 import { corteEnPalabras, dentroDelCorte, inicioDelCorte } from "@/lib/facturacion/corte";
+import { netoDePago } from "@/lib/facturacion/devolucion-plan";
 import { sendViaResend } from "@/lib/email/resend";
 import { boton, h1, marco, p, saludo } from "@/lib/email/plantilla";
 import { SITE } from "@/lib/payments/pago-token";
 
-const COLS = "id, reservation_id, contact_id, amount_mxn, status, status_cfdi, method, paid_at, facturapi_receipt_id";
+
 
 export type ResultadoRecibo = { ok: true; receiptId: string; yaExistia: boolean } | { ok: false; error: string; reintentar: boolean };
 
@@ -35,7 +36,7 @@ export async function crearReciboDePago(paymentId: string): Promise<ResultadoRec
   if (pay.status_cfdi !== "por-emitir") return { ok: false, error: "Este pago ya tiene su documento fiscal.", reintentar: false };
   // Candado del corte: lo cobrado antes lo factura o lo cuadra la contadora.
   if (!dentroDelCorte(pay.paid_at)) return { ok: false, error: `Cobro anterior al ${corteEnPalabras()}: no lo factura la plataforma.`, reintentar: false };
-  if (!(Number(pay.amount_mxn) > 0)) return { ok: false, error: "Monto en cero.", reintentar: false };
+  if (!(netoDePago(pay) > 0)) return { ok: false, error: "Monto en cero (o devuelto completo).", reintentar: false };
 
   const emisor = await emisorDePago(pay.id);
   if (!emisor.ok) return { ok: false, error: emisor.error, reintentar: emisor.porEmitir };
@@ -44,13 +45,14 @@ export async function crearReciboDePago(paymentId: string): Promise<ResultadoRec
 
   let recibo;
   try {
-    recibo = await api.crearRecibo({ conceptos: d.conceptos, formaPago: d.formaPago, fecha: pay.paid_at ?? undefined, idempotencyKey: `pago-${pay.id}` });
+    recibo = await api.crearRecibo({ conceptos: d.conceptos, formaPago: d.formaPago, fecha: pay.paid_at ?? undefined, idempotencyKey: Number(pay.refunded_mxn ?? 0) > 0 ? `pago-${pay.id}-neto-${Math.round(Number(pay.refunded_mxn) * 100)}` : `pago-${pay.id}` });
   } catch (e) {
     return { ok: false, error: `Facturapi: ${(e as Error).message}`, reintentar: true };
   }
   const { error } = await sb
     .from("payments")
-    .update({ facturapi_receipt_id: recibo.id, facturapi_receipt_key: recibo.key || null, recibo_expira_at: recibo.expiresAt || null })
+    // Si ya había devolución, este recibo nació por lo neto (conceptos.ts): queda dicho cuánto descuenta.
+    .update({ facturapi_receipt_id: recibo.id, facturapi_receipt_key: recibo.key || null, recibo_expira_at: recibo.expiresAt || null, recibo_neto_de_mxn: Number(pay.refunded_mxn ?? 0) || null })
     .eq("id", pay.id)
     .is("facturapi_receipt_id", null);
   if (error) return { ok: false, error: error.message, reintentar: true };

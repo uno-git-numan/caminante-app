@@ -17,15 +17,19 @@
 // vive también en `/caminante/admin/mi-alta/cobrar` (una sola fila: la suya),
 // con el MISMO `CobrosPanel`. Ésta sigue siendo la vista de la casa, con todas.
 //
-// El paso del CSD guarda los DOS archivos que entrega el SAT (.cer y .key), cada
-// uno en su columna desde la 0038. Lo que NO pasa por aquí es su contraseña: va
-// directo a Facturapi al crear la organización del operador (A3) y no se
-// persiste de nuestro lado.
+// La facturación desde el portal (D20) la ACTIVA la operadora desde su panel y
+// ella sube su CSD, que viaja a Facturapi en memoria y no se guarda aquí (D20
+// bis). Desde esta vista la casa la ve y la puede desactivar; sólo arma los
+// pasos ella misma cuando la operadora es propia.
 
 import AdminShell from "../../ui/AdminShell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { COLUMNAS_GATE, operadorListo, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
 import CobrosPanel from "./CobrosPanel";
+import FacturacionPortal from "../../mi-alta/cobrar/FacturacionPortal";
+import { consentimientoVigente, estadoPortal, type EstadoPortal } from "@/lib/facturacion/portal";
+import { organizacionesActivas } from "@/lib/facturacion/facturapi";
+import { cifradoActivo } from "@/lib/facturacion/crypto";
 import { constanciaParaPanel, constanciasDe } from "@/lib/operadores/constancia-fiscal";
 import { fiscalPrivadoParaPanel } from "@/lib/operadores/fiscal-privado";
 
@@ -39,6 +43,8 @@ type Row = OperadorParaGate & {
   stripe_payouts_enabled: boolean | null;
   stripe_requirements: unknown;
   stripe_onboarded_at: string | null;
+  es_la_casa: boolean | null;
+  propia: boolean | null;
 };
 
 export default async function CobrosPage() {
@@ -46,7 +52,7 @@ export default async function CobrosPage() {
   const { data } = await sb
     .from("operators")
     .select(
-      `id,name,email,stripe_payouts_enabled,stripe_requirements,stripe_onboarded_at,csd_subido_at,${COLUMNAS_GATE}`,
+      `id,name,email,es_la_casa,propia,stripe_payouts_enabled,stripe_requirements,stripe_onboarded_at,csd_subido_at,${COLUMNAS_GATE}`,
     )
     // Una suspendida SIGUE COBRANDO lo que ya vendió: cortarle el dinero de
     // viajes que sí va a operar sería quedarle mal a ella y a sus clientes.
@@ -55,6 +61,9 @@ export default async function CobrosPage() {
   const rows = (data ?? []) as Row[];
   const constancias = await constanciasDe(rows.map((x) => x.id));
   const privados = await fiscalPrivadoParaPanel(createSupabaseAdminClient(), rows.map((x) => x.id));
+  const consentimiento = await consentimientoVigente();
+  const estados = new Map<string, EstadoPortal>(await Promise.all(rows.map(async (x) => [x.id, await estadoPortal(x.id)] as const)));
+  const disponible = organizacionesActivas() && cifradoActivo();
 
   return (
     <AdminShell active="operador">
@@ -95,11 +104,20 @@ export default async function CobrosPage() {
                 tipoPersona: r.tipo_persona ?? "",
                 constancia: constanciaParaPanel(constancias.get(r.id)),
                 privado: privados.get(r.id) ?? null,
-                csdCerPath: r.csd_cer_path ?? null,
-                csdKeyPath: r.csd_key_path ?? null,
-                csdVenceAt: r.csd_vence_at ?? null,
               }}
               faltantes={operadorListo(r).faltantes}
+              facturacion={
+                r.es_la_casa ? undefined : (
+                  <FacturacionPortal
+                    operatorId={r.id}
+                    modo={r.propia ? "operadora" : "casa"}
+                    disponible={disponible}
+                    convenioFirmado={Boolean(r.convenio_firmado_at)}
+                    consentimiento={consentimiento}
+                    estado={estados.get(r.id)!}
+                  />
+                )
+              }
             />
           );
         })

@@ -124,7 +124,7 @@ best-effort al cobrar; comprobante por Resend con PDF) → si piden factura,
 `facturarRecibo` → si no, **global** el día 1 (`global.ts`, cron `factura-global`,
 `cfdi_globales`, pagos `publico-general` + `cfdi_global_id`). Emisor por pago en
 `emisor.ts`; organización por operadora en `organizacion.ts` (datos legales +
-CSD con contraseña desde Mi alta → Cobrar; llaves cifradas con
+CSD en memoria desde Mi alta → Cobrar; llaves cifradas con
 `FACTURAPI_KEY_SECRET`). Env: `FACTURAPI_SECRET_KEY` (la casa), `FACTURAPI_USER_KEY`
 (organizaciones), `FACTURAPI_KEY_SECRET` (32 bytes base64), `FACTURACION_CLIENTES`.
 
@@ -146,8 +146,40 @@ CSD con contraseña desde Mi alta → Cobrar; llaves cifradas con
   lista de ella y aprobación de Luis.
 - **La global se detiene** si cualquier recibo abierto del periodo es de un pago
   que no nos toca (anterior al corte, `externo`, devuelto, con devolución parcial,
-  o sin pago): `recibosQueNoEntranALaGlobal`. ⚠️ Hoy un reembolso NO cancela el
-  recibo: si pasa, la global se detiene y avisa en vez de facturar ingreso devuelto.
+  o sin pago): `recibosQueNoEntranALaGlobal`. Un recibo ya reexpedido por lo
+  neto (`recibo_neto_de_mxn` ≥ `refunded_mxn`) sí entra.
+
+**Devoluciones en los papeles (D19, 0084, 17 nov 2026 — `lib/facturacion/devoluciones.ts`):**
+el MISMO día en que Stripe confirma, `finalizeRefund` corrige el documento; el
+cron `recibos` reintenta lo que falle. Qué toca lo decide `planDevolucion`
+(puro, `devolucion-plan.ts`): sin CFDI → el recibo se **cancela** (total) o se
+**reexpide por lo neto** (parcial); con CFDI (factura del cliente o global) →
+**CFDI de egreso** relacionado 01, misma clave, forma de pago del cobro, PUE, a
+público en general si el original fue la global. La cancelación del original
+(motivo 03) NO es automática: el egreso es la regla general y el numeral/plazo
+de la cancelación sin aceptación lo confirma la contadora (M19). Lo `externo`
+lo documenta la contadora (la pantalla de facturación lo cuenta).
+`recibo_neto_de_mxn` = lo devuelto que el comprobante vigente YA descuenta; un
+egreso sólo ampara lo devuelto después. Cada egreso se identifica por el
+acumulado que documenta (índice único): webhook + panel no timbran dos.
+⚠️ **`marcarYCerrar` ya no existe**: ponía `refunded` a ciegas (una devolución
+parcial desde el panel quedaba como total). Ahora el panel lee el cargo de
+Stripe (`cerrarDesdeStripe`) y corre el mismo `finalizeRefund` que el webhook.
+
+**Facturación desde el portal (D20, 0084 — `lib/facturacion/portal.ts`, Cobrar →
+«Facturación desde Caminante»):** la operadora nunca ve Facturapi. Tres pasos,
+cada uno con candado en el servidor: (1) **activa** aceptando el §1 bis del
+convenio vigente, recortado del texto publicado (`uno-bis.ts`), guardado en
+`operator_facturacion_portal` (append-only, texto + hash + versión + quién);
+(2) **sube su CSD**: los dos archivos y la contraseña viajan EN MEMORIA a
+Facturapi en una petición (`subirCsdAction`); no hay bucket, ni disco, ni log, y
+sólo queda `facturapi_csd_serial` + `csd_vence_at` (D20 bis); (3) **firma su
+carta manifiesto** en el módulo incrustado de Facturapi
+(`facturapi.io/embedded/manifiesto`, con aviso visible de que es página de
+Facturapi); la firmada se lee de `pending_steps`. Sólo ella activa y sube (o la
+casa sobre una operadora `propia`); la casa puede desactivar. Desactivar o
+`estado = baja` (cron) apaga la emisión al instante y da de baja el CSD en
+Facturapi. `emisorDeFila` exige activación + CSD + manifiesto.
 
 Sin la llave, Mi espacio enseña los pagos como «Por facturar». **Sandbox primero.**
 
