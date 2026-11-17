@@ -605,6 +605,45 @@ Con esto **M19 y M20 dejan de ser dudas de fuente**: Marisol sólo confirma que
 está de acuerdo con el formato por pago (sus globales llevan un concepto único
 con clave 90121502) y con el egreso como regla.
 
+**Cotejo de la emisión de PRUEBA de la global (sandbox de Facturapi, 17 nov
+2026; `design/legal/pruebas/global-sandbox-2026-11-17.md`, UUID de prueba
+C838F0E8…A9FD, sin validez fiscal).** La sesión legal la comparó contra la guía
+del CFDI global 4.0 y recalculó los montos. **Cuadra; la API que ya se paga
+emite la global sin el producto de recibos.**
+
+| Qué se verificó | En la prueba | Esperado (guía / regla) | Cuadra |
+|---|---|---|---|
+| Tipo, método y lugar | I · PUE · 11000 | Ingreso · PUE · C.P. de la CSF | ✔ |
+| Receptor | XAXX010101000 · «PUBLICO EN GENERAL» · 616 · S01 · domicilio 11000 | Idéntico; domicilio = lugar de expedición | ✔ |
+| Información global | Periodicidad 04 · Meses 11 · Año 2026 | Mensual; mes del cobro; año en curso | ✔ |
+| Cada concepto | 01010101 · folio CAM-0000NN · 1 · ACT · «Venta» · ObjetoImp 02 | Idéntico | ✔ |
+| Valor unitario | 9,913.793103 · 2,198.275862 · 6,896.551724 | Cobrado ÷ 1.16 ($11,500, $2,550, $8,000), a seis decimales | ✔ |
+| IVA | 002 · Tasa · 0.160000; suma 3,041.38 | 16 % sobre cada subtotal | ✔ |
+| Totales | SubTotal 19,008.62 · Total 22,050.00 | El total es **exactamente lo cobrado** | ✔ |
+| Fecha atrasada | Pedida 48 h atrás y respetada | Permite fechar el último día del mes y timbrar el día 1 | ✔ |
+| Forma de pago | 04 | La del pago mayor ($11,500). El ejemplo no distingue la regla vieja de la corregida | pendiente de la corrección |
+
+Tres cosas que salen de la prueba:
+
+- **Falta archivar el XML** de esta prueba en `design/legal/pruebas/`, como el
+  de retenciones: el cotejo se hizo sobre la transcripción de producto, y el
+  expediente debe guardar el documento. Con el XML reviso además el nodo del
+  emisor y el resumen de impuestos. Es condición para prender.
+- **Llave de idempotencia:** repetirla tras un timbrado exitoso da 409 y no
+  duplica. Regla: ante un 409 **nunca** se genera una llave nueva para el mismo
+  emisor, mes y modo; primero se busca la factura en Facturapi y se anota. Una
+  global duplicada es ingreso duplicado.
+- **El egreso de prueba** salió con la clave de la experiencia y uso S01, antes
+  de D21 bis. Se repite con 84111506, el folio y G02 cuando se construya la
+  corrección, y esa segunda prueba también se coteja.
+
+**Estado al 17 nov (noche):** D21 en producción (af13e36), apagado. El correo a
+Marisol con las cuatro preguntas de §7 y el listado pago por pago de junio a
+octubre **ya salió** en el hilo. Para prender `FACTURACION_CLIENTES` faltan: el
+XML de la operación de noviembre de Marisol, las dos correcciones de D21 bis
+construidas y su prueba cotejada (con los XML archivados), y la aprobación de
+Luis.
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash
@@ -750,7 +789,8 @@ va con IVA (M11).
 - Pedir a Cat/Laura la CSF de Nomádika (D6).
 - **Hoy 17 nov, con Marisol:** que el ingreso de octubre entre en el pago
   provisional que vence hoy; mandarle los **estados de cuenta** que pidió; y
-  preguntarle en el mismo hilo: (a) ¿confirmas que el sistema factura desde el
+  preguntarle en el mismo hilo (**enviado el 17 nov** con el listado pago por
+  pago de junio a octubre; falta su respuesta): (a) ¿confirmas que el sistema factura desde el
   **1 de noviembre** y tú cierras octubre y las diferencias de junio a agosto?;
   (b) ¿nos mandas el XML de la operación de noviembre que ya facturaste?;
   (c) ¿presentas el **aviso de NUMAN como retenedora** antes de la primera

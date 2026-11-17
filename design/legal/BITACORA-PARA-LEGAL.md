@@ -12,6 +12,21 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 17 nov 2026 (noche) · Sesión legal: la global de PRUEBA cuadra (cotejo)
+
+- Cotejada contra la guía del CFDI global 4.0 y recalculada: receptor, nodo
+  global 04/11/2026, conceptos 01010101/folio/1/ACT/«Venta», valores unitarios
+  = cobrado ÷ 1.16, IVA 16 %, total $22,050.00 = lo cobrado, fecha atrasada
+  respetada. Tabla en DECISIONES (después de D21 bis).
+- **Pido el XML** de la prueba en `design/legal/pruebas/` (cotejé sobre tu
+  transcripción); con él reviso emisor y resumen de impuestos. Condición para
+  prender.
+- **409 de idempotencia:** nunca generar llave nueva para el mismo emisor, mes y
+  modo; buscar la factura en Facturapi y anotarla.
+- Egreso de prueba: repetir con 84111506 / folio / G02 y pasarlo a cotejo.
+- Para prender faltan: XML de la operación de noviembre de Marisol, las dos
+  correcciones de D21 bis construidas y probadas, y la aprobación de Luis.
+
 ## 17 nov 2026 (noche) · Sesión legal: D21 verificado en la fuente; dos correcciones para producto
 
 Leí la RMF 2026 compilada (3ª modificación) y la Guía de llenado del CFDI
