@@ -68,15 +68,19 @@ export async function emisorDePago(paymentId: string): Promise<EmisorResuelto> {
   const { data: exp } = await sb.from("experiences").select("operator_id").eq("id", resv.experience_id as string).maybeSingle();
   const opId = (exp?.operator_id as string | null) ?? null;
   if (!opId) return emisorDeFila(null);
-  const { data: op } = await sb.from("operators").select(COLS).eq("id", opId).maybeSingle();
-  return emisorDeFila((op as OpRow | null) ?? null);
+  const { data: op, error } = await sb.from("operators").select(COLS).eq("id", opId).maybeSingle();
+  // ⚠️ Una experiencia CON operadora cuya fila no se pudo leer NO es de la casa:
+  // caer en `emisorDeFila(null)` timbraría con el RFC de NUMAN la venta de otra.
+  if (error || !op) return { ok: false, error: "No pudimos leer a la operadora de esta experiencia.", porEmitir: true };
+  return emisorDeFila(op as OpRow);
 }
 
 /** El emisor por operadora (para la global de fin de mes). */
 export async function emisorDeOperadora(operatorId: string): Promise<EmisorResuelto> {
   const sb = createSupabaseAdminClient();
-  const { data: op } = await sb.from("operators").select(COLS).eq("id", operatorId).maybeSingle();
-  return emisorDeFila((op as OpRow | null) ?? null);
+  const { data: op, error } = await sb.from("operators").select(COLS).eq("id", operatorId).maybeSingle();
+  if (error || !op) return { ok: false, error: "No pudimos leer a esa operadora.", porEmitir: true };
+  return emisorDeFila(op as OpRow);
 }
 
 /** Todas las operadoras que hoy pueden emitir (la casa + las conectadas). */
