@@ -56,7 +56,7 @@ describe("lo que no es de la plataforma", () => {
   });
 
   it("un cobro anterior al corte no se toca", () => {
-    expect(planDevolucion({ ...base, status_cfdi: "emitido", paid_at: "2026-11-09T12:00:00-06:00", refunded_mxn: 10000 }).accion).toBe("nada");
+    expect(planDevolucion({ ...base, status_cfdi: "emitido", paid_at: "2026-10-31T12:00:00-06:00", refunded_mxn: 10000 }).accion).toBe("nada");
   });
 });
 

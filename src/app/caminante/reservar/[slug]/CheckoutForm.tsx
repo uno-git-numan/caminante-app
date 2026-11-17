@@ -43,8 +43,11 @@ export default function CheckoutForm({
   grupoToken,
   grupoExtra = null,
   codigoInicial = null,
+  avisoFactura = null,
 }: {
   slug: string;
+  /** El plazo para pedir factura, dicho antes de pagar (D21). null = aquí no se factura. */
+  avisoFactura?: string | null;
   /** `?codigo=` del mensaje de la casa: la página ya lo cotizó en el servidor; llega puesto y aplicado (o con su razón). */
   codigoInicial?: { codigo: string; cupon: { codigo: string; descuentoMxn: number; etiqueta: string } | null; msg: string | null } | null;
   slots: ReservarSlot[];
@@ -339,6 +342,7 @@ export default function CheckoutForm({
       <p className="text-center text-[11px] text-olive/70">
         Pago seguro con Stripe. Apartas tu lugar al pagar; luego firmas tu deslinde.
       </p>
+      {avisoFactura ? <p className="text-center text-[11px] text-olive/70">{avisoFactura}</p> : null}
     </form>
   );
 }

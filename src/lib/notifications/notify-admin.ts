@@ -289,6 +289,55 @@ async function whatsappCupo(info: CupoHonestoInfo): Promise<void> {
   ]);
 }
 
+// ── Factura global timbrada (D21) ────────────────────────────────────────────
+// Cada global que emite la plataforma se le avisa a la casa por correo, para
+// que se lo pase a la contadora. Importa sobre todo la COMPLEMENTARIA: sale
+// cuando un pago se capturó después de timbrada la global de su mes, y ella
+// tiene que saber que ese mes ahora tiene dos. Sólo correo: no es urgente.
+
+const PANEL_FACTURACION = "https://caminante.numanhub.com/caminante/admin/facturacion";
+
+export type FacturaGlobalInfo = {
+  emisor: string;
+  periodo: string; // YYYY-MM
+  pagos: number;
+  totalMxn: number;
+  uuid: string;
+  complementaria: boolean;
+  avisos: string[];
+};
+
+export async function notifyFacturaGlobal(info: FacturaGlobalInfo): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const total = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(info.totalMxn);
+  const fila = (k: string, v: string) =>
+    `<tr><td style="padding:6px 12px;color:#637154;font-size:13px;">${k}</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#20211c;">${v}</td></tr>`;
+  const titulo = info.complementaria ? "Factura global COMPLEMENTARIA" : "Factura global";
+  const nota = info.complementaria
+    ? "Es una global complementaria: se capturaron pagos de ese mes después de timbrada su global. Avísale a la contadora que ese mes tiene más de una."
+    : "Avísale a la contadora que ya salió la global del mes.";
+  const html = `<body style="margin:0;background:#fbfbf7;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid rgba(32,33,28,.13);border-radius:16px;overflow:hidden;">
+<div style="background:#20392b;color:#fff;padding:16px 20px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Caminante · ${titulo}</div>
+<div style="padding:16px 20px 4px;font-size:14px;color:#20211c;">${nota}</div>
+<table style="width:100%;border-collapse:collapse;">
+${fila("Emisor", info.emisor)}
+${fila("Mes que factura", info.periodo)}
+${fila("Pagos", String(info.pagos))}
+${fila("Total", total)}
+${fila("Folio fiscal", info.uuid)}
+${info.avisos.map((a) => fila("Ojo", a)).join("")}
+</table>
+<div style="padding:14px 20px 20px;"><a href="${PANEL_FACTURACION}" style="display:inline-block;background:#ff5d36;color:#fff;text-decoration:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:600;">Ver facturación</a></div>
+</div></body>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "User-Agent": "caminante-notify/1.0", Accept: "application/json" },
+    body: JSON.stringify({ from: FROM, to: [ADMIN_EMAIL], subject: `${titulo} · ${info.emisor} · ${info.periodo} (${info.pagos} pagos, ${total})`, html }),
+  });
+}
+
 export async function notifyCupoHonesto(info: CupoHonestoInfo): Promise<void> {
   const r = await Promise.allSettled([correoCupo(info), whatsappCupo(info)]);
   for (const x of r) if (x.status === "rejected") console.error("notifyCupoHonesto:", x.reason);

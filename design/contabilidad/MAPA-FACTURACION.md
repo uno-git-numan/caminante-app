@@ -287,9 +287,14 @@ pago cobrado ──▶ COMPROBANTE nuestro (correo con el FOLIO de la operación
 - **Candados del 12 nov (legal, DECISIONES §6; 0083; `lib/facturacion/corte.ts`):**
   la llave sola prende sólo el CFDI de retenciones; lo de clientes pide además
   `FACTURACION_CLIENTES=1`. Nada (comprobante, autofactura, global) sale sobre
-  un cobro anterior a `CORTE_FACTURACION_CLIENTES` (00:00 CDMX del 10 nov 2026,
-  lo confirma Marisol); lo que ella facturó después se marca `externo` con su
-  UUID. A la global sólo entra lo `por-emitir` del periodo y desde el corte.
+  un cobro anterior a `CORTE_FACTURACION_CLIENTES` (**00:00 CDMX del 1 nov
+  2026**, D21: el sistema factura meses completos; octubre y lo anterior los
+  cierra Marisol); lo que ella facturó después se marca `externo` con su UUID.
+  A la global sólo entra lo `por-emitir` del periodo y desde el corte.
+- **D21 (17 nov):** el cron de la global es diario; un pago capturado después
+  de timbrada la global de su mes sale en una **global complementaria** de ese
+  mes, con aviso por correo a la casa. El plazo para pedir factura se le dice
+  al cliente antes de pagar y en el comprobante, que lleva los datos del emisor.
 - La **Carta Manifiesto** de cada operadora la firma ella en su panel, en el
   módulo incrustado de Facturapi (D20, `portal.ts`).
 

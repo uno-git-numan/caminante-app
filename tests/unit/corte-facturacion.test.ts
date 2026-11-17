@@ -9,16 +9,17 @@ import {
 
 describe("el corte de la facturación a clientes", () => {
   it("empieza a las 00:00 de CDMX del día del corte, no a la medianoche UTC", () => {
-    expect(CORTE_FACTURACION_CLIENTES).toBe("2026-11-10");
-    expect(inicioDelCorte().toISOString()).toBe("2026-11-10T06:00:00.000Z");
+    // D21: el sistema factura meses completos, desde el 1 de noviembre de 2026.
+    expect(CORTE_FACTURACION_CLIENTES).toBe("2026-11-01");
+    expect(inicioDelCorte().toISOString()).toBe("2026-11-01T06:00:00.000Z");
   });
 
-  it("un cobro del 9 nov a las 20:00 de CDMX (10 nov en UTC) queda FUERA", () => {
-    expect(dentroDelCorte("2026-11-10T02:00:00.000Z")).toBe(false);
+  it("un cobro del 31 oct a las 20:00 de CDMX (1 nov en UTC) queda FUERA", () => {
+    expect(dentroDelCorte("2026-11-01T02:00:00.000Z")).toBe(false);
   });
 
-  it("un cobro del 10 nov a las 00:00 de CDMX queda dentro", () => {
-    expect(dentroDelCorte("2026-11-10T06:00:00.000Z")).toBe(true);
+  it("un cobro del 1 nov a las 00:00 de CDMX queda dentro", () => {
+    expect(dentroDelCorte("2026-11-01T06:00:00.000Z")).toBe(true);
     expect(dentroDelCorte("2026-11-12T18:30:00-06:00")).toBe(true);
   });
 

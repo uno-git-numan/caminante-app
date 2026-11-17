@@ -1,3 +1,4 @@
+import { avisoFacturaDeOperadora } from "@/lib/facturacion/aviso-plazo";
 import { notFound, redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -74,6 +75,8 @@ export default async function ReservarPage({
 
   const experience = (expRow.data as Experience | undefined) ?? undefined;
   const experienceId = expRow.id as string;
+  // El plazo para pedir factura se dice antes de pagar (D21). null si aquí no se factura.
+  const avisoFactura = await avisoFacturaDeOperadora((expRow.operator_id as string | null) ?? null);
   const title =
     [experience?.title, experience?.titleAccent].filter(Boolean).join(" ").trim() ||
     experience?.docTitle ||
@@ -204,6 +207,7 @@ export default async function ReservarPage({
             grupoToken={grupoToken}
             grupoExtra={grupoExtra}
             codigoInicial={codigoInicial}
+            avisoFactura={avisoFactura}
           />
         )}
       </div>
@@ -222,6 +226,7 @@ export default async function ReservarPage({
           codigoInicial={codigoInicial}
           deslindeOk={deslindeOk}
           errMsg={errMsg}
+          avisoFactura={avisoFactura}
         />
       </PubShell>
     </>

@@ -677,3 +677,36 @@ No contestó de forma expresa la fecha de corte (M18) ni el aviso de retenedora
 (M7). Los XML son globales suyas de junio a septiembre y facturas de junio; no
 viene nada de octubre. La comparación mes por mes contra la plataforma se la
 pasé a Luis y a ti por mensaje (no va en el repo).
+
+## 17 nov 2026 (noche) · Producto: D21 construido (Luis lo aprobó en esta sesión)
+
+Antes: la 0086 se aplicó (hash `adc9bdad…`; los 88 pagos tienen folio del 1 al
+88), se promovió 2d5e27a y después la 0087 (`ec91a6e2…`; las columnas de recibos
+ya no existen y el candado de `externo` sigue exigiendo el UUID, probado en una
+transacción revertida).
+
+Lo de D21, en la rama y apagado:
+1. **Corte al 1 de noviembre de 2026**, 00:00 CDMX (`corte.ts`). Octubre y lo
+   anterior no entran a ninguna global ni reciben comprobante. No marqué nada
+   de junio a octubre.
+2. **Global complementaria.** El cron de la global ahora corre todos los días.
+   Por cada mes cerrado y cada emisor: si no hay global de ese mes, sale la
+   normal (fechada el último día del mes si aún está dentro de 72 h); si ya hay
+   una timbrada y aparecen pagos de ese mes, sale una complementaria con el
+   mismo mes en el nodo global, fecha del día y su propia llave de
+   idempotencia. Cada global manda un correo a la casa; el de la complementaria
+   dice que hay que avisar a la contadora.
+3. **El plazo, antes de pagar.** En la pantalla de reservar y en la página de
+   pago (escritorio y móvil) sale: «¿Necesitas factura? Pídela en tu espacio a
+   más tardar el [último día del mes]. Después, tu pago entra en la factura
+   global del mes y ya no se puede facturar por separado.» Sólo cuando la
+   facturación a clientes está prendida y ese emisor factura desde aquí.
+4. **El comprobante** lleva folio, razón social y RFC de quien emite, régimen
+   fiscal, lugar de expedición (C.P.), fecha del pago, el servicio, el total
+   con «IVA incluido» y el plazo. Sin RFC o C.P. del emisor no se manda.
+5. **La excepción a mano** (egreso contra la global + factura individual fuera
+   de plazo) no tiene pantalla: se hace a mano con la contadora.
+
+Pendiente para prender: el XML de la operación de noviembre de Marisol (para
+marcarla `externo`), la emisión de prueba en sandbox para tu cotejo, y la
+aprobación de Luis.

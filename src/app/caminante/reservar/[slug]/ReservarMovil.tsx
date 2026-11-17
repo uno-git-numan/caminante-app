@@ -57,6 +57,7 @@ export default function ReservarMovil({
   codigoInicial = null,
   deslindeOk,
   errMsg,
+  avisoFactura = null,
 }: {
   slug: string;
   titulo: string;
@@ -72,6 +73,8 @@ export default function ReservarMovil({
   /** `deslindeListo(exp).ok` — sin él NO se cobra (regla que nació del caso Enyd). */
   deslindeOk: boolean;
   errMsg: string | null;
+  /** El plazo para pedir factura, dicho antes de pagar (D21). null = aquí no se factura. */
+  avisoFactura?: string | null;
 }) {
   const primero = slots.find((s) => !s.soldOut) ?? slots[0];
   const [sel, setSel] = useState(primero?.id ?? "");
@@ -406,6 +409,9 @@ export default function ReservarMovil({
                 <span className="pub-mono">{pfmt(total)} MXN</span>
               </div>
             </div>
+            {avisoFactura ? (
+              <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 14, textAlign: "center" }}>{avisoFactura}</p>
+            ) : null}
           </div>
         </form>
       )}

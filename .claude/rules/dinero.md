@@ -127,12 +127,20 @@ flujo: cada pago → **comprobante nuestro** por correo con su **folio**
 `comprobantes` cada hora + best-effort al cobrar) → si piden factura, **factura
 de ingreso directa** por lo neto (`emitir.ts`), sólo **hasta el fin del mes del
 cobro** (`enPlazoParaFacturar`; ese plazo es lo que impide facturar dos veces)
-→ si no, **global** el día 1 (`global.ts` + `global-plan.ts` puro, cron
-`factura-global`): un CFDI a XAXX010101000 con el nodo `global`, **un concepto
-por pago** (01010101, ACT, «Venta», el folio como número de identificación),
-por lo neto, forma de pago la de mayor importe, y **fechada el último día del
-mes que factura** (lo pidió Marisol el 12 nov; el SAT deja hasta 72 h atrás —
-si el cron corre más tarde sale con fecha de hoy y avisa). Los pagos quedan
+→ si no, **global** de cada mes cerrado (`global.ts` + `global-plan.ts` puro,
+cron `factura-global` **diario**, 7:00 CDMX): un CFDI a XAXX010101000 con el
+nodo `global`, **un concepto por pago** (01010101, ACT, «Venta», el folio como
+número de identificación; D21 lo confirmó), por lo neto, forma de pago la de
+mayor importe, y **fechada el último día del mes que factura** (lo pidió
+Marisol el 12 nov; el SAT deja hasta 72 h atrás — si corre más tarde sale con
+fecha de hoy y avisa). **Pago capturado tarde** (su mes ya tiene global) →
+**global COMPLEMENTARIA** de ese mismo mes en la siguiente corrida, con fecha
+del día y su propia llave de idempotencia (`modoDeGlobal`); cada global avisa
+a la casa por correo (`notifyFacturaGlobal`) para que lo sepa la contadora.
+**El plazo se le dice al cliente antes de pagar** (`aviso-plazo.ts`, en
+reservar y en la página de pago, sólo si ese emisor factura aquí) y en el
+comprobante, que además lleva RFC y régimen del emisor, lugar, fecha, servicio,
+total y folio (condiciones de D21). Los pagos quedan
 `publico-general` + `cfdi_global_id` (`cfdi_globales.pagos`). Emisor por pago en
 `emisor.ts`; organización por operadora en `organizacion.ts` (datos legales +
 CSD en memoria desde Mi alta → Cobrar; llaves cifradas con
@@ -146,8 +154,10 @@ CSD en memoria desde Mi alta → Cobrar; llaves cifradas con
 - Comprobantes, autofactura y global a clientes piden además `FACTURACION_CLIENTES=1`
   (`facturacionClientesActiva()`; lo usan `emisor.ts`, `comprobantes.ts`, las pantallas).
   Apagado hasta el visto bueno de la contadora.
-- **El corte es código:** `CORTE_FACTURACION_CLIENTES` (00:00 CDMX del 10 nov 2026,
-  la confirma Marisol, M18). Nada se emite sobre un cobro anterior: ni
+- **El corte es código:** `CORTE_FACTURACION_CLIENTES` = **00:00 CDMX del 1 nov
+  2026** (D21, aprobado por Luis el 17 nov: el sistema factura MESES COMPLETOS;
+  octubre y lo anterior los cierra Marisol tras conciliar contra banco y Stripe,
+  y hasta entonces no se marca nada). Nada se emite sobre un cobro anterior: ni
   comprobante, ni autofactura (`estadoFacturable`), ni global (`planGlobal`).
   Cambiar la fecha es un commit, no una variable. (Sustituyó a
   `FACTURAPI_RECIBOS_DESDE`, que además comparaba contra medianoche UTC.)
@@ -157,9 +167,10 @@ CSD en memoria desde Mi alta → Cobrar; llaves cifradas con
 - **A la global sólo entra** lo `por-emitir`, cobrado en el periodo y desde el
   corte, con algo neto por facturar (`planGlobal`): lo facturado al cliente, lo
   `externo`, lo devuelto completo y lo anterior al corte quedan fuera solos.
-  ⚠️ Un pago que se capture DESPUÉS de timbrada la global de su mes (una
-  transferencia registrada tarde) no entra en ninguna: hay que resolverlo con
-  la contadora, no hay camino automático.
+- **Antes de prender `FACTURACION_CLIENTES` (D21):** la operación de noviembre
+  que Marisol ya facturó marcada `externo` con su UUID (falta su XML); la
+  emisión de prueba de la global en sandbox cotejada por legal; y la
+  aprobación de Luis.
 
 **Devoluciones en los papeles (D19, 0084, 17 nov 2026 — `lib/facturacion/devoluciones.ts`):**
 el MISMO día en que Stripe confirma, `finalizeRefund` corrige el documento; el

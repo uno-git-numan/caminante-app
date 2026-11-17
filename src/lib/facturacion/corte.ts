@@ -16,8 +16,14 @@
 //
 // Módulo puro a propósito: lo prueban los tests sin servidor.
 
-/** Primer día (hora de CDMX) cuyos cobros factura la plataforma. Propuesta 10 nov; la confirma Marisol. */
-export const CORTE_FACTURACION_CLIENTES = "2026-11-10";
+/**
+ * Primer día (hora de CDMX) cuyos cobros factura la plataforma: el 1 de
+ * noviembre de 2026 (D21 de legal, aprobado por Luis el 17 nov). La plataforma
+ * factura MESES COMPLETOS: la contadora pidió que el sistema emita toda la
+ * facturación porque un mes trabajado a dos manos genera discrepancias. Octubre
+ * y lo anterior los cierra ella. (La propuesta inicial era el 10 nov.)
+ */
+export const CORTE_FACTURACION_CLIENTES = "2026-11-01";
 
 /** El instante del corte: 00:00 de CDMX (UTC−6, sin horario de verano desde 2022). */
 export const inicioDelCorte = (): Date => new Date(`${CORTE_FACTURACION_CLIENTES}T00:00:00-06:00`);

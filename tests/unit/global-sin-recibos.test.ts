@@ -1,5 +1,58 @@
 import { describe, expect, it } from "vitest";
-import { enPlazoParaFacturar, fechaDeEmisionGlobal, folioDePago, limiteParaFacturar, periodoAnterior, planGlobal, type PagoParaGlobal } from "@/lib/facturacion/global-plan";
+import {
+  avisoPlazoFactura,
+  enPlazoParaFacturar,
+  fechaDeEmisionGlobal,
+  folioDePago,
+  limiteParaFacturar,
+  mesDeCobro,
+  modoDeGlobal,
+  periodoAnterior,
+  periodoDeMes,
+  planGlobal,
+  type PagoParaGlobal,
+} from "@/lib/facturacion/global-plan";
+
+describe("la global complementaria (D21: un pago capturado tarde)", () => {
+  const NOVIEMBRE = periodoDeMes(2026, 11);
+  const dia1 = new Date("2026-12-01T13:00:00Z");
+
+  it("la primera global del mes es la normal: fechada el último día del mes", () => {
+    expect(modoDeGlobal(NOVIEMBRE, null, 0, dia1)).toEqual({ complementaria: false, fecha: "2026-12-01T02:00:00.000Z", idempotencyKey: "global-casa-2026-11-01" });
+  });
+
+  it("si ya hay una timbrada, la siguiente es complementaria y sale con la fecha del día", () => {
+    expect(modoDeGlobal(NOVIEMBRE, "op-1", 1, new Date("2026-12-09T13:00:00Z"))).toEqual({ complementaria: true, fecha: null, idempotencyKey: "global-op-1-2026-11-01-c1" });
+  });
+
+  it("cada complementaria lleva su propia llave: reintentar no timbra dos y la segunda no se confunde con la primera", () => {
+    const a = modoDeGlobal(NOVIEMBRE, null, 1).idempotencyKey;
+    const b = modoDeGlobal(NOVIEMBRE, null, 2).idempotencyKey;
+    expect(a).toBe(modoDeGlobal(NOVIEMBRE, null, 1).idempotencyKey);
+    expect(a).not.toBe(b);
+  });
+
+  it("si la corrida del día 1 falló y se recoge después de 72 horas, es la normal pero ya sin fecha atrasada", () => {
+    expect(modoDeGlobal(NOVIEMBRE, null, 0, new Date("2026-12-05T13:00:00Z"))).toMatchObject({ complementaria: false, fecha: null });
+  });
+
+  it("el mes de un cobro es el de CDMX, no el de UTC", () => {
+    expect(mesDeCobro("2026-12-01T05:30:00.000Z")).toBe("2026-11"); // 30 nov, 23:30 CDMX
+    expect(mesDeCobro("2026-12-01T06:00:00.000Z")).toBe("2026-12");
+    expect(mesDeCobro(null)).toBeNull();
+  });
+
+  it("un mes como periodo: del día 1 al último, hora de CDMX", () => {
+    expect(periodoDeMes(2027, 2)).toMatchObject({ clave: "2027-02", desde: "2027-02-01T00:00:00.000-06:00", hasta: "2027-02-28T23:59:59.999-06:00", mes: "02", anio: 2027 });
+  });
+});
+
+describe("el plazo, dicho antes de pagar", () => {
+  it("quien paga hoy puede pedir factura hasta el último día de este mes", () => {
+    expect(avisoPlazoFactura(new Date("2026-11-17T18:00:00-06:00"))).toMatch(/a más tardar el 30 de noviembre/);
+    expect(avisoPlazoFactura(new Date("2027-02-03T10:00:00-06:00"))).toMatch(/a más tardar el 28 de febrero/);
+  });
+});
 
 describe("la fecha de emisión de la global (pedido de la contadora)", () => {
   const periodo = { hastaFecha: "2026-11-30" };
@@ -97,20 +150,29 @@ describe("qué entra a la global", () => {
     expect(plan.total).toBe(8000);
   });
 
-  it("queda fuera lo ya facturado, lo de la contadora, lo devuelto completo y lo anterior al corte", () => {
+  it("queda fuera lo ya facturado, lo de la contadora y lo devuelto completo", () => {
     const plan = planGlobal(
       [
         pago({ id: "a", status_cfdi: "emitido" }),
         pago({ id: "b", status_cfdi: "externo" }),
         pago({ id: "c", status: "refunded", refunded_mxn: 11500 }),
-        pago({ id: "d", paid_at: "2026-11-09T12:00:00-06:00" }),
         pago({ id: "e", status_cfdi: "publico-general" }),
       ],
       NOV,
     );
     expect(plan.renglones).toEqual([]);
-    expect(plan.fuera.map((f) => f.paymentId)).toEqual(["a", "b", "c", "d", "e"]);
-    expect(plan.fuera.find((f) => f.paymentId === "d")?.porque).toMatch(/anterior al corte/);
+    expect(plan.fuera.map((f) => f.paymentId)).toEqual(["a", "b", "c", "e"]);
+  });
+
+  it("octubre es de la contadora: un cobro anterior al corte (1 nov) no entra a ninguna global", () => {
+    const OCT = periodoDeMes(2026, 10);
+    const plan = planGlobal([pago({ id: "d", paid_at: "2026-10-20T12:00:00-06:00" })], OCT);
+    expect(plan.renglones).toEqual([]);
+    expect(plan.fuera[0]?.porque).toMatch(/anterior al corte/);
+  });
+
+  it("noviembre entra completo, desde el día 1", () => {
+    expect(planGlobal([pago({ paid_at: "2026-11-01T00:00:00-06:00" })], NOV).renglones).toHaveLength(1);
   });
 
   it("los pagos de otro mes ni entran ni se reportan", () => {

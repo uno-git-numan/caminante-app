@@ -1,3 +1,4 @@
+import { avisoFacturaDeReserva } from "@/lib/facturacion/aviso-plazo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -39,6 +40,8 @@ export default async function PagoPage({
   if (!p) notFound();
 
   const tema = await fetchThemeForReservation(p.reservationId);
+  // El plazo para pedir factura se dice antes de pagar (D21).
+  const avisoFactura = p.estado === "pendiente" ? await avisoFacturaDeReserva(p.reservationId) : null;
   const deslindeHref = p.deslindeActivo ? `/caminante/registro/${p.slug}?reserva=${p.reservationId}` : null;
   const wa = p.contacto.whatsapp ? `https://wa.me/${p.contacto.whatsapp.replace(/\D/g, "")}` : null;
   const lugares = `${p.personas} ${p.personas === 1 ? "lugar" : "lugares"}`;
@@ -83,6 +86,7 @@ export default async function PagoPage({
               </button>
             </form>
             <p className="mt-3 text-center text-[11px] text-olive/70">Pago seguro con tarjeta vía Stripe. Al terminar vuelves aquí para firmar tu deslinde.</p>
+            {avisoFactura ? <p className="mt-2 text-center text-[11px] text-olive/70">{avisoFactura}</p> : null}
           </>
         ) : p.estado === "pagada" ? (
           <>
@@ -120,7 +124,7 @@ export default async function PagoPage({
       </section>
 
       <PubShell scope={wlDoc(tema)}>
-        <PagoMovil p={p} error={error ?? null} deslindeHref={deslindeHref} wa={wa} />
+        <PagoMovil avisoFactura={avisoFactura} p={p} error={error ?? null} deslindeHref={deslindeHref} wa={wa} />
       </PubShell>
     </>
   );

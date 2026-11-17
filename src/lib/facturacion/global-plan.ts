@@ -97,22 +97,55 @@ export function planGlobal(pagos: PagoParaGlobal[], periodo: { desde: string; ha
 
 const TZ_OFFSET = "-06:00"; // CDMX sin horario de verano desde 2022
 
-/** El mes anterior al de `hoy` (visto desde CDMX), en fechas ISO con huso de CDMX. */
-export function periodoAnterior(hoy = new Date()): { desde: string; hasta: string; mes: string; anio: number; desdeFecha: string; hastaFecha: string } {
-  const local = new Date(hoy.getTime() - 6 * 3600_000); // reloj de CDMX leído como UTC
-  const y = local.getUTCFullYear();
-  const m = local.getUTCMonth(); // 0-11, mes actual
-  const inicio = new Date(Date.UTC(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1, 1));
-  const fin = new Date(Date.UTC(y, m, 0)); // último día del mes anterior
+export type Periodo = { clave: string; desde: string; hasta: string; mes: string; anio: number; desdeFecha: string; hastaFecha: string };
+
+/** Un mes calendario de CDMX como periodo de la global. `mes` es 1-12. */
+export function periodoDeMes(anio: number, mes: number): Periodo {
+  const inicio = new Date(Date.UTC(anio, mes - 1, 1));
+  const fin = new Date(Date.UTC(anio, mes, 0)); // último día del mes
   const ymd = (d: Date) => d.toISOString().slice(0, 10);
+  const mm = String(mes).padStart(2, "0");
   return {
+    clave: `${anio}-${mm}`,
     desde: `${ymd(inicio)}T00:00:00.000${TZ_OFFSET}`,
     hasta: `${ymd(fin)}T23:59:59.999${TZ_OFFSET}`,
-    mes: String(inicio.getUTCMonth() + 1).padStart(2, "0"),
-    anio: inicio.getUTCFullYear(),
+    mes: mm,
+    anio,
     desdeFecha: ymd(inicio),
     hastaFecha: ymd(fin),
   };
+}
+
+/** El mes (de CDMX) en que cayó un cobro, como `YYYY-MM`. null si no hay fecha. */
+export function mesDeCobro(paidAt: string | null | undefined): string | null {
+  const t = paidAt ? new Date(paidAt).getTime() : NaN;
+  if (!Number.isFinite(t)) return null;
+  return new Date(t - 6 * 3600_000).toISOString().slice(0, 7); // reloj de CDMX leído como UTC
+}
+
+/** El mes anterior al de `hoy` (visto desde CDMX): el último mes CERRADO. */
+export function periodoAnterior(hoy = new Date()): Periodo {
+  const local = new Date(hoy.getTime() - 6 * 3600_000);
+  const y = local.getUTCFullYear();
+  const m = local.getUTCMonth(); // 0-11, mes actual
+  return m === 0 ? periodoDeMes(y - 1, 12) : periodoDeMes(y, m);
+}
+
+/**
+ * Cómo sale la global de un emisor para un mes cerrado, según las que ya tenga
+ * timbradas de ese mes (D21 de legal):
+ *   · ninguna → la global del mes, fechada el último día del periodo si aún
+ *     está dentro de las 72 horas;
+ *   · ya hay una → COMPLEMENTARIA: mismo mes en el nodo global, con la fecha del
+ *     día en que se emite. Es el camino de un pago que se capturó tarde (una
+ *     transferencia registrada después de timbrada la global de su mes).
+ * La llave de idempotencia cambia con cada complementaria: reintentar la misma
+ * no timbra dos, y la siguiente no se confunde con la anterior.
+ */
+export function modoDeGlobal(periodo: Periodo, emisorId: string | null, yaTimbradas: number, ahora = new Date()): { complementaria: boolean; fecha: string | null; idempotencyKey: string } {
+  const base = `global-${emisorId ?? "casa"}-${periodo.desdeFecha}`;
+  if (yaTimbradas > 0) return { complementaria: true, fecha: null, idempotencyKey: `${base}-c${yaTimbradas}` };
+  return { complementaria: false, fecha: fechaDeEmisionGlobal(periodo, ahora), idempotencyKey: base };
 }
 
 /**
@@ -130,4 +163,13 @@ export function fechaDeEmisionGlobal(periodo: { hastaFecha: string }, ahora = ne
   const fecha = new Date(`${periodo.hastaFecha}T20:00:00-06:00`);
   const horas = (ahora.getTime() - fecha.getTime()) / 3600_000;
   return horas >= 0 && horas <= 71 ? fecha.toISOString() : null;
+}
+
+/**
+ * La frase del plazo para pedir factura, para decirla ANTES de pagar (D21,
+ * LFPC art. 7): quien paga hoy puede facturar hasta el último día de este mes.
+ */
+export function avisoPlazoFactura(ahora = new Date()): string {
+  const limite = new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "long" }).format(limiteParaFacturar(ahora.toISOString()));
+  return `¿Necesitas factura? Pídela en tu espacio a más tardar el ${limite}. Después, tu pago entra en la factura global del mes y ya no se puede facturar por separado.`;
 }

@@ -98,10 +98,19 @@ export async function emisoresActivos(): Promise<Emisor[]> {
 
 export const facturapiDe = (e: Emisor) => clienteFacturapi(e.key);
 
+export type DatosFiscalesEmisor = { rfc: string | null; razonSocial: string | null; regimen: string | null; cp: string | null };
+
+/** RFC, razón social, régimen y CP fiscal de quien emite: van en el comprobante del cliente (D21). */
+export async function datosFiscalesDe(emisor: Emisor): Promise<DatosFiscalesEmisor> {
+  const sb = createSupabaseAdminClient();
+  const q = sb.from("operators").select("rfc, razon_social, regimen_fiscal, cp_fiscal");
+  const { data } = emisor.operatorId ? await q.eq("id", emisor.operatorId).maybeSingle() : await q.eq("es_la_casa", true).limit(1).maybeSingle();
+  const o = (data ?? {}) as Record<string, string | null>;
+  const t = (x: string | null | undefined) => (x ?? "").trim() || null;
+  return { rfc: t(o.rfc), razonSocial: t(o.razon_social), regimen: t(o.regimen_fiscal), cp: t(o.cp_fiscal) };
+}
+
 /** El CP fiscal del emisor = lugar de expedición, y domicilio del receptor «público en general». */
 export async function cpFiscalDe(emisor: Emisor): Promise<string | null> {
-  const sb = createSupabaseAdminClient();
-  const q = sb.from("operators").select("cp_fiscal");
-  const { data } = emisor.operatorId ? await q.eq("id", emisor.operatorId).maybeSingle() : await q.eq("es_la_casa", true).limit(1).maybeSingle();
-  return ((data as { cp_fiscal?: string | null } | null)?.cp_fiscal ?? "").trim() || null;
+  return (await datosFiscalesDe(emisor)).cp;
 }

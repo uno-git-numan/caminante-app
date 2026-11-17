@@ -11,7 +11,7 @@ import { pfmt } from "@/app/caminante/ui/pub/PubShell";
 import { iniciarPagoDeReserva } from "@/lib/payments/pagina-pago";
 import type { PagoVista } from "@/lib/payments/pago-loader";
 
-export default function PagoMovil({ p, error, deslindeHref, wa }: { p: PagoVista; error: string | null; deslindeHref: string | null; wa: string | null }) {
+export default function PagoMovil({ p, error, deslindeHref, wa, avisoFactura = null }: { p: PagoVista; error: string | null; deslindeHref: string | null; wa: string | null; avisoFactura?: string | null }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pagando, setPagando] = useState(false);
   const [host, setHost] = useState<HTMLElement | null>(null);
@@ -67,6 +67,9 @@ export default function PagoMovil({ p, error, deslindeHref, wa }: { p: PagoVista
             <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 14, textAlign: "center" }}>
               Pago seguro con tarjeta vía Stripe. Al terminar vuelves aquí para firmar tu deslinde.
             </p>
+            {avisoFactura ? (
+              <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 8, textAlign: "center" }}>{avisoFactura}</p>
+            ) : null}
           </>
         ) : p.estado === "pagada" ? (
           <div className="pub-blk" style={{ marginTop: 18 }}>

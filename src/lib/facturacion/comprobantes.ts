@@ -15,7 +15,8 @@ import "server-only";
 // `comprobante_enviado_at`.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { emisorDePago } from "@/lib/facturacion/emisor";
+import { datosFiscalesDe, emisorDePago } from "@/lib/facturacion/emisor";
+import { REGIMENES } from "@/lib/facturacion/catalogos";
 import { COLS_PAGO_COMPROBANTE as COLS, conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
 import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
 import { inicioDelCorte } from "@/lib/facturacion/corte";
@@ -29,6 +30,7 @@ type Pago = PagoParaComprobante & { comprobante_enviado_at: string | null };
 
 const pesos = (n: number) => `$${Math.round(n).toLocaleString("en-US")} MXN`;
 const fechaCorta = (d: Date) => new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "long" }).format(d);
+const fechaLarga = (d: Date) => new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "long", year: "numeric" }).format(d);
 
 /**
  * Manda el comprobante de los pagos cobrados desde el corte que aún no lo
@@ -63,12 +65,33 @@ export async function mandarComprobantesPendientes(limit = 25): Promise<{ enviad
     }
     const d = await conceptosDePago(pay);
     if (!d.email) continue; // sin correo no hay a quién mandarlo; la factura se pide igual en Mi espacio
+    // Los datos de quien emite van en el comprobante (D21). Sin RFC no es un
+    // comprobante completo: se espera a que la operadora los tenga.
+    const fiscal = await datosFiscalesDe(emisor.emisor);
+    if (!fiscal.rfc || !fiscal.cp) {
+      esperando += 1;
+      continue;
+    }
     try {
       const folio = folioDePago(pay.folio ?? pay.id);
       const limite = fechaCorta(limiteParaFacturar(pay.paid_at));
+      const regimen = fiscal.regimen ? (REGIMENES.find((r) => r.clave === fiscal.regimen)?.label ?? fiscal.regimen) : null;
+      const servicio = `${d.titulo}${d.salida ? ` · ${d.salida}` : ""}`;
+      // Lo que legal pide que lleve el comprobante de la operación (D21): quién
+      // emite (RFC y régimen), lugar y fecha, el servicio, el total y el folio.
+      const renglones = [
+        `<b>Folio:</b> ${folio}`,
+        `<b>Emite:</b> ${fiscal.razonSocial ?? emisor.emisor.nombre} · RFC ${fiscal.rfc}`,
+        regimen ? `<b>Régimen fiscal:</b> ${regimen}` : null,
+        `<b>Lugar de expedición:</b> C.P. ${fiscal.cp}`,
+        `<b>Fecha del pago:</b> ${fechaLarga(new Date(pay.paid_at))}`,
+        `<b>Servicio:</b> ${servicio}`,
+        `<b>Total pagado:</b> ${pesos(d.total)} (IVA incluido)`,
+      ].filter(Boolean);
       const { html, texto } = marco("Tu comprobante de pago", [
         h1("Recibimos tu pago"),
-        p(`Hola${saludo(d.nombre)}. Recibimos <b>${pesos(d.total)}</b> por <b>${d.titulo}${d.salida ? ` · ${d.salida}` : ""}</b>. Tu folio de operación es <b>${folio}</b>.`),
+        p(`Hola${saludo(d.nombre)}. Éste es el comprobante de tu pago por <b>${servicio}</b>.`),
+        p(renglones.join("<br>")),
         p(`¿Necesitas factura? Entra a tu espacio, guarda tus datos fiscales y pídela con un clic <b>a más tardar el ${limite}</b>. Después de esa fecha tu pago entra en la factura global del mes y ya no se puede facturar por separado.`),
         boton("Pedir mi factura", `${SITE}/caminante/perfil#facturas`),
         p(`La factura la emite ${emisor.emisor.nombre}, que opera tu experiencia; Caminante te la entrega aquí mismo.`),
