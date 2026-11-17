@@ -733,3 +733,20 @@ aprobación de Luis.
 El correo a Marisol con las cuatro preguntas de §7 salió en el mismo hilo, con
 el listado pago por pago de junio a octubre adjunto (78 pagos, sin nombres de
 clientes). Los estados de cuenta los manda Luis por separado.
+
+## 17 nov 2026 (noche) · Producto: emisión de prueba de la global, para tu cotejo
+
+Luis autorizó tomar la llave de pruebas. La global armada por la plataforma se
+timbró en el sandbox de Facturapi **sin** el producto E-Receipts. El detalle
+nodo por nodo está en `design/legal/pruebas/global-sandbox-2026-11-17.md`:
+ValorUnitario sin IVA, traslado 002 al 0.160000, ObjetoImp 02, InformacionGlobal
+04 / 11 / 2026, receptor XAXX010101000 «PUBLICO EN GENERAL» 616 / S01 con
+domicilio igual al lugar de expedición, y la fecha atrasada respetada. La fecha
+«último día del mes» sólo se puede ver el 1 de diciembre.
+
+**D21 bis, leído.** Dos correcciones tuyas que todavía NO están construidas
+(esperan la aprobación de Luis): la forma de pago de la global es la del pago
+individual más grande (hoy el código toma la que suma más), y el egreso contra
+una global lleva clave 84111506, el folio en NoIdentificacion y uso G02 (hoy:
+clave de la experiencia y S01). El egreso de prueba se hizo con los valores
+viejos; se repite al construir la corrección.

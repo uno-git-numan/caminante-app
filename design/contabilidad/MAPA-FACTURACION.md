@@ -274,8 +274,10 @@ pago cobrado ──▶ COMPROBANTE nuestro (correo con el FOLIO de la operación
   ser del mes al que corresponde») y el SAT permite hasta 72 horas atrás; si
   el cron corriera más tarde, sale con fecha de hoy y el resultado avisa.
   Idempotente por emisor + periodo (`idempotency_key`).
-- ⚠️ Pendiente de probar en **sandbox** que Facturapi acepta esta global sin el
-  producto E-Receipts (está documentado en su API; falta la emisión de prueba).
+- **Probado en sandbox el 17 nov 2026**: Facturapi acepta esta global sin el
+  producto E-Receipts y respeta la fecha atrasada
+  (`design/legal/pruebas/global-sandbox-2026-11-17.md`). Ojo con la llave de
+  idempotencia: repetirla tras un timbrado exitoso contesta 409, no la factura.
 - **La organización de cada operadora** (`lib/facturacion/organizacion.ts`): se
   crea con la llave de USUARIO (`FACTURAPI_USER_KEY`), recibe sus datos legales
   (lo que ya captura Mi alta → Cobrar) y su CSD con la contraseña que la
