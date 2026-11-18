@@ -422,7 +422,7 @@ export default function ReservarMovil({
               <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 14, textAlign: "center" }}>{avisoFactura}</p>
             ) : null}
             {politica ? <FraseAceptacionMovil /> : null}
-            {contacto ? <ContactoReclamacionesMovil contacto={contacto} /> : null}
+            <ContactoReclamacionesMovil contacto={contacto} />
           </div>
         </form>
       )}

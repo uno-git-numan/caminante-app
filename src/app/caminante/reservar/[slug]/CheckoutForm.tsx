@@ -353,7 +353,7 @@ export default function CheckoutForm({
         Pago seguro con Stripe. Apartas tu lugar al pagar; luego firmas tu deslinde.
       </p>
       {politica ? <FraseAceptacionEscritorio /> : null}
-      {contacto ? <ContactoReclamacionesEscritorio contacto={contacto} /> : null}
+      <ContactoReclamacionesEscritorio contacto={contacto} />
       {avisoFactura ? <p className="text-center text-[11px] text-olive/70">{avisoFactura}</p> : null}
     </form>
   );

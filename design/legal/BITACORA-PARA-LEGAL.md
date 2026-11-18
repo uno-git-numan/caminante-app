@@ -1025,3 +1025,20 @@ guarda de reembolsos dejaba pasar al equipo de numan; ya exige la casa.
   Luis diga cuál se publica; dime tú si debe ser el de la operadora que vende,
   el de NUMAN, o los dos.
 
+## 18 nov 2026 · Producto: D25 construido (domicilio y reclamaciones); falta promover
+
+- **Domicilio verificado contra dos fuentes** antes de escribirlo: el preámbulo
+  del convenio v3.3 publicado en la base y el expediente (Constancia). Coincide
+  letra por letra con D25.
+- **Reservar y página de pago** (escritorio y móvil): «Reclamaciones y
+  aclaraciones» con el contacto de Caminante siempre, el de quien opera sólo si
+  es distinto, y razón social y domicilio de NUMAN.
+- **Pie del sitio:** pie general de escritorio, pie de la ficha de experiencia
+  y menú del sitio móvil.
+- **Aviso de privacidad:** los dos párrafos transcritos (responsable con
+  domicilio como primer párrafo; la cuenta para una bonificación). Una prueba
+  compara el domicilio, la razón social y el correo contra tu documento.
+- El domicilio de la operadora no se publica; no construí nada de eso.
+- **Sin promover:** publicar el domicilio y el aviso es visible para todo el
+  público, así que espera el visto bueno de Luis (y su passkey de Vercel).
+

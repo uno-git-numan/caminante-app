@@ -290,10 +290,16 @@ devolver dinero desde el panel y nada falló. Ahora sale de `alcanceActual()`
 casa (antes dejaba pasar al equipo de numan). **Una pantalla de dinero se
 verifica ENTRANDO a ella en producción, no leyendo el código.**
 
-**Antes de pagar, a quién reclamar** (LFPC 76 Bis III, D24): reservar y la
-página de pago enseñan WhatsApp y correo de quien vende (`contactoDeVenta`).
-⚠️ **Falta el DOMICILIO FÍSICO**, que la ley también pide: no se publica en
-ningún lado (tampoco en el aviso de privacidad). Lo decide Luis.
+**Antes de pagar, a quién reclamar** (LFPC 76 Bis III; D24 y D25): reservar y
+la página de pago enseñan «Reclamaciones y aclaraciones»: el contacto de
+**Caminante siempre** (responde por la devolución aunque venda una operadora),
+el de quien opera si es distinto (`contactoDeVenta`, `contactoPropioDe`), y la
+razón social y el **domicilio de NUMAN**. Lo mismo va en el pie del sitio
+(escritorio, ficha y menú móvil) y en el aviso de privacidad (LFPDPPP art. 15 I).
+Todo sale de `lib/legal/responsable.ts`; una prueba lo compara contra el
+documento de legal. **El domicilio de la operadora NO se publica** (muchas son
+personas físicas y es su casa); lo resuelve la siguiente versión del convenio.
+Si la oficina de NUMAN cambia, primero el SAT y luego ese archivo.
 
 ## Nunca inventes un número
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CONTACTO_CAMINANTE, DOMICILIO_NUMAN, RAZON_SOCIAL_NUMAN, waHref } from "@/lib/legal/responsable";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth/actions";
 
@@ -218,6 +219,22 @@ export default function SiteChrome({
 
           <div className="mt-10 border-t border-lagoon-light/30 pt-6 text-center text-xs text-sand/70">
             &copy; 2026 Caminante by Numan. Todos los derechos reservados.
+            {/* Identidad, domicilio y medios de reclamación a la vista en todo el
+                sitio (LFPC 76 Bis III, LFPDPPP art. 15 I; D25 de legal). */}
+            <p className="mx-auto mt-3 max-w-3xl leading-relaxed">
+              {RAZON_SOCIAL_NUMAN} · {DOMICILIO_NUMAN}. Reclamaciones y aclaraciones:{" "}
+              <a className="underline hover:text-cream" href={waHref(CONTACTO_CAMINANTE.whatsapp)} target="_blank" rel="noopener noreferrer">
+                WhatsApp {CONTACTO_CAMINANTE.whatsapp}
+              </a>{" "}
+              ·{" "}
+              <a className="underline hover:text-cream" href={`mailto:${CONTACTO_CAMINANTE.email}`}>
+                {CONTACTO_CAMINANTE.email}
+              </a>{" "}
+              ·{" "}
+              <Link className="underline hover:text-cream" href="/caminante/privacidad">
+                Aviso de privacidad
+              </Link>
+            </p>
           </div>
         </div>
       </footer>

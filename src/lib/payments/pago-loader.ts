@@ -7,6 +7,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fetchOperatorContactoForExperience } from "@/lib/operators/public";
+import { CONTACTO_CAMINANTE } from "@/lib/legal/responsable";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -47,8 +48,8 @@ export type ContactoDeVenta = { whatsapp: string | null; email: string | null };
 /** El contacto de la operadora de la venta; lo que ella no tenga, el de la casa. */
 function contactoCon(operadora: { whatsapp?: string | null; email?: string | null } | null): ContactoDeVenta {
   return {
-    whatsapp: operadora?.whatsapp ?? "+525512020565",
-    email: operadora?.email ?? "uno@numanhub.com",
+    whatsapp: operadora?.whatsapp ?? CONTACTO_CAMINANTE.whatsapp,
+    email: operadora?.email ?? CONTACTO_CAMINANTE.email,
   };
 }
 

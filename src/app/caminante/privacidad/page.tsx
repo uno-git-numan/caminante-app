@@ -7,6 +7,11 @@
 // ⚠️ La frase en negritas sobre Stripe la exige Stripe palabra por palabra, y la
 // cláusula «aceptas esa transferencia… si no la aceptas…» la pide la LFPDPPP 2025
 // art. 35. No se parafrasean.
+//
+// 18 nov 2026 (D25): el responsable con su domicilio como primer párrafo, y la
+// cuenta que el cliente da para recibir una bonificación.
+
+import { CORREO_PRIVACIDAD, DOMICILIO_NUMAN, RAZON_SOCIAL_NUMAN } from "@/lib/legal/responsable";
 
 export const metadata = {
   title: "Aviso de Privacidad · Caminante",
@@ -24,15 +29,18 @@ export default function PrivacidadPage() {
 
       <div className="mt-8 space-y-6 text-[15px] leading-relaxed text-lagoon">
         <section>
-          <h2 className="mb-1 font-semibold">Responsable</h2>
+          {/* D25 de legal (18 nov 2026), transcrito tal cual: identidad y
+              domicilio del responsable (LFPDPPP 2025 art. 15 I). El domicilio
+              y la razón social salen de lib/legal/responsable.ts. */}
           <p>
-            Caminante (marca operada por Numan Hub), con contacto en{" "}
-            <a className="text-dune underline" href="mailto:caminante@numanhub.com">
-              caminante@numanhub.com
+            <strong>Quién es el responsable.</strong> Caminante es una marca de{" "}
+            <strong>{RAZON_SOCIAL_NUMAN}</strong>, con domicilio en {DOMICILIO_NUMAN}. Es la
+            responsable de tus datos personales. Para cualquier duda, aclaración o para
+            ejercer tus derechos, escríbenos a{" "}
+            <a className="text-dune underline" href={`mailto:${CORREO_PRIVACIDAD}`}>
+              {CORREO_PRIVACIDAD}
             </a>
-            , es responsable del tratamiento de tus datos personales conforme a la
-            Ley Federal de Protección de Datos Personales en Posesión de los
-            Particulares (LFPDPPP).
+            .
           </p>
         </section>
 
@@ -73,6 +81,20 @@ export default function PrivacidadPage() {
               definitiva salvo que tú vuelvas a suscribirte).
             </li>
           </ul>
+        </section>
+
+        <section>
+          {/* D25 de legal, transcrito tal cual: la cuenta para una bonificación
+              es dato financiero (LFPDPPP art. 7) y no se guarda. */}
+          <p>
+            <strong>Si te pagamos una bonificación.</strong> Cuando una salida se cancela
+            por una causa atribuible a quien la opera, te pagamos una bonificación por
+            transferencia. Para eso te pedimos la cuenta (CLABE) y el nombre de su
+            titular. Al dárnoslos aceptas que los usemos{" "}
+            <strong>sólo para hacer ese pago</strong>. No los guardamos en la plataforma:
+            conservamos únicamente la fecha, el importe, los últimos cuatro dígitos de la
+            cuenta y la clave de rastreo de la transferencia.
+          </p>
         </section>
 
         <section>

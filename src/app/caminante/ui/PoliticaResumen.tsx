@@ -11,8 +11,9 @@
 // sale de lib/cancelacion/politica.ts, transcrito de legal. Sin hooks: sirve
 // igual en componentes de servidor y de cliente.
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { bloquesPolitica, FRASE_ACEPTACION, resumenPolitica, TITULO_POLITICA, type Variante } from "@/lib/cancelacion/politica";
+import { CONTACTO_CAMINANTE, contactoPropioDe, DOMICILIO_NUMAN, RAZON_SOCIAL_NUMAN, waHref } from "@/lib/legal/responsable";
 
 const negritas = (t: string): ReactNode[] => t.split(/\*\*(.+?)\*\*/g).map((x, i) => (i % 2 ? <b key={i}>{x}</b> : x));
 
@@ -85,68 +86,68 @@ export function FraseAceptacionMovil() {
   return <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 8, textAlign: "center" }}>{FRASE_ACEPTACION}</p>;
 }
 
-// A QUIÉN ACUDIR, ANTES DE PAGAR (LFPC 76 Bis III; D24 de legal). El proveedor
-// tiene que dejar a la vista, antes de la transacción, los medios para
-// presentar una reclamación. Va en reservar y en la página de pago, haya o no
-// política elegida. ⚠️ La ley pide también el DOMICILIO FÍSICO: hoy no se
-// publica en ningún lado; falta que Luis diga cuál.
+// RECLAMACIONES Y ACLARACIONES, ANTES DE PAGAR (LFPC 76 Bis III; D24 y D25 de
+// legal). El proveedor tiene que dejar a la vista, antes de la transacción, su
+// domicilio físico y los medios para reclamar. Va en reservar y en la página
+// de pago, haya o no política elegida.
+//
+// Caminante aparece SIEMPRE, también cuando vende una operadora: responde por
+// la devolución frente al cliente. El contacto de quien opera se suma sólo si
+// es distinto. El domicilio es el de NUMAN (lib/legal/responsable.ts); el de la
+// operadora no se publica.
 
 type Contacto = { whatsapp: string | null; email: string | null };
 
-const waHref = (n: string) => `https://wa.me/${n.replace(/\D/g, "")}`;
+function Medios({ c, estilo }: { c: Contacto; estilo?: CSSProperties }) {
+  return (
+    <>
+      {c.whatsapp ? (
+        <>
+          WhatsApp{" "}
+          <a className="underline" style={estilo} href={waHref(c.whatsapp)} target="_blank" rel="noopener">
+            {c.whatsapp}
+          </a>
+        </>
+      ) : null}
+      {c.whatsapp && c.email ? " · " : ""}
+      {c.email ? (
+        <a className="underline" style={estilo} href={`mailto:${c.email}`}>
+          {c.email}
+        </a>
+      ) : null}
+    </>
+  );
+}
+
+function Renglones({ contacto, estilo }: { contacto: Contacto | null; estilo?: CSSProperties }) {
+  const propio = contactoPropioDe(contacto);
+  return (
+    <>
+      <b>Reclamaciones y aclaraciones.</b> Caminante: <Medios c={CONTACTO_CAMINANTE} estilo={estilo} />.
+      {propio ? (
+        <>
+          {" "}Quien opera tu experiencia: <Medios c={propio} estilo={estilo} />.
+        </>
+      ) : null}{" "}
+      {RAZON_SOCIAL_NUMAN}, {DOMICILIO_NUMAN}.
+    </>
+  );
+}
 
 /** Escritorio. */
-export function ContactoReclamacionesEscritorio({ contacto }: { contacto: Contacto }) {
-  if (!contacto.whatsapp && !contacto.email) return null;
+export function ContactoReclamacionesEscritorio({ contacto }: { contacto: Contacto | null }) {
   return (
-    <p className="text-center text-[11px] text-olive/70">
-      ¿Dudas o una reclamación? Escríbenos
-      {contacto.whatsapp ? (
-        <>
-          {" "}por WhatsApp al{" "}
-          <a className="underline" href={waHref(contacto.whatsapp)} target="_blank" rel="noopener">
-            {contacto.whatsapp}
-          </a>
-        </>
-      ) : null}
-      {contacto.whatsapp && contacto.email ? " o" : ""}
-      {contacto.email ? (
-        <>
-          {" "}a{" "}
-          <a className="underline" href={`mailto:${contacto.email}`}>
-            {contacto.email}
-          </a>
-        </>
-      ) : null}
-      .
+    <p className="text-center text-[11px] leading-relaxed text-olive/70">
+      <Renglones contacto={contacto} />
     </p>
   );
 }
 
 /** Móvil. */
-export function ContactoReclamacionesMovil({ contacto }: { contacto: Contacto }) {
-  if (!contacto.whatsapp && !contacto.email) return null;
+export function ContactoReclamacionesMovil({ contacto }: { contacto: Contacto | null }) {
   return (
-    <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 8, textAlign: "center" }}>
-      ¿Dudas o una reclamación? Escríbenos
-      {contacto.whatsapp ? (
-        <>
-          {" "}por WhatsApp al{" "}
-          <a style={{ textDecoration: "underline", color: "inherit" }} href={waHref(contacto.whatsapp)} target="_blank" rel="noopener">
-            {contacto.whatsapp}
-          </a>
-        </>
-      ) : null}
-      {contacto.whatsapp && contacto.email ? " o" : ""}
-      {contacto.email ? (
-        <>
-          {" "}a{" "}
-          <a style={{ textDecoration: "underline", color: "inherit" }} href={`mailto:${contacto.email}`}>
-            {contacto.email}
-          </a>
-        </>
-      ) : null}
-      .
+    <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", marginTop: 8, textAlign: "center" }}>
+      <Renglones contacto={contacto} estilo={{ textDecoration: "underline", color: "inherit" }} />
     </p>
   );
 }

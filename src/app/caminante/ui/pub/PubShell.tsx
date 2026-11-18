@@ -14,6 +14,7 @@
 //   · Las hojas (menú, avísame) y el toast viven aquí, no en cada pantalla.
 
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { CONTACTO_CAMINANTE, DOMICILIO_NUMAN, RAZON_SOCIAL_NUMAN } from "@/lib/legal/responsable";
 import Link from "next/link";
 import { TabIcons } from "./atoms";
 
@@ -165,6 +166,11 @@ function HojaMenu({ cerrar }: { cerrar: () => void }) {
         <a href="mailto:uno@numanhub.com">
           Contacto · uno@numanhub.com<span className="go">›</span>
         </a>
+        {/* Identidad, domicilio y medios de reclamación (D25 de legal). */}
+        <p style={{ fontSize: 11.5, lineHeight: 1.55, color: "var(--ink-soft)", padding: "14px 2px 0" }}>
+          {RAZON_SOCIAL_NUMAN} · {DOMICILIO_NUMAN}. Reclamaciones y aclaraciones: WhatsApp {CONTACTO_CAMINANTE.whatsapp} ·{" "}
+          {CONTACTO_CAMINANTE.email}
+        </p>
       </div>
     </div>
   );

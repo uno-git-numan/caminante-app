@@ -5,6 +5,7 @@
 // la da el script compartido inyectado al final (template-v2-script.ts).
 // Las fechas se pintan desde `slots` (disponibilidad en vivo), no del contenido.
 import { cupoDe, textoDeCupo, sinCupo } from "@/lib/experiences/cupo";
+import { CONTACTO_CAMINANTE, DOMICILIO_NUMAN, RAZON_SOCIAL_NUMAN } from "@/lib/legal/responsable";
 import { Fragment } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type {
@@ -1015,6 +1016,14 @@ export default function ExperienceTemplateV2({
             <span>© 2026 Caminante</span>
             <span>uno@numanhub.com · @somos.caminante</span>
           </div>
+          {/* Identidad, domicilio y medios de reclamación (D25 de legal). */}
+          <p style={{ marginTop: 14, fontSize: 11, lineHeight: 1.6, opacity: 0.7, textAlign: "center" }}>
+            {RAZON_SOCIAL_NUMAN} · {DOMICILIO_NUMAN}. Reclamaciones y aclaraciones: WhatsApp {CONTACTO_CAMINANTE.whatsapp} ·{" "}
+            {CONTACTO_CAMINANTE.email} ·{" "}
+            <a href="/caminante/privacidad" style={{ color: "inherit", textDecoration: "underline" }}>
+              Aviso de privacidad
+            </a>
+          </p>
         </div>
       </footer>
 
