@@ -809,3 +809,9 @@ registro nodo por nodo en `global-sandbox-2026-11-17.md` (segunda ronda).
 - **Para tu criterio:** Facturapi pone `Unidad="Actividad"` en cada concepto y
   no deja quitarlo; la guía dice que no debe existir.
 - La búsqueda por `external_id` funciona: es el camino para el 409.
+
+**D21 bis en producción (17 nov 2026, noche).** Se promovió e4e1073 con la
+passkey de Luis: forma de pago del pago mayor, egreso contra global con
+84111506 / folio / G02 y el aviso del 409. Sigue apagado tras
+`FACTURACION_CLIENTES`. La primera global real (1 dic, fechada 30 nov) se pasa a
+legal para cotejo antes de darla por buena.
