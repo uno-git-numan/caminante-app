@@ -59,3 +59,58 @@ UUID de la global de prueba → 200, tipo E, total $1,500.00, UUID de prueba
 **antes** de leer D21 bis, que pide clave 84111506, el folio en
 NoIdentificacion y uso G02. Hay que repetirla con esos valores cuando se
 construya la corrección.
+
+---
+
+# Segunda ronda (17 nov 2026, noche): D21 bis probado, y los XML archivados
+
+Luis autorizó la llave de pruebas. Los tres XML están en esta carpeta, tal como
+los devolvió Facturapi (ambiente Test, sin validez fiscal):
+
+| Archivo | Qué es | UUID de prueba |
+|---|---|---|
+| `global-sandbox-2026-11-17.xml` | La global de la primera ronda (tres pagos, todos 04) | C838F0E8-4B08-4584-94EB-DBCEB27AA9FD |
+| `global-mixta-sandbox-2026-11-17.xml` | Global con formas de pago mezcladas | 77A5BD65-FF0E-4F1E-8190-EE8A4AA29805 |
+| `egreso-contra-global-sandbox-2026-11-17.xml` | Egreso contra la global mixta, con los valores de D21 bis | BD6E70BC-0E9E-45F0-8DA8-08BF4B5041C5 |
+
+En los tres: Emisor `NUMAN HUB`, RFC `NHU250826CS8`, RegimenFiscal `601`;
+LugarExpedicion `11000`; Moneda MXN.
+
+## Global con formas de pago mezcladas (corrección 1 de D21 bis)
+
+Cuatro pagos: tres con tarjeta de $5,000 (suman $15,000) y una transferencia de
+$9,000. La forma que **suma más** es 04; el **pago individual mayor** es la
+transferencia. El cuerpo se armó con la regla nueva (`planGlobal`).
+
+- Comprobante: tipo `I`, serie F folio 3, SubTotal `20689.66`, Total
+  `24000.00`, **FormaPago `03`**, MetodoPago `PUE`, Fecha `2026-11-15T18:06:04`
+  (pedida 48 h atrás).
+- InformacionGlobal: Periodicidad `04`, Meses `11`, Año `2026`.
+- Receptor: `XAXX010101000`, `PUBLICO EN GENERAL`, 616, `S01`, domicilio `11000`.
+- Conceptos: CAM-000083, CAM-000084 y CAM-000085 con ValorUnitario
+  `4310.344828`; CAM-000086 con `7758.620690`. Todos 01010101 / 1 / ACT /
+  «Venta» / ObjetoImp 02 / traslado 002 Tasa 0.160000.
+- Resumen de impuestos: base `20689.66`, IVA `3310.34`.
+- Se mandó la llave también como `external_id`; buscar la factura con
+  `GET /invoices?external_id=…` devuelve exactamente esa.
+
+## Egreso contra la global (corrección 2 de D21 bis)
+
+- Comprobante: tipo `E`, serie NC folio 2, SubTotal `1293.10`, Total `1500.00`,
+  FormaPago `03`, MetodoPago `PUE`, Fecha `2026-11-17T18:06:06`.
+- Relacionados: TipoRelacion `01` con el UUID de la global mixta.
+- Receptor: `XAXX010101000`, `PUBLICO EN GENERAL`, 616, **UsoCFDI `G02`**,
+  domicilio `11000`. Facturapi acepta G02 con régimen 616.
+- Concepto: **ClaveProdServ `84111506`**, **NoIdentificacion `CAM-000086`**,
+  Cantidad 1, ClaveUnidad `ACT`, Descripcion «Devolución · Experiencia de prueba
+  · Nov 20-22», ValorUnitario `1293.103448`, ObjetoImp 02, traslado 002 Tasa
+  0.160000 por `206.896552`.
+- No lleva nodo InformacionGlobal (Facturapi no lo pide en el egreso).
+
+## Una diferencia con la guía, para criterio de legal
+
+En los tres XML cada concepto trae el atributo **`Unidad="Actividad"`**. La guía
+del CFDI global dice que ese campo no debe existir. Lo agrega Facturapi a
+partir de la clave de unidad `ACT`, y no deja quitarlo: mandar `unit_name`
+vacío contesta 400 «is invalid» y mandarlo nulo, 400 «invalid type». El
+sandbox lo timbra así; no sé si el SAT lo valida en Live.

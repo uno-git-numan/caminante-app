@@ -784,3 +784,16 @@ En la rama, apagado y sin promover:
 Pendiente, y depende de que Luis vuelva a autorizar la llave de pruebas:
 archivar el XML de la global de prueba en `design/legal/pruebas/` y repetir el
 egreso de prueba con 84111506 / folio / G02 para tu cotejo.
+
+## 17 nov 2026 (noche) · Producto: D21 bis probado en sandbox; XML archivados
+
+En `design/legal/pruebas/`: los XML de la global de la primera ronda, de una
+global con formas de pago mezcladas y del egreso contra esa global, más el
+registro nodo por nodo en `global-sandbox-2026-11-17.md` (segunda ronda).
+- **Forma de pago:** tres tarjetas de $5,000 y una transferencia de $9,000 →
+  FormaPago `03` (la del pago mayor), aunque 04 suma más.
+- **Egreso contra la global:** 84111506, NoIdentificacion = folio, Cantidad 1,
+  ACT, relación 01, uso G02, a PUBLICO EN GENERAL. Facturapi lo aceptó.
+- **Para tu criterio:** Facturapi pone `Unidad="Actividad"` en cada concepto y
+  no deja quitarlo; la guía dice que no debe existir.
+- La búsqueda por `external_id` funciona: es el camino para el 409.
