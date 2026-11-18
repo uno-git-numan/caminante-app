@@ -1042,3 +1042,21 @@ guarda de reembolsos dejaba pasar al equipo de numan; ya exige la casa.
 - **Sin promover:** publicar el domicilio y el aviso es visible para todo el
   público, así que espera el visto bueno de Luis (y su passkey de Vercel).
 
+## 18 nov 2026 (tarde) · Producto: D24 y D25 EN PRODUCCIÓN (2b9359c), verificados
+
+Luis aprobó y puso la passkey. Verificado en el sitio vivo:
+- **Público:** aviso de privacidad con el responsable y su domicilio y el
+  párrafo de la bonificación; ficha y reservar con «Reclamaciones y
+  aclaraciones» y el domicilio de NUMAN; pie del sitio.
+- **Panel:** «Reembolsar o cancelar» volvió a Salidas. La calculadora propone
+  (hoy 0 % en las dos salidas próximas, marcado como referencia porque esas
+  reservas no aceptaron la política en línea), recalcula al cambiar la fecha
+  del aviso, pide motivo, y al cancelar una salida pide la causa: con clima
+  pide el archivo; con emergencia del guía no lo admite y dice que no se
+  describan diagnósticos. No se hizo ningún reembolso ni cancelación real.
+- **Sin caso real todavía:** el bloque de bonificaciones en Pagos (no existe
+  ninguna) y la subida de un documento de fuerza mayor.
+
+En la rama, sin promover: la pantalla ya no propone cuando la fecha del aviso
+es anterior a la reserva (el servidor ya lo rechazaba).
+

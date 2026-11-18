@@ -210,8 +210,13 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
   const [errorDoc, setErrorDoc] = useState("");
 
   const avisoIso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(avisoLocal) ? `${avisoLocal}:00-06:00` : null;
+  // Un aviso anterior a la reserva no existe: sin esto la calculadora contaba
+  // cero días hábiles desde la reserva y proponía el 100 % por el art. 56. El
+  // servidor ya lo rechazaba; la pantalla no debe proponerlo.
+  const avisoAntesDeReservar = (r: Salida["reembolsables"][number]): boolean =>
+    !!r.caso && !!avisoIso && new Date(avisoIso).getTime() < new Date(r.caso.reservadaAt).getTime();
   const propuestaDe = (r: Salida["reembolsables"][number]): PropuestaReembolso | null => {
-    if (!r.caso || !avisoIso) return null;
+    if (!r.caso || !avisoIso || avisoAntesDeReservar(r)) return null;
     try {
       return proponerReembolso({ ...r.caso, avisoAt: avisoIso, pagado: r.monto, cancela: "cliente" });
     } catch {
@@ -338,7 +343,7 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
-                        disabled={!!ocupado || !montoSirve || faltaMotivo || !avisoIso}
+                        disabled={!!ocupado || !montoSirve || faltaMotivo || !avisoIso || avisoAntesDeReservar(r)}
                         onClick={async () => {
                           setOcupado(r.reservationId);
                           setAviso(null);
@@ -370,6 +375,8 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
                         {prop.importe <= 0 && r.porStripe ? " Si aun así devuelves algo, escribe cuánto y el motivo." : ""}
                         {cambiada && faltaMotivo && montoSirve ? " Cambiaste la propuesta: escribe el motivo." : ""}
                       </>
+                    ) : avisoAntesDeReservar(r) ? (
+                      "La fecha del aviso es anterior a la reserva de esta persona: revísala."
                     ) : (
                       r.caso
                         ? "Sin propuesta: ni la reserva ni la experiencia tienen política de cancelación elegida, y no aplica el arrepentimiento de ley (art. 56). Decide el monto y escribe el motivo."
