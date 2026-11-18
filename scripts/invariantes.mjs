@@ -880,6 +880,52 @@ const REGLAS = [
       ].join("\n");
     },
   },
+
+  // ── 26 · El dinero de la casa no depende del sombrero ──────────────────────
+  {
+    nombre: "Devolver dinero se decide por quién soy, no por lo que miro",
+    comprueba() {
+      // El sombrero acota lo que la casa VE; nunca lo que PUEDE. Del 24 sep al
+      // 17 nov 2026 Salidas decidía «es la casa» con `!operatorId`, donde
+      // `operatorId` salía de `operadoraQueMiro()` (la cookie de vista). Desde
+      // que hay sombrero la casa siempre trae uno puesto, así que «Reembolsar
+      // o cancelar» desapareció para la propia casa. Nada falló: el botón
+      // simplemente dejó de dibujarse, y pasaron ocho semanas sin que nadie
+      // pudiera devolver dinero desde el panel.
+      //
+      // Y el reverso: la guarda de los reembolsos sólo rechazaba al operador,
+      // así que el equipo de numan (alcance `equipo`) la pasaba.
+      const salidas = join(raiz, "src/lib/admin/salidas.ts");
+      const reembolsos = join(raiz, "src/lib/payments/reembolsos.ts");
+      for (const f of [salidas, reembolsos]) {
+        if (!existsSync(f)) return `No encontré ${f}. Si se movió, este guardián tiene que apuntar a su nueva casa.`;
+      }
+      const sinComentarios = (t) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+      const s = sinComentarios(readFileSync(salidas, "utf8"));
+      if (/esCasa\s*=\s*!\s*operatorId/.test(s) || !/esCasa\s*=\s*\(await alcanceActual\(\)\)\?\.tipo\s*===\s*"casa"/.test(s)) {
+        return [
+          "src/lib/admin/salidas.ts ya no decide `esCasa` por el alcance.",
+          "",
+          "`esCasa` abre el dinero de Salidas (los cobros vivos y el botón",
+          "«Reembolsar o cancelar»). Tiene que salir de `alcanceActual()` —QUIÉN",
+          "SOY—, no de `operadoraQueMiro()` —QUÉ MIRO—: con el sombrero puesto la",
+          "casa sigue siendo la casa. Con `!operatorId` el botón desaparece para",
+          "ella sin un solo error (pasó del 24 sep al 17 nov 2026).",
+        ].join("\n");
+      }
+      const r = sinComentarios(readFileSync(reembolsos, "utf8"));
+      if (!/alcance\.tipo\s*!==\s*"casa"/.test(r)) {
+        return [
+          "src/lib/payments/reembolsos.ts ya no exige que quien devuelve sea la casa.",
+          "",
+          "Rechazar sólo al operador deja pasar al equipo de numan (alcance",
+          "`equipo`), y los reembolsos son de lo que el equipo nunca puede (0070).",
+          "La guarda tiene que rechazar todo alcance que no sea `casa`.",
+        ].join("\n");
+      }
+      return null;
+    },
+  },
 ];
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────

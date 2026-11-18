@@ -30,6 +30,7 @@ import type { ResumenDelEspacio } from "@/lib/grupo/resumen";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import { codigosPorSalida, type CodigoDescuento } from "@/lib/descuentos/codigos";
 import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
+import { alcanceActual } from "@/lib/auth/alcance";
 import { baseDelCaso, type BaseDelCaso } from "@/lib/cancelacion/politica";
 import { cdmxDay, formatDiaMes } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
@@ -253,7 +254,15 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
 
   // Dinero: SOLO si quien mira es la casa. Un operador no debe recibir estas
   // filas ni siquiera en el payload del servidor.
-  const esCasa = !operatorId;
+  //
+  // ⚠️ «ES LA CASA» ES UNA PREGUNTA DE IDENTIDAD, NO DE VISTA. Del 24 sep al
+  // 17 nov 2026 esto fue `!operatorId`, y `operatorId` es lo que se MIRA: desde
+  // que hay sombrero la casa siempre trae uno puesto (Caminante por omisión),
+  // así que «Reembolsar o cancelar» desapareció de Salidas para la propia casa
+  // y nadie lo notó hasta que se fue a verificar la calculadora. El sombrero
+  // acota lo que ves, nunca lo que puedes (lib/auth/sombrero.ts): las listas se
+  // siguen recortando por `operatorId`; el dinero se decide por el alcance.
+  const esCasa = (await alcanceActual())?.tipo === "casa";
   const [{ data: paysRaw }, { data: reemsRaw }] = esCasa
     ? await Promise.all([
         sb.from("payments").select("reservation_id, amount_mxn, status, method, paid_at"),

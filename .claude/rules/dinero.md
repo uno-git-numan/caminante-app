@@ -268,6 +268,14 @@ la casa). No va en el CFDI de egreso (M24, la contadora). ⚠️ Falta construir
 el cobro de vuelta a la operadora (compensación contra ventas futuras) y la
 penalización de la Quinta §3: hoy la bonificación sólo dice de quién se recupera.
 
+⚠️ **«Reembolsar o cancelar» estuvo ocho semanas sin dibujarse** (24 sep–17
+nov 2026): Salidas decidía «es la casa» con `!operatorId`, que es lo que se
+MIRA, y desde el sombrero la casa siempre mira por una operadora. Nadie pudo
+devolver dinero desde el panel y nada falló. Ahora sale de `alcanceActual()`
+(invariante #26), y la guarda de los reembolsos rechaza todo lo que no sea la
+casa (antes dejaba pasar al equipo de numan). **Una pantalla de dinero se
+verifica ENTRANDO a ella en producción, no leyendo el código.**
+
 ## Nunca inventes un número
 
 Si un dato no está, dilo y di de dónde tendría que salir. **Un reporte con un

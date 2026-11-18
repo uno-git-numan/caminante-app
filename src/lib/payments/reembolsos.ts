@@ -243,7 +243,10 @@ async function devolver(
 async function quienEsLaCasa(): Promise<{ ok: true; quien: string | null } | { ok: false; error: string }> {
   const alcance = await alcanceActual();
   if (!alcance) return { ok: false, error: "No autorizado. Inicia sesión." };
-  if (esOperador(alcance)) {
+  // Sólo la casa. Ni una operadora ni el equipo (0070: «lo que nunca:
+  // reembolsos»). Antes sólo se rechazaba al operador, y el equipo de numan
+  // (alcance `equipo`) pasaba esta guarda llamando la acción directo.
+  if (esOperador(alcance) || alcance.tipo !== "casa") {
     return { ok: false, error: "Los reembolsos los hace Caminante: el dinero sale de su cuenta." };
   }
   const supabase = await createSupabaseServerClient();

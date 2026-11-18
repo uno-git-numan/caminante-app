@@ -18,7 +18,7 @@ export async function registrarPagoBonificacion(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const alcance = await alcanceActual();
   if (!alcance) return { ok: false, error: "No autorizado. Inicia sesión." };
-  if (esOperador(alcance)) return { ok: false, error: "Las bonificaciones las paga Caminante: el dinero sale de su cuenta." };
+  if (esOperador(alcance) || alcance.tipo !== "casa") return { ok: false, error: "Las bonificaciones las paga Caminante: el dinero sale de su cuenta." };
 
   const fecha = (i.fecha || "").trim();
   const hoy = new Date(Date.now() - 6 * 3600_000).toISOString().slice(0, 10);

@@ -4,7 +4,7 @@ import { formatMXN, formatDiaMes, metodoLabel } from "@/lib/admin/formato";
 import type { ReservaAdmin } from "@/lib/admin/queries";
 import { registrarPagoManualAction, cancelarReservaAction } from "@/lib/admin/reservas-actions";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { alcanceActual, esOperador } from "@/lib/auth/alcance";
+import { alcanceActual } from "@/lib/auth/alcance";
 import { bonificacionesDeLaCasa } from "@/lib/cancelacion/bonificaciones";
 import Bonificaciones from "./Bonificaciones";
 
@@ -172,7 +172,7 @@ export default async function PagosPage({
   ]);
   // Las bonificaciones (D23 §5) son dinero de la casa: una operadora no las ve.
   const alcance = await alcanceActual();
-  const bonificaciones = alcance && !esOperador(alcance) ? await bonificacionesDeLaCasa() : null;
+  const bonificaciones = alcance?.tipo === "casa" ? await bonificacionesDeLaCasa() : null;
 
   return (
     <AdminShell active="recursos">
