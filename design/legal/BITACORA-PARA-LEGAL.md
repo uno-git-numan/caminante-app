@@ -881,3 +881,32 @@ Décima tercera §2 y §4 del convenio (`lib/facturacion/comisiones.ts`,
   `egreso-comision-sandbox-2026-11-17.xml`, para tu cotejo. Forma de pago 17 en
   los dos; admisión $17.24 + $2.76.
 - D23 (política de cancelación): leída; se construye a continuación.
+
+## 17 nov 2026 (noche) · Producto: D23 construido en parte; la migración 0089 espera a Luis
+
+**En la rama (2e3c40e), sin promover:**
+- **El texto** de la política, transcrito tal cual (`lib/cancelacion/politica.ts`);
+  una prueba compara cada renglón contra tu documento.
+- **Variante por experiencia** en el formulario (Estándar o Expedición); sin
+  elegirla no se publica.
+- **Dónde va:** texto completo en la ficha (escritorio y móvil), en su propia
+  sección; en reservar y en la página de pago, resumen de tres renglones con el
+  texto desplegable y la frase junto al botón de pagar.
+- **La prueba:** cada reserva guarda variante, sha-256 del texto y fecha
+  (migración 0089). En la venta por web viaja en la metadata del cobro y la
+  escribe el webhook; en la página de pago se anota al dar «Pagar». En
+  transferencias y pagos manuales queda vacía (el cliente no la vio en línea).
+- **Comprobante:** liga a la política y fecha límite del arrepentimiento.
+- **Calculadora** (núcleo probado, aún sin pantalla): orden operación →
+  arrepentimiento legal → 24 horas → ventanas. Días hábiles con los descansos
+  del art. 74 LFT de 2026 y 2027 (fuente: PROFEDET, 2 ene 2026); un año sin
+  lista no se calcula.
+
+**Detenido:** la 0089 no está aplicada. Además de las tres columnas, escribe
+`estandar` en las 13 experiencias que hoy traen exactamente los renglones 30/15
+de la plantilla; esa escritura en producción necesita la aprobación de Luis.
+Hasta entonces este código no se promueve. `recoleccion-de-hongos` (publicada)
+no trae renglones: su variante la elige Luis.
+
+**Falta construir de D23:** la calculadora en la pantalla de reembolsos y la
+bonificación del 20 % por pagar (registro, aviso y captura de la transferencia).
