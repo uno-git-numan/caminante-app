@@ -69,6 +69,16 @@ Supabase pide su propia confirmación cuando detecta operaciones destructivas.
 - El worktree necesita el symlink del entorno o `createSupabaseAdminClient` truena
   con ZodError: `ln -sf ~/dev/caminante-m1/.env.local <worktree>/`.
 
+- ⚠️ **Un CHECK sólo rechaza FALSE; lo que da NULL pasa.** `x in (...)`,
+  `x ~ '...'`, `x > 0` y `length(btrim(x)) > 0` dan NULL cuando `x` es NULL, y
+  el candado deja pasar justo lo que debía frenar. El 17 nov 2026 cinco
+  candados (0084, 0088, 0089, 0090) tenían ese hueco: una bonificación
+  «pagada» sin clave de rastreo, una fuerza mayor sin clase, una reserva sin la
+  huella de la política, un egreso sin acumulado. La 0091 los cerró. **Toda
+  comparación dentro de un CHECK lleva su `is not null` explícito, y cada
+  candado nuevo se prueba con el caso NULL** en un bloque `do $$ … raise
+  exception 'REVERTIR-OK %' $$` (se revierte solo).
+
 ## Hitos aplicados que conviene conocer
 
 `0007` CRM/reservas · `0008` deslinde y perfil médico · `0016` operadores y

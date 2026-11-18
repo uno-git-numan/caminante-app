@@ -910,3 +910,51 @@ no trae renglones: su variante la elige Luis.
 
 **Falta construir de D23:** la calculadora en la pantalla de reembolsos y la
 bonificación del 20 % por pagar (registro, aviso y captura de la transferencia).
+
+## 17 nov 2026 (noche) · Producto: D23 completo en producto; 0089, 0090 y 0091 aplicadas
+
+Luis aprobó («apruebo todo lo que hagas»). Aplicadas con el hash comparado y
+verificadas contra la base.
+
+- **0089 y la política a la vista: EN PRODUCCIÓN** (b696837). 13 experiencias
+  quedaron en Estándar (traían los renglones 30/15). `recoleccion-de-hongos`
+  no traía renglones: la dejé en **Estándar** para que no se quedara sin
+  política a la vista; Luis puede cambiarla en el formulario. Dos borradores
+  (`hike-mariposas-monarca`, `amanalco-lobo-glamp`) siguen sin variante y no
+  se publican hasta elegirla.
+- **Calculadora en la pantalla de reembolsos** (§4): propone importe y regla a
+  partir de la fecha y hora del aviso, que se captura. Cambiar el importe exige
+  el motivo (lo valida el servidor). En cada reembolso quedan el aviso, la
+  regla y lo propuesto.
+- **Cancelar una salida pide la causa**: imputable o fuerza mayor con su clase
+  (las cuatro de D14) y, en el motivo, el documento que la acredita. No hay
+  carga de archivo: se describe el documento. **¿Te basta, o quieres el
+  archivo adjunto?**
+- **Bonificación del 20 %** (§5): con causa imputable se crea una «por pagar»
+  por reserva pagada, vence a los 5 días hábiles, se avisa a la casa y el
+  correo de la cancelación le pide al cliente la cuenta (CLABE y titular) por
+  respuesta de correo. En Pagos se captura fecha, importe (no menos del 20 %),
+  últimos 4 dígitos y clave de rastreo. La cuenta no se guarda.
+
+**Tres decisiones mías que te toca confirmar o corregir:**
+1. **Reserva anterior a la política publicada** (no la aceptó en línea): la
+   calculadora propone con la variante de la experiencia y la pantalla dice
+   que es sólo referencia. ¿O a esas reservas se les aplica otra regla?
+2. **Fecha de la reserva** para el arrepentimiento: la de la aceptación; si la
+   reserva no la guardó, la del primer pago; si no hay, la de la reserva.
+3. **«Cupo mínimo no alcanzado»**: la pantalla sólo ofrece «causa de quien
+   opera» o las cuatro de fuerza mayor. Tal como está, cancelar por cupo
+   mínimo genera bonificación. ¿Es así, o va como causa aparte sin bonificación
+   si la ficha lo advirtió?
+
+**No construido:** el cobro de vuelta a la operadora (bonificación y
+penalización de la Quinta §3 por compensación contra ventas futuras). Hoy la
+bonificación sólo dice de qué operadora se recupera.
+
+**Hallazgo de base (0091):** cinco candados dejaban pasar un NULL (un CHECK
+sólo rechaza FALSE). El que te importa: una reserva podía guardar variante y
+fecha sin la huella del texto. Ninguna fila real lo tenía; ya está cerrado.
+
+**Sigue esperando tu cotejo:** los XML de la comisión en sandbox
+(`design/legal/pruebas/comision-sandbox-2026-11-17.*`).
+

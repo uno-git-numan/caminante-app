@@ -229,6 +229,45 @@ Sin la llave, Mi espacio enseña los pagos como «Por facturar». **Sandbox prim
 
 Cobros reales sin CFDI entran como `status_cfdi = por-emitir`.
 
+## Cancelaciones: política, calculadora y bonificación (D23, 0089–0091)
+
+**La política** (`lib/cancelacion/politica.ts`, puro; texto transcrito de
+`design/legal/POLITICA-CANCELACION-CLIENTE-2026-11.md` y comparado por una
+prueba): dos variantes por experiencia (`data.politicaCancelacion`: `estandar`
+30/15 o `expedicion` 60/30; sin variante no se publica). Se ve completa en la
+ficha y resumida en reservar y en la página de pago, con la frase «Al pagar
+aceptas…» junto al botón. **La prueba queda en la reserva**
+(`politica_variante`, `politica_hash`, `politica_aceptada_at`): si el texto
+cambia, cada reserva conserva el que aceptó.
+
+**La calculadora** (Salidas → «Reembolsar o cancelar»): el sistema PROPONE
+cuánto devolver (`proponerReembolso`: cancela la operación → arrepentimiento
+legal de 5 días hábiles → 24 horas → ventanas de la variante) a partir de
+**cuándo se recibió el aviso** (se captura; no es la hora del clic). La casa
+confirma o cambia el monto, y **cambiarlo exige el motivo** (lo valida el
+servidor, que recalcula). En `reembolsos` quedan `aviso_at`, `regla` y
+`propuesto_mxn`. Una reserva anterior a la política se calcula con la variante
+de la experiencia y la pantalla dice que la persona no la aceptó en línea. Sin
+variante o sin fecha de salida **no hay propuesta** (no se supone una). Días
+hábiles: lista por año del art. 74 LFT en `DESCANSOS_OBLIGATORIOS`; un año que
+no esté **no se calcula** (hoy 2026 y 2027: agregar 2028 antes de vender 2028).
+
+**Cancelar una salida pide la causa** (`experience_slots.cancelacion_causa`):
+`imputable` (causa de quien opera) o `fuerza-mayor` con su clase de D14 y el
+documento que la acredita descrito en el motivo. La causa se escribe ANTES de
+pedir las devoluciones: si no se puede escribir, no se devuelve nada.
+
+**La bonificación del 20 %** (`lib/cancelacion/bonificaciones.ts`, tabla
+`bonificaciones`): con causa imputable se crea una «por pagar» por cada reserva
+pagada (20 % de lo pagado, complementos incluidos; vence a los 5 días hábiles),
+se avisa a la casa y el correo de la cancelación le pide al cliente su cuenta.
+**La transfiere Luis**; en Pagos se captura fecha, importe (nunca menos del
+20 %), últimos 4 dígitos y clave de rastreo. **La cuenta del cliente no se
+guarda.** `operator_id` = la operadora de la que se recupera (NULL = costo de
+la casa). No va en el CFDI de egreso (M24, la contadora). ⚠️ Falta construir
+el cobro de vuelta a la operadora (compensación contra ventas futuras) y la
+penalización de la Quinta §3: hoy la bonificación sólo dice de quién se recupera.
+
 ## Nunca inventes un número
 
 Si un dato no está, dilo y di de dónde tendría que salir. **Un reporte con un
