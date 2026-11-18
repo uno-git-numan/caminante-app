@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mandarComprobantesPendientes } from "@/lib/facturacion/comprobantes";
 import { documentarDevolucionesPendientes } from "@/lib/facturacion/devoluciones";
 import { bajasPorTerminacion } from "@/lib/facturacion/portal";
+import { comisionesPendientes } from "@/lib/facturacion/comisiones";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +30,10 @@ export async function GET(request: Request) {
     const bajas = await bajasPorTerminacion();
     const devoluciones = await documentarDevolucionesPendientes(25);
     const r = await mandarComprobantesPendientes(25);
-    return NextResponse.json({ ok: true, ...r, devoluciones, bajas });
+    // La comisión de NUMAN a cada operadora por sus cobros por cuenta conectada,
+    // y su egreso si la venta se devolvió (tercer interruptor: FACTURACION_COMISIONES).
+    const comisiones = await comisionesPendientes(25);
+    return NextResponse.json({ ok: true, ...r, devoluciones, bajas, comisiones });
   } catch (e) {
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "error" }, { status: 500 });
   }

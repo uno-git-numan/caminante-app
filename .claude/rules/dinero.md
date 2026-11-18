@@ -211,6 +211,20 @@ casa sobre una operadora `propia`); la casa puede desactivar. Desactivar o
 `estado = baja` (cron) apaga la emisión al instante y da de baja el CSD en
 Facturapi. `emisorDeFila` exige activación + CSD + manifiesto.
 
+**La factura de la comisión a la operadora (B2, 0088 — `lib/facturacion/comisiones.ts`
++ `comision-plan.ts` puro; D7, D8, D9; convenio Décima tercera §2 y §4):**
+tercer interruptor, **`FACTURACION_COMISIONES=1`** (además de la llave de la
+casa). Sólo para cobros por **cuenta conectada** (`canal_cobro = 'connect'`):
+ahí la operadora es el comercio y lo único que NUMAN factura es su comisión.
+En `casa` no hay B2 (la operadora le factura a NUMAN, D6). Emite la casa, a la
+operadora (RFC, razón social, régimen y CP de su constancia; uso G03), clave
+**80141628**, **forma de pago 17 (compensación)**, PUE: el total es
+exactamente lo retenido al cobrar (`fee_retenido_mxn`); si no cuadra, NO se
+timbra. La **cuota de admisión** ($20, IVA incluido) va como segundo concepto
+en la venta que la pagó. Si la venta se devuelve: **egreso proporcional**
+(`tipo = 'egreso-comision'`, relación 01, G02), y la admisión sólo vuelve en
+devolución total. Lo corre el cron `comprobantes` y `finalizeRefund`.
+
 Sin la llave, Mi espacio enseña los pagos como «Por facturar». **Sandbox primero.**
 
 Cobros reales sin CFDI entran como `status_cfdi = por-emitir`.

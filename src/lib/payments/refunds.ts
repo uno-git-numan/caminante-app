@@ -16,6 +16,7 @@ import { fromStripeAmount } from "@/lib/payments/stripe";
 import { emailReembolso } from "@/lib/payments/email-reembolso";
 import { getStripeServerClient } from "@/lib/payments/stripe";
 import { documentarDevolucion } from "@/lib/facturacion/devoluciones";
+import { documentarDevolucionDeComision } from "@/lib/facturacion/comisiones";
 
 export type RefundResult = {
   handled: boolean; // false = el cargo no corresponde a ningún pago nuestro
@@ -160,6 +161,9 @@ async function documentarEnPapeles(paymentId: string): Promise<void> {
   try {
     const r = await documentarDevolucion(paymentId);
     if (!r.ok && !r.reintentar) console.error("finalizeRefund/D19:", r.error);
+    // Y la comisión que NUMAN le había facturado a la operadora vuelve en proporción (D9).
+    const c = await documentarDevolucionDeComision(paymentId);
+    if (!c.ok && !c.reintentar) console.error("finalizeRefund/D9 comisión:", c.error);
   } catch (e) {
     console.error("finalizeRefund/D19:", (e as Error).message);
   }

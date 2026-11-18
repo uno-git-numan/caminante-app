@@ -815,3 +815,34 @@ passkey de Luis: forma de pago del pago mayor, egreso contra global con
 84111506 / folio / G02 y el aviso del 409. Sigue apagado tras
 `FACTURACION_CLIENTES`. La primera global real (1 dic, fechada 30 nov) se pasa a
 legal para cotejo antes de darla por buena.
+
+## 17 nov 2026 (noche) · Producto: la factura de la comisión a la operadora (B2), construida y apagada
+
+Luis pidió avanzar con lo que falta del plan. Construido sobre D7, D8, D9 y la
+Décima tercera §2 y §4 del convenio (`lib/facturacion/comisiones.ts`,
+`comision-plan.ts`, migración 0088):
+- **Cuándo:** por cada cobro por **cuenta conectada** (`canal_cobro = connect`).
+  En ventas por `casa` no sale: ahí la operadora le factura a NUMAN (D6).
+- **Qué:** CFDI de ingreso de NUMAN a la operadora, clave 80141628, uso G03,
+  PUE, **forma de pago 17 (compensación)**. Total = lo retenido al cobrar
+  (comisión + IVA). Si lo retenido no es la comisión × 1.16 (± $0.02), no se
+  timbra y se avisa.
+- **Admisión (D7):** segundo concepto «Cuota de admisión a la plataforma,
+  única», $20 con IVA incluido, misma clave, en la venta que la pagó.
+- **Devolución (D9):** egreso proporcional relacionado 01, uso G02, forma de
+  pago 17. La admisión sólo vuelve si la venta se devolvió completa.
+- **Interruptor propio:** `FACTURACION_COMISIONES=1`. Apagado. Hoy no hay ni un
+  cobro por cuenta conectada.
+
+**Para tu criterio:**
+1. ¿La forma de pago 17 vale para todo el comprobante de comisión (D7 lo dice
+   para el de la admisión) y también para su egreso?
+2. ¿Cuándo se prende `FACTURACION_COMISIONES`? Propongo: con la primera venta
+   por cuenta conectada, junto con las retenciones.
+3. **Hueco que encontré en el emisor:** en una venta por `casa` de una
+   operadora externa, el código busca como emisora de la factura al cliente a
+   la operadora (modelo Airbnb), pero D6 dice que mientras no cobre por cuenta
+   conectada NUMAN le paga contra su factura, o sea que NUMAN es quien le
+   vende al cliente. Hoy no hay ninguna venta así desde el corte (las de
+   noviembre son todas de la casa), pero el día que la haya, ¿quién factura al
+   cliente: NUMAN o la operadora?
