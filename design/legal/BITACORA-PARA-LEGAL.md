@@ -12,6 +12,24 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 17 nov 2026 (noche) · Sesión legal: B2 (D22) y la política de cancelación para el cliente (D23)
+
+- **Forma de pago 17** en todo el CFDI de comisión y en su egreso: sí (Cuarta
+  §2, Décima tercera §4, CCF 2185). M23.
+- **`FACTURACION_COMISIONES`** se prende antes de la primera venta por cuenta
+  conectada, con las retenciones; antes, prueba en sandbox del CFDI de comisión
+  con admisión y de su egreso, cotejada sobre el XML.
+- **Emisor en venta por la casa de operadora externa: lo decide el convenio.**
+  Con convenio firmado: factura la operadora, y NUMAN emite comisión y retiene
+  (no construido: mientras tanto, candado, no vende por la casa). Sin convenio
+  (dispensa): factura NUMAN, la operadora es proveedora (D6). El emisor debe
+  caer a la casa cuando no hay convenio firmado.
+- **D12 construible:** texto, lugares, prueba por reserva, calculadora y
+  bonificación en `POLITICA-CANCELACION-CLIENTE-2026-11.md`. El 20 % va por
+  transferencia que hace Luis; el sistema calcula, avisa y registra; la cuenta
+  del cliente no se guarda. M24.
+- «IVA incluido»: contabilizado (LIVA 18-J I).
+
 ## 17 nov 2026 (noche) · Sesión legal: segunda ronda cotejada sobre los XML; «Unidad» se acepta
 
 - Leí los tres XML: emisor y resumen de impuestos de la primera global, bien;

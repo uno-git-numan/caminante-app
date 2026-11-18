@@ -678,6 +678,67 @@ el primer CFDI de retenciones.
 operación de noviembre que Marisol facturó (para marcarla `externo`) y que
 Luis lo prenda.
 
+### D22 · La factura de la comisión (B2) y quién factura una venta cobrada por la casa
+
+Producto construyó el CFDI de la comisión de NUMAN a la operadora (apagado,
+`FACTURACION_COMISIONES`) y preguntó tres cosas.
+
+1. **Forma de pago 17 (compensación) en todo el comprobante de comisión y en su
+   egreso.** Sí. El convenio dice que la comisión retenida «constituye el pago
+   de ésta» y que la factura «se salda contra ella por compensación, sin
+   transferencia adicional» (Cuarta §2; Décima tercera §4); es la compensación
+   del CCF 2185, clave 17 del catálogo de formas de pago. La comisión que se
+   devuelve tampoco viaja por una transferencia: se aplica a la devolución que
+   Caminante le hace al cliente por cuenta de la operadora. *Marisol confirma*
+   (**M23**; va con M1).
+2. **Cuándo se prende.** Antes de la primera venta por cuenta conectada, junto
+   con las retenciones: la factura sale por cada cobro (Décima tercera §2) y es
+   ingreso propio de NUMAN (CFF 29). No depende del interruptor de facturación
+   a clientes. Condiciones: llave en vivo de Facturapi creada; **prueba en
+   sandbox del CFDI de comisión con el renglón de admisión y de su egreso,
+   cotejada por legal sobre el XML**; Marisol avisada de que esas facturas las
+   emite el sistema; y que Luis lo prenda. La primera venta por cuenta
+   conectada sigue además detrás del aviso de NUMAN como retenedora (D11, M7).
+3. **Quién factura al cliente una venta cobrada por la casa de una operadora
+   externa.** Lo decide **el convenio, no el canal**:
+
+| Caso | Quién le vende al cliente | Factura al cliente | Comisión y retenciones |
+|---|---|---|---|
+| Operadora externa **con convenio firmado**, cobro por la casa (Cuarta §1 b: «por cuenta y orden del Operador») | La operadora | **La operadora** (desde el portal si lo activó; si no, por sus medios, y la pantalla del cliente lo dice) | **Sí** las dos: factura de comisión de NUMAN y retención de ISR e IVA, igual que por cuenta conectada. La LIVA 18-J II obliga a retener «cuando cobren el precio… por cuenta» del prestador, y la Cuarta §8 no distingue vías |
+| Operadora externa **sin convenio** (vende con dispensa; Nomádika hoy) | NUMAN, a nombre propio | **NUMAN** (factura individual o su global) | **Ninguna.** La operadora es proveedora y le factura a NUMAN su servicio (D6); lo que NUMAN gana es su margen |
+| Experiencia de la casa | NUMAN | NUMAN | Ninguna |
+
+   Consecuencias para el código: el emisor de la factura al cliente es la
+   operadora **sólo si tiene convenio firmado**; sin convenio es la casa (hoy
+   el código busca siempre a la operadora y esa venta se quedaría sin factura).
+   Y el primer caso **no está construido** en lo fiscal: ni la retención ni la
+   factura de comisión salen en ventas por la casa. Mientras no lo esté,
+   **candado: una operadora externa con convenio firmado no vende por la casa**;
+   vende cuando tenga su cuenta conectada. Cobrarle a su cliente sin retener
+   sería una retención omitida (D1). Hoy no hay ninguna venta así.
+
+### D23 · La política de cancelación frente al cliente (D12, construible)
+
+La política sólo se pinta en la plantilla vieja; la ficha actual y la pantalla
+de reservar no la muestran, y el convenio publicado promete que se publica
+antes de pagar (Quinta §1). El texto que ve el cliente, dónde va, qué se
+guarda, la calculadora del reembolso y cómo se paga la bonificación están en
+**`design/legal/POLITICA-CANCELACION-CLIENTE-2026-11.md`**. En corto:
+
+- **Texto** en la ficha, resumen con el texto desplegable en reservar y en la
+  página de pago, y junto al botón: «Al pagar aceptas la política de
+  cancelación de esta experiencia.» Sin casilla; con **prueba**: cada reserva
+  guarda la variante, la huella del texto mostrado y la fecha.
+- **Calculadora** que propone el importe por regla (cancelación de la
+  operación, arrepentimiento legal, 24 horas, ventanas); la casa confirma.
+- **Bonificación del 20 %:** el procesador no devuelve más de lo cobrado. El
+  100 % vuelve por la misma forma de pago (LFPC 92) y el 20 % se paga **por
+  transferencia** en 5 días hábiles; la ley fija el mínimo, no el medio (92
+  Ter). La paga la casa como garante (D13), la transfiere Luis, y se recupera
+  de la operadora (Quinta §3 y §9). La cuenta del cliente no se guarda.
+- Sin versión nueva del convenio. Abierto para legal: leer la NOM-010-TUR-2001
+  y el registro de contratos de adhesión de PROFECO.
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash
@@ -880,6 +941,9 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M19 | **Cancelación sin aceptación del receptor**: numeral vigente de la RMF 2026 (en 2025, 2.7.1.35) y su plazo corto tras la emisión (un día hábil); y que prefiera el **egreso** como regla general frente a cancelar con sustitución (D19) | D19 |
 | M20 | Global armada por la plataforma: un concepto por pago 01010101 / ACT / «Venta» / folio (sus globales llevan un solo concepto con 90121502); requisitos del comprobante de operación con el público en general; y el plazo de 24 horas tras el cierre del mes | D21 |
 | M21 | Pago capturado tarde: global complementaria del mismo mes, con aviso a ella; factura individual sólo hasta el fin del mes del cobro | D21 |
+| M22 | Informativo: Facturapi escribe `Unidad="Actividad"` en cada concepto de la global; la guía dice que no debe existir, el esquema lo permite | D21 bis |
+| M23 | Forma de pago **17 (compensación)** en el CFDI de comisión de NUMAN a la operadora y en su egreso | D22 |
+| M24 | Bonificación del 20 % al cliente (LFPC 92 Ter): cómo se documenta y se deduce; y si la penalización que Caminante cobra a la operadora causa IVA y con qué comprobante | D23 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.
