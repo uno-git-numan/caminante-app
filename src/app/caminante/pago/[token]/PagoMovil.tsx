@@ -53,6 +53,10 @@ export default function PagoMovil({ p, error, deslindeHref, wa, avisoFactura = n
                   <span className="pub-mono">−{pfmt(p.listaMxn - p.montoMxn)}</span>
                 </div>
               ) : null}
+              <div className="row">
+                <span>IVA incluido</span>
+                <span className="pub-mono">—</span>
+              </div>
               <div className="row tt">
                 <span>Total</span>
                 <span className="pub-mono">{pfmt(p.montoMxn)} MXN</span>

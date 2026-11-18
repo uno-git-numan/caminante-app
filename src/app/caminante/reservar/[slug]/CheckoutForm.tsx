@@ -328,7 +328,7 @@ export default function CheckoutForm({
       </div>
 
       <div className="flex items-baseline justify-between">
-        <span className="text-sm text-olive">Total</span>
+        <span className="text-sm text-olive">Total · IVA incluido</span>
         <span className="text-2xl font-semibold text-lagoon">{mxn(total)}</span>
       </div>
 

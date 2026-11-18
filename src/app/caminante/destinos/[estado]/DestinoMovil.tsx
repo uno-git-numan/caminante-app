@@ -208,7 +208,7 @@ export default function DestinoMovil({
                 ) : null}
                 <div className="row">
                   {e.precio != null ? (
-                    <span className="pub-chip">{pfmt(e.precio)} por persona</span>
+                    <span className="pub-chip">{pfmt(e.precio)} por persona · IVA incluido</span>
                   ) : null}
                   {e.salidas[1] ? (
                     <span className="pub-chip">

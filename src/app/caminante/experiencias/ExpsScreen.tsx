@@ -192,7 +192,7 @@ export default function ExpsScreen({
                         {e.salidas.length > 1 ? " +" + (e.salidas.length - 1) : ""}
                       </span>
                       {e.precio != null ? (
-                        <span className="pub-chip">desde {pfmt(e.precio)}</span>
+                        <span className="pub-chip">desde {pfmt(e.precio)} · IVA incluido</span>
                       ) : null}
                     </>
                   ) : (

@@ -439,6 +439,10 @@ function TariffBlock({
                 Desde {lowest ? money(String(lowest)) : b.price}{" "}
                 {b.priceCur ? <span className="cur">{b.priceCur}</span> : null}
               </div>
+              {/* LIVA 18-J fr. I: el precio publicado dice que ya trae el IVA. */}
+              <div className="avail" style={{ paddingTop: 8 }}>
+                <span className="k">IVA incluido</span>
+              </div>
               <div style={{ marginTop: 18 }}>
                 {levels.map((t, i) => (
                   <div
@@ -453,9 +457,14 @@ function TariffBlock({
               </div>
             </>
           ) : (
-            <div className="price">
-              {b.price} {b.priceCur ? <span className="cur">{b.priceCur}</span> : null}
-            </div>
+            <>
+              <div className="price">
+                {b.price} {b.priceCur ? <span className="cur">{b.priceCur}</span> : null}
+              </div>
+              <div className="avail" style={{ paddingTop: 8 }}>
+                <span className="k">IVA incluido</span>
+              </div>
+            </>
           )}
           {/* ⚠️ EL CUPO NO SE ESCRIBE, SE DERIVA. Este par clave/valor sigue
               sirviendo para lo que NO es cupo («Grupo mínimo · 8 personas»,

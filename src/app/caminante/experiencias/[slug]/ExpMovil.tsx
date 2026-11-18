@@ -267,7 +267,7 @@ export default function ExpMovil({
   const hayFechas = slots.length > 0;
   const buy = {
     precio: precioBarra,
-    sub: s0 ? `por persona · ${etiqueta(s0)}` : "puedes solicitar tu fecha",
+    sub: s0 ? `por persona · IVA incluido · ${etiqueta(s0)}` : "IVA incluido · puedes solicitar tu fecha",
     href: hayFechas ? `/caminante/reservar/${slug}${q}` : `/caminante/solicitar/${slug}`,
     cta: hayFechas ? "Reservar" : "Solicitar grupo",
   };

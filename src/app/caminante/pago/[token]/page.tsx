@@ -74,7 +74,7 @@ export default async function PagoPage({
                 </div>
               ) : null}
               <div className="mt-3 flex items-baseline justify-between border-t border-sand pt-3">
-                <span className="text-sm text-olive">Total</span>
+                <span className="text-sm text-olive">Total · IVA incluido</span>
                 <span className="text-2xl font-semibold text-lagoon">{mxn(p.montoMxn)}</span>
               </div>
             </div>
