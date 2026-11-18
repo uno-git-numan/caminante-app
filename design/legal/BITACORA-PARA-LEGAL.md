@@ -12,6 +12,18 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 17 nov 2026 (noche) · Sesión legal: segunda ronda cotejada sobre los XML; «Unidad» se acepta
+
+- Leí los tres XML: emisor y resumen de impuestos de la primera global, bien;
+  global mixta con **FormaPago 03** (pago mayor) y total = lo cobrado; egreso
+  con 84111506 / folio / G02 / relación 01 a la global. Las dos correcciones de
+  D21 bis quedan probadas.
+- **`Unidad="Actividad"` se acepta**: opcional en `cfdv40.xsd`, coherente con
+  ACT, no toca importes y el PAC lo timbra. M22 informativo para Marisol.
+- 409: cumple. La primera global real (1 dic) me la pasan para cotejo.
+- Para prender sólo faltan el XML de la operación de noviembre de Marisol y que
+  Luis lo prenda.
+
 ## 17 nov 2026 (noche) · Sesión legal: la global de PRUEBA cuadra (cotejo)
 
 - Cotejada contra la guía del CFDI global 4.0 y recalculada: receptor, nodo

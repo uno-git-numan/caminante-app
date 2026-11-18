@@ -644,6 +644,40 @@ XML de la operación de noviembre de Marisol, las dos correcciones de D21 bis
 construidas y su prueba cotejada (con los XML archivados), y la aprobación de
 Luis.
 
+**Segunda ronda de pruebas, cotejada sobre los XML (17 nov, noche; commits
+f905d79 y e4e1073; tres XML archivados en `design/legal/pruebas/`).** La
+sesión legal leyó los tres XML nodo por nodo y sumó los conceptos. **Las dos
+correcciones de D21 bis están construidas y probadas; no queda nada que
+corregir en el formato.**
+
+| XML | Lo que se verificó | Cuadra |
+|---|---|---|
+| Global de la primera ronda | Emisor NHU250826CS8 · «NUMAN HUB» · 601; resumen de impuestos base 19,008.62 e IVA 3,041.38; Σ conceptos = 22,050.00 | ✔ (cierra lo que faltaba del primer cotejo) |
+| Global con formas de pago mezcladas | Tres tarjetas de $5,000 y una transferencia de $9,000: **FormaPago 03**, la del pago individual mayor, aunque tarjeta suma más ($15,000). Total 24,000.00 = lo cobrado; nodo global 04/11/2026 | ✔ corrección 1 |
+| Egreso contra esa global | Tipo E · relación **01** con el UUID de la global · PUBLICO EN GENERAL 616 · uso **G02** · concepto **84111506** con el folio CAM-000086 · forma de pago 03 (la del cobro devuelto) · total 1,500.00 · sin nodo global | ✔ corrección 2 |
+
+**«Unidad = Actividad» en cada concepto (pregunta de producto).** Facturapi lo
+escribe a partir de la clave ACT y no deja quitarlo. La guía del CFDI global
+dice que ese campo «no debe existir». **Se acepta así y no detiene nada:** en
+el esquema oficial del CFDI 4.0 (`cfdv40.xsd`, leído hoy) `Unidad` es un
+atributo **opcional**; el valor es la descripción de catálogo de la propia
+clave ACT, así que no contradice nada; no toca importes, impuestos ni folios; y
+el proveedor de certificación, que es quien valida contra la matriz del SAT,
+lo timbra. Es una diferencia de forma frente a la guía, no un defecto del
+comprobante. Queda anotado para Marisol (**M22**, informativo) y producto puede
+preguntarle a Facturapi si existe forma de omitirlo, sin esperar la respuesta.
+
+**409:** la llave va también como identificador externo y la búsqueda por él
+devuelve esa factura; el código no genera llave nueva. Cumple la regla.
+
+**Lo que no se puede probar hasta el 1 de diciembre:** la fecha «último día del
+mes». **La primera global real se coteja antes de darla por buena**, igual que
+el primer CFDI de retenciones.
+
+**Para prender `FACTURACION_CLIENTES` ya sólo faltan dos cosas:** el XML de la
+operación de noviembre que Marisol facturó (para marcarla `externo`) y que
+Luis lo prenda.
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash
