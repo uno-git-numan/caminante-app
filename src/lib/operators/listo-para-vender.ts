@@ -64,6 +64,21 @@ export function requiereConnect(op: OperadorParaGate | null | undefined): boolea
   return Boolean(op?.stripe_account_id?.trim());
 }
 
+/**
+ * ¿La casa puede cobrar esta venta en SU cuenta? (D22 de legal, 17 nov 2026.)
+ *
+ * Lo decide el CONVENIO, no el canal. Sin convenio firmado, NUMAN vende a
+ * nombre propio, le factura al cliente y la operadora es su proveedora (D6):
+ * sí puede. CON convenio firmado la operadora es quien vende, y NUMAN cobraría
+ * «por cuenta y orden» de ella: tendría que retenerle ISR e IVA (LIVA 18-J II)
+ * y facturarle su comisión, y eso sólo está construido por cuenta conectada.
+ * Cobrar sin retener sería una retención omitida. Así que con convenio, no:
+ * vende cuando tenga su cuenta de cobro conectada.
+ */
+export function puedeCobrarsePorLaCasa(op: Pick<OperadorParaGate, "convenio_firmado_at"> | null | undefined): boolean {
+  return !op?.convenio_firmado_at;
+}
+
 // El CSD caduca a los 4 años. Vencido no sirve para timbrar: el SAT rechaza el
 // sello. Se compara por DÍA en tiempo local del servidor —el certificado vence
 // al final de su día, no a una hora— y una fecha ausente cuenta como faltante,

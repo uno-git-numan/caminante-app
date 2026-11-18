@@ -20,7 +20,7 @@ import { candadosDe } from "@/lib/experiences/candados-venta";
 import { fetchComplementos, resolverElegidos } from "@/lib/experiences/complementos";
 import { comisionDeVenta, sinIva, type Regla } from "@/lib/operadores/comision";
 import { planDeCobro, paraStripe } from "@/lib/payments/connect-cobro";
-import { COLUMNAS_GATE, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
+import { COLUMNAS_GATE, type OperadorParaGate, puedeCobrarsePorLaCasa } from "@/lib/operators/listo-para-vender";
 import { reglaComisionDeOperador } from "@/lib/operadores/regla";
 import { ATRIB_COOKIE, escalaPara, leerAtribucion } from "@/lib/operadores/atribucion";
 import { resolverCodigo } from "@/lib/descuentos/codigos";
@@ -257,6 +257,9 @@ export async function createCheckout(formData: FormData) {
       .eq("id", operatorId)
       .maybeSingle();
     plan = planDeCobro((opRow as OperadorParaGate | null) ?? null, comision.monto, cobradoTotal);
+    // D22: con convenio firmado no se cobra en la cuenta de la casa. Si el plan
+    // cayó a `casa` (sin tasas de retención, sin nada que retener…), no se cobra.
+    if (plan.canal === "casa" && !puedeCobrarsePorLaCasa(opRow as OperadorParaGate | null)) redirect(back("operadora"));
   }
 
   const origin = await getOrigin();

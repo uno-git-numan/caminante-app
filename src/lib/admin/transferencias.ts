@@ -25,6 +25,7 @@
 // transferencia no la tiene, y ponerle 0 no es lo mismo que dejarla nula — el
 // tablero de rentabilidad distingue "sin Stripe" de "Stripe en cero".
 
+import { casaPuedeCobrarPor, MENSAJE_SIN_CUENTA_CASA } from "@/lib/experiences/candados-venta";
 import { mandarComprobantesPendientes } from "@/lib/facturacion/comprobantes";
 import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -147,6 +148,8 @@ export async function registrarPagoManual(input: TransferenciaInput): Promise<Tr
     .eq("slug", input.slug)
     .maybeSingle();
   if (!exp) return { ok: false, error: "No encuentro esa experiencia." };
+  // D22: una transferencia o un pago manual entra a la cuenta de la casa.
+  if (!(await casaPuedeCobrarPor((exp.operator_id as string | null) ?? null))) return { ok: false, error: MENSAJE_SIN_CUENTA_CASA };
 
   const { data: slot } = await sb
     .from("experience_slots")

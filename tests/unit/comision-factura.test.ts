@@ -86,3 +86,33 @@ describe("la nota de crédito de la comisión", () => {
     expect(importeEgresoComision({ ...base, devuelto: 0 })).toBe(0);
   });
 });
+
+// D22 · quién le factura al cliente lo decide el convenio, no el canal.
+import { facturaLaCasa } from "@/lib/facturacion/quien-factura";
+import { puedeCobrarsePorLaCasa } from "@/lib/operators/listo-para-vender";
+
+describe("quién le factura al cliente (D22)", () => {
+  it("la casa factura lo suyo y lo que no tiene operadora", () => {
+    expect(facturaLaCasa(null)).toBe(true);
+    expect(facturaLaCasa({ es_la_casa: true, convenio_firmado_at: null })).toBe(true);
+  });
+
+  it("una operadora SIN convenio vende con dispensa: NUMAN vende a nombre propio y factura NUMAN", () => {
+    expect(facturaLaCasa({ es_la_casa: false, convenio_firmado_at: null })).toBe(true);
+  });
+
+  it("una operadora CON convenio firmado es quien vende: factura ella", () => {
+    expect(facturaLaCasa({ es_la_casa: false, convenio_firmado_at: "2026-11-20T10:00:00Z" })).toBe(false);
+  });
+});
+
+describe("el candado de D22: con convenio firmado no se cobra en la cuenta de la casa", () => {
+  it("sin convenio, la casa cobra como siempre", () => {
+    expect(puedeCobrarsePorLaCasa(null)).toBe(true);
+    expect(puedeCobrarsePorLaCasa({ convenio_firmado_at: null })).toBe(true);
+  });
+
+  it("con convenio firmado, no: habría que retener y facturar comisión, y eso sólo existe por cuenta conectada", () => {
+    expect(puedeCobrarsePorLaCasa({ convenio_firmado_at: "2026-11-20T10:00:00Z" })).toBe(false);
+  });
+});

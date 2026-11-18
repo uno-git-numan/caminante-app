@@ -12,6 +12,7 @@
 // metadata.reservation_id) y aterriza en /caminante/reserva/exito, que ya
 // sabe ofrecer «Firmar mi deslinde» atado a ESA reserva.
 
+import { casaPuedeCobrarPor, MENSAJE_SIN_CUENTA_CLIENTE } from "@/lib/experiences/candados-venta";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type Stripe from "stripe";
@@ -69,6 +70,9 @@ export async function iniciarPagoDeReserva(formData: FormData) {
   // La comisión, sobre LO COBRADO (un descuento no la cambia: regla del 27 ago
   // 2026) y con la escala de venta: estos cobros los arma la casa a mano.
   const operatorId = (r.operator_id as string | null) ?? null;
+  // D22: esta página cobra SIEMPRE en la cuenta de la casa. Con convenio
+  // firmado la operadora vende con su cuenta conectada: aquí no se cobra.
+  if (!(await casaPuedeCobrarPor(operatorId))) redirect(back(MENSAJE_SIN_CUENTA_CLIENTE));
   const { regla: reglaOperador, origen } = await reglaComisionDeOperador(operatorId);
   const regla: Regla = reglaOperador.tipo === "plano" ? reglaOperador : { tipo: "escala", escala: "venta" };
   const comision = comisionDeVenta({ viaje: { precioUnitario: sinIva(monto / personas), cantidad: personas } }, regla);

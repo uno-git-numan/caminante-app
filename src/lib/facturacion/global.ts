@@ -25,6 +25,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { cpFiscalDe, emisoresActivos, facturapiDe, type Emisor } from "@/lib/facturacion/emisor";
 import { inicioDelCorte } from "@/lib/facturacion/corte";
+import { facturaLaCasa } from "@/lib/facturacion/quien-factura";
 import { MAX_RENGLONES_GLOBAL, mesDeCobro, modoDeGlobal, periodoAnterior, periodoDeMes, planGlobal, type PagoParaGlobal, type Periodo } from "@/lib/facturacion/global-plan";
 import { notifyFacturaGlobal } from "@/lib/notifications/notify-admin";
 
@@ -43,9 +44,10 @@ export type ResultadoGlobal = {
 
 /**
  * Los pagos `por-emitir` de los meses cerrados (desde el corte hasta el fin del
- * mes anterior), agrupados por mes y por la operadora de su experiencia. La
- * operadora `null` son las ventas de la casa (experiencia sin operadora). Un
- * pago sin reserva o sin experiencia no tiene emisor: no entra.
+ * mes anterior), agrupados por mes y por QUIEN LOS FACTURA (D22): la llave
+ * `null` son los de la casa —sus experiencias, las que no tienen operadora y
+ * las de operadoras sin convenio firmado—; las demás, el id de la operadora.
+ * Un pago sin reserva o sin experiencia no tiene emisor: no entra.
  */
 async function pendientesPorMesYOperadora(ultimoCerrado: Periodo): Promise<Map<string, Map<string | null, PagoParaGlobal[]>>> {
   const sb = createSupabaseAdminClient();
@@ -69,11 +71,18 @@ async function pendientesPorMesYOperadora(ultimoCerrado: Periodo): Promise<Map<s
   const { data: exps, error: e3 } = expIds.length ? await sb.from("experiences").select("id, operator_id").in("id", expIds) : { data: [], error: null };
   if (e3) throw new Error(`No se pudieron leer las experiencias: ${e3.message}`);
   const opDe = new Map(((exps ?? []) as { id: string; operator_id: string | null }[]).map((x) => [x.id, x.operator_id]));
+  const opIds = [...new Set([...opDe.values()].filter(Boolean))] as string[];
+  const { data: ops, error: e4 } = opIds.length ? await sb.from("operators").select("id, es_la_casa, convenio_firmado_at").in("id", opIds) : { data: [], error: null };
+  if (e4) throw new Error(`No se pudieron leer las operadoras: ${e4.message}`);
+  const filaDe = new Map(((ops ?? []) as { id: string; es_la_casa: boolean | null; convenio_firmado_at: string | null }[]).map((o) => [o.id, o]));
   for (const p of pagos) {
     const mes = mesDeCobro(p.paid_at);
     const exp = p.reservation_id ? expDe.get(p.reservation_id) : null;
     if (!mes || !exp || !opDe.has(exp)) continue;
-    const op = opDe.get(exp) ?? null;
+    const opId = opDe.get(exp) ?? null;
+    // Una operadora que no se pudo leer NO se trata como la casa: se queda fuera.
+    if (opId && !filaDe.has(opId)) continue;
+    const op = opId && !facturaLaCasa(filaDe.get(opId)) ? opId : null;
     const delMes = out.get(mes) ?? new Map<string | null, PagoParaGlobal[]>();
     delMes.set(op, [...(delMes.get(op) ?? []), p]);
     out.set(mes, delMes);
@@ -208,8 +217,8 @@ export async function facturasGlobalesPendientes(hoy = new Date()): Promise<Resu
     const periodo = periodoDeMes(anio, mes);
     const delMes = porMes.get(clave)!;
     for (const e of emisores) {
-      // La casa lleva también las ventas de experiencias sin operadora asignada.
-      const pagos = [...(e.operatorId ? delMes.get(e.operatorId) ?? [] : []), ...(e.esLaCasa ? delMes.get(null) ?? [] : [])];
+      // La casa lleva lo suyo, lo que no tiene operadora y lo de operadoras sin convenio (D22).
+      const pagos = e.esLaCasa ? delMes.get(null) ?? [] : e.operatorId ? delMes.get(e.operatorId) ?? [] : [];
       if (pagos.length) out.push(await globalDe(e, periodo, pagos));
     }
   }

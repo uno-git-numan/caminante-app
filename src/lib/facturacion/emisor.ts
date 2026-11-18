@@ -11,6 +11,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { descifrar } from "@/lib/facturacion/crypto";
+import { facturaLaCasa } from "@/lib/facturacion/quien-factura";
 import { clienteFacturapi, facturacionClientesActiva, llaveDeLaCasa, modoPrueba } from "@/lib/facturacion/facturapi";
 
 export type Emisor = {
@@ -33,16 +34,21 @@ type OpRow = {
   facturacion_portal_at: string | null;
   facturapi_manifiesto_at: string | null;
   estado: string | null;
+  convenio_firmado_at: string | null;
 };
 
-const COLS = "id, name, es_la_casa, facturapi_org_id, facturapi_live_key_enc, facturapi_test_key_enc, facturapi_csd_at, facturacion_portal_at, facturapi_manifiesto_at, estado";
+const COLS = "id, name, es_la_casa, facturapi_org_id, facturapi_live_key_enc, facturapi_test_key_enc, facturapi_csd_at, facturacion_portal_at, facturapi_manifiesto_at, estado, convenio_firmado_at";
 
 function emisorDeFila(op: OpRow | null): EmisorResuelto {
   // Todo lo de aquí es facturación a CLIENTES: llave + interruptor (lib/facturacion/corte.ts).
   if (!facturacionClientesActiva()) return { ok: false, error: "La facturación en línea aún no está activa.", porEmitir: true };
-  if (!op || op.es_la_casa) {
-    return { ok: true, emisor: { operatorId: op?.id ?? null, nombre: op?.name ?? "Caminante", esLaCasa: true, key: llaveDeLaCasa() } };
+  // D22: factura la casa si la venta es suya, si no tiene operadora o si la
+  // operadora NO ha firmado convenio (NUMAN vende a nombre propio; quien-factura.ts).
+  if (facturaLaCasa(op)) {
+    const esLaFilaDeLaCasa = Boolean(op?.es_la_casa);
+    return { ok: true, emisor: { operatorId: esLaFilaDeLaCasa ? op!.id : null, nombre: esLaFilaDeLaCasa ? op!.name : "Caminante", esLaCasa: true, key: llaveDeLaCasa() } };
   }
+  if (!op) return { ok: false, error: "No pudimos leer a la operadora.", porEmitir: true };
   const enc = modoPrueba() ? op.facturapi_test_key_enc : op.facturapi_live_key_enc;
   // Los candados de D20: la operadora ACTIVÓ la facturación (aceptó el §1 bis),
   // su CSD está en Facturapi y firmó ella su carta manifiesto. Desactivar o dar
@@ -90,6 +96,9 @@ export async function emisoresActivos(): Promise<Emisor[]> {
   const { data } = await sb.from("operators").select(COLS).or("es_la_casa.eq.true,facturapi_org_id.not.is.null");
   const out: Emisor[] = [];
   for (const op of (data ?? []) as OpRow[]) {
+    // Una operadora sin convenio no es emisora: sus ventas las factura la casa,
+    // que ya entra por su propia fila (no se duplica).
+    if (!op.es_la_casa && facturaLaCasa(op)) continue;
     const r = emisorDeFila(op);
     if (r.ok) out.push(r.emisor);
   }

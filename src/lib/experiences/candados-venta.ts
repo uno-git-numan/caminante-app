@@ -31,7 +31,7 @@ import {
   type CandadoActividad,
   type Dispensa,
 } from "@/lib/operadores/candado-actividad";
-import { COLUMNAS_GATE, operadorListo, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
+import { COLUMNAS_GATE, operadorListo, puedeCobrarsePorLaCasa, requiereConnect, type OperadorParaGate } from "@/lib/operators/listo-para-vender";
 import type { Experience } from "./types";
 
 export type Momento = "publicar" | "vender";
@@ -102,11 +102,34 @@ export async function candadosDe(momento: Momento, exp: ExperienciaParaCandados)
         faltantes: ["No se pudo leer a la operadora."],
       };
     }
-    const listo = operadorListo((data as OperadorParaGate | null) ?? null);
+    const op = (data as OperadorParaGate | null) ?? null;
+    const listo = operadorListo(op);
     if (!listo.ok) {
       return { ok: false, motivo: "operadora", mensaje: listo.faltantes.join(" "), faltantes: listo.faltantes };
+    }
+    // 4 · D22: con convenio firmado no se vende por la cuenta de la casa. Sin
+    //     cuenta conectada, esa venta caería ahí: no se cobra.
+    if (momento === "vender" && !requiereConnect(op) && !puedeCobrarsePorLaCasa(op)) {
+      return { ok: false, motivo: "operadora", mensaje: MENSAJE_SIN_CUENTA_CLIENTE, faltantes: [MENSAJE_SIN_CUENTA_CASA] };
     }
   }
 
   return actividad.dispensa ? { ok: true, dispensa: actividad.dispensa } : { ok: true };
+}
+
+export const MENSAJE_SIN_CUENTA_CLIENTE = "Esta experiencia todavía no se puede pagar en línea. Escríbenos y lo resolvemos.";
+export const MENSAJE_SIN_CUENTA_CASA =
+  "Esta operadora ya firmó su convenio: sus ventas se cobran con su cuenta de cobro conectada, no en la cuenta de NUMAN (habría que retenerle impuestos y facturarle la comisión, y eso sólo existe por cuenta conectada).";
+
+/**
+ * Para las puertas que SIEMPRE cobran en la cuenta de la casa (la página de
+ * pago por liga, la transferencia y el pago manual): ¿se puede con esta
+ * operadora? (D22.) Ante la duda, no: si no se pudo leer, no se cobra.
+ */
+export async function casaPuedeCobrarPor(operatorId: string | null): Promise<boolean> {
+  if (!operatorId) return true;
+  const sb = createSupabaseAdminClient();
+  const { data, error } = await sb.from("operators").select("convenio_firmado_at").eq("id", operatorId).maybeSingle();
+  if (error) return false;
+  return puedeCobrarsePorLaCasa(data as { convenio_firmado_at?: string | null } | null);
 }
