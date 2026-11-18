@@ -81,6 +81,33 @@ secciones de abajo y se **cambian** tres frases; todo lo demás se queda. Cambia
 > prestarte el servicio o para cumplir la ley, no podremos continuar con el
 > servicio afectado.
 
+
+## Añadido el 18 nov 2026 (D25): responsable y domicilio, y la cuenta para una bonificación
+
+Al inicio del aviso, como primer párrafo:
+
+> **Quién es el responsable.** Caminante es una marca de **NUMAN HUB, S.A. de
+> C.V.**, con domicilio en Prado Norte 525, interior 204, Lomas de Chapultepec
+> I Sección, Miguel Hidalgo, C.P. 11000, Ciudad de México. Es la responsable
+> de tus datos personales. Para cualquier duda, aclaración o para ejercer tus
+> derechos, escríbenos a caminante@numanhub.com.
+
+En la sección de pagos y devoluciones:
+
+> **Si te pagamos una bonificación.** Cuando una salida se cancela por una
+> causa atribuible a quien la opera, te pagamos una bonificación por
+> transferencia. Para eso te pedimos la cuenta (CLABE) y el nombre de su
+> titular. Al dárnoslos aceptas que los usemos **sólo para hacer ese pago**.
+> No los guardamos en la plataforma: conservamos únicamente la fecha, el
+> importe, los últimos cuatro dígitos de la cuenta y la clave de rastreo de
+> la transferencia.
+
+Fuente: LFPDPPP (DOF 20 mar 2025, última reforma 14 nov 2025), art. 15
+fracción I (identidad y domicilio del responsable), art. 7 (los datos
+financieros requieren consentimiento expreso) y art. 9 fracción IV (cumplir
+obligaciones de la relación jurídica con el titular). El domicilio es el de la
+Constancia de Situación Fiscal de NUMAN (30 sep 2025) y el del convenio.
+
 ## Por qué cada pieza
 
 - La frase en negritas sobre Stripe es la que Stripe exige, palabra por palabra,

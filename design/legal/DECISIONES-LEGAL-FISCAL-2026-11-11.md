@@ -765,6 +765,24 @@ La guía de llenado del Anexo 20 (Apéndice 5, egresos) pide en el egreso «la c
 
 **Corrección:** la cita de D23 era LFPC 76 Bis **fracción V** (términos y condiciones antes de la transacción), no III. La fracción III pide además domicilio físico, teléfonos y medios de reclamación antes de pagar: producto revisa que estén a la vista.
 
+
+### D25 · El domicilio y los medios de reclamación antes de pagar (18 nov)
+
+Producto encontró que antes de pagar no se veía ningún medio de reclamación ni domicilio, y que el aviso de privacidad tampoco trae domicilio. Dos leyes lo piden: la LFPC 76 Bis fracción III («su domicilio físico, números telefónicos y demás medios» para reclamaciones, **antes** de celebrar la transacción) y la LFPDPPP de 2025, artículo 15 fracción I («la identidad y domicilio del responsable» en el aviso de privacidad). Textos leídos en la versión vigente de la Cámara de Diputados (LFPC, última reforma DOF 12-12-2025; LFPDPPP, DOF 14-11-2025).
+
+**Decisión:**
+
+| Qué se muestra | Dónde | De quién |
+|---|---|---|
+| Razón social, domicilio, correo y WhatsApp para reclamaciones y aclaraciones | Reservar, página de pago, pie del sitio y aviso de privacidad | **Siempre NUMAN HUB, S.A. de C.V.** |
+| Nombre o razón social de quien vende y opera | Ficha, reservar y página de pago | La operadora (NOM-010-TUR-2001, 5.2.1) |
+| Domicilio de la operadora | No se publica por ahora | Ver abajo |
+
+- **El domicilio de NUMAN** es el de su Constancia de Situación Fiscal (30 sep 2025), el mismo del preámbulo del convenio publicado: **Prado Norte 525, interior 204, Lomas de Chapultepec I Sección, Miguel Hidalgo, C.P. 11000, Ciudad de México.** No hay que pedírselo a Luis; si la oficina cambió, se actualiza primero en el SAT.
+- **Por qué siempre NUMAN:** la transacción se celebra en su plataforma, cobra o hace cobrar, y responde frente al cliente por la devolución (D13, Quinta §5). Hoy además toda venta es de la casa o de una operadora sin convenio, donde NUMAN vende a nombre propio (D22).
+- **El domicilio de la operadora no se publica todavía.** Muchas son personas físicas y su domicilio fiscal es su casa. Para la primera operadora con convenio que venda a nombre propio, la siguiente versión del convenio dirá: la persona moral publica su domicilio fiscal; la persona física señala el domicilio de Caminante como domicilio convencional para recibir reclamaciones de sus clientes, y Caminante se las turna. Queda en la lista de la próxima versión, junto con el cupo mínimo si Luis lo adopta.
+- **Aviso de privacidad:** dos párrafos nuevos en `AVISO-PRIVACIDAD-ADICIONES-2026-11.md`: identidad y domicilio del responsable, y la cuenta bancaria que el cliente da para recibir una bonificación (dato financiero: consentimiento expreso, art. 7; se usa sólo para ese pago por la excepción del art. 9 fracción IV y no se guarda).
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash

@@ -12,6 +12,21 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 18 nov 2026 · Sesión legal: qué domicilio va antes de pagar (D25)
+
+- **Siempre el de NUMAN**, con correo y WhatsApp, como domicilio para
+  reclamaciones: reservar, página de pago, pie del sitio y aviso de privacidad.
+  Es el de la Constancia y el del preámbulo del convenio: Prado Norte 525,
+  interior 204, Lomas de Chapultepec I Sección, Miguel Hidalgo, C.P. 11000,
+  Ciudad de México. No hay que pedírselo a Luis.
+- **De la operadora:** su nombre o razón social (ya está). Su domicilio **no**
+  se publica por ahora; lo resolverá la siguiente versión del convenio.
+- **Aviso de privacidad:** dos párrafos nuevos en
+  `AVISO-PRIVACIDAD-ADICIONES-2026-11.md` (responsable y domicilio; la cuenta
+  para la bonificación). LFPDPPP 2025, arts. 15 I, 7 y 9 IV.
+- Contabilizado lo de D24 construido, la 0092 y el hallazgo del botón de
+  reembolsos.
+
 ## 17 nov 2026 (noche) · Sesión legal: comisión de prueba cotejada y respuestas a D23 (D24)
 
 - **Comisión y egreso de prueba: cuadran** sobre los XML (17, G03/G02, 80141628,
