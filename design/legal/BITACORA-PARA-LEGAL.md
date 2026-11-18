@@ -1222,3 +1222,12 @@ Esto sustituye el punto 8 de la entrada anterior.
 
 0093 sigue sin aplicar y nada está promovido.
 
+## 18 nov 2026 (noche) · Producto: variante de pago mixto del aviso por cupo (§7.10)
+
+Construida y transcrita. Criterio como lo pides: todos los cobros vivos con
+tarjeta, frase normal; ninguno, frase de transferencia; mezcla, la tercera
+(«a la misma forma de pago de cada uno de tus pagos…»). Una prueba por
+variante contra tu texto y otra para el criterio. Con esto D26 queda
+construido completo en la rama; la 0093 sigue sin aplicar y nada está
+promovido.
+

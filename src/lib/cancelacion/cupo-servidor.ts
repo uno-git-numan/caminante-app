@@ -21,7 +21,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { experienceTitle } from "@/lib/admin/queries";
-import { avisoDeCancelacionPorCupo, clausulaDeReserva, clausulaDeSalida, pisoDeConfirmacion, type SalidaParaClausula } from "@/lib/cancelacion/cupo-minimo";
+import { avisoDeCancelacionPorCupo, clausulaDeReserva, formaDePagoDe, clausulaDeSalida, pisoDeConfirmacion, type SalidaParaClausula } from "@/lib/cancelacion/cupo-minimo";
 import { ymdCdmx, type ClausulaMinimo } from "@/lib/cancelacion/politica";
 import { sendViaResend } from "@/lib/email/resend";
 import { h1, marco, p, saludo } from "@/lib/email/plantilla";
@@ -169,14 +169,16 @@ export async function avisarCancelacionPorCupo(
 ): Promise<{ avisados: number; sinCorreo: number }> {
   const pagadas = await reservasPagadas(sb, slot.id);
   const traeClausula = new Set(pagadas.filter((r) => clausulaDeReserva(r) !== null).map((r) => r.id));
-  // Quién pagó por una vía que no vuelve sola por el procesador (§7.10): basta
-  // un cobro vivo que no sea de tarjeta para que haya que pedirle la cuenta.
+  // Cómo pagó cada quien (§7.10): todo con tarjeta, nada con tarjeta, o mezcla.
+  // De ahí sale por dónde vuelve su dinero y si hay que pedirle una cuenta.
   const { data: pagos } = pagadas.length
     ? await sb.from("payments").select("reservation_id, method").in("reservation_id", pagadas.map((r) => r.id)).eq("status", "paid")
     : { data: [] };
-  const porTransferencia = new Set(
-    ((pagos ?? []) as { reservation_id: string | null; method: string | null }[]).filter((x) => x.reservation_id && x.method !== "stripe").map((x) => x.reservation_id as string),
-  );
+  const metodosDe = new Map<string, (string | null)[]>();
+  for (const x of (pagos ?? []) as { reservation_id: string | null; method: string | null }[]) {
+    if (!x.reservation_id) continue;
+    metodosDe.set(x.reservation_id, [...(metodosDe.get(x.reservation_id) ?? []), x.method]);
+  }
   const titulo = await tituloDe(sb, slot.experience_id);
   const viaje = `${titulo}${slot.label ? ` · ${slot.label}` : ""}`;
   const destinos = await correosDe(sb, pagadas);
@@ -188,7 +190,7 @@ export async function avisarCancelacionPorCupo(
       clausula: i.clausula,
       pagados: i.pagados,
       traeClausula: traeClausula.has(c.reservationId),
-      porTransferencia: porTransferencia.has(c.reservationId),
+      forma: formaDePagoDe(metodosDe.get(c.reservationId) ?? []),
     });
     const { html, texto } = marco("Tu salida no se juntó", [
       h1("Tu salida no se juntó"),

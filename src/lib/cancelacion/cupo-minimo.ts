@@ -148,6 +148,20 @@ export const clausulaVistaDe = (c: ClausulaMinimo | null | undefined): string =>
 
 export const MENSAJE_CLAUSULA_CAMBIO = "Las condiciones de esta salida cambiaron mientras reservabas. Revisa la política de cancelación y vuelve a intentarlo.";
 
+/** Cómo pagó una reserva, para saber por dónde vuelve su dinero. */
+export type FormaDePagoDeReserva = "tarjeta" | "transferencia" | "mixta";
+
+/**
+ * De los cobros vivos de una reserva: todos con tarjeta → tarjeta; ninguno →
+ * transferencia; mezcla → mixta. «Tarjeta» es lo que cobró el procesador
+ * (`stripe`); todo lo demás lo devuelve la casa por banco.
+ */
+export function formaDePagoDe(metodos: (string | null)[]): FormaDePagoDeReserva {
+  const conTarjeta = metodos.filter((m) => m === "stripe").length;
+  if (conTarjeta === metodos.length) return "tarjeta"; // también sin cobros: no hay cuenta que pedir
+  return conTarjeta === 0 ? "transferencia" : "mixta";
+}
+
 /**
  * EL AVISO DE CANCELACIÓN POR CUPO MÍNIMO, párrafo por párrafo (§7.6 y §7.10).
  * `**…**` marca negritas. Es el único correo que recibe todo el mundo ese día
@@ -156,7 +170,9 @@ export const MENSAJE_CLAUSULA_CAMBIO = "Las condiciones de esta salida cambiaron
  *   · sin cláusula en su reserva: no se le dice «como te lo dijimos antes de
  *     pagar» y se le anuncia su bonificación del 20 %, pidiéndole la cuenta;
  *   · pagó por transferencia: la devolución va por transferencia y se le pide
- *     la cuenta donde quiere recibirla.
+ *     la cuenta donde quiere recibirla;
+ *   · pagó una parte con tarjeta y otra por transferencia: cada pago vuelve
+ *     por donde entró (LFPC 92), y la cuenta se pide sólo para lo transferido.
  * Es texto de correo, no de la política aceptada: no toca la huella.
  */
 export function avisoDeCancelacionPorCupo(i: {
@@ -167,15 +183,17 @@ export function avisoDeCancelacionPorCupo(i: {
   pagados: number;
   /** ¿La reserva de esta persona trae la cláusula? */
   traeClausula: boolean;
-  /** ¿Pagó por transferencia (o por otra vía que no vuelve sola por el procesador)? */
-  porTransferencia: boolean;
+  /** Cómo pagó: todo con tarjeta, nada con tarjeta, o una parte y una parte. */
+  forma: FormaDePagoDeReserva;
 }): string[] {
   const parrafos = [
     `Para **${i.viaje}** hacían falta ${i.clausula.minimo} personas y al ${fechaConAnio(i.clausula.limite)} éramos ${i.pagados}. ${i.traeClausula ? "Como te lo dijimos antes de pagar, la" : "La"} salida se cancela.`,
     `Hoy mismo pedimos la devolución del **100 %** de lo que pagaste, ${
-      i.porTransferencia
+      i.forma === "transferencia"
         ? "por transferencia, igual que pagaste. Respóndenos con la CLABE y el nombre del titular de la cuenta donde quieres recibirla."
-        : "a la misma forma de pago, y te avisamos en cuanto quede hecha."
+        : i.forma === "mixta"
+          ? "a la misma forma de pago de cada uno de tus pagos. Lo que pagaste con tarjeta vuelve a tu tarjeta. Para lo que pagaste por transferencia, respóndenos con la CLABE y el nombre del titular de la cuenta donde quieres recibirlo."
+          : "a la misma forma de pago, y te avisamos en cuanto quede hecha."
     } Si quieres, te ayudamos a pasarte a otra fecha.`,
   ];
   if (!i.traeClausula) {
