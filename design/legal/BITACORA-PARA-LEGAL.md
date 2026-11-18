@@ -12,6 +12,17 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 18 nov 2026 (noche) · Sesión legal: cupo mínimo, tus cinco puntos y la ficha
+
+- **1 a 5: confirmados** tal como los construiste (§7.9 de la política).
+- **La ficha: sí la exige.** NOM-010-TUR 6.2.5 pide el mínimo en el paquete «a
+  disposición» del turista, y la ficha es la oferta (LFPC 7 y 32). Textos en
+  §7.8: un renglón junto a cada fecha con cláusula, «Salida confirmada» cuando
+  lo esté, y un bloque informativo en «Cancelación y devoluciones». No es
+  texto aceptado: no entra en la huella.
+- **Condición de uso:** la ficha lo muestra antes de que se capture la primera
+  fecha de confirmación en una salida publicada.
+
 ## 18 nov 2026 (tarde) · Sesión legal: ajustes a la cláusula de cupo mínimo (§7 corregido)
 
 - **Campo propio para la fecha de confirmación:** de acuerdo. `fecha_limite`

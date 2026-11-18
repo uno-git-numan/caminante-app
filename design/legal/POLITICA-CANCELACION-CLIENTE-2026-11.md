@@ -277,3 +277,46 @@ mayor. Si una operadora con convenio queda exenta de penalización al cancelar
 por cupo en plazo es **decisión de Luis** y entra en la siguiente versión del
 convenio. Hoy no afecta: todas las ventas son de la casa o de operadora sin
 convenio, y el cobro de la penalización no está construido.
+
+### 7.8 · La cláusula también va en la ficha (18 nov, noche)
+
+La aceptación ocurre en reservar y en la página de pago, y ahí queda la
+prueba. Pero la ficha es la oferta, y la oferta tiene que decirlo: la norma
+pide que el paquete «a disposición de los usuarios-turistas» especifique «el
+número mínimo de personas que conformen el grupo» (NOM-010-TUR-2001, 6.2.5),
+y la información de lo que se ofrece debe ser clara y no inducir a error
+(LFPC 7 y 32). **Se construye antes de capturar la primera fecha de
+confirmación en una salida publicada.**
+
+Junto a cada fecha con la cláusula activa:
+
+> Mínimo N personas · se confirma a más tardar el [día] de [mes]
+
+Y cuando la salida está confirmada:
+
+> Salida confirmada
+
+En la sección «Cancelación y devoluciones» de la ficha, si alguna fecha
+publicada tiene la cláusula activa, este bloque informativo (no es el texto
+que se acepta; ése es el de 7.1, con el número y la fecha de la salida
+elegida):
+
+> **Si no se junta el grupo mínimo**
+> - Algunas fechas de esta experiencia necesitan un mínimo de personas para
+>   salir. Junto a cada fecha ves cuántas y el día en que te confirmamos.
+> - Si ese día no se juntó el grupo, la salida se puede cancelar y te
+>   devolvemos el **100 %**. Las condiciones completas las ves antes de pagar.
+
+### 7.9 · Precisiones de producto, confirmadas (18 nov, noche)
+
+1. La confirmación automática al terminar el día límite ocurre sólo si la
+   cláusula se le pudo enseñar a alguien (fecha dentro del piso y mínimo
+   válido). Con la fecha fuera del piso nadie recibió la promesa y el sistema
+   no confirma por su cuenta.
+2. El mínimo es de **dos personas o más**. Con uno, quien compra ya lo cumple.
+3. A quien no trae la cláusula, el aviso de cancelación va sin la frase «Como
+   te lo dijimos antes de pagar». Su bonificación se le anuncia en el correo
+   de la devolución, ese mismo día.
+4. Si la salida cambió entre abrir la pantalla y pagar, no se cobra: lo que se
+   cobra es lo que se enseñó.
+5. No se captura una fecha de confirmación que ya pasó.
