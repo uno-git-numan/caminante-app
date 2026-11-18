@@ -128,3 +128,126 @@ Cómo opera:
   NOM-010-TUR-2001 fija el contenido mínimo de los contratos con el turista y
   PROFECO lleva un registro de contratos de adhesión; falta leer si a Caminante
   o a la operadora les obliga a registrar el suyo.
+
+## 7 · Cláusula de cupo mínimo (18 nov 2026; Luis la aprobó: «Sí, escríbela»)
+
+Hasta hoy cancelar por falta de grupo genera la bonificación del 20 %, porque
+el texto aceptado no trae excepción. Esta cláusula la crea **sólo para las
+salidas que la muestren antes de pagar**. No cambia nada de las reservas ya
+hechas: cada una conserva el texto que aceptó.
+
+### 7.1 · El texto (bloque nuevo, después de «Si la salida se cancela»)
+
+Se muestra sólo cuando la salida tiene la cláusula activa (7.3). `N` y la
+fecha son los de esa salida.
+
+> **Si no se junta el grupo mínimo**
+> - Esta salida necesita un mínimo de **N personas** con su lugar pagado. Te
+>   confirmamos si sale a más tardar el **[día] de [mes] de [año]**.
+> - Si para esa fecha no se juntó el mínimo, la salida se puede cancelar. Te
+>   avisamos a más tardar ese día y te devolvemos el **100 %** de lo que
+>   pagaste. En este caso no hay bonificación, porque es una condición que
+>   conoces desde antes de pagar.
+> - Si te avisamos después de esa fecha, o si cancelamos por falta de grupo
+>   una salida que ya te habíamos confirmado, se trata como una cancelación
+>   atribuible a quien opera: el 100 % más la bonificación del 20 %.
+> - Mientras no te confirmemos la salida, te recomendamos no comprar vuelos ni
+>   transporte que no se pueda cambiar o reembolsar.
+
+En el resumen de reservar y de la página de pago, el tercer renglón queda:
+
+> Si la salida se cancela, te devolvemos el 100 %. Esta salida necesita N
+> personas; te confirmamos a más tardar el [día] de [mes].
+
+En el comprobante por correo, un renglón más:
+
+> Esta salida necesita un mínimo de N personas. Te confirmamos a más tardar
+> el [día] de [mes] de [año].
+
+### 7.2 · Por qué se sostiene
+
+- La ley da la bonificación cuando el servicio no se presta «por causas
+  imputables al proveedor» (LFPC 92 Bis). Una condición objetiva, con número y
+  fecha, informada antes de pagar, no es incumplimiento.
+- Sin número ni fecha sería nula: dejaría al proveedor «sustraerse
+  unilateralmente de sus obligaciones» (LFPC 90 fracción I). Por eso los dos
+  datos son obligatorios y van en el texto aceptado.
+- La norma de contratos turísticos pide que el paquete especifique «el número
+  mínimo de personas que conformen el grupo» y que el contrato diga las
+  causales de rescisión y sus consecuencias para ambas partes
+  (NOM-010-TUR-2001, 6.2.5 y 5.2.4).
+- La ley mexicana no fija con cuánta anticipación avisar. Tomo como piso de
+  razonabilidad (LFPC 85: sin obligaciones inequitativas) la regla europea de
+  viajes combinados, Directiva (UE) 2015/2302, artículo 12, apartado 3, letra
+  a), leída en EUR-Lex: 20 días antes en viajes de más de seis días; 7 días en
+  viajes de dos a seis días; 48 horas en viajes de menos de dos días. No es
+  derecho mexicano: es la referencia.
+
+### 7.3 · Cuándo está activa la cláusula en una salida
+
+Las tres cosas a la vez:
+
+1. La salida tiene **mínimo** y **fecha límite** capturados (los campos que ya
+   existen en la salida: `minimo` y `fecha_limite`).
+2. La fecha límite respeta el piso según la duración de la salida:
+
+   | Duración de la salida | La fecha límite es, a más tardar |
+   |---|---|
+   | Menos de dos días (sin pernocta) | 48 horas antes del inicio |
+   | De dos a seis días | 7 días naturales antes del inicio |
+   | Más de seis días | 20 días naturales antes del inicio |
+
+   Quien opera puede fijar una fecha más temprana, nunca más tardía. Si la
+   fecha capturada no respeta el piso, la cláusula **no se muestra** y cancelar
+   por falta de grupo es atribuible a quien opera.
+3. La salida no está confirmada.
+
+### 7.4 · Qué se guarda en cada reserva
+
+El texto mostrado **con N y la fecha ya escritos** entra en la huella de la
+política aceptada. Además, en la reserva quedan el mínimo y la fecha límite
+que vio (copia, no referencia a la salida). Una reserva sin esa copia no tiene
+la cláusula.
+
+Candado en la salida: con una reserva pagada que trae la cláusula, **no se
+sube el mínimo ni se mueve la fecha límite a más tarde**. Bajarlo o adelantar
+la fecha sí se puede: favorece al cliente.
+
+### 7.5 · Confirmar la salida
+
+- Cuentan los **lugares pagados** (pago confirmado). Un lugar apartado sin
+  pago no cuenta.
+- Al llegar al mínimo, el sistema propone confirmar; confirma una persona de
+  la casa o de la operadora. Si llega la fecha límite con el mínimo cubierto,
+  se confirma sola.
+- Al confirmar se avisa a todo el grupo: «Tu salida está confirmada».
+- **Una salida confirmada ya no se cancela por cupo.** Si después se cae gente
+  y se cancela, es atribuible a quien opera.
+
+### 7.6 · Cancelar por cupo mínimo (causa nueva en la pantalla de cancelar)
+
+Sólo se ofrece si la cláusula está activa, los lugares pagados son menos que
+el mínimo y el aviso sale **a más tardar el día de la fecha límite**, hora del
+centro de México. El sistema guarda la hora en que salió el aviso: es la
+prueba.
+
+- A todas las reservas: **100 %**, a la misma forma de pago, ese mismo día.
+- Reservas **con** la cláusula en su copia: sin bonificación.
+- Reservas **sin** la cláusula (anteriores): bonificación del 20 %, como hoy.
+- Fuera de esas condiciones no existe «cupo mínimo»: es causa de quien opera.
+
+Correo al cliente:
+
+> **Tu salida no se juntó.** Para [experiencia · fecha] hacían falta N
+> personas y al [fecha límite] éramos M. Como te lo dijimos antes de pagar, la
+> salida se cancela. Hoy mismo te devolvemos el **100 %** de lo que pagaste, a
+> la misma forma de pago. Si quieres, te ayudamos a pasarte a otra fecha.
+
+### 7.7 · Frente a la operadora (convenio)
+
+El convenio v3.3 no distingue esta causa: la penalización de la Quinta §3 se
+mide por la anticipación con que cancela la operadora y sólo exime la fuerza
+mayor. Si una operadora con convenio queda exenta de penalización al cancelar
+por cupo en plazo es **decisión de Luis** y entra en la siguiente versión del
+convenio. Hoy no afecta: todas las ventas son de la casa o de operadora sin
+convenio, y el cobro de la penalización no está construido.

@@ -783,6 +783,22 @@ Producto encontró que antes de pagar no se veía ningún medio de reclamación 
 - **El domicilio de la operadora no se publica todavía.** Muchas son personas físicas y su domicilio fiscal es su casa. Para la primera operadora con convenio que venda a nombre propio, la siguiente versión del convenio dirá: la persona moral publica su domicilio fiscal; la persona física señala el domicilio de Caminante como domicilio convencional para recibir reclamaciones de sus clientes, y Caminante se las turna. Queda en la lista de la próxima versión, junto con el cupo mínimo si Luis lo adopta.
 - **Aviso de privacidad:** dos párrafos nuevos en `AVISO-PRIVACIDAD-ADICIONES-2026-11.md`: identidad y domicilio del responsable, y la cuenta bancaria que el cliente da para recibir una bonificación (dato financiero: consentimiento expreso, art. 7; se usa sólo para ese pago por la excepción del art. 9 fracción IV y no se guarda).
 
+
+### D26 · Cláusula de cupo mínimo (18 nov; Luis: «Sí, escríbela»)
+
+Cancelar una salida porque no se juntó el grupo deja de generar la bonificación del 20 % **sólo** cuando el cliente aceptó la cláusula antes de pagar. Texto y especificación en `POLITICA-CANCELACION-CLIENTE-2026-11.md`, §7.
+
+| Punto | Decisión | Fundamento |
+|---|---|---|
+| Qué necesita la salida | Mínimo de personas y fecha límite de confirmación, los dos escritos en el texto aceptado | LFPC 90 I; NOM-010-TUR-2001, 6.2.5 y 5.2.4 |
+| Por qué no hay bonificación | No es causa imputable: es una condición objetiva informada antes de pagar | LFPC 92 Bis, 7 y 76 Bis V |
+| Piso de la fecha límite | 48 horas antes (menos de dos días), 7 días (dos a seis días), 20 días (más de seis días) | Criterio de razonabilidad (LFPC 85) con la Directiva (UE) 2015/2302, art. 12.3 a) como referencia; no es derecho mexicano |
+| Qué recibe el cliente | 100 % el mismo día, a la misma forma de pago | LFPC 92 |
+| Cuándo vuelve a haber bonificación | Aviso tardío, salida ya confirmada, fecha fuera del piso o reserva anterior a la cláusula | El texto que cada reserva aceptó |
+| Prueba | Huella del texto con el número y la fecha, copia de ambos en la reserva y hora del aviso | LFPC 76 Bis 1 fracción IV |
+
+**Abierto, de Luis:** si la operadora con convenio que cancela por cupo en plazo queda exenta de la penalización de la Quinta §3. Hoy el convenio la cobra por anticipación y sólo exime la fuerza mayor. Entra en la siguiente versión del convenio junto con el domicilio de reclamaciones (D25). No detiene la construcción: hoy no hay ventas de operadora con convenio.
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash

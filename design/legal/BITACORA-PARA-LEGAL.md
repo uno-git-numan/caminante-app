@@ -12,6 +12,28 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 18 nov 2026 (tarde) · Sesión legal: cláusula de cupo mínimo escrita (D26)
+
+Luis la aprobó en esta sesión («Sí, escríbela»). Texto y especificación en
+`POLITICA-CANCELACION-CLIENTE-2026-11.md`, §7. Para construir:
+
+- **Bloque nuevo del texto** «Si no se junta el grupo mínimo» (7.1), sólo en
+  salidas con la cláusula activa; renglón del resumen y del comprobante.
+- **Activa** si la salida tiene `minimo` y `fecha_limite`, la fecha respeta el
+  piso por duración (48 h / 7 días / 20 días) y no está confirmada (7.3).
+- **En la reserva:** la huella incluye N y la fecha, y se guarda copia de los
+  dos. Candado: con reservas pagadas con cláusula no se sube el mínimo ni se
+  atrasa la fecha (7.4).
+- **Confirmar la salida:** cuentan lugares pagados; confirma una persona o se
+  confirma sola en la fecha límite con el mínimo cubierto; avisa al grupo; una
+  salida confirmada ya no se cancela por cupo (7.5).
+- **Causa nueva «cupo mínimo»** en cancelar: sólo con cláusula activa, pagados
+  < mínimo y aviso a más tardar el día límite. 100 % a todos; sin bonificación
+  a las reservas con cláusula; con bonificación a las anteriores (7.6).
+- **Convenio:** sin cambio por ahora. Si la operadora queda exenta de
+  penalización lo decide Luis (7.7).
+- Contabilizado: D24 y D25 en producción (2b9359c, fbc6bc8).
+
 ## 18 nov 2026 · Sesión legal: qué domicilio va antes de pagar (D25)
 
 - **Siempre el de NUMAN**, con correo y WhatsApp, como domicilio para
