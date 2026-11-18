@@ -10,7 +10,17 @@ import {
   puedeCancelarPorCupo,
   type SalidaParaClausula,
 } from "@/lib/cancelacion/cupo-minimo";
-import { bloqueCupoMinimo, bloquesPolitica, renglonMinimoDelComprobante, resumenPolitica, textoPolitica } from "@/lib/cancelacion/politica";
+import {
+  BLOQUE_MINIMO_DE_FICHA,
+  bloqueCupoMinimo,
+  bloquesDeFicha,
+  bloquesPolitica,
+  renglonMinimoDeFicha,
+  renglonMinimoDelComprobante,
+  resumenPolitica,
+  SALIDA_CONFIRMADA,
+  textoPolitica,
+} from "@/lib/cancelacion/politica";
 import { pruebaComoMetadata, pruebaDeMetadata, pruebaDePolitica } from "@/lib/cancelacion/prueba";
 
 // D26 · la cláusula de cupo mínimo.
@@ -210,5 +220,38 @@ describe("el candado: no se empeora lo que alguien ya aceptó (§7.4)", () => {
   it("bajar el mínimo, adelantar la fecha o quitar la cláusula sí: favorece al cliente", () => {
     expect(cambioQuePerjudica({ minimo: 4, confirmacionLimite: "2026-11-25" }, copias)).toBeNull();
     expect(cambioQuePerjudica({ minimo: null, confirmacionLimite: null }, copias)).toBeNull();
+  });
+});
+
+describe("la ficha: la oferta también dice el mínimo (§7.8)", () => {
+  const legal = readFileSync("design/legal/POLITICA-CANCELACION-CLIENTE-2026-11.md", "utf8")
+    .replace(/\n> ?/g, "\n")
+    .replace(/\s+/g, " ")
+    .replace(/Mínimo N personas/g, "Mínimo 6 personas")
+    .replace(/\[día\] de \[mes\]/g, "1 de diciembre");
+
+  it("el renglón junto a la fecha y «Salida confirmada», tal cual", () => {
+    expect(legal).toContain(renglonMinimoDeFicha(clausula));
+    expect(legal).toContain(SALIDA_CONFIRMADA);
+  });
+
+  it("el bloque informativo, renglón por renglón", () => {
+    for (const r of BLOQUE_MINIMO_DE_FICHA.renglones) expect(legal).toContain(r);
+  });
+
+  it("sólo aparece si alguna fecha publicada tiene la cláusula activa", () => {
+    expect(bloquesDeFicha("estandar", false)).toEqual(bloquesPolitica("estandar"));
+    expect(bloquesDeFicha("estandar", true).map((b) => b.titulo)).toEqual([
+      "Si cancelas tú",
+      "Tu derecho a arrepentirte",
+      "Si la salida se cancela",
+      "Si no se junta el grupo mínimo",
+      "Cómo se devuelve",
+    ]);
+  });
+
+  it("es informativo: no cambia el texto que se acepta ni su huella", () => {
+    expect(textoPolitica("estandar")).not.toContain("Algunas fechas de esta experiencia");
+    expect(pruebaDePolitica("estandar", null)?.politica_hash).toBe(pruebaDePolitica("estandar")?.politica_hash);
   });
 });

@@ -63,6 +63,34 @@ export function bloqueCupoMinimo(c: ClausulaMinimo): BloquePolitica {
   };
 }
 
+/** Junto a cada fecha de la ficha con la cláusula activa (§7.8). Informativo: no entra en la huella. */
+export const renglonMinimoDeFicha = (c: ClausulaMinimo): string => `Mínimo ${c.minimo} personas · se confirma a más tardar el ${fechaSinAnio(c.limite)}`;
+
+/** Junto a la fecha de la ficha cuando la salida ya se confirmó (§7.8). */
+export const SALIDA_CONFIRMADA = "Salida confirmada";
+
+/**
+ * El bloque INFORMATIVO de la sección «Cancelación y devoluciones» de la ficha,
+ * cuando alguna fecha publicada tiene la cláusula activa (§7.8). No es el texto
+ * que se acepta —ése es `bloqueCupoMinimo`, con el número y la fecha de la
+ * salida elegida— y por eso no entra en la huella.
+ */
+export const BLOQUE_MINIMO_DE_FICHA: BloquePolitica = {
+  titulo: "Si no se junta el grupo mínimo",
+  renglones: [
+    "Algunas fechas de esta experiencia necesitan un mínimo de personas para salir. Junto a cada fecha ves cuántas y el día en que te confirmamos.",
+    "Si ese día no se juntó el grupo, la salida se puede cancelar y te devolvemos el **100 %**. Las condiciones completas las ves antes de pagar.",
+  ],
+};
+
+/** Los bloques de la política para la FICHA: los de siempre, más el informativo si alguna fecha lo necesita. */
+export function bloquesDeFicha(v: Variante, algunaFechaConMinimo: boolean): BloquePolitica[] {
+  const base = bloquesPolitica(v);
+  if (!algunaFechaConMinimo) return base;
+  const i = base.findIndex((b) => b.titulo === "Si la salida se cancela");
+  return [...base.slice(0, i + 1), BLOQUE_MINIMO_DE_FICHA, ...base.slice(i + 1)];
+}
+
 /** El renglón del comprobante por correo cuando la reserva trae la cláusula. */
 export const renglonMinimoDelComprobante = (c: ClausulaMinimo): string =>
   `Esta salida necesita un mínimo de ${c.minimo} personas. Te confirmamos a más tardar el ${fechaConAnio(c.limite)}.`;

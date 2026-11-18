@@ -294,6 +294,15 @@ en «Reembolsar o cancelar» y sólo se ofrece si se puede: el aviso sale al
 cancelar a quienes traen la cláusula (`cancelacion_aviso_at` es la prueba),
 100 % a todos, y **bonificación sólo a las reservas SIN copia**. Todo tolera
 que la 0093 no esté aplicada (sin cláusula, la venta sigue igual).
+**La ficha también lo dice** (§7.8; NOM-010-TUR 6.2.5: la oferta especifica
+el mínimo): junto a cada fecha con la cláusula activa, «Mínimo N personas · se
+confirma a más tardar el [día] de [mes]»; confirmada, «Salida confirmada»; y un
+bloque informativo en «Cancelación y devoluciones» si alguna fecha la tiene
+(`cupo-publico.ts`, `bloquesDeFicha`). Es informativo: **no entra en la
+huella**; la aceptación y la prueba siguen en reservar y en la página de pago.
+**El día límite obliga a decidir** (§7.5): si termina sin confirmar ni
+cancelar, la salida queda confirmada sola —sólo si la cláusula se le enseñó a
+alguien—; la casa recibe aviso la víspera y esa mañana.
 
 **La bonificación del 20 %** (`lib/cancelacion/bonificaciones.ts`, tabla
 `bonificaciones`): con causa imputable se crea una «por pagar» por cada reserva

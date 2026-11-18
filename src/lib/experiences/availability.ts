@@ -1,4 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { grupoMinimoPublico } from "@/lib/cancelacion/cupo-publico";
+import type { ClausulaMinimo } from "@/lib/cancelacion/politica";
 
 // Token de grupo privado (?grupo=<token> en la URL). SIEMPRE sanitizar con
 // esto antes de usarlo en un filtro PostgREST (evita inyección en .or()) o de
@@ -30,6 +32,10 @@ export type SlotAvailabilityPublic = {
   capacity: number | null;
   available: number | null;
   soldOut: boolean;
+  /** La cláusula de cupo mínimo de esta fecha, si la tiene activa (D26 §7.8). */
+  clausula?: ClausulaMinimo | null;
+  /** La salida ya se confirmó: se hace. */
+  confirmada?: boolean;
 };
 
 export type ExperienceAvailability = {
@@ -114,6 +120,9 @@ export async function fetchOpenSlotsForTemplate(
     if (sid) taken.set(sid, (taken.get(sid) || 0) + (((r as { num_people: number }).num_people) || 0));
   }
 
+  // El grupo mínimo de cada fecha, para que la ficha lo diga (D26 §7.8).
+  const minimos = await grupoMinimoPublico(sb, (slots || []).map((s) => (s as { id: string }).id));
+
   return (slots || []).map((s) => {
     const row = s as {
       id: string;
@@ -133,6 +142,8 @@ export async function fetchOpenSlotsForTemplate(
       capacity: cap,
       available,
       soldOut: available !== null && available <= 0,
+      clausula: minimos.get(row.id)?.clausula ?? null,
+      confirmada: minimos.get(row.id)?.confirmada ?? false,
     };
   });
 }

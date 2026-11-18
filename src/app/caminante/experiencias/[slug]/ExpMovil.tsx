@@ -28,7 +28,7 @@
 //   · `ficha.especies[i]` del mockup era un texto + una fuente; el real es
 //     `datos: {texto, fuente}[]` — se listan todos, cada uno con su fuente.
 
-import { bloquesPolitica, esVariante } from "@/lib/cancelacion/politica";
+import { bloquesDeFicha, esVariante, renglonMinimoDeFicha, SALIDA_CONFIRMADA } from "@/lib/cancelacion/politica";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { Estrellas, Eyeb, Sec } from "@/app/caminante/ui/pub/atoms";
@@ -495,7 +495,7 @@ export default function ExpMovil({
       nodo: (sx) => (
         <Secd sx={sx} t="Cancelación" title={<H2 t="Cancelación y" ac="devoluciones." />}>
           <div className="pub-faq">
-            {bloquesPolitica(variante).map((b, i) => (
+            {bloquesDeFicha(variante, slots.some((s) => !!s.clausula)).map((b, i) => (
               <details key={i} open={i === 0}>
                 <summary>
                   {b.titulo}
@@ -566,6 +566,12 @@ export default function ExpMovil({
                   >
                     {disponibilidad(s)}
                   </span>
+                  {/* El grupo mínimo de esta fecha (D26 §7.8). */}
+                  {s.confirmada ? (
+                    <small style={{ display: "block", marginTop: 3 }}>{SALIDA_CONFIRMADA}</small>
+                  ) : esVariante(experience.politicaCancelacion) && s.clausula ? (
+                    <small style={{ display: "block", marginTop: 3 }}>{renglonMinimoDeFicha(s.clausula)}</small>
+                  ) : null}
                 </div>
                 {s.soldOut ? null : (
                   <Link

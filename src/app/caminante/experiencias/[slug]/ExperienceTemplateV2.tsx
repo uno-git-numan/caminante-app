@@ -31,7 +31,7 @@ import { TEMPLATE_V2_CSS } from "@/lib/experiences/template-v2-css";
 import { MOVIL_FIXES_CSS } from "@/lib/experiences/movil-fixes-css";
 import { TEMPLATE_V2_SCRIPT } from "@/lib/experiences/template-v2-script";
 import { PixelEvent } from "@/lib/meta/pixel";
-import { bloquesPolitica, esVariante, TITULO_POLITICA, type Variante } from "@/lib/cancelacion/politica";
+import { bloquesDeFicha, esVariante, renglonMinimoDeFicha, SALIDA_CONFIRMADA, TITULO_POLITICA, type Variante } from "@/lib/cancelacion/politica";
 
 // --- markup inline sencillo: **negrita** y *itálica* ---
 function renderInline(text: string): ReactNode {
@@ -560,7 +560,7 @@ function negritas(t: string): ReactNode[] {
  * Reusa el aspecto de las preguntas frecuentes (misma tarjeta sobre la foto);
  * el texto vive en lib/cancelacion/politica.ts, transcrito de legal.
  */
-function PoliticaBlock({ variante, bg }: { variante: Variante; bg: V2Image | null }) {
+function PoliticaBlock({ variante, bg, conMinimo }: { variante: Variante; bg: V2Image | null; /** Alguna fecha publicada tiene la cláusula de cupo mínimo activa. */ conMinimo: boolean }) {
   return (
     <section className="section faq" id="cancelacion" style={bg ? undefined : { background: "#0a1616" }}>
       {bg ? (
@@ -573,7 +573,7 @@ function PoliticaBlock({ variante, bg }: { variante: Variante; bg: V2Image | nul
       <div className="container">
         <div className="glasscard">
           <Eyebrow text={TITULO_POLITICA} />
-          {bloquesPolitica(variante).map((b, i) => (
+          {bloquesDeFicha(variante, conMinimo).map((b, i) => (
             <div className="qa" key={i}>
               <div className="q">{b.titulo}</div>
               {b.renglones.map((r, j) => (
@@ -652,6 +652,7 @@ function DatesBlock({
   slots,
   grupoToken,
   cupo,
+  conPolitica,
 }: {
   b: V2Dates;
   secnum: string;
@@ -660,6 +661,8 @@ function DatesBlock({
   grupoToken?: string | null;
   /** Derivado de `data.capacity` — ver lib/experiences/cupo.ts. */
   cupo: string | null;
+  /** La experiencia tiene política: sólo entonces existe la cláusula de cupo mínimo. */
+  conPolitica: boolean;
 }) {
   const q = grupoToken ? `?grupo=${grupoToken}` : "";
   return (
@@ -683,6 +686,13 @@ function DatesBlock({
                 <span className="k">Disponibilidad</span>
                 <span className="cupo">{cupoText(s)}</span>
               </div>
+              {/* El grupo mínimo de esta fecha (D26 §7.8): la oferta tiene que
+                  decir cuántas personas hacen falta y cuándo se confirma. */}
+              {s.confirmada ? (
+                <div style={{ marginTop: 10, fontSize: 12.5, lineHeight: 1.45, opacity: 0.85 }}>{SALIDA_CONFIRMADA}</div>
+              ) : conPolitica && s.clausula ? (
+                <div style={{ marginTop: 10, fontSize: 12.5, lineHeight: 1.45, opacity: 0.85 }}>{renglonMinimoDeFicha(s.clausula)}</div>
+              ) : null}
             </div>
           ))}
         </div>
@@ -888,6 +898,9 @@ export default function ExperienceTemplateV2({
   // preguntas frecuentes si las hay (−1 = al final, antes del pie).
   const politica: Variante | null = esVariante(experience.politicaCancelacion) ? experience.politicaCancelacion : null;
   const politicaTrasIdx = blocks.findIndex((b) => b.type === "faq");
+  // ¿Alguna fecha publicada tiene la cláusula de cupo mínimo activa? Entonces
+  // la sección de cancelación lleva el bloque informativo (D26 §7.8).
+  const conMinimo = !!politica && slots.some((s) => !!s.clausula);
   const vcPriceRaw = experience.priceTiers?.[0]?.amount ?? experience.price?.amount ?? "";
   const vcPriceNum = Number(String(vcPriceRaw).replace(/[^\d.]/g, ""));
   const vcValue = Number.isFinite(vcPriceNum) && vcPriceNum > 0 ? vcPriceNum : undefined;
@@ -981,7 +994,7 @@ export default function ExperienceTemplateV2({
             el = <PackingBlock b={b} secnum={secnum} />;
             break;
           case "dates":
-            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} grupoToken={grupoToken} cupo={cupoTexto} />;
+            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} grupoToken={grupoToken} cupo={cupoTexto} conPolitica={!!politica} />;
             break;
           case "closing":
             el = <ClosingBlock b={b} slug={slug} contactoOperador={contactoOperador ?? null} />;
@@ -994,13 +1007,13 @@ export default function ExperienceTemplateV2({
           <Fragment key={i}>
             {el}
             {/* La política de cancelación va justo después de las preguntas frecuentes. */}
-            {politica && i === politicaTrasIdx ? <PoliticaBlock variante={politica} bg={b.type === "faq" ? b.bg : null} /> : null}
+            {politica && i === politicaTrasIdx ? <PoliticaBlock variante={politica} bg={b.type === "faq" ? b.bg : null} conMinimo={conMinimo} /> : null}
             {i === collabAfterIdx && collabs.length ? <CollaboratorsBand logos={collabs} /> : null}
           </Fragment>
         );
       })}
 
-      {politica && politicaTrasIdx < 0 ? <PoliticaBlock variante={politica} bg={null} /> : null}
+      {politica && politicaTrasIdx < 0 ? <PoliticaBlock variante={politica} bg={null} conMinimo={conMinimo} /> : null}
 
       {/* FOOTER */}
       <footer className="footer">

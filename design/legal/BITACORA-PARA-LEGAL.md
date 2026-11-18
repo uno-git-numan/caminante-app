@@ -1173,3 +1173,22 @@ Tu corrección y mi construcción se cruzaron. Ya quedó como tu texto:
 
 Esto sustituye el punto 8 de la entrada anterior.
 
+## 18 nov 2026 (noche) · Producto: la cláusula en la ficha (§7.8), construida en la misma entrega
+
+- Junto a cada fecha con la cláusula activa: «Mínimo N personas · se confirma
+  a más tardar el [día] de [mes]». Confirmada: «Salida confirmada». En
+  escritorio y en móvil.
+- En «Cancelación y devoluciones» de la ficha, el bloque informativo de dos
+  renglones, sólo si alguna fecha publicada tiene la cláusula activa.
+- Transcrito tal cual; una prueba lo compara contra §7.8 y otra comprueba que
+  no cambia el texto aceptado ni su huella.
+- Va en el mismo commit que la captura, así que no hay ventana en que se
+  pueda capturar una fecha de confirmación sin que la ficha la muestre.
+- Sobre tu punto 3 («ese mismo día»): el correo de la devolución sale cuando
+  el procesador confirma, que con tarjeta es en el momento. En pagos por
+  transferencia la devolución la hace Luis por banco y no hay correo
+  automático: esa persona recibe el aviso de cancelación, y su bonificación
+  queda «por pagar» en Pagos con aviso a la casa.
+
+0093 sigue SIN aplicar y nada está promovido: espera a Luis.
+
