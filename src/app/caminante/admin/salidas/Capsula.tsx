@@ -21,6 +21,13 @@ import {
   verificarReembolso,
 } from "@/lib/payments/reembolsos";
 import { iniciales } from "@/lib/admin/formato";
+import {
+  bonificacionDe,
+  FUERZA_MAYOR,
+  proponerReembolso,
+  type ClaseFuerzaMayor,
+  type PropuestaReembolso,
+} from "@/lib/cancelacion/politica";
 import { mandarmeUnaPrueba } from "@/lib/feedback/prueba";
 import { generarLinkDeGrupo } from "@/lib/feedback/link-grupo";
 import SuEspacio from "@/app/caminante/admin/ui/SuEspacio";
@@ -188,9 +195,28 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
   const [confirmacion, setConfirmacion] = useState("");
   const [ocupado, setOcupado] = useState("");
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
+  // Cuándo se recibió el aviso de cancelación, en hora de CDMX. La política
+  // cuenta la fecha y la hora del aviso, no la del clic: si la persona avisó
+  // ayer por WhatsApp, se pone ayer. Arranca en «ahora».
+  const [avisoLocal, setAvisoLocal] = useState(() => new Date(Date.now() - 6 * 3600_000).toISOString().slice(0, 16));
+  // Lo que la casa teclea en vez de la propuesta, por reserva. Sin tecla, la propuesta.
+  const [montos, setMontos] = useState<Record<string, string>>({});
+  const [causa, setCausa] = useState<"" | "imputable" | "fuerza-mayor">("");
+  const [clase, setClase] = useState<ClaseFuerzaMayor | "">("");
+
+  const avisoIso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(avisoLocal) ? `${avisoLocal}:00-06:00` : null;
+  const propuestaDe = (r: Salida["reembolsables"][number]): PropuestaReembolso | null => {
+    if (!r.caso || !avisoIso) return null;
+    try {
+      return proponerReembolso({ ...r.caso, avisoAt: avisoIso, pagado: r.monto, cancela: "cliente" });
+    } catch {
+      return null; // año sin lista de días de descanso: no se propone con una fecha supuesta
+    }
+  };
 
   const vivos = s.reembolsables.filter((r) => !r.enCurso);
   const totalVivo = vivos.reduce((n, r) => n + r.monto, 0);
+  const totalBonificacion = vivos.reduce((n, r) => n + bonificacionDe(r.monto), 0);
   // Comparación TOLERANTE. La etiqueta trae guion largo («Oct 8–11») y nadie lo
   // teclea: escribir «oct 8-11» quedaba fuera y el botón no se habilitaba nunca,
   // sin decir por qué. Se normalizan guiones, acentos y espacios — la
@@ -198,12 +224,14 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
   const plano = (t: string) =>
     t
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[\u2010-\u2015]/g, "-")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[‐-―]/g, "-")
       .replace(/\s+/g, " ")
       .trim()
       .toLowerCase();
-  const puedeCancelar = plano(confirmacion) === plano(s.label);
+  const escribioLaEtiqueta = plano(confirmacion) === plano(s.label);
+  const causaLista = causa === "imputable" || (causa === "fuerza-mayor" && clase !== "");
+  const puedeCancelar = escribioLaEtiqueta && causaLista && motivo.trim() !== "";
 
   const contar = (r: { ok: boolean; reembolsados?: number; monto?: number; avisos?: string[]; error?: string }) => {
     if (!r.ok) { setAviso({ ok: false, texto: r.error || "No se pudo." }); return; }
@@ -216,18 +244,30 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
       <span className="subtitle">Reembolsos</span>
       <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 4 }}>
         Se devuelve por la misma tarjeta. El lugar vuelve a la venta y la persona recibe su correo
-        <b> cuando Stripe confirma</b>, no al apretar el botón.
+        <b> cuando Stripe confirma</b>, no al apretar el botón. El sistema <b>propone</b> cuánto devolver según
+        la política de cancelación que la persona aceptó; puedes cambiarlo escribiendo el motivo.
       </p>
 
-      <label className="mut" style={{ fontSize: 12.5, display: "block", marginTop: 12 }}>
-        Motivo{" "}
-        <input
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-          placeholder="Se dio de baja · Mal clima · Cupo mínimo no alcanzado"
-          style={{ width: "min(420px, 100%)" }}
-        />
-      </label>
+      <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginTop: 12 }}>
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Aviso recibido (hora del centro de México){" "}
+          <input
+            type="datetime-local"
+            value={avisoLocal}
+            onChange={(e) => setAvisoLocal(e.target.value)}
+            style={{ width: "min(220px, 100%)" }}
+          />
+        </label>
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Motivo{" "}
+          <input
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Se dio de baja · Mal clima · Cupo mínimo no alcanzado"
+            style={{ width: "min(420px, 100%)" }}
+          />
+        </label>
+      </div>
 
       {s.reembolsables.length === 0 ? (
         <p className="mut" style={{ fontSize: 12.5, marginTop: 12 }}>
@@ -235,57 +275,98 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
         </p>
       ) : (
         <div style={{ marginTop: 12 }}>
-          {s.reembolsables.map((r) => (
-            <div
-              key={r.reservationId}
-              style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "7px 0" }}
-            >
-              <span className="av">{iniciales(r.nombre)}</span>
-              <span style={{ fontSize: 14 }}>{r.nombre}</span>
-              <span className="mut" style={{ fontSize: 12.5 }}>{mxn(r.monto)}</span>
-              {r.enCurso ? (
-                <>
-                  <span className="mut" style={{ fontSize: 12.5 }}>Reembolso en curso</span>
-                  {/* Un «en curso» sin salida no es información: es un callejón.
-                      Este botón le pregunta a Stripe y cierra lo que falte. */}
-                  {r.reembolsoId ? (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      disabled={!!ocupado}
-                      onClick={async () => {
-                        setOcupado(r.reservationId);
-                        setAviso(null);
-                        const v = await verificarReembolso(r.reembolsoId!);
-                        setAviso(v.ok ? { ok: true, texto: v.mensaje } : { ok: false, texto: v.error });
-                        setOcupado("");
-                        onListo();
-                      }}
-                    >
-                      {ocupado === r.reservationId ? "Preguntando a Stripe…" : "Verificar con Stripe"}
-                    </button>
-                  ) : null}
-                </>
-              ) : !r.porStripe ? (
-                <span className="mut" style={{ fontSize: 12.5 }}>Se cobró fuera de Stripe — devuélvelo por banco</span>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  disabled={!!ocupado}
-                  onClick={async () => {
-                    setOcupado(r.reservationId);
-                    setAviso(null);
-                    contar(await reembolsarPersona(r.reservationId, motivo));
-                    setOcupado("");
-                    onListo();
-                  }}
-                >
-                  {ocupado === r.reservationId ? "Pidiendo a Stripe…" : "Reembolsar"}
-                </button>
-              )}
-            </div>
-          ))}
+          {s.reembolsables.map((r) => {
+            const prop = propuestaDe(r);
+            const tecleado = montos[r.reservationId];
+            const monto = tecleado == null ? (prop ? prop.importe : r.monto) : Number(tecleado);
+            const cambiada = prop != null && Math.abs(monto - prop.importe) > 0.01;
+            const montoSirve = Number.isFinite(monto) && monto > 0 && monto <= r.monto + 0.01;
+            const faltaMotivo = cambiada && !motivo.trim();
+            return (
+              <div key={r.reservationId} style={{ padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <span className="av">{iniciales(r.nombre)}</span>
+                  <span style={{ fontSize: 14 }}>{r.nombre}</span>
+                  <span className="mut" style={{ fontSize: 12.5 }}>pagó {mxn(r.monto)}</span>
+                  {r.enCurso ? (
+                    <>
+                      <span className="mut" style={{ fontSize: 12.5 }}>Reembolso en curso</span>
+                      {/* Un «en curso» sin salida no es información: es un callejón.
+                          Este botón le pregunta a Stripe y cierra lo que falte. */}
+                      {r.reembolsoId ? (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          disabled={!!ocupado}
+                          onClick={async () => {
+                            setOcupado(r.reservationId);
+                            setAviso(null);
+                            const v = await verificarReembolso(r.reembolsoId!);
+                            setAviso(v.ok ? { ok: true, texto: v.mensaje } : { ok: false, texto: v.error });
+                            setOcupado("");
+                            onListo();
+                          }}
+                        >
+                          {ocupado === r.reservationId ? "Preguntando a Stripe…" : "Verificar con Stripe"}
+                        </button>
+                      ) : null}
+                    </>
+                  ) : !r.porStripe ? (
+                    <span className="mut" style={{ fontSize: 12.5 }}>Se cobró fuera de Stripe — devuélvelo por banco</span>
+                  ) : (
+                    <>
+                      <label className="mut" style={{ fontSize: 12.5 }}>
+                        Devolver ${" "}
+                        <input
+                          inputMode="decimal"
+                          value={tecleado ?? (prop ? String(prop.importe) : String(r.monto))}
+                          onChange={(e) => setMontos((m) => ({ ...m, [r.reservationId]: e.target.value.replace(/[^0-9.]/g, "") }))}
+                          style={{ width: 110 }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        disabled={!!ocupado || !montoSirve || faltaMotivo || !avisoIso}
+                        onClick={async () => {
+                          setOcupado(r.reservationId);
+                          setAviso(null);
+                          contar(
+                            await reembolsarPersona(
+                              r.reservationId,
+                              motivo,
+                              Math.abs(monto - r.monto) < 0.01 ? undefined : monto,
+                              avisoIso ?? undefined,
+                            ),
+                          );
+                          setOcupado("");
+                          onListo();
+                        }}
+                      >
+                        {ocupado === r.reservationId ? "Pidiendo a Stripe…" : montoSirve ? `Reembolsar ${mxn(monto)}` : "Reembolsar"}
+                      </button>
+                    </>
+                  )}
+                </div>
+                {!r.enCurso ? (
+                  <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.55, marginTop: 4, marginLeft: 44 }}>
+                    {prop ? (
+                      <>
+                        <b>Propuesta: {prop.pct} % · {mxn(prop.importe)}.</b> {prop.porque}
+                        {r.caso && !r.caso.aceptada
+                          ? " Esta reserva es anterior a la política publicada: la persona no la aceptó en línea, y la propuesta usa la de la experiencia como referencia."
+                          : ""}
+                        {prop.importe <= 0 && r.porStripe ? " Si aun así devuelves algo, escribe cuánto y el motivo." : ""}
+                        {faltaMotivo && montoSirve ? " Cambiaste la propuesta: escribe el motivo." : ""}
+                      </>
+                    ) : (
+                      "Sin propuesta: falta la política de cancelación de la experiencia o la fecha de la salida. Decide el monto y escribe el motivo."
+                    )}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -294,11 +375,49 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
       <div style={{ borderTop: "1px solid var(--line)", marginTop: 14, paddingTop: 14 }}>
         <span className="subtitle">Cancelar la salida</span>
         <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 4 }}>
-          Devuelve a las {vivos.length} {vivos.length === 1 ? "persona" : "personas"} con cobro vivo
-          ({mxn(totalVivo)}), cierra la fecha y avisa a cada quien. <b>No se deshace.</b> Para
-          confirmar, escribe la etiqueta de la salida: <b>{s.label}</b>
+          Devuelve el <b>100 %</b> a las {vivos.length} {vivos.length === 1 ? "persona" : "personas"} con cobro vivo
+          ({mxn(totalVivo)}), cierra la fecha y avisa a cada quien. <b>No se deshace.</b>
         </p>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+
+        <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.7 }}>
+          <div className="mut" style={{ fontSize: 12.5 }}>¿Por qué se cancela?</div>
+          <label style={{ display: "block" }}>
+            <input type="radio" name={`causa-${s.id}`} checked={causa === "imputable"} onChange={() => setCausa("imputable")} />{" "}
+            Por una causa de quien opera (cupo, logística, proveedor, decisión propia)
+          </label>
+          <label style={{ display: "block" }}>
+            <input type="radio" name={`causa-${s.id}`} checked={causa === "fuerza-mayor"} onChange={() => setCausa("fuerza-mayor")} />{" "}
+            Por fuerza mayor
+          </label>
+          {causa === "fuerza-mayor" ? (
+            <select value={clase} onChange={(e) => setClase(e.target.value as ClaseFuerzaMayor | "")} style={{ marginTop: 6, width: "min(460px, 100%)" }}>
+              <option value="">Elige cuál…</option>
+              {(Object.keys(FUERZA_MAYOR) as ClaseFuerzaMayor[]).map((k) => (
+                <option key={k} value={k}>
+                  {FUERZA_MAYOR[k]}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          {causa === "imputable" ? (
+            <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 6 }}>
+              Además de la devolución, a cada persona se le debe una <b>bonificación del 20 %</b> de lo que pagó
+              ({mxn(totalBonificacion)} en total). Se paga por <b>transferencia</b>, que haces tú, en 5 días
+              hábiles: quedan como «por pagar» en Pagos y el correo de la cancelación le pide a cada quien su cuenta.
+            </p>
+          ) : null}
+          {causa === "fuerza-mayor" ? (
+            <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 6 }}>
+              Con fuerza mayor no hay bonificación. En el motivo escribe qué pasó y qué documento lo acredita
+              (reporte, aviso de la autoridad, parte médico).
+            </p>
+          ) : null}
+        </div>
+
+        <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 10 }}>
+          Para confirmar, escribe la etiqueta de la salida: <b>{s.label}</b>
+        </p>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
           <input
             value={confirmacion}
             onChange={(e) => setConfirmacion(e.target.value)}
@@ -310,9 +429,16 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
             className="btn btn-orange"
             disabled={!puedeCancelar || !!ocupado}
             onClick={async () => {
+              if (!causaLista) return;
               setOcupado("salida");
               setAviso(null);
-              contar(await cancelarSalidaYReembolsar(s.id, motivo));
+              contar(
+                await cancelarSalidaYReembolsar(
+                  s.id,
+                  motivo,
+                  causa === "fuerza-mayor" ? { tipo: "fuerza-mayor", clase: clase as ClaseFuerzaMayor } : { tipo: "imputable" },
+                ),
+              );
               setOcupado("");
               setConfirmacion("");
               onListo();
@@ -322,7 +448,11 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
           </button>
           {!puedeCancelar ? (
             <span className="mut" style={{ fontSize: 12.5 }}>
-              Escribe <b>{s.label}</b> para habilitarlo.
+              {!causaLista
+                ? "Elige por qué se cancela."
+                : !motivo.trim()
+                  ? "Escribe el motivo arriba."
+                  : <>Escribe <b>{s.label}</b> para habilitarlo.</>}
             </span>
           ) : null}
         </div>

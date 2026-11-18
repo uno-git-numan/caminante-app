@@ -13,6 +13,7 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { fromStripeAmount } from "@/lib/payments/stripe";
+import { bonificacionDeReserva } from "@/lib/cancelacion/bonificaciones";
 import { emailReembolso } from "@/lib/payments/email-reembolso";
 import { getStripeServerClient } from "@/lib/payments/stripe";
 import { documentarDevolucion } from "@/lib/facturacion/devoluciones";
@@ -241,6 +242,10 @@ export async function cerrarReembolsoDelPanel(
     const titulo =
       [d.title, d.titleAccent].filter(Boolean).join(" ").trim() || d.docTitle || "tu experiencia";
 
+    // La bonificación del 20 % (D23 §5), si la salida se canceló por causa de
+    // quien opera: el correo la anuncia y pide la cuenta para transferirla.
+    const bonificacion = reem.origen === "salida" ? await bonificacionDeReserva(sb, reservationId).catch(() => null) : null;
+
     const enviado = await emailReembolso({
       to: correo,
       nombre: (contacto as { full_name: string | null } | null)?.full_name ?? null,
@@ -248,6 +253,7 @@ export async function cerrarReembolsoDelPanel(
       salida: ((slot as { label: string | null } | null)?.label ?? "") || "",
       monto: Number(reem.monto_mxn || 0),
       cancelada: reem.origen === "salida",
+      bonificacion,
     });
     if (enviado) {
       await sb

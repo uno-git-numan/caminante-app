@@ -25,6 +25,15 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getStripeServerClient, toStripeAmount } from "@/lib/payments/stripe";
 import { cerrarDesdeStripe, marcarCerradoSinCargo } from "@/lib/payments/refunds";
 import { admisionDevuelta } from "@/lib/operadores/admision";
+import {
+  baseDelCaso,
+  esFuerzaMayor,
+  proponerReembolso,
+  type CausaCancelacion,
+  type PropuestaReembolso,
+  type ReglaReembolso,
+} from "@/lib/cancelacion/politica";
+import { crearBonificaciones } from "@/lib/cancelacion/bonificaciones";
 
 export type ResultadoReembolso =
   | { ok: true; reembolsados: number; monto: number; avisos: string[] }
@@ -101,6 +110,12 @@ async function devolver(
      * duplicar una regla que ya vive donde se ejecuta.
      */
     monto?: number;
+    /**
+     * Lo que propuso la calculadora (D23) y cuándo se recibió el aviso. Se
+     * guarda en la fila: si la casa devolvió otra cosa, queda a la vista
+     * contra el motivo que escribió. `pct` se aplica a lo vivo de ESTE cobro.
+     */
+    calculo?: { avisoAt: string; regla: ReglaReembolso; pct: number } | null;
   },
 ): Promise<{ monto: number; aviso: string | null }> {
   const restante = porDevolver(pago);
@@ -137,6 +152,13 @@ async function devolver(
       origen: ctx.origen,
       cancela_reserva: true,
       solicitado_por: ctx.quien,
+      ...(ctx.calculo
+        ? {
+            aviso_at: ctx.calculo.avisoAt,
+            regla: ctx.calculo.regla,
+            propuesto_mxn: Math.round(restante * ctx.calculo.pct) / 100,
+          }
+        : {}),
     })
     .select("id")
     .single();
@@ -229,6 +251,36 @@ async function quienEsLaCasa(): Promise<{ ok: true; quien: string | null } | { o
   return { ok: true, quien: data.user?.id ?? null };
 }
 
+type ReservaParaCaso = {
+  id: string;
+  slot_id: string | null;
+  experience_id: string | null;
+  created_at: string | null;
+  politica_variante: string | null;
+  politica_aceptada_at: string | null;
+};
+
+/** Lo que la calculadora necesita de una reserva. null = no hay con qué proponer. */
+async function baseDeReserva(sb: ReturnType<typeof createSupabaseAdminClient>, resv: ReservaParaCaso) {
+  const [{ data: exp }, { data: slot }, { data: primer }] = await Promise.all([
+    resv.experience_id
+      ? sb.from("experiences").select("data").eq("id", resv.experience_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    resv.slot_id
+      ? sb.from("experience_slots").select("starts_at").eq("id", resv.slot_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    sb.from("payments").select("paid_at").eq("reservation_id", resv.id).not("paid_at", "is", null).order("paid_at", { ascending: true }).limit(1).maybeSingle(),
+  ]);
+  return baseDelCaso({
+    politicaVariante: resv.politica_variante,
+    politicaAceptadaAt: resv.politica_aceptada_at,
+    varianteExperiencia: ((exp as { data?: { politicaCancelacion?: unknown } } | null)?.data ?? {}).politicaCancelacion,
+    primerPagoAt: (primer as { paid_at?: string | null } | null)?.paid_at ?? null,
+    reservaCreadaAt: resv.created_at,
+    salidaEmpieza: (slot as { starts_at?: string | null } | null)?.starts_at ?? null,
+  });
+}
+
 /** UNA persona se baja: se le devuelve lo que pagó y su lugar vuelve a la venta. */
 export async function reembolsarPersona(
   reservationId: string,
@@ -248,6 +300,11 @@ export async function reembolsarPersona(
    * puerta; no se cuela por aquí.
    */
   montoParcial?: number,
+  /**
+   * Cuándo se recibió el aviso de cancelación (ISO). La política cuenta «la
+   * fecha y la hora en que recibimos tu aviso», no la del clic. Sin él, ahora.
+   */
+  avisoAt?: string,
 ): Promise<ResultadoReembolso> {
   const auth = await quienEsLaCasa();
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -255,7 +312,7 @@ export async function reembolsarPersona(
   const sb = createSupabaseAdminClient();
   const { data: resv } = await sb
     .from("reservations")
-    .select("id, slot_id, status")
+    .select("id, slot_id, status, experience_id, created_at, politica_variante, politica_aceptada_at")
     .eq("id", reservationId)
     .maybeSingle();
   if (!resv) return { ok: false, error: "No se encontró esa reserva." };
@@ -265,18 +322,46 @@ export async function reembolsarPersona(
   if (!pagos.length) {
     return { ok: false, error: "Esa reserva no tiene ningún pago vivo que devolver." };
   }
-  // ⚠️ UN MONTO PARA VARIOS COBROS NO SIGNIFICA NADA. Si la reserva tiene dos
-  // pagos vivos, «devuelve $500» no dice de cuál ni en qué proporción, y
-  // repartirlo por nuestra cuenta sería inventar la respuesta. Se para y se
-  // dice; devolver todo sí es inequívoco y sigue funcionando.
-  if (montoParcial != null && pagos.length > 1) {
+  // ── La calculadora (D23 §4) ────────────────────────────────────────────────
+  // El servidor vuelve a calcular lo que la pantalla enseñó: la propuesta se
+  // guarda con la devolución, y cambiarla exige el motivo por escrito.
+  const aviso = avisoAt ?? new Date().toISOString();
+  const tAviso = new Date(aviso).getTime();
+  if (!Number.isFinite(tAviso)) return { ok: false, error: "La fecha del aviso no se entiende." };
+  if (tAviso > Date.now() + 5 * 60_000) return { ok: false, error: "El aviso de cancelación no puede tener fecha futura." };
+  const vivo = Math.round(pagos.reduce((s, p) => s + porDevolver(p), 0) * 100) / 100;
+  let propuesta: PropuestaReembolso | null = null;
+  const avisos: string[] = [];
+  try {
+    const base = await baseDeReserva(sb, resv as ReservaParaCaso);
+    if (base) {
+      if (tAviso < new Date(base.reservadaAt).getTime()) {
+        return { ok: false, error: "El aviso de cancelación no puede ser anterior a la reserva." };
+      }
+      propuesta = proponerReembolso({ ...base, avisoAt: aviso, pagado: vivo, cancela: "cliente" });
+    }
+  } catch (e) {
+    // Año sin lista de días de descanso: no se propone nada y se dice.
+    avisos.push(`No se pudo calcular la propuesta: ${(e as Error).message}`);
+  }
+  const pedidoTotal = montoParcial == null ? vivo : Math.round(montoParcial * 100) / 100;
+  const cambiada = propuesta != null && Math.abs(pedidoTotal - propuesta.importe) > 0.01;
+  if (cambiada && !motivo.trim()) {
     return {
       ok: false,
-      error: `Esa reserva tiene ${pagos.length} cobros vivos: un monto parcial no dice de cuál. Devuélvelos completos, o hazlo uno por uno desde Stripe.`,
+      error: `El sistema propone devolver $${propuesta!.importe.toLocaleString("es-MX")} (${propuesta!.porque}) Para devolver otra cantidad, escribe el motivo.`,
+    };
+  }
+  // Varios cobros y un parcial: sólo se sabe repartir cuando el parcial ES el
+  // porcentaje de la política, que aplica igual a cada cobro.
+  const porPorcentaje = montoParcial != null && pagos.length > 1 && propuesta != null && !cambiada;
+  if (montoParcial != null && pagos.length > 1 && !porPorcentaje) {
+    return {
+      ok: false,
+      error: `Esa reserva tiene ${pagos.length} cobros vivos: un monto parcial que no es el porcentaje de la política no dice de cuál. Devuélvelos completos, o hazlo uno por uno desde Stripe.`,
     };
   }
 
-  const avisos: string[] = [];
   let monto = 0;
   let n = 0;
   for (const p of pagos) {
@@ -285,7 +370,8 @@ export async function reembolsarPersona(
       motivo,
       origen: "persona",
       quien: auth.quien,
-      monto: montoParcial,
+      monto: porPorcentaje ? Math.round(porDevolver(p) * propuesta!.pct) / 100 : montoParcial,
+      calculo: propuesta ? { avisoAt: aviso, regla: propuesta.regla, pct: propuesta.pct } : null,
     });
     if (r.aviso) avisos.push(r.aviso);
     if (r.monto > 0) { monto += r.monto; n += 1; }
@@ -305,9 +391,28 @@ export async function reembolsarPersona(
 export async function cancelarSalidaYReembolsar(
   slotId: string,
   motivo: string,
+  /**
+   * Por qué se cae (D14 y D23 §5). `imputable` = causa de quien opera: a cada
+   * persona pagada se le debe además una bonificación del 20 %, que se crea
+   * aquí como «por pagar». `fuerza-mayor` = no hay bonificación; el motivo
+   * tiene que decir qué pasó y qué documento lo acredita.
+   */
+  causa: CausaCancelacion,
 ): Promise<ResultadoReembolso> {
   const auth = await quienEsLaCasa();
   if (!auth.ok) return { ok: false, error: auth.error };
+  if (causa?.tipo !== "imputable" && !(causa?.tipo === "fuerza-mayor" && esFuerzaMayor(causa.clase))) {
+    return { ok: false, error: "Di por qué se cancela la salida: por causa de quien opera o por fuerza mayor." };
+  }
+  if (!motivo.trim()) {
+    return {
+      ok: false,
+      error:
+        causa.tipo === "fuerza-mayor"
+          ? "Escribe qué pasó y qué documento lo acredita (reporte, aviso de la autoridad, parte médico)."
+          : "Escribe el motivo de la cancelación.",
+    };
+  }
 
   const sb = createSupabaseAdminClient();
   const { data: slot } = await sb
@@ -326,10 +431,48 @@ export async function cancelarSalidaYReembolsar(
   const pagos = await pagosDe(sb, reservationIds);
 
   const avisos: string[] = [];
+  const ahora = new Date().toISOString();
+
+  // ⚠️ LA CAUSA Y LA BONIFICACIÓN VAN ANTES DEL DINERO. Si no se pueden
+  // escribir, no se devuelve nada: una salida cancelada sin su causa no deja
+  // saber si se debía el 20 %, y eso no se reconstruye después.
+  const { error: errCausa } = await sb
+    .from("experience_slots")
+    .update({
+      cancelada_at: ahora,
+      cancelacion_causa: causa.tipo,
+      cancelacion_fuerza_mayor: causa.tipo === "fuerza-mayor" ? causa.clase : null,
+      cancelacion_motivo: motivo.trim(),
+    })
+    .eq("id", slotId);
+  if (errCausa) return { ok: false, error: `No se pudo registrar la causa de la cancelación: ${errCausa.message}. No se devolvió nada.` };
+
+  if (causa.tipo === "imputable") {
+    const porReserva = new Map<string, number>();
+    for (const p of pagos) {
+      if (!p.reservation_id) continue;
+      porReserva.set(p.reservation_id, (porReserva.get(p.reservation_id) ?? 0) + porDevolver(p));
+    }
+    const b = await crearBonificaciones(sb, { slotId, porReserva, canceladaAt: ahora, quien: auth.quien });
+    if (!b.ok) return { ok: false, error: `${b.error} No se devolvió nada.` };
+    if (b.creadas > 0) {
+      avisos.push(
+        `Se ${b.creadas === 1 ? "creó 1 bonificación" : `crearon ${b.creadas} bonificaciones`} del 20 % por pagar ($${b.total.toLocaleString("es-MX")} en total, a más tardar el ${b.venceEl}). Están en Pagos.`,
+      );
+    }
+  }
+
   let monto = 0;
   let n = 0;
   for (const p of pagos) {
-    const r = await devolver(sb, p, { slotId, motivo, origen: "salida", quien: auth.quien });
+    const r = await devolver(sb, p, {
+      slotId,
+      motivo,
+      origen: "salida",
+      quien: auth.quien,
+      // Cancela la operación: 100 %, siempre (D23 §4, regla 1).
+      calculo: { avisoAt: ahora, regla: "operacion", pct: 100 },
+    });
     if (r.aviso) avisos.push(r.aviso);
     if (r.monto > 0) { monto += r.monto; n += 1; }
   }

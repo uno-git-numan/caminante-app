@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  baseDelCaso,
   bloquesPolitica,
   bonificacionDe,
   DESCANSOS_OBLIGATORIOS,
   diasHabilesEntre,
   diasNaturales,
   esDiaHabil,
+  esFuerzaMayor,
   esVariante,
   FRASE_ACEPTACION,
   limiteArrepentimiento,
@@ -14,6 +16,7 @@ import {
   resumenPolitica,
   sumarDiasHabiles,
   textoPolitica,
+  venceBonificacion,
   ymdCdmx,
   type CasoReembolso,
 } from "@/lib/cancelacion/politica";
@@ -166,5 +169,60 @@ describe("la bonificación", () => {
   it("es el 20 % de lo que pagó", () => {
     expect(bonificacionDe(6750)).toBe(1350);
     expect(bonificacionDe(11500)).toBe(2300);
+  });
+});
+
+describe("de la reserva al caso (lo que alimenta la calculadora del panel)", () => {
+  const todo = {
+    politicaVariante: "expedicion",
+    politicaAceptadaAt: "2026-11-03T16:00:00.000Z",
+    varianteExperiencia: "estandar",
+    primerPagoAt: "2026-11-03T16:05:00.000Z",
+    reservaCreadaAt: "2026-11-03T15:59:00.000Z",
+    salidaEmpieza: "2026-12-12T12:00:00.000Z",
+  };
+
+  it("manda la política que la persona ACEPTÓ, no la que hoy tiene la experiencia", () => {
+    expect(baseDelCaso(todo)).toEqual({ variante: "expedicion", aceptada: true, reservadaAt: "2026-11-03T16:00:00.000Z", salidaInicio: "2026-12-12" });
+  });
+
+  it("una reserva anterior a la política usa la de la experiencia y lo dice (aceptada = false)", () => {
+    expect(baseDelCaso({ ...todo, politicaVariante: null, politicaAceptadaAt: null })).toEqual({
+      variante: "estandar",
+      aceptada: false,
+      reservadaAt: "2026-11-03T16:05:00.000Z", // el primer pago
+      salidaInicio: "2026-12-12",
+    });
+  });
+
+  it("sin pago registrado, la fecha de la reserva", () => {
+    expect(baseDelCaso({ ...todo, politicaVariante: null, politicaAceptadaAt: null, primerPagoAt: null })?.reservadaAt).toBe("2026-11-03T15:59:00.000Z");
+  });
+
+  it("sin variante o sin fecha de salida no hay propuesta: no se supone ninguna", () => {
+    expect(baseDelCaso({ ...todo, politicaVariante: null, varianteExperiencia: undefined })).toBeNull();
+    expect(baseDelCaso({ ...todo, salidaEmpieza: null })).toBeNull();
+  });
+
+  it("el primer día de la salida es el de CDMX", () => {
+    expect(baseDelCaso({ ...todo, salidaEmpieza: "2026-12-12T03:00:00.000Z" })?.salidaInicio).toBe("2026-12-11");
+  });
+});
+
+describe("la bonificación: plazo y fuerza mayor", () => {
+  it("vence a los 5 días hábiles de la cancelación", () => {
+    // Cancelada el viernes 13 nov 2026; el lunes 16 es descanso → vence el lunes 23.
+    expect(venceBonificacion("2026-11-13T18:00:00-06:00")).toBe("2026-11-23");
+    // Cancelada el martes 17 nov → martes 24.
+    expect(venceBonificacion("2026-11-17T09:00:00-06:00")).toBe("2026-11-24");
+  });
+
+  it("un año sin lista de descansos no se adivina", () => {
+    expect(() => venceBonificacion("2028-12-29T10:00:00-06:00")).toThrow(/Falta la lista/);
+  });
+
+  it("las cuatro causas de fuerza mayor son las de D14", () => {
+    for (const k of ["clima", "cierre-autoridad", "contingencia-bloqueo", "emergencia-guia"]) expect(esFuerzaMayor(k)).toBe(true);
+    expect(esFuerzaMayor("cupo-minimo") || esFuerzaMayor(null)).toBe(false);
   });
 });

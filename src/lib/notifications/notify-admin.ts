@@ -338,6 +338,46 @@ ${info.avisos.map((a) => fila("Ojo", a)).join("")}
   });
 }
 
+// ── Bonificaciones por pagar (D23 §5) ────────────────────────────────────────
+// Una salida se canceló por causa de quien opera: a cada persona pagada se le
+// debe el 20 % además de su devolución. El sistema calcula y avisa; la
+// transferencia la hace Luis. Sin nombres de clientes en el correo: van en el panel.
+
+export type BonificacionesInfo = {
+  experiencia: string;
+  salida: string;
+  personas: number;
+  totalMxn: number;
+  venceEl: string; // YYYY-MM-DD
+};
+
+export async function notifyBonificaciones(info: BonificacionesInfo): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const total = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(info.totalMxn);
+  const vence = new Intl.DateTimeFormat("es-MX", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${info.venceEl}T12:00:00Z`));
+  const fila = (k: string, v: string) =>
+    `<tr><td style="padding:6px 12px;color:#637154;font-size:13px;">${k}</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#20211c;">${v}</td></tr>`;
+  const html = `<body style="margin:0;background:#fbfbf7;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid rgba(32,33,28,.13);border-radius:16px;overflow:hidden;">
+<div style="background:#20392b;color:#fff;padding:16px 20px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Caminante · Bonificaciones por pagar</div>
+<div style="padding:16px 20px 4px;font-size:14px;color:#20211c;">Se canceló una salida por causa de quien opera. Además de la devolución, a cada persona se le debe una bonificación del 20 % de lo que pagó, por transferencia. La cuenta se le pide a cada quien en el correo de la cancelación; al transferir, captura en Pagos la fecha, el importe, los últimos 4 dígitos y la clave de rastreo.</div>
+<table style="width:100%;border-collapse:collapse;">
+${fila("Experiencia", info.experiencia)}
+${fila("Salida", info.salida || "—")}
+${fila("Personas", String(info.personas))}
+${fila("Total a transferir", total)}
+${fila("A más tardar", vence)}
+</table>
+<div style="padding:14px 20px 20px;"><a href="${PANEL}" style="display:inline-block;background:#ff5d36;color:#fff;text-decoration:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:600;">Ver en Pagos</a></div>
+</div></body>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "User-Agent": "caminante-notify/1.0", Accept: "application/json" },
+    body: JSON.stringify({ from: FROM, to: [ADMIN_EMAIL], subject: `Bonificaciones por pagar · ${info.experiencia} (${info.personas}, ${total}, antes del ${vence})`, html }),
+  });
+}
+
 export async function notifyCupoHonesto(info: CupoHonestoInfo): Promise<void> {
   const r = await Promise.allSettled([correoCupo(info), whatsappCupo(info)]);
   for (const x of r) if (x.status === "rejected") console.error("notifyCupoHonesto:", x.reason);

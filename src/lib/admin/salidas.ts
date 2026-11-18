@@ -30,6 +30,7 @@ import type { ResumenDelEspacio } from "@/lib/grupo/resumen";
 import { HOLDING_STATUSES } from "@/lib/experiences/availability";
 import { codigosPorSalida, type CodigoDescuento } from "@/lib/descuentos/codigos";
 import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
+import { baseDelCaso, type BaseDelCaso } from "@/lib/cancelacion/politica";
 import { cdmxDay, formatDiaMes } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -63,6 +64,12 @@ export type PersonaReembolsable = {
   enCurso: boolean;
   /** Id de la fila de `reembolsos` viva — lo pide «Verificar con Stripe». */
   reembolsoId: string | null;
+  /**
+   * Con qué propone la calculadora (D23 §4): variante, fecha de la reserva y
+   * primer día de la salida. null = falta la variante o la fecha de la salida,
+   * y entonces la pantalla no propone nada (y lo dice).
+   */
+  caso: BaseDelCaso | null;
 };
 
 /** Alguien a quien se le mandó la encuesta y todavía no contesta. */
@@ -235,7 +242,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
         .select(
           "id, experience_id, label, starts_at, ends_at, capacity_total, price_mxn, status, visibility, access_token, feedback_token",
         ),
-      sb.from("reservations").select("id, experience_id, slot_id, contact_id, num_people, status, total_amount_mxn, amount_due_mxn, payment_link_url, notes"),
+      sb.from("reservations").select("id, experience_id, slot_id, contact_id, num_people, status, total_amount_mxn, amount_due_mxn, payment_link_url, notes, created_at, politica_variante, politica_aceptada_at"),
       sb.from("registrations").select("reservation_id, signed_at"),
       sb
         .from("experience_feedback")
@@ -249,7 +256,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   const esCasa = !operatorId;
   const [{ data: paysRaw }, { data: reemsRaw }] = esCasa
     ? await Promise.all([
-        sb.from("payments").select("reservation_id, amount_mxn, status, method"),
+        sb.from("payments").select("reservation_id, amount_mxn, status, method, paid_at"),
         sb.from("reembolsos").select("id, payment_id, reservation_id, estado"),
       ])
     : [{ data: null }, { data: null }];
@@ -289,6 +296,9 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
     amount_due_mxn: number | null;
     payment_link_url: string | null;
     notes: string | null;
+    created_at: string | null;
+    politica_variante: string | null;
+    politica_aceptada_at: string | null;
   };
   const resvs = ((resvsRaw ?? []) as ResvRow[]).filter((r) => r.slot_id && slotIds.has(r.slot_id) && HOLDING_STATUSES.includes(r.status));
   // Los links mandados y sin pagar: `requested` con link. No apartan lugar, pero
@@ -301,13 +311,15 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
 
   // Contactos: solo los que aparecen en lo ya podado.
   // Lo cobrado y vivo por reserva, y qué reserva ya tiene un reembolso en curso.
-  const cobradoPorResv = new Map<string, { monto: number; porStripe: boolean }>();
+  const cobradoPorResv = new Map<string, { monto: number; porStripe: boolean; primerPagoAt: string | null }>();
   for (const p of (paysRaw ?? []) as {
-    reservation_id: string | null; amount_mxn: number | null; status: string; method: string | null;
+    reservation_id: string | null; amount_mxn: number | null; status: string; method: string | null; paid_at: string | null;
   }[]) {
     if (!p.reservation_id || p.status !== "paid") continue;
     const prev = cobradoPorResv.get(p.reservation_id);
+    const antes = prev?.primerPagoAt ?? null;
     cobradoPorResv.set(p.reservation_id, {
+      primerPagoAt: p.paid_at && (!antes || p.paid_at < antes) ? p.paid_at : antes,
       monto: (prev?.monto ?? 0) + Number(p.amount_mxn || 0),
       // Basta con que UN cobro no sea de Stripe para que no sea un clic: se
       // dice, en vez de devolver la mitad y callar la otra.
@@ -428,6 +440,14 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
               porStripe: cobro.porStripe,
               enCurso: reembolsoVivo.has(r.id),
               reembolsoId: reembolsoVivo.get(r.id) ?? null,
+              caso: baseDelCaso({
+                politicaVariante: r.politica_variante,
+                politicaAceptadaAt: r.politica_aceptada_at,
+                varianteExperiencia: data?.politicaCancelacion,
+                primerPagoAt: cobro.primerPagoAt,
+                reservaCreadaAt: r.created_at,
+                salidaEmpieza: s.starts_at,
+              }),
             };
           })
           .filter((x): x is PersonaReembolsable => x !== null)

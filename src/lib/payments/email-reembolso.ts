@@ -59,8 +59,18 @@ export async function emailReembolso(i: {
   salida: string;
   monto: number;
   cancelada: boolean;
+  /**
+   * La bonificación del 20 % (D23 §5): sólo cuando la salida se canceló por
+   * causa de quien opera. Se paga por transferencia, así que este correo es
+   * donde se le pide la cuenta; la cuenta no se guarda en el sistema.
+   */
+  bonificacion?: { monto: number; venceEl: string } | null;
 }): Promise<boolean> {
   const n = firstName(i.nombre);
+  const bono = i.cancelada && i.bonificacion && i.bonificacion.monto > 0 ? i.bonificacion : null;
+  const venceBono = bono
+    ? new Intl.DateTimeFormat("es-MX", { timeZone: "UTC", day: "numeric", month: "long" }).format(new Date(`${bono.venceEl}T12:00:00Z`))
+    : "";
   const viaje = `${esc(i.experiencia)}${i.salida ? ` · ${esc(i.salida)}` : ""}`;
   const titulo = i.cancelada ? `${n}, cancelamos esta salida.` : `${n}, tu reembolso va en camino.`;
   const primera = i.cancelada
@@ -71,13 +81,16 @@ export async function emailReembolso(i: {
     h1(titulo) +
       p(primera) +
       p(`Te reembolsamos <b>${pesos(i.monto)} MXN</b> por la misma tarjeta con la que pagaste. Tu banco suele tardar entre 5 y 10 días hábiles en reflejarlo; nosotros ya lo soltamos.`) +
+      (bono
+        ? p(`Además, como la cancelación fue por una causa atribuible a quien opera la experiencia, te corresponde una <b>bonificación del 20 %</b> de lo que pagaste: <b>${pesos(bono.monto)} MXN</b>. Te la pagamos por transferencia a más tardar el <b>${venceBono}</b>. Respóndenos este correo con la cuenta (CLABE) y el nombre del titular a la que quieres recibirla.`)
+        : "") +
       p(
         i.cancelada
           ? "Si quieres, te avisamos en cuanto abramos una fecha nueva. Nos encantaría caminar contigo."
           : "Si esto fue un error o quieres volver a apartar tu lugar, respóndenos y lo resolvemos.",
       ),
   );
-  const text = `${titulo}\n\n${i.cancelada ? `Tuvimos que cancelar ${i.experiencia}${i.salida ? ` · ${i.salida}` : ""}.` : `Cancelamos tu lugar en ${i.experiencia}${i.salida ? ` · ${i.salida}` : ""} y te devolvimos lo que pagaste.`}\n\nReembolso: ${pesos(i.monto)} MXN, por la misma tarjeta. Tu banco suele tardar entre 5 y 10 días hábiles.\n\nCaminante by NUMAN · uno@numanhub.com`;
+  const text = `${titulo}\n\n${i.cancelada ? `Tuvimos que cancelar ${i.experiencia}${i.salida ? ` · ${i.salida}` : ""}.` : `Cancelamos tu lugar en ${i.experiencia}${i.salida ? ` · ${i.salida}` : ""} y te devolvimos lo que pagaste.`}\n\nReembolso: ${pesos(i.monto)} MXN, por la misma tarjeta. Tu banco suele tardar entre 5 y 10 días hábiles.${bono ? `\n\nAdemás te corresponde una bonificación del 20 % de lo que pagaste: ${pesos(bono.monto)} MXN, por transferencia, a más tardar el ${venceBono}. Respóndenos este correo con la cuenta (CLABE) y el nombre del titular a la que quieres recibirla.` : ""}\n\nCaminante by NUMAN · uno@numanhub.com`;
 
   return sendViaResend(i.to, i.cancelada ? "Cancelamos tu salida y te reembolsamos" : "Tu reembolso de Caminante", html, {
     ua: "caminante-reembolsos/1.0",

@@ -208,3 +208,58 @@ export function proponerReembolso(c: CasoReembolso): PropuestaReembolso {
 
 /** La bonificación del 20 % cuando la operación cancela por causa imputable (LFPC 92 Bis y 92 Ter). */
 export const bonificacionDe = (pagado: number): number => r2(pagado * 0.2);
+
+/** Hasta cuándo se paga la bonificación: 5 días hábiles desde la cancelación (fecha de CDMX). */
+export const venceBonificacion = (canceladaAt: Date | string): string => sumarDiasHabiles(ymdCdmx(canceladaAt), 5);
+
+// ── 4 · De la reserva al caso ───────────────────────────────────────────────
+
+/** Lo que el panel necesita de una reserva para proponer su reembolso (sin el aviso ni el monto). */
+export type BaseDelCaso = {
+  variante: Variante;
+  /**
+   * false = la reserva es anterior a la política publicada (0089) o se capturó
+   * a mano: el cliente NO la aceptó en línea. La propuesta se calcula con la
+   * variante de la experiencia, y la pantalla lo dice.
+   */
+  aceptada: boolean;
+  reservadaAt: string;
+  /** Primer día de la salida, YYYY-MM-DD (CDMX). */
+  salidaInicio: string;
+};
+
+/**
+ * Arma la base del caso con lo que hay. Devuelve null si falta algo sin lo que
+ * no se puede calcular (variante o fecha de la salida): entonces el panel no
+ * propone nada y lo dice, en vez de proponer con un dato supuesto.
+ *
+ * `reservadaAt`: la fecha en que aceptó la política (= se creó el cobro); si la
+ * reserva no la guardó, la del primer pago; y si tampoco, la de la reserva.
+ */
+export function baseDelCaso(i: {
+  politicaVariante: unknown;
+  politicaAceptadaAt: string | null;
+  varianteExperiencia: unknown;
+  primerPagoAt: string | null;
+  reservaCreadaAt: string | null;
+  salidaEmpieza: string | null;
+}): BaseDelCaso | null {
+  const aceptada = esVariante(i.politicaVariante);
+  const variante = aceptada ? (i.politicaVariante as Variante) : esVariante(i.varianteExperiencia) ? i.varianteExperiencia : null;
+  const reservadaAt = (aceptada ? i.politicaAceptadaAt : null) ?? i.primerPagoAt ?? i.reservaCreadaAt;
+  if (!variante || !reservadaAt || !i.salidaEmpieza) return null;
+  return { variante, aceptada, reservadaAt, salidaInicio: ymdCdmx(i.salidaEmpieza) };
+}
+
+/** Las causas de fuerza mayor de D14 (eximen la bonificación). El texto es el de la política. */
+export const FUERZA_MAYOR = {
+  clima: "Mal tiempo que impide operar con seguridad",
+  "cierre-autoridad": "Cierre del área natural, del camino o del puerto por la autoridad",
+  "contingencia-bloqueo": "Contingencia sanitaria o bloqueo que impide llegar",
+  "emergencia-guia": "Emergencia médica del guía sin sustituto posible",
+} as const;
+export type ClaseFuerzaMayor = keyof typeof FUERZA_MAYOR;
+export const esFuerzaMayor = (x: unknown): x is ClaseFuerzaMayor => typeof x === "string" && x in FUERZA_MAYOR;
+
+/** Por qué se cae una salida: por causa de quien opera (hay bonificación) o por fuerza mayor (no la hay). */
+export type CausaCancelacion = { tipo: "imputable" } | { tipo: "fuerza-mayor"; clase: ClaseFuerzaMayor };

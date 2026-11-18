@@ -4,6 +4,9 @@ import { formatMXN, formatDiaMes, metodoLabel } from "@/lib/admin/formato";
 import type { ReservaAdmin } from "@/lib/admin/queries";
 import { registrarPagoManualAction, cancelarReservaAction } from "@/lib/admin/reservas-actions";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
+import { alcanceActual, esOperador } from "@/lib/auth/alcance";
+import { bonificacionesDeLaCasa } from "@/lib/cancelacion/bonificaciones";
+import Bonificaciones from "./Bonificaciones";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Pagos · Admin — Caminante" };
@@ -167,6 +170,9 @@ export default async function PagosPage({
     fetchReservas({ slug: exp, estado, q }),
     isCurrentUserAdmin(),
   ]);
+  // Las bonificaciones (D23 §5) son dinero de la casa: una operadora no las ve.
+  const alcance = await alcanceActual();
+  const bonificaciones = alcance && !esOperador(alcance) ? await bonificacionesDeLaCasa() : null;
 
   return (
     <AdminShell active="recursos">
@@ -203,6 +209,8 @@ export default async function PagosPage({
             <div className="desc">Toca una fila para el expediente: pagos, participantes y deslinde.</div>
           </div>
         </div>
+
+        {bonificaciones ? <Bonificaciones porPagar={bonificaciones.porPagar} pagadas={bonificaciones.pagadas} /> : null}
 
         <form method="get" className="filters no-print">
           <select name="exp" defaultValue={exp || ""}>
