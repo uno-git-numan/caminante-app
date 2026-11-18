@@ -739,6 +739,32 @@ guarda, la calculadora del reembolso y cómo se paga la bonificación están en
 - Sin versión nueva del convenio. Abierto para legal: leer la NOM-010-TUR-2001
   y el registro de contratos de adhesión de PROFECO.
 
+
+### D24 · Cotejo de la factura de comisión de prueba y cuatro precisiones a D23 (17 nov, noche)
+
+**Cotejo sobre los XML** (`design/legal/pruebas/comision-sandbox-2026-11-17.xml` y `egreso-comision-sandbox-2026-11-17.xml`, ambiente de pruebas, sin validez fiscal):
+
+| Punto | En el XML | Resultado |
+|---|---|---|
+| Factura de comisión | Tipo I · emisor NUMAN HUB 601 · uso G03 · PUE · **forma de pago 17** · clave 80141628 · unidad E48 · objeto 02 | Conforme a D7, D8 y D22 |
+| Renglón de comisión | 350.00 + IVA 56.00 = 406.00 | Igual a lo retenido |
+| Renglón de admisión | 17.241379 + 2.758621 = 20.00 | Conforme a D7 |
+| Totales | Subtotal 367.24 · IVA 58.76 · total 426.00 | Recalculado, cuadra |
+| Egreso | Tipo E · relación 01 con el UUID de la comisión · uso G02 · forma de pago 17 · 175.00 + 28.00 = 203.00 | La mitad de 406.00; la admisión no vuelve en parcial |
+
+La guía de llenado del Anexo 20 (Apéndice 5, egresos) pide en el egreso «la clave que corresponda según el caso o la clave 84111506» y la forma de pago «con la que se está efectuando» la devolución: 80141628 y 17 cumplen. **La prueba cuadra.** Una mejora, no bloqueante: si el cobro y la emisión caen en meses distintos (cobro el último día por la noche), fechar el CFDI de comisión el día del cobro, dentro de las 72 horas, como la global. Se le informa a Marisol (**M25**).
+
+**Las cuatro preguntas de producto sobre D23:**
+
+1. **Reserva anterior a la política publicada.** Se confirma: la variante de la experiencia es sólo referencia. Dos precisiones. El piso legal no es referencia: cancelación de la operación y arrepentimiento del artículo 56 aplican siempre. Y a esa persona no se le dice «aceptaste»: la carga de probar que se informó es del proveedor (LFPC 7 y 76 Bis V), así que en la duda se resuelve a favor del cliente y lo decide la casa con motivo escrito.
+2. **Fecha para el arrepentimiento.** Se confirma la cascada. Precisión: el artículo 56 cuenta los 5 días desde «la firma del contrato» y mide la anticipación desde «la orden de compra». Cuando el pago llega después de la aceptación (transferencia), los 5 días hábiles corren desde lo último entre aceptación y primer pago; la anticipación de 10 días hábiles se mide desde la aceptación. Ajuste menor.
+3. **Cupo mínimo no alcanzado.** Hoy está bien como quedó: genera bonificación, porque el texto que el cliente aceptó promete el 20 % salvo fuerza mayor y no trae excepción por cupo. Para que sea causa aparte sin bonificación hacen falta tres cosas: el mínimo y la fecha límite de confirmación escritos en la ficha y en el texto aceptado antes de pagar; el aviso al cliente a más tardar en esa fecha; y la devolución del 100 %. La NOM-010-TUR-2001 (6.2.5) pide que el paquete especifique «el número mínimo de personas que conformen el grupo»; una cláusula sin número ni fecha sería nula por LFPC 90 I. Adoptarla es **decisión de Luis** (y la fecha límite); exige texto nuevo de la política, que rige sólo para reservas posteriores.
+4. **Documento de fuerza mayor.** Se pide el **archivo**, no sólo la descripción: la fuerza mayor quita la bonificación y quien la invoca la prueba (LFPC 92 Bis). Mientras no haya carga de archivo, el motivo lleva autoridad, fecha y liga o folio, y el archivo se guarda en Drive. Excepción: la emergencia médica del guía se acredita con la declaración de la operadora, sin diagnóstico ni parte médico (dato de salud, regla 8).
+
+**Leído en la fuente (pendiente de D23):** la NOM-010-TUR-2001 está vigente según el Catálogo Mexicano de Normas (DOF 2 ene 2002). Hasta donde llega el texto publicado (numerales 1 a 6.2.7) fija contenido mínimo del contrato (prestador, turista, servicios y precio, causales de rescisión, cancelación) y **no ordena registrarlo**. La LFPC sólo obliga a registrar un contrato de adhesión cuando una norma oficial lo ordena (86 y 87); el registro voluntario existe (88). Falta leer la sección 7 de la norma (vigilancia), que el PDF del catálogo no trae.
+
+**Corrección:** la cita de D23 era LFPC 76 Bis **fracción V** (términos y condiciones antes de la transacción), no III. La fracción III pide además domicilio físico, teléfonos y medios de reclamación antes de pagar: producto revisa que estén a la vista.
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash
@@ -944,6 +970,7 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M22 | Informativo: Facturapi escribe `Unidad="Actividad"` en cada concepto de la global; la guía dice que no debe existir, el esquema lo permite | D21 bis |
 | M23 | Forma de pago **17 (compensación)** en el CFDI de comisión de NUMAN a la operadora y en su egreso | D22 |
 | M24 | Bonificación del 20 % al cliente (LFPC 92 Ter): cómo se documenta y se deduce; y si la penalización que Caminante cobra a la operadora causa IVA y con qué comprobante | D23 |
+| M25 | Fechar el CFDI de comisión el día del cobro cuando cobro y emisión caen en meses distintos (dentro de 72 horas) | D24 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.

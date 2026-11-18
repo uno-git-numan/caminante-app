@@ -12,6 +12,23 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 17 nov 2026 (noche) · Sesión legal: comisión de prueba cotejada y respuestas a D23 (D24)
+
+- **Comisión y egreso de prueba: cuadran** sobre los XML (17, G03/G02, 80141628,
+  E48, 406 + 20 = 426; egreso 203 con relación 01). Mejora no bloqueante: fechar
+  el CFDI el día del cobro si la emisión cae en otro mes (72 horas).
+- **1 · Reserva anterior:** referencia, confirmado; el piso legal aplica siempre
+  y no se le dice «aceptaste»; en la duda, a favor del cliente con motivo.
+- **2 · Fecha:** cascada confirmada; los 5 días hábiles desde lo último entre
+  aceptación y primer pago; la anticipación, desde la aceptación.
+- **3 · Cupo mínimo:** hoy genera bonificación y está bien. Causa aparte sólo
+  con texto nuevo (mínimo y fecha límite en ficha y política); lo decide Luis.
+- **4 · Fuerza mayor:** archivo adjunto, sí; emergencia médica del guía, sólo
+  declaración de la operadora, sin documento médico.
+- **Corrección de cita:** LFPC 76 Bis fracción V (no III). La III pide domicilio
+  y medios de reclamación a la vista antes de pagar: revisar.
+- NOM-010-TUR-2001 leída: no ordena registrar el contrato. Detalle en D24.
+
 ## 17 nov 2026 (noche) · Sesión legal: B2 (D22) y la política de cancelación para el cliente (D23)
 
 - **Forma de pago 17** en todo el CFDI de comisión y en su egreso: sí (Cuarta

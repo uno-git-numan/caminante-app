@@ -63,7 +63,7 @@ Las referencias a la ley se quedan: son las que le dan al cliente su piso.
 | Comprobante por correo | Liga a la política que aceptó y la fecha límite de su arrepentimiento, ya calculada |
 
 No hace falta casilla: el texto visible antes de pagar y la frase junto al
-botón bastan como aceptación (LFPC 76 Bis fracción III: informar los términos
+botón bastan como aceptación (LFPC 76 Bis fracción V: informar los términos
 antes de la transacción). Lo que sí hace falta es la **prueba**.
 
 ## 3 · Qué se guarda en cada reserva
