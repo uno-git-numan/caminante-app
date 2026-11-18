@@ -124,7 +124,9 @@ export function GrupoMinimo({ s }: { s: Salida }) {
             <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
               <b>Confirmar la salida</b> le avisa por correo a todos los que ya pagaron que la salida se hace. Es un
               compromiso: después ya no se puede cancelar por falta de grupo. Si llega la fecha con el mínimo cubierto,
-              se confirma sola.
+              se confirma sola. <b>Y si termina ese día sin que confirmes ni canceles, queda confirmada sola</b>, aunque
+              no se haya juntado: al cliente se le prometió una respuesta ese día. Te avisamos por correo la víspera y
+              esa mañana.
             </p>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
               {!seguro ? (

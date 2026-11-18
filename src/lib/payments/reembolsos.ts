@@ -517,6 +517,7 @@ export async function cancelarSalidaYReembolsar(
 
   // Con cláusula y en plazo no hay bonificación; a quien NO la trae en su
   // reserva (reservó antes de que existiera) sí se le debe, como hoy (§7.6).
+  // El aviso sale a TODAS las reservas con pago, ahora, antes del dinero.
   const conClausula = new Set(cupo ? vivas.filter((r) => clausulaDeReserva(r) !== null).map((r) => r.id) : []);
   if (cupo && filaCupo && clausula) {
     const a = await avisarCancelacionPorCupo(sb, filaCupo, { clausula, pagados });

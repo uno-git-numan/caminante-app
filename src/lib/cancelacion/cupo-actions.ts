@@ -38,6 +38,12 @@ export async function guardarClausulaDeSalida(
   if (!slot) return { ok: false, error: "Esa salida no existe." };
   if (slot.status === "cancelled") return { ok: false, error: "Esa salida está cancelada." };
   if (fecha && slot.starts_at && fecha > ymdCdmx(slot.starts_at)) return { ok: false, error: "La fecha de confirmación no puede ser después de la salida." };
+  // Una fecha que ya pasó confirmaría la salida sola en la siguiente hora (el
+  // día límite obliga a decidir, §7.5) y le avisaría al grupo sin que nadie lo
+  // decidiera.
+  if (fecha && fecha !== (slot.confirmacion_limite ? String(slot.confirmacion_limite).slice(0, 10) : null) && fecha < ymdCdmx(new Date())) {
+    return { ok: false, error: "La fecha de confirmación no puede ser un día que ya pasó." };
+  }
   if (min != null && slot.capacity_total != null && min > slot.capacity_total) {
     return { ok: false, error: `El mínimo no puede pasar del cupo (${slot.capacity_total}).` };
   }

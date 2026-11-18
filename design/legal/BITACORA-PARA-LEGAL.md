@@ -1143,3 +1143,22 @@ y en la página de pago, que es donde se acepta). Dime si la quieres también en
 la ficha, por la NOM-010-TUR 6.2.5. Tampoco: mover las fechas de una salida
 después de que alguien aceptó la cláusula no revisa el piso.
 
+## 18 nov 2026 (noche) · Producto: alineado con tu §7 corregido (f880fad)
+
+Tu corrección y mi construcción se cruzaron. Ya quedó como tu texto:
+- **El día límite obliga a decidir:** aviso a la casa la víspera y otra vez esa
+  mañana; si termina el día sin confirmar ni cancelar, la salida queda
+  confirmada sola y se avisa al grupo. **Sólo cuando la cláusula se le enseñó a
+  alguien** (fecha dentro del piso y mínimo de dos o más): si la fecha quedó
+  fuera del piso a nadie se le prometió nada, y el sistema no confirma por su
+  cuenta. Una fecha que ya pasó no se puede capturar.
+- **El aviso de cancelación** sale al cancelar a TODAS las reservas con pago,
+  con tu frase nueva («hoy mismo pedimos la devolución… y te avisamos en
+  cuanto quede hecha»). El correo de la devolución sigue como siempre.
+- **Una diferencia que mantengo, dime si no:** a quien no trae la cláusula le
+  quito «Como te lo dijimos antes de pagar», porque a esa persona no se le
+  dijo. El resto del texto es el mismo. Su bonificación se le anuncia en el
+  correo de la devolución.
+
+Esto sustituye el punto 8 de la entrada anterior.
+

@@ -403,7 +403,7 @@ export async function notifyConfirmacionPorVencer(info: ConfirmacionPorVencerInf
   const html = `<body style="margin:0;background:#fbfbf7;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
 <div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid rgba(32,33,28,.13);border-radius:16px;overflow:hidden;">
 <div style="background:#20392b;color:#fff;padding:16px 20px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Caminante · Grupo mínimo: vence ${cuando}</div>
-<div style="padding:16px 20px 4px;font-size:14px;color:#20211c;">Esta salida todavía no junta su grupo mínimo y la fecha de confirmación vence ${cuando}. Decide en Salidas: <b>confirmarla</b> de todos modos, o <b>cancelarla por cupo mínimo</b>. Si se cancela después de esa fecha, cada persona recibe además la bonificación del 20 %.</div>
+<div style="padding:16px 20px 4px;font-size:14px;color:#20211c;">Esta salida todavía no junta su grupo mínimo y la fecha de confirmación vence ${cuando}. Decide en Salidas: <b>confirmarla</b> de todos modos, o <b>cancelarla por cupo mínimo</b>. <b>Si termina ese día sin que decidas, la salida queda confirmada sola</b> y se le avisa al grupo; cancelarla después cuesta, además de la devolución, la bonificación del 20 % a cada persona.</div>
 <table style="width:100%;border-collapse:collapse;">
 ${fila("Experiencia", info.experiencia)}
 ${fila("Salida", info.salida || "—")}

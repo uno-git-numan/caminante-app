@@ -10,14 +10,18 @@ import "server-only";
 //   · CONFIRMAR: la confirma una persona (casa u operadora) o se confirma sola
 //     al llegar la fecha con el mínimo cubierto. Se avisa a todo el grupo. Una
 //     salida confirmada ya no se cancela por cupo.
-//   · AVISO DE CANCELACIÓN POR CUPO: sale al cancelar, a las reservas que
-//     traen la cláusula, con el texto de legal. La hora queda en la salida: es
-//     la prueba de que se avisó en plazo.
+//   · EL DÍA LÍMITE OBLIGA A DECIDIR: esa mañana se le avisa a la casa; si el
+//     día termina sin confirmar ni cancelar, la salida queda confirmada sola.
+//     Al cliente se le prometió una respuesta ese día.
+//   · AVISO DE CANCELACIÓN POR CUPO: sale al cancelar, a todas las reservas
+//     con pago, sin esperar al procesador. La hora queda en la salida: es la
+//     prueba de que se avisó en plazo. La confirmación de cada devolución
+//     sigue su correo de siempre.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { experienceTitle } from "@/lib/admin/queries";
-import { clausulaDeReserva, clausulaDeSalida, type SalidaParaClausula } from "@/lib/cancelacion/cupo-minimo";
+import { clausulaDeReserva, clausulaDeSalida, pisoDeConfirmacion, type SalidaParaClausula } from "@/lib/cancelacion/cupo-minimo";
 import { fechaConAnio, ymdCdmx, type ClausulaMinimo } from "@/lib/cancelacion/politica";
 import { sendViaResend } from "@/lib/email/resend";
 import { h1, marco, p, saludo } from "@/lib/email/plantilla";
@@ -147,41 +151,51 @@ export async function confirmarSalida(
 }
 
 /**
- * El aviso de cancelación por cupo mínimo, con el texto de legal (§7.6). Sale a
- * las reservas pagadas que TRAEN la cláusula: a las anteriores no se les puede
- * decir «como te lo dijimos antes de pagar», y además a ellas se les debe la
- * bonificación; su aviso es el de siempre, cuando el procesador confirma.
+ * El aviso de cancelación por cupo mínimo, con el texto de legal (§7.6). Sale
+ * AL CANCELAR, a todas las reservas con pago, sin esperar al procesador: lo
+ * que cuenta para el plazo es la hora del aviso. No promete una devolución ya
+ * hecha («hoy mismo pedimos la devolución… y te avisamos en cuanto quede
+ * hecha»); la confirmación de cada devolución sigue su correo de siempre.
+ *
+ * A quien NO trae la cláusula (reservó antes de que existiera) no se le dice
+ * «como te lo dijimos antes de pagar», porque no es cierto: su aviso lleva el
+ * mismo texto sin esa frase, y su bonificación se le anuncia en el correo de
+ * la devolución.
  */
 export async function avisarCancelacionPorCupo(
   sb: SupabaseClient,
   slot: FilaDeSalida,
   i: { clausula: ClausulaMinimo; pagados: number },
 ): Promise<{ avisados: number; sinCorreo: number }> {
-  const conClausula = (await reservasPagadas(sb, slot.id)).filter((r) => clausulaDeReserva(r) !== null);
+  const pagadas = await reservasPagadas(sb, slot.id);
+  const traeClausula = new Set(pagadas.filter((r) => clausulaDeReserva(r) !== null).map((r) => r.id));
   const titulo = await tituloDe(sb, slot.experience_id);
   const viaje = `${titulo}${slot.label ? ` · ${slot.label}` : ""}`;
-  const destinos = await correosDe(sb, conClausula);
+  const destinos = await correosDe(sb, pagadas);
   let avisados = 0;
   for (const c of destinos) {
     const { html, texto } = marco("Tu salida no se juntó", [
       h1("Tu salida no se juntó"),
       p(
-        `Hola${saludo(c.nombre)}. Para <b>${viaje}</b> hacían falta ${i.clausula.minimo} personas y al ${fechaConAnio(i.clausula.limite)} éramos ${i.pagados}. Como te lo dijimos antes de pagar, la salida se cancela.`,
+        `Hola${saludo(c.nombre)}. Para <b>${viaje}</b> hacían falta ${i.clausula.minimo} personas y al ${fechaConAnio(i.clausula.limite)} éramos ${i.pagados}. ${traeClausula.has(c.reservationId) ? "Como te lo dijimos antes de pagar, la" : "La"} salida se cancela.`,
       ),
-      p("Hoy mismo te devolvemos el <b>100 %</b> de lo que pagaste, a la misma forma de pago. Si quieres, te ayudamos a pasarte a otra fecha."),
+      p("Hoy mismo pedimos la devolución del <b>100 %</b> de lo que pagaste, a la misma forma de pago, y te avisamos en cuanto quede hecha. Si quieres, te ayudamos a pasarte a otra fecha."),
     ]);
     if (await sendViaResend(c.email, `Tu salida no se juntó · ${titulo}`, html, { ua: "caminante-cupo-minimo/1.0", text: texto })) avisados += 1;
   }
-  return { avisados, sinCorreo: conClausula.length - avisados };
+  return { avisados, sinCorreo: pagadas.length - avisados };
 }
 
 /**
- * Lo que corre el cron cada hora:
+ * Lo que corre el cron cada hora (§7.5):
  *   · Llegó la fecha de confirmación con el mínimo cubierto → la salida se
  *     confirma sola y se avisa al grupo.
- *   · Falta un día (o es hoy) y no se ha juntado → se le avisa a la casa UNA
- *     vez, para que decida a tiempo: después de esa fecha, cancelar por falta
- *     de grupo cuesta la bonificación.
+ *   · TERMINÓ el día de la fecha sin confirmar ni cancelar → la salida queda
+ *     confirmada y se avisa al grupo, aunque no se haya juntado el mínimo: al
+ *     cliente se le prometió una respuesta ese día, y desde entonces cancelar
+ *     ya es atribuible a quien opera.
+ *   · Sin el mínimo, se le avisa a la casa la víspera y otra vez la mañana del
+ *     día límite, para que confirme o cancele en plazo.
  */
 export async function revisarConfirmaciones(ahora: Date = new Date()): Promise<{ confirmadas: number; avisos: number; errores: string[] }> {
   const sb = createSupabaseAdminClient();
@@ -205,15 +219,23 @@ export async function revisarConfirmaciones(ahora: Date = new Date()): Promise<{
     try {
       const limite = String(s.confirmacion_limite).slice(0, 10);
       const pagados = await lugaresPagados(sb, s.id);
-      if (pagados >= (s.minimo as number)) {
-        if (hoy >= limite) {
-          const r = await confirmarSalida(sb, s.id, null);
-          if (r.ok && !r.ya) confirmadas += 1;
-          else if (!r.ok) errores.push(`${s.id.slice(0, 8)}: ${r.error}`);
-        }
+      const seJunto = pagados >= (s.minimo as number);
+      // ¿La cláusula se le enseñó a alguien? Sólo si la fecha respeta el piso y
+      // el mínimo es de dos o más. Si no, a nadie se le prometió una respuesta
+      // ese día: el sistema no confirma por su cuenta ni apura a la casa.
+      const prometida = (s.minimo as number) >= 2 && !!s.starts_at && limite <= pisoDeConfirmacion(s.starts_at, s.ends_at).ultimoDia;
+      // Con el mínimo cubierto, desde el día límite; sin él, cuando ese día ya terminó.
+      if ((seJunto && hoy >= limite) || (prometida && hoy > limite)) {
+        const r = await confirmarSalida(sb, s.id, null);
+        if (r.ok && !r.ya) confirmadas += 1;
+        else if (!r.ok) errores.push(`${s.id.slice(0, 8)}: ${r.error}`);
         continue;
       }
-      if (!s.aviso_confirmacion_at && limite <= manana && limite >= hoy) {
+      if (seJunto || !prometida) continue;
+      // La víspera (una vez) y la mañana del día límite (aunque ya se haya avisado la víspera).
+      const avisado = s.aviso_confirmacion_at ? ymdCdmx(s.aviso_confirmacion_at) : null;
+      const toca = (limite === manana && !avisado) || (limite === hoy && (!avisado || avisado < hoy));
+      if (toca) {
         await notifyConfirmacionPorVencer({
           experiencia: await tituloDe(sb, s.experience_id),
           salida: s.label ?? "",
@@ -222,7 +244,7 @@ export async function revisarConfirmaciones(ahora: Date = new Date()): Promise<{
           limite,
           esHoy: limite === hoy,
         });
-        await sb.from("experience_slots").update({ aviso_confirmacion_at: ahora.toISOString() }).eq("id", s.id).is("aviso_confirmacion_at", null);
+        await sb.from("experience_slots").update({ aviso_confirmacion_at: ahora.toISOString() }).eq("id", s.id);
         avisos += 1;
       }
     } catch (e) {
