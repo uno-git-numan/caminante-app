@@ -21,8 +21,8 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { experienceTitle } from "@/lib/admin/queries";
-import { clausulaDeReserva, clausulaDeSalida, pisoDeConfirmacion, type SalidaParaClausula } from "@/lib/cancelacion/cupo-minimo";
-import { fechaConAnio, ymdCdmx, type ClausulaMinimo } from "@/lib/cancelacion/politica";
+import { avisoDeCancelacionPorCupo, clausulaDeReserva, clausulaDeSalida, pisoDeConfirmacion, type SalidaParaClausula } from "@/lib/cancelacion/cupo-minimo";
+import { ymdCdmx, type ClausulaMinimo } from "@/lib/cancelacion/politica";
 import { sendViaResend } from "@/lib/email/resend";
 import { h1, marco, p, saludo } from "@/lib/email/plantilla";
 import { notifyConfirmacionPorVencer } from "@/lib/notifications/notify-admin";
@@ -169,17 +169,31 @@ export async function avisarCancelacionPorCupo(
 ): Promise<{ avisados: number; sinCorreo: number }> {
   const pagadas = await reservasPagadas(sb, slot.id);
   const traeClausula = new Set(pagadas.filter((r) => clausulaDeReserva(r) !== null).map((r) => r.id));
+  // Quién pagó por una vía que no vuelve sola por el procesador (§7.10): basta
+  // un cobro vivo que no sea de tarjeta para que haya que pedirle la cuenta.
+  const { data: pagos } = pagadas.length
+    ? await sb.from("payments").select("reservation_id, method").in("reservation_id", pagadas.map((r) => r.id)).eq("status", "paid")
+    : { data: [] };
+  const porTransferencia = new Set(
+    ((pagos ?? []) as { reservation_id: string | null; method: string | null }[]).filter((x) => x.reservation_id && x.method !== "stripe").map((x) => x.reservation_id as string),
+  );
   const titulo = await tituloDe(sb, slot.experience_id);
   const viaje = `${titulo}${slot.label ? ` · ${slot.label}` : ""}`;
   const destinos = await correosDe(sb, pagadas);
+  const negritas = (t: string) => t.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
   let avisados = 0;
   for (const c of destinos) {
+    const [primero, ...resto] = avisoDeCancelacionPorCupo({
+      viaje,
+      clausula: i.clausula,
+      pagados: i.pagados,
+      traeClausula: traeClausula.has(c.reservationId),
+      porTransferencia: porTransferencia.has(c.reservationId),
+    });
     const { html, texto } = marco("Tu salida no se juntó", [
       h1("Tu salida no se juntó"),
-      p(
-        `Hola${saludo(c.nombre)}. Para <b>${viaje}</b> hacían falta ${i.clausula.minimo} personas y al ${fechaConAnio(i.clausula.limite)} éramos ${i.pagados}. ${traeClausula.has(c.reservationId) ? "Como te lo dijimos antes de pagar, la" : "La"} salida se cancela.`,
-      ),
-      p("Hoy mismo pedimos la devolución del <b>100 %</b> de lo que pagaste, a la misma forma de pago, y te avisamos en cuanto quede hecha. Si quieres, te ayudamos a pasarte a otra fecha."),
+      p(`Hola${saludo(c.nombre)}. ${negritas(primero)}`),
+      ...resto.map((t) => p(negritas(t))),
     ]);
     if (await sendViaResend(c.email, `Tu salida no se juntó · ${titulo}`, html, { ua: "caminante-cupo-minimo/1.0", text: texto })) avisados += 1;
   }

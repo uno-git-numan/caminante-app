@@ -1201,3 +1201,16 @@ Esto sustituye el punto 8 de la entrada anterior.
 
 0093 sigue SIN aplicar y nada está promovido: espera a Luis.
 
+## 18 nov 2026 (noche) · Producto: §7.10 construido (las dos frases del aviso por cupo)
+
+- A toda reserva sin cláusula: el párrafo de la bonificación, con CLABE,
+  titular y 5 días hábiles, después del de la devolución.
+- A quien pagó por transferencia: «por transferencia, igual que pagaste…» en
+  lugar de «a la misma forma de pago…». Cuenta como transferencia cualquier
+  reserva con un cobro vivo que no sea de tarjeta.
+- El aviso ahora sale de una función pura con cuatro pruebas, una por caso
+  (con y sin cláusula, tarjeta y transferencia), comparadas contra §7.6 y §7.10.
+- No toca la política aceptada ni la huella.
+
+0093 sigue sin aplicar y nada está promovido.
+

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  avisoDeCancelacionPorCupo,
   cambioQuePerjudica,
   clausulaDeReserva,
   clausulaDeSalida,
@@ -253,5 +254,42 @@ describe("la ficha: la oferta también dice el mínimo (§7.8)", () => {
   it("es informativo: no cambia el texto que se acepta ni su huella", () => {
     expect(textoPolitica("estandar")).not.toContain("Algunas fechas de esta experiencia");
     expect(pruebaDePolitica("estandar", null)?.politica_hash).toBe(pruebaDePolitica("estandar")?.politica_hash);
+  });
+});
+
+describe("el aviso de cancelación por cupo, según a quién le llega (§7.6 y §7.10)", () => {
+  const legal = readFileSync("design/legal/POLITICA-CANCELACION-CLIENTE-2026-11.md", "utf8").replace(/\n> ?/g, "\n").replace(/\s+/g, " ");
+  const base = { viaje: "Sardine Run · Dic 10-13", clausula, pagados: 3 };
+  const plano = (t: string) => t.replace(/\*\*/g, "");
+
+  it("con cláusula y tarjeta: el texto de legal, con «como te lo dijimos antes de pagar»", () => {
+    const [uno, dos, ...mas] = avisoDeCancelacionPorCupo({ ...base, traeClausula: true, porTransferencia: false });
+    expect(uno).toBe("Para **Sardine Run · Dic 10-13** hacían falta 6 personas y al 1 de diciembre de 2026 éramos 3. Como te lo dijimos antes de pagar, la salida se cancela.");
+    expect(legal).toContain("Como te lo dijimos antes de pagar, la salida se cancela. Hoy mismo pedimos la devolución del **100 %** de lo que pagaste, a la misma forma de pago, y te avisamos en cuanto quede hecha. Si quieres, te ayudamos a pasarte a otra fecha.");
+    expect(dos).toBe("Hoy mismo pedimos la devolución del **100 %** de lo que pagaste, a la misma forma de pago, y te avisamos en cuanto quede hecha. Si quieres, te ayudamos a pasarte a otra fecha.");
+    expect(mas).toEqual([]); // sin bonificación
+  });
+
+  it("sin cláusula: no se le dice «como te lo dijimos» y se le anuncia su bonificación", () => {
+    const p = avisoDeCancelacionPorCupo({ ...base, traeClausula: false, porTransferencia: false });
+    expect(p[0]).toMatch(/éramos 3\. La salida se cancela\.$/);
+    expect(p.join(" ")).not.toContain("Como te lo dijimos");
+    expect(legal).toContain(p[2]);
+    expect(plano(p[2])).toMatch(/bonificación del 20 %.*CLABE y el nombre del titular.*5 días hábiles/);
+  });
+
+  it("pagó por transferencia: la devolución va por transferencia y se le pide la cuenta", () => {
+    const p = avisoDeCancelacionPorCupo({ ...base, traeClausula: true, porTransferencia: true });
+    expect(legal).toContain("por transferencia, igual que pagaste. Respóndenos con la CLABE y el nombre del titular de la cuenta donde quieres recibirla.");
+    expect(p[1]).toBe("Hoy mismo pedimos la devolución del **100 %** de lo que pagaste, por transferencia, igual que pagaste. Respóndenos con la CLABE y el nombre del titular de la cuenta donde quieres recibirla. Si quieres, te ayudamos a pasarte a otra fecha.");
+    expect(p[1]).not.toContain("te avisamos en cuanto quede hecha");
+    expect(p).toHaveLength(2);
+  });
+
+  it("sin cláusula y por transferencia: las dos frases", () => {
+    const p = avisoDeCancelacionPorCupo({ ...base, traeClausula: false, porTransferencia: true });
+    expect(p).toHaveLength(3);
+    expect(p[1]).toContain("por transferencia, igual que pagaste");
+    expect(p[2]).toContain("bonificación del 20 %");
   });
 });

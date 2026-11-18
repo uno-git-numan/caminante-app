@@ -20,7 +20,7 @@
 //
 // Puro: lo usan las pantallas, el cobro, el panel y las pruebas.
 
-import { diasNaturales, ymdCdmx, type ClausulaMinimo } from "@/lib/cancelacion/politica";
+import { diasNaturales, fechaConAnio, ymdCdmx, type ClausulaMinimo } from "@/lib/cancelacion/politica";
 
 const DIA = 86_400_000;
 const restarDias = (ymd: string, n: number): string => new Date(new Date(`${ymd}T12:00:00Z`).getTime() - n * DIA).toISOString().slice(0, 10);
@@ -147,3 +147,41 @@ export function clausulaDeReserva(r: { clausula_minimo?: number | null; clausula
 export const clausulaVistaDe = (c: ClausulaMinimo | null | undefined): string => (c ? `${c.minimo}|${c.limite}` : "");
 
 export const MENSAJE_CLAUSULA_CAMBIO = "Las condiciones de esta salida cambiaron mientras reservabas. Revisa la política de cancelación y vuelve a intentarlo.";
+
+/**
+ * EL AVISO DE CANCELACIÓN POR CUPO MÍNIMO, párrafo por párrafo (§7.6 y §7.10).
+ * `**…**` marca negritas. Es el único correo que recibe todo el mundo ese día
+ * —quien pagó por transferencia no tiene correo automático de devolución—, así
+ * que lo que se le debe a cada persona va AQUÍ:
+ *   · sin cláusula en su reserva: no se le dice «como te lo dijimos antes de
+ *     pagar» y se le anuncia su bonificación del 20 %, pidiéndole la cuenta;
+ *   · pagó por transferencia: la devolución va por transferencia y se le pide
+ *     la cuenta donde quiere recibirla.
+ * Es texto de correo, no de la política aceptada: no toca la huella.
+ */
+export function avisoDeCancelacionPorCupo(i: {
+  /** «Experiencia · salida» */
+  viaje: string;
+  clausula: ClausulaMinimo;
+  /** Cuántos lugares pagados había. */
+  pagados: number;
+  /** ¿La reserva de esta persona trae la cláusula? */
+  traeClausula: boolean;
+  /** ¿Pagó por transferencia (o por otra vía que no vuelve sola por el procesador)? */
+  porTransferencia: boolean;
+}): string[] {
+  const parrafos = [
+    `Para **${i.viaje}** hacían falta ${i.clausula.minimo} personas y al ${fechaConAnio(i.clausula.limite)} éramos ${i.pagados}. ${i.traeClausula ? "Como te lo dijimos antes de pagar, la" : "La"} salida se cancela.`,
+    `Hoy mismo pedimos la devolución del **100 %** de lo que pagaste, ${
+      i.porTransferencia
+        ? "por transferencia, igual que pagaste. Respóndenos con la CLABE y el nombre del titular de la cuenta donde quieres recibirla."
+        : "a la misma forma de pago, y te avisamos en cuanto quede hecha."
+    } Si quieres, te ayudamos a pasarte a otra fecha.`,
+  ];
+  if (!i.traeClausula) {
+    parrafos.push(
+      "Además te corresponde una **bonificación del 20 %** de lo que pagaste. Para pagártela por transferencia, respóndenos con tu CLABE y el nombre del titular. La recibes a más tardar en 5 días hábiles.",
+    );
+  }
+  return parrafos;
+}
