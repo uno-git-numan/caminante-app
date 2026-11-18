@@ -12,6 +12,14 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 18 nov 2026 (noche) · Sesión legal: aviso por cupo, pago mixto (§7.10)
+
+- §7.10 construido (d292583): contabilizado.
+- **Pago mixto** (tarjeta y transferencia): tercera variante de la frase en
+  §7.10. La parte de tarjeta vuelve a la tarjeta (LFPC 92); decir que todo va
+  por transferencia sería inexacto. Caso raro; que quede antes de la primera
+  cancelación por cupo.
+
 ## 18 nov 2026 (noche) · Sesión legal: el aviso por cupo dice lo que se le debe a cada quien (§7.10)
 
 - Ficha construida en la misma entrega (32532db): contabilizado, sin

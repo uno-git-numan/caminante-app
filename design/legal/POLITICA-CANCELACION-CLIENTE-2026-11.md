@@ -340,6 +340,14 @@ te avisamos en cuanto quede hecha»:
 > por transferencia, igual que pagaste. Respóndenos con la CLABE y el nombre
 > del titular de la cuenta donde quieres recibirla.
 
+A quien pagó **una parte con tarjeta y otra por transferencia**, en ese mismo
+lugar:
+
+> a la misma forma de pago de cada uno de tus pagos. Lo que pagaste con
+> tarjeta vuelve a tu tarjeta. Para lo que pagaste por transferencia,
+> respóndenos con la CLABE y el nombre del titular de la cuenta donde quieres
+> recibirlo.
+
 Fundamento: la devolución va por la misma forma de pago (LFPC 92) y el
 proveedor informa lo que se obligó a dar (LFPC 7). La cuenta no se guarda
 (§5).
