@@ -43,6 +43,10 @@
     {
       "path": "/caminante/api/cron/retenciones",
       "schedule": "0 16 2 * *"
+    },
+    {
+      "path": "/caminante/api/cron/confirmar-salidas",
+      "schedule": "40 * * * *"
     }
   ]
 }

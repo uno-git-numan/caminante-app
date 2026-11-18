@@ -32,6 +32,8 @@ import { codigosPorSalida, type CodigoDescuento } from "@/lib/descuentos/codigos
 import { experienceTitle, operadoraQueMiro } from "@/lib/admin/queries";
 import { alcanceActual } from "@/lib/auth/alcance";
 import { baseDelCaso, type BaseDelCaso } from "@/lib/cancelacion/politica";
+import { clausulaDeSalida, pisoDeConfirmacion, puedeCancelarPorCupo } from "@/lib/cancelacion/cupo-minimo";
+import { ESTADOS_PAGADOS } from "@/lib/cancelacion/cupo-servidor";
 import { cdmxDay, formatDiaMes } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
 
@@ -65,12 +67,38 @@ export type PersonaReembolsable = {
   enCurso: boolean;
   /** Id de la fila de `reembolsos` viva — lo pide «Verificar con Stripe». */
   reembolsoId: string | null;
+  /** ¿Su reserva trae la cláusula de cupo mínimo? Si no, al cancelar por cupo se le debe la bonificación. */
+  conClausula: boolean;
   /**
    * Con qué propone la calculadora (D23 §4): variante, fecha de la reserva y
    * primer día de la salida. null = falta la variante o la fecha de la salida,
    * y entonces la pantalla no propone nada (y lo dice).
    */
   caso: BaseDelCaso | null;
+};
+
+/**
+ * La cláusula de cupo mínimo de una salida (D26 de legal): el mínimo, la fecha
+ * a más tardar en que se confirma o se cancela por falta de grupo, y dónde va.
+ */
+export type GrupoMinimoDeSalida = {
+  /** false = las columnas todavía no existen (antes de la 0093): la pantalla no ofrece nada. */
+  disponible: boolean;
+  minimo: number | null;
+  /** YYYY-MM-DD */
+  limite: string | null;
+  confirmadaAt: string | null;
+  /** Lugares de reservas con pago confirmado. */
+  pagados: number;
+  /** ¿La cláusula se le enseña hoy a quien reserva? */
+  activa: boolean;
+  /** Si no está activa, por qué. */
+  porque: string | null;
+  /** El piso: el último día en que puede caer la fecha, y la regla. null sin fecha de salida. */
+  ultimoDia: string | null;
+  regla: string | null;
+  /** ¿Se puede cancelar HOY por cupo mínimo? (cláusula activa y pagados < mínimo) */
+  cancelablePorCupo: boolean;
 };
 
 /** Alguien a quien se le mandó la encuesta y todavía no contesta. */
@@ -140,6 +168,8 @@ export type Salida = {
   firmadosLista: PersonaFirmada[];
   /** Vacío para un operador: los reembolsos son de la casa. */
   reembolsables: PersonaReembolsable[];
+  /** La cláusula de cupo mínimo de esta salida (D26). La ven la casa y la operadora. */
+  grupoMinimo: GrupoMinimoDeSalida;
 
   // ── encuesta ──
   encuestaArmada: boolean;
@@ -263,6 +293,19 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   // acota lo que ves, nunca lo que puedes (lib/auth/sombrero.ts): las listas se
   // siguen recortando por `operatorId`; el dinero se decide por el alcance.
   const esCasa = (await alcanceActual())?.tipo === "casa";
+  // La cláusula de cupo mínimo (0093). Consulta aparte y tolerante: si las
+  // columnas no existen todavía, Salidas se dibuja igual y sin el bloque.
+  const { data: clausRaw, error: errClaus } = await sb
+    .from("experience_slots")
+    .select("id, minimo, confirmacion_limite, confirmada_at");
+  const clausPorSlot = new Map(
+    ((clausRaw ?? []) as { id: string; minimo: number | null; confirmacion_limite: string | null; confirmada_at: string | null }[]).map((c) => [c.id, c]),
+  );
+  const { data: copiasRaw } = errClaus
+    ? { data: null }
+    : await sb.from("reservations").select("id").not("clausula_minimo", "is", null);
+  const conCopia = new Set(((copiasRaw ?? []) as { id: string }[]).map((r) => r.id));
+
   const [{ data: paysRaw }, { data: reemsRaw }] = esCasa
     ? await Promise.all([
         sb.from("payments").select("reservation_id, amount_mxn, status, method, paid_at"),
@@ -449,6 +492,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
               porStripe: cobro.porStripe,
               enCurso: reembolsoVivo.has(r.id),
               reembolsoId: reembolsoVivo.get(r.id) ?? null,
+              conClausula: conCopia.has(r.id),
               caso: baseDelCaso({
                 politicaVariante: r.politica_variante,
                 politicaAceptadaAt: r.politica_aceptada_at,
@@ -545,6 +589,34 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       pendientes,
       firmadosLista,
       reembolsables,
+      grupoMinimo: (() => {
+        const c = clausPorSlot.get(s.id);
+        const pagados = mias
+          .filter((r) => (ESTADOS_PAGADOS as readonly string[]).includes(r.status))
+          .reduce((n, r) => n + (r.num_people || 1), 0);
+        const para = {
+          minimo: c?.minimo ?? null,
+          confirmacionLimite: c?.confirmacion_limite ?? null,
+          startsAt: s.starts_at,
+          endsAt: s.ends_at,
+          confirmadaAt: c?.confirmada_at ?? null,
+          status: s.status,
+        };
+        const estado = clausulaDeSalida(para);
+        const piso = s.starts_at ? pisoDeConfirmacion(s.starts_at, s.ends_at) : null;
+        return {
+          disponible: !errClaus,
+          minimo: para.minimo,
+          limite: para.confirmacionLimite ? String(para.confirmacionLimite).slice(0, 10) : null,
+          confirmadaAt: para.confirmadaAt,
+          pagados,
+          activa: estado.activa,
+          porque: estado.activa ? null : estado.porque,
+          ultimoDia: piso?.ultimoDia ?? null,
+          regla: piso?.regla ?? null,
+          cancelablePorCupo: puedeCancelarPorCupo(para, pagados).ok,
+        };
+      })(),
       encuestaArmada: !!data?.feedback?.active && (data?.feedback?.sections ?? []).length > 0,
       invitadas: mios.length,
       respuestas: enviadas.length,

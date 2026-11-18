@@ -5,6 +5,7 @@
 // un bloque con el resumen, el total, y el botón «Pagar» en la barra de abajo.
 
 import { ContactoReclamacionesMovil, FraseAceptacionMovil, PoliticaResumenMovil } from "../../ui/PoliticaResumen";
+import { clausulaVistaDe } from "@/lib/cancelacion/cupo-minimo";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -66,9 +67,10 @@ export default function PagoMovil({ p, error, deslindeHref, wa, avisoFactura = n
             {error ? (
               <p style={{ fontSize: 13.5, color: "var(--orange)", fontWeight: 600, marginTop: 10 }}>{error}</p>
             ) : null}
-            {p.politica ? <PoliticaResumenMovil variante={p.politica} /> : null}
+            {p.politica ? <PoliticaResumenMovil variante={p.politica} clausula={p.clausula} /> : null}
             <form ref={formRef} action={iniciarPagoDeReserva} onSubmit={() => setPagando(true)}>
               <input type="hidden" name="token" value={p.token} />
+              <input type="hidden" name="clausulaVista" value={clausulaVistaDe(p.clausula)} />
             </form>
             <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 14, textAlign: "center" }}>
               Pago seguro con tarjeta vía Stripe. Al terminar vuelves aquí para firmar tu deslinde.

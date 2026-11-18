@@ -1,4 +1,5 @@
 import { ContactoReclamacionesEscritorio, FraseAceptacionEscritorio, PoliticaResumenEscritorio } from "../../ui/PoliticaResumen";
+import { clausulaVistaDe } from "@/lib/cancelacion/cupo-minimo";
 import { avisoFacturaDeReserva } from "@/lib/facturacion/aviso-plazo";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -82,11 +83,12 @@ export default async function PagoPage({
             {error ? <p className="mt-4 text-sm font-semibold text-dune">{error}</p> : null}
             {p.politica ? (
               <div className="mt-4">
-                <PoliticaResumenEscritorio variante={p.politica} />
+                <PoliticaResumenEscritorio variante={p.politica} clausula={p.clausula} />
               </div>
             ) : null}
             <form action={iniciarPagoDeReserva} className="mt-6">
               <input type="hidden" name="token" value={p.token} />
+              <input type="hidden" name="clausulaVista" value={clausulaVistaDe(p.clausula)} />
               <button type="submit" className="w-full rounded-xl bg-dune px-4 py-3 text-sm font-semibold text-white transition hover:bg-clay">
                 Pagar {mxn(p.montoMxn)}
               </button>

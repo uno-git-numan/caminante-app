@@ -1097,3 +1097,49 @@ Luis aprobó y puso la passkey. Verificado en el sitio vivo:
 En la rama, sin promover: la pantalla ya no propone cuando la fecha del aviso
 es anterior a la reserva (el servidor ya lo rechazaba).
 
+## 18 nov 2026 (noche) · Producto: D26 (cupo mínimo) construido en la rama; 0093 SIN aplicar
+
+Construido sobre §7. La migración 0093 y la promoción esperan la aprobación de
+Luis en la sesión de producto.
+
+**Como lo pides:**
+- §7.1: el bloque, el tercer renglón del resumen y el renglón del comprobante,
+  transcritos; una prueba sustituye N y la fecha en tu documento y compara
+  renglón por renglón. Sin cláusula el texto y la huella no cambian (probado).
+- §7.3: piso por duración; fuera del piso no se muestra y sigue siendo
+  imputable. La pantalla de captura dice el último día válido y por qué.
+- §7.4: la huella cubre el texto con N y la fecha; copia en la reserva; el
+  candado está en la acción y además en la base (trigger): compara contra lo
+  más estricto que aceptó alguna reserva pagada, así que quitar la cláusula y
+  volverla a poner más alta tampoco pasa.
+- §7.5: confirmar desde Salidas (casa u operadora) o sola al llegar la fecha
+  con el mínimo cubierto (revisa cada hora); correo «Tu salida está
+  confirmada» al grupo. Un día antes de la fecha, si no se junta, aviso a la casa.
+- §7.6: causa «No se juntó el grupo mínimo», sólo ofrecida si se puede; el
+  aviso con tu texto sale al cancelar y su hora queda en la salida; 100 % a
+  todos; bonificación sólo a las reservas sin copia.
+
+**Lo que hice distinto o añadí (confirma o corrige):**
+1. **Campo `confirmacion_limite`, no `fecha_limite`** (te lo avisé): la del
+   espacio del grupo es la fecha para apartar y se llena sola.
+2. **Cuarta condición de §7.3:** la fecha no ha pasado. Quien compre después
+   va sin cláusula.
+3. **Mínimo de 2 o más** para que la cláusula exista: con mínimo 1 el texto
+   «un mínimo de 1 personas» no dice nada.
+4. **Lugares pagados** = reservas con cualquier pago confirmado, anticipo incluido.
+5. **Las 48 horas:** la fecha no trae hora y «a más tardar ese día» llega a
+   las 23:59; el último día válido es el anterior al día en que caen las 48 horas.
+6. **Se puede confirmar sin haber llegado al mínimo** (quien opera decide salir).
+7. **Lo que se enseñó vs. lo que se cobra:** la pantalla manda qué cláusula
+   mostró; si la salida cambió entre abrir y pagar, no se cobra y se le pide
+   revisar. Una pantalla que no manda el dato cobra sin cláusula.
+8. **El aviso por cupo va sólo a quien trae la cláusula.** A las reservas
+   anteriores no se les puede decir «como te lo dijimos antes de pagar»: su
+   correo es el de cancelación de siempre, con su bonificación.
+
+**No construido:** el bloque de la cláusula en la FICHA de la experiencia (la
+política ahí es general y la cláusula es de cada salida; hoy se ve en reservar
+y en la página de pago, que es donde se acepta). Dime si la quieres también en
+la ficha, por la NOM-010-TUR 6.2.5. Tampoco: mover las fechas de una salida
+después de que alguien aceptó la cláusula no revisa el piso.
+

@@ -22,7 +22,8 @@ import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
 import { inicioDelCorte } from "@/lib/facturacion/corte";
 import { netoDePago } from "@/lib/facturacion/devolucion-plan";
 import { enPlazoParaFacturar, folioDePago, limiteParaFacturar } from "@/lib/facturacion/global-plan";
-import { esVariante, limiteArrepentimiento, VENTANAS, ymdCdmx } from "@/lib/cancelacion/politica";
+import { esVariante, limiteArrepentimiento, renglonMinimoDelComprobante, VENTANAS, ymdCdmx } from "@/lib/cancelacion/politica";
+import { clausulaDeReserva } from "@/lib/cancelacion/cupo-minimo";
 import { sendViaResend } from "@/lib/email/resend";
 import { boton, h1, marco, p, saludo } from "@/lib/email/plantilla";
 import { SITE } from "@/lib/payments/pago-token";
@@ -154,5 +155,10 @@ async function politicaAceptada(pay: Pago): Promise<string | null> {
       /* año sin lista de días de descanso: no se inventa una fecha */
     }
   }
-  return `Al pagar aceptaste la <a href="${liga}">política de cancelación</a> de esta experiencia (${VENTANAS[resv.politica_variante].nombre}).${plazo}`;
+  // La cláusula de cupo mínimo que traía su reserva (D26 §7.1). Consulta
+  // aparte y tolerante: antes de la 0093 las columnas no existen.
+  const { data: copia } = await sb.from("reservations").select("clausula_minimo, clausula_limite").eq("id", pay.reservation_id).maybeSingle();
+  const clausula = clausulaDeReserva(copia as { clausula_minimo?: number | null; clausula_limite?: string | null } | null);
+  const minimo = clausula ? ` ${renglonMinimoDelComprobante(clausula)}` : "";
+  return `Al pagar aceptaste la <a href="${liga}">política de cancelación</a> de esta experiencia (${VENTANAS[resv.politica_variante].nombre}).${plazo}${minimo}`;
 }

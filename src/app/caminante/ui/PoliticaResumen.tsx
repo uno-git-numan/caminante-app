@@ -12,24 +12,24 @@
 // igual en componentes de servidor y de cliente.
 
 import type { CSSProperties, ReactNode } from "react";
-import { bloquesPolitica, FRASE_ACEPTACION, resumenPolitica, TITULO_POLITICA, type Variante } from "@/lib/cancelacion/politica";
+import { bloquesPolitica, FRASE_ACEPTACION, resumenPolitica, TITULO_POLITICA, type ClausulaMinimo, type Variante } from "@/lib/cancelacion/politica";
 import { CONTACTO_CAMINANTE, contactoPropioDe, DOMICILIO_NUMAN, RAZON_SOCIAL_NUMAN, waHref } from "@/lib/legal/responsable";
 
 const negritas = (t: string): ReactNode[] => t.split(/\*\*(.+?)\*\*/g).map((x, i) => (i % 2 ? <b key={i}>{x}</b> : x));
 
 /** Escritorio: reservar (CheckoutForm) y página de pago. */
-export function PoliticaResumenEscritorio({ variante }: { variante: Variante }) {
+export function PoliticaResumenEscritorio({ variante, clausula = null }: { variante: Variante; /** La cláusula de cupo mínimo de la salida elegida, si la tiene activa (D26). */ clausula?: ClausulaMinimo | null }) {
   return (
     <div className="rounded-xl border border-sand px-4 py-3 text-[12px] leading-relaxed text-olive">
       <p className="font-semibold text-lagoon">{TITULO_POLITICA}</p>
       <ul className="mt-1 list-disc space-y-1 pl-4">
-        {resumenPolitica(variante).map((r, i) => (
+        {resumenPolitica(variante, clausula).map((r, i) => (
           <li key={i}>{r}</li>
         ))}
       </ul>
       <details className="mt-2">
         <summary className="cursor-pointer font-semibold text-forest underline">Ver la política completa</summary>
-        {bloquesPolitica(variante).map((b, i) => (
+        {bloquesPolitica(variante, clausula).map((b, i) => (
           <div key={i} className="mt-3">
             <p className="font-semibold text-lagoon">{b.titulo}</p>
             <ul className="mt-1 list-disc space-y-1 pl-4">
@@ -50,11 +50,11 @@ export function FraseAceptacionEscritorio() {
 }
 
 /** Móvil: mismo bloque y mismo acordeón que el resto de la pantalla (`pub-blk`, `pub-faq`). */
-export function PoliticaResumenMovil({ variante }: { variante: Variante }) {
+export function PoliticaResumenMovil({ variante, clausula = null }: { variante: Variante; clausula?: ClausulaMinimo | null }) {
   return (
     <div className="pub-blk">
       <span className="pub-lbl">{TITULO_POLITICA}</span>
-      {resumenPolitica(variante).map((r, i) => (
+      {resumenPolitica(variante, clausula).map((r, i) => (
         <p key={i} style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: i ? 6 : 4, lineHeight: 1.45 }}>
           {r}
         </p>
@@ -65,7 +65,7 @@ export function PoliticaResumenMovil({ variante }: { variante: Variante }) {
             Ver la política completa
             <span className="x">+</span>
           </summary>
-          {bloquesPolitica(variante).map((b, i) => (
+          {bloquesPolitica(variante, clausula).map((b, i) => (
             <div className="a" key={i} style={i ? { marginTop: 12 } : undefined}>
               <b>{b.titulo}</b>
               {b.renglones.map((r, j) => (

@@ -378,6 +378,47 @@ ${fila("A más tardar", vence)}
   });
 }
 
+// ── La fecha de confirmación está por vencer sin el mínimo (D26 §7.5) ────────
+// Con la cláusula de cupo mínimo, cancelar por falta de grupo no cuesta la
+// bonificación SÓLO si se avisa a más tardar el día de la fecha de
+// confirmación. Este aviso sale un día antes (o el mismo día) para que la casa
+// decida a tiempo: confirmar de todos modos, o cancelar en plazo.
+
+export type ConfirmacionPorVencerInfo = {
+  experiencia: string;
+  salida: string;
+  minimo: number;
+  pagados: number;
+  limite: string; // YYYY-MM-DD
+  esHoy: boolean;
+};
+
+export async function notifyConfirmacionPorVencer(info: ConfirmacionPorVencerInfo): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const fecha = new Intl.DateTimeFormat("es-MX", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${info.limite}T12:00:00Z`));
+  const cuando = info.esHoy ? "HOY" : "mañana";
+  const fila = (k: string, v: string) =>
+    `<tr><td style="padding:6px 12px;color:#637154;font-size:13px;">${k}</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#20211c;">${v}</td></tr>`;
+  const html = `<body style="margin:0;background:#fbfbf7;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid rgba(32,33,28,.13);border-radius:16px;overflow:hidden;">
+<div style="background:#20392b;color:#fff;padding:16px 20px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Caminante · Grupo mínimo: vence ${cuando}</div>
+<div style="padding:16px 20px 4px;font-size:14px;color:#20211c;">Esta salida todavía no junta su grupo mínimo y la fecha de confirmación vence ${cuando}. Decide en Salidas: <b>confirmarla</b> de todos modos, o <b>cancelarla por cupo mínimo</b>. Si se cancela después de esa fecha, cada persona recibe además la bonificación del 20 %.</div>
+<table style="width:100%;border-collapse:collapse;">
+${fila("Experiencia", info.experiencia)}
+${fila("Salida", info.salida || "—")}
+${fila("Lugares pagados", `${info.pagados} de ${info.minimo}`)}
+${fila("Fecha de confirmación", fecha)}
+</table>
+<div style="padding:14px 20px 20px;"><a href="https://caminante.numanhub.com/caminante/admin/salidas" style="display:inline-block;background:#ff5d36;color:#fff;text-decoration:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:600;">Ver en Salidas</a></div>
+</div></body>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "User-Agent": "caminante-notify/1.0", Accept: "application/json" },
+    body: JSON.stringify({ from: FROM, to: [ADMIN_EMAIL], subject: `Grupo mínimo vence ${cuando} · ${info.experiencia} (${info.pagados} de ${info.minimo})`, html }),
+  });
+}
+
 export async function notifyCupoHonesto(info: CupoHonestoInfo): Promise<void> {
   const r = await Promise.allSettled([correoCupo(info), whatsappCupo(info)]);
   for (const x of r) if (x.status === "rejected") console.error("notifyCupoHonesto:", x.reason);

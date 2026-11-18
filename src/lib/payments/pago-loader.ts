@@ -1,4 +1,5 @@
-import { esVariante, type Variante } from "@/lib/cancelacion/politica";
+import { esVariante, type ClausulaMinimo, type Variante } from "@/lib/cancelacion/politica";
+import { clausulasActivas } from "@/lib/cancelacion/cupo-servidor";
 import "server-only";
 
 // LO QUE LA PÁGINA DE PAGO NECESITA SABER de una reserva, por su token.
@@ -21,6 +22,8 @@ export type PagoVista = {
   deslindeActivo: boolean;
   /** La política de cancelación de la experiencia (D23); null si no la tiene elegida. */
   politica: Variante | null;
+  /** La cláusula de cupo mínimo de la salida, si la tiene activa (D26). */
+  clausula: ClausulaMinimo | null;
   salida: string | null;
   fechaLarga: string | null;
   pila: string | null;
@@ -104,6 +107,8 @@ export async function fetchPagoPorToken(token: string): Promise<PagoVista | null
     imagen: data?.heroImageUrl || null,
     deslindeActivo: !!data?.registration?.active,
     politica: esVariante(data?.politicaCancelacion) ? data.politicaCancelacion : null,
+    clausula:
+      esVariante(data?.politicaCancelacion) && r.slot_id ? ((await clausulasActivas(sb, [r.slot_id as string])).get(r.slot_id as string) ?? null) : null,
     salida: (slot?.label as string | null) ?? null,
     fechaLarga: slot?.starts_at ? fechaLargaDe(slot.starts_at as string, (slot.ends_at as string | null) ?? null) : null,
     pila: nombre ? nombre.split(/\s+/)[0] : null,

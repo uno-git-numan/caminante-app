@@ -34,6 +34,7 @@ import { generarLinkDeGrupo } from "@/lib/feedback/link-grupo";
 import SuEspacio from "@/app/caminante/admin/ui/SuEspacio";
 import { LinkEspecial, LinksPendientes } from "./LinkEspecial";
 import { CodigosDeSalida } from "./CodigoDescuento";
+import { GrupoMinimo } from "./GrupoMinimo";
 
 const pct = (a: number, b: number | null) => (b && b > 0 ? Math.min(100, (a / b) * 100) : a > 0 ? 100 : 0);
 /** Con coma decimal: es un número que se lee, no un identificador. */
@@ -202,7 +203,7 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
   const [avisoLocal, setAvisoLocal] = useState(() => new Date(Date.now() - 6 * 3600_000).toISOString().slice(0, 16));
   // Lo que la casa teclea en vez de la propuesta, por reserva. Sin tecla, la propuesta.
   const [montos, setMontos] = useState<Record<string, string>>({});
-  const [causa, setCausa] = useState<"" | "imputable" | "fuerza-mayor">("");
+  const [causa, setCausa] = useState<"" | "imputable" | "fuerza-mayor" | "cupo-minimo">("");
   const [clase, setClase] = useState<ClaseFuerzaMayor | "">("");
   // La ruta del documento ya subido (D24.4) y el estado de la subida.
   const [documento, setDocumento] = useState<{ path: string; nombre: string } | null>(null);
@@ -241,8 +242,12 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
       .toLowerCase();
   const escribioLaEtiqueta = plano(confirmacion) === plano(s.label);
   const faltaDocumento = causa === "fuerza-mayor" && clase !== "" && pideDocumento(clase) && !documento;
-  const causaLista = causa === "imputable" || (causa === "fuerza-mayor" && clase !== "" && !faltaDocumento);
-  const puedeCancelar = escribioLaEtiqueta && causaLista && motivo.trim() !== "";
+  const causaLista = causa === "imputable" || causa === "cupo-minimo" || (causa === "fuerza-mayor" && clase !== "" && !faltaDocumento);
+  // En cupo mínimo el motivo lo escribe el sistema con los números.
+  const puedeCancelar = escribioLaEtiqueta && causaLista && (causa === "cupo-minimo" || motivo.trim() !== "");
+  // Por cupo: sin bonificación a quien trae la cláusula; a los demás sí.
+  const sinClausula = vivos.filter((r) => !r.conClausula);
+  const bonificacionPorCupo = sinClausula.reduce((n, r) => n + bonificacionDe(r.monto), 0);
 
   const contar = (r: { ok: boolean; reembolsados?: number; monto?: number; avisos?: string[]; error?: string }) => {
     if (!r.ok) { setAviso({ ok: false, texto: r.error || "No se pudo." }); return; }
@@ -409,6 +414,27 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
             <input type="radio" name={`causa-${s.id}`} checked={causa === "fuerza-mayor"} onChange={() => setCausa("fuerza-mayor")} />{" "}
             Por fuerza mayor
           </label>
+          {/* Cupo mínimo (D26): sólo existe con la cláusula activa, menos
+              pagados que el mínimo y dentro de la fecha. Si no, no se ofrece:
+              cancelar por falta de grupo es causa de quien opera. */}
+          {s.grupoMinimo.cancelablePorCupo ? (
+            <label style={{ display: "block" }}>
+              <input type="radio" name={`causa-${s.id}`} checked={causa === "cupo-minimo"} onChange={() => setCausa("cupo-minimo")} />{" "}
+              No se juntó el grupo mínimo ({s.grupoMinimo.pagados} de {s.grupoMinimo.minimo} lugares pagados)
+            </label>
+          ) : s.grupoMinimo.minimo != null && !s.grupoMinimo.confirmadaAt ? (
+            <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 4 }}>
+              «No se juntó el grupo mínimo» no está disponible: {s.grupoMinimo.activa ? "ya hay tantos lugares pagados como el mínimo." : s.grupoMinimo.porque}
+            </p>
+          ) : null}
+          {causa === "cupo-minimo" ? (
+            <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 6 }}>
+              Se le avisa hoy a cada persona que la salida no se juntó y se le devuelve el <b>100 %</b>.{" "}
+              {sinClausula.length === 0
+                ? "Todas reservaron viendo esta condición: no hay bonificación."
+                : `${sinClausula.length} ${sinClausula.length === 1 ? "persona reservó" : "personas reservaron"} antes de que esta condición existiera: a ${sinClausula.length === 1 ? "ella" : "ellas"} sí se les debe la bonificación del 20 % (${mxn(bonificacionPorCupo)} en total, por transferencia, que haces tú).`}
+            </p>
+          ) : null}
           {causa === "fuerza-mayor" ? (
             <select value={clase} onChange={(e) => setClase(e.target.value as ClaseFuerzaMayor | "")} style={{ marginTop: 6, width: "min(460px, 100%)" }}>
               <option value="">Elige cuál…</option>
@@ -495,7 +521,9 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
                   motivo,
                   causa === "fuerza-mayor"
                     ? { tipo: "fuerza-mayor", clase: clase as ClaseFuerzaMayor, documento: documento?.path ?? null }
-                    : { tipo: "imputable" },
+                    : causa === "cupo-minimo"
+                      ? { tipo: "cupo-minimo" }
+                      : { tipo: "imputable" },
                 ),
               );
               setOcupado("");
@@ -541,6 +569,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
   const [cobrando, setCobrando] = useState(false);
   const [conCodigo, setConCodigo] = useState(false);
   const [reembolsando, setReembolsando] = useState(false);
+  const [conMinimo, setConMinimo] = useState(false);
   const [tokenGrupo, setTokenGrupo] = useState(s.tokenGrupo);
   const [generando, setGenerando] = useState(false);
   const [probando, setProbando] = useState(false);
@@ -907,6 +936,20 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                     {conCodigo ? "Cerrar códigos" : `Código de descuento${s.codigos.filter((c) => c.activo).length ? ` · ${s.codigos.filter((c) => c.activo).length}` : ""}`}
                   </button>
                 ) : null}
+                {/* El grupo mínimo de la salida (cláusula de cupo mínimo, D26):
+                    el mínimo, la fecha de confirmación y confirmar que sale.
+                    Lo ven la casa y la operadora. */}
+                {!s.pasada && s.grupoMinimo.disponible ? (
+                  <button type="button" className="btn btn-ghost" onClick={() => setConMinimo((v) => !v)}>
+                    {conMinimo
+                      ? "Cerrar grupo mínimo"
+                      : s.grupoMinimo.confirmadaAt
+                        ? "Grupo mínimo · confirmada"
+                        : s.grupoMinimo.minimo != null
+                          ? `Grupo mínimo · ${s.grupoMinimo.pagados}/${s.grupoMinimo.minimo}`
+                          : "Grupo mínimo"}
+                  </button>
+                ) : null}
                 {/* Dinero. Solo aparece para la casa: `reembolsables` llega
                     vacío para un operador (la devolución sale de la cuenta de
                     NUMAN HUB, no de la suya). */}
@@ -928,6 +971,7 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
               {editando ? <EditarSalida s={s} onListo={() => setEditando(false)} /> : null}
               {cobrando ? <LinkEspecial slotId={s.id} precioLista={s.precioLista} gente={s.grupo?.gente} onListo={() => setCobrando(false)} /> : null}
               {conCodigo ? <CodigosDeSalida slotId={s.id} codigos={s.codigos} titulo={s.experiencia} fechaLarga={s.fechaLarga} liga={s.ligaVenta} abierta={s.estado === "open"} precioLista={s.precioLista} onListo={() => setConCodigo(false)} /> : null}
+              {conMinimo ? <GrupoMinimo s={s} /> : null}
               {reembolsando ? <Reembolsos s={s} onListo={() => setReembolsando(false)} /> : null}
             </>
           )}

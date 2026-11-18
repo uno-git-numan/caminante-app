@@ -1,7 +1,8 @@
 "use client";
 
 import { ContactoReclamacionesEscritorio, FraseAceptacionEscritorio, PoliticaResumenEscritorio } from "../../ui/PoliticaResumen";
-import type { Variante } from "@/lib/cancelacion/politica";
+import type { ClausulaMinimo, Variante } from "@/lib/cancelacion/politica";
+import { clausulaVistaDe } from "@/lib/cancelacion/cupo-minimo";
 import { useState } from "react";
 import { createCheckout } from "@/lib/payments/checkout";
 import { cotizarCodigo } from "@/lib/descuentos/acciones";
@@ -13,6 +14,8 @@ export type ReservarSlot = {
   perPerson: number;
   available: number | null; // null = sin tope
   soldOut: boolean;
+  /** La cláusula de cupo mínimo de ESTA salida, si la tiene activa (D26). */
+  clausula?: ClausulaMinimo | null;
 };
 
 export type PriceTier = { label: string; amount: string };
@@ -130,6 +133,9 @@ export default function CheckoutForm({
     >
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="slotId" value={slotId} />
+      {/* Qué cláusula de cupo mínimo se enseñó: el servidor la compara con la
+          de la salida al cobrar (D26 §7.4). Vacío = ninguna. */}
+      <input type="hidden" name="clausulaVista" value={clausulaVistaDe(politica ? slot?.clausula : null)} />
       <input type="hidden" name="numPeople" value={ppl} />
       {tiers.length ? <input type="hidden" name="tierIndex" value={tierIndex} /> : null}
       {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
@@ -335,7 +341,7 @@ export default function CheckoutForm({
         ) : null}
       </div>
 
-      {politica ? <PoliticaResumenEscritorio variante={politica} /> : null}
+      {politica ? <PoliticaResumenEscritorio variante={politica} clausula={slot?.clausula ?? null} /> : null}
 
       <div className="flex items-baseline justify-between">
         <span className="text-sm text-olive">Total · IVA incluido</span>

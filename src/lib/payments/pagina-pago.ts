@@ -13,6 +13,9 @@
 // sabe ofrecer «Firmar mi deslinde» atado a ESA reserva.
 
 import { pruebaDePolitica } from "@/lib/cancelacion/prueba";
+import { clausulaVistaDe, MENSAJE_CLAUSULA_CAMBIO } from "@/lib/cancelacion/cupo-minimo";
+import { clausulasActivas } from "@/lib/cancelacion/cupo-servidor";
+import { esVariante } from "@/lib/cancelacion/politica";
 import { casaPuedeCobrarPor, MENSAJE_SIN_CUENTA_CLIENTE } from "@/lib/experiences/candados-venta";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -86,8 +89,30 @@ export async function iniciarPagoDeReserva(formData: FormData) {
   }
 
   // La política de cancelación que tiene a la vista al dar «Pagar» (D23, 0089).
-  const politica = pruebaDePolitica(experience?.politicaCancelacion);
-  if (politica) await sb.from("reservations").update(politica).eq("id", r.id as string);
+  // Con la cláusula de cupo mínimo de la salida si la tiene activa (D26) y es
+  // la misma que la pantalla enseñó; si cambió entre tanto, no se cobra.
+  const clausulaAhora =
+    esVariante(experience?.politicaCancelacion) && r.slot_id ? ((await clausulasActivas(sb, [r.slot_id as string])).get(r.slot_id as string) ?? null) : null;
+  const clausulaVista = formData.get("clausulaVista");
+  if (clausulaVista != null && String(clausulaVista) !== clausulaVistaDe(clausulaAhora)) redirect(back(MENSAJE_CLAUSULA_CAMBIO));
+  const politica = pruebaDePolitica(experience?.politicaCancelacion, clausulaVista == null ? null : clausulaAhora);
+  if (politica) {
+    // La copia de la cláusula se escribe SIEMPRE, también vacía: si un intento
+    // anterior la traía y ahora la salida ya no la tiene, no puede quedarse
+    // pegada a una huella que ya no la cubre.
+    const { error: errPrueba } = await sb
+      .from("reservations")
+      .update({ ...politica, clausula_minimo: politica.clausula_minimo ?? null, clausula_limite: politica.clausula_limite ?? null })
+      .eq("id", r.id as string);
+    // Antes de la 0093 esas dos columnas no existen: la prueba de la política
+    // se guarda igual, sin ellas (no hay cláusula que copiar).
+    if (errPrueba && !politica.clausula_minimo) {
+      await sb
+        .from("reservations")
+        .update({ politica_variante: politica.politica_variante, politica_hash: politica.politica_hash, politica_aceptada_at: politica.politica_aceptada_at })
+        .eq("id", r.id as string);
+    }
+  }
 
   const lista = r.precio_lista_mxn != null ? Number(r.precio_lista_mxn) : null;
   const metadata: Stripe.MetadataParam = {

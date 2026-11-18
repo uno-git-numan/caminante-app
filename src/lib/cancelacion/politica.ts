@@ -37,11 +37,53 @@ export const FRASE_ACEPTACION = "Al pagar aceptas la política de cancelación d
 export const TITULO_POLITICA = "Cancelación y devoluciones";
 
 /**
+ * LA CLÁUSULA DE CUPO MÍNIMO (D26 de legal, §7): el mínimo de personas y la
+ * fecha a más tardar en que se confirma o se cancela por falta de grupo. Es de
+ * UNA salida, no de la experiencia. Sólo existe cuando la salida la tiene
+ * activa (lib/cancelacion/cupo-minimo.ts); sin ella el texto no cambia.
+ */
+export type ClausulaMinimo = { minimo: number; /** YYYY-MM-DD */ limite: string };
+
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+/** «5 de diciembre de 2026» */
+export const fechaConAnio = (ymd: string): string => `${Number(ymd.slice(8, 10))} de ${MESES[Number(ymd.slice(5, 7)) - 1]} de ${ymd.slice(0, 4)}`;
+/** «5 de diciembre» */
+export const fechaSinAnio = (ymd: string): string => `${Number(ymd.slice(8, 10))} de ${MESES[Number(ymd.slice(5, 7)) - 1]}`;
+
+/** El bloque «Si no se junta el grupo mínimo», con N y la fecha de esa salida ya escritos. */
+export function bloqueCupoMinimo(c: ClausulaMinimo): BloquePolitica {
+  return {
+    titulo: "Si no se junta el grupo mínimo",
+    renglones: [
+      `Esta salida necesita un mínimo de **${c.minimo} personas** con su lugar pagado. Te confirmamos si sale a más tardar el **${fechaConAnio(c.limite)}**.`,
+      "Si para esa fecha no se juntó el mínimo, la salida se puede cancelar. Te avisamos a más tardar ese día y te devolvemos el **100 %** de lo que pagaste. En este caso no hay bonificación, porque es una condición que conoces desde antes de pagar.",
+      "Si te avisamos después de esa fecha, o si cancelamos por falta de grupo una salida que ya te habíamos confirmado, se trata como una cancelación atribuible a quien opera: el 100 % más la bonificación del 20 %.",
+      "Mientras no te confirmemos la salida, te recomendamos no comprar vuelos ni transporte que no se pueda cambiar o reembolsar.",
+    ],
+  };
+}
+
+/** El renglón del comprobante por correo cuando la reserva trae la cláusula. */
+export const renglonMinimoDelComprobante = (c: ClausulaMinimo): string =>
+  `Esta salida necesita un mínimo de ${c.minimo} personas. Te confirmamos a más tardar el ${fechaConAnio(c.limite)}.`;
+
+/**
  * El texto completo, en bloques. `**…**` marca negritas. Transcrito de legal:
  * no se edita aquí sin que legal cambie su documento (cada reserva guarda la
  * huella del texto que aceptó).
+ *
+ * Con `clausula`, el bloque de cupo mínimo va después de «Si la salida se
+ * cancela». Sin ella el texto es idéntico al de antes de D26, así que la
+ * huella de las reservas sin cláusula no cambia.
  */
-export function bloquesPolitica(v: Variante): BloquePolitica[] {
+export function bloquesPolitica(v: Variante, clausula?: ClausulaMinimo | null): BloquePolitica[] {
+  const base = bloquesBase(v);
+  if (!clausula) return base;
+  const i = base.findIndex((b) => b.titulo === "Si la salida se cancela");
+  return [...base.slice(0, i + 1), bloqueCupoMinimo(clausula), ...base.slice(i + 1)];
+}
+
+function bloquesBase(v: Variante): BloquePolitica[] {
   const [a, b] = VENTANAS[v].tramos;
   return [
     {
@@ -79,17 +121,19 @@ export function bloquesPolitica(v: Variante): BloquePolitica[] {
 }
 
 /** El texto canónico (sin negritas), el que se huella en cada reserva. */
-export function textoPolitica(v: Variante): string {
-  return [TITULO_POLITICA, ...bloquesPolitica(v).flatMap((b) => ["", b.titulo, ...b.renglones.map((r) => `- ${r.replace(/\*\*/g, "")}`)])].join("\n");
+export function textoPolitica(v: Variante, clausula?: ClausulaMinimo | null): string {
+  return [TITULO_POLITICA, ...bloquesPolitica(v, clausula).flatMap((b) => ["", b.titulo, ...b.renglones.map((r) => `- ${r.replace(/\*\*/g, "")}`)])].join("\n");
 }
 
 /** El resumen de tres renglones para reservar y la página de pago. */
-export function resumenPolitica(v: Variante): string[] {
+export function resumenPolitica(v: Variante, clausula?: ClausulaMinimo | null): string[] {
   const [a, b] = VENTANAS[v].tramos;
   return [
     `Si cancelas tú: 100 % con ${a.desdeDias} días o más de anticipación; 50 % de ${b.desdeDias} a ${a.desdeDias - 1} días; después, sin devolución.`,
     "Puedes arrepentirte: 24 horas si la salida está a 7 días o más, y 5 días hábiles si reservaste con más de 10 días hábiles de anticipación.",
-    "Si la salida se cancela, te devolvemos el 100 %.",
+    clausula
+      ? `Si la salida se cancela, te devolvemos el 100 %. Esta salida necesita ${clausula.minimo} personas; te confirmamos a más tardar el ${fechaSinAnio(clausula.limite)}.`
+      : "Si la salida se cancela, te devolvemos el 100 %.",
   ];
 }
 
@@ -286,5 +330,7 @@ export const esFuerzaMayor = (x: unknown): x is ClaseFuerzaMayor => typeof x ===
 /** Por qué se cae una salida: por causa de quien opera (hay bonificación) o por fuerza mayor (no la hay). */
 export type CausaCancelacion =
   | { tipo: "imputable" }
+  /** No se juntó el grupo mínimo, avisado en plazo (D26). Sólo con la cláusula activa en la salida. */
+  | { tipo: "cupo-minimo" }
   /** `documento`: la ruta del archivo que la acredita (D24.4); en `emergencia-guia` no va. */
   | { tipo: "fuerza-mayor"; clase: ClaseFuerzaMayor; documento?: string | null };

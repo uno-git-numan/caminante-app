@@ -10,7 +10,10 @@
 //
 // El canal WhatsApp (redes sociales) sigue por /admin/cobro (Payment Link). Son distintos.
 
-import { pruebaDePolitica } from "@/lib/cancelacion/prueba";
+import { pruebaComoMetadata, pruebaDePolitica } from "@/lib/cancelacion/prueba";
+import { clausulaVistaDe, MENSAJE_CLAUSULA_CAMBIO } from "@/lib/cancelacion/cupo-minimo";
+import { clausulasActivas } from "@/lib/cancelacion/cupo-servidor";
+import { esVariante } from "@/lib/cancelacion/politica";
 import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -104,6 +107,17 @@ export async function createCheckout(formData: FormData) {
   if (!slot || slot.experience_id !== experienceId || slot.status !== "open") {
     redirect(back("salida"));
   }
+
+  // LA CLÁUSULA DE CUPO MÍNIMO de esta salida (D26), si la tiene activa AHORA
+  // y la experiencia tiene política (la cláusula se enseña dentro de ella).
+  // La pantalla dice cuál enseñó (`clausulaVista`): si no coincide con la de
+  // este instante, no se cobra con la huella de un texto que no se vio. Una
+  // pantalla que no manda el campo no enseñó ninguna: se cobra SIN cláusula,
+  // que es lo que favorece al cliente.
+  const clausulaAhora = esVariante(experience.politicaCancelacion) ? ((await clausulasActivas(sb, [slotId])).get(slotId) ?? null) : null;
+  const clausulaVista = formData.get("clausulaVista");
+  if (clausulaVista != null && String(clausulaVista) !== clausulaVistaDe(clausulaAhora)) redirect(back(MENSAJE_CLAUSULA_CAMBIO));
+  const clausula = clausulaVista == null ? null : clausulaAhora;
   // Salida PRIVADA: exige el token exacto de su link de grupo.
   if (slot.visibility === "private" && (!grupoToken || grupoToken !== slot.access_token)) {
     redirect(back("salida"));
@@ -302,7 +316,9 @@ export async function createCheckout(formData: FormData) {
     slot_visibility: (slot.visibility as string | null) ?? "public",
     // La política de cancelación que tuvo a la vista al pagar (D23): variante,
     // huella del texto y fecha. El webhook la escribe en la reserva.
-    ...(pruebaDePolitica(experience.politicaCancelacion) ?? {}),
+    // Con la cláusula de cupo mínimo de ESTA salida si la tiene activa (D26):
+    // la huella cubre el texto con el mínimo y la fecha ya escritos.
+    ...pruebaComoMetadata(pruebaDePolitica(experience.politicaCancelacion, clausula)),
     // El espacio del grupo: qué lugar(es) paga este cobro. El webhook los liga.
     ...(lugarId ? { lugar_id: lugarId } : {}),
     ...(cubreIds.length ? { cubre_lugares: cubreIds.join(",") } : {}),

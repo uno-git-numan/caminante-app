@@ -1,5 +1,6 @@
 import { esVariante } from "@/lib/cancelacion/politica";
 import { contactoDeVenta } from "@/lib/payments/pago-loader";
+import { clausulasActivas } from "@/lib/cancelacion/cupo-servidor";
 import { avisoFacturaDeOperadora } from "@/lib/facturacion/aviso-plazo";
 import { notFound, redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
@@ -118,6 +119,12 @@ export default async function ReservarPage({
     return Number.isNaN(inicio) || inicio >= ahora;
   });
 
+  // La cláusula de cupo mínimo de cada salida que la tenga activa (D26). Sólo
+  // se enseña dentro de la política, así que sin política no se consulta.
+  const clausulas = esVariante(experience?.politicaCancelacion)
+    ? await clausulasActivas(sb, vigentes.map((s) => s.id as string))
+    : new Map<string, never>();
+
   const slots: ReservarSlot[] = vigentes
     .map((s) => {
       const a = avail.get(s.id as string);
@@ -130,6 +137,7 @@ export default async function ReservarPage({
         perPerson: perPerson ?? 0,
         available,
         soldOut: available !== null && available <= 0,
+        clausula: clausulas.get(s.id as string) ?? null,
       };
     })
     .filter((s) => s.perPerson > 0);

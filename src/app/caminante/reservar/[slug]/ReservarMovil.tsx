@@ -23,6 +23,7 @@
 
 import { ContactoReclamacionesMovil, FraseAceptacionMovil, PoliticaResumenMovil } from "../../ui/PoliticaResumen";
 import type { Variante } from "@/lib/cancelacion/politica";
+import { clausulaVistaDe } from "@/lib/cancelacion/cupo-minimo";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
@@ -217,6 +218,7 @@ export default function ReservarMovil({
           {/* El monto NUNCA viaja desde el cliente: el servidor lo resuelve por índice. */}
           <input type="hidden" name="slug" value={slug} />
           <input type="hidden" name="slotId" value={sel} />
+          <input type="hidden" name="clausulaVista" value={clausulaVistaDe(politica ? salida?.clausula : null)} />
           <input type="hidden" name="numPeople" value={ppl} />
           {tiers.length ? <input type="hidden" name="tierIndex" value={nivel} /> : null}
           {grupoToken ? <input type="hidden" name="grupo" value={grupoToken} /> : null}
@@ -417,7 +419,7 @@ export default function ReservarMovil({
                 <span className="pub-mono">{pfmt(total)} MXN</span>
               </div>
             </div>
-            {politica ? <PoliticaResumenMovil variante={politica} /> : null}
+            {politica ? <PoliticaResumenMovil variante={politica} clausula={salida?.clausula ?? null} /> : null}
             {avisoFactura ? (
               <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 14, textAlign: "center" }}>{avisoFactura}</p>
             ) : null}

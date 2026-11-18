@@ -35,6 +35,9 @@ import {
 } from "@/lib/cancelacion/politica";
 import { crearBonificaciones } from "@/lib/cancelacion/bonificaciones";
 import { documentoDeFuerzaMayor } from "@/lib/cancelacion/documento";
+import { clausulaDeReserva, puedeCancelarPorCupo } from "@/lib/cancelacion/cupo-minimo";
+import { avisarCancelacionPorCupo, COLS_CLAUSULA, ESTADOS_PAGADOS, paraClausula, type FilaDeSalida } from "@/lib/cancelacion/cupo-servidor";
+import { fechaConAnio, type ClausulaMinimo } from "@/lib/cancelacion/politica";
 
 export type ResultadoReembolso =
   | { ok: true; reembolsados: number; monto: number; avisos: string[] }
@@ -422,10 +425,11 @@ export async function cancelarSalidaYReembolsar(
 ): Promise<ResultadoReembolso> {
   const auth = await quienEsLaCasa();
   if (!auth.ok) return { ok: false, error: auth.error };
-  if (causa?.tipo !== "imputable" && !(causa?.tipo === "fuerza-mayor" && esFuerzaMayor(causa.clase))) {
-    return { ok: false, error: "Di por qué se cancela la salida: por causa de quien opera o por fuerza mayor." };
+  if (causa?.tipo !== "imputable" && causa?.tipo !== "cupo-minimo" && !(causa?.tipo === "fuerza-mayor" && esFuerzaMayor(causa.clase))) {
+    return { ok: false, error: "Di por qué se cancela la salida: por causa de quien opera, por fuerza mayor o porque no se juntó el grupo mínimo." };
   }
-  if (!motivo.trim()) {
+  // En cupo mínimo el motivo lo escribe el sistema con los números (abajo).
+  if (causa.tipo !== "cupo-minimo" && !motivo.trim()) {
     return {
       ok: false,
       error:
@@ -453,16 +457,45 @@ export async function cancelarSalidaYReembolsar(
     .maybeSingle();
   if (!slot) return { ok: false, error: "No se encontró esa salida." };
 
+  type ResvViva = { id: string; status: string; num_people: number | null; clausula_minimo?: number | null; clausula_limite?: string | null };
+  const cupo = causa.tipo === "cupo-minimo";
   const { data: resvsRaw } = await sb
     .from("reservations")
-    .select("id, status")
+    // Las columnas de la cláusula sólo se piden cuando hacen falta (0093).
+    .select(cupo ? "id, status, num_people, clausula_minimo, clausula_limite" : "id, status, num_people")
     .eq("slot_id", slotId)
     .neq("status", "cancelled");
-  const reservationIds = ((resvsRaw ?? []) as { id: string }[]).map((r) => r.id);
+  const vivas = (resvsRaw ?? []) as unknown as ResvViva[];
+  const reservationIds = vivas.map((r) => r.id);
   const pagos = await pagosDe(sb, reservationIds);
 
   const avisos: string[] = [];
   const ahora = new Date().toISOString();
+
+  // ── Cupo mínimo (D26 §7.6) ─────────────────────────────────────────────────
+  // Sólo existe con la cláusula activa en la salida, menos lugares pagados que
+  // el mínimo y el aviso saliendo a más tardar el día de la fecha de
+  // confirmación. Fuera de eso es causa de quien opera, y aquí no se disfraza.
+  let filaCupo: FilaDeSalida | null = null;
+  let clausula: ClausulaMinimo | null = null;
+  let pagados = 0;
+  if (cupo) {
+    const { data: fila } = await sb.from("experience_slots").select(COLS_CLAUSULA).eq("id", slotId).maybeSingle();
+    filaCupo = fila as FilaDeSalida | null;
+    if (!filaCupo) return { ok: false, error: "No se encontró esa salida." };
+    pagados = vivas
+      .filter((r) => (ESTADOS_PAGADOS as readonly string[]).includes(r.status))
+      .reduce((n, r) => n + (Number(r.num_people) || 1), 0);
+    const puede = puedeCancelarPorCupo(paraClausula(filaCupo), pagados);
+    if (!puede.ok) {
+      return {
+        ok: false,
+        error: `Esta salida no se puede cancelar por cupo mínimo: ${puede.porque} Si de todos modos se cancela por falta de grupo, es por causa de quien opera, con bonificación.`,
+      };
+    }
+    clausula = puede.clausula;
+    motivo = `No se juntó el grupo mínimo: hacían falta ${clausula.minimo} personas y hay ${pagados} ${pagados === 1 ? "lugar pagado" : "lugares pagados"}. Fecha de confirmación: ${fechaConAnio(clausula.limite)}.${motivo.trim() ? ` ${motivo.trim()}` : ""}`;
+  }
 
   // ⚠️ LA CAUSA Y LA BONIFICACIÓN VAN ANTES DEL DINERO. Si no se pueden
   // escribir, no se devuelve nada: una salida cancelada sin su causa no deja
@@ -475,14 +508,27 @@ export async function cancelarSalidaYReembolsar(
       cancelacion_fuerza_mayor: causa.tipo === "fuerza-mayor" ? causa.clase : null,
       cancelacion_documento_path: documento,
       cancelacion_motivo: motivo.trim(),
+      // La hora en que sale el aviso de cancelación por cupo: es la prueba de
+      // que se avisó en plazo. Los correos salen en seguida, antes del dinero.
+      ...(cupo ? { cancelacion_aviso_at: ahora } : {}),
     })
     .eq("id", slotId);
   if (errCausa) return { ok: false, error: `No se pudo registrar la causa de la cancelación: ${errCausa.message}. No se devolvió nada.` };
 
-  if (causa.tipo === "imputable") {
+  // Con cláusula y en plazo no hay bonificación; a quien NO la trae en su
+  // reserva (reservó antes de que existiera) sí se le debe, como hoy (§7.6).
+  const conClausula = new Set(cupo ? vivas.filter((r) => clausulaDeReserva(r) !== null).map((r) => r.id) : []);
+  if (cupo && filaCupo && clausula) {
+    const a = await avisarCancelacionPorCupo(sb, filaCupo, { clausula, pagados });
+    avisos.push(
+      `Se le avisó por correo a ${a.avisados} ${a.avisados === 1 ? "persona" : "personas"} que la salida no se juntó.${a.sinCorreo > 0 ? ` A ${a.sinCorreo} no le salió el correo: avísale hoy por WhatsApp.` : ""}`,
+    );
+  }
+
+  if (causa.tipo === "imputable" || cupo) {
     const porReserva = new Map<string, number>();
     for (const p of pagos) {
-      if (!p.reservation_id) continue;
+      if (!p.reservation_id || conClausula.has(p.reservation_id)) continue;
       porReserva.set(p.reservation_id, (porReserva.get(p.reservation_id) ?? 0) + porDevolver(p));
     }
     const b = await crearBonificaciones(sb, { slotId, porReserva, canceladaAt: ahora, quien: auth.quien });

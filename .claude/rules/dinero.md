@@ -271,6 +271,30 @@ médico es dato de salud; el candado de la base lo exige NULL). La causa se
 escribe ANTES de pedir las devoluciones: si no se puede escribir, no se
 devuelve nada.
 
+**La cláusula de cupo mínimo** (D26, 0093; `lib/cancelacion/cupo-minimo.ts`
+puro, `cupo-servidor.ts`, `cupo-actions.ts`): cancelar por falta de grupo deja
+de costar el 20 % SÓLO si el cliente lo vio antes de pagar, con número y fecha.
+Es de cada SALIDA: `experience_slots.minimo` + **`confirmacion_limite`** (⚠️ NO
+`fecha_limite`, que es la fecha para apartar en el espacio del grupo y se llena
+sola). Activa si: los dos datos capturados, mínimo ≥ 2, la fecha dentro del
+piso por duración (menos de dos días: 48 h antes; dos a seis: 7 días; más de
+seis: 20 días), sin confirmar y sin vencer. **Fuera del piso se guarda pero NO
+se enseña**, y cancelar por cupo sigue siendo imputable. El texto de legal va
+dentro de la política en reservar y en la página de pago (bloque, tercer
+renglón del resumen) y en el comprobante; **la huella cubre el texto con N y la
+fecha**, y la reserva guarda la copia (`clausula_minimo`, `clausula_limite`).
+La pantalla manda `clausulaVista` y el cobro la compara con la de ese instante:
+si cambió, no cobra. **Candado** (acción + trigger en la base): con reservas
+pagadas que la traen, el mínimo no sube y la fecha no se atrasa respecto de las
+copias. **Confirmar** (Salidas → «Grupo mínimo»): la casa o la operadora, o sola
+al llegar la fecha con el mínimo cubierto (cron `confirmar-salidas`, cada
+hora, que además avisa a la casa un día antes si no se junta); una salida
+confirmada ya no se cancela por cupo. **Cancelar por cupo** es la tercera causa
+en «Reembolsar o cancelar» y sólo se ofrece si se puede: el aviso sale al
+cancelar a quienes traen la cláusula (`cancelacion_aviso_at` es la prueba),
+100 % a todos, y **bonificación sólo a las reservas SIN copia**. Todo tolera
+que la 0093 no esté aplicada (sin cláusula, la venta sigue igual).
+
 **La bonificación del 20 %** (`lib/cancelacion/bonificaciones.ts`, tabla
 `bonificaciones`): con causa imputable se crea una «por pagar» por cada reserva
 pagada (20 % de lo pagado, complementos incluidos; vence a los 5 días hábiles),

@@ -228,6 +228,18 @@ export async function cerrarReembolsoDelPanel(
 
     if (reem.correo_enviado_at || !resv) return;
 
+    // Cancelada por cupo mínimo (D26 §7.6): a quien trae la cláusula ya se le
+    // avisó al cancelar, con el texto de legal («hoy mismo te devolvemos»). No
+    // se le manda un segundo correo. A quien no la trae sí: el de siempre, con
+    // su bonificación.
+    if (reem.origen === "salida" && resv.slot_id) {
+      const [{ data: causa }, { data: copia }] = await Promise.all([
+        sb.from("experience_slots").select("cancelacion_causa").eq("id", resv.slot_id).maybeSingle(),
+        sb.from("reservations").select("clausula_minimo").eq("id", reservationId).maybeSingle(),
+      ]);
+      if (causa?.cancelacion_causa === "cupo-minimo" && copia?.clausula_minimo != null) return;
+    }
+
     const [{ data: contacto }, { data: exp }, { data: slot }] = await Promise.all([
       sb.from("contacts").select("email, full_name").eq("id", resv.contact_id).maybeSingle(),
       sb.from("experiences").select("data").eq("id", resv.experience_id).maybeSingle(),
