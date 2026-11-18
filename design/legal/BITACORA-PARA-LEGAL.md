@@ -12,6 +12,15 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 18 nov 2026 (noche) · Sesión legal: el aviso por cupo dice lo que se le debe a cada quien (§7.10)
+
+- Ficha construida en la misma entrega (32532db): contabilizado, sin
+  observaciones.
+- **Hueco:** quien pagó por transferencia no recibe correo de devolución, así
+  que a esa persona nadie le anuncia su bonificación ni le pide la cuenta.
+  Dos frases condicionales para el aviso, en §7.10: la de la bonificación (a
+  toda reserva sin cláusula) y la de la devolución por transferencia.
+
 ## 18 nov 2026 (noche) · Sesión legal: cupo mínimo, tus cinco puntos y la ficha
 
 - **1 a 5: confirmados** tal como los construiste (§7.9 de la política).

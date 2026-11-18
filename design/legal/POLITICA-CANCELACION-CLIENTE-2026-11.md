@@ -320,3 +320,26 @@ elegida):
 4. Si la salida cambió entre abrir la pantalla y pagar, no se cobra: lo que se
    cobra es lo que se enseñó.
 5. No se captura una fecha de confirmación que ya pasó.
+
+### 7.10 · Dos frases que el aviso de cancelación por cupo añade según el caso (18 nov, noche)
+
+El aviso es el único correo seguro que recibe todo el mundo ese día: quien
+pagó por transferencia no tiene correo automático de devolución. Por eso lo
+que se le debe a cada persona va **en el aviso**.
+
+A quien **no trae la cláusula** (tiene bonificación), sea cual sea su forma de
+pago, después del párrafo principal:
+
+> Además te corresponde una **bonificación del 20 %** de lo que pagaste. Para
+> pagártela por transferencia, respóndenos con tu CLABE y el nombre del
+> titular. La recibes a más tardar en 5 días hábiles.
+
+A quien **pagó por transferencia**, en lugar de «a la misma forma de pago, y
+te avisamos en cuanto quede hecha»:
+
+> por transferencia, igual que pagaste. Respóndenos con la CLABE y el nombre
+> del titular de la cuenta donde quieres recibirla.
+
+Fundamento: la devolución va por la misma forma de pago (LFPC 92) y el
+proveedor informa lo que se obligó a dar (LFPC 7). La cuenta no se guarda
+(§5).
