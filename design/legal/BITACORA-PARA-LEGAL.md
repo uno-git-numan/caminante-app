@@ -12,6 +12,21 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 18 nov 2026 (tarde) · Sesión legal: ajustes a la cláusula de cupo mínimo (§7 corregido)
+
+- **Campo propio para la fecha de confirmación:** de acuerdo. `fecha_limite`
+  es la fecha para apartar y se llena sola; no activa la cláusula. Tampoco un
+  mínimo puesto por el sistema: los dos datos los captura una persona.
+- **a)** Cuarta condición, la fecha no ha pasado: sí.
+- **b)** Cuentan **personas** con pago confirmado, anticipo incluido; una
+  reserva devuelta completa no cuenta.
+- **c)** Fin del día límite (23:59 CDMX) 48 horas o más antes del inicio: sí.
+- **d)** Confirmar sin llegar al mínimo: sí.
+- **Añadido:** si termina el día límite sin confirmar ni cancelar, la salida
+  queda confirmada y se avisa al grupo. La casa recibe aviso esa mañana.
+- **Aviso al cancelar sin esperar al procesador:** sí. Cambié una frase del
+  correo para no prometer una devolución ya hecha (§7.6).
+
 ## 18 nov 2026 (tarde) · Sesión legal: cláusula de cupo mínimo escrita (D26)
 
 Luis la aprobó en esta sesión («Sí, escríbela»). Texto y especificación en

@@ -185,10 +185,14 @@ En el comprobante por correo, un renglón más:
 
 ### 7.3 · Cuándo está activa la cláusula en una salida
 
-Las tres cosas a la vez:
+Las cuatro cosas a la vez:
 
-1. La salida tiene **mínimo** y **fecha límite** capturados (los campos que ya
-   existen en la salida: `minimo` y `fecha_limite`).
+1. La salida tiene **mínimo** y **fecha límite de confirmación**, los dos
+   capturados a propósito por una persona. El mínimo es el campo que ya existe
+   (`minimo`). La fecha de confirmación es un **campo propio**: no es la
+   «fecha para apartar» del espacio del grupo (`fecha_limite`), que el sistema
+   llena solo y significa otra cosa (corrección de producto, 18 nov). Un
+   mínimo o una fecha puestos por el sistema nunca activan la cláusula.
 2. La fecha límite respeta el piso según la duración de la salida:
 
    | Duración de la salida | La fecha límite es, a más tardar |
@@ -201,6 +205,14 @@ Las tres cosas a la vez:
    fecha capturada no respeta el piso, la cláusula **no se muestra** y cancelar
    por falta de grupo es atribuible a quien opera.
 3. La salida no está confirmada.
+4. La fecha límite **no ha pasado**. A quien compra después de ese día no se
+   le puede prometer una confirmación en una fecha ya vencida: esa reserva va
+   sin cláusula.
+
+Cómo se mide el piso: la fecha límite es un día sin hora y vale hasta las
+23:59 del centro de México. En salidas de menos de dos días, ese instante debe
+caer 48 horas o más antes del inicio. En las otras, la fecha debe ser 7 o 20
+días naturales antes del día de inicio, o anterior.
 
 ### 7.4 · Qué se guarda en cada reserva
 
@@ -215,12 +227,19 @@ la fecha sí se puede: favorece al cliente.
 
 ### 7.5 · Confirmar la salida
 
-- Cuentan los **lugares pagados** (pago confirmado). Un lugar apartado sin
-  pago no cuenta.
+- Cuentan las **personas** con un pago confirmado, anticipo incluido: una
+  reserva de tres personas cuenta tres. Una reserva sin pago, o devuelta
+  completa, no cuenta.
 - Al llegar al mínimo, el sistema propone confirmar; confirma una persona de
   la casa o de la operadora. Si llega la fecha límite con el mínimo cubierto,
   se confirma sola.
 - Al confirmar se avisa a todo el grupo: «Tu salida está confirmada».
+- Una persona puede confirmar **sin haber llegado al mínimo**, si quien opera
+  decide salir de todos modos. Sólo le añade obligaciones a quien opera.
+- **El día límite el sistema obliga a decidir**: avisa a la casa por la mañana.
+  Si termina el día sin confirmar ni cancelar, la salida queda **confirmada** y
+  se avisa al grupo: al cliente se le prometió una respuesta ese día, y desde
+  entonces cancelar ya sería atribuible a quien opera.
 - **Una salida confirmada ya no se cancela por cupo.** Si después se cae gente
   y se cancela, es atribuible a quien opera.
 
@@ -240,8 +259,15 @@ Correo al cliente:
 
 > **Tu salida no se juntó.** Para [experiencia · fecha] hacían falta N
 > personas y al [fecha límite] éramos M. Como te lo dijimos antes de pagar, la
-> salida se cancela. Hoy mismo te devolvemos el **100 %** de lo que pagaste, a
-> la misma forma de pago. Si quieres, te ayudamos a pasarte a otra fecha.
+> salida se cancela. Hoy mismo pedimos la devolución del **100 %** de lo que
+> pagaste, a la misma forma de pago, y te avisamos en cuanto quede hecha. Si
+> quieres, te ayudamos a pasarte a otra fecha.
+
+El aviso sale **al cancelar**, a todas las reservas con pago, sin esperar al
+procesador: lo que cuenta para el plazo es la hora del aviso, y se guarda en
+la salida. La confirmación de cada devolución sigue su correo de siempre,
+cuando el procesador la confirma. Si una devolución falla, el cliente la sigue
+teniendo ganada y la casa recibe la alerta.
 
 ### 7.7 · Frente a la operadora (convenio)
 
