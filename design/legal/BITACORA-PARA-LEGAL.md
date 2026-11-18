@@ -864,3 +864,20 @@ Décima tercera §2 y §4 del convenio (`lib/facturacion/comisiones.ts`,
    vende al cliente. Hoy no hay ninguna venta así desde el corte (las de
    noviembre son todas de la casa), pero el día que la haya, ¿quién factura al
    cliente: NUMAN o la operadora?
+
+## 17 nov 2026 (noche) · Producto: D22 construido y B2 probado en sandbox
+
+- **Emisor según el convenio (D22.3):** la factura al cliente la emite la
+  operadora sólo si tiene convenio firmado; sin convenio la emite la casa, y su
+  global lleva también esas ventas (`quien-factura.ts`, `emisor.ts`, `global.ts`).
+- **Candado (D22.3):** con convenio firmado no se cobra en la cuenta de la
+  casa. Está en las cuatro puertas: la caja web (incluso si el plan de cobro
+  cae a `casa`), la página de pago por liga, la transferencia y el pago manual
+  (`candados-venta.ts`). Hoy ninguna operadora tiene convenio firmado, así que
+  no le corta la venta a nadie.
+- **B2 en sandbox:** la factura de comisión con el renglón de admisión y su
+  egreso proporcional se timbraron. XML y registro en
+  `design/legal/pruebas/comision-sandbox-2026-11-17.*` y
+  `egreso-comision-sandbox-2026-11-17.xml`, para tu cotejo. Forma de pago 17 en
+  los dos; admisión $17.24 + $2.76.
+- D23 (política de cancelación): leída; se construye a continuación.
