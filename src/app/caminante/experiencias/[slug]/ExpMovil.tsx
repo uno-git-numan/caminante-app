@@ -28,6 +28,7 @@
 //   · `ficha.especies[i]` del mockup era un texto + una fuente; el real es
 //     `datos: {texto, fuente}[]` — se listan todos, cada uno con su fuente.
 
+import { bloquesPolitica, esVariante } from "@/lib/cancelacion/politica";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { Estrellas, Eyeb, Sec } from "@/app/caminante/ui/pub/atoms";
@@ -476,6 +477,35 @@ export default function ExpMovil({
                   <span className="x">+</span>
                 </summary>
                 <div className="a">{x.a}</div>
+              </details>
+            ))}
+          </div>
+        </Secd>
+      ),
+    });
+  }
+
+  // «Cancelación y devoluciones» (D23 de legal): el texto completo de la
+  // política de esta experiencia, antes de que el cliente pague. Mismo acordeón
+  // que las preguntas frecuentes; el texto vive en lib/cancelacion/politica.ts.
+  if (esVariante(experience.politicaCancelacion)) {
+    const variante = experience.politicaCancelacion;
+    secciones.push({
+      label: "Cancelación",
+      nodo: (sx) => (
+        <Secd sx={sx} t="Cancelación" title={<H2 t="Cancelación y" ac="devoluciones." />}>
+          <div className="pub-faq">
+            {bloquesPolitica(variante).map((b, i) => (
+              <details key={i} open={i === 0}>
+                <summary>
+                  {b.titulo}
+                  <span className="x">+</span>
+                </summary>
+                {b.renglones.map((r, k) => (
+                  <div className="a" key={k} style={k ? { marginTop: 8 } : undefined}>
+                    {r.split(/\*\*(.+?)\*\*/g).map((x, n) => (n % 2 ? <b key={n}>{x}</b> : x))}
+                  </div>
+                ))}
               </details>
             ))}
           </div>

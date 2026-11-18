@@ -30,6 +30,7 @@ import { TEMPLATE_V2_CSS } from "@/lib/experiences/template-v2-css";
 import { MOVIL_FIXES_CSS } from "@/lib/experiences/movil-fixes-css";
 import { TEMPLATE_V2_SCRIPT } from "@/lib/experiences/template-v2-script";
 import { PixelEvent } from "@/lib/meta/pixel";
+import { bloquesPolitica, esVariante, TITULO_POLITICA, type Variante } from "@/lib/cancelacion/politica";
 
 // --- markup inline sencillo: **negrita** y *itálica* ---
 function renderInline(text: string): ReactNode {
@@ -547,6 +548,46 @@ function FaqBlock({ b }: { b: V2Faq }) {
   );
 }
 
+/** `**texto**` → negritas. La política de legal las trae marcadas así. */
+function negritas(t: string): ReactNode[] {
+  return t.split(/\*\*(.+?)\*\*/g).map((x, i) => (i % 2 ? <b key={i}>{x}</b> : x));
+}
+
+/**
+ * «Cancelación y devoluciones» (D23 de legal): el texto COMPLETO de la política
+ * de esta experiencia, en su propia sección y antes de que el cliente pague.
+ * Reusa el aspecto de las preguntas frecuentes (misma tarjeta sobre la foto);
+ * el texto vive en lib/cancelacion/politica.ts, transcrito de legal.
+ */
+function PoliticaBlock({ variante, bg }: { variante: Variante; bg: V2Image | null }) {
+  return (
+    <section className="section faq" id="cancelacion" style={bg ? undefined : { background: "#0a1616" }}>
+      {bg ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="bg" src={bg.url} alt="" style={imgStyle(bg)} />
+          <div className="veil" />
+        </>
+      ) : null}
+      <div className="container">
+        <div className="glasscard">
+          <Eyebrow text={TITULO_POLITICA} />
+          {bloquesPolitica(variante).map((b, i) => (
+            <div className="qa" key={i}>
+              <div className="q">{b.titulo}</div>
+              {b.renglones.map((r, j) => (
+                <div className="a" key={j} style={j ? { marginTop: 8 } : undefined}>
+                  {negritas(r)}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PackingBlock({ b, secnum }: { b: V2Packing; secnum: string }) {
   return (
     <section className="section pack-sec">
@@ -842,6 +883,10 @@ export default function ExperienceTemplateV2({
 
   // Precio para el evento ViewContent (Meta Pixel): nivel base → precio base.
   // Es solo señal de valor; si no hay precio limpio, se omite (ViewContent no lo exige).
+  // La política de cancelación de esta experiencia (D23) y dónde va: tras las
+  // preguntas frecuentes si las hay (−1 = al final, antes del pie).
+  const politica: Variante | null = esVariante(experience.politicaCancelacion) ? experience.politicaCancelacion : null;
+  const politicaTrasIdx = blocks.findIndex((b) => b.type === "faq");
   const vcPriceRaw = experience.priceTiers?.[0]?.amount ?? experience.price?.amount ?? "";
   const vcPriceNum = Number(String(vcPriceRaw).replace(/[^\d.]/g, ""));
   const vcValue = Number.isFinite(vcPriceNum) && vcPriceNum > 0 ? vcPriceNum : undefined;
@@ -905,6 +950,7 @@ export default function ExperienceTemplateV2({
         </a>
       </div>
 
+      {/* Sin bloque de preguntas frecuentes, la política va al final, antes del pie. */}
       {blocks.map((b, i) => {
         const secnum = secnumFor(b.type);
         let el: ReactNode = null;
@@ -946,10 +992,14 @@ export default function ExperienceTemplateV2({
         return (
           <Fragment key={i}>
             {el}
+            {/* La política de cancelación va justo después de las preguntas frecuentes. */}
+            {politica && i === politicaTrasIdx ? <PoliticaBlock variante={politica} bg={b.type === "faq" ? b.bg : null} /> : null}
             {i === collabAfterIdx && collabs.length ? <CollaboratorsBand logos={collabs} /> : null}
           </Fragment>
         );
       })}
+
+      {politica && politicaTrasIdx < 0 ? <PoliticaBlock variante={politica} bg={null} /> : null}
 
       {/* FOOTER */}
       <footer className="footer">

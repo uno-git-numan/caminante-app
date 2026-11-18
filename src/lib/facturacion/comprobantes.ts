@@ -22,6 +22,7 @@ import { facturacionClientesActiva } from "@/lib/facturacion/facturapi";
 import { inicioDelCorte } from "@/lib/facturacion/corte";
 import { netoDePago } from "@/lib/facturacion/devolucion-plan";
 import { enPlazoParaFacturar, folioDePago, limiteParaFacturar } from "@/lib/facturacion/global-plan";
+import { esVariante, limiteArrepentimiento, VENTANAS, ymdCdmx } from "@/lib/cancelacion/politica";
 import { sendViaResend } from "@/lib/email/resend";
 import { boton, h1, marco, p, saludo } from "@/lib/email/plantilla";
 import { SITE } from "@/lib/payments/pago-token";
@@ -88,10 +89,13 @@ export async function mandarComprobantesPendientes(limit = 25): Promise<{ enviad
         `<b>Servicio:</b> ${servicio}`,
         `<b>Total pagado:</b> ${pesos(d.total)} (IVA incluido)`,
       ].filter(Boolean);
+      const cancelacion = await politicaAceptada(pay);
       const { html, texto } = marco("Tu comprobante de pago", [
         h1("Recibimos tu pago"),
         p(`Hola${saludo(d.nombre)}. Éste es el comprobante de tu pago por <b>${servicio}</b>.`),
         p(renglones.join("<br>")),
+        // La política que aceptó al pagar y hasta cuándo puede arrepentirse (D23).
+        ...(cancelacion ? [p(cancelacion)] : []),
         p(`¿Necesitas factura? Entra a tu espacio, guarda tus datos fiscales y pídela con un clic <b>a más tardar el ${limite}</b>. Después de esa fecha tu pago entra en la factura global del mes y ya no se puede facturar por separado.`),
         boton("Pedir mi factura", `${SITE}/caminante/perfil#facturas`),
         p(`La factura la emite ${emisor.emisor.nombre}, que opera tu experiencia; Caminante te la entrega aquí mismo.`),
@@ -109,4 +113,41 @@ export async function mandarComprobantesPendientes(limit = 25): Promise<{ enviad
     }
   }
   return { enviados, esperando, errores };
+}
+
+/**
+ * El renglón de la política de cancelación para el comprobante (D23 de legal):
+ * la liga a la política que aceptó y, si tiene derecho a arrepentirse, la fecha
+ * límite ya calculada. null si la reserva no guardó una política (0089).
+ */
+async function politicaAceptada(pay: Pago): Promise<string | null> {
+  if (!pay.reservation_id) return null;
+  const sb = createSupabaseAdminClient();
+  const { data: resv } = await sb
+    .from("reservations")
+    .select("politica_variante, politica_aceptada_at, experience_id, slot_id")
+    .eq("id", pay.reservation_id)
+    .maybeSingle();
+  if (!resv || !esVariante(resv.politica_variante)) return null;
+  const [{ data: exp }, { data: slot }] = await Promise.all([
+    sb.from("experiences").select("slug").eq("id", resv.experience_id as string).maybeSingle(),
+    resv.slot_id ? sb.from("experience_slots").select("starts_at").eq("id", resv.slot_id as string).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  if (!exp?.slug) return null;
+  const liga = `${SITE}/caminante/experiencias/${exp.slug}#cancelacion`;
+  let plazo = "";
+  const inicio = (slot as { starts_at?: string | null } | null)?.starts_at;
+  const aceptada = (resv.politica_aceptada_at as string | null) ?? pay.paid_at;
+  if (inicio && aceptada) {
+    try {
+      const limite = limiteArrepentimiento(aceptada, ymdCdmx(inicio));
+      if (limite && new Date(limite).getTime() > Date.now()) {
+        const cuando = new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }).format(new Date(limite));
+        plazo = ` Si te arrepientes, puedes cancelar con la devolución del <b>100 %</b> hasta el <b>${cuando}</b> (hora del centro de México).`;
+      }
+    } catch {
+      /* año sin lista de días de descanso: no se inventa una fecha */
+    }
+  }
+  return `Al pagar aceptaste la <a href="${liga}">política de cancelación</a> de esta experiencia (${VENTANAS[resv.politica_variante].nombre}).${plazo}`;
 }

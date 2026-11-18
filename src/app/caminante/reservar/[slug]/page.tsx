@@ -1,3 +1,4 @@
+import { esVariante } from "@/lib/cancelacion/politica";
 import { avisoFacturaDeOperadora } from "@/lib/facturacion/aviso-plazo";
 import { notFound, redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
@@ -77,6 +78,8 @@ export default async function ReservarPage({
   const experienceId = expRow.id as string;
   // El plazo para pedir factura se dice antes de pagar (D21). null si aquí no se factura.
   const avisoFactura = await avisoFacturaDeOperadora((expRow.operator_id as string | null) ?? null);
+  // La política de cancelación que el cliente ve y acepta antes de pagar (D23).
+  const politica = esVariante(experience?.politicaCancelacion) ? experience.politicaCancelacion : null;
   const title =
     [experience?.title, experience?.titleAccent].filter(Boolean).join(" ").trim() ||
     experience?.docTitle ||
@@ -208,6 +211,7 @@ export default async function ReservarPage({
             grupoExtra={grupoExtra}
             codigoInicial={codigoInicial}
             avisoFactura={avisoFactura}
+            politica={politica}
           />
         )}
       </div>
@@ -227,6 +231,7 @@ export default async function ReservarPage({
           deslindeOk={deslindeOk}
           errMsg={errMsg}
           avisoFactura={avisoFactura}
+          politica={politica}
         />
       </PubShell>
     </>

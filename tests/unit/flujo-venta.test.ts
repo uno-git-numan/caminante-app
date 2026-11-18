@@ -56,13 +56,22 @@ describe("encuestaLista", () => {
 });
 
 describe("listaParaPublicar", () => {
-  it("suma las faltas de los dos candados", () => {
-    const r = listaParaPublicar({ registration: { ...registro, active: false }, feedback: { ...encuesta, active: false } });
+  it("suma las faltas de los candados", () => {
+    const r = listaParaPublicar({ registration: { ...registro, active: false }, feedback: { ...encuesta, active: false }, politicaCancelacion: "estandar" });
     expect(r.ok).toBe(false);
     expect(r.faltantes).toHaveLength(2);
   });
 
   it("con todo prendido, publica", () => {
-    expect(listaParaPublicar({ registration: registro, feedback: encuesta }).ok).toBe(true);
+    expect(listaParaPublicar({ registration: registro, feedback: encuesta, politicaCancelacion: "expedicion" }).ok).toBe(true);
+  });
+
+  // D23 de legal: el convenio obliga a elegir una política de cancelación, y el
+  // cliente la ve antes de pagar. Sin variante no hay texto que mostrarle.
+  it("sin política de cancelación elegida no se publica", () => {
+    const r = listaParaPublicar({ registration: registro, feedback: encuesta });
+    expect(r.ok).toBe(false);
+    expect(r.faltantes).toHaveLength(1);
+    expect(r.faltantes[0]).toMatch(/política de cancelación/);
   });
 });

@@ -10,6 +10,7 @@
 //
 // El canal WhatsApp (redes sociales) sigue por /admin/cobro (Payment Link). Son distintos.
 
+import { pruebaDePolitica } from "@/lib/cancelacion/prueba";
 import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -299,6 +300,9 @@ export async function createCheckout(formData: FormData) {
       ? { codigo_descuento_id: descuento.id, codigo_descuento: descuento.codigo, descuento_mxn: String(descuento.descuentoMxn), precio_lista_mxn: String(viajeLista) }
       : {}),
     slot_visibility: (slot.visibility as string | null) ?? "public",
+    // La política de cancelación que tuvo a la vista al pagar (D23): variante,
+    // huella del texto y fecha. El webhook la escribe en la reserva.
+    ...(pruebaDePolitica(experience.politicaCancelacion) ?? {}),
     // El espacio del grupo: qué lugar(es) paga este cobro. El webhook los liga.
     ...(lugarId ? { lugar_id: lugarId } : {}),
     ...(cubreIds.length ? { cubre_lugares: cubreIds.join(",") } : {}),

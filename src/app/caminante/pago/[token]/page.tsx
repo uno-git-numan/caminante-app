@@ -1,3 +1,4 @@
+import { FraseAceptacionEscritorio, PoliticaResumenEscritorio } from "../../ui/PoliticaResumen";
 import { avisoFacturaDeReserva } from "@/lib/facturacion/aviso-plazo";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -79,6 +80,11 @@ export default async function PagoPage({
               </div>
             </div>
             {error ? <p className="mt-4 text-sm font-semibold text-dune">{error}</p> : null}
+            {p.politica ? (
+              <div className="mt-4">
+                <PoliticaResumenEscritorio variante={p.politica} />
+              </div>
+            ) : null}
             <form action={iniciarPagoDeReserva} className="mt-6">
               <input type="hidden" name="token" value={p.token} />
               <button type="submit" className="w-full rounded-xl bg-dune px-4 py-3 text-sm font-semibold text-white transition hover:bg-clay">
@@ -86,6 +92,7 @@ export default async function PagoPage({
               </button>
             </form>
             <p className="mt-3 text-center text-[11px] text-olive/70">Pago seguro con tarjeta vía Stripe. Al terminar vuelves aquí para firmar tu deslinde.</p>
+            {p.politica ? <div className="mt-2"><FraseAceptacionEscritorio /></div> : null}
             {avisoFactura ? <p className="mt-2 text-center text-[11px] text-olive/70">{avisoFactura}</p> : null}
           </>
         ) : p.estado === "pagada" ? (

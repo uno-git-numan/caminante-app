@@ -1567,6 +1567,20 @@ export default function ExperienceForm({ initial, initialSlots, initialComplemen
               <Field label="Moneda" auto><input type="text" value={price.currency} onChange={(e) => setPrice({ currency: e.target.value })} /></Field>
               <Field label="Descripción"><input type="text" value={price.desc} placeholder="por persona" onChange={(e) => setPrice({ desc: e.target.value })} /></Field>
             </div>
+            {/* D23 de legal: la política que el cliente ve y acepta antes de
+                pagar. Se elige una de dos; el texto no se edita aquí (vive en
+                lib/cancelacion/politica.ts, transcrito de legal). Sin elegirla
+                no se publica. */}
+            <Field
+              label="Política de cancelación"
+              hint="la que el cliente ve en la ficha y acepta al pagar; sin elegirla no se publica"
+            >
+              <select value={exp.politicaCancelacion ?? ""} onChange={(e) => set("politicaCancelacion", (e.target.value || undefined) as Experience["politicaCancelacion"])}>
+                <option value="">— elige la política —</option>
+                <option value="estandar">Estándar · 100 % con 30 días o más, 50 % de 15 a 29</option>
+                <option value="expedicion">Expedición · 100 % con 60 días o más, 50 % de 30 a 59</option>
+              </select>
+            </Field>
             <CalculadoraPrecio
               reglaResuelta={regla}
               publico={price.amount}

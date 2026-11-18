@@ -7,6 +7,7 @@
 //
 // Idempotente por payments.provider_ref (unique). NO depende de 0014/0015.
 
+import { pruebaDeMetadata } from "@/lib/cancelacion/prueba";
 import { mandarComprobantesPendientes } from "@/lib/facturacion/comprobantes";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -103,6 +104,8 @@ export async function finalizeSelfServeCheckout(
     .eq("experience_id", experienceId)
     .neq("status", "cancelled");
   q = slotId ? q.eq("slot_id", slotId) : q.is("slot_id", null);
+  // La política de cancelación que tuvo a la vista al pagar (D23, 0089).
+  const politica = pruebaDeMetadata(session.metadata as Record<string, string | undefined> | null);
   const { data: existingResv } = await q.maybeSingle();
 
   if (existingResv) {
@@ -140,6 +143,9 @@ export async function finalizeSelfServeCheckout(
         ...conCodigo,
       })
       .eq("id", reservationId);
+    // La política aceptada se escribe sólo si la reserva aún no tiene una: la
+    // primera aceptación es la que vale (una compra adicional no la reescribe).
+    if (politica) await sb.from("reservations").update(politica).eq("id", reservationId).is("politica_hash", null);
   } else {
     const { data: created, error: resErr } = await sb
       .from("reservations")
@@ -155,6 +161,7 @@ export async function finalizeSelfServeCheckout(
         commission_pct: commissionPct,
         ...(notas ? { notes: notas } : {}),
         ...conCodigo,
+        ...(politica ?? {}),
       })
       .select("id")
       .single();

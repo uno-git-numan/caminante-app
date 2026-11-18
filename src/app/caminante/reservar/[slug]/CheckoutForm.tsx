@@ -1,5 +1,7 @@
 "use client";
 
+import { FraseAceptacionEscritorio, PoliticaResumenEscritorio } from "../../ui/PoliticaResumen";
+import type { Variante } from "@/lib/cancelacion/politica";
 import { useState } from "react";
 import { createCheckout } from "@/lib/payments/checkout";
 import { cotizarCodigo } from "@/lib/descuentos/acciones";
@@ -44,7 +46,10 @@ export default function CheckoutForm({
   grupoExtra = null,
   codigoInicial = null,
   avisoFactura = null,
+  politica = null,
 }: {
+  /** La política de cancelación de la experiencia (D23): resumen, texto completo y la frase junto al botón. */
+  politica?: Variante | null;
   slug: string;
   /** El plazo para pedir factura, dicho antes de pagar (D21). null = aquí no se factura. */
   avisoFactura?: string | null;
@@ -327,6 +332,8 @@ export default function CheckoutForm({
         ) : null}
       </div>
 
+      {politica ? <PoliticaResumenEscritorio variante={politica} /> : null}
+
       <div className="flex items-baseline justify-between">
         <span className="text-sm text-olive">Total · IVA incluido</span>
         <span className="text-2xl font-semibold text-lagoon">{mxn(total)}</span>
@@ -342,6 +349,7 @@ export default function CheckoutForm({
       <p className="text-center text-[11px] text-olive/70">
         Pago seguro con Stripe. Apartas tu lugar al pagar; luego firmas tu deslinde.
       </p>
+      {politica ? <FraseAceptacionEscritorio /> : null}
       {avisoFactura ? <p className="text-center text-[11px] text-olive/70">{avisoFactura}</p> : null}
     </form>
   );

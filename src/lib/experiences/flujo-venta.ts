@@ -68,8 +68,23 @@ export function encuestaLista(exp: Pick<Experience, "feedback"> | null | undefin
 // El candado ÚNICO de publicar: deslinde + encuesta. Lo consultan los dos
 // caminos que publican (el formulario y el dashboard).
 export function listaParaPublicar(
-  exp: Pick<Experience, "registration" | "feedback"> | null | undefined,
+  exp: Pick<Experience, "registration" | "feedback" | "politicaCancelacion"> | null | undefined,
 ): FlujoVenta {
-  const faltantes = [...deslindeListo(exp).faltantes, ...encuestaLista(exp).faltantes];
+  const faltantes = [...deslindeListo(exp).faltantes, ...encuestaLista(exp).faltantes, ...politicaLista(exp).faltantes];
   return { ok: faltantes.length === 0, faltantes };
+}
+
+/**
+ * La política de cancelación (D23 de legal, 17 nov 2026). El convenio promete
+ * que «se publica en la página de cada experiencia antes de que el cliente
+ * pague», y obliga a elegir una de las dos: sin variante elegida no hay texto
+ * que mostrarle ni que aceptar, así que no se publica. Igual que la encuesta,
+ * bloquea PUBLICAR.
+ */
+export function politicaLista(exp: Pick<Experience, "politicaCancelacion"> | null | undefined): FlujoVenta {
+  const ok = exp?.politicaCancelacion === "estandar" || exp?.politicaCancelacion === "expedicion";
+  return {
+    ok,
+    faltantes: ok ? [] : ["Falta elegir la política de cancelación (sección “Precio”): Estándar o Expedición. Es la que el cliente ve y acepta antes de pagar."],
+  };
 }

@@ -33,6 +33,7 @@ import { candadosDe } from "@/lib/experiences/candados-venta";
 import type { Experience } from "@/lib/experiences/types";
 
 const completa = {
+  politicaCancelacion: "estandar" as const,
   registration: { active: true, waiverVersion: "v1", waiverDocUrl: "", waiverClauses: ["Acepto."] },
   feedback: { active: true, version: "v1", locationLabel: "Bosque", npsEnabled: true, sections: [{ key: "g", label: "Guía" }] },
 } as unknown as Experience;

@@ -461,6 +461,14 @@ export type Experience = {
   practicoTitleAccent: string;
   practicoLead: string;
   cancelacion?: CancelRow[];
+  /**
+   * La política de cancelación que ve y acepta el cliente (D23 de legal):
+   * `estandar` (30/15) o `expedicion` (60/30). El texto vive en
+   * lib/cancelacion/politica.ts; aquí sólo se elige la variante. Sin ella la
+   * experiencia no se publica. (`cancelacion`, arriba, son los renglones
+   * libres de la plantilla vieja: ya no se le muestran al cliente.)
+   */
+  politicaCancelacion?: "estandar" | "expedicion";
   faq?: Faq[];
 
   // CAP 09 — reserva
