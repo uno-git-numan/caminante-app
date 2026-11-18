@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { documentoDeFuerzaMayor, pideDocumento, rutaDeDocumentoValida } from "@/lib/cancelacion/documento";
 import {
   baseDelCaso,
   bloquesPolitica,
@@ -113,14 +114,14 @@ describe("la calculadora del reembolso", () => {
   });
 
   it("2 · al sexto día hábil ya no", () => {
-    expect(proponerReembolso({ ...base, avisoAt: "2026-11-11T09:00:00-06:00" }).regla).toBe("ventana");
+    expect(proponerReembolso({ ...base, avisoAt: "2026-11-11T09:00:00-06:00" })?.regla).toBe("ventana");
   });
 
   it("2 · no aplica si reservó con 10 días hábiles o menos de anticipación", () => {
     // Reserva 3 nov, salida 17 nov: 9 días hábiles (el 16 es descanso). Avisa al día siguiente… pero pasadas 24 h.
     const p = proponerReembolso({ ...base, salidaInicio: "2026-11-17", avisoAt: "2026-11-04T11:00:00-06:00" });
-    expect(p.regla).toBe("ventana");
-    expect(p.pct).toBe(0);
+    expect(p?.regla).toBe("ventana");
+    expect(p?.pct).toBe(0);
   });
 
   it("3 · 24 horas, con la salida a 7 días o más", () => {
@@ -141,13 +142,13 @@ describe("la calculadora del reembolso", () => {
 
   it("4 · ventanas de Expedición: 60 / 30", () => {
     const exp = { ...base, variante: "expedicion" as const, reservadaAt: "2026-09-01T10:00:00-06:00", salidaInicio: "2026-12-12" };
-    expect(proponerReembolso({ ...exp, avisoAt: "2026-10-13T10:00:00-06:00" }).pct).toBe(100); // 60 días
-    expect(proponerReembolso({ ...exp, avisoAt: "2026-10-14T10:00:00-06:00" }).pct).toBe(50); // 59 días
-    expect(proponerReembolso({ ...exp, avisoAt: "2026-11-13T10:00:00-06:00" }).pct).toBe(0); // 29 días
+    expect(proponerReembolso({ ...exp, avisoAt: "2026-10-13T10:00:00-06:00" })?.pct).toBe(100); // 60 días
+    expect(proponerReembolso({ ...exp, avisoAt: "2026-10-14T10:00:00-06:00" })?.pct).toBe(50); // 59 días
+    expect(proponerReembolso({ ...exp, avisoAt: "2026-11-13T10:00:00-06:00" })?.pct).toBe(0); // 29 días
   });
 
   it("dice por qué", () => {
-    expect(proponerReembolso(base).porque).toMatch(/Política Estándar: avisó 22 días antes/);
+    expect(proponerReembolso(base)?.porque).toMatch(/Política Estándar: avisó 22 días antes/);
   });
 });
 
@@ -183,7 +184,14 @@ describe("de la reserva al caso (lo que alimenta la calculadora del panel)", () 
   };
 
   it("manda la política que la persona ACEPTÓ, no la que hoy tiene la experiencia", () => {
-    expect(baseDelCaso(todo)).toEqual({ variante: "expedicion", aceptada: true, reservadaAt: "2026-11-03T16:00:00.000Z", salidaInicio: "2026-12-12" });
+    // El pago llegó 5 minutos después de la aceptación: los 5 días hábiles corren desde el pago.
+    expect(baseDelCaso(todo)).toEqual({
+      variante: "expedicion",
+      aceptada: true,
+      reservadaAt: "2026-11-03T16:00:00.000Z",
+      plazoDesde: "2026-11-03T16:05:00.000Z",
+      salidaInicio: "2026-12-12",
+    });
   });
 
   it("una reserva anterior a la política usa la de la experiencia y lo dice (aceptada = false)", () => {
@@ -191,6 +199,7 @@ describe("de la reserva al caso (lo que alimenta la calculadora del panel)", () 
       variante: "estandar",
       aceptada: false,
       reservadaAt: "2026-11-03T16:05:00.000Z", // el primer pago
+      plazoDesde: "2026-11-03T16:05:00.000Z",
       salidaInicio: "2026-12-12",
     });
   });
@@ -199,9 +208,9 @@ describe("de la reserva al caso (lo que alimenta la calculadora del panel)", () 
     expect(baseDelCaso({ ...todo, politicaVariante: null, politicaAceptadaAt: null, primerPagoAt: null })?.reservadaAt).toBe("2026-11-03T15:59:00.000Z");
   });
 
-  it("sin variante o sin fecha de salida no hay propuesta: no se supone ninguna", () => {
-    expect(baseDelCaso({ ...todo, politicaVariante: null, varianteExperiencia: undefined })).toBeNull();
+  it("sin fecha de salida no hay base; sin variante sí, porque el piso legal no depende de ella", () => {
     expect(baseDelCaso({ ...todo, salidaEmpieza: null })).toBeNull();
+    expect(baseDelCaso({ ...todo, politicaVariante: null, varianteExperiencia: undefined })?.variante).toBeNull();
   });
 
   it("el primer día de la salida es el de CDMX", () => {
@@ -224,5 +233,61 @@ describe("la bonificación: plazo y fuerza mayor", () => {
   it("las cuatro causas de fuerza mayor son las de D14", () => {
     for (const k of ["clima", "cierre-autoridad", "contingencia-bloqueo", "emergencia-guia"]) expect(esFuerzaMayor(k)).toBe(true);
     expect(esFuerzaMayor("cupo-minimo") || esFuerzaMayor(null)).toBe(false);
+  });
+});
+
+describe("las precisiones de D24", () => {
+  const base: CasoReembolso = { variante: null, reservadaAt: "2026-11-03T10:00:00-06:00", salidaInicio: "2026-12-12", avisoAt: "2026-11-10T22:00:00-06:00", pagado: 6750, cancela: "cliente" };
+
+  it("sin variante, el piso legal aplica igual: arrepentimiento del art. 56 y cancelación de la operación", () => {
+    expect(proponerReembolso(base)).toMatchObject({ pct: 100, regla: "arrepentimiento-legal" });
+    expect(proponerReembolso({ ...base, cancela: "operacion", avisoAt: "2026-12-11T10:00:00-06:00" })).toMatchObject({ pct: 100, regla: "operacion" });
+  });
+
+  it("sin variante y fuera del piso legal no hay regla que proponer", () => {
+    expect(proponerReembolso({ ...base, avisoAt: "2026-11-20T10:00:00-06:00" })).toBeNull();
+    // Ni siquiera las 24 horas: son parte del contrato, no de la ley.
+    expect(proponerReembolso({ ...base, salidaInicio: "2026-11-12", avisoAt: "2026-11-04T09:00:00-06:00" })).toBeNull();
+  });
+
+  it("transferencia: los 5 días hábiles corren desde el pago, la anticipación desde la aceptación", () => {
+    // Aceptó el martes 3 nov; pagó por transferencia el viernes 6. El 5º día
+    // hábil desde el pago es el viernes 13 (el lunes 16 es descanso).
+    const transferencia = { ...base, variante: "estandar" as const, plazoDesde: "2026-11-06T12:00:00-06:00" };
+    expect(proponerReembolso({ ...transferencia, avisoAt: "2026-11-13T20:00:00-06:00" })).toMatchObject({ pct: 100, regla: "arrepentimiento-legal" });
+    // Sin el ajuste, el 13 nov ya habría sido el 8º día hábil desde la aceptación.
+    expect(proponerReembolso({ ...transferencia, plazoDesde: undefined, avisoAt: "2026-11-13T20:00:00-06:00" })?.regla).toBe("ventana");
+    expect(proponerReembolso({ ...transferencia, avisoAt: "2026-11-17T09:00:00-06:00" })?.regla).toBe("ventana");
+  });
+
+  it("la fecha límite del comprobante usa el mismo plazo", () => {
+    expect(limiteArrepentimiento("2026-11-03T10:00:00-06:00", "2026-12-12", "2026-11-06T12:00:00-06:00")).toBe("2026-11-14T05:59:59.999Z"); // viernes 13 nov, 23:59 CDMX
+  });
+});
+
+describe("el documento de la fuerza mayor (D24.4)", () => {
+  const ruta = "2026-11/0123456789abcdef0123456789abcdef.pdf";
+
+  it("clima, cierre y contingencia piden el archivo; la emergencia del guía no", () => {
+    expect(pideDocumento("clima") && pideDocumento("cierre-autoridad") && pideDocumento("contingencia-bloqueo")).toBe(true);
+    expect(pideDocumento("emergencia-guia")).toBe(false);
+  });
+
+  it("sin archivo no se registra la fuerza mayor", () => {
+    expect(documentoDeFuerzaMayor("clima", null)).toMatchObject({ ok: false });
+    expect(documentoDeFuerzaMayor("clima", "")).toMatchObject({ ok: false });
+    expect(documentoDeFuerzaMayor("clima", ruta)).toEqual({ ok: true, path: ruta });
+  });
+
+  it("en la emergencia del guía nunca se guarda un archivo, aunque llegue uno", () => {
+    expect(documentoDeFuerzaMayor("emergencia-guia", ruta)).toEqual({ ok: true, path: null });
+    expect(documentoDeFuerzaMayor("emergencia-guia", undefined)).toEqual({ ok: true, path: null });
+  });
+
+  it("sólo vale una ruta con la forma que genera la subida", () => {
+    expect(rutaDeDocumentoValida(ruta)).toBe(true);
+    for (const mala of ["../comprobantes/x.pdf", "/2026-11/x.pdf", "2026-11/corto.pdf", "2026-11/0123456789abcdef0123456789abcdef.exe", "https://ejemplo.com/a.pdf", 7]) {
+      expect(rutaDeDocumentoValida(mala)).toBe(false);
+    }
   });
 });

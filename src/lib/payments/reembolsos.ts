@@ -34,6 +34,7 @@ import {
   type ReglaReembolso,
 } from "@/lib/cancelacion/politica";
 import { crearBonificaciones } from "@/lib/cancelacion/bonificaciones";
+import { documentoDeFuerzaMayor } from "@/lib/cancelacion/documento";
 
 export type ResultadoReembolso =
   | { ok: true; reembolsados: number; monto: number; avisos: string[] }
@@ -334,6 +335,9 @@ export async function reembolsarPersona(
   if (tAviso > Date.now() + 5 * 60_000) return { ok: false, error: "El aviso de cancelación no puede tener fecha futura." };
   const vivo = Math.round(pagos.reduce((s, p) => s + porDevolver(p), 0) * 100) / 100;
   let propuesta: PropuestaReembolso | null = null;
+  // ¿La persona aceptó la política en línea? Si no, las ventanas son sólo
+  // referencia y lo decide la casa con motivo escrito (D24.1).
+  let aceptada = false;
   const avisos: string[] = [];
   try {
     const base = await baseDeReserva(sb, resv as ReservaParaCaso);
@@ -341,6 +345,7 @@ export async function reembolsarPersona(
       if (tAviso < new Date(base.reservadaAt).getTime()) {
         return { ok: false, error: "El aviso de cancelación no puede ser anterior a la reserva." };
       }
+      aceptada = base.aceptada;
       propuesta = proponerReembolso({ ...base, avisoAt: aviso, pagado: vivo, cancela: "cliente" });
     }
   } catch (e) {
@@ -353,6 +358,19 @@ export async function reembolsarPersona(
     return {
       ok: false,
       error: `El sistema propone devolver $${propuesta!.importe.toLocaleString("es-MX")} (${propuesta!.porque}) Para devolver otra cantidad, escribe el motivo.`,
+    };
+  }
+  // Sin regla que proponer, o con una política que la persona no aceptó en
+  // línea (las ventanas y las 24 horas son contrato; el piso legal no): decide
+  // la casa, y lo que decide queda escrito (D24.1).
+  const soloReferencia = propuesta != null && !aceptada && propuesta.regla !== "arrepentimiento-legal" && propuesta.regla !== "operacion";
+  if ((propuesta == null || soloReferencia) && !motivo.trim()) {
+    return {
+      ok: false,
+      error:
+        propuesta == null
+          ? "No hay regla que proponga un monto para esta reserva: escribe el motivo de lo que decides devolver."
+          : "Esta persona no aceptó la política en línea, así que la propuesta es sólo referencia: escribe el motivo de lo que decides devolver.",
     };
   }
   // Varios cobros y un parcial: sólo se sabe repartir cuando el parcial ES el
@@ -412,9 +430,19 @@ export async function cancelarSalidaYReembolsar(
       ok: false,
       error:
         causa.tipo === "fuerza-mayor"
-          ? "Escribe qué pasó y qué documento lo acredita (reporte, aviso de la autoridad, parte médico)."
+          ? causa.clase === "emergencia-guia"
+            ? "Escribe la declaración de quien opera: qué pasó y por qué no hubo sustituto. Sin diagnóstico ni datos médicos."
+            : "Escribe qué pasó: la autoridad o fuente, la fecha y la liga o folio del documento."
           : "Escribe el motivo de la cancelación.",
     };
+  }
+  // La fuerza mayor quita la bonificación, y quien la invoca la prueba: sin el
+  // archivo no se registra (D24.4). La emergencia del guía es la excepción.
+  let documento: string | null = null;
+  if (causa.tipo === "fuerza-mayor") {
+    const d = documentoDeFuerzaMayor(causa.clase, causa.documento);
+    if (!d.ok) return { ok: false, error: d.error };
+    documento = d.path;
   }
 
   const sb = createSupabaseAdminClient();
@@ -445,6 +473,7 @@ export async function cancelarSalidaYReembolsar(
       cancelada_at: ahora,
       cancelacion_causa: causa.tipo,
       cancelacion_fuerza_mayor: causa.tipo === "fuerza-mayor" ? causa.clase : null,
+      cancelacion_documento_path: documento,
       cancelacion_motivo: motivo.trim(),
     })
     .eq("id", slotId);

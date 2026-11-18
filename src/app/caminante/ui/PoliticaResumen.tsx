@@ -84,3 +84,69 @@ export function PoliticaResumenMovil({ variante }: { variante: Variante }) {
 export function FraseAceptacionMovil() {
   return <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 8, textAlign: "center" }}>{FRASE_ACEPTACION}</p>;
 }
+
+// A QUIÉN ACUDIR, ANTES DE PAGAR (LFPC 76 Bis III; D24 de legal). El proveedor
+// tiene que dejar a la vista, antes de la transacción, los medios para
+// presentar una reclamación. Va en reservar y en la página de pago, haya o no
+// política elegida. ⚠️ La ley pide también el DOMICILIO FÍSICO: hoy no se
+// publica en ningún lado; falta que Luis diga cuál.
+
+type Contacto = { whatsapp: string | null; email: string | null };
+
+const waHref = (n: string) => `https://wa.me/${n.replace(/\D/g, "")}`;
+
+/** Escritorio. */
+export function ContactoReclamacionesEscritorio({ contacto }: { contacto: Contacto }) {
+  if (!contacto.whatsapp && !contacto.email) return null;
+  return (
+    <p className="text-center text-[11px] text-olive/70">
+      ¿Dudas o una reclamación? Escríbenos
+      {contacto.whatsapp ? (
+        <>
+          {" "}por WhatsApp al{" "}
+          <a className="underline" href={waHref(contacto.whatsapp)} target="_blank" rel="noopener">
+            {contacto.whatsapp}
+          </a>
+        </>
+      ) : null}
+      {contacto.whatsapp && contacto.email ? " o" : ""}
+      {contacto.email ? (
+        <>
+          {" "}a{" "}
+          <a className="underline" href={`mailto:${contacto.email}`}>
+            {contacto.email}
+          </a>
+        </>
+      ) : null}
+      .
+    </p>
+  );
+}
+
+/** Móvil. */
+export function ContactoReclamacionesMovil({ contacto }: { contacto: Contacto }) {
+  if (!contacto.whatsapp && !contacto.email) return null;
+  return (
+    <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 8, textAlign: "center" }}>
+      ¿Dudas o una reclamación? Escríbenos
+      {contacto.whatsapp ? (
+        <>
+          {" "}por WhatsApp al{" "}
+          <a style={{ textDecoration: "underline", color: "inherit" }} href={waHref(contacto.whatsapp)} target="_blank" rel="noopener">
+            {contacto.whatsapp}
+          </a>
+        </>
+      ) : null}
+      {contacto.whatsapp && contacto.email ? " o" : ""}
+      {contacto.email ? (
+        <>
+          {" "}a{" "}
+          <a style={{ textDecoration: "underline", color: "inherit" }} href={`mailto:${contacto.email}`}>
+            {contacto.email}
+          </a>
+        </>
+      ) : null}
+      .
+    </p>
+  );
+}

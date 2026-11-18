@@ -87,3 +87,20 @@ export function importeEgresoComision(i: { cobrado: number; devuelto: number; co
   const falta = r2(objetivo - r2(i.cubierto));
   return falta > 0.009 ? falta : 0;
 }
+
+/**
+ * La fecha de expedición de la factura de comisión (D24 de legal): si el cobro
+ * y la emisión caen en MESES distintos (cobro el último día por la noche, el
+ * cron corre ya en el mes siguiente), el CFDI se fecha el día del cobro, para
+ * que la comisión quede en el mes en que se retuvo, igual que la global. El
+ * SAT acepta hasta 72 horas atrás; pasado eso devuelve null y sale con la
+ * fecha de hoy. En el mismo mes también null: no hay nada que corregir.
+ */
+export function fechaDeComision(paidAt: string | null, ahora = new Date()): string | null {
+  if (!paidAt) return null;
+  const cobro = new Date(paidAt);
+  const horas = (ahora.getTime() - cobro.getTime()) / 3600_000;
+  if (!(horas >= 0 && horas <= 71)) return null;
+  const mes = (d: Date) => new Date(d.getTime() - 6 * 3600_000).toISOString().slice(0, 7); // CDMX
+  return mes(cobro) === mes(ahora) ? null : cobro.toISOString();
+}

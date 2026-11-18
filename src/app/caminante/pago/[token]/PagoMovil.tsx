@@ -4,7 +4,7 @@
 // con las primitivas del sitio móvil (`.pub-*`, design/publico-movil/PATRON.md):
 // un bloque con el resumen, el total, y el botón «Pagar» en la barra de abajo.
 
-import { FraseAceptacionMovil, PoliticaResumenMovil } from "../../ui/PoliticaResumen";
+import { ContactoReclamacionesMovil, FraseAceptacionMovil, PoliticaResumenMovil } from "../../ui/PoliticaResumen";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -74,6 +74,7 @@ export default function PagoMovil({ p, error, deslindeHref, wa, avisoFactura = n
               Pago seguro con tarjeta vía Stripe. Al terminar vuelves aquí para firmar tu deslinde.
             </p>
             {p.politica ? <FraseAceptacionMovil /> : null}
+            <ContactoReclamacionesMovil contacto={p.contacto} />
             {avisoFactura ? (
               <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 8, textAlign: "center" }}>{avisoFactura}</p>
             ) : null}

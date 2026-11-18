@@ -223,7 +223,9 @@ exactamente lo retenido al cobrar (`fee_retenido_mxn`); si no cuadra, NO se
 timbra. La **cuota de admisión** ($20, IVA incluido) va como segundo concepto
 en la venta que la pagó. Si la venta se devuelve: **egreso proporcional**
 (`tipo = 'egreso-comision'`, relación 01, G02), y la admisión sólo vuelve en
-devolución total. Lo corre el cron `comprobantes` y `finalizeRefund`.
+devolución total. Lo corre el cron `comprobantes` y `finalizeRefund`. Si el
+cobro y la emisión caen en meses distintos, el CFDI de comisión se fecha el día
+del cobro dentro de las 72 h (`fechaDeComision`, D24), como la global.
 
 Sin la llave, Mi espacio enseña los pagos como «Por facturar». **Sandbox primero.**
 
@@ -246,16 +248,28 @@ legal de 5 días hábiles → 24 horas → ventanas de la variante) a partir de
 **cuándo se recibió el aviso** (se captura; no es la hora del clic). La casa
 confirma o cambia el monto, y **cambiarlo exige el motivo** (lo valida el
 servidor, que recalcula). En `reembolsos` quedan `aviso_at`, `regla` y
-`propuesto_mxn`. Una reserva anterior a la política se calcula con la variante
-de la experiencia y la pantalla dice que la persona no la aceptó en línea. Sin
-variante o sin fecha de salida **no hay propuesta** (no se supone una). Días
+`propuesto_mxn`. **Precisiones de D24:** el piso legal (cancela la operación;
+arrepentimiento del art. 56) aplica SIEMPRE, también sin variante; una reserva
+que no aceptó la política en línea se calcula con la variante de la experiencia
+**sólo como referencia** — la pantalla lo dice, nunca dice «aceptaste», y
+devolver exige motivo escrito (en la duda, a favor del cliente); los 5 días
+hábiles corren desde lo último entre aceptación y primer pago (`plazoDesde`),
+la anticipación de 10 días hábiles desde la aceptación. Sin variante y fuera
+del piso legal **no hay propuesta** y decide la casa con motivo. Días
 hábiles: lista por año del art. 74 LFT en `DESCANSOS_OBLIGATORIOS`; un año que
 no esté **no se calcula** (hoy 2026 y 2027: agregar 2028 antes de vender 2028).
 
 **Cancelar una salida pide la causa** (`experience_slots.cancelacion_causa`):
-`imputable` (causa de quien opera) o `fuerza-mayor` con su clase de D14 y el
-documento que la acredita descrito en el motivo. La causa se escribe ANTES de
-pedir las devoluciones: si no se puede escribir, no se devuelve nada.
+`imputable` (causa de quien opera; **«cupo mínimo no alcanzado» cae aquí y
+genera bonificación**, D24.3: hacerlo causa aparte exige texto nuevo de la
+política y es decisión de Luis) o `fuerza-mayor` con su clase de D14. **La
+fuerza mayor pide el ARCHIVO que la acredita** (D24.4, 0092): se sube al bucket
+privado `fuerza-mayor` (`api/admin/fuerza-mayor`, `lib/cancelacion/documento.ts`)
+y sin él no se cancela. Excepción: `emergencia-guia` se acredita con la
+declaración de la operadora en el motivo y **no guarda archivo** (un parte
+médico es dato de salud; el candado de la base lo exige NULL). La causa se
+escribe ANTES de pedir las devoluciones: si no se puede escribir, no se
+devuelve nada.
 
 **La bonificación del 20 %** (`lib/cancelacion/bonificaciones.ts`, tabla
 `bonificaciones`): con causa imputable se crea una «por pagar» por cada reserva
@@ -275,6 +289,11 @@ devolver dinero desde el panel y nada falló. Ahora sale de `alcanceActual()`
 (invariante #26), y la guarda de los reembolsos rechaza todo lo que no sea la
 casa (antes dejaba pasar al equipo de numan). **Una pantalla de dinero se
 verifica ENTRANDO a ella en producción, no leyendo el código.**
+
+**Antes de pagar, a quién reclamar** (LFPC 76 Bis III, D24): reservar y la
+página de pago enseñan WhatsApp y correo de quien vende (`contactoDeVenta`).
+⚠️ **Falta el DOMICILIO FÍSICO**, que la ley también pide: no se publica en
+ningún lado (tampoco en el aviso de privacidad). Lo decide Luis.
 
 ## Nunca inventes un número
 

@@ -28,6 +28,7 @@ import {
   type ClaseFuerzaMayor,
   type PropuestaReembolso,
 } from "@/lib/cancelacion/politica";
+import { pideDocumento } from "@/lib/cancelacion/documento";
 import { mandarmeUnaPrueba } from "@/lib/feedback/prueba";
 import { generarLinkDeGrupo } from "@/lib/feedback/link-grupo";
 import SuEspacio from "@/app/caminante/admin/ui/SuEspacio";
@@ -203,6 +204,10 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
   const [montos, setMontos] = useState<Record<string, string>>({});
   const [causa, setCausa] = useState<"" | "imputable" | "fuerza-mayor">("");
   const [clase, setClase] = useState<ClaseFuerzaMayor | "">("");
+  // La ruta del documento ya subido (D24.4) y el estado de la subida.
+  const [documento, setDocumento] = useState<{ path: string; nombre: string } | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [errorDoc, setErrorDoc] = useState("");
 
   const avisoIso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(avisoLocal) ? `${avisoLocal}:00-06:00` : null;
   const propuestaDe = (r: Salida["reembolsables"][number]): PropuestaReembolso | null => {
@@ -230,7 +235,8 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
       .trim()
       .toLowerCase();
   const escribioLaEtiqueta = plano(confirmacion) === plano(s.label);
-  const causaLista = causa === "imputable" || (causa === "fuerza-mayor" && clase !== "");
+  const faltaDocumento = causa === "fuerza-mayor" && clase !== "" && pideDocumento(clase) && !documento;
+  const causaLista = causa === "imputable" || (causa === "fuerza-mayor" && clase !== "" && !faltaDocumento);
   const puedeCancelar = escribioLaEtiqueta && causaLista && motivo.trim() !== "";
 
   const contar = (r: { ok: boolean; reembolsados?: number; monto?: number; avisos?: string[]; error?: string }) => {
@@ -281,7 +287,12 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
             const monto = tecleado == null ? (prop ? prop.importe : r.monto) : Number(tecleado);
             const cambiada = prop != null && Math.abs(monto - prop.importe) > 0.01;
             const montoSirve = Number.isFinite(monto) && monto > 0 && monto <= r.monto + 0.01;
-            const faltaMotivo = cambiada && !motivo.trim();
+            // Sin regla que proponer, o con una política que la persona no
+            // aceptó en línea (referencia, salvo el piso legal): decide la
+            // casa y lo que decide queda escrito (D24.1). El servidor lo exige igual.
+            const soloReferencia =
+              prop != null && r.caso != null && !r.caso.aceptada && prop.regla !== "arrepentimiento-legal" && prop.regla !== "operacion";
+            const faltaMotivo = (cambiada || prop == null || soloReferencia) && !motivo.trim();
             return (
               <div key={r.reservationId} style={{ padding: "8px 0", borderTop: "1px solid var(--line)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -353,14 +364,16 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
                     {prop ? (
                       <>
                         <b>Propuesta: {prop.pct} % · {mxn(prop.importe)}.</b> {prop.porque}
-                        {r.caso && !r.caso.aceptada
-                          ? " Esta reserva es anterior a la política publicada: la persona no la aceptó en línea, y la propuesta usa la de la experiencia como referencia."
+                        {soloReferencia
+                          ? " Esta persona no aceptó la política en línea (reserva anterior a la política publicada o capturada a mano): la propuesta usa la de la experiencia sólo como referencia. En la duda se resuelve a su favor; decide el monto y escribe el motivo."
                           : ""}
                         {prop.importe <= 0 && r.porStripe ? " Si aun así devuelves algo, escribe cuánto y el motivo." : ""}
-                        {faltaMotivo && montoSirve ? " Cambiaste la propuesta: escribe el motivo." : ""}
+                        {cambiada && faltaMotivo && montoSirve ? " Cambiaste la propuesta: escribe el motivo." : ""}
                       </>
                     ) : (
-                      "Sin propuesta: falta la política de cancelación de la experiencia o la fecha de la salida. Decide el monto y escribe el motivo."
+                      r.caso
+                        ? "Sin propuesta: ni la reserva ni la experiencia tienen política de cancelación elegida, y no aplica el arrepentimiento de ley (art. 56). Decide el monto y escribe el motivo."
+                        : "Sin propuesta: falta la fecha de la salida o la de la reserva. Decide el monto y escribe el motivo."
                     )}
                   </p>
                 ) : null}
@@ -406,11 +419,48 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
               hábiles: quedan como «por pagar» en Pagos y el correo de la cancelación le pide a cada quien su cuenta.
             </p>
           ) : null}
-          {causa === "fuerza-mayor" ? (
+          {causa === "fuerza-mayor" && clase === "emergencia-guia" ? (
             <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 6 }}>
-              Con fuerza mayor no hay bonificación. En el motivo escribe qué pasó y qué documento lo acredita
-              (reporte, aviso de la autoridad, parte médico).
+              Con fuerza mayor no hay bonificación. La emergencia del guía se acredita con la <b>declaración de quien
+              opera</b>: escríbela en el motivo (qué pasó y por qué no hubo sustituto). <b>No subas ni describas
+              diagnósticos ni partes médicos</b>: son datos de salud y no se guardan.
             </p>
+          ) : null}
+          {causa === "fuerza-mayor" && clase !== "" && clase !== "emergencia-guia" ? (
+            <div style={{ marginTop: 6 }}>
+              <p className="mut" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+                Con fuerza mayor no hay bonificación, y hay que probarla: <b>sube el documento</b> que la acredita
+                (reporte, aviso o cierre de la autoridad; PDF o imagen, hasta 10 MB) y en el motivo escribe la
+                autoridad o fuente, la fecha y la liga o folio.
+              </p>
+              <input
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
+                disabled={subiendo || !!ocupado}
+                style={{ marginTop: 6 }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  setErrorDoc("");
+                  setDocumento(null);
+                  if (!file) return;
+                  setSubiendo(true);
+                  try {
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    const res = await fetch("/caminante/api/admin/fuerza-mayor", { method: "POST", body: fd });
+                    const j = (await res.json().catch(() => ({}))) as { path?: string; error?: string };
+                    if (!res.ok || !j.path) setErrorDoc(j.error || "No se pudo subir el documento.");
+                    else setDocumento({ path: j.path, nombre: file.name });
+                  } catch {
+                    setErrorDoc("No se pudo subir el documento.");
+                  }
+                  setSubiendo(false);
+                }}
+              />
+              <span className="mut" style={{ fontSize: 12.5, marginLeft: 8, color: errorDoc ? "#b33517" : undefined }}>
+                {subiendo ? "Subiendo…" : errorDoc ? errorDoc : documento ? `Subido: ${documento.nombre}` : "Sin documento todavía."}
+              </span>
+            </div>
           ) : null}
         </div>
 
@@ -436,7 +486,9 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
                 await cancelarSalidaYReembolsar(
                   s.id,
                   motivo,
-                  causa === "fuerza-mayor" ? { tipo: "fuerza-mayor", clase: clase as ClaseFuerzaMayor } : { tipo: "imputable" },
+                  causa === "fuerza-mayor"
+                    ? { tipo: "fuerza-mayor", clase: clase as ClaseFuerzaMayor, documento: documento?.path ?? null }
+                    : { tipo: "imputable" },
                 ),
               );
               setOcupado("");
@@ -448,7 +500,9 @@ function Reembolsos({ s, onListo }: { s: Salida; onListo: () => void }) {
           </button>
           {!puedeCancelar ? (
             <span className="mut" style={{ fontSize: 12.5 }}>
-              {!causaLista
+              {faltaDocumento
+                ? "Sube el documento que acredita la fuerza mayor."
+                : !causaLista
                 ? "Elige por qué se cancela."
                 : !motivo.trim()
                   ? "Escribe el motivo arriba."

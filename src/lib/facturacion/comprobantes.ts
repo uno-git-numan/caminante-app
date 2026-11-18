@@ -140,7 +140,12 @@ async function politicaAceptada(pay: Pago): Promise<string | null> {
   const aceptada = (resv.politica_aceptada_at as string | null) ?? pay.paid_at;
   if (inicio && aceptada) {
     try {
-      const limite = limiteArrepentimiento(aceptada, ymdCdmx(inicio));
+      // Los 5 días hábiles corren desde lo último entre la aceptación y el
+      // PRIMER pago de la reserva (D24.2), que no siempre es éste.
+      const { data: primer } = await sb.from("payments").select("paid_at").eq("reservation_id", pay.reservation_id).not("paid_at", "is", null).order("paid_at", { ascending: true }).limit(1).maybeSingle();
+      const primerPago = (primer as { paid_at?: string | null } | null)?.paid_at ?? pay.paid_at;
+      const plazoDesde = primerPago && new Date(primerPago).getTime() > new Date(aceptada).getTime() ? primerPago : aceptada;
+      const limite = limiteArrepentimiento(aceptada, ymdCdmx(inicio), plazoDesde);
       if (limite && new Date(limite).getTime() > Date.now()) {
         const cuando = new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }).format(new Date(limite));
         plazo = ` Si te arrepientes, puedes cancelar con la devolución del <b>100 %</b> hasta el <b>${cuando}</b> (hora del centro de México).`;

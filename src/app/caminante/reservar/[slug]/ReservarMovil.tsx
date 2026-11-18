@@ -21,7 +21,7 @@
 // salida) y el gate de deslinde (`deslindeListo`): sin deslinde completo no hay
 // formulario, hay aviso.
 
-import { FraseAceptacionMovil, PoliticaResumenMovil } from "../../ui/PoliticaResumen";
+import { ContactoReclamacionesMovil, FraseAceptacionMovil, PoliticaResumenMovil } from "../../ui/PoliticaResumen";
 import type { Variante } from "@/lib/cancelacion/politica";
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -61,6 +61,7 @@ export default function ReservarMovil({
   errMsg,
   avisoFactura = null,
   politica = null,
+  contacto = null,
 }: {
   slug: string;
   titulo: string;
@@ -80,6 +81,8 @@ export default function ReservarMovil({
   avisoFactura?: string | null;
   /** La política de cancelación de la experiencia (D23). */
   politica?: Variante | null;
+  /** A quién acudir por una reclamación; se enseña antes de pagar (LFPC 76 Bis III). */
+  contacto?: { whatsapp: string | null; email: string | null } | null;
 }) {
   const primero = slots.find((s) => !s.soldOut) ?? slots[0];
   const [sel, setSel] = useState(primero?.id ?? "");
@@ -419,6 +422,7 @@ export default function ReservarMovil({
               <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 14, textAlign: "center" }}>{avisoFactura}</p>
             ) : null}
             {politica ? <FraseAceptacionMovil /> : null}
+            {contacto ? <ContactoReclamacionesMovil contacto={contacto} /> : null}
           </div>
         </form>
       )}

@@ -1,4 +1,4 @@
-import { FraseAceptacionEscritorio, PoliticaResumenEscritorio } from "../../ui/PoliticaResumen";
+import { ContactoReclamacionesEscritorio, FraseAceptacionEscritorio, PoliticaResumenEscritorio } from "../../ui/PoliticaResumen";
 import { avisoFacturaDeReserva } from "@/lib/facturacion/aviso-plazo";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -94,6 +94,7 @@ export default async function PagoPage({
             <p className="mt-3 text-center text-[11px] text-olive/70">Pago seguro con tarjeta vía Stripe. Al terminar vuelves aquí para firmar tu deslinde.</p>
             {p.politica ? <div className="mt-2"><FraseAceptacionEscritorio /></div> : null}
             {avisoFactura ? <p className="mt-2 text-center text-[11px] text-olive/70">{avisoFactura}</p> : null}
+            <div className="mt-2"><ContactoReclamacionesEscritorio contacto={p.contacto} /></div>
           </>
         ) : p.estado === "pagada" ? (
           <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { FraseAceptacionEscritorio, PoliticaResumenEscritorio } from "../../ui/PoliticaResumen";
+import { ContactoReclamacionesEscritorio, FraseAceptacionEscritorio, PoliticaResumenEscritorio } from "../../ui/PoliticaResumen";
 import type { Variante } from "@/lib/cancelacion/politica";
 import { useState } from "react";
 import { createCheckout } from "@/lib/payments/checkout";
@@ -47,9 +47,12 @@ export default function CheckoutForm({
   codigoInicial = null,
   avisoFactura = null,
   politica = null,
+  contacto = null,
 }: {
   /** La política de cancelación de la experiencia (D23): resumen, texto completo y la frase junto al botón. */
   politica?: Variante | null;
+  /** A quién acudir por una reclamación; se enseña antes de pagar (LFPC 76 Bis III). */
+  contacto?: { whatsapp: string | null; email: string | null } | null;
   slug: string;
   /** El plazo para pedir factura, dicho antes de pagar (D21). null = aquí no se factura. */
   avisoFactura?: string | null;
@@ -350,6 +353,7 @@ export default function CheckoutForm({
         Pago seguro con Stripe. Apartas tu lugar al pagar; luego firmas tu deslinde.
       </p>
       {politica ? <FraseAceptacionEscritorio /> : null}
+      {contacto ? <ContactoReclamacionesEscritorio contacto={contacto} /> : null}
       {avisoFactura ? <p className="text-center text-[11px] text-olive/70">{avisoFactura}</p> : null}
     </form>
   );

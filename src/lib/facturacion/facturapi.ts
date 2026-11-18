@@ -157,7 +157,13 @@ function desglose(json: { id?: string; uuid?: string; total?: number }, totalEsp
 export function clienteFacturapi(key: string) {
   return {
     /** Factura de ingreso directa (sin recibo). */
-    async crearFacturaIngreso(input: { receptor: ReceptorFiscal; conceptos: Concepto[]; formaPago?: string }): Promise<FacturaTimbrada> {
+    async crearFacturaIngreso(input: {
+      receptor: ReceptorFiscal;
+      conceptos: Concepto[];
+      formaPago?: string;
+      /** Fecha de expedición (ISO), hasta 72 h atrás. Sin ella, ahora. */
+      fecha?: string | null;
+    }): Promise<FacturaTimbrada> {
       if (!input.conceptos.length) throw new Error("La factura no tiene conceptos.");
       const total = input.conceptos.reduce((n, c) => n + c.cantidad * c.precioUnitarioConIva - (c.descuentoConIva ?? 0), 0);
       const json = await llamar<{ id?: string; uuid?: string; total?: number }>(key, "POST", "/invoices", {
@@ -166,6 +172,7 @@ export function clienteFacturapi(key: string) {
         use: input.receptor.usoCfdi.trim(),
         payment_form: input.formaPago || FORMA_PAGO_DEFAULT,
         payment_method: "PUE",
+        ...(input.fecha ? { date: input.fecha } : {}),
       });
       return desglose(json, total);
     },

@@ -42,6 +42,25 @@ function fechaLargaDe(inicio: string, fin: string | null): string {
   return mes(inicio) === mes(fin) ? `${dia(inicio)} al ${dia(fin)} de ${mes(fin)}` : `${dia(inicio)} de ${mes(inicio)} al ${dia(fin)} de ${mes(fin)}`;
 }
 
+export type ContactoDeVenta = { whatsapp: string | null; email: string | null };
+
+/** El contacto de la operadora de la venta; lo que ella no tenga, el de la casa. */
+function contactoCon(operadora: { whatsapp?: string | null; email?: string | null } | null): ContactoDeVenta {
+  return {
+    whatsapp: operadora?.whatsapp ?? "+525512020565",
+    email: operadora?.email ?? "uno@numanhub.com",
+  };
+}
+
+/**
+ * A quién acudir por una duda o una reclamación sobre esta experiencia. Se
+ * enseña ANTES de pagar, en reservar y en la página de pago (LFPC 76 Bis III;
+ * D24 de legal).
+ */
+export async function contactoDeVenta(experienceId: string): Promise<ContactoDeVenta> {
+  return contactoCon(await fetchOperatorContactoForExperience(experienceId));
+}
+
 export async function fetchPagoPorToken(token: string): Promise<PagoVista | null> {
   const sb = createSupabaseAdminClient();
   const { data: r } = await sb
@@ -91,9 +110,6 @@ export async function fetchPagoPorToken(token: string): Promise<PagoVista | null
     personas: Math.max(1, Number(r.num_people) || 1),
     montoMxn: monto,
     listaMxn: r.precio_lista_mxn != null && Number(r.precio_lista_mxn) > monto ? Number(r.precio_lista_mxn) : null,
-    contacto: {
-      whatsapp: operadora?.whatsapp ?? "+525512020565",
-      email: operadora?.email ?? "uno@numanhub.com",
-    },
+    contacto: contactoCon(operadora),
   };
 }

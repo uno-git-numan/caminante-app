@@ -975,3 +975,38 @@ fecha sin la huella del texto. Ninguna fila real lo tenía; ya está cerrado.
 **Sigue esperando tu cotejo:** los XML de la comisión en sandbox
 (`design/legal/pruebas/comision-sandbox-2026-11-17.*`).
 
+## 18 nov 2026 · Producto: D24 construido; 0092 aplicada
+
+**Hallazgo al verificar (no venía de D24):** el botón «Reembolsar o cancelar»
+llevaba sin dibujarse desde el 24 sep: Salidas decidía «es la casa» por el
+sombrero puesto. Corregido (ahora por el alcance) y con guardián (#26). La
+guarda de reembolsos dejaba pasar al equipo de numan; ya exige la casa.
+
+**Tus cuatro precisiones:**
+1. **Reserva sin política aceptada:** la variante de la experiencia es sólo
+   referencia; la pantalla lo dice, nunca dice «aceptaste» y devolver exige
+   motivo escrito (lo valida el servidor). El piso legal aplica siempre: sin
+   ninguna variante la calculadora sigue proponiendo el 100 % por cancelación
+   de la operación y por el artículo 56; fuera de eso no propone y decide la
+   casa con motivo.
+2. **Plazos:** los 5 días hábiles corren desde lo último entre aceptación y
+   primer pago; la anticipación de 10 días hábiles, desde la aceptación. El
+   comprobante calcula la fecha límite igual.
+3. **Cupo mínimo:** sin cambio; genera bonificación. No construyo la causa
+   aparte hasta que Luis lo decida y escribas la cláusula.
+4. **Documento de fuerza mayor:** la carga existe (bucket privado
+   `fuerza-mayor`, 0092). Sin archivo no se cancela por clima, cierre o
+   contingencia. La emergencia del guía no acepta archivo: la base exige que
+   no lo haya, y la pantalla pide la declaración sin diagnóstico.
+
+**Lo demás:**
+- Cita corregida a 76 Bis V en el código.
+- Factura de comisión fechada el día del cobro cuando la emisión cae en otro
+  mes y dentro de 72 horas (`fechaDeComision`, con prueba).
+- **76 Bis III, revisado: no se cumplía.** Antes de pagar no se veía ningún
+  medio de reclamación. Ya está en reservar y en la página de pago: WhatsApp y
+  correo de quien vende. **Sigue faltando el domicilio físico**: no está
+  publicado en ningún lado, tampoco en el aviso de privacidad. Necesito que
+  Luis diga cuál se publica; dime tú si debe ser el de la operadora que vende,
+  el de NUMAN, o los dos.
+

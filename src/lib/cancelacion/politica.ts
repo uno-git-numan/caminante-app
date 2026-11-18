@@ -32,7 +32,7 @@ export function esVariante(x: unknown): x is Variante {
 
 export type BloquePolitica = { titulo: string; renglones: string[] };
 
-/** La frase que va junto al botón de pagar. Con el texto a la vista, basta como aceptación (LFPC 76 Bis III). */
+/** La frase que va junto al botón de pagar. Con el texto a la vista, basta como aceptación (LFPC 76 Bis V). */
 export const FRASE_ACEPTACION = "Al pagar aceptas la política de cancelación de esta experiencia.";
 export const TITULO_POLITICA = "Cancelación y devoluciones";
 
@@ -154,9 +154,20 @@ export type ReglaReembolso = "operacion" | "arrepentimiento-legal" | "arrepentim
 export type PropuestaReembolso = { pct: number; regla: ReglaReembolso; porque: string; importe: number };
 
 export type CasoReembolso = {
-  variante: Variante;
-  /** Cuándo se creó el cobro (la reserva). */
+  /**
+   * null = ni la reserva ni la experiencia tienen política elegida. Entonces
+   * sólo aplica el PISO LEGAL (cancela la operación; arrepentimiento del art.
+   * 56), que no depende de ninguna variante (D24.1); fuera de él no se propone.
+   */
+  variante: Variante | null;
+  /** Cuándo se creó el cobro (la aceptación, «la orden de compra»): desde aquí se mide la ANTICIPACIÓN. */
   reservadaAt: string;
+  /**
+   * Desde cuándo corren los 5 días hábiles del art. 56 («la firma del
+   * contrato»): lo último entre la aceptación y el primer pago, que importa
+   * cuando el pago llega después (transferencia). Sin él, `reservadaAt` (D24.2).
+   */
+  plazoDesde?: string;
   /** El primer día de la salida, YYYY-MM-DD. */
   salidaInicio: string;
   /** Cuándo se recibió el aviso de cancelación. */
@@ -168,12 +179,13 @@ export type CasoReembolso = {
 };
 
 /** El último instante (ISO) en que el cliente puede arrepentirse con el 100 %, o null si no tiene ese derecho. */
-export function limiteArrepentimiento(reservadaAt: string, salidaInicio: string): string | null {
+export function limiteArrepentimiento(reservadaAt: string, salidaInicio: string, plazoDesde?: string): string | null {
   const reserva = ymdCdmx(reservadaAt);
   const limites: number[] = [];
-  // Legal (LFPC 56): reservó con más de 10 días hábiles de anticipación → 5 días hábiles.
+  // Legal (LFPC 56): reservó con más de 10 días hábiles de anticipación → 5 días
+  // hábiles, que corren desde lo último entre la aceptación y el primer pago.
   if (diasHabilesEntre(reserva, salidaInicio) > 10) {
-    limites.push(new Date(`${sumarDiasHabiles(reserva, 5)}T23:59:59.999-06:00`).getTime());
+    limites.push(new Date(`${sumarDiasHabiles(ymdCdmx(plazoDesde ?? reservadaAt), 5)}T23:59:59.999-06:00`).getTime());
   }
   // 24 horas, si la salida está a 7 días o más de la reserva.
   if (diasNaturales(reserva, salidaInicio) >= 7) limites.push(new Date(reservadaAt).getTime() + DIA);
@@ -184,8 +196,11 @@ export function limiteArrepentimiento(reservadaAt: string, salidaInicio: string)
  * Lo que el sistema PROPONE devolver. Orden de las reglas (gana la más
  * favorable al cliente): cancela la operación → arrepentimiento legal →
  * arrepentimiento de 24 horas → ventanas de la variante.
+ *
+ * Devuelve null sólo cuando no hay variante y tampoco aplica el piso legal: ahí
+ * no hay regla que proponer y lo decide la casa con motivo escrito.
  */
-export function proponerReembolso(c: CasoReembolso): PropuestaReembolso {
+export function proponerReembolso(c: CasoReembolso): PropuestaReembolso | null {
   const con = (pct: number, regla: ReglaReembolso, porque: string): PropuestaReembolso => ({ pct, regla, porque, importe: r2((c.pagado * pct) / 100) });
   if (c.cancela === "operacion") return con(100, "operacion", "La salida se cancela: se devuelve siempre el 100 %.");
 
@@ -193,9 +208,11 @@ export function proponerReembolso(c: CasoReembolso): PropuestaReembolso {
   const aviso = ymdCdmx(c.avisoAt);
   const tAviso = new Date(c.avisoAt).getTime();
 
-  if (diasHabilesEntre(reserva, c.salidaInicio) > 10 && diasHabilesEntre(reserva, aviso) <= 5) {
+  if (diasHabilesEntre(reserva, c.salidaInicio) > 10 && diasHabilesEntre(ymdCdmx(c.plazoDesde ?? c.reservadaAt), aviso) <= 5) {
     return con(100, "arrepentimiento-legal", "Reservó con más de 10 días hábiles de anticipación y avisó dentro de los 5 días hábiles siguientes (LFPC art. 56).");
   }
+  // De aquí en adelante todo es contractual: sin variante no hay qué proponer.
+  if (!c.variante) return null;
   if (diasNaturales(reserva, c.salidaInicio) >= 7 && tAviso - new Date(c.reservadaAt).getTime() <= DIA) {
     return con(100, "arrepentimiento-24h", "Avisó dentro de las 24 horas siguientes a su reserva y la salida estaba a 7 días o más.");
   }
@@ -216,7 +233,8 @@ export const venceBonificacion = (canceladaAt: Date | string): string => sumarDi
 
 /** Lo que el panel necesita de una reserva para proponer su reembolso (sin el aviso ni el monto). */
 export type BaseDelCaso = {
-  variante: Variante;
+  /** null = sin política elegida en la reserva ni en la experiencia: sólo aplica el piso legal. */
+  variante: Variante | null;
   /**
    * false = la reserva es anterior a la política publicada (0089) o se capturó
    * a mano: el cliente NO la aceptó en línea. La propuesta se calcula con la
@@ -224,14 +242,17 @@ export type BaseDelCaso = {
    */
   aceptada: boolean;
   reservadaAt: string;
+  /** Desde cuándo corren los 5 días hábiles: lo último entre aceptación y primer pago (D24.2). */
+  plazoDesde: string;
   /** Primer día de la salida, YYYY-MM-DD (CDMX). */
   salidaInicio: string;
 };
 
 /**
- * Arma la base del caso con lo que hay. Devuelve null si falta algo sin lo que
- * no se puede calcular (variante o fecha de la salida): entonces el panel no
- * propone nada y lo dice, en vez de proponer con un dato supuesto.
+ * Arma la base del caso con lo que hay. Devuelve null si falta la fecha de la
+ * salida o la de la reserva: sin ellas no se puede calcular nada, y el panel
+ * lo dice en vez de proponer con un dato supuesto. Sin variante SÍ hay base:
+ * el piso legal (art. 56) no depende de ella.
  *
  * `reservadaAt`: la fecha en que aceptó la política (= se creó el cobro); si la
  * reserva no la guardó, la del primer pago; y si tampoco, la de la reserva.
@@ -247,8 +268,9 @@ export function baseDelCaso(i: {
   const aceptada = esVariante(i.politicaVariante);
   const variante = aceptada ? (i.politicaVariante as Variante) : esVariante(i.varianteExperiencia) ? i.varianteExperiencia : null;
   const reservadaAt = (aceptada ? i.politicaAceptadaAt : null) ?? i.primerPagoAt ?? i.reservaCreadaAt;
-  if (!variante || !reservadaAt || !i.salidaEmpieza) return null;
-  return { variante, aceptada, reservadaAt, salidaInicio: ymdCdmx(i.salidaEmpieza) };
+  if (!reservadaAt || !i.salidaEmpieza) return null;
+  const plazoDesde = i.primerPagoAt && new Date(i.primerPagoAt).getTime() > new Date(reservadaAt).getTime() ? i.primerPagoAt : reservadaAt;
+  return { variante, aceptada, reservadaAt, plazoDesde, salidaInicio: ymdCdmx(i.salidaEmpieza) };
 }
 
 /** Las causas de fuerza mayor de D14 (eximen la bonificación). El texto es el de la política. */
@@ -262,4 +284,7 @@ export type ClaseFuerzaMayor = keyof typeof FUERZA_MAYOR;
 export const esFuerzaMayor = (x: unknown): x is ClaseFuerzaMayor => typeof x === "string" && x in FUERZA_MAYOR;
 
 /** Por qué se cae una salida: por causa de quien opera (hay bonificación) o por fuerza mayor (no la hay). */
-export type CausaCancelacion = { tipo: "imputable" } | { tipo: "fuerza-mayor"; clase: ClaseFuerzaMayor };
+export type CausaCancelacion =
+  | { tipo: "imputable" }
+  /** `documento`: la ruta del archivo que la acredita (D24.4); en `emergencia-guia` no va. */
+  | { tipo: "fuerza-mayor"; clase: ClaseFuerzaMayor; documento?: string | null };

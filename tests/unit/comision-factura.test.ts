@@ -116,3 +116,28 @@ describe("el candado de D22: con convenio firmado no se cobra en la cuenta de la
     expect(puedeCobrarsePorLaCasa({ convenio_firmado_at: "2026-11-20T10:00:00Z" })).toBe(false);
   });
 });
+
+import { fechaDeComision } from "@/lib/facturacion/comision-plan";
+
+describe("la fecha de la factura de comisión (D24)", () => {
+  it("cobro y emisión en el mismo mes: sale con la fecha de hoy", () => {
+    expect(fechaDeComision("2026-11-17T20:00:00-06:00", new Date("2026-11-17T21:00:00-06:00"))).toBeNull();
+  });
+
+  it("cobro el último día por la noche, emisión ya en el mes siguiente: se fecha el día del cobro", () => {
+    expect(fechaDeComision("2026-11-30T23:40:00-06:00", new Date("2026-12-01T00:10:00-06:00"))).toBe("2026-12-01T05:40:00.000Z");
+  });
+
+  it("el mes es el de CDMX, no el de UTC", () => {
+    // 30 nov 20:00 CDMX ya es 1 dic en UTC, pero el cobro y la emisión son del mismo mes de CDMX.
+    expect(fechaDeComision("2026-11-30T19:00:00-06:00", new Date("2026-11-30T20:00:00-06:00"))).toBeNull();
+  });
+
+  it("pasadas 71 horas ya no se puede fechar atrás", () => {
+    expect(fechaDeComision("2026-11-30T23:40:00-06:00", new Date("2026-12-04T09:00:00-06:00"))).toBeNull();
+  });
+
+  it("sin fecha de cobro no se supone ninguna", () => {
+    expect(fechaDeComision(null)).toBeNull();
+  });
+});

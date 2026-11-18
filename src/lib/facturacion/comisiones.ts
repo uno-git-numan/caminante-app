@@ -19,7 +19,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { clienteFacturapi, facturacionActiva, llaveDeLaCasa, type ReceptorFiscal } from "@/lib/facturacion/facturapi";
 import { conceptosDePago, type PagoParaComprobante } from "@/lib/facturacion/conceptos";
 import { folioDePago } from "@/lib/facturacion/global-plan";
-import { CLAVE_COMISION, FORMA_PAGO_COMPENSACION, importeEgresoComision, interruptorComisiones, planComision, type PagoConComision } from "@/lib/facturacion/comision-plan";
+import { CLAVE_COMISION, FORMA_PAGO_COMPENSACION, fechaDeComision, importeEgresoComision, interruptorComisiones, planComision, type PagoConComision } from "@/lib/facturacion/comision-plan";
 
 const COLS = "id, folio, reservation_id, contact_id, amount_mxn, refunded_mxn, status, status_cfdi, method, paid_at, canal_cobro, platform_fee_mxn, fee_retenido_mxn";
 
@@ -113,7 +113,13 @@ export async function emitirComisionDePago(paymentId: string): Promise<Resultado
   const invoiceId = fila.id as string;
   const api = clienteFacturapi(llaveDeLaCasa());
   try {
-    const factura = await api.crearFacturaIngreso({ receptor: r.receptor, conceptos: plan.conceptos, formaPago: FORMA_PAGO_COMPENSACION });
+    const factura = await api.crearFacturaIngreso({
+      receptor: r.receptor,
+      conceptos: plan.conceptos,
+      formaPago: FORMA_PAGO_COMPENSACION,
+      // Cobro y emisión en meses distintos: se fecha el día del cobro (D24).
+      fecha: fechaDeComision(pay.paid_at ?? null),
+    });
     const a = await archivar(api, factura.id, `comision-${factura.uuid}`);
     await sb
       .from("cfdi_invoices")

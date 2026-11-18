@@ -1,4 +1,5 @@
 import { esVariante } from "@/lib/cancelacion/politica";
+import { contactoDeVenta } from "@/lib/payments/pago-loader";
 import { avisoFacturaDeOperadora } from "@/lib/facturacion/aviso-plazo";
 import { notFound, redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
@@ -80,6 +81,8 @@ export default async function ReservarPage({
   const avisoFactura = await avisoFacturaDeOperadora((expRow.operator_id as string | null) ?? null);
   // La política de cancelación que el cliente ve y acepta antes de pagar (D23).
   const politica = esVariante(experience?.politicaCancelacion) ? experience.politicaCancelacion : null;
+  // A quién acudir por una reclamación, a la vista antes de pagar (LFPC 76 Bis III).
+  const contacto = await contactoDeVenta(expRow.id as string);
   const title =
     [experience?.title, experience?.titleAccent].filter(Boolean).join(" ").trim() ||
     experience?.docTitle ||
@@ -212,6 +215,7 @@ export default async function ReservarPage({
             codigoInicial={codigoInicial}
             avisoFactura={avisoFactura}
             politica={politica}
+            contacto={contacto}
           />
         )}
       </div>
@@ -232,6 +236,7 @@ export default async function ReservarPage({
           errMsg={errMsg}
           avisoFactura={avisoFactura}
           politica={politica}
+          contacto={contacto}
         />
       </PubShell>
     </>
