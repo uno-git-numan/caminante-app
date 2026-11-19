@@ -149,7 +149,7 @@ export default function AltaRapida() {
         <div className="main">
           <p className="form-intro">
             <span className="sl">Lo esencial</span>
-            Con esto tu experiencia ya se puede publicar y vender. El contacto, la encuesta y el seguro se ponen solos. ¿Quieres escribirlo
+            Con esto tu experiencia ya se puede publicar y vender. El contacto, la encuesta y el deslinde se ponen solos. ¿Quieres escribirlo
             todo a detalle desde el principio?{" "}
             <a href="/caminante/admin/experiencias/nueva?completo=1" style={{ textDecoration: "underline" }}>
               Abre el editor completo
@@ -237,7 +237,6 @@ export default function AltaRapida() {
                 <span className="sl">{"//"}</span> 3 de 5
               </span>
               <h2>Qué incluye y qué no</h2>
-              <p className="desc">El seguro de accidentes durante la salida se agrega solo.</p>
             </div>
             <div className="row c2">
               <Field label="Incluye">

@@ -44,11 +44,24 @@ encuentro. El editor completo (17 secciones, 134 campos) sigue en
   ficha lo enseña junto a las fechas, en escritorio y móvil.
 - **`corta-actions.ts`** sólo encadena: `saveExperience` → `crearSalida`.
   Publicar pasa por `setExperienceStatus` y los candados de siempre.
-- ⚠️ **El deslinde estándar es texto de LEGAL** (`lib/legal/clausulas-estandar.ts`).
-  Mientras esa lista esté vacía, la experiencia nace con el deslinde apagado y
-  la pantalla lo dice; código no redacta cláusulas ni copia las de otra
-  experiencia (las 16 existentes traen cada una la suya, y algunas ya
-  contradicen lo vigente).
+- ⚠️ **El deslinde estándar es texto de LEGAL** (D28;
+  `lib/legal/clausulas-estandar.ts`, transcrito de
+  `design/legal/DESLINDE-ESTANDAR-2026-11-19.md` y comparado por una prueba):
+  16 obligatorias + 2 opcionales + las adicionales de la actividad. Dos
+  variantes que salen de un HECHO: **seguro** (con póliza sólo si la crea una
+  operadora con convenio firmado; la casa no la tiene confirmada) y **menores**
+  (según la edad mínima). El renglón «Seguro de accidentes durante la salida»
+  de la página sigue la misma variante: no se promete un seguro que no hay.
+  **Una actividad sin adicionales escritas** (hoy espeleísmo, ciclismo de
+  montaña, observación de naturaleza y paracaidismo) nace con el deslinde
+  apagado y no se publica hasta que legal las escriba. Código no redacta
+  cláusulas ni copia las de otra experiencia.
+- **El documento de una experiencia nueva lleva el marco corregido**
+  (`registration.marco = 2`, `seccionesDelMarco2`): el encabezado nombra a
+  quien vende según D22 (`renglonesDeQuienOrganiza`), la sección de seguro
+  sigue la cláusula 9 y «Deslinde de responsabilidad» pasa a «Asunción de
+  riesgos y responsabilidad». **Las publicadas conservan el marco de siempre**:
+  cambiarlo pide versión nueva de su deslinde y aprobación de Luis (D28 §4).
 - La hoja de estilos y las piezas del formulario (`form-base.ts`,
   `form-piezas.tsx`) se sacaron del editor completo para que las dos pantallas
   usen las mismas, no una copia.

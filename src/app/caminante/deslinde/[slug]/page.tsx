@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Experience } from "@/lib/experiences/types";
 import { buildDeslinde, ENTIDAD } from "@/lib/legal/deslinde-doc";
+import { renglonesDeQuienOrganiza, type QuienOrganiza } from "@/lib/legal/deslinde-doc";
 import { fetchOperatorTheme } from "@/lib/operators/branding";
 import WhiteLabelStyles, { wlDoc } from "../../ui/wl/WhiteLabelStyles";
 
@@ -41,12 +42,22 @@ async function temaDe(slug: string) {
   const sb = createSupabaseAdminClient();
   const { data } = await sb.from("experiences").select("operator_id").eq("slug", slug).maybeSingle();
   const opId = (data as { operator_id: string | null } | null)?.operator_id ?? null;
-  if (!opId) return { tema: null, esLaCasa: true };
+  if (!opId) return { tema: null, esLaCasa: true, organiza: { tipo: "casa" } as QuienOrganiza };
   const [tema, { data: fila }] = await Promise.all([
     fetchOperatorTheme(opId),
-    sb.from("operators").select("es_la_casa").eq("id", opId).maybeSingle(),
+    sb.from("operators").select("es_la_casa, name, razon_social, rfc, convenio_firmado_at").eq("id", opId).maybeSingle(),
   ]);
-  return { tema, esLaCasa: (fila as { es_la_casa: boolean | null } | null)?.es_la_casa === true };
+  const op = fila as { es_la_casa: boolean | null; name: string | null; razon_social: string | null; rfc: string | null; convenio_firmado_at: string | null } | null;
+  const esLaCasa = op?.es_la_casa === true;
+  // Quién responde frente al participante (D22): con convenio firmado vende la
+  // operadora a nombre propio; sin convenio vende NUMAN y ella opera en campo.
+  const organiza: QuienOrganiza =
+    esLaCasa || !op
+      ? { tipo: "casa" }
+      : op.convenio_firmado_at
+        ? { tipo: "operadora", nombre: op.razon_social?.trim() || op.name?.trim() || "La operadora", rfc: op.rfc?.trim() || null }
+        : { tipo: "sin-convenio", nombre: op.name?.trim() || "La operadora" };
+  return { tema, esLaCasa, organiza };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -154,9 +165,25 @@ export default async function DeslindePage({ params }: { params: Promise<{ slug:
       <div className="subtitle">{doc.experiencia}{doc.ubicacion ? ` · ${doc.ubicacion}` : ""}</div>
 
       <div className="infobox">
-        <div><b>Organiza:</b> {ENTIDAD.razonSocial}, operando bajo la marca {ENTIDAD.marca} (en adelante “el Organizador”).</div>
-        {doc.ubicacion ? <div><b>Ubicación:</b> {doc.ubicacion}</div> : null}
-        <div><b>RFC · Domicilio · RNT:</b> {ENTIDAD.rfc} · {ENTIDAD.domicilio} · RNT: {ENTIDAD.rnt}</div>
+        {doc.marco === 2 ? (
+          // El marco corregido (D28): el encabezado nombra a quien de verdad vende.
+          <>
+            <div><b>Organiza:</b> {renglonesDeQuienOrganiza(quien.organiza).organiza}</div>
+            {renglonesDeQuienOrganiza(quien.organiza).operaEnCampo ? <div><b>Opera en campo:</b> {renglonesDeQuienOrganiza(quien.organiza).operaEnCampo}</div> : null}
+            {doc.ubicacion ? <div><b>Ubicación:</b> {doc.ubicacion}</div> : null}
+            {quien.organiza.tipo === "operadora" ? (
+              <div><b>Plataforma:</b> Caminante, de {ENTIDAD.razonSocial} · RFC {ENTIDAD.rfc} · {ENTIDAD.domicilio}</div>
+            ) : (
+              <div><b>RFC · Domicilio:</b> {ENTIDAD.rfc} · {ENTIDAD.domicilio}</div>
+            )}
+          </>
+        ) : (
+          <>
+            <div><b>Organiza:</b> {ENTIDAD.razonSocial}, operando bajo la marca {ENTIDAD.marca} (en adelante “el Organizador”).</div>
+            {doc.ubicacion ? <div><b>Ubicación:</b> {doc.ubicacion}</div> : null}
+            <div><b>RFC · Domicilio · RNT:</b> {ENTIDAD.rfc} · {ENTIDAD.domicilio} · RNT: {ENTIDAD.rnt}</div>
+          </>
+        )}
         <div><b>Contacto:</b> {ENTIDAD.contacto} · WhatsApp {ENTIDAD.whatsapp}</div>
         <div><b>Versión del documento:</b> {doc.version}</div>
       </div>

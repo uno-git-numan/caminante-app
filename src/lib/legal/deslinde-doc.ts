@@ -5,6 +5,7 @@
 // el deslinde se genera SOLO al activar el registro — sin PDF manual ni URLs.
 import type { Experience, V2Hero } from "@/lib/experiences/types";
 import { textosDeClausulas } from "@/lib/legal/clausulas";
+import { SEGURO } from "@/lib/legal/clausulas-estandar";
 
 export const ENTIDAD = {
   razonSocial: "NUMAN HUB, S.A. de C.V.",
@@ -62,6 +63,84 @@ export const SECCIONES_GENERICAS: { titulo: string; paras: string[] }[] = [
   },
 ];
 
+// ── EL MARCO CORREGIDO (D28 de legal, §3) ───────────────────────────────────
+//
+// El marco de arriba repite en largo lo que la lista resume, y dice dos cosas
+// que para una operadora con convenio serían falsas: que organiza NUMAN HUB y
+// que no se proporciona seguro. El corregido:
+//   a) nombra en el encabezado a quien de verdad vende (`QuienOrganiza`);
+//   b) su sección de seguro sigue la variante de la cláusula 9;
+//   c) «Deslinde de responsabilidad» pasa a «Asunción de riesgos y
+//      responsabilidad»: se asumen los riesgos inherentes, y la liberación no
+//      alcanza el dolo, la negligencia de los guías ni el equipo inadecuado.
+//
+// ⚠️ RIGE SÓLO PARA EXPERIENCIAS NUEVAS (`registration.marco === 2`, que pone
+// el alta rápida). Las publicadas conservan el marco con el que se firmaron;
+// pasarlas al corregido es una decisión de Luis y pide versión nueva del
+// deslinde (D28 §4). Los textos son de legal, transcritos.
+
+const SEGURO_CON = {
+  titulo: "Seguro y gastos médicos",
+  paras: [
+    "Esta salida cuenta con un seguro de accidentes contratado por el Organizador. Su cobertura, sus límites y sus exclusiones son los de la póliza, que el Organizador exhibe a quien la pida. Lo que la póliza no cubra o exceda corre por cuenta del participante. En una emergencia, el participante autoriza al Organizador a gestionar en su nombre la atención médica, el traslado y la evacuación necesarios.",
+  ],
+};
+
+/** «Sin seguro: el texto de hoy, sin la palabra "enfáticamente"». */
+const SEGURO_SIN = {
+  titulo: "Seguro y gastos médicos",
+  paras: SECCIONES_GENERICAS[0].paras.map((t) => t.replace("El Organizador lo recomienda enfáticamente.", "El Organizador lo recomienda.")),
+};
+
+const ASUNCION = {
+  titulo: "Asunción de riesgos y responsabilidad",
+  paras: [
+    "Con pleno conocimiento de los riesgos descritos, el participante los asume y libera al Organizador y a Caminante (NUMAN HUB, S.A. de C.V.), a sus guías, colaboradores, proveedores y representantes, de responsabilidad por los daños que deriven de esos riesgos inherentes, del estado de salud del participante, de su propia conducta o de no seguir las instrucciones, incluidos los traslados hacia y desde el punto de encuentro. Esta liberación no alcanza los daños causados por dolo, por negligencia de los guías o por el uso de equipo inadecuado, de los que el Organizador responde conforme a la legislación mexicana.",
+    "Tratándose de daños patrimoniales (pérdida, robo o deterioro de pertenencias, gastos de viaje, conexiones perdidas y similares), la responsabilidad del Organizador y de Caminante se limita al monto pagado por el participante por esta experiencia. Este límite no aplica a daños a la persona.",
+  ],
+};
+
+const seccion = (titulo: string) => SECCIONES_GENERICAS.find((x) => x.titulo === titulo) as { titulo: string; paras: string[] };
+
+/** Las secciones del marco corregido, con la variante de seguro que le toca a la experiencia. */
+export function seccionesDelMarco2(conSeguro: boolean): { titulo: string; paras: string[] }[] {
+  const imagen = seccion("Uso de imagen");
+  const datos = seccion("Datos personales");
+  return [
+    conSeguro ? SEGURO_CON : SEGURO_SIN,
+    ASUNCION,
+    { titulo: imagen.titulo, paras: imagen.paras.map((t) => t.replace("de Caminante y Numan", "del Organizador, Caminante y Numan")) },
+    seccion("Menores de edad (si aplica)"),
+    // El correo para ejercer derechos es el del aviso de privacidad.
+    { titulo: datos.titulo, paras: datos.paras.map((t) => t.replace("Derechos ARCO: uno@numanhub.com.", "Derechos ARCO: caminante@numanhub.com.")) },
+    seccion("Aceptación"),
+  ];
+}
+
+/**
+ * Quién responde frente al participante (D22): la casa; una operadora con
+ * convenio firmado, que vende a nombre propio; o una operadora sin convenio,
+ * donde vende NUMAN y ella opera en campo.
+ */
+export type QuienOrganiza =
+  | { tipo: "casa" }
+  | { tipo: "operadora"; nombre: string; rfc: string | null }
+  | { tipo: "sin-convenio"; nombre: string };
+
+/** El renglón «Organiza» del encabezado y, si aplica, el de «Opera en campo». */
+export function renglonesDeQuienOrganiza(q: QuienOrganiza): { organiza: string; operaEnCampo: string | null } {
+  if (q.tipo === "operadora") {
+    return {
+      organiza: `${q.nombre}${q.rfc ? `, RFC ${q.rfc}` : ""}, a través de la plataforma Caminante, de NUMAN HUB, S.A. de C.V. (en adelante “el Organizador”).`,
+      operaEnCampo: null,
+    };
+  }
+  return {
+    organiza: "NUMAN HUB, S.A. de C.V., bajo la marca Caminante (en adelante “el Organizador”).",
+    operaEnCampo: q.tipo === "sin-convenio" ? q.nombre : null,
+  };
+}
+
 function nombreExp(exp: Experience): string {
   const hero = exp.page?.blocks?.find((b) => b.type === "hero") as V2Hero | undefined;
   const t = [hero?.title, hero?.titleAccent].filter(Boolean).join(" ").trim();
@@ -75,6 +154,8 @@ export type DeslindeDoc = {
   version: string;
   clausulas: string[];
   secciones: { titulo: string; paras: string[] }[];
+  /** 2 = el marco corregido de D28: el encabezado nombra a quien vende. Sin él, el de siempre. */
+  marco?: 2;
 };
 
 // Devuelve el documento listo para renderizar, o null si el registro no está
@@ -101,12 +182,17 @@ export function buildDeslinde(exp: Experience | null | undefined): DeslindeDoc |
         ]
       : [];
 
+  // El marco corregido sólo en las experiencias que nacieron con él. La
+  // variante de seguro se lee de la propia lista: la sección y la cláusula 9
+  // no pueden decir cosas distintas.
+  const marco2 = reg.marco === 2;
   return {
     titulo: "Carta de Responsabilidad Compartida y Deslinde de Responsabilidad",
     experiencia: nombreExp(exp),
     ubicacion: ubic,
     version: reg.waiverVersion?.trim() || "v1",
     clausulas,
-    secciones: [...contactoBase, ...SECCIONES_GENERICAS],
+    secciones: [...contactoBase, ...(marco2 ? seccionesDelMarco2(clausulas.includes(SEGURO.con)) : SECCIONES_GENERICAS)],
+    ...(marco2 ? { marco: 2 as const } : {}),
   };
 }

@@ -15,7 +15,7 @@ import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { saveExperience } from "@/lib/experiences/actions";
 import { etiquetaDeSalida, experienciaDesdeCorta, faltantesDeCorta, type ExperienciaCorta, type FaltanteDeCorta } from "@/lib/experiences/corta";
 import type { ContactoDueno } from "@/lib/experiences/empty";
-import { CLAUSULAS_ESTANDAR } from "@/lib/legal/clausulas-estandar";
+import { clausulasEstandar } from "@/lib/legal/clausulas-estandar";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type PrimeraSalida = {
@@ -32,15 +32,28 @@ export type ResultadoAltaRapida =
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
-/** El contacto de la operadora que crea, para que la página nazca invitando a escribirle a ELLA. */
-async function contactoDeQuienCrea(): Promise<ContactoDueno | undefined> {
+/**
+ * Quién crea: su contacto (para que la página nazca invitando a escribirle a
+ * ELLA) y si sus salidas llevan seguro. El seguro es un HECHO (D28): una
+ * operadora con convenio firmado está obligada a la póliza de accidentes en
+ * cada salida; la casa no la tiene confirmada, y una operadora sin convenio
+ * vende como la casa. Se lee de la base, no del formulario.
+ */
+async function quienCrea(): Promise<{ dueno?: ContactoDueno; conSeguro: boolean }> {
   const operatorId = await operadorDelAlcance();
-  if (!operatorId) return undefined;
+  if (!operatorId) return { conSeguro: false };
   // Cliente de servicio: la RLS de `operators` sólo expone las públicas, y una
   // operadora recién dada de alta todavía no lo es.
-  const { data } = await createSupabaseAdminClient().from("operators").select("email, instagram, whatsapp").eq("id", operatorId).maybeSingle();
-  if (!data) return undefined;
-  return { email: data.email ?? undefined, instagram: data.instagram ?? undefined, whatsapp: data.whatsapp ?? undefined };
+  const { data } = await createSupabaseAdminClient()
+    .from("operators")
+    .select("email, instagram, whatsapp, es_la_casa, convenio_firmado_at")
+    .eq("id", operatorId)
+    .maybeSingle();
+  if (!data) return { conSeguro: false };
+  return {
+    dueno: { email: data.email ?? undefined, instagram: data.instagram ?? undefined, whatsapp: data.whatsapp ?? undefined },
+    conSeguro: data.es_la_casa !== true && !!data.convenio_firmado_at,
+  };
 }
 
 export async function crearExperienciaRapida(c: ExperienciaCorta, salida: PrimeraSalida): Promise<ResultadoAltaRapida> {
@@ -58,7 +71,11 @@ export async function crearExperienciaRapida(c: ExperienciaCorta, salida: Primer
     if (inicio < hoy) return { ok: false, error: "La fecha de la salida ya pasó." };
   }
 
-  const exp = experienciaDesdeCorta(c, { dueno: await contactoDeQuienCrea(), clausulas: CLAUSULAS_ESTANDAR });
+  const quien = await quienCrea();
+  // El deslinde estándar de legal para esa actividad, con la variante de
+  // seguro y de menores que le toca. null = legal todavía no lo escribe.
+  const clausulas = clausulasEstandar({ actividad: c.actividad.trim(), edadMinima: Number(c.edadMinima.trim()) || 0, conSeguro: quien.conSeguro });
+  const exp = experienciaDesdeCorta(c, { dueno: quien.dueno, clausulas: clausulas ?? [], conSeguro: quien.conSeguro });
   const guardada = await saveExperience(exp, { expectedSlug: null });
   if (!guardada.ok) {
     return {
@@ -71,8 +88,8 @@ export async function crearExperienciaRapida(c: ExperienciaCorta, salida: Primer
   }
 
   const avisos: string[] = [];
-  if (!CLAUSULAS_ESTANDAR.length) {
-    avisos.push("El deslinde quedó apagado: todavía no hay un texto estándar. Complétalo en «Agregar más detalle» antes de publicar.");
+  if (!clausulas) {
+    avisos.push("El deslinde quedó apagado: para esta actividad todavía no hay un deslinde estándar. Avísanos y lo escribimos; mientras, no se puede publicar.");
   }
 
   let conFecha = false;

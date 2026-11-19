@@ -13,8 +13,9 @@
 // cuánto cuesta y cómo se cancela.
 //
 // Qué se pone solo: el contacto de quien la crea, la encuesta estándar, el
-// renglón del seguro de accidentes, el deslinde con las cláusulas que se le
-// pasen, y los títulos de cada bloque de la página.
+// deslinde con las cláusulas que se le pasen, los títulos de cada bloque de la
+// página y —sólo cuando la salida de verdad lleva póliza— el renglón del
+// seguro de accidentes.
 //
 // Puro: lo usan la pantalla (para decir qué falta mientras se escribe), la
 // acción que guarda y las pruebas.
@@ -91,7 +92,12 @@ export const CORTA_VACIA: ExperienciaCorta = {
   politica: "estandar",
 };
 
-/** El renglón que el sistema agrega a «Incluye» (D27): la póliza de accidentes es obligatoria en cada salida. */
+/**
+ * El renglón que el sistema agrega a «Incluye» cuando la salida lleva póliza
+ * de accidentes. Sigue la misma variante que la cláusula 9 del deslinde (D28,
+ * que corrigió a D27): aparece «con seguro» y no aparece «sin seguro». Una
+ * página que promete un seguro que no existe es peor que una que no dice nada.
+ */
 export const RENGLON_SEGURO = "Seguro de accidentes durante la salida";
 
 const limpio = (s: string | undefined | null) => (s ?? "").trim();
@@ -173,7 +179,15 @@ function primerasFrases(texto: string, max: number): string {
  * no se redacta aquí; si llega vacío, el deslinde nace apagado y publicar lo
  * va a pedir (no se inventa una cláusula para que pase el candado).
  */
-export function experienciaDesdeCorta(c: ExperienciaCorta, opts: { dueno?: ContactoDueno; clausulas?: ClausulaGuardada[] } = {}): Experience {
+export function experienciaDesdeCorta(
+  c: ExperienciaCorta,
+  opts: {
+    dueno?: ContactoDueno;
+    clausulas?: ClausulaGuardada[];
+    /** ¿La salida lleva póliza de accidentes? Es un hecho (operadora con convenio firmado), no una preferencia. */
+    conSeguro?: boolean;
+  } = {},
+): Experience {
   const titulo = limpio(c.titulo);
   const lugar = limpio(c.lugar);
   const descripcion = limpio(c.descripcion);
@@ -182,7 +196,7 @@ export function experienciaDesdeCorta(c: ExperienciaCorta, opts: { dueno?: Conta
   const cupo = limpio(c.cupo) ? entero(c.cupo) : null;
   const fotos = lista(c.fotos).slice(0, 5);
   const incluye = lista(c.incluye);
-  const yes = incluye.some((x) => /seguro/i.test(x)) ? incluye : [...incluye, RENGLON_SEGURO];
+  const yes = opts.conSeguro && !incluye.some((x) => /seguro/i.test(x)) ? [...incluye, RENGLON_SEGURO] : incluye;
   const parrafos = descripcion.split(/\n{2,}|\n/).map(limpio).filter(Boolean);
   const clausulas = opts.clausulas ?? [];
 
@@ -217,6 +231,8 @@ export function experienciaDesdeCorta(c: ExperienciaCorta, opts: { dueno?: Conta
       ...(base.registration as NonNullable<Experience["registration"]>),
       active: clausulas.length > 0,
       waiverClauses: clausulas,
+      // Una experiencia nueva nace con el marco corregido del documento (D28 §3).
+      marco: 2,
     },
     feedback: {
       ...(base.feedback as NonNullable<Experience["feedback"]>),

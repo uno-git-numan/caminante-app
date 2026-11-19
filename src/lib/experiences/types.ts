@@ -316,6 +316,12 @@ export type Experience = {
     // cadenas sueltas de antes siguen valiendo: `leerClausulas` las normaliza.
     // ⚠️ NO leer este arreglo a mano — pasa por `lib/legal/clausulas.ts`.
     waiverClauses: ClausulaGuardada[];
+    // Qué marco legal lleva el documento generado. 2 = el corregido de D28
+    // (nombra a quien vende; el seguro sigue la variante de la cláusula 9;
+    // «Asunción de riesgos»). Lo pone el alta rápida junto con el deslinde
+    // estándar. Sin él, el marco de siempre: una experiencia publicada no
+    // cambia de marco sin una versión nueva de su deslinde.
+    marco?: 2;
     // La carta de deslinde PROPIA del operador, tal como la subió. Se conserva
     // aunque ya esté fusionada: es el documento del que salieron sus cláusulas
     // y sin él la fusión no se puede auditar ni rehacer.

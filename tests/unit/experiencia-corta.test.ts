@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CORTA_VACIA, datosOfertaDe, etiquetaDeSalida, experienciaDesdeCorta, faltantesDeCorta, renglonesDeOferta, RENGLON_SEGURO, type ExperienciaCorta } from "@/lib/experiences/corta";
 import { encuestaLista, deslindeListo, listaParaPublicar } from "@/lib/experiences/flujo-venta";
+import { clausulasEstandar } from "@/lib/legal/clausulas-estandar";
 
 // El alta rápida: pocos datos de entrada, una experiencia completa de salida.
 
@@ -61,12 +62,24 @@ describe("la experiencia que sale", () => {
     expect(exp.page?.blocks.map((b) => b.type)).toEqual(["hero", "split", "tariff", "checklist", "dates", "closing"]);
   });
 
-  it("agrega solo el renglón del seguro de accidentes, una vez", () => {
-    const lista = exp.page?.blocks.find((b) => b.type === "checklist") as { yesItems: string[]; noItems: string[] };
-    expect(lista.yesItems).toEqual(["Guía certificado", "Desayuno", RENGLON_SEGURO]);
-    expect(lista.noItems).toEqual(["Transporte desde tu ciudad"]);
-    const yaLoDice = experienciaDesdeCorta({ ...completa, incluye: ["Seguro de gastos médicos"] }, { clausulas });
-    expect((yaLoDice.page?.blocks.find((b) => b.type === "checklist") as { yesItems: string[] }).yesItems).toEqual(["Seguro de gastos médicos"]);
+  const incluyeDe = (e: ReturnType<typeof experienciaDesdeCorta>) => (e.page?.blocks.find((b) => b.type === "checklist") as { yesItems: string[]; noItems: string[] });
+
+  it("sin póliza confirmada NO promete seguro: la lista queda como se escribió", () => {
+    expect(incluyeDe(exp).yesItems).toEqual(["Guía certificado", "Desayuno"]);
+    expect(incluyeDe(exp).noItems).toEqual(["Transporte desde tu ciudad"]);
+  });
+
+  it("con seguro (operadora con convenio) agrega el renglón, una sola vez", () => {
+    expect(incluyeDe(experienciaDesdeCorta(completa, { clausulas, conSeguro: true })).yesItems).toEqual(["Guía certificado", "Desayuno", RENGLON_SEGURO]);
+    const yaLoDice = experienciaDesdeCorta({ ...completa, incluye: ["Seguro de gastos médicos"] }, { clausulas, conSeguro: true });
+    expect(incluyeDe(yaLoDice).yesItems).toEqual(["Seguro de gastos médicos"]);
+  });
+
+  it("con el deslinde estándar de legal para su actividad pasa el candado de publicar", () => {
+    const estandar = clausulasEstandar({ actividad: completa.actividad, edadMinima: 12, conSeguro: false })!;
+    const conEstandar = experienciaDesdeCorta(completa, { clausulas: estandar });
+    expect(conEstandar.registration?.active).toBe(true);
+    expect(listaParaPublicar(conEstandar).ok).toBe(true);
   });
 
   it("con tres fotos arma el mosaico; con dos, la sección va sin fotos", () => {
