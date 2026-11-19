@@ -823,6 +823,25 @@ El candado pasa de la publicación a la **salida**: sin póliza, guía o permiso
 
 **Corrige D11:** el aviso de NUMAN como retenedora se presenta dentro del mes siguiente a la primera retención (Reglamento del CFF, art. 29 fracción VII y penúltimo párrafo), no necesariamente antes. Conviene pedírselo a Marisol ya (M7).
 
+
+### D28 · El deslinde estándar y tres hallazgos sobre lo publicado (19 nov)
+
+Código pidió el resumen estándar del deslinde para las experiencias del alta rápida. Texto completo en `DESLINDE-ESTANDAR-2026-11-19.md`: 16 cláusulas obligatorias y 2 opcionales para cualquier actividad, adicionales para 13 actividades del catálogo, el marco del documento corregido y la lista de correcciones a lo publicado.
+
+Tres hallazgos al leer las 16 listas vigentes y el marco:
+
+| Hallazgo | Qué dice la fuente | Consecuencia |
+|---|---|---|
+| **El seguro.** Once experiencias y el marco dicen que el Organizador no proporciona seguro | NOM-011-TUR-2001, 6.1 c): quien opera turismo de aventura debe contar con «seguros contra accidentes y gastos médicos» | Decirlo no quita la obligación. Para operadoras con convenio el texto dice que hay seguro (Sexta §2). Para la casa falta un dato de Luis: si sus salidas llevan póliza. Si no la llevan, el pendiente es contratarla, no cambiar el texto |
+| **Quién es el Organizador.** El marco nombra siempre a NUMAN HUB | D22: con convenio firmado vende y opera la operadora | El encabezado y el marco deben nombrar a quien responde; si no, el deslinde no protege a la operadora |
+| **La liberación.** Todas dicen «salvo dolo o negligencia grave» y topan todo daño al monto pagado | NOM-011-TUR-2001, 5.1.6: responde por negligencia del guía y equipo inadecuado; LFPC 90 II: se tiene por no puesta la cláusula que libera de responsabilidad civil | Se redacta como asunción de riesgos inherentes; el tope queda sólo para daños patrimoniales |
+
+Además: tres experiencias repiten la política de cancelación dentro del deslinde (se quita: vive en la ficha, D23); cinco marcan el uso de imagen como obligatorio (es elección); cinco traen listas cortas; seis publicadas no tienen actividad asignada.
+
+**Corrige D27:** el renglón automático «Seguro de accidentes durante la salida» aparece sólo cuando la experiencia lleva la variante con seguro, no en todas.
+
+**Nada publicado se toca sin la aprobación de Luis.** Quien ya firmó conserva lo que firmó; los cambios rigen para firmas nuevas con versión nueva del deslinde.
+
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
 **v3.3 (menor) publicada el 12 nov 2026 (03:38 UTC)**, orden 2, hash

@@ -12,6 +12,27 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 19 nov 2026 · Sesión legal: el deslinde estándar está escrito (D28)
+
+Archivo: `design/legal/DESLINDE-ESTANDAR-2026-11-19.md`.
+
+- **§1 Lista estándar:** 16 obligatorias y 2 opcionales. Dos cláusulas tienen
+  variante que sale de un hecho: la 9 (con seguro / sin seguro) y la 13
+  (admite menores / sólo adultos, según la edad mínima).
+- **§2 Por actividad:** senderismo, alta-montana, campamento, escalada,
+  rappel, canonismo, rafting, kayak, snorkel, buceo, buceo-cavernas,
+  cabalgata, micologia. Una actividad que no esté ahí nace con el deslinde
+  apagado hasta que yo la escriba.
+- **§3 El marco tiene que cambiar con la lista:** el encabezado nombra a quien
+  vende (D22), la sección de seguro sigue la variante, y «Deslinde de
+  responsabilidad» se sustituye por «Asunción de riesgos y responsabilidad».
+  Sin eso, el documento de una operadora con convenio diría que organiza NUMAN
+  y que no hay seguro.
+- **§4 Correcciones a lo publicado:** siete, ninguna se toca sin Luis.
+- **Corrige D27:** el renglón «Seguro de accidentes durante la salida» sólo
+  con la variante con seguro (operadora con convenio; la casa, cuando Luis
+  confirme póliza).
+
 ## 19 nov 2026 · Sesión legal: el mínimo legal para el alta del lunes (D27)
 
 Respuesta completa en `design/legal/MINIMO-LEGAL-ALTA-OPERADORA-2026-11-19.md`.
