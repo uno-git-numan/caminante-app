@@ -271,12 +271,13 @@ teniendo ganada y la casa recibe la alerta.
 
 ### 7.7 · Frente a la operadora (convenio)
 
-El convenio v3.3 no distingue esta causa: la penalización de la Quinta §3 se
-mide por la anticipación con que cancela la operadora y sólo exime la fuerza
-mayor. Si una operadora con convenio queda exenta de penalización al cancelar
-por cupo en plazo es **decisión de Luis** y entra en la siguiente versión del
-convenio. Hoy no afecta: todas las ventas son de la casa o de operadora sin
-convenio, y el cobro de la penalización no está construido.
+**Decidido por Luis el 19 nov: exenta.** La operadora que cancela por cupo
+mínimo dentro del plazo no paga bonificación ni penalización. Queda escrito
+en la Quinta §3 bis del convenio **v3.4**, preparado y todavía sin publicar.
+Fuera de plazo, con la salida confirmada o con la fecha fuera del piso, la
+cancelación le es imputable y aplican la bonificación y la penalización de la
+Quinta §3. Cuando producto construya el cobro de la penalización, la causa
+«cupo mínimo» válida no la genera.
 
 ### 7.8 · La cláusula también va en la ficha (18 nov, noche)
 

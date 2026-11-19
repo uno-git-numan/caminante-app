@@ -12,6 +12,19 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 19 nov 2026 · Sesión legal: Luis decidió «exenta»; convenio v3.4 preparado, sin publicar
+
+- **Penalización por cupo mínimo:** la operadora que cancela en plazo queda
+  **exenta** (Luis, 19 nov). Cuando construyas el cobro de la penalización de
+  la Quinta §3, la causa «cupo mínimo» válida no la genera. Hoy no hay nada
+  que construir.
+- **Convenio v3.4 (mayor), preparado:** Quinta §3 bis (cupo mínimo), mención
+  en el Anexo C y Séptima §6 (reclamaciones: domicilio y contacto de Caminante,
+  turnadas a la operadora a más tardar el día hábil siguiente). Firmable y SQL
+  en `design/operadores/`. Hash `4192ea11…ef77`. **No está publicado**: espera
+  la aprobación de Luis. Nadie ha firmado ninguna versión, verificado.
+- D26 completo en la rama (ec03fba): contabilizado.
+
 ## 18 nov 2026 (noche) · Sesión legal: aviso por cupo, pago mixto (§7.10)
 
 - §7.10 construido (d292583): contabilizado.

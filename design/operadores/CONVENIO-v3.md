@@ -1,5 +1,17 @@
 # Convenio de operación en la plataforma Caminante — v3 (documento de trabajo)
 
+### v3.4 · PREPARADO el 19 nov 2026 · mayor · NO PUBLICADO: espera la aprobación de Luis en la sesión que lo ejecute
+
+> **v3.4 (D25, D26 y la decisión de Luis del 19 nov: «Sí, exenta»).** Dos cambios
+> respecto de v3.3: **Quinta §3 bis** (cupo mínimo: sin bonificación ni penalización
+> cuando se avisa en plazo; anticipaciones 48 horas / 7 días / 20 días) con su mención
+> en el Anexo C, y **Séptima §6** (Caminante publica su domicilio y contacto para
+> reclamaciones y las turna; el domicilio del Operador no se publica). Se clasifica
+> **mayor** porque toca responsabilidades (Décima segunda). Al 19 nov nadie ha firmado
+> ninguna versión (`operator_agreements` vacía, verificado), así que la vigencia
+> inmediata no le cae encima a nadie. El hash y el SQL están en
+> `CONVENIO-v3.4-PUBLICAR.sql`; el firmable derivado es `CONVENIO-v3-FIRMABLE.md`.
+
 ### v3.3 · PUBLICADO el 12 nov 2026 (03:38 UTC) · menor · hash `32d3701eff720e8e0e24972f2834e034fb997c3da18a4c958f7ed2ac8383e978`
 
 > ⚠️ **Esta versión ya está publicada en producción** (`operator_agreement_versions`,
@@ -275,6 +287,10 @@ La penalización es una pena convencional, de al menos **$500 MXN** y de a lo m�
 
 > **Decidido (legal, 11 nov; D12, D14).** Fuerza mayor definida; pena convencional dentro del CCF 1843 (no excede la obligación principal). Los números son de Luis (9 nov).
 
+**3 bis · Cupo mínimo.** El Operador puede sujetar una salida a un **mínimo de personas**. Para ello captura en la plataforma el mínimo y la **fecha límite de confirmación**, que la plataforma muestra al cliente en la página de la experiencia y antes de pagar. La fecha límite no puede ser posterior a: **48 horas** antes del inicio, en salidas de menos de dos días; **7 días naturales** antes del inicio, en salidas de dos a seis días; **20 días naturales** antes del inicio, en salidas de más de seis días. Si a esa fecha no se reunió el mínimo de personas con pago confirmado, el Operador puede cancelar la salida avisando al cliente **a más tardar ese día**: el cliente recibe el **100 %** y **no hay bonificación ni penalización**. La exención sólo aplica frente a los clientes a quienes se mostró esta condición antes de pagar. No aplica si el aviso sale después de la fecha límite, si la salida ya se había confirmado o si la fecha no respeta la anticipación mínima: en esos casos la cancelación por falta de grupo es imputable al Operador conforme al punto 3. Llegada la fecha límite sin que el Operador confirme o cancele, la salida queda confirmada.
+
+> **Decidido (legal, 18–19 nov; D26).** La condición con número y fecha, informada antes de pagar, no es causa imputable (LFPC 92 Bis; NOM-010-TUR-2001, 6.2.5); sin número ni fecha sería nula (LFPC 90 I). Las anticipaciones siguen como referencia la Directiva (UE) 2015/2302, art. 12.3 a). La exención de penalización la decidió Luis el 19 nov («Sí, exenta»).
+
 **4 · La comisión sigue al dinero.** Cuando proceda una devolución, se reintegra al cliente el importe que corresponda y **la comisión de Caminante y su IVA se ajustan en la misma proporción**: si se devuelve todo, se devuelve toda la comisión; si el Operador retiene una parte conforme a su política, Caminante conserva su comisión únicamente sobre esa parte. Las retenciones de impuestos de esa venta se ajustan en la misma proporción **si la devolución ocurre antes de que Caminante emita el CFDI de retenciones del mes de la venta**; si ocurre después, la retención ya enterada queda a favor del Operador, que la acredita con ese CFDI, y el Operador reintegra a Caminante su importe conforme al punto 9.
 
 **5 · Caminante devuelve al cliente y recupera del Operador.** Cuando proceda una devolución, Caminante la hace al cliente **de inmediato** y por la misma forma de pago, aunque el Operador ya haya dispuesto de su parte; el Operador la reintegra a Caminante conforme al punto 9 (reversión de la transferencia, compensación contra ventas futuras o pago en 5 días hábiles). Frente al cliente, Caminante responde por la devolución; frente a Caminante, responde el Operador.
@@ -348,6 +364,10 @@ e) Las obligaciones de esta Cláusula Sexta aplican a **todas** las actividades,
 4. Dar soporte al Operador en el uso de la plataforma.
 
 5. No comercializar las experiencias del Operador fuera de la plataforma sin su consentimiento.
+
+6. **Reclamaciones de clientes.** Publicar en la plataforma, antes de que el cliente pague, la denominación, el domicilio y los medios de contacto de Caminante para recibir reclamaciones y aclaraciones de las ventas hechas en ella, junto con el nombre o la denominación del Operador que presta el servicio; y turnar al Operador, a más tardar el día hábil siguiente, las que correspondan a la prestación del servicio. El domicilio del Operador no se publica. El Operador acepta recibir por ese conducto las reclamaciones de sus clientes y atenderlas conforme a la Cláusula Sexta, punto 9; ello no traslada a Caminante la responsabilidad por la prestación del servicio.
+
+> **Decidido (legal, 18 nov; D25).** LFPC 76 Bis III pide domicilio y medios de reclamación antes de la transacción. Va el de Caminante; el del Operador no se publica porque muchas operadoras son personas físicas y su domicilio fiscal es su casa.
 
 ## Octava · Datos personales
 
@@ -497,7 +517,7 @@ El expediente se integra en la plataforma según el tipo de persona del Operador
 
 ## Anexo C · Política de cancelación
 
-Las dos políticas para el cliente (Estándar y Expedición), la ventana de arrepentimiento de 24 horas y la penalización al Operador que cancela son las de la Cláusula Quinta. El Operador elige una política por experiencia al publicarla y la plataforma la muestra al cliente antes de pagar.
+Las dos políticas para el cliente (Estándar y Expedición), la ventana de arrepentimiento de 24 horas y la penalización al Operador que cancela son las de la Cláusula Quinta. El Operador elige una política por experiencia al publicarla y la plataforma la muestra al cliente antes de pagar. La cancelación por cupo mínimo y sus anticipaciones son las del punto 3 bis de la misma cláusula.
 
 ## Anexo D · Aviso de privacidad
 

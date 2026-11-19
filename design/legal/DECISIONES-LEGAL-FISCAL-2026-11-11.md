@@ -797,7 +797,9 @@ Cancelar una salida porque no se juntó el grupo deja de generar la bonificació
 | Cuándo vuelve a haber bonificación | Aviso tardío, salida ya confirmada, fecha fuera del piso o reserva anterior a la cláusula | El texto que cada reserva aceptó |
 | Prueba | Huella del texto con el número y la fecha, copia de ambos en la reserva y hora del aviso | LFPC 76 Bis 1 fracción IV |
 
-**Abierto, de Luis:** si la operadora con convenio que cancela por cupo en plazo queda exenta de la penalización de la Quinta §3. Hoy el convenio la cobra por anticipación y sólo exime la fuerza mayor. Entra en la siguiente versión del convenio junto con el domicilio de reclamaciones (D25). No detiene la construcción: hoy no hay ventas de operadora con convenio.
+**Decidido por Luis el 19 nov («Sí, exenta»):** la operadora que cancela por cupo mínimo dentro del plazo no paga la penalización de la Quinta §3. El costo de procesamiento de esas ventas devueltas lo absorbe Caminante, como en toda devolución (Quinta §6).
+
+**Convenio v3.4, preparado y sin publicar.** Lleva dos cambios: Quinta §3 bis (cupo mínimo, con las tres anticipaciones y la exención) con su mención en el Anexo C, y Séptima §6 (Caminante publica su domicilio y contacto para reclamaciones y las turna a la operadora a más tardar el día hábil siguiente; el domicilio de la operadora no se publica, D25). Es versión **mayor** porque toca responsabilidades. Nadie ha firmado ninguna versión (verificado en la base el 19 nov), así que la vigencia inmediata no afecta a nadie. Hash del firmable: `4192ea119b6ccae59d7ed9b32775552d3990f5a6392da0a711a35d069dcaef77`. Publicarlo requiere la aprobación de Luis en la sesión que lo ejecute.
 
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
