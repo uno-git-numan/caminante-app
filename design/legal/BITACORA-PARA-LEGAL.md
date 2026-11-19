@@ -12,6 +12,28 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 19 nov 2026 · Sesión legal: el mínimo legal para el alta del lunes (D27)
+
+Respuesta completa en `design/legal/MINIMO-LEGAL-ALTA-OPERADORA-2026-11-19.md`.
+
+- **Expediente en tres momentos:** para publicar y vender, constancia fiscal,
+  identificación, convenio y anexo firmados. Antes de la primera salida,
+  pólizas, credencial del guía y permiso del sitio. En 30 días, el registro de
+  turismo. Manuales y bitácoras se declaran en el anexo, no se suben. Igual
+  para física y moral, salvo de quién es la identificación.
+- **El candado se mueve a la salida** y eso **exige el convenio v3.4**, que
+  ahora lleva ese cambio (hash nuevo `52347e96…e4df`). Sin v3.4 publicado vale
+  el candado de v3.3. Pásenme el anexo generado de la actividad que entra.
+- **Oferta:** faltan tres campos (hora de inicio y término, nivel de
+  exigencia, edad mínima) y, si hay anticipo, sus condiciones. Lo demás lo
+  pone el sistema; lista en §2.
+- **Interruptores:** tabla en §3. La factura al cliente desde el portal no es
+  requisito para cobrar. No hace falta separar `FACTURACION_CLIENTES` si el
+  pago de noviembre que facturó Marisol queda marcado con su folio; si no
+  llega, se separa.
+- **Corrige D11:** el aviso de retenedora va dentro del mes siguiente a la
+  primera retención (RCFF 29), no bloquea el lunes.
+
 ## 19 nov 2026 · Sesión legal: Luis decidió «exenta»; convenio v3.4 preparado, sin publicar
 
 - **Penalización por cupo mínimo:** la operadora que cancela en plazo queda

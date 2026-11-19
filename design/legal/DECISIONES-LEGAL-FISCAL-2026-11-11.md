@@ -799,7 +799,29 @@ Cancelar una salida porque no se juntó el grupo deja de generar la bonificació
 
 **Decidido por Luis el 19 nov («Sí, exenta»):** la operadora que cancela por cupo mínimo dentro del plazo no paga la penalización de la Quinta §3. El costo de procesamiento de esas ventas devueltas lo absorbe Caminante, como en toda devolución (Quinta §6).
 
-**Convenio v3.4, preparado y sin publicar.** Lleva dos cambios: Quinta §3 bis (cupo mínimo, con las tres anticipaciones y la exención) con su mención en el Anexo C, y Séptima §6 (Caminante publica su domicilio y contacto para reclamaciones y las turna a la operadora a más tardar el día hábil siguiente; el domicilio de la operadora no se publica, D25). Es versión **mayor** porque toca responsabilidades. Nadie ha firmado ninguna versión (verificado en la base el 19 nov), así que la vigencia inmediata no afecta a nadie. Hash del firmable: `4192ea119b6ccae59d7ed9b32775552d3990f5a6392da0a711a35d069dcaef77`. Publicarlo requiere la aprobación de Luis en la sesión que lo ejecute.
+**Convenio v3.4, preparado y sin publicar.** Lleva dos cambios: Quinta §3 bis (cupo mínimo, con las tres anticipaciones y la exención) con su mención en el Anexo C, y Séptima §6 (Caminante publica su domicilio y contacto para reclamaciones y las turna a la operadora a más tardar el día hábil siguiente; el domicilio de la operadora no se publica, D25). Es versión **mayor** porque toca responsabilidades. Nadie ha firmado ninguna versión (verificado en la base el 19 nov), así que la vigencia inmediata no afecta a nadie. Desde D27 lleva un tercer cambio (Anexo B y Sexta inciso c). Hash del firmable vigente: `52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df`. Publicarlo requiere la aprobación de Luis en la sesión que lo ejecute.
+
+
+### D27 · El mínimo legal para dar de alta a una operadora y que venda (19 nov)
+
+Producto pidió el mínimo, no el ideal, para que una operadora externa entre de punta a punta el 23 nov. Detalle y fuentes en `MINIMO-LEGAL-ALTA-OPERADORA-2026-11-19.md`.
+
+**1 · El expediente en tres momentos.** La ley obliga a la operadora a tener ciertas cosas para operar, no a entregarlas antes de vender.
+
+| Momento | Qué se pide | Fundamento |
+|---|---|---|
+| Para publicar y vender | Constancia fiscal, identificación de quien firma, convenio y anexo de la actividad firmados | D4, D5; firma electrónica |
+| Antes de la primera salida de cada actividad | Póliza de accidentes y gastos médicos, póliza de responsabilidad civil, credencial del guía, autorización del sitio si aplica | NOM-011-TUR-2001, 6.1 c) y 6.3 g); convenio, Sexta §2 a §4 |
+| En 30 días naturales | Registro Nacional de Turismo (constancia o acuse) | Ley General de Turismo, 48 y 58 V |
+| Se declara, no se entrega | Manuales, programas, bitácoras, reglamento interno | NOM-011-TUR-2001, 6.1 y 6.2 |
+
+El candado pasa de la publicación a la **salida**: sin póliza, guía o permiso, la salida no se realiza. Esto exige el convenio **v3.4** (Anexo B y Sexta inciso c); mientras no se publique, vale el candado completo de v3.3.
+
+**2 · La oferta.** Al formulario corto le faltan tres campos obligatorios: hora de inicio y término, nivel de exigencia y edad mínima (NOM-010-TUR-2001, 6.2.5; NOM-011-TUR-2001, 5.1.2 c y 5.1.5). Si hay anticipo, su importe y la fecha del saldo. El sistema pone solo: quién opera, «IVA incluido», política de cancelación, reclamaciones, seguro de accidentes incluido y la liga al deslinde antes de pagar. El itinerario día por día no es obligatorio.
+
+**3 · Los interruptores.** Antes del primer cobro en la cuenta de la operadora: convenio firmado con su porcentaje, constancia validada, cuenta de cobro habilitada, llave Live de la casa y `FACTURACION_COMISIONES`. La llave Live ya no espera nada por lo legal (D21). La factura al cliente con el sello de la operadora es opcional y no detiene el cobro. No hace falta separar el interruptor de facturación a clientes: basta que no salga nada de la casa sobre el pago de noviembre que Marisol ya facturó (marcarlo con su folio fiscal, o separar el interruptor).
+
+**Corrige D11:** el aviso de NUMAN como retenedora se presenta dentro del mes siguiente a la primera retención (Reglamento del CFF, art. 29 fracción VII y penúltimo párrafo), no necesariamente antes. Conviene pedírselo a Marisol ya (M7).
 
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 

@@ -190,7 +190,7 @@ a) El anexo **no sustituye** este convenio ni lo contradice: lo detalla. En lo c
 
 b) **Cada actividad se aprueba y se suspende por separado.** Que una actividad quede incompleta, vencida o suspendida no afecta a las demás: el Operador sigue vendiendo las actividades cuyo anexo esté vigente y cuyo expediente esté aprobado.
 
-c) El Operador **no puede publicar ni vender una experiencia de una actividad cuyo anexo no haya suscrito**, o cuyo expediente no esté aprobado. La plataforma lo impide técnicamente; esta cláusula lo dice también por escrito.
+c) El Operador **no puede publicar ni vender una experiencia de una actividad cuyo anexo no haya suscrito**, o cuyo expediente de arranque (Anexo B) no esté aprobado. La plataforma lo impide técnicamente; esta cláusula lo dice también por escrito. Los documentos que el Anexo B y el anexo de la actividad piden para la salida se entregan antes de que inicie; **sin ellos la salida no se realiza**.
 
 d) Los anexos se publican, versionan y firman con el mismo procedimiento y los mismos plazos que este convenio (Cláusula Décima segunda), y con la misma firma electrónica (Cláusula Décima sexta).
 
@@ -339,6 +339,8 @@ El expediente se integra en la plataforma según el tipo de persona del Operador
 7. Sólo para personas morales: acta constitutiva y poder del representante legal.
 
 **Por actividad:** la credencial de guía SECTUR (NOM-09-TUR-2002) de la modalidad y los requisitos técnicos de cada actividad constan en su anexo (Anexo E).
+
+**Cuándo se entrega cada documento.** Para publicar y vender bastan los documentos 2 y 3, la firma de este convenio y la del anexo de la actividad: ése es el **expediente de arranque**. Los documentos 4 y 5, la credencial del guía que conduce la salida y, cuando aplique, la autorización del sitio se entregan **antes del inicio de la primera salida** de cada actividad y se mantienen vigentes en cada salida; sin ellos la salida no se realiza. El documento 1 se entrega dentro de los **30 días naturales** siguientes a la firma, con la constancia de inscripción o el acuse de su trámite; vencido ese plazo sin entregarlo, Caminante puede suspender la publicación y la venta. Los manuales, programas, bitácoras y reglamentos que la norma de cada actividad exige al Operador no se entregan: el Operador declara en el anexo que cuenta con ellos y los exhibe cuando Caminante se los pida.
 
 ## Anexo C · Política de cancelación
 

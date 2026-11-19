@@ -6,7 +6,10 @@
 > respecto de v3.3: **Quinta §3 bis** (cupo mínimo: sin bonificación ni penalización
 > cuando se avisa en plazo; anticipaciones 48 horas / 7 días / 20 días) con su mención
 > en el Anexo C, y **Séptima §6** (Caminante publica su domicilio y contacto para
-> reclamaciones y las turna; el domicilio del Operador no se publica). Se clasifica
+> reclamaciones y las turna; el domicilio del Operador no se publica). **Tercer cambio
+> (D27, 19 nov):** Anexo B, «Cuándo se entrega cada documento», y Sexta inciso c): para
+> publicar y vender basta el expediente de arranque; pólizas, guía y permiso del sitio
+> antes de la primera salida; registro de turismo en 30 días. Se clasifica
 > **mayor** porque toca responsabilidades (Décima segunda). Al 19 nov nadie ha firmado
 > ninguna versión (`operator_agreements` vacía, verificado), así que la vigencia
 > inmediata no le cae encima a nadie. El hash y el SQL están en
@@ -345,7 +348,7 @@ a) El anexo **no sustituye** este convenio ni lo contradice: lo detalla. En lo c
 
 b) **Cada actividad se aprueba y se suspende por separado.** Que una actividad quede incompleta, vencida o suspendida no afecta a las demás: el Operador sigue vendiendo las actividades cuyo anexo esté vigente y cuyo expediente esté aprobado.
 
-c) El Operador **no puede publicar ni vender una experiencia de una actividad cuyo anexo no haya suscrito**, o cuyo expediente no esté aprobado. La plataforma lo impide técnicamente; esta cláusula lo dice también por escrito.
+c) El Operador **no puede publicar ni vender una experiencia de una actividad cuyo anexo no haya suscrito**, o cuyo expediente de arranque (Anexo B) no esté aprobado. La plataforma lo impide técnicamente; esta cláusula lo dice también por escrito. Los documentos que el Anexo B y el anexo de la actividad piden para la salida se entregan antes de que inicie; **sin ellos la salida no se realiza**.
 
 d) Los anexos se publican, versionan y firman con el mismo procedimiento y los mismos plazos que este convenio (Cláusula Décima segunda), y con la misma firma electrónica (Cláusula Décima sexta).
 
@@ -512,6 +515,10 @@ El expediente se integra en la plataforma según el tipo de persona del Operador
 7. Sólo para personas morales: acta constitutiva y poder del representante legal.
 
 **Por actividad:** la credencial de guía SECTUR (NOM-09-TUR-2002) de la modalidad y los requisitos técnicos de cada actividad constan en su anexo (Anexo E).
+
+**Cuándo se entrega cada documento.** Para publicar y vender bastan los documentos 2 y 3, la firma de este convenio y la del anexo de la actividad: ése es el **expediente de arranque**. Los documentos 4 y 5, la credencial del guía que conduce la salida y, cuando aplique, la autorización del sitio se entregan **antes del inicio de la primera salida** de cada actividad y se mantienen vigentes en cada salida; sin ellos la salida no se realiza. El documento 1 se entrega dentro de los **30 días naturales** siguientes a la firma, con la constancia de inscripción o el acuse de su trámite; vencido ese plazo sin entregarlo, Caminante puede suspender la publicación y la venta. Los manuales, programas, bitácoras y reglamentos que la norma de cada actividad exige al Operador no se entregan: el Operador declara en el anexo que cuenta con ellos y los exhibe cuando Caminante se los pida.
+
+> **Decidido (legal, 19 nov; D27).** La ley obliga a tener, no a entregar antes de vender: Ley General de Turismo 48 (30 días naturales para el registro), NOM-011-TUR-2001 6.1 y 6.3 (seguros, manuales y permisos para operar). El candado pasa de la publicación a la salida.
 
 > *Trazabilidad:* es `GENERALES` en `src/lib/operadores/actividades.ts` (rnt, id-responsable, id-operacion opcional, acta-constitutiva opcional sólo moral, csf, poliza-rc, poliza-gm). Si cambia el catálogo, cambia este anexo y se publica versión.
 

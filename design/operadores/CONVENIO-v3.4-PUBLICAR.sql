@@ -1,10 +1,10 @@
 -- Convenio v3.4 (mayor) · generado por scripts/publicar-convenio.mjs
 -- Fuente: design/operadores/CONVENIO-v3-FIRMABLE.md
--- sha-256 del texto: 4192ea119b6ccae59d7ed9b32775552d3990f5a6392da0a711a35d069dcaef77
+-- sha-256 del texto: 52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df
 --
 -- Verifica el hash ANTES de correr:
 --   shasum -a 256 design/operadores/CONVENIO-v3-FIRMABLE.md
--- Tiene que dar exactamente 4192ea119b6ccae59d7ed9b32775552d3990f5a6392da0a711a35d069dcaef77
+-- Tiene que dar exactamente 52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df
 --
 -- El INSERT recalcula el hash del texto que de verdad aterrizó, y el CHECK de
 -- abajo revienta si no coincide: si el pegado perdió un carácter, no se publica.
@@ -209,7 +209,7 @@ a) El anexo **no sustituye** este convenio ni lo contradice: lo detalla. En lo c
 
 b) **Cada actividad se aprueba y se suspende por separado.** Que una actividad quede incompleta, vencida o suspendida no afecta a las demás: el Operador sigue vendiendo las actividades cuyo anexo esté vigente y cuyo expediente esté aprobado.
 
-c) El Operador **no puede publicar ni vender una experiencia de una actividad cuyo anexo no haya suscrito**, o cuyo expediente no esté aprobado. La plataforma lo impide técnicamente; esta cláusula lo dice también por escrito.
+c) El Operador **no puede publicar ni vender una experiencia de una actividad cuyo anexo no haya suscrito**, o cuyo expediente de arranque (Anexo B) no esté aprobado. La plataforma lo impide técnicamente; esta cláusula lo dice también por escrito. Los documentos que el Anexo B y el anexo de la actividad piden para la salida se entregan antes de que inicie; **sin ellos la salida no se realiza**.
 
 d) Los anexos se publican, versionan y firman con el mismo procedimiento y los mismos plazos que este convenio (Cláusula Décima segunda), y con la misma firma electrónica (Cláusula Décima sexta).
 
@@ -359,6 +359,8 @@ El expediente se integra en la plataforma según el tipo de persona del Operador
 
 **Por actividad:** la credencial de guía SECTUR (NOM-09-TUR-2002) de la modalidad y los requisitos técnicos de cada actividad constan en su anexo (Anexo E).
 
+**Cuándo se entrega cada documento.** Para publicar y vender bastan los documentos 2 y 3, la firma de este convenio y la del anexo de la actividad: ése es el **expediente de arranque**. Los documentos 4 y 5, la credencial del guía que conduce la salida y, cuando aplique, la autorización del sitio se entregan **antes del inicio de la primera salida** de cada actividad y se mantienen vigentes en cada salida; sin ellos la salida no se realiza. El documento 1 se entrega dentro de los **30 días naturales** siguientes a la firma, con la constancia de inscripción o el acuse de su trámite; vencido ese plazo sin entregarlo, Caminante puede suspender la publicación y la venta. Los manuales, programas, bitácoras y reglamentos que la norma de cada actividad exige al Operador no se entregan: el Operador declara en el anexo que cuenta con ellos y los exhibe cuando Caminante se los pida.
+
 ## Anexo C · Política de cancelación
 
 Las dos políticas para el cliente (Estándar y Expedición), la ventana de arrepentimiento de 24 horas y la penalización al Operador que cancela son las de la Cláusula Quinta. El Operador elige una política por experiencia al publicarla y la plataforma la muestra al cliente antes de pagar. La cancelación por cupo mínimo y sus anticipaciones son las del punto 3 bis de la misma cláusula.
@@ -380,8 +382,8 @@ do $$
 declare h text;
 begin
   select hash into h from public.operator_agreement_versions where version = 'v3.4';
-  if h is distinct from '4192ea119b6ccae59d7ed9b32775552d3990f5a6392da0a711a35d069dcaef77' then
-    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '4192ea119b6ccae59d7ed9b32775552d3990f5a6392da0a711a35d069dcaef77';
+  if h is distinct from '52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df' then
+    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df';
   end if;
   raise notice 'convenio v3.4 publicado · hash %', h;
 end $$;
