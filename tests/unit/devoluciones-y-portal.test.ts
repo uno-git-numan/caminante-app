@@ -97,8 +97,18 @@ describe("lo neto", () => {
 describe("el consentimiento de la facturación desde el portal", () => {
   const firmable = readFileSync("design/operadores/CONVENIO-v3-FIRMABLE.md", "utf8");
 
-  it("el firmable publicado (v3.3, hash 32d3701e…) es el que está en el repo", () => {
-    expect(createHash("sha256").update(firmable, "utf8").digest("hex")).toBe("32d3701eff720e8e0e24972f2834e034fb997c3da18a4c958f7ed2ac8383e978");
+  // El firmable del repo es SIEMPRE una versión conocida del convenio: la
+  // publicada, o la que legal ya preparó y espera la aprobación de Luis. Lo que
+  // esta prueba impide es que el archivo cambie sin que nadie lo declare aquí.
+  // Lo que la operadora acepta en el portal NO sale de este archivo: se recorta
+  // del texto publicado en la base (lib/facturacion/uno-bis.ts).
+  const VERSIONES_CONOCIDAS: Record<string, string> = {
+    "32d3701eff720e8e0e24972f2834e034fb997c3da18a4c958f7ed2ac8383e978": "v3.3 · publicada el 12 nov 2026",
+    "52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df": "v3.4 · preparada por legal el 19 nov 2026, sin publicar",
+  };
+
+  it("el firmable del repo es una versión conocida del convenio (publicada o preparada)", () => {
+    expect(Object.keys(VERSIONES_CONOCIDAS)).toContain(createHash("sha256").update(firmable, "utf8").digest("hex"));
   });
 
   it("se recorta el párrafo 1 bis completo, con sus cuatro condiciones y la aceptación", () => {

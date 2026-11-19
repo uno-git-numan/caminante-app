@@ -26,10 +26,24 @@ rentan la plataforma con comisión negociada.
 
 Estas no se negocian y aplican en cualquier tarea.
 
-**1 · Nunca trabajes en un working tree que otra sesión esté usando.** Este repo
-usa **un worktree por tarea** (`caminante-edu`, `caminante-emb`, `caminante-wl`…).
-Si hay otra sesión, crea el tuyo:
-`git worktree add ../caminante-<tarea> <rama>` + `ln -sf <repo>/.env.local <worktree>/`.
+**1 · Nunca trabajes en un working tree que otra sesión esté usando. Cada
+DEPARTAMENTO tiene el suyo, todos debajo de `~/dev/caminante/`** (Luis, 19 nov
+2026: «cada departamento debe tener su propio worktree, todo debajo de
+caminante»):
+
+| Departamento | Carpeta | Rama local |
+|---|---|---|
+| Código (tech) | `~/dev/caminante/codigo` | `depto/codigo` |
+| Legal y fiscal | `~/dev/caminante/legal-fiscal` | `depto/legal-fiscal` |
+
+Los departamentos son independientes: código no decide lo legal ni lo fiscal,
+y legal no escribe código. Se hablan por mensajes y por
+`design/legal/BITACORA-PARA-LEGAL.md`. Todos empujan a la misma rama remota
+(`git push origin HEAD:deploy/caminante-site`), con `fetch` antes. Un
+departamento nuevo: `git worktree add -b depto/<nombre> ~/dev/caminante/<nombre>
+origin/deploy/caminante-site` + `ln -sf ~/dev/caminante-app-notif/.env.local
+<carpeta>/`. Los `~/dev/caminante-*` sueltos (`-wl2`, `-m1`, `-edu`…) son de
+tareas viejas; no se abren para trabajo nuevo.
 
 **2 · JAMÁS `git add -A` ni `git add .`** — siempre rutas explícitas, y `git status`
 antes de commitear. El 18 ago un `add -A` se llevó los archivos a medio escribir de
