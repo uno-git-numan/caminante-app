@@ -157,3 +157,68 @@ renglón, en vez de enterarse uno por uno.
   pruebas (alta, cuenta de cobro, experiencia, cobro, factura).
 - **Domingo:** corregir lo que salga; promover.
 - **Lunes:** la operadora real, con Luis mirando.
+
+---
+
+## 8 · Lo que contestó legal el mismo día (D27; `design/legal/MINIMO-LEGAL-ALTA-OPERADORA-2026-11-19.md`)
+
+Esto afina la propuesta de §5 y la lista de llaves de §4.
+
+### 8.1 · El expediente, en tres momentos
+
+La ley obliga a TENER los documentos, no a entregarlos antes de vender.
+
+| Cuándo | Qué | 
+|---|---|
+| **Para publicar y vender** | Constancia fiscal reciente · identificación de quien firma · convenio firmado · anexo de la actividad firmado. **Nada más.** |
+| **Antes de la primera salida de cada actividad** (y vigente en cada salida) | Póliza de accidentes y gastos médicos · póliza de responsabilidad civil · credencial del guía · autorización del sitio si aplica |
+| **En 30 días desde la firma** | Registro Nacional de Turismo |
+| **No se suben, se declaran en el anexo** | Manuales, programas, bitácoras, reglamento interno, botiquín |
+
+Igual para persona física y moral; sólo cambia de quién es la identificación.
+
+Dos condiciones:
+1. **El candado no desaparece: se mueve a la SALIDA.** Sin póliza, guía o
+   permiso la salida no se realiza, y el sistema avisa antes a la operadora y a
+   la casa.
+2. **Necesita el convenio v3.4**, porque el v3.3 publicado dice que no se vende
+   una actividad sin expediente aprobado. La v3.4 está escrita y SIN publicar:
+   espera el sí de Luis en la sesión de legal. Mientras no se publique, el
+   candado completo de hoy se queda en producción.
+
+### 8.2 · La experiencia: tres campos más
+
+A la lista corta de §5.2 le faltan tres datos que la ley pide en la oferta:
+**hora de inicio y de término (o duración) · nivel de exigencia · edad mínima.**
+Y si cobra anticipo, el importe y la fecha límite del saldo.
+
+El sistema pone solo: quién opera, «IVA incluido», política de cancelación y
+mínimo si aplica, reclamaciones, «Incluye seguro de accidentes durante la
+salida» y una liga para leer el deslinde antes de pagar. El itinerario día por
+día no es obligatorio. El registro y deslinde por participante no se simplifica.
+
+### 8.3 · Las llaves, ya en orden
+
+**Sí o sí antes del primer cobro en la cuenta de la operadora:**
+- Convenio firmado y % de comisión puesto.
+- Constancia validada y cuenta de cobro habilitada.
+- `FACTURAPI_SECRET_KEY` (Live) y `FACTURACION_COMISIONES=1`. La contadora ya dio
+  el visto bueno a la llave el 12 nov; la retención ya está en producción.
+
+**Opcional para el lunes (la operadora puede facturar por su cuenta mientras):**
+- Factura al cliente desde el portal: `FACTURAPI_USER_KEY`,
+  `FACTURAPI_KEY_SECRET`, `FACTURACION_CLIENTES`, y que ELLA suba su sello y
+  firme la carta manifiesto.
+- Ojo: no puede salir un comprobante de la CASA sobre el pago de noviembre que
+  la contadora ya facturó. O Luis consigue el folio fiscal de esa factura y se
+  marca, o se separa el interruptor en dos (operadoras / casa). Si el folio no
+  llega, se separa.
+
+**Puede esperar:** aviso de retenedora al SAT (mes siguiente a la primera
+retención), CFDI de retenciones (día 5), informativa (día 10), registro de
+turismo (30 días), migración 0093.
+
+El párrafo del aviso de privacidad sobre el procesador de pagos ya está
+publicado (verificado en el sitio el 19 nov), así que `COBRO_EN_PLATAFORMA`
+no tiene pendiente legal.
+
