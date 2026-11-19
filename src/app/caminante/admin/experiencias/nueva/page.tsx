@@ -7,15 +7,24 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { ContactoDueno } from "@/lib/experiences/empty";
 import { experienciasCopiables } from "@/lib/experiences/copiar";
 import ExperienceForm from "../ExperienceForm";
+import AltaRapida from "../AltaRapida";
 
 export const metadata = { title: "Crear experiencia · Admin" };
 
-export default async function NuevaExperienciaPage() {
+export default async function NuevaExperienciaPage({ searchParams }: { searchParams: Promise<{ completo?: string }> }) {
   // Crear está abierto a la casa Y al operador: `saveExperience` atribuye la
   // experiencia nueva a quien la crea, así que nace suya.
   if (!(await puedeEntrarAlPanel())) {
     redirect("/caminante/login?next=/caminante/admin/experiencias/nueva");
   }
+
+  // LA PUERTA POR DEFECTO ES EL ALTA RÁPIDA (19 nov 2026): lo esencial para
+  // vender, en una pantalla. El editor completo —17 secciones— sigue aquí
+  // mismo con `?completo=1`, y es también a donde se llega con «Agregar más
+  // detalle» sobre una experiencia ya creada. Misma ruta a propósito: todas
+  // las ligas que ya apuntan a /experiencias/nueva (el panel, Mi alta, el
+  // correo de bienvenida, la lista blanca de la operadora) caen en lo simple.
+  if ((await searchParams).completo !== "1") return <AltaRapida />;
 
   // Si quien crea es un operador externo, su contacto siembra el bloque de
   // cierre de la página. Sin esto la experiencia nace con el correo y el

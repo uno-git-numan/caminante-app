@@ -222,3 +222,19 @@ El párrafo del aviso de privacidad sobre el procesador de pagos ya está
 publicado (verificado en el sitio el 19 nov), así que `COBRO_EN_PLATAFORMA`
 no tiene pendiente legal.
 
+---
+
+## 9 · Avance
+
+**19 nov · Alta rápida de experiencia (en la rama, sin promover).**
+`/admin/experiencias/nueva` abre ahora una pantalla de 5 tarjetas y 17 campos
+(antes 17 secciones y 134). De ahí sale la experiencia completa, en borrador,
+con su primera fecha. El editor completo queda a un clic. La ficha pública
+enseña horario, exigencia y edad mínima. Vista en el servidor local: la
+pantalla se dibuja con el estilo del panel y dice junto todo lo que falta.
+No probado todavía: guardar de verdad (necesita sesión) y publicar.
+
+Pendiente de esta pieza: el texto estándar del deslinde, que es de legal.
+Sin él, la experiencia nace con el deslinde apagado y hay que completarlo en
+el editor completo antes de publicar.
+

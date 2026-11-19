@@ -25,6 +25,34 @@ CIERRAN, no se borran**.
 ⚠️ El modo edición **solo carga salidas ABIERTAS**. Si entraran las cerradas, cada
 guardado las re-abriría: fechas que resucitan.
 
+## El alta rápida es la puerta por defecto (19 nov 2026)
+
+`/admin/experiencias/nueva` abre **`AltaRapida.tsx`**: 5 tarjetas y 17 campos
+con lo que hace falta para VENDER (el mínimo de la oferta que fijó legal, D27):
+nombre, dónde, estado, actividad, descripción, portada y fotos, qué incluye y
+qué no, hora de inicio y término, exigencia, edad mínima, precio, cupo,
+política de cancelación y, opcional, la primera fecha con su punto de
+encuentro. El editor completo (17 secciones, 134 campos) sigue en
+`/experiencias/nueva?completo=1` y es a donde lleva «Agregar más detalle».
+
+- **`lib/experiences/corta.ts`** (puro): `faltantesDeCorta` dice TODO lo que
+  falta junto y en orden; `experienciaDesdeCorta` arma la `Experience`
+  completa con el mismo modelo (`page.blocks` vía `buildBlocks`), en borrador.
+- **Se pone solo:** el contacto de quien crea, la encuesta estándar prendida,
+  el renglón «Seguro de accidentes durante la salida», los títulos de bloque.
+- **`datosOferta`** (hora, exigencia, edad mínima) vive en la experiencia y la
+  ficha lo enseña junto a las fechas, en escritorio y móvil.
+- **`corta-actions.ts`** sólo encadena: `saveExperience` → `crearSalida`.
+  Publicar pasa por `setExperienceStatus` y los candados de siempre.
+- ⚠️ **El deslinde estándar es texto de LEGAL** (`lib/legal/clausulas-estandar.ts`).
+  Mientras esa lista esté vacía, la experiencia nace con el deslinde apagado y
+  la pantalla lo dice; código no redacta cláusulas ni copia las de otra
+  experiencia (las 16 existentes traen cada una la suya, y algunas ya
+  contradicen lo vigente).
+- La hoja de estilos y las piezas del formulario (`form-base.ts`,
+  `form-piezas.tsx`) se sacaron del editor completo para que las dos pantallas
+  usen las mismas, no una copia.
+
 ## «Prendido TODO antes de publicar»
 
 `listaParaPublicar(exp)` (`lib/experiences/flujo-venta.ts`) es el candado ÚNICO de

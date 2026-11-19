@@ -32,6 +32,7 @@ import { MOVIL_FIXES_CSS } from "@/lib/experiences/movil-fixes-css";
 import { TEMPLATE_V2_SCRIPT } from "@/lib/experiences/template-v2-script";
 import { PixelEvent } from "@/lib/meta/pixel";
 import { bloquesDeFicha, esVariante, renglonMinimoDeFicha, SALIDA_CONFIRMADA, TITULO_POLITICA, type Variante } from "@/lib/cancelacion/politica";
+import { datosOfertaDe, renglonesDeOferta } from "@/lib/experiences/corta";
 
 // --- markup inline sencillo: **negrita** y *itálica* ---
 function renderInline(text: string): ReactNode {
@@ -653,6 +654,7 @@ function DatesBlock({
   grupoToken,
   cupo,
   conPolitica,
+  oferta,
 }: {
   b: V2Dates;
   secnum: string;
@@ -663,6 +665,8 @@ function DatesBlock({
   cupo: string | null;
   /** La experiencia tiene política: sólo entonces existe la cláusula de cupo mínimo. */
   conPolitica: boolean;
+  /** Horario, exigencia y edad mínima (D27): los datos de la oferta, si la experiencia los trae. */
+  oferta: string[];
 }) {
   const q = grupoToken ? `?grupo=${grupoToken}` : "";
   return (
@@ -673,6 +677,8 @@ function DatesBlock({
             <Eyebrow text={b.eyebrow} />
             <Title t={b.title} accent={b.titleAccent} />
             {b.cap ? <p className="cap">{b.cap}</p> : null}
+            {/* Los datos de la oferta que la ley pide a la vista (D27). */}
+            {oferta.length ? <p className="cap">{oferta.join(" · ")}</p> : null}
           </div>
           <span className="secnum">{secnum}</span>
         </div>
@@ -994,7 +1000,7 @@ export default function ExperienceTemplateV2({
             el = <PackingBlock b={b} secnum={secnum} />;
             break;
           case "dates":
-            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} grupoToken={grupoToken} cupo={cupoTexto} conPolitica={!!politica} />;
+            el = <DatesBlock b={b} secnum={secnum} slug={slug} slots={slots} grupoToken={grupoToken} cupo={cupoTexto} conPolitica={!!politica} oferta={renglonesDeOferta(datosOfertaDe(experience))} />;
             break;
           case "closing":
             el = <ClosingBlock b={b} slug={slug} contactoOperador={contactoOperador ?? null} />;

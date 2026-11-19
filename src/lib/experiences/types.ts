@@ -270,6 +270,11 @@ export type Experience = {
   // nivel. Se muestran en la página; el cobro del nivel elegido se resuelve en el
   // checkout (server-side, por índice — nunca desde el cliente).
   priceTiers?: { label: string; amount: string }[];
+  // LOS DATOS DE LA OFERTA que la ley pide tener a la vista antes de vender
+  // (D27 de legal): a qué hora empieza y termina, cuánto exige y desde qué
+  // edad. Los captura el alta rápida (`lib/experiences/corta.ts`) y la ficha
+  // los enseña junto a las fechas. Léelos con `datosOfertaDe`.
+  datosOferta?: { horaInicio: string; horaTermino: string; exigencia: "baja" | "media" | "alta" | "muy-alta"; edadMinima: number };
   // CUÁNTAS PERSONAS CABEN — el tope estándar de la experiencia.
   //
   // ⚠️ ES EL ÚNICO HOGAR DEL CUPO. Lo lee `availability.ts` para saber cuántos

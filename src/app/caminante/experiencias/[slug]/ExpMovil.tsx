@@ -29,6 +29,7 @@
 //     `datos: {texto, fuente}[]` — se listan todos, cada uno con su fuente.
 
 import { bloquesDeFicha, esVariante, renglonMinimoDeFicha, SALIDA_CONFIRMADA } from "@/lib/cancelacion/politica";
+import { datosOfertaDe, renglonesDeOferta } from "@/lib/experiences/corta";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { Estrellas, Eyeb, Sec } from "@/app/caminante/ui/pub/atoms";
@@ -525,6 +526,8 @@ export default function ExpMovil({
         open
       >
         {dates?.cap ? <p>{dates.cap}</p> : null}
+        {/* Los datos de la oferta que la ley pide a la vista (D27): horario, exigencia y edad mínima. */}
+        {renglonesDeOferta(datosOfertaDe(experience)).length ? <p>{renglonesDeOferta(datosOfertaDe(experience)).join(" · ")}</p> : null}
         {!hayFechas ? (
           <div className="pub-blk" style={{ marginTop: 14 }}>
             <div className="pub-state" style={{ padding: "10px 0 4px" }}>
