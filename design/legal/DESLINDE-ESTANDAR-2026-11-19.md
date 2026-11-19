@@ -124,6 +124,19 @@ otra del catálogo que no aparezca aquí).
 | `cabalgata` | «Montarás a caballo. Aceptas que es un animal de reacciones imprevisibles y los riesgos de caídas, patadas y mordidas. Informaste tu peso y tu experiencia montando, y te comprometes a usar el casco cuando se te indique y a no adelantar ni separarte de la fila.» |
 | `micologia` | «Recolectarás hongos silvestres con fines educativos. Entiendes que hay especies tóxicas y mortales: no consumirás ni te llevarás ningún hongo sin la validación expresa de los guías especialistas, y sólo comerás los alimentos preparados por el equipo. Informaste tus alergias alimentarias en el registro.» |
 
+| `espeleismo` | «Entrarás a una cueva. Aceptas los riesgos de la oscuridad y los espacios cerrados, de resbalones, caídas y caída de rocas, de la hipotermia, de las crecidas de agua por lluvia, del aire viciado y de enfermedades por hongos del guano. Informaste si padeces claustrofobia o una condición respiratoria. Te comprometes a llevar el casco y la luz puestos en todo momento y a no separarte del grupo.» |
+| `ciclismo-montana` | «Rodarás en bicicleta por terreno de montaña. Aceptas los riesgos de caídas a velocidad, de golpes contra piedras, árboles y otros ciclistas, de fallas mecánicas y de los vehículos en tramos compartidos. Informaste con verdad tu nivel y tu experiencia. Te comprometes a llevar el casco puesto, a revisar tu bicicleta con el guía antes de salir, a controlar tu velocidad y a no rebasar al guía.» |
+| `observacion-naturaleza` | «Observarás fauna en su hábitat. Entiendes que los animales silvestres son impredecibles y que el avistamiento no está garantizado: no verlos no da derecho a reembolso. Te comprometes a guardar la distancia y el silencio que indique el guía, a no usar flash ni reproducir sonidos para atraerlos, y a no alimentarlos ni tocarlos.» |
+| `paracaidismo` | «Saltarás en paracaídas. Aceptas que es una actividad de alto riesgo y los riesgos de falla del equipo, de aterrizajes violentos, de colisión en el aire y de accidente de la aeronave, con consecuencias que pueden ser graves o mortales. Declaras que tu peso está dentro del límite que se te informó y que no tienes una condición cardiaca, de columna o de otro tipo que no hayas informado. Te comprometes a seguir cada instrucción del instructor antes, durante y después del salto.» |
+
+Para `paracaidismo`: no leí la regulación aeronáutica que rige la actividad.
+Esta cláusula cubre riesgos y conducta; la experiencia **sólo se publica con
+la carta propia de la operadora fusionada**, que es la que trae lo técnico.
+
+**Orden.** Las adicionales de la actividad van después de la cláusula 5, con
+los riesgos, para que la 16 cierre la lista de obligatorias (propuesta de
+código, 19 nov: de acuerdo).
+
 Para `buceo` y `buceo-cavernas`: la operadora que las ofrezca trae además su
 propia carta y su cuestionario médico de buceo; se fusionan con ésta por la
 regla de siempre (unión, nunca resta).
@@ -176,10 +189,27 @@ variante de la cláusula 9:
 > persona.
 
 Las secciones de uso de imagen, menores y aceptación se quedan como están,
-cambiando «Caminante y Numan» por «el Organizador, Caminante y Numan». En
-«Datos personales», el correo de derechos pasa a caminante@numanhub.com (el
-del aviso de privacidad) y se añade que los datos de salud se comparten con el
-Organizador y sus guías.
+cambiando «Caminante y Numan» por «el Organizador, Caminante y Numan».
+
+**d) La sección «Datos personales»** se sustituye completa por:
+
+> **Datos personales.** Los datos recabados en el registro los trata NUMAN
+> HUB, S.A. de C.V., responsable de la plataforma Caminante, conforme a su
+> Aviso de Privacidad, únicamente para gestionar la participación en la
+> experiencia, cuidar la seguridad del participante, contactar a quien señaló
+> en caso de emergencia y, sólo con su consentimiento expreso, enviarle
+> información de futuras experiencias. Los datos de salud son datos
+> personales sensibles: el participante consiente de manera expresa que se
+> traten y se compartan con el Organizador y sus guías, con la única
+> finalidad de cuidar su seguridad durante la experiencia y atenderlo en una
+> emergencia, y se suprimen al concluir la salida, salvo obligación legal de
+> conservarlos. Los demás datos no se comparten con terceros, salvo los
+> estrictamente necesarios para operar la salida (transporte, alimentación,
+> hospedaje y aseguradora) o por requerimiento legal. Derechos de acceso,
+> rectificación, cancelación y oposición: caminante@numanhub.com.
+
+El registro de turismo no aparece en el encabezado mientras no haya un dato
+capturado que mostrar (código lo quitó del marco nuevo el 19 nov: correcto).
 
 ## 4 · Lo que hay que corregir en lo publicado (lo aprueba Luis)
 

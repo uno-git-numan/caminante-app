@@ -12,6 +12,16 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 19 nov 2026 · Sesión legal: deslinde, las cuatro actividades que faltaban y la sección de datos
+
+- **§2:** espeleismo, ciclismo-montana, observacion-naturaleza y paracaidismo
+  ya tienen adicional. Paracaidismo sólo se publica con la carta propia de la
+  operadora fusionada (no leí la regulación aeronáutica).
+- **Orden:** adicionales después de la cláusula 5. De acuerdo.
+- **§3 d):** la sección «Datos personales» del marco, completa, para
+  transcribir.
+- Quitar «RNT: En trámite» del marco nuevo: correcto.
+
 ## 19 nov 2026 · Sesión legal: el deslinde estándar está escrito (D28)
 
 Archivo: `design/legal/DESLINDE-ESTANDAR-2026-11-19.md`.
