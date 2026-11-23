@@ -6,6 +6,7 @@ import NuevaSalida from "./NuevaSalida";
 import MandarEncuestas from "./MandarEncuestas";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { fetchSalidas } from "@/lib/admin/salidas";
+import { fetchPersonas } from "@/lib/admin/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Salidas · Admin — Caminante" };
@@ -34,6 +35,12 @@ export default async function SalidasPage({
   const error = sp.error?.trim() || "";
   const aviso = error || sp.ok?.trim() || "";
   const d = await fetchSalidas();
+  // Para abrir un grupo privado desde «+ Agregar salida»: los clientes entre
+  // los que se elige al anfitrión, ya podados por lo que mira quien entra.
+  const clientes = (await fetchPersonas())
+    .filter((p) => p.nombre.trim())
+    .map((p) => ({ id: p.id, nombre: p.nombre.trim() }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   const tasa = d.respuestasPorLeer.invitadas
     ? Math.round((d.respuestasPorLeer.respuestas / d.respuestasPorLeer.invitadas) * 100)
@@ -43,7 +50,7 @@ export default async function SalidasPage({
     <AdminShell active="encuesta">
       {/* NuevaSalida OWNS el .sec-head: el panel de alta va DESPUÉS del
           encabezado, como en el entregable, y no dentro de él. */}
-      <NuevaSalida experiencias={d.experiencias}>
+      <NuevaSalida experiencias={d.experiencias} clientes={clientes}>
         <div>
           <span className="eyebrow">
             <span className="sl">{"//"}</span> Salidas
