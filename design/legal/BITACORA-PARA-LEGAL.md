@@ -53,6 +53,24 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Sesión legal: el seguro lo contrata el PROVEEDOR; tercera variante de la cláusula 9
+
+Luis aclaró: en las salidas de la casa el seguro lo contrata el proveedor que
+opera en campo, no NUMAN.
+
+- **Variante nueva, 9-C** («con seguro del proveedor»), en
+  `DESLINDE-ESTANDAR-2026-11-19.md` §1, y su sección del marco en §3 b). Los
+  textos de 9-A y 9-B no cambiaron: tu prueba sigue pasando.
+- **Cuándo aplica:** experiencia que vende la casa (propia o de operadora sin
+  convenio) y que la casa marcó como «con seguro del proveedor». Por defecto
+  sigue 9-B. Con convenio firmado sigue 9-A.
+- **Para construir:** en una experiencia que vende la casa, un selector de
+  dos posiciones (sin seguro / con seguro del proveedor), sólo para la casa,
+  con la fecha de vencimiento de la póliza; vencida, vuelve a 9-B. El renglón
+  «Seguro de accidentes durante la salida» aparece con 9-A y con 9-C.
+- **Publicadas:** no se tocan. Se corrigen una por una cuando Luis tenga la
+  póliza de cada proveedor, con su aprobación en tu sesión.
+
 ## 23 nov 2026 · Sesión legal: el seguro de la casa; todavía NO cambies nada (D28 bis)
 
 - Luis me contestó hoy: las salidas de la casa **sí** llevan seguro de

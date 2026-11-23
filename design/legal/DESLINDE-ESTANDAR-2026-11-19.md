@@ -65,25 +65,49 @@ Todas son `obligatoria: true`, `origen: "casa"`, salvo las dos opcionales.
 
 **Seguro (cláusula 9).** Depende de un hecho, no de una preferencia.
 
-- **9-A, con seguro.** Para toda experiencia de una operadora con convenio
-  firmado. Para la casa, sólo cuando Luis confirme que la salida lleva póliza.
+- **9-A, con seguro del Organizador.** Para toda experiencia de una operadora
+  con convenio firmado: ella es el Organizador y el convenio la obliga a
+  contratarlo.
 
   > «Esta salida cuenta con un seguro de accidentes contratado por el
   > Organizador. Cubre lo que dice su póliza, con sus límites y exclusiones;
   > lo que no cubra o exceda corre por tu cuenta. Te recomendamos contar
   > además con un seguro propio de gastos médicos.»
 
-- **9-B, sin seguro.** Sólo para experiencias de la casa mientras no haya
-  póliza. Es la verdad de hoy, no una posición que convenga sostener.
+- **9-B, sin seguro.** Es la variante con la que nace toda experiencia que
+  vende la casa (propia o de una operadora sin convenio), y en la que se queda
+  mientras no conste una póliza.
 
   > «El Organizador no proporciona seguro de accidentes ni de gastos médicos
   > a tu favor. Es tu responsabilidad contar con uno propio que cubra esta
   > actividad. Los costos de atención médica, traslado, rescate u
   > hospitalización corren por tu cuenta.»
 
+- **9-C, con seguro del proveedor (23 nov).** Luis informó el 23 nov que en
+  las salidas de la casa el seguro de accidentes lo contrata **el proveedor
+  que opera en campo**, no NUMAN. Para esas salidas el texto no puede decir
+  «contratado por el Organizador». Aplica a una experiencia que vende la casa
+  **sólo cuando la póliza del proveedor consta** (ver abajo).
+
+  > «Esta salida cuenta con un seguro de accidentes contratado por quien la
+  > opera en campo. Cubre lo que dice su póliza, con sus límites y
+  > exclusiones; lo que no cubra o exceda corre por tu cuenta. Te recomendamos
+  > contar además con un seguro propio de gastos médicos.»
+
 El renglón automático «Seguro de accidentes durante la salida» de la lista de
-lo que incluye **sigue la misma variante**: aparece con 9-A y no aparece con
-9-B. Esto corrige lo que dije en D27, donde lo puse como automático para todas.
+lo que incluye **sigue la misma variante**: aparece con 9-A y con 9-C, y no
+aparece con 9-B. Esto corrige lo que dije en D27, donde lo puse como
+automático para todas.
+
+**Cuándo consta la póliza del proveedor (9-C).** La casa marca la experiencia
+como «con seguro del proveedor» cuando tiene en su poder la carátula de la
+póliza vigente, o la constancia de `CONSTANCIA-SEGURO-PROVEEDOR-2026-11-23.md`
+firmada por el proveedor, que cubra a los participantes en esa actividad. Se
+guarda en Drive, `numan/CAMINANTE/legal/polizas-proveedores/`, por
+experiencia. Quien la marca responde de haberla visto. Vencida la póliza, la
+experiencia vuelve a 9-B. Es el mismo estándar que el anexo le pone a una
+operadora con convenio: no se le afirma al cliente un seguro que Caminante no
+ha visto.
 
 **Menores (cláusula 13).** Sale de la edad mínima de la experiencia.
 
@@ -167,6 +191,13 @@ variante de la cláusula 9:
   o exceda corre por cuenta del participante. En una emergencia, el
   participante autoriza al Organizador a gestionar en su nombre la atención
   médica, el traslado y la evacuación necesarios.»
+- Con seguro del proveedor (9-C): «Esta salida cuenta con un seguro de
+  accidentes contratado por quien opera la actividad en campo, proveedor del
+  Organizador. Su cobertura, sus límites y sus exclusiones son los de la
+  póliza, que el Organizador exhibe a quien la pida. Lo que la póliza no cubra
+  o exceda corre por cuenta del participante. En una emergencia, el
+  participante autoriza al Organizador a gestionar en su nombre la atención
+  médica, el traslado y la evacuación necesarios.»
 - Sin seguro: el texto de hoy, sin la palabra «enfáticamente».
 
 **c) La sección «Deslinde de responsabilidad»** se sustituye por:
@@ -220,7 +251,7 @@ piden versión nueva del deslinde (`waiverVersion`).
 | # | Qué | Dónde | Corrección |
 |---|---|---|---|
 | 1 | El documento se contradice sobre el seguro | `despertar-entre-gigantes`: su lista dice «incluye seguro de gastos médicos» y el marco del mismo documento dice que no se proporciona | Depende del hecho: si esa salida lleva póliza, variante con seguro en lista y marco; si no, quitar la frase |
-| 2 | «No proporciona seguro» | 11 experiencias y el marco | No es un cambio de texto: es contratar la póliza de accidentes por salida (NOM-011-TUR 6.1 c) y entonces pasar a 9-A. Mientras no la haya, el texto se queda, porque es verdad |
+| 2 | «No proporciona seguro» | 11 experiencias y el marco | Luis informó el 23 nov que el seguro lo contrata el proveedor. Cada experiencia pasa a la variante 9-C cuando conste la póliza de su proveedor; mientras no conste, el texto se queda. Se hace experiencia por experiencia, con versión nueva del deslinde |
 | 3 | La política de cancelación dentro del deslinde | `correr-entre-volcanes`, `el-bosque-de-los-volcanes`, `el-cardumen-de-magdalena` | Quitar el renglón «Cancelación: 100 %…». La política vive en la ficha y se acepta al pagar; dos textos sobre lo mismo se leen a favor del cliente |
 | 4 | Uso de imagen marcado como obligatorio | `corral-de-piedra`, `despertar-entre-gigantes`, `el-fondo-de-la-barranca`, `travesia-barrancas-del-cobre`, `raiz-de-agua` | Marcarlo opcional: es una elección del participante |
 | 5 | Listas cortas, sin emergencia, datos ni menores | `correr-entre-volcanes`, `el-bosque-de-los-volcanes`, `ensenada-de-muertos`, `recoleccion-de-hongos`, `hike-mariposas-monarca` | Sustituir por la lista estándar más la adicional de su actividad, conservando sus renglones propios (alerta volcánica, hongos validados) |

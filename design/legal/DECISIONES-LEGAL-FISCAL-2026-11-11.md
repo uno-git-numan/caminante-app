@@ -858,7 +858,13 @@ Antes de cambiar un texto legal publicado busqué el respaldo y **no lo encontr�
 
 No pongo en duda el dato; falta el documento. El texto con seguro dice «contratado por el Organizador» y remite a «lo que dice su póliza». Para afirmarlo frente al cliente hacen falta dos cosas que hoy no sé: **quién lo contrata** (NUMAN, o el proveedor de cada salida dentro de su servicio) y **la póliza misma** en el expediente. Es el mismo estándar que el anexo le pone a una operadora externa: la póliza consta antes de la salida.
 
-**Mientras tanto no cambia nada:** las experiencias nuevas de la casa siguen naciendo con la variante sin seguro y las publicadas no se tocan. Cuando la póliza esté en el expediente: (1) las experiencias de la casa pasan a la variante con seguro, con el renglón «Seguro de accidentes durante la salida»; (2) se corrigen las once publicadas y el marco, con versión nueva del deslinde, previa aprobación de Luis en la sesión que lo ejecute; (3) si el seguro lo contrata un proveedor y no NUMAN, ajusto la redacción antes.
+**Luis aclaró el mismo 23 nov: lo contrata «el proveedor».** No es NUMAN, sino quien opera cada salida en campo. Tres consecuencias:
+
+- **El texto no puede decir «contratado por el Organizador».** Escribí una tercera variante de la cláusula del seguro para ese caso: «contratado por quien la opera en campo» (`DESLINDE-ESTANDAR-2026-11-19.md`, 9-C, y su sección del marco).
+- **A NUMAN le toca cerciorarse.** La norma obliga a tener seguro a quien proporciona o intermedia el servicio (NOM-011-TUR-2001, numeral 2 y 6.1 c), y lo que se le dice al consumidor debe ser comprobable (LFPC 32). Que la póliza sea del proveedor está bien; que Caminante no la haya visto, no.
+- **Se hace experiencia por experiencia.** Cada proveedor es distinto. Una experiencia pasa a la variante con seguro del proveedor cuando la casa tiene la carátula de la póliza vigente o la constancia firmada (`CONSTANCIA-SEGURO-PROVEEDOR-2026-11-23.md`), guardada en Drive. Una póliza de responsabilidad civil no basta: no paga los gastos médicos del participante.
+
+**Mientras no conste la póliza de un proveedor, esa experiencia no cambia:** sigue diciendo que no hay seguro, que es lo que Caminante puede probar. Las publicadas se corrigen una por una, con versión nueva del deslinde y la aprobación de Luis en la sesión que lo ejecute. Para adelante conviene que el acuerdo con cada proveedor diga por escrito que lleva esa póliza y que entrega su carátula.
 
 ### D29 · Comisión fija: 12 % si la venta la origina Caminante, 8 % si la origina la operadora (23 nov)
 
