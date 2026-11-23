@@ -24,7 +24,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resumenCsf, type AnalisisCsf } from "./csf";
 import { resumenRevision, type RevisionIa } from "./revision-ia";
-import { ACTIVIDADES, GENERALES, generalesPara, momentoDeGeneral, requisitosDe, nombreDeActividad, type Documento, type Momento } from "./actividades";
+import { ACTIVIDADES, GENERALES, generalesPara, momentoDeGeneral, puedeNoAplicar, requisitosDe, nombreDeActividad, type Documento, type Momento } from "./actividades";
 
 export type EstadoDoc = "falta" | "en_revision" | "aprobado" | "rechazado";
 export type EstadoActividad = "incompleta" | "en_revision" | "aprobada" | "suspendida";
@@ -63,6 +63,13 @@ export type DocEnPantalla = {
   opcional: boolean;
   /** Para qué momento se pide (ver `Momento` en `actividades.ts`). */
   momento: Momento;
+  /** De este permiso se puede declarar «no aplica a mis salidas» (INAH, área protegida). */
+  puedeNoAplicar: boolean;
+  /**
+   * La operadora declaró que no aplica (anexo, Cuarta; `operator_no_aplica`).
+   * Con declaración viva el permiso no cuenta como pendiente ni detiene la salida.
+   */
+  noAplica: { declaradoAt: string } | null;
   /**
    * Lo que la plataforma leyó del documento (hoy sólo la CSF, `csf.ts`), ya
    * dicho en una línea. `satUrl` es la liga del validador del SAT para quien
@@ -182,6 +189,8 @@ function pintar(
     vencePorAnio: d.vencePor === "anio",
     opcional: d.opcional === true,
     momento,
+    puedeNoAplicar: false,
+    noAplica: null,
   };
 }
 
@@ -191,7 +200,7 @@ function pintar(
  * equivocado en el expediente y alguien tiene que corregirlo o quitarlo.
  */
 const pendiente = (d: DocEnPantalla) =>
-  d.estado === "rechazado" || (d.estado === "falta" && !d.opcional);
+  d.estado === "rechazado" || (d.estado === "falta" && !d.opcional && !d.noAplica);
 
 /** Entregado pero ya vencido: para vender y para salir, no cuenta como entregado. */
 const vencido = (d: DocEnPantalla) => d.estado !== "falta" && d.diasParaVencer !== null && d.diasParaVencer < 0;
@@ -216,6 +225,7 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
     (docs ?? []) as Fila[],
     await tamanosDe(operatorId),
     tipoDe((op as { tipo_persona?: string } | null)?.tipo_persona),
+    (await declaracionesDeNoAplica([operatorId])).get(operatorId),
   );
   // Lo que se LEYÓ de cada documento (csf.ts y revision-ia.ts) va en su propia
   // consulta: si la columna faltara, esto falla SOLO, sin tumbar el expediente.
@@ -241,6 +251,29 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
     }
   }
   return e;
+}
+
+/**
+ * Las declaraciones VIVAS de «no aplica» de varias operadoras, en una consulta:
+ * operadora → (`actividad|documento` → cuándo se declaró).
+ *
+ * Tolera que la 0094 no esté aplicada (o cualquier error): sin declaraciones,
+ * que es el lado prudente — el permiso se sigue pidiendo.
+ */
+export async function declaracionesDeNoAplica(operatorIds: string[]): Promise<Map<string, Map<string, string>>> {
+  const out = new Map<string, Map<string, string>>();
+  if (!operatorIds.length) return out;
+  const { data, error } = await createSupabaseAdminClient()
+    .from("operator_no_aplica")
+    .select("operator_id, actividad, documento, declarado_at")
+    .in("operator_id", operatorIds)
+    .is("retirada_at", null);
+  if (error || !data) return out;
+  for (const r of data as { operator_id: string; actividad: string; documento: string; declarado_at: string }[]) {
+    if (!out.has(r.operator_id)) out.set(r.operator_id, new Map());
+    out.get(r.operator_id)!.set(`${r.actividad}|${r.documento}`, r.declarado_at);
+  }
+  return out;
 }
 
 /**
@@ -302,6 +335,11 @@ export function armarExpediente(
   /** Peso por nombre de objeto en el bucket (ver `tamanosDe`). */
   tamanos?: Map<string, number>,
   tipoPersona: TipoPersona = null,
+  /**
+   * Las declaraciones VIVAS de «no aplica»: `actividad|documento` → cuándo se
+   * declaró (ver `declaracionesDeNoAplica`). Sin el mapa, ninguna.
+   */
+  noAplica?: Map<string, string>,
 ): Expediente {
   const filas = docs;
   // Clave compuesta: `null` de actividad se escribe "" para poder indexar.
@@ -319,7 +357,16 @@ export function armarExpediente(
 
   const actividades: ActividadEnPantalla[] = declaradas.map((a) => {
     const req = requisitosDe(a.actividad);
-    const propios = req.propios.map((d) => pintar(d, porClave.get(`${a.actividad}|${d.slug}`), false, tamanos, "salida"));
+    const propios = req.propios.map((d) => {
+      const p = pintar(d, porClave.get(`${a.actividad}|${d.slug}`), false, tamanos, "salida");
+      if (puedeNoAplicar(d.slug)) {
+        p.puedeNoAplicar = true;
+        const cuando = noAplica?.get(`${a.actividad}|${d.slug}`);
+        // Si además subió el permiso, manda el permiso: la declaración sobra.
+        if (cuando && p.estado === "falta") p.noAplica = { declaradoAt: cuando };
+      }
+      return p;
+    });
     return {
       slug: a.actividad,
       nombre: nombreDeActividad(a.actividad),

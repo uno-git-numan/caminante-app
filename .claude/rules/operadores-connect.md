@@ -93,9 +93,13 @@ vender, y el convenio v3.5 lo dice así:
   documento). Kéntro firmó un anexo v1 de senderismo: tiene que volver a firmar.
 - **Crear una experiencia con el alta rápida declara la actividad** de la
   operadora dueña.
-- ⚠️ **Pendiente:** la declaración «no aplica a mis salidas» de `permiso-inah`
-  y `permiso-anp` (anexo, Cuarta) no tiene dónde guardarse; hoy esos dos son
-  opcionales. Y nada BLOQUEA técnicamente una salida sin documentos: se avisa.
+- **«No aplica a mis salidas»** (anexo, Cuarta; 0094 `operator_no_aplica`):
+  sólo `permiso-inah` y `permiso-anp`, que dependen del sitio. La operadora lo
+  declara en el renglón del permiso, bajo protesta de decir verdad; queda con
+  autor, fecha y versión del anexo, y con declaración viva el permiso no
+  cuenta como pendiente ni detiene la salida. Retirarla no borra: pone fecha.
+  Si sube el permiso, manda el permiso.
+- ⚠️ **Nada BLOQUEA técnicamente una salida sin documentos: se avisa.**
 
 ## El gate: `lib/operators/listo-para-vender.ts`
 

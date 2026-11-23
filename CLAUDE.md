@@ -268,7 +268,9 @@ vender:
 `para-salir.ts` (qué le falta a cada salida; lo enseña Salidas, la lista de Mi
 alta y un correo diario a 14, 7, 3 y 1 día, cron `documentos-de-salida`) ·
 `subconvenio-doc.ts` (marco **v3** del anexo, texto de legal generado desde su
-archivo; una prueba lo compara). Detalle en `.claude/rules/operadores-connect.md`.
+archivo; una prueba lo compara) · **0094** `operator_no_aplica` (la operadora
+declara que el permiso del INAH o de área protegida no aplica a sus salidas).
+Detalle en `.claude/rules/operadores-connect.md`.
 
 ## El espacio del grupo (27 oct 2026)
 

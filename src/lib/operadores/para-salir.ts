@@ -22,7 +22,7 @@ import "server-only";
 // La casa (`es_la_casa`) no tiene expediente: nada que avisar.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { armarExpediente, type Expediente } from "./expediente";
+import { armarExpediente, declaracionesDeNoAplica, type Expediente } from "./expediente";
 import { nombreDeActividad, requisitosDe } from "./actividades";
 import { CDMX } from "@/lib/fecha/zona";
 
@@ -37,6 +37,8 @@ export const AVISOS_A_DIAS = [14, 7, 3, 1] as const;
  */
 export function faltaParaSalir(e: Expediente, actividad: string, fecha: string | null): string[] {
   const noCubre = (d: Expediente["generales"][number]): string | null => {
+    // Declaró que ese permiso no aplica a sus salidas (anexo, Cuarta).
+    if (d.noAplica) return null;
     if (d.estado === "falta") return d.opcional ? null : d.nombre;
     if (d.estado === "rechazado") return `${d.nombre} (rechazado: hay que corregirlo)`;
     if (d.venceAt && fecha && d.venceAt.slice(0, 10) < fecha) return `${d.nombre} (vence antes de la salida)`;
@@ -89,6 +91,7 @@ export async function faltaParaSalirDe(pares: Par[]): Promise<Map<string, string
     return out;
   }
 
+  const noAplica = await declaracionesDeNoAplica(ids);
   const expedientes = new Map<string, Expediente>();
   for (const o of (ops ?? []) as { id: string; tipo_persona: string | null; es_la_casa: boolean | null }[]) {
     if (o.es_la_casa === true) continue;
@@ -100,6 +103,7 @@ export async function faltaParaSalirDe(pares: Par[]): Promise<Map<string, string
         suyas(docs as ({ operator_id: string } & Parameters<typeof armarExpediente>[1][number])[] | null),
         undefined,
         o.tipo_persona === "fisica" || o.tipo_persona === "moral" ? o.tipo_persona : null,
+        noAplica.get(o.id),
       ),
     );
   }

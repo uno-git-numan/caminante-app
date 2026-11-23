@@ -26,7 +26,8 @@ import { isCurrentUserAdmin } from "@/lib/auth/authorization";
 import { operadoraObjetivo, puedeOnboarding } from "@/lib/auth/alcance";
 import { correoEnSesion } from "@/lib/auth/authorization";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { ACTIVIDADES, GENERALES, nombreDeActividad, requisitosDe } from "./actividades";
+import { ACTIVIDADES, GENERALES, nombreDeActividad, puedeNoAplicar, requisitosDe } from "./actividades";
+import { versionDelAnexo } from "./subconvenio-doc";
 import { emailActividadAprobada, emailExpedienteDevuelto } from "./emails";
 
 const BUCKET = "expedientes";
@@ -399,6 +400,63 @@ export async function declararActividad(actividad: string, operadora?: string | 
   if (error) {
     console.error("declararActividad:", error);
     return { ok: false, error: "No se pudo declarar la actividad." };
+  }
+  revalidatePath(RUTA);
+  return { ok: true };
+}
+
+/**
+ * «ESTE PERMISO NO APLICA A MIS SALIDAS» (anexo por actividad, marco v3,
+ * Cláusula Cuarta; D30 de legal). Sólo para los dos permisos que dependen del
+ * sitio. Es una declaración bajo protesta de decir verdad: se guarda con quién
+ * y cuándo, y forma parte del anexo de esa actividad.
+ */
+export async function declararNoAplica(actividad: string, documento: string, operadora?: string | null): Promise<Res> {
+  const operatorId = await operadoraObjetivo(operadora);
+  if (!operatorId) return { ok: false, error: "No hay una operadora sobre la que declarar esto." };
+  if (!VALIDAS.has(actividad)) return { ok: false, error: "Esa actividad no existe." };
+  if (!puedeNoAplicar(documento) || !pertenece(actividad, documento)) {
+    return { ok: false, error: "De ese documento no se puede declarar que no aplica." };
+  }
+  const quien = await correoEnSesion();
+  if (!quien) return { ok: false, error: "No pudimos identificar tu sesión. Vuelve a entrar." };
+
+  const sb = createSupabaseAdminClient();
+  const { data: act } = await sb.from("operator_activities").select("id").eq("operator_id", operatorId).eq("actividad", actividad).maybeSingle();
+  if (!act) return { ok: false, error: "Primero declara la actividad en tu expediente." };
+
+  const { error } = await sb.from("operator_no_aplica").insert({
+    operator_id: operatorId,
+    actividad,
+    documento,
+    declarado_por: quien,
+    anexo_version: versionDelAnexo(actividad),
+  });
+  // 23505 = ya había una declaración viva: está declarado, que es lo que se pedía.
+  if (error && error.code !== "23505") {
+    console.error("declararNoAplica:", error);
+    return { ok: false, error: "No se pudo guardar la declaración." };
+  }
+  revalidatePath(RUTA);
+  return { ok: true };
+}
+
+/** Sí aplicaba: la declaración deja de valer (no se borra) y el permiso vuelve a pedirse. */
+export async function retirarNoAplica(actividad: string, documento: string, operadora?: string | null): Promise<Res> {
+  const operatorId = await operadoraObjetivo(operadora);
+  if (!operatorId) return { ok: false, error: "No hay una operadora sobre la que retirar esto." };
+  const quien = await correoEnSesion();
+  if (!quien) return { ok: false, error: "No pudimos identificar tu sesión. Vuelve a entrar." };
+  const { error } = await createSupabaseAdminClient()
+    .from("operator_no_aplica")
+    .update({ retirada_at: new Date().toISOString(), retirada_por: quien })
+    .eq("operator_id", operatorId)
+    .eq("actividad", actividad)
+    .eq("documento", documento)
+    .is("retirada_at", null);
+  if (error) {
+    console.error("retirarNoAplica:", error);
+    return { ok: false, error: "No se pudo retirar la declaración." };
   }
   revalidatePath(RUTA);
   return { ok: true };

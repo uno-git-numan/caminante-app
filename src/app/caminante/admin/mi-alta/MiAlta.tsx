@@ -1136,7 +1136,7 @@ function Expediente02({
                   <div className="hers">
                     {req.generales.map((g) => {
                       const d = porSlugGeneral.get(g.slug);
-                      return <Heredado key={g.slug} d={d ?? { slug: g.slug, nombre: g.nombre, porQue: g.porQue, momento: momentoDeGeneral(g.slug), estado: "falta", motivo: null, venceAt: null, diasParaVencer: null, cubiertoPorGeneral: true, caduca: false, vencePorAnio: false, opcional: g.opcional === true, id: null, archivoPath: null, archivoNombre: null, archivoBytes: null, subidoAt: null }} irGeneral={irGeneral} />;
+                      return <Heredado key={g.slug} d={d ?? { slug: g.slug, nombre: g.nombre, porQue: g.porQue, momento: momentoDeGeneral(g.slug), puedeNoAplicar: false, noAplica: null, estado: "falta", motivo: null, venceAt: null, diasParaVencer: null, cubiertoPorGeneral: true, caduca: false, vencePorAnio: false, opcional: g.opcional === true, id: null, archivoPath: null, archivoNombre: null, archivoBytes: null, subidoAt: null }} irGeneral={irGeneral} />;
                     })}
                   </div>
                   <div className="salfoot">

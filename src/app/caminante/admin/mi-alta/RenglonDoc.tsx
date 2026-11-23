@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import type { DocEnPantalla } from "@/lib/operadores/expediente";
 import { pesoEnPalabras } from "@/lib/operadores/peso";
 import { ETIQUETA_MOMENTO } from "@/lib/operadores/actividades";
-import { prepararSubida, quitarDocumento, registrarSubida } from "@/lib/operadores/expediente-actions";
+import { declararNoAplica, prepararSubida, quitarDocumento, registrarSubida, retirarNoAplica } from "@/lib/operadores/expediente-actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
 
@@ -80,6 +80,22 @@ export default function RenglonDoc({
   const [error, setError] = useState<string | null>(null);
   const [subiendo, arranca] = useTransition();
   const [quitando, arrancaQuitar] = useTransition();
+  // «No aplica a mis salidas» (anexo, Cuarta): primero se enseña lo que se
+  // declara, y sólo el segundo clic lo guarda. Es bajo protesta de decir verdad.
+  const [confirmando, setConfirmando] = useState(false);
+  const [declarando, arrancaDeclarar] = useTransition();
+  const noAplica = (declarar: boolean) => {
+    if (!actividad) return;
+    setError(null);
+    arrancaDeclarar(async () => {
+      const r = declarar
+        ? await declararNoAplica(actividad, d.slug, operadora)
+        : await retirarNoAplica(actividad, d.slug, operadora);
+      setConfirmando(false);
+      if (r.ok) router.refresh();
+      else setError(r.error);
+    });
+  };
 
   const vencido = d.estado !== "falta" && d.diasParaVencer !== null && d.diasParaVencer < 0;
   const k = d.estado === "falta" ? "falta" : vencido ? "vencido" : d.estado === "en_revision" ? "revision" : d.estado;
@@ -161,6 +177,35 @@ export default function RenglonDoc({
     );
   }
 
+  // Declaró que este permiso no aplica a sus salidas: no es un pendiente.
+  if (d.noAplica) {
+    return (
+      <div className="doc">
+        <IcoOK />
+        <span className="nm">
+          <b>{d.nombre}</b>
+          <small><b>{ETIQUETA_MOMENTO[d.momento]}.</b> {d.porQue}</small>
+        </span>
+        <span className="fl">
+          <span className="mut" style={{ fontFamily: "'Geist',system-ui,sans-serif" }}>
+            Declaraste que no aplica a tus salidas · {diaDelInstante(d.noAplica.declaradoAt)}
+          </span>
+        </span>
+        <span className="ac">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => noAplica(false)} disabled={declarando}>
+            {declarando ? "Guardando…" : "Sí aplica: subirlo"}
+          </button>
+        </span>
+        {error ? (
+          <p className="motivo">
+            <s>{"//"}</s>
+            <span>{error}</span>
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
   const dias = d.diasParaVencer;
   return (
     <div className={cls}>
@@ -168,7 +213,7 @@ export default function RenglonDoc({
       <span className="nm">
         <b>{d.nombre}</b>
         <small>
-          {d.porQue}
+          <b>{ETIQUETA_MOMENTO[d.momento]}.</b> {d.porQue}
           {d.opcional ? " · opcional" : ""}
         </small>
       </span>
@@ -231,7 +276,28 @@ export default function RenglonDoc({
             {quitando ? "Quitando…" : "Quitar"}
           </button>
         ) : null}
+        {d.puedeNoAplicar && k === "falta" && !confirmando ? (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmando(true)} disabled={subiendo}>
+            No aplica
+          </button>
+        ) : null}
       </span>
+      {confirmando ? (
+        <p className="motivo" style={{ borderColor: "var(--sand)" }}>
+          <s>{"//"}</s>
+          <span>
+            <b>Declaras, bajo protesta de decir verdad, que este permiso no aplica a tus salidas de esta actividad.</b>
+            Esa declaración forma parte de tu anexo y queda con tu nombre y la fecha. Si alguna salida sí lo
+            necesita, súbelo antes de que inicie.{" "}
+            <button type="button" className="btn btn-orange btn-sm" onClick={() => noAplica(true)} disabled={declarando}>
+              {declarando ? "Guardando…" : "Sí, no aplica"}
+            </button>{" "}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmando(false)} disabled={declarando}>
+              Cancelar
+            </button>
+          </span>
+        </p>
+      ) : null}
       <input ref={ref} type="file" hidden accept={ACEPTA} onChange={onFile} />
 
       {d.leido ? (

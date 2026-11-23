@@ -332,15 +332,15 @@ const SE_ENTREGA_ANTES_DE_SALIR = new Set([
 /**
  * PERMISOS QUE DEPENDEN DEL SITIO (D30 §1, «Dos precisiones»). El del INAH sólo
  * existe si hay vestigios y el de área natural protegida sólo si la salida
- * entra a una: exigirlos siempre le pediría a la operadora un permiso que no
- * existe. Se ofrecen pero no cuentan como pendientes.
- *
- * ⚠️ PENDIENTE, y está dicho a legal: el anexo (Cuarta) pide que, cuando no
- * aplique, la operadora lo DECLARE en la plataforma bajo protesta de decir
- * verdad. Esa declaración todavía no tiene dónde guardarse (pide una columna
- * nueva); mientras, no subirlo equivale a «no aplica» sin que quede escrito.
+ * entra a una. Se piden como cualquier otro, pero la operadora puede declarar
+ * «no aplica a mis salidas», bajo protesta de decir verdad (anexo, Cuarta): esa
+ * declaración se guarda con autor y fecha (`operator_no_aplica`, 0094) y con
+ * ella el permiso deja de contar como pendiente.
  */
 const SOLO_SI_APLICA = new Set(["permiso-inah", "permiso-anp"]);
+
+/** ¿De este documento se puede declarar «no aplica a mis salidas»? */
+export const puedeNoAplicar = (slug: string): boolean => SOLO_SI_APLICA.has(slug);
 
 /** En qué momento va un documento PROPIO de una actividad. */
 export const momentoDePropio = (slug: string): Momento =>
@@ -375,9 +375,7 @@ export function requisitosDe(slug: string): {
   const a = PORSLUG.get(slug);
   if (!a) return { propios: [], declarados: [], generales: [] };
   return {
-    propios: a.documentos
-      .filter((d) => momentoDePropio(d.slug) === "salida")
-      .map((d) => (SOLO_SI_APLICA.has(d.slug) ? { ...d, opcional: true } : d)),
+    propios: a.documentos.filter((d) => momentoDePropio(d.slug) === "salida"),
     declarados: a.documentos.filter((d) => momentoDePropio(d.slug) === "declarado"),
     generales: a.generalesRelevantes.map(generalPorSlug).filter((d): d is Documento => d !== null),
   };

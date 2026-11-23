@@ -75,11 +75,42 @@ describe("faltaParaSalir", () => {
     for (const d of requisitosDe("campamento").propios) expect(f).toContain(d.nombre);
   });
 
-  it("los permisos que dependen del sitio (INAH, área protegida) no se exigen si no se suben", () => {
+  it("el permiso de área protegida se exige, salvo que la operadora declare que no aplica a sus salidas", () => {
+    const acts = [{ actividad: "observacion-naturaleza", estado: "incompleta", motivo: null }];
     const a = requisitosDe("observacion-naturaleza").propios.find((d) => d.slug === "permiso-anp");
-    expect(a?.opcional).toBe(true);
-    const e = armarExpediente([{ actividad: "observacion-naturaleza", estado: "incompleta", motivo: null }], arranque, undefined, "fisica");
-    expect(faltaParaSalir(e, "observacion-naturaleza", "2027-03-13").join(" ")).not.toMatch(/área natural protegida/);
+    expect(a?.opcional).not.toBe(true);
+
+    const sin = armarExpediente(acts, arranque, undefined, "fisica");
+    expect(faltaParaSalir(sin, "observacion-naturaleza", "2027-03-13").join(" ")).toMatch(/área natural protegida/);
+    const permiso = sin.actividades[0].propios.find((d) => d.slug === "permiso-anp")!;
+    expect(permiso.puedeNoAplicar).toBe(true);
+    expect(permiso.noAplica).toBeNull();
+
+    const declarado = new Map([["observacion-naturaleza|permiso-anp", "2026-11-23T18:00:00Z"]]);
+    const con = armarExpediente(acts, arranque, undefined, "fisica", declarado);
+    expect(faltaParaSalir(con, "observacion-naturaleza", "2027-03-13").join(" ")).not.toMatch(/área natural protegida/);
+    expect(con.actividades[0].propios.find((d) => d.slug === "permiso-anp")!.noAplica).toEqual({ declaradoAt: "2026-11-23T18:00:00Z" });
+    expect(con.actividades[0].faltan).toBe(sin.actividades[0].faltan - 1);
+  });
+
+  it("de la credencial del guía o de una póliza NO se puede declarar que no aplica", () => {
+    const e = armarExpediente(SENDERISMO, arranque, undefined, "fisica", new Map([["senderismo|nom09-senderismo", "2026-11-23T18:00:00Z"]]));
+    const cred = e.actividades[0].propios.find((d) => d.slug === "nom09-senderismo")!;
+    expect(cred.puedeNoAplicar).toBe(false);
+    expect(cred.noAplica).toBeNull();
+    expect(faltaParaSalir(e, "senderismo", "2027-03-13").join(" ")).toMatch(/Credencial de guía/);
+  });
+
+  it("si subió el permiso, manda el permiso y la declaración ya no cuenta", () => {
+    const acts = [{ actividad: "observacion-naturaleza", estado: "incompleta", motivo: null }];
+    const e = armarExpediente(
+      acts,
+      [...arranque, doc("permiso-anp", "observacion-naturaleza", "en_revision", "2027-12-31")],
+      undefined,
+      "fisica",
+      new Map([["observacion-naturaleza|permiso-anp", "2026-11-23T18:00:00Z"]]),
+    );
+    expect(e.actividades[0].propios.find((d) => d.slug === "permiso-anp")!.noAplica).toBeNull();
   });
 });
 
