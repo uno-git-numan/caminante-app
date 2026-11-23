@@ -1,6 +1,12 @@
 # Convenio de operación en la plataforma Caminante — v3 (documento de trabajo)
 
-### v3.5 · PREPARADO el 23 nov 2026 · mayor · NO PUBLICADO: lo publica código con la aprobación de Luis en su sesión
+### v3.5 · PUBLICADO el 23 nov 2026 (15:44 UTC) · mayor · orden 3 · hash `9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1`
+
+> ⚠️ **Esta versión ya está publicada en producción** (la publicó la sesión de
+> código con la aprobación de Luis; verificada por la sesión legal contra la base
+> por PostgREST: hash guardado, hash del texto y `CONVENIO-v3-FIRMABLE.md`
+> idénticos, 49,237 bytes). **Ya no se edita**: cualquier cambio al firmable es
+> una versión nueva.
 
 > **v3.5 = todo lo de la v3.4, que nunca se publicó, más la comisión fija (D29).**
 > Tercera §1 a §4, §7, §8 y §9 (12 % si la venta la origina Caminante, 8 % si la

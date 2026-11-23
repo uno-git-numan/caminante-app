@@ -878,7 +878,26 @@ Lo que **no** cambia: la comisión sigue siendo más IVA, sigue incluyendo el pr
 - **Por debajo de $91 de precio, una venta al 8 % pierde dinero**, por los $3 fijos de Stripe. No es un caso real hoy.
 - No están en estas cuentas los cargos de Stripe por cuenta conectada y por depósito: no los tengo medidos.
 
-**Estado.** Firmable v3.5 con hash `9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1`. No publicado: lo publica código, con la aprobación de Luis en su sesión y el hash comparado. Nadie ha firmado ninguna versión (verificado el 23 nov), así que no hay transición que cuidar.
+**Estado.** **Publicado el 23 nov 2026 a las 15:44 UTC**, orden 3, tipo mayor, por la sesión de código con la aprobación de Luis. Verificado por la sesión legal contra la base: el texto guardado es idéntico al firmable (49,237 bytes, hash `9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1`). Nadie había firmado ninguna versión, así que no hubo transición. Código quitó la comisión pactada del motor y dejó a Kéntro en la tarifa de todas; falta la pantalla del desglose por venta con origen y tasa (Tercera §7).
+
+
+### D30 · El anexo por actividad en tres momentos: qué se entrega y qué se declara (23 nov)
+
+Con el convenio v3.5 publicado, el anexo de cada actividad tiene que decir lo mismo que su Anexo B. Texto en `ANEXO-ACTIVIDAD-MARCO-v3-2026-11-23.md`.
+
+**La regla para clasificar los 54 documentos del catálogo.** Se entrega antes de la primera salida lo que acredita a una persona, lo que es permiso de un tercero sobre el sitio, lo que es póliza, y lo que es certificado con vigencia emitido por un tercero sobre una nave, un animal o un equipo del que depende la vida. Se declara lo que produce la propia operadora: planes, protocolos, ratios, bitácoras y equipo. Fundamento: NOM-011-TUR-2001, 6.1 a 6.3; convenio, Sexta §2 a §4.
+
+Sobre la propuesta de código, tres documentos de buceo pasan a «se entregan»: prueba hidrostática de tanques, análisis de aire y mantenimiento de reguladores. No leí la norma de buceo; siguen la regla, no una cita.
+
+**Tres cambios de fondo en el texto del anexo (marco v3):**
+
+| Cambio | Por qué |
+|---|---|
+| La póliza de cada salida consta en la plataforma antes de cada salida | El deslinde le dice al cliente que la salida tiene seguro; Caminante no puede afirmarlo de una póliza que no ha visto. El anexo puede pedir más que el convenio en seguridad (Sexta, inciso a) |
+| Con un documento vencido la salida no se realiza | El marco anterior decía que las salidas vendidas «se operan y se honran». Contradecía el Anexo B |
+| La operadora puede declarar que un permiso no aplica a sus salidas | Sin eso, el candado de la salida le exigiría un permiso que no existe |
+
+El estado intermedio (candado de publicar ya relajado, marco todavía v2) puede quedar así mientras código transcribe el v3: nadie ha firmado anexos. Condición: el candado de la salida existe antes de la primera salida de una operadora con convenio.
 
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 

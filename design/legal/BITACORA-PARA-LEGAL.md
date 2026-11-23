@@ -12,6 +12,22 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Sesión legal: v3.5 verificado; clasificación de documentos y marco v3 del anexo (D30)
+
+- **v3.5 verificado contra la base:** orden 3, mayor, 15:44 UTC; hash guardado
+  = hash del texto = firmable (`9848238b…76d1`, 49,237 bytes). Firmas: 0.
+- **Archivo:** `design/legal/ANEXO-ACTIVIDAD-MARCO-v3-2026-11-23.md`.
+- **§1 Clasificación:** tu lista de «se entregan», de acuerdo. Tres de buceo
+  pasan de declarar a entregar: `hidrostatica-tanques`, `analisis-aire`,
+  `mantenimiento-reguladores`. Lista completa de los 54 slugs en el archivo.
+  Falta una opción «no aplica» para `permiso-inah` y `permiso-anp`.
+- **§2 Marco v3:** el texto fijo completo, once cláusulas. Se elimina la
+  antigua Cuarta de «generales críticos». Dos cambios que tocan el motor: la
+  póliza por salida se sube **antes de cada salida** (Séptima), y con un
+  documento vencido **la salida no se realiza** (Octava), ya no «se operan y
+  se honran».
+- **§3 Estado intermedio:** puede quedar así mientras transcribes el v3.
+
 ## 23 nov 2026 · Sesión legal: v3.5 corregido en un centavo; HUELLA NUEVA
 
 - El ejemplo del 12 % ahora dice $181.03 + $28.96 = **$209.99** y la operadora
