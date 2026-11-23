@@ -21,7 +21,8 @@ import { sombreroPuesto } from "@/lib/auth/sombrero";
 import { datosDeFirma } from "@/lib/operadores/datos-firma";
 import MiAlta from "./MiAlta";
 import { altaCobroEnPlataforma } from "@/lib/payments/alta-cobro";
-import { pasoDe } from "@/lib/operadores/pasos";
+import { ORDINALES, PASOS, pasoActual } from "@/lib/operadores/pasos";
+import { CINCO_PASOS_CSS } from "./pasos-css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -133,8 +134,8 @@ export default async function MiAltaPage({
       ? await datosDeFirma(datos.operadora.id)
       : null;
 
-  const ORDINAL = ["primero", "segundo", "tercero", "cuarto"];
-  const aqui = pasoDe(datos.estado);
+  // -1 = sigue en su solicitud: todavía no hay pasos que contarle.
+  const indice = pasoActual(datos);
 
   // CUANDO EL ALTA CIERRA, ESTA PANTALLA ES «MI PERFIL» (lámina «Panel
   // Operadora»: «Mi alta se convirtió en Mi perfil»). Los cuatro pasos siguen
@@ -158,7 +159,7 @@ export default async function MiAltaPage({
               ) : null}
               {porOtra ? " · " : null}
               <Link href={porOtra ? `/caminante/admin/mi-alta?operadora=${encodeURIComponent(porOtra.id)}&pasos=1` : "/caminante/admin/mi-alta?pasos=1"}>
-                Ver los cuatro pasos {porOtra ? "de su alta" : "de tu alta"}
+                Ver los cinco pasos {porOtra ? "de su alta" : "de tu alta"}
               </Link>
             </p>
           </div>
@@ -171,17 +172,27 @@ export default async function MiAltaPage({
   return (
     <AdminShell active="panorama">
       <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CINCO_PASOS_CSS }} />
       <div className="sec-head">
         <div>
           <span className="eyebrow">
             <span className="sl">{"//"}</span> {porOtra ? `Alta de ${porOtra.nombre}` : "Mi alta"}
           </span>
           <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
-            Cuatro pasos, <em className="ac">y va{porOtra ? "" : "s"} en el {ORDINAL[aqui.indice]}.</em>
+            {indice < 0 ? (
+              <>
+                {porOtra ? "Su solicitud" : "Tu solicitud"} <em className="ac">está con nosotros.</em>
+              </>
+            ) : (
+              <>
+                {PASOS.length === 5 ? "Cinco" : PASOS.length} pasos, <em className="ac">y va{porOtra ? "" : "s"} en el {ORDINALES[indice]}.</em>
+              </>
+            )}
           </h2>
           <p className="desc">
-            Las secciones del panel se abren cuando termine el alta. Aquí se ve dónde va y qué
-            falta; se puede asomar a cualquier paso aunque todavía no toque.
+            {indice < 0
+              ? "En cuanto te demos respuesta, aquí mismo arrancas con tu marca y tu primera experiencia."
+              : "Empieza por lo tuyo: tu marca y tu experiencia se arman desde hoy, sin costo y sin papeles. Para publicar y vender te pedimos dos documentos, una firma y tu cuenta de cobro. Los pasos se pueden hacer en el orden que quieras."}
           </p>
           {/* ⚠️ EL TEXTO DE ABAJO LE HABLA A LA OPERADORA DE TÚ, y cuando lo lee
               la casa sigue diciendo «tu convenio», «tu marca». No se tradujo a

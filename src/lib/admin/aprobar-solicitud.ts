@@ -24,8 +24,7 @@ import { ensureOperador } from "@/lib/operators/alta";
 import { sembrarPerfilDesdeSolicitud } from "@/lib/operadores/perfil";
 import { marcaLista } from "@/lib/operators/marca";
 import type { OperatorBranding } from "@/lib/operators/branding";
-import { versionesConvenio, leerEstado, diasParaFirmar } from "@/lib/operadores/convenio";
-import { emailConvenioPorFirmar, emailBienvenidaOperador } from "@/lib/operadores/emails";
+import { emailBienvenidaOperador } from "@/lib/operadores/emails";
 
 export const PANEL = "/caminante/admin/plataforma/comunidad";
 
@@ -232,38 +231,11 @@ export async function aprobarSolicitud(id: string): Promise<Res> {
 
   const avisoBien = await avisar("bienvenida", emailBienvenidaOperador(app.email, app.responsable));
 
-  // ⚠️ Y SI YA HAY CONVENIO PUBLICADO, SE LO DECIMOS DE UNA VEZ. De los seis
-  // candados, el del convenio es el único que ella no puede empujar sola: si la
-  // casa no ha publicado texto, su panel dice «La casa no ha publicado el
-  // convenio» y no hay nada que hacer. Cuando SÍ lo hay, enterarse no puede
-  // depender de que se le ocurra entrar a la pantalla.
-  //
-  // Se le enseña la ÚLTIMA publicada, que es la que le va a pintar la pantalla
-  // de firma (ver `leerEstado`). Si todavía no es exigible, el correo dice
-  // cuántos días faltan en vez de sonar a urgencia falsa.
-  //
-  // Best-effort: un correo que no sale no debe deshacer un alta que sí quedó.
-  await avisarConvenioSiLoHay(app.email, app.responsable).catch(() => {});
+  // ⚠️ AQUÍ SALÍA TAMBIÉN «YA PUEDES FIRMAR TU CONVENIO» (hasta el 23 nov
+  // 2026). Con el alta en cinco pasos el convenio es el cuarto: lo primero es
+  // su marca y su experiencia. La bienvenida cuenta el camino completo y es el
+  // único correo de este momento.
 
   revalidatePath(PANEL);
   return { ok: true, operatorId: alta.operatorId, ...(avisoBien ? { aviso: avisoBien } : {}) };
-}
-
-/**
- * Le avisa del convenio, si es que hay uno publicado.
- *
- * Calla cuando no hay nada que firmar — que es el estado de hoy, 23 sep 2026:
- * `operator_agreement_versions` está vacía porque el texto sigue con el
- * abogado. Un correo que dice «firma tu convenio» cuando no existe el convenio
- * es peor que el silencio.
- */
-async function avisarConvenioSiLoHay(email: string, responsable: string | null): Promise<void> {
-  const versiones = await versionesConvenio();
-  const { ultima } = leerEstado(versiones);
-  if (!ultima) return;
-  await emailConvenioPorFirmar(email, responsable, {
-    titulo: ultima.titulo,
-    version: ultima.version,
-    dias: new Date(ultima.vigenteDesde) <= new Date() ? 0 : diasParaFirmar(ultima),
-  });
 }

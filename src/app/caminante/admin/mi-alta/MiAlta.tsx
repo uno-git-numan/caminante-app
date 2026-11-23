@@ -15,7 +15,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AQUI_ESTAS, FIRMADO_EL, LECTURA_PASO, PASOS, TODAVIA_NO, pasoDe } from "@/lib/operadores/pasos";
+import { AQUI_ESTAS, FIRMADO_EL, PASOS, PENDIENTE, pasoActual, pasosHechos } from "@/lib/operadores/pasos";
 import type { MiAlta as Datos } from "@/lib/operadores/mi-alta";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
 import { ACTIVIDADES, momentoDeGeneral, requisitosDe } from "@/lib/operadores/actividades";
@@ -61,7 +61,13 @@ export default function MiAlta({
    */
   porOtra?: string | null;
 }) {
-  const aqui = pasoDe(datos.estado);
+  // CINCO PASOS, CADA UNO POR SU CUENTA (lib/operadores/pasos.ts): marca,
+  // experiencia, documentos, convenio y cuenta de cobro. `enSolicitud` = sigue
+  // esperando respuesta y todavía no tiene panel: no hay pasos que enseñarle.
+  const indice = pasoActual(datos);
+  const enSolicitud = indice < 0;
+  const aqui = { indice: Math.max(indice, 0) };
+  const hechos = pasosHechos(datos);
   const [viendo, setViendo] = useState(aqui.indice);
   const firmadoEl = datos.operadora?.convenioFirmadoAt ?? null;
   const s = datos.solicitud;
@@ -105,6 +111,86 @@ export default function MiAlta({
           cobroEnPlataforma,
         })
       : [];
+  // LA SOLICITUD Y LA LLAMADA. Era el paso 01 («Nos conocemos»); con el orden
+  // nuevo ya no es un paso: es la pantalla de quien todavía espera respuesta, y
+  // después un plegable al pie para releer lo que mandó y lo que se habló.
+  const solicitudBloque = (
+          <>
+            {!enSolicitud ? (
+              <div className="verdict si">
+                <span className="n">{"//"}</span>
+                <span className="g">
+                  <b>{s?.llamadaAt ? `Nos conocimos el ${fecha(s.llamadaAt)}` : "Nos conocimos"}</b>
+                  <span>{s ? "Este paso quedó cerrado. Aquí sigue tu solicitud tal como la mandaste, por si quieres releerla." : "Este paso quedó cerrado."}</span>
+                </span>
+              </div>
+            ) : (
+              <div className="verdict casa">
+                <span className="n">{"//"}</span>
+                <span className="g">
+                  <b>Tenemos tu solicitud</b>
+                  <span>
+                    {s?.creadaAt ? `Llegó el ${fecha(s.creadaAt)}. ` : ""}
+                    {"La lee una persona, no un sistema. Lo único que te pedimos en este paso es llegar a la llamada: no hay documentos ni formularios."}
+                  </span>
+                </span>
+              </div>
+            )}
+
+            {enSolicitud && s?.llamadaAt && s.meetUrl ? (
+              <div className="card pad" style={{ boxShadow: "none", marginTop: 14 }}>
+                <span className="subtitle">
+                  Tu llamada · {fecha(s.llamadaAt)}, {hora(s.llamadaAt)} h
+                </span>
+                <Copiar url={s.meetUrl} />
+                <p className="gnhint" style={{ maxWidth: "70ch" }}>
+                  La liga vive aquí, no sólo en el correo. Si borras el correo, la llamada no se
+                  pierde.
+                </p>
+                <div className="salfoot">
+                  <a className="btn btn-orange btn-sm" href={s.meetUrl} target="_blank" rel="noreferrer">
+                    Entrar a la llamada
+                  </a>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Solicitud vieja a la que se le pidieron documentos ANTES de
+                abrirle panel (status «docs»): su puerta al expediente. */}
+            {enSolicitud && s && s.documentosPedidos > 0 ? (
+              <div className={s.documentosSubidos >= s.documentosPedidos ? "verdict casa" : "verdict no"} style={{ marginTop: 14 }}>
+                <span className="n">
+                  {s.documentosSubidos}/{s.documentosPedidos}
+                </span>
+                <span className="g">
+                  {s.documentosSubidos >= s.documentosPedidos ? (
+                    <>
+                      <b>Entregaste todo. Ahora nos toca a nosotros</b>
+                      <span>Los revisa una persona. No falta nada tuyo y no hay nada que puedas apurar desde aquí.</span>
+                    </>
+                  ) : (
+                    <>
+                      <b>Te faltan {s.documentosPedidos - s.documentosSubidos} documentos</b>
+                      <span>Van todos en paralelo y se guardan solos: puedes dejarlo a medias y volver cuando quieras.</span>
+                    </>
+                  )}
+                  <span style={{ marginTop: 8 }}>
+                    <Link href={liga("/caminante/admin/mi-alta/expediente")}>
+                      {s.documentosSubidos >= s.documentosPedidos ? "Ver el expediente" : "Subir los documentos"}
+                    </Link>
+                  </span>
+                </span>
+              </div>
+            ) : null}
+
+            {s ? <LoQueMande e={s.enviada} creadaAt={s.creadaAt} /> : null}
+
+            {/* El resumen llega con la invitación: antes de agendar la llamada
+                todavía no existe para ella. */}
+            {!enSolicitud || datos.estado === "llamada" ? plegableTerminos(enSolicitud) : null}
+          </>
+  );
+
   const cumplidos = datos.candados.filter((c) => c.cumplido).length;
   const ligaDeFalta = (href: string) => (RUTAS_CON_OPERADORA.includes(href) ? liga(href) : href);
 
@@ -150,28 +236,24 @@ export default function MiAlta({
         </div>
       ) : null}
 
-      <div className="pasos" id="pasos">
+      {enSolicitud ? null : (
+      <div className="pasos cinco" id="pasos">
         {PASOS.map((p, i) => {
           // ⚠️ `done`, NO `hecho`. El único `.hecho` del CSS es
           // `.paso .subs button.hecho` —un botón dentro de otra cosa—, así que
           // `.paso.hecho` no casaba con ninguna regla y los pasos ya cumplidos
           // se pintaban como si no lo estuvieran. El modificador del entregable
           // para un paso terminado es `done`, y tiene sus cuatro reglas.
-          const hecho = i < aqui.indice;
-          const actual = i === aqui.indice;
-          // Lámina «Panel Operadora»: done / now / next, y una sola línea de
-          // estado en lugar de las dos pastillas de momentos de la v5.
+          // Cada paso sabe solo si está hecho: no son una fila india.
+          const hecho = hechos[i];
+          const actual = !hecho && i === aqui.indice;
           const estado = hecho
-            ? i === 2 && firmadoEl
+            ? i === 3 && firmadoEl
               ? FIRMADO_EL + fecha(firmadoEl)
-              : // La llamada ya no es obligatoria (llamada.ts): quien entró sin
-                // ella no «hizo la llamada», fue aprobada.
-                i === 0 && !s?.llamadaAt
-                ? "Aprobada"
-                : p.cerrado
+              : p.cerrado
             : actual
               ? AQUI_ESTAS
-              : TODAVIA_NO;
+              : PENDIENTE;
           return (
             <div
               key={p.n}
@@ -189,80 +271,17 @@ export default function MiAlta({
           );
         })}
       </div>
+      )}
 
       <div className="oppane paso-pane">
-        {/* El aviso sólo va al asomarse a un paso que VIENE (lámina «Panel
-            Operadora»). Uno que ya pasó enseña lo que pasó, sin encabezado: la
-            v5 le ponía «Este paso ya lo pasaste, y así se veía por dentro» y
-            debajo sólo la frase de presentación. */}
-        {viendo > aqui.indice && viendo >= 1 ? (
-          <p className="lectura">
-            <s>{"//"}</s>
-            <span className="g">
-              <b>Todavía no te toca este paso, y así se ve por dentro</b>
-              <span>{LECTURA_PASO[viendo as 1 | 2 | 3]}</span>
-            </span>
-          </p>
-        ) : null}
+        {/* ── Mientras sigue en su solicitud: lo único que hay que enseñar ── */}
+        {enSolicitud ? solicitudBloque : null}
 
-        {/* ── 01 · Nos conocemos ─────────────────────────────────────────────
-            Transcrito de la lámina «Panel Operadora» (recurso bf8eb7a0 · Paso1).
-            Un solo bloque con dos veredictos: «Nos conocimos el …» cuando la
-            llamada ya se tuvo, «Tenemos tu solicitud» con la tarjeta de la
-            llamada mientras no. Debajo, siempre, «Ver lo que mandé».
-            ⚠️ El resumen de términos NO está en la lámina: lo pidió Luis (24 sep
-            2026) para releer lo que llegó con la invitación. Va al final.
-            ⚠️ «La llamada ya se tuvo» = la operadora ya pasó de este paso. Con
-            fila activa la fila manda: aunque su solicitud diga otra cosa, el
-            paso quedó cerrado. La fecha sólo sale si está registrada. */}
-        {viendo === 0 ? (
-          <>
-            {aqui.indice > 0 ? (
-              <div className="verdict si">
-                <span className="n">{"//"}</span>
-                <span className="g">
-                  <b>{s?.llamadaAt ? `Nos conocimos el ${fecha(s.llamadaAt)}` : "Nos conocimos"}</b>
-                  <span>{s ? "Este paso quedó cerrado. Aquí sigue tu solicitud tal como la mandaste, por si quieres releerla." : "Este paso quedó cerrado."}</span>
-                </span>
-              </div>
-            ) : (
-              <div className="verdict casa">
-                <span className="n">{"//"}</span>
-                <span className="g">
-                  <b>Tenemos tu solicitud</b>
-                  <span>
-                    {s?.creadaAt ? `Llegó el ${fecha(s.creadaAt)}. ` : ""}
-                    {"La lee una persona, no un sistema. Lo único que te pedimos en este paso es llegar a la llamada: no hay documentos ni formularios."}
-                  </span>
-                </span>
-              </div>
-            )}
+        {/* ── 01 · Tu marca ──────────────────────────────────────────────── */}
+        {viendo === 0 && !enSolicitud ? <PasoMarca datos={datos} liga={liga} /> : null}
 
-            {aqui.indice === 0 && s?.llamadaAt && s.meetUrl ? (
-              <div className="card pad" style={{ boxShadow: "none", marginTop: 14 }}>
-                <span className="subtitle">
-                  Tu llamada · {fecha(s.llamadaAt)}, {hora(s.llamadaAt)} h
-                </span>
-                <Copiar url={s.meetUrl} />
-                <p className="gnhint" style={{ maxWidth: "70ch" }}>
-                  La liga vive aquí, no sólo en el correo. Si borras el correo, la llamada no se
-                  pierde.
-                </p>
-                <div className="salfoot">
-                  <a className="btn btn-orange btn-sm" href={s.meetUrl} target="_blank" rel="noreferrer">
-                    Entrar a la llamada
-                  </a>
-                </div>
-              </div>
-            ) : null}
-
-            {s ? <LoQueMande e={s.enviada} creadaAt={s.creadaAt} /> : null}
-
-            {/* El resumen llega con la invitación: antes de agendar la llamada
-                todavía no existe para ella. */}
-            {aqui.indice > 0 || aqui.momento === 1 ? plegableTerminos(aqui.indice === 0) : null}
-          </>
-        ) : null}
+        {/* ── 02 · Tu experiencia: armar es libre desde el primer día ────── */}
+        {viendo === 1 && !enSolicitud ? <Paso04 datos={datos} firma={firma} liga={liga} parte="armar" /> : null}
 
         {/* ── 02 · Tu expediente ─────────────────────────────────────────── */}
         {/* EL EXPEDIENTE REAL, SIEMPRE QUE HAY OPERADORA. Se ve al picar el
@@ -272,59 +291,13 @@ export default function MiAlta({
             Operadora»: el veredicto con «lo que vence primero», «Lo general»
             como acordeón, un acordeón por actividad (sus documentos y, debajo,
             los de Lo general que necesita) y el catálogo de las no declaradas. */}
-        {viendo === 1 && datos.expediente ? (
+        {viendo === 2 && datos.expediente ? (
           <Expediente02
             e={datos.expediente}
             operadoraId={datos.operadora?.id ?? null}
             dispensas={datos.dispensas.filter((d) => d.vigente)}
             porOtra={porOtra}
           />
-        ) : viendo === 1 && aqui.indice === 1 && s ? (
-          <>
-            {/* ⚠️ La lámina dice «ocho documentos». En la app la lista NO es
-                fija: se escribe al pedir el expediente y cambia por actividad
-                —a una operadora de montaña no se le pide certificación de
-                buceo—. Poner un ocho de adorno le prometería a alguien un
-                número que su lista no tiene. */}
-            <div className={s.documentosSubidos >= s.documentosPedidos ? "verdict casa" : "verdict no"}>
-              <span className="n">
-                {s.documentosSubidos}/{s.documentosPedidos}
-              </span>
-              <span className="g">
-                {s.documentosSubidos >= s.documentosPedidos ? (
-                  <>
-                    <b>Entregaste todo. Ahora nos toca a nosotros</b>
-                    <span>
-                      Los revisa una persona y tarda entre tres y cinco días hábiles. No falta nada
-                      tuyo y no hay nada que puedas apurar desde aquí.
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <b>Te faltan {s.documentosPedidos - s.documentosSubidos} documentos</b>
-                    <span>
-                      Van todos en paralelo y se guardan solos: puedes dejarlo a medias y volver
-                      cuando quieras.
-                    </span>
-                  </>
-                )}
-                {/* ⚠️ EL PASO 02 NO TENÍA PUERTA. Decía «te faltan N
-                    documentos» y no llevaba a ningún lado: el expediente existe
-                    en `mi-alta/expediente` y esta pantalla —la que cuenta los
-                    documentos— era la única del recorrido que no enlazaba a su
-                    propio paso. El 04 sí lleva a convenio, cobro y marca. Se
-                    descubrió cuando la casa quiso subir por una operadora y
-                    tuvo que teclear la URL. */}
-                <span style={{ marginTop: 8 }}>
-                  <Link href={liga("/caminante/admin/mi-alta/expediente")}>
-                    {s.documentosSubidos >= s.documentosPedidos
-                      ? "Ver el expediente"
-                      : "Subir los documentos"}
-                  </Link>
-                </span>
-              </span>
-            </div>
-          </>
         ) : null}
 
         {/* ── 03 y 04 · lo que ya cuentan los candados ───────────────────── */}
@@ -338,12 +311,23 @@ export default function MiAlta({
             no del número de paso: antes, estando en el 02, habría dicho
             «Puedes armar» sin preguntarle a nadie si era cierto. */}
         {/* ── 03 · El convenio (lámina «Panel Operadora») ───────────────── */}
-        {viendo === 2 ? (
-          <Paso03 datos={datos} firma={firma} porOtra={porOtra} irAPaso4={() => setViendo(3)} />
+        {viendo === 3 && !enSolicitud ? (
+          <Paso03 datos={datos} firma={firma} porOtra={porOtra} irAPaso4={() => setViendo(4)} />
         ) : null}
 
         {/* ── 04 · Armar y cobrar (lámina «Panel Operadora») ──────────────── */}
-        {viendo === 3 ? <Paso04 datos={datos} firma={firma} liga={liga} /> : null}
+        {viendo === 4 && !enSolicitud ? <Paso04 datos={datos} firma={firma} liga={liga} parte="cobrar" /> : null}
+
+        {/* Lo que mandó al aplicar y lo que se habló, para releerlo. */}
+        {!enSolicitud && s ? (
+          <details className="fold" style={{ marginTop: 22 }}>
+            <summary>
+              <b>Tu solicitud</b>
+              <span className="mut">Lo que mandaste al aplicar{s.llamadaAt ? " y lo que se habló en la llamada" : ""}</span>
+            </summary>
+            <div className="fb">{solicitudBloque}</div>
+          </details>
+        ) : null}
       </div>
     </>
   );
@@ -436,14 +420,14 @@ function Paso03({
           {f?.version ? <span className="chip c-paid">v{f.version}</span> : null}
         </div>
         <div className="ahora" style={{ marginTop: 14 }}>
-          <span className="lb">{"// "}Se abrió tu catálogo</span>
+          <span className="lb">{"// "}Ya puedes publicar</span>
           <h3>
-            Experiencias ya está prendida: <em>arma la tuya.</em>
+            Sólo falta dónde recibes <em>tu dinero.</em>
           </h3>
-          <p>Tu firma es lo único que hacía falta. Desde hoy puedes escribir tu experiencia, subir fotos y poner precios, mientras resuelves lo de cobrar en el paso 4, en el orden que quieras.</p>
+          <p>Con tu firma tu experiencia ya se puede publicar. El último paso es tu cuenta de cobro: a ella entra lo que vendas, a tu nombre.</p>
           <div className="salfoot">
             <button type="button" className="btn btn-orange" onClick={irAPaso4}>
-              Ir a armar y cobrar
+              Ir a mi cuenta de cobro
             </button>
           </div>
         </div>
@@ -546,16 +530,23 @@ function Paso04({
   datos,
   firma,
   liga,
+  parte,
 }: {
   datos: Datos;
   firma: DatosFirma | null;
   liga: (ruta: string) => string;
+  /**
+   * Eran dos mitades de un mismo paso («Armar y cobrar»). Desde el 23 nov de
+   * 2026 son dos pasos: ARMAR va al principio y es libre —no espera firma ni
+   * papeles—; COBRAR va al final.
+   */
+  parte: "armar" | "cobrar";
 }) {
   const op = datos.operadora;
   if (!op) return null;
-  // «Armar» se prende al firmar el convenio, como el nav del alta.
   const firmado = !!(firma?.convenio?.firmado || op.convenioFirmadoAt);
-  const lectura = !firmado;
+  // Sólo el cobro espera a la firma: la cuenta se abre bajo el convenio.
+  const lectura = parte === "cobrar" && !firmado;
   const n6 = datos.candados.filter((c) => c.cumplido).length;
   const publicadas = datos.experiencias.filter((e) => e.estado === "published");
   const f = datos.fiscal;
@@ -564,11 +555,11 @@ function Paso04({
   const csdOK = Boolean(datos.fiscal.csd);
   const cuentaOK = datos.candados.find((c) => c.clave === "connect")?.cumplido ?? false;
   const comision = datos.candados.find((c) => c.clave === "comision")?.detalle ?? "";
-  const armarEstado = lectura ? "Cuando firmes" : publicadas.length ? "Publicada" : "Ya puedes";
+  const armarEstado = publicadas.length ? "Publicada" : datos.experiencias.length ? "En borrador" : "Empieza aquí";
 
   return (
     <div>
-      {datos.estado === "listo" ? (
+      {parte === "cobrar" && datos.estado === "listo" ? (
         <div className="win" style={{ marginBottom: 16 }}>
           <span className="lb">{"// "}{op.nombre}</span>
           <p style={{ fontSize: "clamp(20px,2.6vw,27px)", fontWeight: 200, letterSpacing: "-.02em", lineHeight: 1.2, maxWidth: "26ch" }}>
@@ -595,6 +586,7 @@ function Paso04({
         </div>
       ) : null}
 
+      {parte === "cobrar" ? (
       <div className="seis">
         {datos.candados.map((c) => (
           <span key={c.clave} className={"six" + (c.cumplido ? " ok" : "")}>
@@ -604,13 +596,18 @@ function Paso04({
         ))}
         <span className="fr">{n6} de 6</span>
       </div>
+      ) : null}
 
-      <div className="mitades" style={{ marginTop: 16 }}>
+      <div className="mitades una" style={{ marginTop: parte === "cobrar" ? 16 : 0 }}>
+        {parte === "armar" ? (
         <div className="mitad armar">
           <div className="mh">
             <b>Armar</b>
             <span className="fr">{armarEstado}</span>
-            <small>Crear tu experiencia, escribir tu itinerario, poner cupos y precios. No necesita un solo dato fiscal.</small>
+            <small>
+              Crea tu experiencia y mira cómo queda tu página, con tu marca. Es libre: no necesita papeles ni firma.
+              Para publicarla y venderla te pedimos después tus dos documentos, la firma del convenio y tu cuenta de cobro.
+            </small>
           </div>
           <div className="mb">
             {datos.experiencias.length ? (
@@ -626,27 +623,27 @@ function Paso04({
                       <span className="mut">{e.estado === "published" ? "Publicada" : "Borrador"}</span>
                     </span>
                     <span className="ac">
-                      {!lectura ? (
-                        <Link className="btn btn-ghost btn-sm" href={`/caminante/admin/experiencias/${e.slug}`}>
-                          Abrir
-                        </Link>
-                      ) : null}
+                      <a className="btn btn-orange btn-sm" href={`/caminante/admin/preview/${e.slug}`} target="_blank" rel="noopener noreferrer">
+                        Ver mi página
+                      </a>
+                      <Link className="btn btn-ghost btn-sm" href={`/caminante/admin/experiencias/${e.slug}`}>
+                        Editar
+                      </Link>
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="gnhint" style={{ marginTop: 0 }}>Todavía no tienes experiencias.</p>
+              <p className="gnhint" style={{ marginTop: 0 }}>
+                Todavía no tienes experiencias. La primera se arma en una pantalla: nombre, lugar, fotos, qué incluye,
+                precio y fecha. Al guardarla ves tu página tal como la verá tu cliente.
+              </p>
             )}
-            {lectura ? (
-              <p className="gnhint">Se prende en cuanto firmes el convenio.</p>
-            ) : (
-              <div className="salfoot">
-                <Link className="btn btn-orange btn-sm" href="/caminante/admin/experiencias/nueva">
-                  Crear una experiencia
-                </Link>
-              </div>
-            )}
+            <div className="salfoot">
+              <Link className={"btn btn-sm " + (datos.experiencias.length ? "btn-ghost" : "btn-orange")} href="/caminante/admin/experiencias/nueva">
+                {datos.experiencias.length ? "Crear otra experiencia" : "Crear mi primera experiencia"}
+              </Link>
+            </div>
             {/* La marca no es de la lámina: Luis pidió (24 sep) que se ofrezca
                 en el alta, y es de «armar» —cómo se ve lo suyo—. */}
             <p className="gnhint">
@@ -660,7 +657,9 @@ function Paso04({
             </p>
           </div>
         </div>
+        ) : null}
 
+        {parte === "cobrar" ? (
         <div className="mitad cobrar">
           {/* ⚠️ COBRAR ES UNA SOLA COSA (Luis, 9 nov 2026): «Facilitemos todo
               para poder cobrar lo antes posible… y si quieren facturación, que
@@ -711,6 +710,38 @@ function Paso04({
             </p>
           </div>
         </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// ── PASO 01 · TU MARCA ────────────────────────────────────────────────────
+//
+// El primer paso del alta (23 nov 2026): lo primero que hace una operadora es
+// algo SUYO, no juntar papeles. No es un editor nuevo: la marca se captura
+// donde siempre (`mi-alta/marca`); aquí se dice para qué sirve y en qué va.
+// Es opcional: sin marca todo se ve de Caminante con su nombre, y puede seguir.
+function PasoMarca({ datos, liga }: { datos: Datos; liga: (ruta: string) => string }) {
+  const op = datos.operadora;
+  if (!op) return null;
+  return (
+    <div>
+      <div className={"verdict " + (op.marca.completa ? "si" : "casa")}>
+        <span className="n">{"//"}</span>
+        <span className="g">
+          <b>{op.marca.completa ? "Tu marca ya está puesta" : "Ponle tu marca a lo tuyo"}</b>
+          <span>
+            {op.marca.completa
+              ? "Tu página, la reserva de tus clientes y tus correos salen con tu logo y tus colores."
+              : `Tu página, la reserva de tus clientes y tus correos salen con tu logo y tus colores, no con los nuestros. Te falta ${op.marca.faltan.join(", ")}. Si todavía no la tienes resuelta, sáltate este paso: mientras tanto se ve de Caminante con tu nombre.`}
+          </span>
+          <span style={{ marginTop: 10 }}>
+            <Link className={"btn btn-sm " + (op.marca.completa ? "btn-ghost" : "btn-orange")} href={liga("/caminante/admin/mi-alta/marca")}>
+              {op.marca.completa ? "Cambiar mi marca" : "Poner mi marca"}
+            </Link>
+          </span>
+        </span>
       </div>
     </div>
   );

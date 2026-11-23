@@ -98,7 +98,7 @@ const operadoraSinCandados = {
   puedeArmar: false,
   puedeCobrar: false,
   candados: [
-    { clave: "convenio", nombre: "Convenio firmado", cumplido: false, toca: "casa", bloquea: "armar" },
+    { clave: "convenio", nombre: "Convenio firmado", cumplido: false, toca: "casa", bloquea: "cobrar" },
     { clave: "panel", nombre: "Panel activo", cumplido: true, toca: "casa", bloquea: "armar" },
   ],
 };
@@ -141,7 +141,7 @@ describe("fetchMiAlta — la fila manda", () => {
 
   it("fila activa sin solicitud (alta manual): igual, es operadora", async () => {
     estado.fila = filaActiva;
-    estado.operadoras = [{ ...operadoraSinCandados, puedeArmar: true }];
+    estado.operadoras = [{ ...operadoraSinCandados, puedeArmar: true, candados: operadoraSinCandados.candados.map((c) => (c.clave === "convenio" ? { ...c, cumplido: true } : c)) }];
     const r = await fetchMiAlta();
     expect(r?.operadora?.id).toBe("op-nomadika");
     expect(r?.estado).toBe("armando");
@@ -256,9 +256,18 @@ describe("fetchMiAlta — el expediente abierto manda sobre los candados", () =>
 
   it("expediente completo ⇒ ahora sí mandan los candados", async () => {
     estado.fila = filaActiva;
-    estado.operadoras = [conCandados(true, false)];
+    estado.operadoras = [{ ...operadoraSinCandados, puedeArmar: true, candados: operadoraSinCandados.candados.map((c) => (c.clave === "convenio" ? { ...c, cumplido: true } : c)) }];
     estado.expediente = expedienteCompleto;
     expect((await fetchMiAlta())?.estado).toBe("armando");
+  });
+
+  it("ARMAR ES LIBRE (23 nov 2026): poder armar sin haber firmado sigue siendo «por firmar»", async () => {
+    // Antes «armando» salía de `puedeArmar`, que se prendía con la firma. Ahora
+    // armar se abre con el panel, así que el estado lo decide el convenio mismo.
+    estado.fila = filaActiva;
+    estado.operadoras = [conCandados(true, false)];
+    estado.expediente = expedienteCompleto;
+    expect((await fetchMiAlta())?.estado).toBe("por_firmar");
   });
 
   it("la casa no tiene expediente que seguir", async () => {

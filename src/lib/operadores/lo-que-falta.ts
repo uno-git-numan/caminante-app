@@ -75,9 +75,9 @@ const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : vari
 /**
  * Lo que falta para vender, en el orden en que se resuelve. Vacía = ya vende.
  *
- * El orden no es el de los candados: es el del camino. Primero los papeles,
- * luego la firma, luego la cuenta, y al final la experiencia —que es lo único
- * que no se puede adelantar, porque «Armar» se prende al firmar—.
+ * El orden no es el de los candados: es el del camino (el mismo de los cinco
+ * pasos de Mi alta, `pasos.ts`). Primero su experiencia, que es libre; luego
+ * los dos documentos, la firma y la cuenta; y al final, publicarla.
  */
 export function loQueFalta(d: ParaLoQueFalta): Falta[] {
   const falta: Falta[] = [];
@@ -86,6 +86,21 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
     const c = candado(clave);
     return c && !c.cumplido ? c : null;
   };
+
+  // 0 · TU EXPERIENCIA, PRIMERO (23 nov 2026). Armar es libre: no espera
+  // papeles ni firma, y es lo que le enseña a la operadora cómo queda su
+  // página. Sin ninguna, es el primer renglón y siempre lleva botón.
+  const experiencia = abierto("experiencia");
+  if (experiencia && d.borradores === 0) {
+    falta.push({
+      clave: "experiencia",
+      titulo: "Arma tu primera experiencia",
+      detalle: "Es libre y se hace en una pantalla. Al guardarla ves tu página tal como la verá tu cliente.",
+      toca: "operadora",
+      href: RUTA.nueva,
+      accion: "Crear",
+    });
+  }
 
   // 1 · EL EXPEDIENTE. No es uno de los seis, pero sin la actividad aprobada no
   // se publica (candado de publicación por actividad). Con dispensa se enseña
@@ -182,22 +197,18 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
     });
   }
 
-  // 6 · UNA EXPERIENCIA PUBLICADA. «Armar» se prende al firmar: antes de la
-  // firma se dice que viene, sin botón, para no ofrecer lo que el candado niega.
-  const experiencia = abierto("experiencia");
-  if (experiencia) {
-    const sinFirma = Boolean(convenio);
+  // 6 · PUBLICARLA. Con borrador, publicar es lo último: pide lo de arriba.
+  if (experiencia && d.borradores > 0) {
+    const pendientes = falta.filter((f) => f.clave !== "experiencia").length;
     falta.push({
       clave: "experiencia",
-      titulo: "Publicar una experiencia",
-      detalle: sinFirma
-        ? "Se prende en cuanto firmes el convenio."
-        : d.borradores > 0
-          ? `Tienes ${d.borradores} en borrador. Termínala y publícala.`
-          : "Todavía no tienes ninguna. Son cinco tarjetas.",
+      titulo: "Publicar tu experiencia",
+      detalle: pendientes
+        ? `Tienes ${d.borradores} en borrador. Se publica en cuanto cierres lo de arriba; mientras, puedes seguir armándola y ver cómo queda.`
+        : `Tienes ${d.borradores} en borrador. Ya puedes publicarla.`,
       toca: "operadora",
-      href: sinFirma ? null : d.borradores > 0 ? RUTA.experiencias : RUTA.nueva,
-      accion: sinFirma ? null : d.borradores > 0 ? "Abrir" : "Crear",
+      href: RUTA.experiencias,
+      accion: pendientes ? "Abrir" : "Publicar",
     });
   }
 

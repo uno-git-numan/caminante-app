@@ -33,13 +33,21 @@ describe("lo que falta para vender", () => {
     expect(loQueFalta(base)).toEqual([]);
   });
 
-  it("va en el orden en que se hace: papeles, constancia, firma, cuenta, panel, experiencia", () => {
+  it("va en el orden en que se hace: su experiencia, papeles, constancia, firma, cuenta, panel", () => {
     const falta = loQueFalta({
       ...base,
       candados: seis(["convenio", "fiscal", "connect", "panel", "experiencia"]),
       expediente: { completo: false, vacio: false, faltanTotal: 3 },
     });
-    expect(falta.map((f) => f.clave)).toEqual(["expediente", "fiscal", "convenio", "connect", "panel", "experiencia"]);
+    expect(falta.map((f) => f.clave)).toEqual(["experiencia", "expediente", "fiscal", "convenio", "connect", "panel"]);
+    // Con un borrador ya armado, lo que queda de la experiencia es publicarla: va al final.
+    const conBorrador = loQueFalta({
+      ...base,
+      borradores: 1,
+      candados: seis(["convenio", "fiscal", "connect", "panel", "experiencia"]),
+      expediente: { completo: false, vacio: false, faltanTotal: 3 },
+    });
+    expect(conBorrador.map((f) => f.clave)).toEqual(["expediente", "fiscal", "convenio", "connect", "panel", "experiencia"]);
   });
 
   it("el expediente dice cuántos documentos faltan, y en singular cuando es uno", () => {
@@ -89,19 +97,18 @@ describe("lo que falta para vender", () => {
     expect(prendida).toMatchObject({ toca: "operadora", accion: "Conectar", href: "/caminante/admin/mi-alta/cobrar" });
   });
 
-  it("no ofrece crear una experiencia antes de la firma: «Armar» se prende al firmar", () => {
+  it("ARMAR ES LIBRE: ofrece crear la experiencia ANTES de la firma, y es el primer renglón", () => {
     const falta = loQueFalta({ ...base, candados: seis(["convenio", "experiencia"]) });
-    const exp = falta.find((f) => f.clave === "experiencia")!;
-    expect(exp.href).toBeNull();
-    expect(exp.detalle).toContain("firmes");
+    expect(falta[0]).toMatchObject({ clave: "experiencia", href: "/caminante/admin/experiencias/nueva", accion: "Crear" });
   });
 
-  it("ya firmado: sin borradores manda a crear, con borradores a abrirlos", () => {
-    const crear = loQueFalta({ ...base, candados: seis(["experiencia"]) })[0];
-    expect(crear).toMatchObject({ href: "/caminante/admin/experiencias/nueva", accion: "Crear" });
-    const abrir = loQueFalta({ ...base, candados: seis(["experiencia"]), borradores: 2 })[0];
-    expect(abrir).toMatchObject({ href: "/caminante/admin/eventos", accion: "Abrir" });
+  it("con borrador y cosas pendientes dice que se publica al cerrarlas; sin pendientes, que ya puede", () => {
+    const falta = loQueFalta({ ...base, candados: seis(["convenio", "experiencia"]), borradores: 2 });
+    const abrir = falta[falta.length - 1];
+    expect(abrir).toMatchObject({ clave: "experiencia", href: "/caminante/admin/eventos", accion: "Abrir" });
     expect(abrir.detalle).toContain("2 en borrador");
+    const publicar = loQueFalta({ ...base, candados: seis(["experiencia"]), borradores: 2 })[0];
+    expect(publicar).toMatchObject({ href: "/caminante/admin/eventos", accion: "Publicar" });
   });
 
   it("el título cuenta sólo lo que le toca a ella", () => {

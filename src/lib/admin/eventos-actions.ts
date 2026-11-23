@@ -15,7 +15,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
-import { puedeEditarExperiencia, puedeEditarSlot } from "@/lib/auth/alcance";
+import { alcanceActual, esOperador, puedeEditarExperiencia, puedeEditarSlot } from "@/lib/auth/alcance";
 import { fetchSlotAvailability } from "@/lib/experiences/availability";
 import { candadosDe } from "@/lib/experiences/candados-venta";
 
@@ -326,6 +326,7 @@ export async function setExperienceStatus(input: {
       data: row.data as import("@/lib/experiences/types").Experience,
       operator_id: (row as { operator_id: string | null }).operator_id,
       actividad: (row as { actividad: string | null }).actividad,
+      publicaLaOperadora: esOperador(await alcanceActual()),
     });
     if (!veredicto.ok) {
       return fail(

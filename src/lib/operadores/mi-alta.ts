@@ -301,7 +301,9 @@ export async function fetchMiAlta(porOperadora?: string): Promise<MiAlta | null>
   else if (!mia?.esLaCasa && !expediente.completo) {
     estado = !expediente.vacio && expediente.faltanTotal === 0 ? "revision" : "expediente";
   } else if (mia?.puedeCobrar) estado = "listo";
-  else if (mia?.puedeArmar) estado = "armando";
+  // Armar ya no espera a la firma (23 nov 2026), así que «armando» y «por
+  // firmar» se distinguen por el convenio mismo y no por `puedeArmar`.
+  else if (candados.find((c) => c.clave === "convenio")?.cumplido) estado = "armando";
   else estado = "por_firmar";
 
   // Sin solicitud (alta a mano), el resumen sale de su fila: su nombre y las

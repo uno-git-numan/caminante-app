@@ -195,10 +195,16 @@ export async function emailInvitacionLlamada(
 export async function emailBienvenidaOperador(to: string, responsable: string | null): Promise<boolean> {
   const n = saludo(responsable);
   const correo = shell([
-    h1(`Bienvenida${n}.`),
-    p("Tu operadora ya está dada de alta. Vamos a armar tu primera experiencia juntos y su primera salida va acompañada."),
-    p("Te escribimos por WhatsApp para agendar el alta: marca, colores y tus experiencias."),
-    boton("Entrar a la plataforma", `${SITE}/caminante/entrar`),
+    // EL ORDEN DEL ALTA (23 nov 2026, `pasos.ts`): primero lo suyo —marca y
+    // experiencia, libres—, y los papeles, la firma y la cuenta al final. Este
+    // correo es el ÚNICO que sale al aprobar: antes salía además «ya puedes
+    // firmar tu convenio», que el primer día pedía lo último del camino.
+    h1(`Bienvenida${n}. Tu panel ya está abierto.`),
+    p("Empieza por lo tuyo: <b>pon tu marca</b> —tu logo y tus colores— y <b>arma tu primera experiencia</b>. Al guardarla ves tu página tal como la verá tu cliente."),
+    p("Armar es libre: no pide papeles ni firma, y no cuesta nada. Para publicar y vender te pedimos después dos documentos (tu constancia fiscal y tu identificación), la firma del convenio y la cuenta donde recibes tu dinero. Nunca nos pagas por estar: sólo una comisión por cada venta."),
+    boton("Entrar a mi panel", `${SITE}/caminante/entrar`),
+    p(`Entra con este mismo correo (${esc(to)}). Si todavía no tienes cuenta, en esa pantalla elige «Créala aquí»: toma un minuto.`),
+    p("Si te atoras en algo, contéstanos este correo y lo resolvemos contigo."),
   ]);
   return enviar(to, "Bienvenida a Caminante", correo);
 }
@@ -300,6 +306,12 @@ export function fraseDeVigencia(dias: number): string {
 //   · Ya exigible → hasta que firme no vende. Se dice sin rodeos.
 //   · Por venir   → tiene días. Se dice cuántos y desde cuándo aplica, para que
 //     nadie descubra la fecha el día que le cayó encima.
+//
+// ⚠️ DESDE EL 23 NOV 2026 NADIE LO MANDA. Salía al aprobar la solicitud; con
+// el alta en cinco pasos el convenio es el cuarto, y pedir la firma el primer
+// día contradecía el orden. Su momento natural —documentos aprobados y sin
+// firma, o una versión nueva publicada— todavía no tiene disparador: es un
+// pendiente anotado, no un olvido.
 export async function emailConvenioPorFirmar(
   to: string,
   responsable: string | null,

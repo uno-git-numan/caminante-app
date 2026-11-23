@@ -49,12 +49,26 @@ export type VeredictoVenta =
       faltantes: string[];
       /** El veredicto completo del candado por actividad, cuando fue él. */
       candado?: Extract<CandadoActividad, { ok: false }>;
+      /** Lo que falta de la operadora es su firma (no su cuenta): cambia a dónde se le manda. */
+      falta?: "convenio";
     };
 
 export type ExperienciaParaCandados = {
   data: Experience | null | undefined;
   operator_id: string | null;
   actividad: string | null;
+  /**
+   * Quien pide publicar es LA OPERADORA (ella o su equipo), y la experiencia
+   * todavía no estaba publicada. Lo dice la sesión, nunca el formulario.
+   *
+   * ⚠️ ARMAR ES LIBRE; PUBLICAR PIDE LA FIRMA (23 nov 2026). Hasta ese día la
+   * sección Experiencias estaba cerrada mientras no firmara, y ese cierre era
+   * lo único que impedía que una operadora sin convenio se publicara sola. Al
+   * abrirle el armado desde el primer día, la regla se mudó aquí, a la puerta.
+   * No aplica a la casa: sin convenio, NUMAN vende a nombre propio y la
+   * operadora es su proveedora (D6), y eso lo decide la casa, no ella.
+   */
+  publicaLaOperadora?: boolean;
 };
 
 /**
@@ -103,6 +117,10 @@ export async function candadosDe(momento: Momento, exp: ExperienciaParaCandados)
       };
     }
     const op = (data as OperadorParaGate | null) ?? null;
+    // 3 · Su firma. Una dispensa vigente abre también este candado.
+    if (momento === "publicar" && exp.publicaLaOperadora && !op?.convenio_firmado_at && !actividad.dispensa) {
+      return { ok: false, motivo: "operadora", falta: "convenio", mensaje: MENSAJE_SIN_CONVENIO, faltantes: [MENSAJE_SIN_CONVENIO] };
+    }
     const listo = operadorListo(op);
     if (!listo.ok) {
       return { ok: false, motivo: "operadora", mensaje: listo.faltantes.join(" "), faltantes: listo.faltantes };
@@ -116,6 +134,9 @@ export async function candadosDe(momento: Momento, exp: ExperienciaParaCandados)
 
   return actividad.dispensa ? { ok: true, dispensa: actividad.dispensa } : { ok: true };
 }
+
+export const MENSAJE_SIN_CONVENIO =
+  "Tu experiencia está guardada, en borrador. Para publicarla falta tu firma en el convenio: se hace en línea, desde Mi alta.";
 
 export const MENSAJE_SIN_CUENTA_CLIENTE = "Esta experiencia todavía no se puede pagar en línea. Escríbenos y lo resolvemos.";
 export const MENSAJE_SIN_CUENTA_CASA =

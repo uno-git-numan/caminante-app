@@ -189,7 +189,12 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
         cumplido: conv.alDia,
         detalle: conv.detalle,
         toca: conv.toca,
-        bloquea: "armar",
+        // ⚠️ ERA «armar» hasta el 23 nov 2026. Luis, recorriendo el alta como
+        // operadora: primero su marca y su experiencia («un taste chingón de
+        // la página»), y los papeles, la firma y la cuenta al final. Armar ya
+        // no espera a la firma; PUBLICAR sí, y eso lo vigila la puerta única
+        // (`candadosDe`, `publicaLaOperadora`), no este menú.
+        bloquea: "cobrar",
       },
       // ⚠️ AQUÍ ESTABA EL CSD (hasta el 9 nov 2026). Luis lo sacó de las
       // condiciones para cobrar: la facturación a SU cliente desde la

@@ -128,6 +128,32 @@ describe("candadosDe", () => {
     if (!r.ok) expect(r.motivo).toBe("operadora");
   });
 
+  it("ARMAR ES LIBRE, PUBLICAR PIDE LA FIRMA: la operadora no se publica sola sin convenio", async () => {
+    sim.operadora = { stripe_account_id: null, convenio_firmado_at: null };
+    const r = await candadosDe("publicar", { data: completa, operator_id: "op", actividad: "senderismo", publicaLaOperadora: true });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.motivo).toBe("operadora");
+      expect(r.falta).toBe("convenio");
+      expect(r.mensaje).toContain("borrador");
+    }
+    // Firmada, pasa.
+    sim.operadora = { stripe_account_id: null, convenio_firmado_at: "2026-11-23" };
+    expect((await candadosDe("publicar", { data: completa, operator_id: "op", actividad: "senderismo", publicaLaOperadora: true })).ok).toBe(true);
+  });
+
+  it("la casa SÍ publica lo de una operadora sin convenio (D6: vende a nombre propio), y una dispensa también abre", async () => {
+    sim.operadora = { stripe_account_id: null, convenio_firmado_at: null };
+    expect((await candadosDe("publicar", { data: completa, operator_id: "op", actividad: "senderismo" })).ok).toBe(true);
+    sim.actividad = { ok: true, dispensa: { motivo: "En trámite", autorizadaPor: "casa", venceAt: "2099-01-01" } };
+    expect((await candadosDe("publicar", { data: completa, operator_id: "op", actividad: "senderismo", publicaLaOperadora: true })).ok).toBe(true);
+  });
+
+  it("la regla de la firma es de PUBLICAR: no toca una venta en curso", async () => {
+    sim.operadora = { stripe_account_id: null, convenio_firmado_at: null };
+    expect((await candadosDe("vender", { data: completa, operator_id: "op", actividad: "senderismo", publicaLaOperadora: true })).ok).toBe(true);
+  });
+
   it("el orden es el de la conversación: primero lo propio, luego el expediente, luego Connect", async () => {
     sim.actividad = { ok: false, motivo: "no_declarada", actividad: "x", nombre: "X", estado: null, documentos: 1, mensaje: "No declarada." };
     sim.operadora = { ...conectadaLista, commission_pct: null };

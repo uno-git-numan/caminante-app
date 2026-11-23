@@ -6,8 +6,9 @@
 // 2026): tres estados, las seis secciones y sus «susurros». Los textos se
 // copiaron de los archivos con un script, no se teclearon.
 //
-//   cerrado      → las seis punteadas. Sólo «Mi alta».
-//   experiencias → se prende Experiencias al firmar el convenio (puede armar).
+//   cerrado      → las seis punteadas. Sólo «Mi alta» (panel apagado).
+//   experiencias → Experiencias abierta DESDE EL PRIMER DÍA (23 nov 2026: armar
+//                  es libre; antes se prendía al firmar el convenio).
 //   abierto      → todo, cuando puede cobrar.
 //
 // ⚠️ LO VENDIDO NUNCA SE CIERRA (Luis, 24 sep 2026). Una operadora con ventas
@@ -45,7 +46,7 @@ export const SECCIONES_ALTA: Seccion[] = [
     nombre: "Experiencias",
     href: "/caminante/admin/eventos",
     prefijos: ["/caminante/admin/eventos", "/caminante/admin/experiencias/", "/caminante/admin/preview/"],
-    dice: ["Experiencias se abre al firmar el convenio", "Es lo primero que se prende, y sólo necesita tu firma."],
+    dice: ["Experiencias se abre en cuanto prendamos tu panel", "Es lo primero que se prende: armar tu experiencia no pide papeles ni firma."],
   },
   {
     nombre: "Comunicación",
@@ -75,7 +76,7 @@ export const SECCIONES_ALTA: Seccion[] = [
 
 export const NOTA_NAV: Record<Exclude<EstadoNav, "abierto">, string> = {
   cerrado: "Las seis secciones se abren cuando termines tu alta. Pícalas y te digo qué le falta a cada una.",
-  experiencias: "Experiencias se prendió con tu firma. Las otras cinco se abren cuando puedas cobrar; pícalas y te digo qué falta.",
+  experiencias: "Experiencias ya está abierta: arma la tuya. Las otras cinco se abren cuando puedas vender; pícalas y te digo qué falta.",
 };
 
 export function estadoNav(o: {

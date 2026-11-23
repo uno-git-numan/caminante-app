@@ -1,62 +1,90 @@
-// LOS SIETE ESTADOS, CONTADOS EN CUATRO PASOS.
+// EL ALTA, EN CINCO PASOS — Y EN EL ORDEN EN QUE DAN GANAS DE HACERLA.
 //
-// `mi-alta.ts` deduce siete estados porque son siete situaciones distintas de
-// operar. La lámina de Claude Design (Operador Mi Alta v5) los cuenta en CUATRO
-// pasos con dos momentos cada uno, y tiene razón: al que está esperando no le
-// sirve saber que existe una diferencia entre «expediente» y «revisión» —le
-// sirve saber que va en el paso 2 de 4 y que la pelota ya no es suya.
+// Luis, 23 nov 2026, recorriendo el alta como operadora: «Deberíamos de poder
+// avanzar más con este onboarding: avanzar al tema de logo, marca, colores,
+// luego pasar a dar de alta experiencia (darles un taste chingón de la página),
+// y al final [la cuenta de cobro]. Un tipo de freemium.»
 //
-// El mapa vive aquí, puro, y no dentro de la pantalla: es la traducción entre
-// lo que el sistema sabe y lo que la persona lee.
+// Hasta ese día eran cuatro —nos conocemos, expediente, convenio, armar y
+// cobrar— y lo primero que veía una operadora era una lista de papeles; armar
+// su experiencia estaba cerrado hasta firmar. Ahora lo primero es LO SUYO:
+//
+//   01  Tu marca            su logo y sus colores
+//   02  Tu experiencia      la arma y ve cómo queda su página
+//   03  Tus documentos      dos para vender (el resto, antes de la 1ª salida)
+//   04  El convenio         una firma
+//   05  Tu cuenta de cobro  donde recibe su dinero; con eso empieza a vender
+//
+// ARMAR ES LIBRE; VENDER PIDE LO DEMÁS. La operadora nunca le paga a Caminante:
+// sólo la comisión por venta. PUBLICAR pide los dos documentos, el anexo y la
+// firma del convenio; COBRAR pide además la cuenta. Eso lo vigila la puerta
+// única (`candados-venta.ts`), que ganó la regla que antes cumplía el menú
+// cerrado: una operadora no se publica sola sin convenio.
+//
+// Los pasos NO son una fila india: cada uno se puede abrir y hacer cuando sea,
+// y cada uno sabe solo si ya está hecho. «Aquí estás» es el primero que falta.
+// La llamada dejó de ser un paso: es algo que a veces pasa antes de entrar.
+//
+// Puro: es la traducción entre lo que el sistema sabe y lo que la persona lee.
 
 import type { EstadoAlta } from "./mi-alta";
 
 export type Paso = {
-  n: "01" | "02" | "03" | "04";
+  n: "01" | "02" | "03" | "04" | "05";
   titulo: string;
   resumen: string;
-  /** Lo que dice el paso cuando ya se cerró (lámina «Panel Operadora»). */
+  /** Lo que dice el paso cuando ya está hecho. */
   cerrado: string;
 };
 
-// ⚠️ LA LÁMINA NUEVA («Panel Operadora», 24 sep 2026) QUITÓ LOS MOMENTOS del
-// riel. Cada paso llevaba dos pastillas —«Solicitud recibida», «Llamada
-// agendada»…— y ahora lleva UNA línea de estado: lo que pasó si ya se cerró,
-// «Aquí estás» si es el actual y «Todavía no · puedes verlo» si viene. Los
-// textos se copiaron del archivo de la lámina con un script.
 export const PASOS: Paso[] = [
-  { n: "01", titulo: "Nos conocemos", resumen: "Una llamada de media hora.", cerrado: "Llamada hecha" },
-  { n: "02", titulo: "Tu expediente", resumen: "Lo general una vez, y una carpeta por actividad.", cerrado: "Expediente aprobado" },
-  { n: "03", titulo: "El convenio", resumen: "Una firma. Es lo único que bloquea todo lo demás.", cerrado: "Firmado" },
-  { n: "04", titulo: "Armar y cobrar", resumen: "Tu experiencia y tu cobro, al mismo tiempo.", cerrado: "Vendiendo" },
+  { n: "01", titulo: "Tu marca", resumen: "Tu logo y tus colores.", cerrado: "Lista" },
+  { n: "02", titulo: "Tu experiencia", resumen: "Ármala y mira cómo queda tu página.", cerrado: "Armada" },
+  { n: "03", titulo: "Tus documentos", resumen: "Dos para vender. Lo demás, antes de tu primera salida.", cerrado: "Aprobados" },
+  { n: "04", titulo: "El convenio", resumen: "Una firma.", cerrado: "Firmado" },
+  { n: "05", titulo: "Tu cuenta de cobro", resumen: "Donde recibes tu dinero. Con eso empiezas a vender.", cerrado: "Vendiendo" },
 ];
 
 /** «Firmado el …» cuando se sabe la fecha de firma. */
 export const FIRMADO_EL = "Firmado el ";
-/** La línea del paso actual y la de los que vienen. */
+/** La línea del paso actual y la de los que faltan. */
 export const AQUI_ESTAS = "Aquí estás";
-export const TODAVIA_NO = "Todavía no · puedes verlo";
+export const PENDIENTE = "Pendiente";
 
-/** Lo que se lee al asomarse a un paso que todavía no toca (el 01 no tiene: siempre enseña su contenido). */
-export const LECTURA_PASO: Record<1 | 2 | 3, string> = {
-  1: "Aquí te vamos a pedir papeles de tu operación: cinco generales que sirven para todo (según seas persona física o empresa), y una carpeta por cada actividad que quieras ofrecer. Se abre después de la llamada.",
-  2: "Aquí vas a leer el convenio completo y firmarlo. Es lo único de todo el camino que bloquea lo que viene: al firmarlo se abre tu catálogo el mismo día. Se habilita cuando tu expediente tenga al menos una actividad aprobada.",
-  3: "Aquí armas tu experiencia y conectas tu cobro, en el orden que se te dé la gana: no se bloquean entre sí. Se abre en cuanto firmes el convenio.",
+/** Lo mínimo del alta para saber qué pasos están hechos. */
+export type ParaLosPasos = {
+  estado: EstadoAlta;
+  operadora: { marca: { completa: boolean }; puedeCobrar: boolean } | null;
+  experiencias: { estado: string }[];
+  expediente: { completo: boolean } | null;
+  candados: { clave: string; cumplido: boolean }[];
 };
 
-/** En qué paso va, y en cuál de sus dos momentos (0 o 1). */
-export function pasoDe(estado: EstadoAlta): { indice: number; momento: 0 | 1 } {
-  switch (estado) {
-    case "recibida":    return { indice: 0, momento: 0 };
-    case "llamada":     return { indice: 0, momento: 1 };
-    case "expediente":  return { indice: 1, momento: 0 };
-    case "revision":    return { indice: 1, momento: 1 };
-    case "por_firmar":  return { indice: 2, momento: 0 };
-    case "armando":     return { indice: 3, momento: 0 };
-    case "listo":       return { indice: 3, momento: 1 };
-    // Rechazada y suspendida NO son pasos del recorrido: son salidas. La
-    // pantalla las trata aparte; aquí se devuelve el primero para no romper el
-    // riel si alguien las manda por error.
-    default:            return { indice: 0, momento: 0 };
-  }
+/**
+ * Cuáles de los cinco están hechos, cada uno por su cuenta.
+ *
+ * La marca cuenta como hecha si está completa O si ya armó una experiencia:
+ * es opcional, y quien siguió adelante sin logo no se quedó atorada en el 01.
+ */
+export function pasosHechos(d: ParaLosPasos): [boolean, boolean, boolean, boolean, boolean] {
+  const conExperiencia = d.experiencias.length > 0;
+  return [
+    !!d.operadora?.marca.completa || conExperiencia,
+    conExperiencia,
+    !!d.expediente?.completo,
+    d.candados.find((c) => c.clave === "convenio")?.cumplido === true,
+    !!d.operadora?.puedeCobrar,
+  ];
 }
+
+/**
+ * En cuál va: el primero que falta. `-1` mientras sigue en su solicitud (no
+ * tiene panel todavía: no hay pasos que enseñarle). Con todo hecho, el último.
+ */
+export function pasoActual(d: ParaLosPasos): number {
+  if (!d.operadora) return -1;
+  const i = pasosHechos(d).indexOf(false);
+  return i < 0 ? PASOS.length - 1 : i;
+}
+
+export const ORDINALES = ["primero", "segundo", "tercero", "cuarto", "quinto"] as const;

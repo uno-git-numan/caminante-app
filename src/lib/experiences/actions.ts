@@ -69,10 +69,11 @@ export async function saveExperience(
   // action hace `upsert` por slug.
   const { data: previa } = await sb
     .from("experiences")
-    .select("operator_id")
+    .select("operator_id, status")
     .eq("slug", slug)
     .maybeSingle();
   const dueñoPrevio = (previa as { operator_id: string | null } | null)?.operator_id ?? null;
+  const yaPublicada = (previa as { status?: string | null } | null)?.status === "published";
 
   if (esOperador(alcance)) {
     // Existe y no es suya ⇒ no. Existe y es suya, o no existe ⇒ adelante.
@@ -124,7 +125,13 @@ export async function saveExperience(
   let status = exp.status;
   let candado: { mensaje: string; ruta: string; nombre: string | null; etiqueta: string } | undefined;
   if (exp.status === "published") {
-    const veredicto = await candadosDe("publicar", { data: { ...exp, slug }, operator_id: dueño, actividad });
+    const veredicto = await candadosDe("publicar", {
+      data: { ...exp, slug },
+      operator_id: dueño,
+      actividad,
+      // Sólo al PUBLICAR por primera vez: editar una ya publicada no la baja.
+      publicaLaOperadora: esOperador(alcance) && !yaPublicada,
+    });
     if (!veredicto.ok) {
       status = "draft";
       candado =
@@ -136,12 +143,20 @@ export async function saveExperience(
               etiqueta: etiquetaDelCandado(veredicto.candado.nombre, veredicto.candado.motivo),
             }
           : veredicto.motivo === "operadora"
-            ? {
-                mensaje: veredicto.mensaje,
-                ruta: "/caminante/admin/mi-alta/cobrar",
-                nombre: null,
-                etiqueta: "Ir a Cobrar (Stripe, CSD y datos fiscales)",
-              }
+            ? veredicto.falta === "convenio"
+              ? {
+                  mensaje: veredicto.mensaje,
+                  ruta: "/caminante/admin/mi-alta/convenio",
+                  nombre: null,
+                  etiqueta: "Ir a firmar mi convenio",
+                }
+              : {
+                  mensaje: veredicto.mensaje,
+                  ruta: "/caminante/admin/mi-alta/cobrar",
+                  nombre: null,
+                  // Sin el nombre de la pasarela: la operadora no lo ve (#25).
+                  etiqueta: "Ir a mi cuenta de cobro",
+                }
             : {
                 // Lo que falta está en este mismo formulario.
                 mensaje: veredicto.mensaje,

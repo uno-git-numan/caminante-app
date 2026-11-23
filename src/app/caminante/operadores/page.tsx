@@ -242,10 +242,14 @@ export default function OperadoresPage() {
           <span className="opa-eyb neg"><i>{"//"}</i> Cómo es el proceso</span>
           <h2 className="opa-h2" style={{ color: "#fff", margin: "12px 0 14px" }}>Cuatro pasos, <em>en orden.</em></h2>
           <div className="opa-grid" style={{ marginTop: 24 }}>
-            <article className="opa-glass"><span className="k">Paso 01</span><h3>Aplicas</h3><p>Quince campos. Ni un documento todavía; lo suficiente para saber si vale la llamada.</p></article>
-            <article className="opa-glass"><span className="k">Paso 02</span><h3>Hablamos 30 minutos</h3><p>Resolvemos tus dudas y te decimos con claridad qué existe y qué está en camino.</p></article>
-            <article className="opa-glass"><span className="k">Paso 03</span><h3>Nos compartes tus documentos</h3><p>Un link privado con la lista completa: póliza, fiscal, certificados, protocolo, permisos.</p></article>
-            <article className="opa-glass"><span className="k">Paso 04</span><h3>Publicamos tu primera experiencia juntos</h3><p>La armamos contigo y la primera salida va acompañada.</p></article>
+            {/* EL ORDEN DEL ALTA (23 nov 2026): primero lo suyo, y los papeles,
+                la firma y la cuenta al final. Es el mismo de los cinco pasos de
+                Mi alta (`lib/operadores/pasos.ts`); aquí marca y experiencia
+                van en una sola tarjeta. */}
+            <article className="opa-glass"><span className="k">Paso 01</span><h3>Aplicas</h3><p>Quince campos y ni un documento. Si llevas menos de un año operando, primero platicamos 30 minutos.</p></article>
+            <article className="opa-glass"><span className="k">Paso 02</span><h3>Armas tu marca y tu experiencia</h3><p>Entras a tu panel, pones tu logo y tus colores y armas tu primera experiencia. Ves tu página como la verá tu cliente. No cuesta nada.</p></article>
+            <article className="opa-glass"><span className="k">Paso 03</span><h3>Dos documentos y una firma</h3><p>Para vender bastan tu constancia fiscal, tu identificación y la firma del convenio, en línea. Pólizas y credencial del guía, antes de tu primera salida.</p></article>
+            <article className="opa-glass"><span className="k">Paso 04</span><h3>Conectas tu cuenta y vendes</h3><p>Lo que vendas entra a tu cuenta, a tu nombre. Nunca nos pagas por estar: sólo una comisión por venta.</p></article>
           </div>
           <div className="opa-end">
             <p className="q">Donde pones tu atención, <em>ahí va tu energía.</em></p>
