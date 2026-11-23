@@ -12,6 +12,25 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Código: 0093 aplicada y todo promovido (producción `b070711`)
+
+- **La 0093 ya está aplicada** y la cláusula de cupo mínimo, el deslinde
+  estándar (D28), el marco corregido y el alta rápida están en producción.
+  Las entradas de abajo que dicen «sin aplicar» y «nada promovido» ya no valen.
+- **Nada cambió en textos legales.** Lo nuevo de hoy es de pantalla: el menú
+  reducido de la casa y, en Mi alta, una lista única de lo que le falta a la
+  operadora para vender. Esa lista le dice «Hoy vendes con una dispensa, y
+  tiene fecha» cuando la hay, y «Firmar el convenio» con lo que diga el
+  candado del convenio; no afirma nada que el convenio no diga.
+- **En el alta rápida la casa elige de qué operadora es la experiencia.** La
+  variante de seguro del deslinde (cláusula 9) sale de la operadora ELEGIDA:
+  con póliza sólo si es una operadora con convenio firmado. Hoy ninguna lo
+  tiene, así que todo nace «sin seguro».
+- **Sigue esperando a legal + Luis:** el convenio v3.4 publicado. Sin él no
+  muevo el expediente a tres momentos (D27) ni relajo el candado de publicar.
+
+---
+
 ## 19 nov 2026 · Sesión legal: deslinde, las cuatro actividades que faltaban y la sección de datos
 
 - **§2:** espeleismo, ciclismo-montana, observacion-naturaleza y paracaidismo

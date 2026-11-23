@@ -44,6 +44,15 @@ encuentro. El editor completo (17 secciones, 134 campos) sigue en
   ficha lo enseña junto a las fechas, en escritorio y móvil.
 - **`corta-actions.ts`** sólo encadena: `saveExperience` → `crearSalida`.
   Publicar pasa por `setExperienceStatus` y los candados de siempre.
+- ⚠️ **La casa ELIGE de qué operadora es** (23 nov 2026): la primera tarjeta
+  trae «De qué operadora es», sin opción puesta por omisión, y la acción no
+  guarda sin ella (`duenaElegida` en `saveExperience`, sólo para la casa y
+  sólo al crear). La primera prueba en producción dejó un borrador sin dueña
+  que no aparecía en «Experiencias», porque el panel de la casa se recorta por
+  el sombrero. No se toma del sombrero: el invariante #22 vigila también
+  `corta-actions.ts`. El contacto y la variante de seguro salen de la
+  operadora elegida. Una operadora no ve la pregunta: la suya nace suya.
+  El editor completo (`?completo=1`) sigue naciendo sin dueña para la casa.
 - ⚠️ **El deslinde estándar es texto de LEGAL** (D28;
   `lib/legal/clausulas-estandar.ts`, transcrito de
   `design/legal/DESLINDE-ESTANDAR-2026-11-19.md` y comparado por una prueba):

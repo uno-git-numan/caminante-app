@@ -238,3 +238,42 @@ Pendiente de esta pieza: el texto estándar del deslinde, que es de legal.
 Sin él, la experiencia nace con el deslinde apagado y hay que completarlo en
 el editor completo antes de publicar.
 
+**23 nov · Todo lo anterior está EN PRODUCCIÓN (`b070711`).** Migración 0093
+aplicada (hash comparado, 11 candados probados). Promovido en tres tandas el
+mismo día, cada una con el build de Vercel en verde.
+
+- **Menú esencial de la casa.** Con el sombrero de una operadora: Salidas ·
+  Experiencias · Pagos · Más. Con el de numan: Operadoras · Más. Nada se
+  borró: «Más» lista lo que salió del frente (`admin/mas`,
+  `admin/plataforma/mas`) y una prueba comprueba que no se perdió ninguna
+  sección. El menú de la operadora externa no se tocó.
+- **«Esto te falta para vender», una sola lista** arriba de los cuatro pasos de
+  Mi alta (`lib/operadores/lo-que-falta.ts`, puro). Sale de los mismos seis
+  candados que ve la casa y del expediente; dice a quién le toca cada renglón y
+  lleva su liga. Vista en producción con Nomádika: 4 de 6; le tocan el
+  expediente (3 documentos) y la firma; la cuenta de cobro es de la casa
+  mientras `COBRO_EN_PLATAFORMA` esté apagada.
+- **Alta rápida probada de punta a punta en producción** con un borrador de
+  prueba (borrado después, dos veces): guarda, crea la primera fecha, la vista
+  previa enseña precio, horario, exigencia, edad, incluye y política; en
+  Salidas se guardó un grupo mínimo y la ficha lo enseñó («Mínimo 4 personas ·
+  se confirma a más tardar el 1 de marzo»).
+- **Hueco encontrado y cerrado en esa prueba:** la experiencia creada por la
+  casa nacía sin dueña y no aparecía en «Experiencias». Ahora la casa elige la
+  operadora en la primera tarjeta (ver `.claude/rules/experiencias.md`).
+
+**Lo que NO se ha probado:** el recorrido con la sesión de una operadora
+externa (su alta, su firma, su primera experiencia y un cobro). No hay cuenta
+de prueba de operadora y local y producción comparten base.
+
+**Lo que sigue detenido, y por quién:**
+- Convenio v3.4 sin publicar (Luis con legal). De él depende sacar el
+  expediente en tres momentos; el candado de publicación no se relaja antes.
+- Llaves en Vercel (Luis): `FACTURAPI_SECRET_KEY` Live y
+  `FACTURACION_COMISIONES=1` antes del primer cobro en cuenta de operadora.
+- La cuenta de cobro de la operadora: la abre la casa (o se prende
+  `COBRO_EN_PLATAFORMA`).
+- Quién entra, con qué actividad y qué comisión.
+- El menú de la operadora externa (siete pestañas) no se redujo: toca el
+  candado del alta y no se movió el día del alta.
+
