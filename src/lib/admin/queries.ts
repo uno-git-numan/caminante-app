@@ -14,6 +14,7 @@ import type { Experience } from "@/lib/experiences/types";
 // re-exportarlos dejaría el mismo hoyo, un componente cliente importándolos
 // de un módulo que arrastra next/headers.
 import { repartoTotal } from "@/lib/payments/lo-que-recibe";
+import { desgloseDeVenta, type DesgloseDeVenta } from "@/lib/payments/desglose-venta";
 import { admisionDescontada, type EstadoAdmision } from "@/lib/operadores/admision";
 import { cdmxDay, formatDiaMes, formatFechaCorta, iniciales, metodoLabel } from "./formato";
 
@@ -30,6 +31,8 @@ export function experienceTitle(data: Partial<Experience> | null, slug: string):
 // ── Tipos del panorama ───────────────────────────────────────────────────
 
 export type PagoLinea = { nombre: string; monto: number; metodo: string; fecha: string };
+/** Una venta, desglosada para la operadora (convenio v3.5, Tercera §7 y Cuarta §4). */
+export type VentaDesglosada = DesgloseDeVenta & { fecha: string; experiencia: string; salida: string };
 export type PersonaFirma = { nombre: string; firmado: boolean; fecha: string | null };
 export type Deudor = { nombre: string; debe: number };
 
@@ -81,6 +84,12 @@ export type OverviewKpis = {
   retenidoPlataformaMes: number;
   mesLabel: string;
   ingresosPorExperiencia: { nombre: string; monto: number }[];
+  /**
+   * Venta por venta, con origen y tasa aplicada: lo que el convenio le promete
+   * a la operadora para conciliar. Vacío para la casa (no se cobra comisión a
+   * sí misma). Las 60 más recientes.
+   */
+  ventasDesglosadas: VentaDesglosada[];
   ultimosPagos: PagoLinea[];
   sparkMeses: number[]; // ingresos de los últimos 7 meses (viejo → actual)
   reservasPorEstado: Record<string, number>;
@@ -131,6 +140,9 @@ type ResvRow = {
   num_people: number;
   total_amount_mxn: number;
   status: string;
+  /** Quién trajo al cliente, congelado al cobrar. Sólo lo pide el Panorama. */
+  escala_comision?: string | null;
+  commission_pct?: number | null;
 };
 type PayRow = {
   reservation_id: string;
@@ -246,7 +258,7 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
       .select("id, experience_id, label, starts_at, capacity_total, status"),
     sb
       .from("reservations")
-      .select("id, experience_id, slot_id, contact_id, num_people, total_amount_mxn, status"),
+      .select("id, experience_id, slot_id, contact_id, num_people, total_amount_mxn, status, escala_comision, commission_pct"),
     // `platform_fee_mxn` y `fee_retenido_mxn` no son decoración: sin ellas el
     // reparto no se puede hacer y el operador vería el bruto (ver OverviewKpis).
     sb
@@ -341,6 +353,23 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
       return { nombre: experienceTitle(e?.data ?? null, e?.slug || "?"), monto };
     })
     .sort((a, b) => b.monto - a.monto);
+
+  // VENTA POR VENTA, para la operadora. Sólo con alcance de operadora y sólo si
+  // alguna venta le generó comisión: la casa no se cobra a sí misma, y una
+  // tabla de ceros no le diría nada. Todo sale de lo congelado en cada pago.
+  const slotById = new Map(slots.map((sl) => [sl.id, sl]));
+  const ventasDesglosadas: VentaDesglosada[] = operatorId
+    ? paidPays.slice(0, 60).map((p) => {
+        const r = resvById.get(p.reservation_id);
+        const e = r ? expById.get(r.experience_id) : undefined;
+        return {
+          ...desgloseDeVenta({ ...p, escala_comision: r?.escala_comision ?? null, commission_pct: r?.commission_pct ?? null }),
+          fecha: p.paid_at ? cdmxDay(p.paid_at) : "",
+          experiencia: experienceTitle(e?.data ?? null, e?.slug || "?"),
+          salida: (r?.slot_id ? slotById.get(r.slot_id)?.label : null) || "",
+        };
+      })
+    : [];
 
   // Últimos pagos (con nombre)
   const pagoLinea = (p: PayRow): PagoLinea => ({
@@ -509,6 +538,7 @@ export async function fetchAdminOverview(): Promise<AdminOverview> {
       retenidoPlataformaMes: operatorId ? repartoMes.retenido : 0,
       mesLabel,
       ingresosPorExperiencia,
+      ventasDesglosadas,
       ultimosPagos,
       sparkMeses,
       reservasPorEstado,

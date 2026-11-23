@@ -42,8 +42,12 @@ código y en la base son históricos: hoy quieren decir «cuál de las dos tasas
 Lo que deja el fee en cero es no tener `comision_desde`, que se escribe sola al
 firmar; `operadorListo` exige esa fecha.
 
-⚠️ **Falta el desglose por venta para la operadora** con origen y tasa
-(convenio, Tercera §7 y Cuarta §4). Hoy su panel sólo trae totales.
+**El desglose por venta** (convenio, Tercera §7 y Cuarta §4): en el Panorama
+de la operadora, dentro de «Recibes este mes» → «Venta por venta · origen y
+comisión». Cada pago con quién lo trajo, la tasa que DE VERDAD se le aplicó
+(comisión congelada ÷ base sin IVA), comisión, IVA, retenciones y lo que
+recibe, con centavos. `lib/payments/desglose-venta.ts` (puro): nada se
+recalcula, y una venta sin origen guardado dice «sin registro».
 
 **2 · El CSD son DOS archivos.** El SAT entrega `.cer` y `.key` y timbrar necesita
 ambos (`csd_cer_path` + `csd_key_path`, 0038). Con uno solo el expediente se ve

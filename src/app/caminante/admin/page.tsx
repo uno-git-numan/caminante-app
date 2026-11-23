@@ -9,6 +9,11 @@ import { formatMXN, formatDiaMes, iniciales } from "@/lib/admin/formato";
 
 export const dynamic = "force-dynamic";
 
+// Para el desglose venta por venta: con centavos, porque la operadora lo coteja
+// contra su banco y contra la factura de la comisión. `formatMXN` redondea a pesos.
+const conCentavos = (n: number): string =>
+  new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
 const notices: Record<string, string> = {
   // El layout manda aquí al operador que pide una pantalla de la casa. Sin este
   // texto el rebote es MUDO: aterriza en Panorama sin saber por qué, que se
@@ -311,6 +316,54 @@ export default async function AdminHomePage({
                     Sin pagos registrados aún.
                   </div>
                 )}
+                {/* VENTA POR VENTA (convenio v3.5, Tercera §7): con dos tasas, la
+                    operadora tiene que poder ver cuál se le cobró en cada una. */}
+                {kpis.ventasDesglosadas.some((v) => v.comision > 0) ? (
+                  <>
+                    <div className="xh4">Venta por venta · origen y comisión</div>
+                    <div className="tbl-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Fecha</th>
+                            <th>Venta</th>
+                            <th>Quién la trajo</th>
+                            <th className="right">Cobrado</th>
+                            <th className="right">Comisión</th>
+                            <th className="right">IVA</th>
+                            <th className="right">Retenciones</th>
+                            <th className="right">Recibes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {kpis.ventasDesglosadas.map((v, i) => (
+                            <tr key={i}>
+                              <td className="num">{v.fecha}</td>
+                              <td>
+                                {v.experiencia}
+                                {v.salida ? <span className="mut"> · {v.salida}</span> : null}
+                              </td>
+                              <td>
+                                {v.origenTexto}
+                                {v.tasaPct != null ? <span className="mut"> · {v.tasaPct} %</span> : null}
+                              </td>
+                              <td className="num right">{conCentavos(v.cobrado)}</td>
+                              <td className="num right">{v.comision ? conCentavos(v.comision) : "—"}</td>
+                              <td className="num right">{v.ivaComision ? conCentavos(v.ivaComision) : "—"}</td>
+                              <td className="num right">{v.retenciones ? conCentavos(v.retenciones) : "—"}</td>
+                              <td className="num right">{conCentavos(v.recibes)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="mut" style={{ fontSize: 12, marginTop: 8, lineHeight: 1.5 }}>
+                      La comisión es fija: 8 % del precio sin IVA si tú trajiste al cliente y 12 % si lo trajo
+                      Caminante. Cada renglón dice la que de verdad se aplicó a esa venta. «Origen sin registro»
+                      son ventas anteriores al 23 de noviembre de 2026, cuando todavía no se guardaba.
+                    </p>
+                  </>
+                ) : null}
                 {kpis.ultimosPagos.length ? (
                   <>
                     <div className="xh4">Últimos pagos</div>
