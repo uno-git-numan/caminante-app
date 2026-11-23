@@ -12,6 +12,8 @@
 // el cliente: un POST directo no puede saltárselas.
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { COOKIE_ALTA } from "./alta-directa";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { marcaDeFormData } from "@/lib/operators/marca";
 import { MIN_DESCRIPCION,
@@ -184,6 +186,20 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
     }),
   ]);
   for (const r of res) if (r.status === "rejected") console.error("correo operador:", r.reason);
+
+  // DEL FORMULARIO A SU PANEL, SIN ESCALAS (Luis, 23 nov 2026: «continuando la
+  // encuesta… te lleva al freemium, sin necesidad de intervención humana»). La
+  // pantalla siguiente sólo le pide una contraseña; el correo ya lo dio en el
+  // paso 1 y viaja en una cookie de una hora, nunca en la URL.
+  if (aprobada) {
+    (await cookies()).set(COOKIE_ALTA, email, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/caminante/operadores",
+      maxAge: 60 * 60,
+    });
+  }
 
   back(aprobada ? "ok=1&aprobada=1" : "ok=1");
 }

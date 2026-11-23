@@ -1,7 +1,7 @@
 "use server";
 
 import { headers, cookies } from "next/headers";
-import { destinoPorRol } from "@/lib/auth/destino";
+import { puertaPorRol } from "@/lib/auth/destino";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseAuthClient, createSupabaseServerClient } from "@/lib/supabase/server";
@@ -57,7 +57,9 @@ export async function postAuthDestination(
 ): Promise<string> {
   if (next && next !== "/caminante") return next;
   const role = await roleForClient(supabase);
-  return destinoPorRol(role);
+  // `puertaPorRol`, no `destinoPorRol`: de una server action se sale con una
+  // navegación sin recarga, y el rebote del alta la deja en blanco (destino.ts).
+  return puertaPorRol(role);
 }
 
 function parseEmail(formData: FormData) {

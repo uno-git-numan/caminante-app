@@ -880,8 +880,10 @@ export default function ExperienceTemplateV2({
   // Entrada por rol en el nav de la experiencia (misma lógica que SiteChrome):
   // sin sesión → "Entrar"; caminante → "Mi espacio"; casa y operador → "Panel".
   const conPanel = sessionRole === "admin" || sessionRole === "operador" || sessionRole === "equipo";
+  // Quien tiene panel pasa por `/entrar` (rutea por rol y dispositivo, y manda
+  // directo a Mi alta a la operadora que sigue en su alta: ver destino.ts).
   const cuentaHref = conPanel
-    ? "/caminante/admin"
+    ? "/caminante/entrar"
     : sessionRole === "caminante"
       ? "/caminante/perfil"
       : "/caminante/entrar";

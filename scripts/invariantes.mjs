@@ -343,7 +343,10 @@ const REGLAS = [
         if (!s) continue;
         if (/role\s*===\s*"admin"\s*\?/.test(s) || /rol\s*===\s*"admin"\s*\?/.test(s))
           return `${f} volvió a decidir el destino a mano con un ternario de dos roles. Eso dejó a una operadora real dando vueltas entre Google y la pantalla de login el 25 ago 2026: no entraba en ningún caso y caía al login, una y otra vez, sin un solo error. Usa destinoPorRol() de lib/auth/destino.ts.`;
-        if (!/destinoPorRol/.test(s))
+        // `puertaPorRol` (23 nov 2026) vive en el mismo destino.ts y delega en
+        // destinoPorRol: es la variante para salir de una navegación sin
+        // recarga. Cuenta como «el destino lo decide destino.ts».
+        if (!/destinoPorRol|puertaPorRol/.test(s))
           return `${f} decide a dónde mandar a alguien recién autenticado y ya no llama a destinoPorRol(). Si esa puerta se olvida de un rol, ese rol se queda fuera en silencio.`;
       }
       return null;

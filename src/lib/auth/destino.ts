@@ -52,6 +52,26 @@ export function destinoPorRol(role: Role | null, opts?: { telefono?: boolean }):
   }
 }
 
+/**
+ * A dónde se manda a alguien DESDE UNA NAVEGACIÓN SIN RECARGA (una server
+ * action de login o de alta, una página que redirige).
+ *
+ * ⚠️ NO ES LO MISMO QUE `destinoPorRol`, y la diferencia costó una pantalla en
+ * blanco (23 nov 2026). El destino de una operadora es el Panorama; mientras
+ * sigue en su alta, el layout del panel la rebota de ahí a «Mi alta». Con una
+ * carga completa son dos 307 y no se nota. Pero cuando ese rebote ocurre a
+ * media navegación sin recarga —justo lo que hace una server action al
+ * terminar el login—, Next deja el documento vacío: la dirección y el título
+ * cambian, el cuerpo queda en blanco hasta recargar.
+ *
+ * Por eso quien tiene panel de operadora no va al Panorama sino a `/entrar`,
+ * que es un route handler: contesta con UN redirect, ya resuelto (pregunta lo
+ * mismo que el layout y la manda directo a Mi alta si le toca).
+ */
+export function puertaPorRol(role: Role | null): string {
+  return role === "operador" || role === "equipo" ? "/caminante/entrar" : destinoPorRol(role);
+}
+
 /** ¿Este rol tiene panel? Lo usan el nav público y el login para no rebotar. */
 export function tienePanel(role: Role | null): boolean {
   return role === "admin" || role === "operador" || role === "equipo";

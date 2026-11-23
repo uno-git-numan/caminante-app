@@ -6,7 +6,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { OP_INTENT_COOKIE } from "@/lib/auth/op-intent";
 import { notifyAccesoOperador } from "@/lib/notifications/notify-admin";
 import { getCurrentRole } from "@/lib/auth/authorization";
-import { destinoPorRol, tienePanel } from "@/lib/auth/destino";
+import { puertaPorRol, tienePanel } from "@/lib/auth/destino";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export default async function BienvenidaPage() {
   // recibida», más una fila pendiente en la lista de accesos, estando ya
   // aprobada. Su correo ya la hace operadora: va directo a su panel.
   const rol = await getCurrentRole();
-  if (tienePanel(rol)) redirect(destinoPorRol(rol));
+  if (tienePanel(rol)) redirect(puertaPorRol(rol));
 
   // Nombre de pila si su contact ya existe (vía RLS)
   let firstName = "";

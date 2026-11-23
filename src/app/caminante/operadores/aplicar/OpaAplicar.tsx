@@ -111,7 +111,19 @@ const ETIQUETA: Record<string, string> = {
   incidentes: "Un incidente que hayas manejado",
 };
 
-export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
+export default function OpaAplicar({
+  duplicada,
+  entraSola,
+}: {
+  duplicada: boolean;
+  /**
+   * La solicitud se aprueba al llegar (`ALTA_LLAMADA=opcional`), salvo con
+   * menos de un año operando. Cambia lo que el formulario PROMETE al enviar:
+   * decir «te escribimos para agendar» a quien va a entrar en un minuto es
+   * mandarla a esperar un correo que no va a llegar.
+   */
+  entraSola: boolean;
+}) {
   const [paso, setPaso] = useState(1);
   const [enviando, setEnviando] = useState(false);
   const [malos, setMalos] = useState<Set<string>>(new Set());
@@ -128,6 +140,9 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
   const [actividades, setActividades] = useState<string[]>([]);
   const [descripcion, setDescripcion] = useState("");
   const [antiguedad, setAntiguedad] = useState("");
+  // ¿Al enviar entra directo a su panel? Sí, salvo que la casa pida llamada a
+  // todas o que lleve menos de un año (misma regla que `llamadaObligatoriaPara`).
+  const directo = entraSola && antiguedad !== "" && antiguedad !== ANTIGUEDAD_NUEVA;
   const [salidasAno, setSalidasAno] = useState("");
   const [personasTipico, setPersonasTipico] = useState("");
   const [personasMax, setPersonasMax] = useState("");
@@ -501,8 +516,9 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
             {c3 ? <input type="hidden" name="aceptaEncuesta" value="on" /> : null}
           </div>
           <p className="opa-fine" style={{ marginTop: 18 }}>
-            Al enviar, tu solicitud entra en revisión. Te escribimos al correo del paso 1 para
-            agendar 30 minutos.
+            {directo
+              ? "Al enviar se abre tu panel: le pones una contraseña y entras a armar tu primera experiencia. Nadie tiene que aprobarte antes."
+              : "Al enviar, tu solicitud entra en revisión. Te escribimos al correo del paso 1 para agendar 30 minutos."}
           </p>
         </section>
 
@@ -564,8 +580,9 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
           ) : null}
 
           <p className="opa-fine" style={{ marginTop: 18 }}>
-            Al enviar, tu solicitud entra en revisión. Te escribimos al correo del paso 1 para
-            agendar 30 minutos.
+            {directo
+              ? "Al enviar se abre tu panel: le pones una contraseña y entras a armar tu primera experiencia. Nadie tiene que aprobarte antes."
+              : "Al enviar, tu solicitud entra en revisión. Te escribimos al correo del paso 1 para agendar 30 minutos."}
           </p>
         </section>
 
@@ -602,7 +619,7 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
               </button>
             ) : (
               <button key="enviar" className="opa-btn accent" type="submit" style={{ maxWidth: 280 }} disabled={!listo || enviando}>
-                {enviando ? <><span className="opa-spin" /> Enviando…</> : "Enviar solicitud"}
+                {enviando ? <><span className="opa-spin" /> Enviando…</> : directo ? "Enviar y abrir mi panel" : "Enviar solicitud"}
               </button>
             )}
           </div>
