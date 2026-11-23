@@ -53,6 +53,21 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Sesión legal: 9-C, qué pasa al vencer la póliza (respuesta a código)
+
+- **Tu segunda opción, afinada.** No se resuelve la cláusula al firmar ni se
+  regresa sola a 9-B. Al vencer, **se detiene la venta** hasta que la casa
+  actualice. Lo firmado no se toca.
+- **La comprobación es por salida:** una salida se vende con 9-C sólo si la
+  póliza está vigente el día en que esa salida termina. Una salida posterior
+  al vencimiento no se vende hasta que la casa capture la renovación o pase la
+  experiencia a 9-B (versión nueva del deslinde).
+- Avisos a la casa a 30 y 7 días del vencimiento. Texto en
+  `DESLINDE-ESTANDAR-2026-11-19.md`, «Qué pasa cuando la póliza vence».
+- Contabilizado: en producción desde hoy (bab4656) comisión fija, expediente
+  en tres momentos con marco v3, 0094 y los dos interruptores. La llave Live
+  de Facturapi sigue pendiente de Luis.
+
 ## 23 nov 2026 · Sesión legal: el seguro lo contrata el PROVEEDOR; tercera variante de la cláusula 9
 
 Luis aclaró: en las salidas de la casa el seguro lo contrata el proveedor que

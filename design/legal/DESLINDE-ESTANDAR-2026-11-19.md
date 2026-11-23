@@ -104,8 +104,25 @@ como «con seguro del proveedor» cuando tiene en su poder la carátula de la
 póliza vigente, o la constancia de `CONSTANCIA-SEGURO-PROVEEDOR-2026-11-23.md`
 firmada por el proveedor, que cubra a los participantes en esa actividad. Se
 guarda en Drive, `numan/CAMINANTE/legal/polizas-proveedores/`, por
-experiencia. Quien la marca responde de haberla visto. Vencida la póliza, la
-experiencia vuelve a 9-B. Es el mismo estándar que el anexo le pone a una
+experiencia. Quien la marca responde de haberla visto y captura la fecha de
+vencimiento de la póliza.
+
+**Qué pasa cuando la póliza vence (decidido el 23 nov, a pregunta de código).**
+Lo que importa es que el seguro exista **el día de la salida**, no el día en
+que alguien firma. Por eso:
+
+- Una salida se vende con 9-C **sólo si la póliza está vigente el día en que
+  esa salida termina**. Una salida posterior al vencimiento no se vende hasta
+  que la casa capture la póliza renovada o pase la experiencia a 9-B.
+- **El texto no cambia solo.** La cláusula 9 no se resuelve al firmar ni se
+  regresa a 9-B por su cuenta: lo decide una persona de la casa, y cada cambio
+  es una versión nueva del deslinde.
+- **Lo que alguien ya firmó no se toca.**
+- La plataforma avisa a la casa 30 y 7 días antes del vencimiento.
+- Si la casa se entera de que una póliza se canceló antes de tiempo, lo marca,
+  y le avisa a quienes ya firmaron para esa salida antes de que salgan.
+
+Es el mismo estándar que el anexo le pone a una
 operadora con convenio: no se le afirma al cliente un seguro que Caminante no
 ha visto.
 
