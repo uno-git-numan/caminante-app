@@ -39,7 +39,11 @@ describe("lo que falta para vender", () => {
       candados: seis(["convenio", "fiscal", "connect", "panel", "experiencia"]),
       expediente: { completo: false, vacio: false, faltanTotal: 3 },
     });
-    expect(falta.map((f) => f.clave)).toEqual(["experiencia", "expediente", "fiscal", "convenio", "connect", "panel"]);
+    // La constancia es uno de los documentos: con el renglón de documentos
+    // abierto no se repite como renglón aparte.
+    expect(falta.map((f) => f.clave)).toEqual(["experiencia", "expediente", "convenio", "connect", "panel"]);
+    const sinPapelesPendientes = loQueFalta({ ...base, candados: seis(["fiscal", "convenio"]) });
+    expect(sinPapelesPendientes.map((f) => f.clave)).toEqual(["fiscal", "convenio"]);
     // Con un borrador ya armado, lo que queda de la experiencia es publicarla: va al final.
     const conBorrador = loQueFalta({
       ...base,
@@ -47,7 +51,7 @@ describe("lo que falta para vender", () => {
       candados: seis(["convenio", "fiscal", "connect", "panel", "experiencia"]),
       expediente: { completo: false, vacio: false, faltanTotal: 3 },
     });
-    expect(conBorrador.map((f) => f.clave)).toEqual(["expediente", "fiscal", "convenio", "connect", "panel", "experiencia"]);
+    expect(conBorrador.map((f) => f.clave)).toEqual(["expediente", "convenio", "connect", "panel", "experiencia"]);
   });
 
   it("el expediente dice cuántos documentos faltan, y en singular cuando es uno", () => {

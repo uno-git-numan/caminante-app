@@ -5,6 +5,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { OP_INTENT_COOKIE } from "@/lib/auth/op-intent";
 import { notifyAccesoOperador } from "@/lib/notifications/notify-admin";
+import { getCurrentRole } from "@/lib/auth/authorization";
+import { destinoPorRol, tienePanel } from "@/lib/auth/destino";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,13 @@ export default async function BienvenidaPage() {
   if (!user) {
     redirect("/caminante/login?next=%2Fcaminante%2Fbienvenida");
   }
+
+  // ⚠️ QUIEN YA TIENE PANEL NO «SOLICITA ACCESO» (23 nov 2026). Una operadora
+  // recién aprobada crea su cuenta, elige «Soy operador» y caía aquí: «Solicitud
+  // recibida», más una fila pendiente en la lista de accesos, estando ya
+  // aprobada. Su correo ya la hace operadora: va directo a su panel.
+  const rol = await getCurrentRole();
+  if (tienePanel(rol)) redirect(destinoPorRol(rol));
 
   // Nombre de pila si su contact ya existe (vía RLS)
   let firstName = "";

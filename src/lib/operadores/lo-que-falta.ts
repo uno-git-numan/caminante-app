@@ -110,7 +110,7 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
     if (e.vacio) {
       falta.push({
         clave: "expediente",
-        titulo: "Tu expediente",
+        titulo: "Tus documentos",
         detalle: "Para vender bastan dos documentos: tu constancia fiscal y tu identificación.",
         toca: "operadora",
         href: RUTA.expediente,
@@ -119,9 +119,9 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
     } else if (e.faltanTotal > 0) {
       falta.push({
         clave: "expediente",
-        titulo: "Tu expediente",
+        titulo: "Tus documentos",
         detalle:
-          `${plural(e.faltanTotal, "Falta", "Faltan")} ${e.faltanTotal} ${plural(e.faltanTotal, "documento", "documentos")} para poder vender (constancia fiscal o identificación).` +
+          `${plural(e.faltanTotal, "Falta", "Faltan")} ${e.faltanTotal} ${plural(e.faltanTotal, "documento", "documentos")} para poder vender ${e.faltanTotal >= 2 ? "(tu constancia fiscal y tu identificación)" : "(constancia fiscal o identificación)"}.` +
           (d.conDispensa ? " Hoy vendes con una dispensa, y tiene fecha." : ""),
         toca: "operadora",
         href: RUTA.expediente,
@@ -130,7 +130,7 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
     } else {
       falta.push({
         clave: "expediente",
-        titulo: "Tu expediente",
+        titulo: "Tus documentos",
         detalle: "Entregaste lo necesario para vender. Lo estamos revisando.",
         toca: "casa",
         href: RUTA.expediente,
@@ -141,8 +141,13 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
 
   // 2 · LOS DATOS FISCALES. Salen solos de la constancia confirmada con el SAT,
   // y la constancia se sube en el expediente: por eso mandan allá.
+  // ⚠️ Si el renglón de arriba ya le pide subir sus documentos, la constancia
+  // es uno de ellos: decirlo dos veces era una lista de cinco cosas donde hay
+  // cuatro. Este renglón queda para cuando los papeles están y el dato no
+  // (dos regímenes en la constancia, o el SAT no la confirmó).
   const fiscal = abierto("fiscal");
-  if (fiscal) {
+  const yaSePidenLosDocumentos = !!e && !e.completo && (e.vacio || e.faltanTotal > 0);
+  if (fiscal && !yaSePidenLosDocumentos) {
     falta.push({
       clave: "fiscal",
       titulo: "Tu constancia fiscal",

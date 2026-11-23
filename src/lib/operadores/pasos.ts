@@ -50,6 +50,8 @@ export const FIRMADO_EL = "Firmado el ";
 /** La línea del paso actual y la de los que faltan. */
 export const AQUI_ESTAS = "Aquí estás";
 export const PENDIENTE = "Pendiente";
+/** La marca sin poner cuando ya siguió adelante: no es un pendiente, es una opción. */
+export const OPCIONAL = "Opcional";
 
 /** Lo mínimo del alta para saber qué pasos están hechos. */
 export type ParaLosPasos = {
@@ -61,15 +63,15 @@ export type ParaLosPasos = {
 };
 
 /**
- * Cuáles de los cinco están hechos, cada uno por su cuenta.
- *
- * La marca cuenta como hecha si está completa O si ya armó una experiencia:
- * es opcional, y quien siguió adelante sin logo no se quedó atorada en el 01.
+ * Cuáles de los cinco están hechos, cada uno por su cuenta. Dice la verdad de
+ * cada uno: la marca está hecha sólo si está completa (la primera versión la
+ * daba por «Lista» en cuanto había una experiencia, y la pantalla decía
+ * «Lista» arriba y «te falta el logo» abajo).
  */
 export function pasosHechos(d: ParaLosPasos): [boolean, boolean, boolean, boolean, boolean] {
   const conExperiencia = d.experiencias.length > 0;
   return [
-    !!d.operadora?.marca.completa || conExperiencia,
+    !!d.operadora?.marca.completa,
     conExperiencia,
     !!d.expediente?.completo,
     d.candados.find((c) => c.clave === "convenio")?.cumplido === true,
@@ -77,13 +79,20 @@ export function pasosHechos(d: ParaLosPasos): [boolean, boolean, boolean, boolea
   ];
 }
 
+/** La marca es opcional: sin ponerla, quien ya armó una experiencia siguió adelante. */
+export function marcaSaltada(d: ParaLosPasos): boolean {
+  return !d.operadora?.marca.completa && d.experiencias.length > 0;
+}
+
 /**
  * En cuál va: el primero que falta. `-1` mientras sigue en su solicitud (no
  * tiene panel todavía: no hay pasos que enseñarle). Con todo hecho, el último.
+ * La marca saltada no la detiene en el 01.
  */
 export function pasoActual(d: ParaLosPasos): number {
   if (!d.operadora) return -1;
-  const i = pasosHechos(d).indexOf(false);
+  const saltada = marcaSaltada(d);
+  const i = pasosHechos(d).findIndex((hecho, k) => !hecho && !(k === 0 && saltada));
   return i < 0 ? PASOS.length - 1 : i;
 }
 

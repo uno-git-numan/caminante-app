@@ -15,7 +15,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AQUI_ESTAS, FIRMADO_EL, PASOS, PENDIENTE, pasoActual, pasosHechos } from "@/lib/operadores/pasos";
+import { AQUI_ESTAS, FIRMADO_EL, OPCIONAL, PASOS, PENDIENTE, marcaSaltada, pasoActual, pasosHechos } from "@/lib/operadores/pasos";
 import type { MiAlta as Datos } from "@/lib/operadores/mi-alta";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
 import { ACTIVIDADES, momentoDeGeneral, requisitosDe } from "@/lib/operadores/actividades";
@@ -196,46 +196,6 @@ export default function MiAlta({
 
   return (
     <>
-      {falta.length ? (
-        <div style={{ marginBottom: 22 }} id="falta">
-          {/* `.docbar` es la barra de avance de la lámina (título · barra · n de
-              m); la cuenta es la de los seis candados, la misma del paso 04. */}
-          <div className="docbar">
-            <b>{tituloDeLoQueFalta(falta)}</b>
-            <span className="bar">
-              <i style={{ width: `${Math.round((cumplidos / datos.candados.length) * 100)}%` }} />
-            </span>
-            <span className="fr">
-              {cumplidos} de {datos.candados.length}
-            </span>
-          </div>
-          <div className="docs">
-            {falta.map((f) => (
-              <div key={f.clave} className={"doc" + (f.toca === "operadora" && f.detieneLaVenta !== false ? " pend" : "")}>
-                <SixIco ok={false} />
-                <span className="nm">
-                  <b>{f.titulo}</b>
-                  <small>{f.detalle}</small>
-                </span>
-                <span className="fl">
-                  {f.detieneLaVenta === false ? "No detiene tu venta" : f.toca === "operadora" ? "Te toca a ti" : "Le toca a Caminante"}
-                </span>
-                <span className="ac">
-                  {f.href && f.accion ? (
-                    <Link
-                      className={"btn btn-sm " + (f.toca === "operadora" && f.detieneLaVenta !== false ? "btn-orange" : "btn-ghost")}
-                      href={ligaDeFalta(f.href)}
-                    >
-                      {f.accion}
-                    </Link>
-                  ) : null}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       {enSolicitud ? null : (
       <div className="pasos cinco" id="pasos">
         {PASOS.map((p, i) => {
@@ -253,7 +213,9 @@ export default function MiAlta({
               : p.cerrado
             : actual
               ? AQUI_ESTAS
-              : PENDIENTE;
+              : i === 0 && marcaSaltada(datos)
+                ? OPCIONAL
+                : PENDIENTE;
           return (
             <div
               key={p.n}
@@ -329,6 +291,50 @@ export default function MiAlta({
           </details>
         ) : null}
       </div>
+
+      {/* LA LISTA VA DEBAJO (23 nov 2026). Arriba, lo primero que veía una
+          operadora nueva era «Te faltan 5 cosas para vender» y siete renglones
+          de papeles: justo la pared que el orden nuevo quiere evitar. Primero
+          sus pasos y el que le toca; la cuenta completa, al pie. */}
+      {falta.length ? (
+        <div style={{ marginTop: 26 }} id="falta">
+          {/* `.docbar` es la barra de avance de la lámina (título · barra · n de
+              m); la cuenta es la de los seis candados, la misma del paso 04. */}
+          <div className="docbar">
+            <b>{tituloDeLoQueFalta(falta)}</b>
+            <span className="bar">
+              <i style={{ width: `${Math.round((cumplidos / datos.candados.length) * 100)}%` }} />
+            </span>
+            <span className="fr">
+              {cumplidos} de {datos.candados.length}
+            </span>
+          </div>
+          <div className="docs">
+            {falta.map((f) => (
+              <div key={f.clave} className={"doc" + (f.toca === "operadora" && f.detieneLaVenta !== false ? " pend" : "")}>
+                <SixIco ok={false} />
+                <span className="nm">
+                  <b>{f.titulo}</b>
+                  <small>{f.detalle}</small>
+                </span>
+                <span className="fl">
+                  {f.detieneLaVenta === false ? "No detiene tu venta" : f.toca === "operadora" ? "Te toca a ti" : "Le toca a Caminante"}
+                </span>
+                <span className="ac">
+                  {f.href && f.accion ? (
+                    <Link
+                      className={"btn btn-sm " + (f.toca === "operadora" && f.detieneLaVenta !== false ? "btn-orange" : "btn-ghost")}
+                      href={ligaDeFalta(f.href)}
+                    >
+                      {f.accion}
+                    </Link>
+                  ) : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

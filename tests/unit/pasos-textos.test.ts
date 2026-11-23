@@ -4,7 +4,7 @@
 // cuenta al final. Cada paso sabe solo si está hecho; «aquí estás» es el
 // primero que falta.
 import { describe, expect, it } from "vitest";
-import { ORDINALES, PASOS, pasoActual, pasosHechos, type ParaLosPasos } from "@/lib/operadores/pasos";
+import { ORDINALES, PASOS, marcaSaltada, pasoActual, pasosHechos, type ParaLosPasos } from "@/lib/operadores/pasos";
 import { generalesPara, momentoDeGeneral } from "@/lib/operadores/actividades";
 
 const base: ParaLosPasos = {
@@ -29,9 +29,10 @@ describe("los cinco pasos del alta", () => {
     expect(pasoActual(base)).toBe(0);
   });
 
-  it("la marca es opcional: quien ya armó una experiencia no se queda atorada en el 01", () => {
+  it("la marca es opcional: quien ya armó una experiencia no se queda atorada en el 01, y no se le dice «Lista»", () => {
     const d = { ...base, experiencias: [{ estado: "draft" }] };
-    expect(pasosHechos(d).slice(0, 2)).toEqual([true, true]);
+    expect(pasosHechos(d).slice(0, 2)).toEqual([false, true]);
+    expect(marcaSaltada(d)).toBe(true);
     expect(pasoActual(d)).toBe(2);
   });
 
