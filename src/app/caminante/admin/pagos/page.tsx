@@ -175,7 +175,7 @@ export default async function PagosPage({
   const bonificaciones = alcance?.tipo === "casa" ? await bonificacionesDeLaCasa() : null;
 
   return (
-    <AdminShell active="recursos">
+    <AdminShell active="pagos">
       <section className="sec">
         {ok ? (
           <div className="glass pad" style={{ marginBottom: 18, fontSize: 13.5, color: "var(--olive-d)" }}>

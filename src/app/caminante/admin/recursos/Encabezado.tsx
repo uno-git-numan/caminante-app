@@ -7,7 +7,7 @@
 // era garantizar la repetición.
 
 import Link from "next/link";
-import { ADMIN_NAV, ADMIN_NAV_OPERADOR, PERSON_ICON } from "../ui/nav";
+import { NAV_CASA_ESENCIAL, ADMIN_NAV_OPERADOR, PERSON_ICON } from "../ui/nav";
 
 const G1 =
   '<g class="g1"><path d="M14.64,119.17c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64S0,96.44,0,104.52s6.56,14.64,14.64,14.64"/><path d="M102.08,31.73c8.09,0,14.64-6.56,14.64-14.64s-6.56-14.64-14.64-14.64-14.64,6.56-14.64,14.64,6.56,14.64,14.64,14.64"/><path d="M91.72,114.57L4.29,27.44C-1.43,21.73-1.43,12.46,4.29,6.74c5.72-5.72,14.99-5.72,20.71,0l87.43,87.13c5.72,5.72,5.72,14.99,0,20.71-5.72,5.72-14.99,5.72-20.71,0"/></g>';
@@ -39,7 +39,7 @@ export default function Encabezado() {
         </div>
       </div>
       <nav className="nav">
-        {ADMIN_NAV.map((it) =>
+        {NAV_CASA_ESENCIAL.map((it) =>
           it.key === "recursos" ? (
             <Link key={it.key} href={it.href!} className="on">
               {it.label}

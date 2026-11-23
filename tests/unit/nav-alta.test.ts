@@ -54,7 +54,8 @@ describe("rutaCerrada", () => {
 });
 
 // ── Cuando el alta cierra, «Mi alta» se vuelve «Mi perfil» a la derecha ──────
-import { MI_ALTA_NAV, MI_PERFIL_NAV, navConAltaCerrada, navPara, sinAdministrarEquipo } from "@/app/caminante/admin/ui/nav";
+import { ADMIN_NAV, ligaDeEquipo, MI_ALTA_NAV, MI_PERFIL_NAV, NAV_CASA_ESENCIAL, NAV_PLATAFORMA, NAV_PLATAFORMA_ESENCIAL, navConAltaCerrada, navPara, sinAdministrarEquipo } from "@/app/caminante/admin/ui/nav";
+import { SECCIONES_GUARDADAS, SECCIONES_GUARDADAS_PLATAFORMA } from "@/app/caminante/admin/ui/mas";
 
 describe("navConAltaCerrada", () => {
   it("quita «Mi alta» del frente y pone «Mi perfil» al final, con la misma ruta", () => {
@@ -74,12 +75,38 @@ describe("«Equipo» es una pestaña de cada operadora (27 sep 2026)", () => {
     expect(op[op.length - 1]).toMatchObject({ key: "op-equipo", href: "/caminante/admin/mi-alta/equipo" });
     expect(sinAdministrarEquipo(op).some((i) => i.key === "op-equipo")).toBe(false);
     expect(navPara("admin").some((i) => i.key === "op-equipo")).toBe(false);
-    const casa = navPara("admin", false, "66ed7510");
-    expect(casa[casa.length - 1]).toMatchObject({ key: "op-equipo", href: "/caminante/admin/mi-alta/equipo?operadora=66ed7510" });
+    // Desde el menú esencial (23 nov 2026) «Equipo» ya no va al frente de la
+    // casa: está en «Más», con la liga apuntando a la operadora del sombrero.
+    expect(navPara("admin", false, "66ed7510").some((i) => i.key === "op-equipo")).toBe(false);
+    expect(ligaDeEquipo("66ed7510")).toBe("/caminante/admin/mi-alta/equipo?operadora=66ed7510");
   });
   it("«Mi perfil» sigue yendo al final, después de Equipo", () => {
     const n = navConAltaCerrada(navPara("operador"));
     expect(n[n.length - 1]).toBe(MI_PERFIL_NAV);
     expect(n[n.length - 2].key).toBe("op-equipo");
+  });
+});
+
+describe("el menú esencial de la casa (23 nov 2026)", () => {
+  it("con el sombrero de una operadora: Salidas, Experiencias, Pagos y Más", () => {
+    expect(navPara("admin").map((i) => i.label)).toEqual(["Salidas", "Experiencias", "Pagos", "Más"]);
+    expect(navPara("admin", true).map((i) => i.label)).toEqual(["Mi alta", "Salidas", "Experiencias", "Pagos", "Más"]);
+  });
+
+  it("con el sombrero de numan: Operadoras y Más", () => {
+    expect(NAV_PLATAFORMA_ESENCIAL.map((i) => i.label)).toEqual(["Operadoras", "Más"]);
+  });
+
+  it("nada se perdió: toda sección que salió del frente está listada en «Más»", () => {
+    const alFrente = new Set(NAV_CASA_ESENCIAL.map((i) => i.href));
+    const guardadas = new Set(SECCIONES_GUARDADAS.map((x) => x.href));
+    for (const it of ADMIN_NAV) expect(alFrente.has(it.href) || guardadas.has(it.href!)).toBe(true);
+    const alFrentePl = new Set(NAV_PLATAFORMA_ESENCIAL.map((i) => i.href));
+    const guardadasPl = new Set(SECCIONES_GUARDADAS_PLATAFORMA.map((x) => x.href));
+    for (const it of NAV_PLATAFORMA) expect(alFrentePl.has(it.href) || guardadasPl.has(it.href!)).toBe(true);
+  });
+
+  it("el menú de la operadora externa no cambió", () => {
+    expect(navPara("operador").map((i) => i.label)).toEqual(["Mi alta", "Panorama", "Experiencias", "Comunicación", "Comunidad", "Salidas", "Equipo"]);
   });
 });

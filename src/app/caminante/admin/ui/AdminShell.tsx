@@ -4,6 +4,7 @@ import {
   navPara,
   ADMIN_NAV_OPERADOR,
   NAV_PLATAFORMA,
+  NAV_PLATAFORMA_ESENCIAL,
   PERSON_ICON,
   RAIZ_PLATAFORMA,
   sombreroDeRuta,
@@ -195,7 +196,7 @@ export default async function AdminShell({
   const nav = comoNuman
     ? NAV_PLATAFORMA.filter((i) => i.key === "pl-comunidad")
     : sombrero === "plataforma"
-      ? NAV_PLATAFORMA
+      ? NAV_PLATAFORMA_ESENCIAL
       : altaCerrada
         ? navConAltaCerrada(items)
         : items;

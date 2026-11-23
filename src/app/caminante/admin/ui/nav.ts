@@ -30,7 +30,9 @@ export type AdminSection =
   | "pl-recursos"
   | "pl-equipo"
   // «Equipo» de una OPERADORA (su gente), distinta de la de la plataforma.
-  | "op-equipo";
+  | "op-equipo"
+  // «Pagos» como pestaña propia del menú esencial de la casa (23 nov 2026).
+  | "pagos";
 
 export type AdminNavItem = { key: AdminSection; label: string; href?: string; soon?: boolean };
 
@@ -68,6 +70,39 @@ export const ADMIN_NAV: AdminNavItem[] = [
   // después (leer la encuesta), y las dos cosas viven ahí. La clave interna se
   // conserva para no tocar las 20 llamadas a AdminShell.
   { key: "encuesta", label: "Salidas", href: "/caminante/admin/salidas" },
+];
+
+// ── EL MENÚ ESENCIAL DE LA CASA (23 nov 2026) ──────────────────────────────
+//
+// Luis: «Es demasiado grande y complicada… quiero que para mí sea más sencillo
+// e intuitivo». El panel tenía siete pestañas con el sombrero de la operadora
+// y cinco con el de numan; para operar se usan tres o cuatro. Lo que la casa
+// ve ahora de frente es lo que usa todos los días:
+//
+//     con el sombrero de una operadora →  Salidas · Experiencias · Pagos · Más
+//     con el sombrero de numan         →  Operadoras · Más
+//
+// **Nada se borró.** Panorama, Comunidad, Comunicación, Recursos y Equipo
+// siguen enteros en sus rutas, y «Más» es la página que las lista
+// (`/admin/mas` y `/admin/plataforma/mas`). Volver a ponerlas al frente es
+// regresar una línea a estas dos listas.
+//
+// ⚠️ SÓLO CAMBIA EL MENÚ DE LA CASA. El de la operadora externa sale de
+// `ADMIN_NAV` (abajo, `ADMIN_NAV_DE_OPERADOR`) y no se tocó: su cabecera
+// punteada mientras el alta no cierra cuenta esas secciones (invariante #24).
+//
+// «Más» usa la clave `recursos` a propósito: Recursos y sus pantallas ya se
+// marcan con ella, y ahora viven detrás de «Más». Pagos estrena clave propia.
+export const NAV_CASA_ESENCIAL: AdminNavItem[] = [
+  { key: "encuesta", label: "Salidas", href: "/caminante/admin/salidas" },
+  { key: "eventos", label: "Experiencias", href: "/caminante/admin/eventos" },
+  { key: "pagos", label: "Pagos", href: "/caminante/admin/pagos" },
+  { key: "recursos", label: "Más", href: "/caminante/admin/mas" },
+];
+
+export const NAV_PLATAFORMA_ESENCIAL: AdminNavItem[] = [
+  { key: "pl-comunidad", label: "Operadoras", href: "/caminante/admin/plataforma/comunidad" },
+  { key: "pl-recursos", label: "Más", href: "/caminante/admin/plataforma/mas" },
 ];
 
 // ── EL NAV DE LA PLATAFORMA ────────────────────────────────────────────────
@@ -202,8 +237,12 @@ export function navConAltaCerrada(items: AdminNavItem[]): AdminNavItem[] {
  * @param equipoDe — la casa trae puesto el sombrero de una operadora PROPIA
  *   (Caminante o Kéntro): su pestaña «Equipo» apunta a la gente de ésa.
  */
-export function navPara(rol: "admin" | "operador", conAlta = false, equipoDe?: string): AdminNavItem[] {
+export function navPara(rol: "admin" | "operador", conAlta = false, _equipoDe?: string): AdminNavItem[] {
   if (rol === "operador") return ADMIN_NAV_DE_OPERADOR;
-  const base = conAlta ? [MI_ALTA_NAV, ...ADMIN_NAV] : ADMIN_NAV;
-  return equipoDe ? [...base, { ...EQUIPO_NAV, href: `${EQUIPO_NAV.href}?operadora=${encodeURIComponent(equipoDe)}` }] : base;
+  // La casa: el menú esencial. «Equipo» de la operadora del sombrero ya no va
+  // al frente: está en «Más» (`/admin/mas`), que arma su liga con el sombrero.
+  return conAlta ? [MI_ALTA_NAV, ...NAV_CASA_ESENCIAL] : NAV_CASA_ESENCIAL;
 }
+
+/** La liga de «Equipo» de una operadora propia, para la página «Más» de la casa. */
+export const ligaDeEquipo = (operatorId: string): string => `${EQUIPO_NAV.href}?operadora=${encodeURIComponent(operatorId)}`;
