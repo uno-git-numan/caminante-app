@@ -20,6 +20,7 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { avisarConvenioSiCompletaArranque } from "./aviso-convenio";
 import { analizarCsf } from "./csf";
 import { cerrarActividadSiCompleta, revisarDocumento } from "./revision-ia";
 import { isCurrentUserAdmin } from "@/lib/auth/authorization";
@@ -526,6 +527,16 @@ export async function resolverDocumento(id: string, aprobado: boolean, motivo?: 
   if (!aprobado && !razon) return { ok: false, error: "Un rechazo tiene que decir por qué." };
 
   const sb = createSupabaseAdminClient();
+  // De quién es el papel y CÓMO ESTABA antes de decidir. Lo primero lo usa el
+  // aviso del rechazo; lo segundo, el del convenio, que sale sólo cuando el
+  // documento PASA a aprobado (volver a aprobar lo aprobado no es transición).
+  const { data: previo } = await sb
+    .from("operator_documents")
+    .select("operator_id, actividad, documento, estado")
+    .eq("id", id)
+    .maybeSingle();
+  const d = previo as { operator_id: string; actividad: string | null; documento: string; estado: string } | null;
+
   const { error } = await sb
     .from("operator_documents")
     .update({
@@ -539,27 +550,27 @@ export async function resolverDocumento(id: string, aprobado: boolean, motivo?: 
     return { ok: false, error: "No se pudo guardar la revisión." };
   }
 
+  // Si con este documento quedó completo lo que se pide para vender, sigue la
+  // firma del convenio y se le dice (aviso-convenio.ts). Nunca lanza.
+  if (aprobado && d && d.estado !== "aprobado") {
+    await avisarConvenioSiCompletaArranque({
+      operatorId: d.operator_id, actividad: d.actividad, documento: d.documento, estadoAnterior: d.estado,
+    });
+  }
+
   // Un rechazo se AVISA. Sin esto el papel se quedaba en rojo dentro de una
   // pantalla a la que ella no tenía por qué volver a entrar ese día, y el
   // expediente se paraba sin que nadie supiera por qué.
-  if (!aprobado) {
-    const { data: doc } = await sb
-      .from("operator_documents")
-      .select("operator_id, actividad, documento")
-      .eq("id", id)
-      .maybeSingle();
-    const d = doc as { operator_id: string; actividad: string | null; documento: string } | null;
-    if (d) {
-      const quien = await correoDe(d.operator_id);
-      const catalogo =
-        d.actividad === null
-          ? GENERALES.find((g) => g.slug === d.documento)
-          : requisitosDe(d.actividad).propios.find((x) => x.slug === d.documento);
-      if (quien) {
-        await emailExpedienteDevuelto(quien.email, quien.nombre, catalogo?.nombre ?? d.documento, razon).catch((e) =>
-          console.error("emailExpedienteDevuelto:", e),
-        );
-      }
+  if (!aprobado && d) {
+    const quien = await correoDe(d.operator_id);
+    const catalogo =
+      d.actividad === null
+        ? GENERALES.find((g) => g.slug === d.documento)
+        : requisitosDe(d.actividad).propios.find((x) => x.slug === d.documento);
+    if (quien) {
+      await emailExpedienteDevuelto(quien.email, quien.nombre, catalogo?.nombre ?? d.documento, razon).catch((e) =>
+        console.error("emailExpedienteDevuelto:", e),
+      );
     }
   }
 

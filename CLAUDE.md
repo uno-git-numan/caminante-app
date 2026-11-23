@@ -300,8 +300,16 @@ le paga a Caminante: sólo la comisión por venta.
   en Vercel desde el 23 nov; `llamadaObligatoriaPara`). Con un año o más la
   solicitud se aprueba al llegar y entra directo a su panel.
 - **Al aprobar sale UN correo**, la bienvenida con el camino completo.
-  `emailConvenioPorFirmar` quedó sin disparador (pendiente: mandarlo con los
-  documentos aprobados y sin firma, o al publicar una versión nueva).
+- **«Tus documentos ya están aprobados: sigue la firma»** (`emailConvenioPorFirmar`
+  con `documentosAprobados`) sale desde `lib/operadores/aviso-convenio.ts`
+  cuando se aprueba el documento que COMPLETA el arranque y no hay firma. Lo
+  llaman los tres lugares donde un documento pasa a aprobado (`csf.ts`,
+  `revision-ia.ts`, `resolverDocumento`). Sin estado: la marca es la
+  transición (antes incompleto, ahora completo, según `armarExpediente`), así
+  que una póliza aprobada después no lo repite. Calla si la casa no ha
+  publicado convenio. Pendiente: avisar a quien YA firmó cuando se publica una
+  versión nueva, y los casos en que el arranque se completa sin aprobar nada
+  (elegir física/moral al final, reemplazar un opcional rechazado).
 - El riel de cinco columnas y el choque `.paso.sel` / `.adm .sel` viven en
   `mi-alta/pasos-css.ts`, fuera de la hoja generada de la lámina.
 

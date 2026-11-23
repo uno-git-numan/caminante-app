@@ -286,10 +286,18 @@ export async function emailStripeListo(to: string, responsable: string | null): 
  * escribirla dos veces es cómo una de las dos se queda vieja. Además es la que
  * decide si esto suena a urgencia o a aviso: decir «hasta que firmes no
  * vendes» cuando faltan treinta días es asustar de gratis.
+ *
+ * `nuncaFirmo`: quien no ha firmado NINGÚN convenio no «sigue vendiendo normal»
+ * mientras llega la fecha —la puerta de publicar le pide la firma desde hoy
+ * (`candados-venta.ts`)—, así que a ella no se le promete ese plazo. Tampoco se
+ * le dice «ya está vigente» de un texto que todavía no lo está.
  */
-export function fraseDeVigencia(dias: number): string {
+export function fraseDeVigencia(dias: number, nuncaFirmo = false): string {
   if (dias <= 0) {
     return "Ya está vigente: hasta que lo firmes, tus experiencias no pueden publicarse ni cobrar.";
+  }
+  if (nuncaFirmo) {
+    return "Hasta que lo firmes, tus experiencias no pueden publicarse ni cobrar.";
   }
   return `Entra en vigor en ${dias} ${dias === 1 ? "día" : "días"}. Hasta entonces sigues vendiendo normal; después de esa fecha hace falta la firma.`;
 }
@@ -297,38 +305,60 @@ export function fraseDeVigencia(dias: number): string {
 // 10 · El convenio ya se puede firmar.
 //
 // ⚠️ ES EL ÚNICO CANDADO QUE ELLA NO PUEDE EMPUJAR SOLA. Los otros cinco
-// dependen de que suba algo, complete algo o Stripe la verifique; éste depende
-// de que la casa publique un texto. Mientras no hay texto, su panel le dice
-// «La casa no ha publicado el convenio» y no hay nada que hacer — así que el
-// día que sí lo hay, enterarse no puede depender de que se le ocurra entrar.
+// dependen de que suba algo, complete algo o su cuenta de cobro se verifique;
+// éste depende de que la casa publique un texto. Mientras no hay texto, su
+// panel le dice «La casa no ha publicado el convenio» y no hay nada que hacer —
+// así que el día que sí lo hay, enterarse no puede depender de que se le
+// ocurra entrar.
 //
 // Dos formas, porque no piden lo mismo (`convenio.ts`, DIAS_DE_AVISO = 30):
 //   · Ya exigible → hasta que firme no vende. Se dice sin rodeos.
 //   · Por venir   → tiene días. Se dice cuántos y desde cuándo aplica, para que
 //     nadie descubra la fecha el día que le cayó encima.
 //
-// ⚠️ DESDE EL 23 NOV 2026 NADIE LO MANDA. Salía al aprobar la solicitud; con
-// el alta en cinco pasos el convenio es el cuarto, y pedir la firma el primer
-// día contradecía el orden. Su momento natural —documentos aprobados y sin
-// firma, o una versión nueva publicada— todavía no tiene disparador: es un
-// pendiente anotado, no un olvido.
+// QUIÉN LO MANDA. Hasta el 23 nov 2026 salía al aprobar la solicitud; con el
+// alta en cinco pasos el convenio es el cuarto, y pedir la firma el primer día
+// contradecía el orden. Desde entonces lo manda `aviso-convenio.ts`, una vez,
+// cuando se aprueba el documento que completa lo que se pide para vender
+// (constancia fiscal e identificación) y la operadora no ha firmado: va con
+// `documentosAprobados`, y el encabezado dice que sus documentos ya están
+// aprobados y que sigue la firma.
+//
+// Sin `documentosAprobados` es el aviso de «publicamos un convenio». Ése sigue
+// sin disparador: a quien ya firmó una versión y le publican otra, hoy sólo se
+// lo dice su panel.
 export async function emailConvenioPorFirmar(
   to: string,
   responsable: string | null,
-  v: { titulo: string; version: string; dias: number },
+  v: {
+    titulo: string;
+    version: string;
+    dias: number;
+    /** Sale porque se aprobaron sus documentos para vender y no ha firmado ningún convenio. */
+    documentosAprobados?: boolean;
+  },
 ): Promise<boolean> {
   const n = saludo(responsable);
   const url = `${SITE}/caminante/admin/mi-alta/convenio`;
   const yaAplica = v.dias <= 0;
-  const cuando = fraseDeVigencia(v.dias);
+  const docs = v.documentosAprobados === true;
+  const cuando = fraseDeVigencia(v.dias, docs);
+  const queEs = "el documento que pone por escrito la comisión, quién responde de qué y cómo se cobra";
   const correo = shell([
-    h1(`Ya puedes firmar tu convenio${n}.`),
-    p(`Publicamos <b>${esc(v.titulo)}</b> (${esc(v.version)}). Es el documento que pone por escrito la comisión, quién responde de qué y cómo se cobra.`),
+    h1(docs ? `Tus documentos ya están aprobados${n}. Sigue la firma.` : `Ya puedes firmar tu convenio${n}.`),
+    docs
+      ? p(`Aprobamos tu constancia fiscal y tu identificación, los dos documentos que pedimos para vender. Lo que sigue es firmar <b>${esc(v.titulo)}</b> (${esc(v.version)}): ${queEs}.`)
+      : p(`Publicamos <b>${esc(v.titulo)}</b> (${esc(v.version)}). Es ${queEs}.`),
     p(cuando),
     p("Léelo completo antes de aceptar. La firma queda con el sello del texto EXACTO que viste en pantalla, así que si algo te hace ruido, contéstanos este correo antes de firmar y no después."),
     boton("Leer y firmar", url),
   ]);
-  return enviar(to, yaAplica ? "Tu convenio ya se puede firmar" : `Tu convenio nuevo entra en vigor en ${v.dias} días`, correo);
+  const asunto = docs
+    ? "Tus documentos están aprobados: sigue la firma de tu convenio"
+    : yaAplica
+      ? "Tu convenio ya se puede firmar"
+      : `Tu convenio nuevo entra en vigor en ${v.dias} días`;
+  return enviar(to, asunto, correo);
 }
 
 const pesos = (x: number) =>

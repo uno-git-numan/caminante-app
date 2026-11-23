@@ -28,6 +28,7 @@ import "server-only";
 // todo sale limpio (SAT, sin alertas, reciente), se APRUEBA SOLA.
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { avisarConvenioSiCompletaArranque } from "./aviso-convenio";
 import { cambiosFiscales, datosFiscalesDeCsf } from "./fiscal-de-csf";
 import { REVISOR_AUTOMATICO } from "./revision-ia";
 import { completarIdentidadStripe } from "@/lib/payments/connect";
@@ -281,11 +282,20 @@ export async function analizarCsf(docId: string): Promise<AnalisisCsf | null> {
       // revisa lo dudoso). Sólo si sigue en revisión: una decisión humana manda.
       const reciente = analisis.diasDeAntiguedad !== null && analisis.diasDeAntiguedad <= DIAS_RECIENTE;
       if (!motivo && reciente && analisis.alertas.length === 0) {
-        await sb
+        const { data: aprobada } = await sb
           .from("operator_documents")
           .update({ estado: "aprobado", revisado_at: new Date().toISOString(), revisado_por: REVISOR_AUTOMATICO, motivo: null })
           .eq("id", doc.id)
-          .eq("estado", "en_revision");
+          .eq("estado", "en_revision")
+          .select("id");
+        // Si con la constancia quedó completo lo que se pide para vender, sigue
+        // la firma y se le dice (aviso-convenio.ts). Sólo si ESTA llamada la
+        // aprobó: si una persona ya había decidido, no hubo transición.
+        if ((aprobada ?? []).length) {
+          await avisarConvenioSiCompletaArranque({
+            operatorId: doc.operator_id, actividad: null, documento: "csf", estadoAnterior: "en_revision",
+          });
+        }
       }
     }
     return analisis;

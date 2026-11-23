@@ -26,6 +26,7 @@ import "server-only";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { GENERALES, requisitosDe, nombreDeActividad, type Documento } from "./actividades";
+import { avisarConvenioSiCompletaArranque } from "./aviso-convenio";
 import { emailActividadAprobada } from "./emails";
 
 const MODEL = "claude-opus-5-5";
@@ -228,12 +229,24 @@ export async function revisarDocumento(docId: string): Promise<void> {
     }
     // Sólo si sigue en revisión: si una persona ya decidió mientras leíamos,
     // su decisión manda.
-    const { error } = await sb.from("operator_documents").update(cambios).eq("id", f.id).eq("estado", "en_revision");
+    const { data: escritas, error } = await sb
+      .from("operator_documents")
+      .update(cambios)
+      .eq("id", f.id)
+      .eq("estado", "en_revision")
+      .select("id");
     if (error) {
       console.error("revisarDocumento:", error.message);
       return;
     }
     if (analisis.veredicto === "aprobado" && f.actividad) await cerrarActividadSiCompleta(f.operator_id, f.actividad);
+    // Si con esto quedó completo lo que se pide para vender, sigue la firma y
+    // se le dice (aviso-convenio.ts). Sólo si ESTA llamada lo aprobó.
+    if (analisis.veredicto === "aprobado" && (escritas ?? []).length) {
+      await avisarConvenioSiCompletaArranque({
+        operatorId: f.operator_id, actividad: f.actividad, documento: f.documento, estadoAnterior: "en_revision",
+      });
+    }
   } catch (e) {
     console.error("revisarDocumento:", e);
   }

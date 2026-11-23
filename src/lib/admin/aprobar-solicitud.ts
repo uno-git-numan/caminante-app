@@ -234,7 +234,8 @@ export async function aprobarSolicitud(id: string): Promise<Res> {
   // ⚠️ AQUÍ SALÍA TAMBIÉN «YA PUEDES FIRMAR TU CONVENIO» (hasta el 23 nov
   // 2026). Con el alta en cinco pasos el convenio es el cuarto: lo primero es
   // su marca y su experiencia. La bienvenida cuenta el camino completo y es el
-  // único correo de este momento.
+  // único correo de este momento. El de la firma sale cuando se aprueban sus
+  // documentos para vender (`lib/operadores/aviso-convenio.ts`).
 
   revalidatePath(PANEL);
   return { ok: true, operatorId: alta.operatorId, ...(avisoBien ? { aviso: avisoBien } : {}) };

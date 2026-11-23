@@ -56,6 +56,16 @@ describe("desde cuándo aplica el convenio", () => {
   it("una fecha que ya pasó se lee como vigente, no como «faltan -3 días»", () => {
     expect(fraseDeVigencia(-3)).toBe(fraseDeVigencia(0));
   });
+
+  // Quien nunca ha firmado no tiene ventas que «sigan normal»: la puerta de
+  // publicar le pide la firma desde hoy, falten los días que falten.
+  it("a quien nunca ha firmado no se le promete un plazo, ni se le llama vigente a lo que no lo es", () => {
+    const f = fraseDeVigencia(30, true);
+    expect(f).toContain("no pueden publicarse ni cobrar");
+    expect(f).not.toContain("sigues vendiendo normal");
+    expect(f).not.toContain("Ya está vigente");
+    expect(fraseDeVigencia(0, true)).toBe(fraseDeVigencia(0));
+  });
 });
 
 // La regla que hace imposible la divergencia, no sólo improbable: el texto
