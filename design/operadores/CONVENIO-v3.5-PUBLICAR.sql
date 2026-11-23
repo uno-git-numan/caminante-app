@@ -1,10 +1,10 @@
 -- Convenio v3.5 (mayor) · generado por scripts/publicar-convenio.mjs
 -- Fuente: design/operadores/CONVENIO-v3-FIRMABLE.md
--- sha-256 del texto: 4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a
+-- sha-256 del texto: 9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1
 --
 -- Verifica el hash ANTES de correr:
 --   shasum -a 256 design/operadores/CONVENIO-v3-FIRMABLE.md
--- Tiene que dar exactamente 4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a
+-- Tiene que dar exactamente 9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1
 --
 -- El INSERT recalcula el hash del texto que de verdad aterrizó, y el CHECK de
 -- abajo revienta si no coincide: si el pegado perdió un carácter, no se publica.
@@ -119,7 +119,7 @@ Si la autoridad fiscal determinara que Caminante debió retener y enterar impues
 
 **9 · La liquidación, en una línea.** Lo que recibe el Operador por cada venta es: **importe cobrado, menos devoluciones, menos comisión de plataforma, menos IVA de la comisión, menos los impuestos retenidos conforme al punto 8** y, una sola vez, la cuota de admisión del punto 3 bis. Nada más se descuenta. La transferencia al Operador se hace **neta de la comisión, su IVA y las retenciones** en el mismo acto del cobro; la cuota de admisión se descuenta aparte, como dice el punto 3 bis.
 
-Ejemplo: precio al cliente $1,750.00 (base sin IVA $1,508.62, IVA $241.38). Si la venta la originó Caminante: comisión 12 % sobre la base = $181.03, más IVA $28.97, total separado para Caminante **$210.00**; ISR retenido 2.5 % de $1,508.62 = **$37.71**; IVA retenido 50 % de $241.38 = **$120.69**; **el Operador recibe $1,381.60**. Si la originó el Operador: comisión 8 % sobre la base = $120.69, más IVA $19.31, total separado para Caminante **$140.00**; con las mismas retenciones, **el Operador recibe $1,451.60**. Lo retenido consta en su CFDI de retenciones del mes.
+Ejemplo: precio al cliente $1,750.00 (base sin IVA $1,508.62, IVA $241.38). Si la venta la originó Caminante: comisión 12 % sobre la base = $181.03, más IVA $28.96, total separado para Caminante **$209.99**; ISR retenido 2.5 % de $1,508.62 = **$37.71**; IVA retenido 50 % de $241.38 = **$120.69**; **el Operador recibe $1,381.61**. Si la originó el Operador: comisión 8 % sobre la base = $120.69, más IVA $19.31, total separado para Caminante **$140.00**; con las mismas retenciones, **el Operador recibe $1,451.60**. Lo retenido consta en su CFDI de retenciones del mes.
 
 ## Quinta · Devoluciones, cancelaciones y contracargos
 
@@ -364,8 +364,8 @@ do $$
 declare h text;
 begin
   select hash into h from public.operator_agreement_versions where version = 'v3.5';
-  if h is distinct from '4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a' then
-    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a';
+  if h is distinct from '9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1' then
+    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1';
   end if;
   raise notice 'convenio v3.5 publicado · hash %', h;
 end $$;

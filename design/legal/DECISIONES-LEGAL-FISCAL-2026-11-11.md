@@ -861,7 +861,7 @@ Decisión de Luis del 23 nov, tomada en la sesión de código y transmitida por 
 
 Lo que **no** cambia: la comisión sigue siendo más IVA, sigue incluyendo el procesamiento de pagos, la cuota de admisión de $20, las retenciones (su base es lo que paga el cliente sin IVA; la comisión no la reduce, D3) y el CFDI de comisión con forma de pago 17 (D22).
 
-**Lo fiscal.** No abre nada nuevo. El CFDI de comisión tiene la misma estructura y su total sigue siendo lo retenido al cobrar. Como la tasa se aplica a la base sin IVA y se le suma el 16 %, la comisión con IVA equivale al 12 % o al 8 % de lo que paga el cliente. Con una tarifa única y pública, la operación con una parte relacionada (Kéntro) se documenta sola como pactada a valor de mercado: paga lo mismo que un tercero. Para eso su porcentaje en el sistema tiene que ser el mismo 12 % y 8 %, no el 20 % que tiene capturado hoy. Se le informa a Marisol (**M26**).
+**Lo fiscal.** No abre nada nuevo. El CFDI de comisión tiene la misma estructura y su total sigue siendo lo retenido al cobrar. Como la tasa se aplica a la base sin IVA y se le suma el 16 %, la comisión con IVA equivale al 12 % o al 8 % de lo que paga el cliente, salvo un centavo de redondeo: en una venta de $1,750 al 12 % son $209.99, porque la comisión se redondea a $181.03 antes de sumarle el IVA. Con una tarifa única y pública, la operación con una parte relacionada (Kéntro) se documenta sola como pactada a valor de mercado: paga lo mismo que un tercero. Para eso su porcentaje en el sistema tiene que ser el mismo 12 % y 8 %, no el 20 % que tiene capturado hoy. Se le informa a Marisol (**M26**).
 
 **Lo que implica para la empresa, con números.** Comisión sin IVA por venta y lo que queda después del costo de Stripe. El costo de Stripe es el medido contra la API en vivo el 25 jul 2026: 3.6 % del cobro más $3, sin su IVA, que es acreditable.
 
@@ -878,7 +878,7 @@ Lo que **no** cambia: la comisión sigue siendo más IVA, sigue incluyendo el pr
 - **Por debajo de $91 de precio, una venta al 8 % pierde dinero**, por los $3 fijos de Stripe. No es un caso real hoy.
 - No están en estas cuentas los cargos de Stripe por cuenta conectada y por depósito: no los tengo medidos.
 
-**Estado.** Firmable v3.5 con hash `4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a`. No publicado: lo publica código, con la aprobación de Luis en su sesión y el hash comparado. Nadie ha firmado ninguna versión (verificado el 23 nov), así que no hay transición que cuidar.
+**Estado.** Firmable v3.5 con hash `9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1`. No publicado: lo publica código, con la aprobación de Luis en su sesión y el hash comparado. Nadie ha firmado ninguna versión (verificado el 23 nov), así que no hay transición que cuidar.
 
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 

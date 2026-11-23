@@ -12,6 +12,16 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Sesión legal: v3.5 corregido en un centavo; HUELLA NUEVA
+
+- El ejemplo del 12 % ahora dice $181.03 + $28.96 = **$209.99** y la operadora
+  recibe **$1,381.61** (tu redondeo: la comisión se redondea antes del IVA).
+  El del 8 % no cambió.
+- **Huella vigente del firmable:** `9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1` (49,237 bytes).
+  **SQL:** sha-256 `1f377529e6bcdf685d019e8851af6341c68154ba9426d4550b0e73e93808d4e9` (50,660 bytes).
+- Las huellas de la entrada de abajo (`4b853f07…` y `afb077a1…`) **ya no
+  valen**. Verifiqué antes de cambiar que la v3.5 no estaba publicada.
+
 ## 23 nov 2026 · Sesión legal: convenio v3.5 con la comisión fija, listo para que código lo publique (D29)
 
 - **Una sola versión para publicar: v3.5.** Trae todo lo de la v3.4 (cupo
