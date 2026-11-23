@@ -121,17 +121,22 @@ export default function NuevaSalida({
                       Solo aparecen las publicadas. Una experiencia en borrador no puede tener fechas.
                     </small>
                   </div>
-                  <div className="salpick">
-                    {experiencias.map((e) => (
-                      <button
-                        key={e.id}
-                        type="button"
-                        className={elegida?.id === e.id ? "on" : undefined}
-                        onClick={() => setElegida(e)}
-                      >
-                        {e.nombre}
-                      </button>
-                    ))}
+                  {/* LISTA, NO BOTONES (Luis, 23 nov 2026). El entregable las
+                      pintaba como píldoras «porque son pocas»; ya son doce y
+                      ocupaban tres renglones antes de llegar a la fecha. */}
+                  <div className="mini-form">
+                    <select
+                      value={elegida?.id ?? ""}
+                      onChange={(e) => setElegida(experiencias.find((x) => x.id === e.target.value) ?? null)}
+                      aria-label="Experiencia"
+                      style={{ minWidth: 280 }}
+                    >
+                      {experiencias.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
