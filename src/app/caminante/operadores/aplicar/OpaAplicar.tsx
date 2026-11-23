@@ -590,12 +590,18 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
                 Atrás
               </button>
             ) : null}
+            {/* ⚠️ LAS DOS LLEVAN `key` DISTINTA, Y NO ES ADORNO. Sin ella React
+                reutiliza el MISMO botón al pasar del paso 4 al 5: le cambia el
+                `type` de "button" a "submit" a medio clic, y el navegador
+                termina ese clic enviando el formulario. La operadora veía el
+                paso de la marca un instante y luego «Recibimos tu solicitud»,
+                sin haber decidido enviar nada (le pasó a Luis, 23 nov 2026). */}
             {paso < 5 ? (
-              <button className="opa-btn accent" type="button" style={{ maxWidth: 280 }} onClick={avanzar}>
+              <button key="continuar" className="opa-btn accent" type="button" style={{ maxWidth: 280 }} onClick={avanzar}>
                 Continuar
               </button>
             ) : (
-              <button className="opa-btn accent" type="submit" style={{ maxWidth: 280 }} disabled={!listo || enviando}>
+              <button key="enviar" className="opa-btn accent" type="submit" style={{ maxWidth: 280 }} disabled={!listo || enviando}>
                 {enviando ? <><span className="opa-spin" /> Enviando…</> : "Enviar solicitud"}
               </button>
             )}
