@@ -126,6 +126,19 @@ Providers → Apple, con Services ID, Team ID, Key ID y la llave `.p8` de su App
 Developer, y el redirect `https://hnyoahirxmzkshivgvnm.supabase.co/auth/v1/callback`
 registrado en el Services ID. Luego la env var en Vercel y rebuild.
 
+**La pantalla en blanco de la operadora (23 nov 2026).** Al crear cuenta o
+iniciar sesión se sale de una server action, o sea con una navegación SIN
+recarga. La operadora en su alta iba al Panorama (`destinoPorRol`), el layout
+del panel la rebotaba a Mi alta (`rebotaDelAlta`) y Next dejaba el documento
+vacío: dirección y título nuevos, cuerpo en blanco hasta recargar. Con carga
+completa son dos 307 y no pasa, por eso no se veía probando con ligas. Ahora
+las salidas sin recarga usan **`puertaPorRol`** (`lib/auth/destino.ts`): quien
+tiene panel de operadora va a `/caminante/entrar`, un route handler que
+pregunta lo mismo que el layout y contesta con UN redirect ya resuelto. El
+invariante «El destino por rol vive en un solo lugar» acepta las dos funciones.
+Para reproducir: sesión de operadora y `next.router.push('/caminante/admin')`
+desde una página pública.
+
 ## Reglas del dominio
 
 **Nadie se auto-nombra admin.** El rol es **derivado**, y desde el 24 ago son TRES:

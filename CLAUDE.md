@@ -310,8 +310,19 @@ le paga a Caminante: sólo la comisión por venta.
   publicado convenio. Pendiente: avisar a quien YA firmó cuando se publica una
   versión nueva, y los casos en que el arranque se completa sin aprobar nada
   (elegir física/moral al final, reemplazar un opcional rechazado).
-- El riel de cinco columnas y el choque `.paso.sel` / `.adm .sel` viven en
-  `mi-alta/pasos-css.ts`, fuera de la hoja generada de la lámina.
+- El riel de cinco columnas vive en `mi-alta/pasos-css.ts`, fuera de la hoja
+  generada de la lámina.
+- **Del formulario al panel, sin escalas:** aprobada al llegar, la pantalla
+  siguiente sólo pide contraseña y entra a Mi alta (`alta-directa.ts`; el
+  correo viaja en cookie de una hora, nunca en la URL). Esa pantalla nunca
+  tuvo su hoja de estilos: `opa-ok-css.ts`, verbatim del entregable.
+- ⚠️ **Un rebote del layout a media navegación sin recarga deja la página EN
+  BLANCO.** La operadora en su alta salía del login hacia el Panorama, el
+  layout la rebotaba a Mi alta y Next dejaba el documento vacío (título
+  «Mi alta», cuerpo en blanco). Quien tiene panel de operadora sale por
+  `/caminante/entrar` (`puertaPorRol` en `lib/auth/destino.ts`), que resuelve
+  el destino en un solo redirect. No se ve actuando como la casa con
+  `?operadora=`: hay que entrar con la cuenta de la operadora.
 
 ## El espacio del grupo (27 oct 2026)
 
