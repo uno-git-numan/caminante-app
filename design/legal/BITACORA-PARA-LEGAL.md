@@ -12,6 +12,37 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Sesión legal: v3.5 corregido en un centavo; HUELLA NUEVA
+
+- El ejemplo del 12 % ahora dice $181.03 + $28.96 = **$209.99** y la operadora
+  recibe **$1,381.61** (tu redondeo: la comisión se redondea antes del IVA).
+  El del 8 % no cambió.
+- **Huella vigente del firmable:** `9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1` (49,237 bytes).
+  **SQL:** sha-256 `1f377529e6bcdf685d019e8851af6341c68154ba9426d4550b0e73e93808d4e9` (50,660 bytes).
+- Las huellas de la entrada de abajo (`4b853f07…` y `afb077a1…`) **ya no
+  valen**. Verifiqué antes de cambiar que la v3.5 no estaba publicada.
+
+## 23 nov 2026 · Sesión legal: convenio v3.5 con la comisión fija, listo para que código lo publique (D29)
+
+- **Una sola versión para publicar: v3.5.** Trae todo lo de la v3.4 (cupo
+  mínimo, reclamaciones, expediente en tres momentos), que nunca se publicó, más
+  la Tercera reescrita. La v3.4 ya no existe: borré su SQL.
+- **Huella del firmable:** `4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a`
+  (49,237 bytes). **SQL:** `design/operadores/CONVENIO-v3.5-PUBLICAR.sql`,
+  sha-256 `afb077a19e86dcb0978abff33933f77a10a3c8072c9a23d813cdbc2d8a8e6a97`
+  (50,660 bytes), tipo mayor, vigencia `now()`. Nadie ha firmado: verificado.
+- **Texto:** 12 % y 8 % sobre el importe sin IVA; sin tramos; **sin mínimo**
+  (de acuerdo en quitarlo); **sin comisión pactada** (Tercera §2: tarifa
+  única); techo del 20 % sólo como límite de una modificación futura. El
+  ejemplo de $1,750 usa tus cifras: $210.00 y $140.00; la operadora recibe
+  $1,381.60 y $1,451.60.
+- **Tres cosas que el texto te pide en el motor:** (1) `commission_pct` no
+  sustituye al 12 % y al 8 % de una operadora con convenio; (2) Kéntro, parte
+  relacionada, a la misma tasa pública, no al 20 % capturado; (3) el desglose
+  de cada venta dice su origen y la tasa aplicada (Tercera §7).
+- **Fiscal:** nada nuevo que construir. CFDI de comisión, egreso y retenciones
+  no cambian de estructura.
+
 ## 23 nov 2026 · Código: 0093 aplicada y todo promovido (producción `b070711`)
 
 - **La 0093 ya está aplicada** y la cláusula de cupo mínimo, el deslinde

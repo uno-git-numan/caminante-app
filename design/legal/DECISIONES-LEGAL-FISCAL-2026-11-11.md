@@ -799,7 +799,7 @@ Cancelar una salida porque no se juntó el grupo deja de generar la bonificació
 
 **Decidido por Luis el 19 nov («Sí, exenta»):** la operadora que cancela por cupo mínimo dentro del plazo no paga la penalización de la Quinta §3. El costo de procesamiento de esas ventas devueltas lo absorbe Caminante, como en toda devolución (Quinta §6).
 
-**Convenio v3.4, preparado y sin publicar.** Lleva dos cambios: Quinta §3 bis (cupo mínimo, con las tres anticipaciones y la exención) con su mención en el Anexo C, y Séptima §6 (Caminante publica su domicilio y contacto para reclamaciones y las turna a la operadora a más tardar el día hábil siguiente; el domicilio de la operadora no se publica, D25). Es versión **mayor** porque toca responsabilidades. Nadie ha firmado ninguna versión (verificado en la base el 19 nov), así que la vigencia inmediata no afecta a nadie. Desde D27 lleva un tercer cambio (Anexo B y Sexta inciso c). Hash del firmable vigente: `52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df`. Publicarlo requiere la aprobación de Luis en la sesión que lo ejecute.
+**Convenio v3.4, preparado y sin publicar.** Lleva dos cambios: Quinta §3 bis (cupo mínimo, con las tres anticipaciones y la exención) con su mención en el Anexo C, y Séptima §6 (Caminante publica su domicilio y contacto para reclamaciones y las turna a la operadora a más tardar el día hábil siguiente; el domicilio de la operadora no se publica, D25). Es versión **mayor** porque toca responsabilidades. Nadie ha firmado ninguna versión (verificado en la base el 19 nov), así que la vigencia inmediata no afecta a nadie. Desde D27 lleva un tercer cambio (Anexo B y Sexta inciso c). **La v3.4 nunca se publicó y quedó absorbida por la v3.5 (D29)**, que es la que se publica; el hash `52347e96…e4df` ya no vale.
 
 
 ### D27 · El mínimo legal para dar de alta a una operadora y que venda (19 nov)
@@ -841,6 +841,44 @@ Además: tres experiencias repiten la política de cancelación dentro del desli
 **Corrige D27:** el renglón automático «Seguro de accidentes durante la salida» aparece sólo cuando la experiencia lleva la variante con seguro, no en todas.
 
 **Nada publicado se toca sin la aprobación de Luis.** Quien ya firmó conserva lo que firmó; los cambios rigen para firmas nuevas con versión nueva del deslinde.
+
+
+### D29 · Comisión fija: 12 % si la venta la origina Caminante, 8 % si la origina la operadora (23 nov)
+
+Decisión de Luis del 23 nov, tomada en la sesión de código y transmitida por ella: «Quiero que la comisión sea ya fija. 8% y 12% si nosotros traemos el cliente. 8% si no. (Ya incluye stripe acá adentro).» **Reabre lo que §9 daba por cerrado** (escalas A y B, mínimo de $250).
+
+**Qué cambia en el convenio (v3.5, que absorbe la v3.4 nunca publicada):**
+
+| Punto | Antes (v3.3) | Ahora (v3.5) |
+|---|---|---|
+| Tasa | Dos escalas por tramos marginales: A de 20 a 14 %, B de 15 a 8 % | **12 %** (origina Caminante) y **8 %** (origina la operadora), sobre el importe sin IVA |
+| Comisión pactada por operadora | Permitida en la carátula | **Eliminada**: la tarifa es única para todas (Tercera §2) |
+| Comisión mínima | $250 por reserva | **Eliminada**: con tarifa fija, un mínimo cobraría más del 8 % en reservas chicas. No hay razón legal para conservarla |
+| Techo del 20 % | Límite de toda tasa | Se conserva sólo como límite de una **modificación futura** (Tercera §4) |
+| Origen de la venta | 60 días de atribución | Igual. Se añade que el desglose de cada venta dice su origen y la tasa aplicada: con dos tasas, la operadora tiene que poder verificarlo |
+| Complementos | Cada concepto por su tramo | La misma comisión que la reserva |
+| Partes relacionadas | «Escala pública» | La misma tasa que cualquier operadora |
+
+Lo que **no** cambia: la comisión sigue siendo más IVA, sigue incluyendo el procesamiento de pagos, la cuota de admisión de $20, las retenciones (su base es lo que paga el cliente sin IVA; la comisión no la reduce, D3) y el CFDI de comisión con forma de pago 17 (D22).
+
+**Lo fiscal.** No abre nada nuevo. El CFDI de comisión tiene la misma estructura y su total sigue siendo lo retenido al cobrar. Como la tasa se aplica a la base sin IVA y se le suma el 16 %, la comisión con IVA equivale al 12 % o al 8 % de lo que paga el cliente, salvo un centavo de redondeo: en una venta de $1,750 al 12 % son $209.99, porque la comisión se redondea a $181.03 antes de sumarle el IVA. Con una tarifa única y pública, la operación con una parte relacionada (Kéntro) se documenta sola como pactada a valor de mercado: paga lo mismo que un tercero. Para eso su porcentaje en el sistema tiene que ser el mismo 12 % y 8 %, no el 20 % que tiene capturado hoy. Se le informa a Marisol (**M26**).
+
+**Lo que implica para la empresa, con números.** Comisión sin IVA por venta y lo que queda después del costo de Stripe. El costo de Stripe es el medido contra la API en vivo el 25 jul 2026: 3.6 % del cobro más $3, sin su IVA, que es acreditable.
+
+| Precio al cliente | Antes, escala A | Ahora 12 % | Antes, escala B | Ahora 8 % | Costo de Stripe | Queda con 12 % | Queda con 8 % |
+|---|---|---|---|---|---|---|---|
+| $1,750.00 | $301.72 | $181.03 | $250.00 | $120.69 | $66.00 | $115.03 | $54.69 |
+| $5,000.00 | $835.86 | $517.24 | $620.34 | $344.83 | $183.00 | $334.24 | $161.83 |
+| $14,000.00 | $2,151.03 | $1,448.28 | $1,547.59 | $965.52 | $507.00 | $941.28 | $458.52 |
+
+- **El ingreso por venta baja entre un tercio y la mitad** respecto de las escalas, según el precio y el origen.
+- **Con el 8 %, después de Stripe queda cerca del 3 % del precio.** Con el 12 %, cerca del 6.6 %.
+- **Una devolución cuesta más que lo que deja una venta al 8 %.** Stripe no devuelve su comisión y Caminante la absorbe (Quinta §6): en una venta de $1,750 son $66.00, contra $54.69 que deja una venta igual al 8 %.
+- **El piso fijo de la plataforma es de $1,401 al mes** (medido el 8 sep 2026). Con ventas de $1,750 al 8 % hacen falta unas 26 al mes para cubrirlo; al 12 %, unas 12.
+- **Por debajo de $91 de precio, una venta al 8 % pierde dinero**, por los $3 fijos de Stripe. No es un caso real hoy.
+- No están en estas cuentas los cargos de Stripe por cuenta conectada y por depósito: no los tengo medidos.
+
+**Estado.** Firmable v3.5 con hash `9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1`. No publicado: lo publica código, con la aprobación de Luis en su sesión y el hash comparado. Nadie ha firmado ninguna versión (verificado el 23 nov), así que no hay transición que cuidar.
 
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
@@ -1016,8 +1054,11 @@ conciliar lo retenido cada mes en La Caja.
 ## 9 · Lo que no se reabre
 
 Modelo Airbnb (la operadora factura al cliente; NUMAN sólo su comisión); la
-comisión de Stripe dentro de la comisión de NUMAN; escalas A/B, tope 20 %,
-mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
+comisión de Stripe dentro de la comisión de NUMAN; perfil B en Stripe; $20 de
+admisión descontados exactos.
+
+**Reabierto por Luis el 23 nov 2026 (D29):** las escalas A y B y el mínimo de
+$250 dejaron de existir. La comisión es fija: 12 % y 8 %.
 
 ## 10 · Lo que Marisol confirma (la línea que cambiaría)
 
@@ -1048,6 +1089,7 @@ mínimo $250; perfil B en Stripe; $20 de admisión descontados exactos.
 | M23 | Forma de pago **17 (compensación)** en el CFDI de comisión de NUMAN a la operadora y en su egreso | D22 |
 | M24 | Bonificación del 20 % al cliente (LFPC 92 Ter): cómo se documenta y se deduce; y si la penalización que Caminante cobra a la operadora causa IVA y con qué comprobante | D23 |
 | M25 | Fechar el CFDI de comisión el día del cobro cuando cobro y emisión caen en meses distintos (dentro de 72 horas) | D24 |
+| M26 | Informativo: la comisión pasa a tasa fija (12 % y 8 % sobre el importe sin IVA, más IVA), igual para una parte relacionada. El CFDI de comisión no cambia de estructura | D29 |
 
 Todo lo demás lo doy por decidido y así se construye. Si Marisol cambia una
 línea, cambia esa línea y lo que dependa de ella; no se reabre el resto.
