@@ -202,9 +202,14 @@ export async function emailBienvenidaOperador(to: string, responsable: string | 
     h1(`Bienvenida${n}. Tu panel ya está abierto.`),
     p("Empieza por lo tuyo: <b>pon tu marca</b> —tu logo y tus colores— y <b>arma tu primera experiencia</b>. Al guardarla ves tu página tal como la verá tu cliente."),
     p("Armar es libre: no pide papeles ni firma, y no cuesta nada. Para publicar y vender te pedimos después dos documentos (tu constancia fiscal y tu identificación), la firma del convenio y la cuenta donde recibes tu dinero. Nunca nos pagas por estar: sólo una comisión por cada venta."),
-    boton("Entrar a mi panel", `${SITE}/caminante/entrar`),
-    p(`Entra con este mismo correo (${esc(to)}). Si todavía no tienes cuenta, en esa pantalla elige «Créala aquí»: toma un minuto.`),
-    p("Si te atoras en algo, contéstanos este correo y lo resolvemos contigo."),
+    // ⚠️ EL BOTÓN VA A CREAR LA CUENTA, NO A «ENTRAR». Quien acaba de ser
+    // aprobada casi nunca tiene cuenta: «Entrar» la dejaba en el login, de ahí
+    // a «¿Cómo entras? → Soy operador → Solicitar acceso», y esa puerta le
+    // contestaba «Solicitud recibida» estando ya aprobada. `tipo=viajero` es la
+    // puerta sin trámite (la cuenta abre al instante) y `next` la lleva a
+    // `/entrar`, que rutea por rol: con su correo ya es operadora.
+    boton("Crear mi cuenta y entrar", `${SITE}/caminante/signup?tipo=viajero&next=%2Fcaminante%2Fentrar`),
+    p(`Usa este mismo correo (${esc(to)}): es el que abre tu panel. Si ya tienes cuenta con él, entra en ${SITE}/caminante/entrar`),
   ]);
   return enviar(to, "Bienvenida a Caminante", correo);
 }
