@@ -1052,13 +1052,20 @@ function Expediente02({
                   ) : null}
                   <div className="subh">
                     <b>Documentos de esta actividad</b>
-                    <small>Sólo se piden para {a.nombre.toLowerCase()}. Si la das de baja, dejan de pedirse.</small>
+                    <small>Sólo se piden para {a.nombre.toLowerCase()}, antes de tu primera salida. Si la das de baja, dejan de pedirse.</small>
                   </div>
                   <div className="docs">
                     {a.propios.map((d) => (
                       <RenglonDoc key={`${a.slug}-${d.slug}`} d={d} actividad={a.slug} operadora={porOtra} />
                     ))}
                   </div>
+                  {a.declarados.length ? (
+          <p className="gnhint">
+            <b>No se sube, lo declaras en el anexo de esta actividad:</b>{" "}
+            {a.declarados.map((d) => d.nombre.charAt(0).toLowerCase() + d.nombre.slice(1)).join(" · ")}. Lo conservas tú y
+            nos lo enseñas si te lo pedimos.
+          </p>
+        ) : null}
                   <div className="subh">
                     <b>De Lo general, que esta actividad necesita</b>
                     <small>Se leen aquí para ver el expediente completo de la actividad, y no se vuelven a subir.</small>

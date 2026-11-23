@@ -100,6 +100,14 @@ function Carpeta({ a, operadora }: { a: ActividadEnPantalla; operadora: string |
         <div className="docs">
           {a.propios.map((d) => <RenglonDoc operadora={operadora} key={d.slug} d={d} actividad={a.slug} />)}
         </div>
+        {/* Lo que la norma obliga a TENER pero no a entregar (anexo, Quinta). */}
+        {a.declarados.length ? (
+          <p className="gnhint">
+            <b>No se sube, lo declaras en el anexo de esta actividad:</b>{" "}
+            {a.declarados.map((d) => d.nombre.charAt(0).toLowerCase() + d.nombre.slice(1)).join(" · ")}. Lo conservas tú y
+            nos lo enseñas si te lo pedimos.
+          </p>
+        ) : null}
         {a.generales.length ? (
           <>
             <p className="xh4">Lo que ya cubriste en Lo general</p>
