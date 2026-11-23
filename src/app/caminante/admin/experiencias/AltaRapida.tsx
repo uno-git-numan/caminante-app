@@ -25,8 +25,19 @@ import { crearExperienciaRapida, publicarExperienciaRapida, type PrimeraSalida }
 
 const MAX_FOTOS = 5;
 
-export default function AltaRapida() {
+export default function AltaRapida({
+  operadoras,
+}: {
+  /**
+   * Sólo cuando crea la CASA: de entre cuáles elige a la dueña. Sin elegida
+   * por omisión —ni siquiera el sombrero—: la atribución es dinero y se
+   * congela al vender (invariante #22). Una operadora no lo recibe.
+   */
+  operadoras?: { id: string; nombre: string }[];
+}) {
   const [c, setC] = useState<ExperienciaCorta>(CORTA_VACIA);
+  const [duena, setDuena] = useState("");
+  const [faltaDuena, setFaltaDuena] = useState(false);
   const [salida, setSalida] = useState<PrimeraSalida>({ inicio: "", fin: "", puntoEncuentro: "" });
   const [faltan, setFaltan] = useState<FaltanteDeCorta[]>([]);
   const [error, setError] = useState("");
@@ -42,9 +53,11 @@ export default function AltaRapida() {
     setError("");
     const f = faltantesDeCorta(c);
     setFaltan(f);
-    if (f.length) return;
+    const sinDuena = !!operadoras && !duena;
+    setFaltaDuena(sinDuena);
+    if (f.length || sinDuena) return;
     setOcupado("guardar");
-    const r = await crearExperienciaRapida(c, salida);
+    const r = await crearExperienciaRapida(c, salida, duena || undefined);
     setOcupado("");
     if (!r.ok) {
       setError(r.error);
@@ -165,6 +178,25 @@ export default function AltaRapida() {
               </span>
               <h2>Qué es y dónde</h2>
             </div>
+            {operadoras ? (
+              <Field label="De qué operadora es" hint="a su nombre se vende; se decide aquí, antes de la primera venta">
+                <select
+                  value={duena}
+                  style={faltaDuena ? { borderColor: "#c43d2a" } : undefined}
+                  onChange={(e) => {
+                    setDuena(e.target.value);
+                    setFaltaDuena(false);
+                  }}
+                >
+                  <option value="">— elige la operadora —</option>
+                  {operadoras.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ) : null}
             <Field label="Nombre de la experiencia">
               <input type="text" value={c.titulo} style={marca("titulo")} placeholder="Amanecer en el Nevado" onChange={(e) => set("titulo", e.target.value)} />
             </Field>
@@ -326,12 +358,13 @@ export default function AltaRapida() {
           </section>
 
           {/* LO QUE FALTA, JUNTO */}
-          {faltan.length ? (
+          {faltan.length || faltaDuena ? (
             <section className="card" style={{ borderColor: "#c43d2a" }}>
               <div className="sec-head">
                 <h2 style={{ fontSize: 18 }}>Te falta esto para guardar</h2>
               </div>
               <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7, fontSize: 14 }}>
+                {faltaDuena ? <li>Elige de qué operadora es.</li> : null}
                 {faltan.map((f) => (
                   <li key={f.campo}>{f.mensaje}</li>
                 ))}

@@ -24,7 +24,20 @@ export default async function NuevaExperienciaPage({ searchParams }: { searchPar
   // detalle» sobre una experiencia ya creada. Misma ruta a propósito: todas
   // las ligas que ya apuntan a /experiencias/nueva (el panel, Mi alta, el
   // correo de bienvenida, la lista blanca de la operadora) caen en lo simple.
-  if ((await searchParams).completo !== "1") return <AltaRapida />;
+  if ((await searchParams).completo !== "1") {
+    // La casa tiene que decir de quién es la experiencia; una operadora no,
+    // la suya nace suya. La lista es de TODAS las vigentes —la casa actúa por
+    // cualquiera— y no trae ninguna elegida: tomarla del sombrero es justo lo
+    // que el invariante #22 prohíbe en este archivo.
+    let operadoras: { id: string; nombre: string }[] | undefined;
+    if (!(await operadorDelAlcance())) {
+      const { data } = await createSupabaseAdminClient().from("operators").select("id, name, estado").order("created_at");
+      operadoras = ((data ?? []) as { id: string; name: string | null; estado: string | null }[])
+        .filter((o) => o.estado !== "baja")
+        .map((o) => ({ id: o.id, nombre: o.name || "Operadora" }));
+    }
+    return <AltaRapida operadoras={operadoras} />;
+  }
 
   // Si quien crea es un operador externo, su contacto siembra el bloque de
   // cierre de la página. Sin esto la experiencia nace con el correo y el

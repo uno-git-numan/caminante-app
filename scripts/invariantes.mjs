@@ -706,6 +706,7 @@ const REGLAS = [
       const actos = [
         ["src/lib/operadores/convenio-actions.ts", "firmar el convenio"],
         ["src/app/caminante/admin/experiencias/nueva/page.tsx", "el dueño de una experiencia nueva"],
+        ["src/lib/experiences/corta-actions.ts", "el dueño de una experiencia creada con el alta rápida"],
       ];
       for (const [rel, que] of actos) {
         const f = join(raiz, rel);

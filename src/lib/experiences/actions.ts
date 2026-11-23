@@ -31,6 +31,16 @@ export type SaveOpts = {
   expectedSlug?: string | null;
   // Confirmado por el admin: sobrescribir la experiencia existente.
   allowOverwrite?: boolean;
+  /**
+   * La operadora dueña de una experiencia NUEVA, cuando quien la crea es la
+   * casa y la ELIGIÓ en el formulario (alta rápida, 23 nov 2026).
+   *
+   * ⚠️ Es una elección escrita, no el sombrero (invariante #22): la casa con
+   * el sombrero de Caminante puesto no crea a nombre de Caminante «porque sí».
+   * Sólo aplica a la casa y sólo al crear; de un operador se ignora —la suya
+   * nace suya— y una experiencia que ya existe no cambia de dueña por aquí.
+   */
+  duenaElegida?: string | null;
 };
 
 export async function saveExperience(
@@ -149,6 +159,7 @@ export async function saveExperience(
     data: { ...exp, slug, status, actividad },
   };
   if (esOperador(alcance) && !previa) row.operator_id = alcance.operatorId;
+  else if (!esOperador(alcance) && !previa && opts.duenaElegida) row.operator_id = opts.duenaElegida;
 
   const { error } = await sb.from("experiences").upsert(row, { onConflict: "slug" });
   if (error) {

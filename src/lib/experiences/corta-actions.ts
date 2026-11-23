@@ -32,6 +32,8 @@ export type ResultadoAltaRapida =
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Quién crea: su contacto (para que la página nazca invitando a escribirle a
  * ELLA) y si sus salidas llevan seguro. El seguro es un HECHO (D28): una
@@ -39,25 +41,40 @@ const FECHA = /^\d{4}-\d{2}-\d{2}$/;
  * cada salida; la casa no la tiene confirmada, y una operadora sin convenio
  * vende como la casa. Se lee de la base, no del formulario.
  */
-async function quienCrea(): Promise<{ dueno?: ContactoDueno; conSeguro: boolean }> {
-  const operatorId = await operadorDelAlcance();
-  if (!operatorId) return { conSeguro: false };
+async function quienCrea(operatorId: string | null): Promise<{ dueno?: ContactoDueno; conSeguro: boolean; existe: boolean }> {
+  if (!operatorId) return { conSeguro: false, existe: false };
   // Cliente de servicio: la RLS de `operators` sólo expone las públicas, y una
   // operadora recién dada de alta todavía no lo es.
   const { data } = await createSupabaseAdminClient()
     .from("operators")
-    .select("email, instagram, whatsapp, es_la_casa, convenio_firmado_at")
+    .select("email, instagram, whatsapp, es_la_casa, convenio_firmado_at, estado")
     .eq("id", operatorId)
     .maybeSingle();
-  if (!data) return { conSeguro: false };
+  if (!data || data.estado === "baja") return { conSeguro: false, existe: false };
   return {
+    existe: true,
     dueno: { email: data.email ?? undefined, instagram: data.instagram ?? undefined, whatsapp: data.whatsapp ?? undefined },
     conSeguro: data.es_la_casa !== true && !!data.convenio_firmado_at,
   };
 }
 
-export async function crearExperienciaRapida(c: ExperienciaCorta, salida: PrimeraSalida): Promise<ResultadoAltaRapida> {
+/**
+ * `duenaId`: SÓLO para la casa, que tiene que decir de qué operadora es la
+ * experiencia. De una operadora se ignora: la suya nace suya.
+ *
+ * ⚠️ POR QUÉ SE PREGUNTA (23 nov 2026). La primera prueba en producción del
+ * alta rápida dejó un borrador sin dueña: la casa no es operadora, así que
+ * `saveExperience` no le pone ninguna, y como el panel de la casa se recorta
+ * por el sombrero, la experiencia recién creada no aparecía en «Experiencias».
+ * Tomarla del sombrero está prohibido a propósito (invariante #22: la
+ * atribución es dinero y se congela al vender). Entonces se pregunta.
+ */
+export async function crearExperienciaRapida(c: ExperienciaCorta, salida: PrimeraSalida, duenaId?: string): Promise<ResultadoAltaRapida> {
   if (!(await puedeEntrarAlPanel())) return { ok: false, error: "No autorizado. Inicia sesión." };
+
+  const propia = await operadorDelAlcance();
+  const elegida = propia ? null : (duenaId || "").trim();
+  if (!propia && !UUID.test(elegida || "")) return { ok: false, error: "Elige de qué operadora es la experiencia." };
 
   const faltantes = faltantesDeCorta(c);
   if (faltantes.length) return { ok: false, error: "Todavía falta algo para guardar.", faltantes };
@@ -71,12 +88,13 @@ export async function crearExperienciaRapida(c: ExperienciaCorta, salida: Primer
     if (inicio < hoy) return { ok: false, error: "La fecha de la salida ya pasó." };
   }
 
-  const quien = await quienCrea();
+  const quien = await quienCrea(propia ?? elegida);
+  if (!propia && !quien.existe) return { ok: false, error: "No encontré esa operadora. Recarga la página y elígela otra vez." };
   // El deslinde estándar de legal para esa actividad, con la variante de
   // seguro y de menores que le toca. null = legal todavía no lo escribe.
   const clausulas = clausulasEstandar({ actividad: c.actividad.trim(), edadMinima: Number(c.edadMinima.trim()) || 0, conSeguro: quien.conSeguro });
   const exp = experienciaDesdeCorta(c, { dueno: quien.dueno, clausulas: clausulas ?? [], conSeguro: quien.conSeguro });
-  const guardada = await saveExperience(exp, { expectedSlug: null });
+  const guardada = await saveExperience(exp, { expectedSlug: null, duenaElegida: elegida });
   if (!guardada.ok) {
     return {
       ok: false,
