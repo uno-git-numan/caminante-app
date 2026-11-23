@@ -1,16 +1,16 @@
--- Convenio v3.4 (mayor) · generado por scripts/publicar-convenio.mjs
+-- Convenio v3.5 (mayor) · generado por scripts/publicar-convenio.mjs
 -- Fuente: design/operadores/CONVENIO-v3-FIRMABLE.md
--- sha-256 del texto: 52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df
+-- sha-256 del texto: 4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a
 --
 -- Verifica el hash ANTES de correr:
 --   shasum -a 256 design/operadores/CONVENIO-v3-FIRMABLE.md
--- Tiene que dar exactamente 52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df
+-- Tiene que dar exactamente 4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a
 --
 -- El INSERT recalcula el hash del texto que de verdad aterrizó, y el CHECK de
 -- abajo revienta si no coincide: si el pegado perdió un carácter, no se publica.
 
 insert into public.operator_agreement_versions (version, orden, tipo, titulo, texto, hash, vigente_desde)
-select 'v3.4',
+select 'v3.5',
        coalesce((select max(orden) from public.operator_agreement_versions), 0) + 1,
        'mayor',
        'Convenio de operación en la plataforma Caminante',
@@ -41,47 +41,29 @@ El Operador es el único patrón de su personal y guías, y responde de todas la
 
 ## Tercera · Comisión
 
-**1 · La comisión de plataforma.** Caminante cobra al Operador una comisión por cada venta cobrada a través de la plataforma, conforme a las escalas siguientes. **Los tramos son marginales**: cada tasa aplica únicamente a la porción del precio por persona, sin IVA, comprendida en su rango, no al total. Así, subir el precio nunca reduce la comisión en pesos.
+**1 · La comisión de plataforma.** Caminante cobra al Operador una comisión por cada venta cobrada a través de la plataforma. La tasa es **fija** y es **la misma para todos los Operadores**:
 
-**Escala A — la venta la origina Caminante** (llega por el sitio, el boletín, las redes o la audiencia de Caminante):
+**12 %** cuando la venta la origina Caminante (llega por el sitio, el boletín, las redes o la audiencia de Caminante).
 
-Hasta $3,000 MXN: **20 %**.
+**8 %** cuando la venta la origina el Operador (dirige a su propio cliente a la plataforma).
 
-De $3,001 a $8,000 MXN: **18 %**.
+La tasa se aplica al importe cobrado al cliente por la reserva, **sin IVA**.
 
-De $8,001 a $15,000 MXN: **16 %**.
+**2 · Tarifa única.** Caminante no pacta con ningún Operador una comisión distinta de las del punto 1. Las tasas sólo cambian para todos, mediante una modificación de este convenio conforme a la Cláusula Décima segunda.
 
-De $15,001 a $40,000 MXN: **14 %**.
+**3 · Sin tramos ni comisión mínima.** La tasa es la misma cualquiera que sea el precio de la reserva. No hay comisión mínima por reserva ni cuota por venta.
 
-Más de $40,000 MXN: **14 %**.
-
-**Escala B — la venta la origina el Operador** (dirige a su propio cliente a la plataforma):
-
-Hasta $3,000 MXN: **15 %**.
-
-De $3,001 a $8,000 MXN: **13 %**.
-
-De $8,001 a $15,000 MXN: **11 %**.
-
-De $15,001 a $40,000 MXN: **9 %**.
-
-Más de $40,000 MXN: **8 %**.
-
-**2 · Comisión pactada.** Si en la carátula de firma consta una comisión pactada distinta de las escalas, esa comisión sustituye a las escalas para todas las ventas del Operador, sin que pueda exceder el techo del punto 4.
-
-**3 · Comisión mínima.** Cada reserva causa una comisión de al menos **$250 MXN**, sin que en ningún caso pueda exceder el techo del 20 % del importe cobrado. El mínimo opera sobre la reserva completa, no sobre cada concepto por separado, y sólo resulta aplicable en reservas menores a $1,667 MXN.
-
-**4 · Techo absoluto.** Ninguna tasa, de ninguna escala ni pactada, excederá el **20 %** del importe cobrado. Este techo es una obligación de Caminante frente al Operador y no puede rebasarse ni siquiera al actualizar las escalas conforme a la Cláusula Décima segunda.
+**4 · Techo.** Si Caminante modifica las tasas conforme a la Cláusula Décima segunda, ninguna excederá el **20 %** del importe cobrado sin IVA. Este techo es una obligación de Caminante frente al Operador.
 
 **5 · Qué incluye la comisión.** La comisión cubre **todos** los servicios de la Cláusula Primera **y el costo del procesamiento de pagos** (comisiones del procesador por cobro, por cuenta conectada y por depósito). Al Operador **no se le descuenta ningún otro concepto** por el uso de la plataforma, salvo, en su caso, las retenciones que la ley obligue a Caminante a efectuar conforme a la Cláusula Cuarta, punto 8.
 
 **6 · Los porcentajes no incluyen IVA.** Al importe de la comisión se agrega el IVA a la tasa general (16 %), que consta en el comprobante fiscal que Caminante emite al Operador (Cláusula Décima tercera) y que el Operador puede acreditar.
 
-**7 · Origen de la venta.** Se considera originada por el Operador toda venta que ingrese a través de su portal o de los enlaces de seguimiento que Caminante le proporcione, **dentro de los 60 días naturales siguientes** al primer ingreso del cliente por ese medio. Vencido ese plazo, o si el cliente llega por cualquier otro camino, la venta se considera originada por Caminante.
+**7 · Origen de la venta.** Se considera originada por el Operador toda venta que ingrese a través de su portal o de los enlaces de seguimiento que Caminante le proporcione, **dentro de los 60 días naturales siguientes** al primer ingreso del cliente por ese medio. Vencido ese plazo, o si el cliente llega por cualquier otro camino, la venta se considera originada por Caminante. El desglose de cada venta (Cláusula Cuarta, punto 4) indica su origen y la tasa aplicada.
 
-**8 · La comisión se congela dos veces.** Primero al firmar: las tasas de este convenio son las que rigen para el Operador mientras no acepte expresamente una versión posterior, aunque Caminante cambie sus escalas generales. Y segundo por venta: la tasa aplicable a cada reserva es la vigente al momento de cobrarse, y las modificaciones posteriores no afectan ventas ya realizadas.
+**8 · La comisión se congela dos veces.** Primero al firmar: las tasas de este convenio son las que rigen para el Operador mientras no acepte expresamente una versión posterior, aunque Caminante cambie sus tasas generales. Y segundo por venta: la tasa aplicable a cada reserva es la vigente al momento de cobrarse, y las modificaciones posteriores no afectan ventas ya realizadas.
 
-**9 · Complementos.** Cuando el cliente contrate servicios adicionales a través de la plataforma (traslados, noches extra, actividades opcionales), **cada concepto se tarifica por su propio precio unitario** y las comisiones se suman. Un traslado de $7,000 paga la tasa que le corresponde a $7,000, aunque se venda junto a una experiencia de $32,000.
+**9 · Complementos.** Los servicios adicionales que el cliente contrate a través de la plataforma (traslados, noches extra, actividades opcionales) causan **la misma comisión** que la reserva de la que forman parte.
 
 **10 · Descuentos.** Los descuentos no cambian la comisión en porcentaje: la comisión se calcula sobre lo efectivamente cobrado al cliente, después del descuento, y el Operador y Caminante absorben el descuento en proporción.
 
@@ -137,7 +119,7 @@ Si la autoridad fiscal determinara que Caminante debió retener y enterar impues
 
 **9 · La liquidación, en una línea.** Lo que recibe el Operador por cada venta es: **importe cobrado, menos devoluciones, menos comisión de plataforma, menos IVA de la comisión, menos los impuestos retenidos conforme al punto 8** y, una sola vez, la cuota de admisión del punto 3 bis. Nada más se descuenta. La transferencia al Operador se hace **neta de la comisión, su IVA y las retenciones** en el mismo acto del cobro; la cuota de admisión se descuenta aparte, como dice el punto 3 bis.
 
-Ejemplo con la escala A: precio al cliente $1,750.00 (base sin IVA $1,508.62, IVA $241.38); comisión 20 % sobre la base = $301.72, más IVA $48.28, total separado para Caminante **$350.00**; ISR retenido 2.5 % de $1,508.62 = **$37.71**; IVA retenido 50 % de $241.38 = **$120.69**; **el Operador recibe $1,241.60**, y lo retenido consta en su CFDI de retenciones del mes.
+Ejemplo: precio al cliente $1,750.00 (base sin IVA $1,508.62, IVA $241.38). Si la venta la originó Caminante: comisión 12 % sobre la base = $181.03, más IVA $28.97, total separado para Caminante **$210.00**; ISR retenido 2.5 % de $1,508.62 = **$37.71**; IVA retenido 50 % de $241.38 = **$120.69**; **el Operador recibe $1,381.60**. Si la originó el Operador: comisión 8 % sobre la base = $120.69, más IVA $19.31, total separado para Caminante **$140.00**; con las mismas retenciones, **el Operador recibe $1,451.60**. Lo retenido consta en su CFDI de retenciones del mes.
 
 ## Quinta · Devoluciones, cancelaciones y contracargos
 
@@ -309,7 +291,7 @@ En ningún caso Caminante emite ese comprobante a nombre propio: pone la herrami
 
 **7 · Situación fiscal.** Ambas partes se obligan a mantener vigente su situación fiscal y a entregarse la documentación que requieran. El Operador entrega en su expediente su **Constancia de Situación Fiscal**, que la plataforma lee y valida (Cláusula Octava, punto 2) y que se considera reciente cuando tiene **90 días o menos** al subirla; si el Operador cambia de régimen, de domicilio fiscal o de razón social, sube una nueva. El **Certificado de Sello Digital vigente** sólo es requisito para usar la facturación desde el portal (punto 1, inciso a); su falta o vencimiento no impide cobrar, pero sí emitir comprobantes desde la plataforma hasta regularizarlo.
 
-**8 · Partes relacionadas.** Cuando el Operador sea parte relacionada de Caminante, la comisión es la de la escala pública de la Cláusula Tercera sin trato preferente, y ambas partes conservan la documentación que acredite que la operación se pactó como entre partes independientes.
+**8 · Partes relacionadas.** Cuando el Operador sea parte relacionada de Caminante, la comisión es la de la Cláusula Tercera, la misma que para cualquier Operador y sin trato preferente, y ambas partes conservan la documentación que acredite que la operación se pactó como entre partes independientes.
 
 ## Décima cuarta · Confidencialidad
 
@@ -331,9 +313,9 @@ Por correo electrónico a las direcciones registradas en el expediente del Opera
 
 Este convenio se rige por las leyes de los Estados Unidos Mexicanos. Para su interpretación y cumplimiento, las partes se someten a los tribunales competentes de la Ciudad de México, renunciando a cualquier otro fuero. Antes de acudir a los tribunales, las partes intentarán resolver cualquier controversia mediante negociación directa por escrito durante **15 días hábiles** contados desde la primera notificación de la controversia.
 
-## Anexo A · Escalas de comisión
+## Anexo A · Comisión
 
-Las escalas A y B, la comisión mínima, el techo y las reglas de origen de la venta son las de la Cláusula Tercera. Si en la carátula consta una comisión pactada, es la que aplica.
+Las tasas de comisión, el techo y las reglas de origen de la venta son las de la Cláusula Tercera: 12 % cuando la venta la origina Caminante y 8 % cuando la origina el Operador, sobre el importe cobrado sin IVA.
 
 ## Anexo B · Expediente del Operador
 
@@ -381,10 +363,10 @@ $doc$::text as texto) t;
 do $$
 declare h text;
 begin
-  select hash into h from public.operator_agreement_versions where version = 'v3.4';
-  if h is distinct from '52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df' then
-    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df';
+  select hash into h from public.operator_agreement_versions where version = 'v3.5';
+  if h is distinct from '4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a' then
+    raise exception 'el texto que llegó no es el que se generó (hash % != %)', h, '4b853f07df48190517b235c56b8b1536943dc9589d93caf326764df1eff3d16a';
   end if;
-  raise notice 'convenio v3.4 publicado · hash %', h;
+  raise notice 'convenio v3.5 publicado · hash %', h;
 end $$;
 
