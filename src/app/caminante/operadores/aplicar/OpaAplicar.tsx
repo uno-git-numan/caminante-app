@@ -17,7 +17,7 @@
 import { useEffect, useState } from "react";
 import { submitOperatorApplication } from "@/lib/operadores/actions";
 import { ACTIVIDADES } from "@/lib/operadores/actividades";
-import { ANTIGUEDAD, PRIMEROS, SEGURO, TIPOS, type Opcion } from "@/lib/operadores/solicitud-opciones";
+import { ANTIGUEDAD_NUEVA, MIN_DESCRIPCION, ANTIGUEDAD, PRIMEROS, SEGURO, TIPOS, type Opcion } from "@/lib/operadores/solicitud-opciones";
 
 // Las opciones viven en `lib/operadores/solicitud-opciones.ts`: las mismas
 // palabras se leen después en Mi alta y en la tarjeta de la casa.
@@ -167,7 +167,7 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
       // Al menos una. De esta lista sale su expediente: sin ninguna actividad
       // no hay documentos que pedirle y el alta se queda sin siguiente paso.
       if (!actividades.length) f.push("actividades");
-      if (!descripcion.trim()) f.push("descripcion");
+      if (descripcion.trim().length < MIN_DESCRIPCION) f.push("descripcion");
       if (!antiguedad) f.push("antiguedad");
       if (!salidasAno) f.push("salidasAno");
       if (!personasTipico.trim() || !personasMax.trim()) f.push("personas");
@@ -339,13 +339,27 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
           <div className={"opa-fld" + err("descripcion")}>
             <label>Describe tus experiencias <span className="req">*</span></label>
             <textarea name="descripcion" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="A dónde llevas gente y qué hacen ahí" />
-            <p className="help">Si operas varias, descríbelas todas. No hace falta que suene a folleto.</p>
-            <p className="errmsg">{"//"} Este campo es obligatorio</p>
+            <p className="help">
+              Si operas varias, descríbelas todas. No hace falta que suene a folleto: a dónde vas, qué se hace ahí
+              y cuánto dura.{" "}
+              <b>
+                {descripcion.trim().length < MIN_DESCRIPCION
+                  ? `Llevas ${descripcion.trim().length} de ${MIN_DESCRIPCION} caracteres.`
+                  : "Con eso alcanza."}
+              </b>
+            </p>
+            <p className="errmsg">{"//"} Cuéntanos un poco más: mínimo {MIN_DESCRIPCION} caracteres</p>
           </div>
           <div className={"opa-fld" + err("antiguedad")}>
             <span className="opa-lbl">¿Desde cuándo operas? <span className="req">*</span></span>
             <Cards opciones={ANTIGUEDAD} valor={antiguedad} set={setAntiguedad} cols="g2" />
             <input type="hidden" name="antiguedad" value={antiguedad} />
+            {antiguedad === ANTIGUEDAD_NUEVA ? (
+              <p className="help">
+                Con menos de un año operando, primero platicamos: te escribimos para agendar una llamada de 30
+                minutos antes de abrir tu panel.
+              </p>
+            ) : null}
             <p className="errmsg">{"//"} Elige una opción</p>
           </div>
           <div className="opa-two f">
@@ -442,16 +456,31 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
           </div>
           <div className="opa-fld">
             <span className="opa-lbl">Compromisos <span className="req">*</span></span>
+            {/* DICHAS EN CRISTIANO (Luis, 23 nov 2026: «la gente no sabe a qué
+                se refiere deslindes, o encuestas»). Eran tres títulos sueltos;
+                ahora cada una dice qué es y qué te toca hacer a ti. */}
             <p className="help" style={{ margin: "0 0 12px" }}>
-              Las tres son reglas duras del sistema. Aceptarlas antes de la llamada nos ahorra la
-              conversación entera si no estás dispuesto.
+              Son las tres reglas de la plataforma, y aplican a todas las operadoras. Te las decimos desde ahora
+              para que no haya sorpresas; van también en el convenio.
             </p>
             <div className="opa-cards">
               {([
-                ["aceptaCobro", c1, setC1, "Todo cobro pasa por la plataforma"],
-                ["aceptaDeslinde", c2, setC2, "Nadie sube a una salida sin deslinde firmado"],
-                ["aceptaEncuesta", c3, setC3, "Toda salida se mide con la encuesta"],
-              ] as const).map(([name, val, set, texto]) => (
+                [
+                  "aceptaCobro", c1, setC1,
+                  "Tus clientes pagan por Caminante",
+                  "Lo que vendes aquí se cobra en línea, aquí. El dinero entra a tu cuenta; no cobras por fuera las salidas que publicas en la plataforma.",
+                ],
+                [
+                  "aceptaDeslinde", c2, setC2,
+                  "Todos firman su carta de responsabilidad antes de salir",
+                  "Antes del viaje, cada persona firma en línea un documento donde acepta los riesgos de la actividad y deja sus datos de salud y de emergencia. Se lo pedimos nosotros; tú sólo ves quién ya firmó.",
+                ],
+                [
+                  "aceptaEncuesta", c3, setC3,
+                  "Al terminar, tus clientes califican la salida",
+                  "Un día después les llega un cuestionario corto. Tú ves todas las respuestas, y los comentarios que autoricen se usan para vender tu siguiente salida.",
+                ],
+              ] as const).map(([name, val, set, texto, detalle]) => (
                 <button
                   key={name}
                   type="button"
@@ -460,7 +489,10 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
                   aria-pressed={val}
                 >
                   <span className="bx" />
-                  <span><b>{texto}</b></span>
+                  <span>
+                    <b>{texto}</b>
+                    <small>{detalle}</small>
+                  </span>
                 </button>
               ))}
             </div>

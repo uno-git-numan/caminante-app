@@ -14,7 +14,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { marcaDeFormData } from "@/lib/operators/marca";
-import {
+import { MIN_DESCRIPCION,
   ANTIGUEDAD as OP_ANTIGUEDAD,
   PRIMEROS as OP_PRIMEROS,
   SEGURO as OP_SEGURO,
@@ -27,7 +27,7 @@ import {
 } from "@/lib/operadores/emails";
 import { ACTIVIDADES } from "./actividades";
 import { aprobarSolicitud } from "@/lib/admin/aprobar-solicitud";
-import { llamadaObligatoria } from "./llamada";
+import { llamadaObligatoriaPara } from "./llamada";
 
 // Los códigos válidos salen de la misma lista que dibuja el formulario: un
 // código nuevo en el formulario que el servidor no conociera rebotaría la
@@ -110,7 +110,7 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
   if (!nombreOperadora || !responsable || !email.includes("@") || !whatsapp || !ciudadEstado) {
     back("error=datos");
   }
-  if (!TIPOS.has(tipo) || !ANTIGUEDAD.has(antiguedad) || !descripcion) back("error=operacion");
+  if (!TIPOS.has(tipo) || !ANTIGUEDAD.has(antiguedad) || descripcion.length < MIN_DESCRIPCION) back("error=operacion");
   if (!SEGURO.has(seguro) || !PRIMEROS.has(primerosAuxilios) || !ratioGuias || !incidentes) {
     back("error=seguridad");
   }
@@ -158,7 +158,7 @@ export async function submitOperatorApplication(formData: FormData): Promise<voi
   // aviso de abajo, igual que siempre. Si la aprobación falla, la solicitud
   // queda pendiente para la casa: nunca se pierde.
   let aprobada = false;
-  if (!llamadaObligatoria() && creada?.id) {
+  if (!llamadaObligatoriaPara({ antiguedad }) && creada?.id) {
     const r = await aprobarSolicitud((creada as { id: string }).id).catch((e) => {
       console.error("aprobación automática:", e);
       return { ok: false as const };

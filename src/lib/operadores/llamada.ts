@@ -1,3 +1,5 @@
+import { ANTIGUEDAD_NUEVA } from "./solicitud-opciones";
+
 // ¿LA LLAMADA ES OBLIGATORIA PARA ENTRAR?
 //
 // Luis, 9 nov 2026: «pon la llamada como opción al paso; por ahora sí haremos
@@ -16,4 +18,16 @@
 // mira la solicitud.
 export function llamadaObligatoria(): boolean {
   return (process.env.ALTA_LLAMADA ?? "").trim().toLowerCase() !== "opcional";
+}
+
+/**
+ * ¿ESTA solicitud necesita llamada?
+ *
+ * Luis, 23 nov 2026: «Si la antigüedad es de menos de 1 año, hay que agendar
+ * llamada forzoso.» Una operadora que lleva menos de un año no tiene historial
+ * que hable por ella, así que con ella la casa platica siempre — aunque el
+ * interruptor diga que la llamada es opcional para las demás.
+ */
+export function llamadaObligatoriaPara(solicitud: { antiguedad: string | null | undefined }): boolean {
+  return llamadaObligatoria() || solicitud.antiguedad === ANTIGUEDAD_NUEVA;
 }

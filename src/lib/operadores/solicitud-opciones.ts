@@ -39,6 +39,16 @@ export const PRIMEROS: Opcion[] = [
   { v: "no", t: "No" },
 ];
 
+/**
+ * Lo mínimo que tiene que decir «Describe tus experiencias» (Luis, 23 nov 2026).
+ * Con menos no se entiende qué opera: «senderismo en el Nevado» no le dice a
+ * la casa nada que no dijera ya la casilla de arriba.
+ */
+export const MIN_DESCRIPCION = 140;
+
+/** El código de «Menos de 1 año»: con él la llamada es forzosa (ver `llamada.ts`). */
+export const ANTIGUEDAD_NUEVA = "menos-1";
+
 /** Los códigos válidos, para que el servidor rechace lo que no existe. */
 export const codigos = (l: Opcion[]) => new Set(l.map((o) => o.v));
 

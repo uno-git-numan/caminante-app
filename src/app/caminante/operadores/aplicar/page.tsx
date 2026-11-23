@@ -20,7 +20,7 @@ const IMG = "/landing/assets/img";
 
 const ERRORES: Record<string, string> = {
   datos: "Falta algún dato de contacto. Revisa el paso 1.",
-  operacion: "Falta describir qué operas. Revisa el paso 2.",
+  operacion: "Cuéntanos más de lo que operas: la descripción necesita al menos 140 caracteres. Revisa el paso 2.",
   seguridad: "Faltan las respuestas de seguridad. Revisa el paso 3.",
   compromisos: "Hay que aceptar los tres compromisos para enviar la solicitud.",
   guardar: "No pudimos guardar tu solicitud. Inténtalo de nuevo en un momento.",
@@ -55,7 +55,7 @@ export default async function AplicarOperadorPage({
               // llegar: lo que sigue ya no es esperar, es entrar.
               <div className="opa-oknext">
                 <div className="r"><span className="k">Ahora</span><div><b>Ya tienes tu panel</b><p>Te llegó la bienvenida con la liga para entrar, con este mismo correo.</p></div></div>
-                <div className="r"><span className="k">Hoy</span><div><b>Subes tu expediente</b><p>Tu constancia, tu identificación, tus pólizas. Los leemos al subirlos: no tecleas lo que ya dicen.</p></div></div>
+                <div className="r"><span className="k">Hoy</span><div><b>Subes tu expediente</b><p>Para vender bastan dos documentos: tu constancia fiscal y tu identificación. Los leemos al subirlos: no tecleas lo que ya dicen. Las pólizas y la credencial del guía se entregan antes de tu primera salida.</p></div></div>
                 <div className="r"><span className="k">Después</span><div><b>Firmas y cobras</b><p>Tu comisión es fija: 8 % si tú traes al cliente y 12 % si te lo traemos nosotros. Si quieres platicar, agendamos una llamada de bienvenida.</p></div></div>
               </div>
             ) : (
