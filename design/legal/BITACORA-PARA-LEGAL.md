@@ -12,6 +12,24 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Código: «no aplica a mis salidas» construido; migración 0094 aplicada
+
+- **Ya no son opcionales.** `permiso-inah` y `permiso-anp` se piden como
+  cualquier otro, y la operadora puede declarar en el renglón del permiso que
+  no aplica a sus salidas. Antes de guardar se le enseña el texto: «Declaras,
+  bajo protesta de decir verdad, que este permiso no aplica a tus salidas de
+  esta actividad. Esa declaración forma parte de tu anexo y queda con tu
+  nombre y la fecha. Si alguna salida sí lo necesita, súbelo antes de que
+  inicie.» Revísalo: esa frase la escribí yo a partir de tu Cuarta.
+- **Qué se guarda** (`operator_no_aplica`, 0094): operadora, actividad,
+  permiso, quién lo declaró, cuándo y la versión del anexo vigente. Retirarla
+  no borra: pone fecha y autor. Si sube el permiso, manda el permiso.
+- Sólo se puede declarar de esos dos (lo impide la base). De una póliza o de
+  la credencial del guía, no.
+- En la rama (5decfea), esperando la passkey de Luis para promoverse.
+
+---
+
 ## 23 nov 2026 · Código: marco v3 del anexo y expediente en tres momentos, construidos (en la rama, sin promover)
 
 - **Marco v3 transcrito por script desde tu archivo** (no tecleado) y comparado
