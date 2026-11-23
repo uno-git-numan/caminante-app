@@ -25,12 +25,28 @@ export type Falta = {
   href: string | null;
   /** La palabra del botón. */
   accion: string | null;
+  /**
+   * `false`: no detiene la venta, tiene su propio plazo (antes de la primera
+   * salida, 30 días). Se enseña en la misma lista, pero no cuenta en el
+   * «te faltan N cosas para vender». Sin el campo, sí la detiene.
+   */
+  detieneLaVenta?: boolean;
 };
 
 export type ParaLoQueFalta = {
   candados: Candado[];
   /** `null` mientras no hay fila de operadora: sigue en el embudo. */
-  expediente: { completo: boolean; vacio: boolean; faltanTotal: number } | null;
+  expediente: {
+    /** El expediente de ARRANQUE está aprobado (constancia e identificación). */
+    completo: boolean;
+    vacio: boolean;
+    /** Documentos de arranque sin subir o rechazados. */
+    faltanTotal: number;
+    /** Lo que se entrega antes de la primera salida y todavía falta. */
+    paraSalir?: { faltan: number };
+    /** El registro de turismo: 30 días desde la firma. */
+    rnt?: { estado: string } | null;
+  } | null;
   /** Vende con dispensa: el expediente abierto no le detiene la venta hoy. */
   conDispensa: boolean;
   /** Borradores a su nombre, para decidir a dónde manda «una experiencia». */
@@ -80,7 +96,7 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
       falta.push({
         clave: "expediente",
         titulo: "Tu expediente",
-        detalle: "Todavía no dices qué actividad vendes. De eso depende qué papeles se piden.",
+        detalle: "Para vender bastan dos documentos: tu constancia fiscal y tu identificación.",
         toca: "operadora",
         href: RUTA.expediente,
         accion: "Empezar",
@@ -90,7 +106,7 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
         clave: "expediente",
         titulo: "Tu expediente",
         detalle:
-          `${plural(e.faltanTotal, "Falta", "Faltan")} ${e.faltanTotal} ${plural(e.faltanTotal, "documento", "documentos")} por subir o corregir.` +
+          `${plural(e.faltanTotal, "Falta", "Faltan")} ${e.faltanTotal} ${plural(e.faltanTotal, "documento", "documentos")} para poder vender (constancia fiscal o identificación).` +
           (d.conDispensa ? " Hoy vendes con una dispensa, y tiene fecha." : ""),
         toca: "operadora",
         href: RUTA.expediente,
@@ -100,7 +116,7 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
       falta.push({
         clave: "expediente",
         titulo: "Tu expediente",
-        detalle: "Entregaste todo. Lo estamos revisando.",
+        detalle: "Entregaste lo necesario para vender. Lo estamos revisando.",
         toca: "casa",
         href: RUTA.expediente,
         accion: "Ver",
@@ -185,16 +201,49 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
     });
   }
 
+  // ── LO QUE NO DETIENE LA VENTA, pero tiene plazo (convenio v3.5, Anexo B) ──
+  if (e?.paraSalir && e.paraSalir.faltan > 0) {
+    falta.push({
+      clave: "para-salir",
+      titulo: "Antes de tu primera salida",
+      detalle:
+        `${plural(e.paraSalir.faltan, "Falta", "Faltan")} ${e.paraSalir.faltan} ${plural(e.paraSalir.faltan, "documento", "documentos")}: ` +
+        "pólizas, credencial del guía o permisos. Ya puedes vender sin ellos, pero sin ellos la salida no se realiza.",
+      toca: "operadora",
+      href: RUTA.expediente,
+      accion: "Subir",
+      detieneLaVenta: false,
+    });
+  }
+  if (e?.rnt && (e.rnt.estado === "falta" || e.rnt.estado === "rechazado")) {
+    falta.push({
+      clave: "rnt",
+      titulo: "Registro Nacional de Turismo",
+      detalle: "Tienes 30 días desde que firmas el convenio para subir tu constancia o el acuse del trámite.",
+      toca: "operadora",
+      href: RUTA.expediente,
+      accion: "Subir",
+      detieneLaVenta: false,
+    });
+  }
+
   return falta;
 }
 
 /** Cuántos renglones le tocan a ella: es el número que importa arriba. */
 export const cuantasMeTocan = (falta: Falta[]): number =>
-  falta.filter((f) => f.toca === "operadora" && f.href).length;
+  falta.filter((f) => f.toca === "operadora" && f.href && f.detieneLaVenta !== false).length;
+
+/** Lo que de verdad detiene la venta, sea de quien sea. */
+export const detienenLaVenta = (falta: Falta[]): Falta[] => falta.filter((f) => f.detieneLaVenta !== false);
 
 /** El encabezado de la lista, dicho según a quién le toca lo que queda. */
 export function tituloDeLoQueFalta(falta: Falta[]): string {
   const mias = cuantasMeTocan(falta);
-  if (mias === 0) return "Lo que falta para que vendas ya no depende de ti";
+  if (mias === 0) {
+    return detienenLaVenta(falta).length
+      ? "Lo que falta para que vendas ya no depende de ti"
+      : "Ya puedes vender. Esto es lo que sigue";
+  }
   return mias === 1 ? "Te falta una cosa para vender" : `Te faltan ${mias} cosas para vender`;
 }

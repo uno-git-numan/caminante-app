@@ -211,13 +211,19 @@ Ver `.claude/rules/dinero.md` y la memoria `caminante-facturacion-cfdi`.
 **Y antes de facturar:** hay **49 pagos cobrados sin CFDI** según la base contra 31
 en el ledger de contabilidad. Esa diferencia se cuadra ANTES de emitir.
 
-**Comisión de operadores (28 ago 2026):** techo de **20%**, y de ahí se negocia a la
-baja caso por caso — no es una escala que baje sola con el volumen. La 0047 lo hace
-cumplir con un CHECK (probado: rechaza un 25%) y agrega `operators.comision_desde`,
-la fecha desde la que cada operador genera comisión. **Toda consulta de comisión
-filtra por esa fecha**, o multiplicaría el % por ventas viejas e inventaría ingreso
-que nadie cobró. Los dos operadores dados de alta entraron con 20% y arranque el
-28 ago. `numan-caminante` se queda en NULL a propósito: la casa retiene el 100%.
+**Comisión de operadores — FIJA desde el 23 nov 2026** (Luis: «que no se quede
+la comisión escalonada y sea fija del 8% para todos parejo»): **8 %** si la
+operadora trae al cliente y **12 %** si lo trae Caminante, sobre el importe sin
+IVA, más IVA. Sin tramos, sin mínimo por reserva, **sin comisión pactada por
+operadora** (convenio v3.5, Tercera §2: tarifa única; `operators.commission_pct`
+ya no se lee). El cobro con tarjeta va dentro. Vive en un solo lugar:
+`lib/operadores/comision.ts` (`TASA`). El techo del 20 % sigue (CHECK de la 0047
+e invariante 17) como límite de una modificación futura. `comision_desde` sigue
+siendo la fecha desde la que cada operadora genera comisión, y se escribe sola
+al firmar. Lo ya cobrado no cambia: se congeló en cada venta. Qué deja: con el
+8 %, después de Stripe (4.89 % de la base, medido en 19 pagos) quedan ~3 puntos;
+con el 12 %, ~7. Cuentas completas en D29 de
+`design/legal/DECISIONES-LEGAL-FISCAL-2026-11-11.md`.
 
 ⚠️ **No hay ni un convenio firmado todavía** — el primero está por firmarse. Hasta
 entonces la comisión devengada es $0, y eso es correcto, no un pendiente.
@@ -242,6 +248,27 @@ quedaron todas en `unico`: aplicarla no movió ni un número.
 
 ⚠️ Ojo con los dos ejes: **`tipo`** (fijo/variable/buffer) decide el EQUILIBRIO;
 **`modo`** decide CÓMO se calcula el monto. No se deducen uno del otro.
+
+## El expediente en tres momentos (23 nov 2026)
+
+Convenio **v3.5 publicado el 23 nov** (Anexo B). Ya no se pide todo antes de
+vender:
+
+| Momento | Qué | Qué detiene |
+|---|---|---|
+| **Arranque** | constancia fiscal + identificación (y convenio y anexo firmados) | publicar y vender |
+| **Antes de la primera salida** | pólizas, credencial del guía, permisos, certificados de terceros | la SALIDA, no la venta |
+| **30 días desde la firma** | Registro Nacional de Turismo | nada todavía (Caminante puede suspender) |
+| **Se declara en el anexo** | planes, protocolos, bitácoras, equipo | nada: no se sube |
+
+`lib/operadores/actividades.ts` (`Momento`, `momentoDeGeneral`,
+`momentoDePropio`; la clasificación es de legal, D30) · `expediente.ts`
+(`completo` y `faltanTotal` hablan del ARRANQUE; `paraSalir`, `rnt`,
+`todoEntregado`) · `candado-actividad.ts` (publicar = arranque + anexo) ·
+`para-salir.ts` (qué le falta a cada salida; lo enseña Salidas, la lista de Mi
+alta y un correo diario a 14, 7, 3 y 1 día, cron `documentos-de-salida`) ·
+`subconvenio-doc.ts` (marco **v3** del anexo, texto de legal generado desde su
+archivo; una prueba lo compara). Detalle en `.claude/rules/operadores-connect.md`.
 
 ## El espacio del grupo (27 oct 2026)
 

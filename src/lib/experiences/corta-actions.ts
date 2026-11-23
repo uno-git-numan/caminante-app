@@ -41,7 +41,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * cada salida; la casa no la tiene confirmada, y una operadora sin convenio
  * vende como la casa. Se lee de la base, no del formulario.
  */
-async function quienCrea(operatorId: string | null): Promise<{ dueno?: ContactoDueno; conSeguro: boolean; existe: boolean }> {
+async function quienCrea(operatorId: string | null): Promise<{ dueno?: ContactoDueno; conSeguro: boolean; existe: boolean; esLaCasa?: boolean }> {
   if (!operatorId) return { conSeguro: false, existe: false };
   // Cliente de servicio: la RLS de `operators` sólo expone las públicas, y una
   // operadora recién dada de alta todavía no lo es.
@@ -53,6 +53,7 @@ async function quienCrea(operatorId: string | null): Promise<{ dueno?: ContactoD
   if (!data || data.estado === "baja") return { conSeguro: false, existe: false };
   return {
     existe: true,
+    esLaCasa: data.es_la_casa === true,
     dueno: { email: data.email ?? undefined, instagram: data.instagram ?? undefined, whatsapp: data.whatsapp ?? undefined },
     conSeguro: data.es_la_casa !== true && !!data.convenio_firmado_at,
   };
@@ -103,6 +104,18 @@ export async function crearExperienciaRapida(c: ExperienciaCorta, salida: Primer
           ? "Ya existe una experiencia con ese nombre. Cámbiale el nombre a ésta, o edita la que ya existe."
           : guardada.error,
     };
+  }
+
+  // LA ACTIVIDAD QUEDA DECLARADA. Crear una experiencia de senderismo ES decir
+  // que se ofrece senderismo: antes había que ir además al expediente a
+  // declararla, y el candado de publicar la detenía por «no declarada». Con la
+  // carpeta abierta ya puede firmar su anexo. La casa no tiene expediente.
+  const duena = propia ?? elegida;
+  if (duena && quien.esLaCasa !== true && c.actividad.trim()) {
+    const { error: eAct } = await createSupabaseAdminClient()
+      .from("operator_activities")
+      .upsert({ operator_id: duena, actividad: c.actividad.trim() }, { onConflict: "operator_id,actividad", ignoreDuplicates: true });
+    if (eAct) console.error("crearExperienciaRapida · declarar actividad:", eAct.message);
   }
 
   const avisos: string[] = [];

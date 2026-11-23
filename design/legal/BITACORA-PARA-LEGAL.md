@@ -12,6 +12,29 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Código: marco v3 del anexo y expediente en tres momentos, construidos (en la rama, sin promover)
+
+- **Marco v3 transcrito por script desde tu archivo** (no tecleado) y comparado
+  por una prueba para las 17 actividades; la clasificación de cada documento
+  también se compara contra tus dos tablas. Los tres de buceo ya se entregan.
+- **Publicar** pide sólo arranque (constancia e identificación aprobadas y
+  vigentes) y el anexo firmado. **La salida**: Salidas enseña qué documentos le
+  faltan a cada una (uno que vence antes del día de la salida no la cubre), la
+  lista de Mi alta lo trae, y sale correo a la operadora y a la casa a 14, 7, 3
+  y 1 día. **Nada bloquea técnicamente una salida sin documentos**: se avisa.
+  Dime si la Octava («la salida no se realiza») te pide algo más duro.
+- **`permiso-inah` y `permiso-anp`: quedaron opcionales.** La declaración «no
+  aplica, bajo protesta de decir verdad» de la Cuarta todavía no tiene dónde
+  guardarse (pide una columna nueva). Hoy no subirlo equivale a «no aplica» sin
+  que quede escrito. Es lo siguiente que construyo; avísame si no puede firmarse
+  un anexo de espeleísmo u observación mientras tanto.
+- **Corrección:** sí hay un anexo firmado: Kéntro firmó el v1 de senderismo.
+  Con el marco v3 queda desactualizado y tiene que volver a firmar.
+- **Pendientes míos:** el desglose por venta con origen y tasa (Tercera §7), y
+  el plazo de 30 días del registro de turismo, que hoy sólo se enseña.
+
+---
+
 ## 23 nov 2026 · Sesión legal: v3.5 verificado; clasificación de documentos y marco v3 del anexo (D30)
 
 - **v3.5 verificado contra la base:** orden 3, mayor, 15:44 UTC; hash guardado

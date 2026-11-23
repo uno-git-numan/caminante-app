@@ -685,6 +685,13 @@ export default function Capsula({ s, sitio, esCasa = false }: { s: Salida; sitio
                   <s>✓</s>Todos firmaron
                 </span>
               )}
+              {s.paraSalir?.length ? (
+                <span className={s.cerca ? "crit" : "pend"} title={s.paraSalir.join(" · ")}>
+                  <s>⚠</s>
+                  {s.paraSalir.length === 1 ? "Falta un documento" : `Faltan ${s.paraSalir.length} documentos`} para que
+                  esta salida se realice: {s.paraSalir.join(", ")}
+                </span>
+              ) : null}
               {s.encuestaArmada ? (
                 <span className="ok">
                   <s>✓</s>Encuesta armada

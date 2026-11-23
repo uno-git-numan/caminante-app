@@ -31,9 +31,15 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ACTIVIDADES, nombreDeActividad, requisitosDe } from "./actividades";
 import { anexoAlDia } from "./subconvenio";
-import type { EstadoActividad } from "./expediente";
+import { armarExpediente, type EstadoActividad } from "./expediente";
 
-export type MotivoCandado = "sin_actividad" | "no_declarada" | "no_aprobada" | "sin_anexo";
+/**
+ * `sin_arranque` (23 nov 2026): falta el expediente de arranque —constancia
+ * fiscal e identificación—. `no_aprobada` quedó sólo para la actividad
+ * SUSPENDIDA: desde el convenio v3.5 la carpeta de la actividad (credencial
+ * del guía, permisos) ya no detiene la publicación, detiene la salida.
+ */
+export type MotivoCandado = "sin_actividad" | "no_declarada" | "no_aprobada" | "sin_anexo" | "sin_arranque";
 
 /** Una dispensa vigente: el candado se abre, pero se dice en voz alta. */
 export type Dispensa = { motivo: string; autorizadaPor: string; venceAt: string };
@@ -147,41 +153,73 @@ export async function actividadListaParaPublicar(
 
   const estado = (data as { estado: string } | null)?.estado as EstadoActividad | undefined;
 
-  // ── LA DISPENSA ────────────────────────────────────────────────────────────
-  // Si el expediente no alcanza, ¿la casa lo dispensó por escrito? Se pregunta
-  // ANTES de los veredictos y sólo cuando haría falta: con la actividad aprobada
-  // y su anexo firmado, la dispensa sobra y no se enseña.
-  //
-  // ⚠️ Vigente = no revocada y con `vence_at` en el futuro. Nunca «existe una».
-  // Una dispensa vencida es exactamente igual a no tenerla: eso es lo que la
-  // hace una excepción y no un agujero (0060).
-  if (estado !== "aprobada") {
+  // La dispensa abre cualquiera de los candados de abajo (menos la suspensión
+  // no: una dispensa vigente sobre una actividad suspendida sigue valiendo,
+  // como hasta hoy; quien suspende revoca la dispensa).
+  const conDispensa = async (): Promise<CandadoActividad | null> => {
     const d = await dispensaVigente(sb, operatorId, slug);
-    if (d) return { ok: true, dispensa: d };
-  }
+    return d ? { ok: true, dispensa: d } : null;
+  };
 
   if (!estado) {
-    return {
-      ok: false,
-      motivo: "no_declarada",
-      actividad: slug,
-      nombre,
-      estado: null,
-      documentos,
-      mensaje:
-        `Todavía no declaras ${nombre.toLowerCase()}. Nadie te la va a pedir mientras no la quieras ` +
-        `ofrecer, pero para publicar esta experiencia hace falta su expediente.`,
-    };
+    return (
+      (await conDispensa()) ?? {
+        ok: false,
+        motivo: "no_declarada",
+        actividad: slug,
+        nombre,
+        estado: null,
+        documentos,
+        mensaje:
+          `Todavía no declaras ${nombre.toLowerCase()}. Declárala en tu expediente y firma su anexo: ` +
+          `con eso y tu expediente de arranque ya puedes publicar esta experiencia.`,
+      }
+    );
   }
-  if (estado === "aprobada") {
-    // El expediente está aprobado; falta el papel. Es la Cláusula Sexta del
-    // convenio dicha en código: «no puede publicar ni vender una experiencia de
-    // una actividad cuyo anexo no haya suscrito».
-    const anexo = await anexoAlDia(operatorId, slug);
-    if (anexo.exigible && !anexo.firmado) {
-      const d = await dispensaVigente(sb, operatorId, slug);
-      if (d) return { ok: true, dispensa: d };
-      return {
+
+  if (estado === "suspendida") {
+    return (
+      (await conDispensa()) ?? {
+        ok: false,
+        motivo: "no_aprobada",
+        actividad: slug,
+        nombre,
+        estado,
+        documentos,
+        mensaje:
+          `Tu expediente de ${nombre.toLowerCase()} está suspendido, así que esa actividad no puede vender ` +
+          `hasta que se resuelva. Escríbenos y lo vemos.`,
+      }
+    );
+  }
+
+  // ── EL EXPEDIENTE DE ARRANQUE (convenio v3.5, Sexta c) y Anexo B) ───────────
+  // Para publicar y vender bastan la constancia fiscal y la identificación,
+  // aprobadas y vigentes. Lo decide `armarExpediente`, la misma función que
+  // pinta Mi alta: el candado no tiene su propia idea de «arranque».
+  const arranque = await arranqueDe(sb, operatorId);
+  if (!arranque.listo) {
+    return (
+      (await conDispensa()) ?? {
+        ok: false,
+        motivo: "sin_arranque",
+        actividad: slug,
+        nombre,
+        estado,
+        documentos: arranque.faltan.length,
+        mensaje: arranque.faltan.length
+          ? `Para publicar falta en tu expediente: ${arranque.faltan.join(" y ")}. ` +
+            `Lo demás (pólizas, credencial del guía, permisos) se entrega antes de tu primera salida.`
+          : `Ya entregaste lo necesario para publicar y lo estamos revisando. En cuanto quede aprobado ` +
+            `puedes publicar; mientras tanto tu borrador se queda guardado, completo.`,
+      }
+    );
+  }
+
+  const anexo = await anexoAlDia(operatorId, slug);
+  if (anexo.exigible && !anexo.firmado) {
+    return (
+      (await conDispensa()) ?? {
         ok: false,
         motivo: "sin_anexo",
         actividad: slug,
@@ -189,26 +227,47 @@ export async function actividadListaParaPublicar(
         estado,
         documentos,
         mensaje:
-          `Tu expediente de ${nombre.toLowerCase()} ya está aprobado. Falta firmar su anexo — ` +
-          `el documento que dice qué se te pide para esta actividad en particular. Son dos minutos.`,
-      };
-    }
-    return { ok: true };
+          `Falta firmar el anexo de ${nombre.toLowerCase()} — el documento que dice qué se te pide ` +
+          `para esta actividad en particular y cuándo. Son dos minutos.`,
+      }
+    );
   }
+  return { ok: true };
+}
 
-  // `en_revision` no es un rechazo: es «ya lo mandaste, estamos en ello». Se
-  // dice distinto porque del otro lado no hay nada que hacer.
-  const mensaje =
-    estado === "en_revision"
-      ? `Tu expediente de ${nombre.toLowerCase()} está en revisión. En cuanto lo aprobemos puedes publicar; ` +
-        `mientras tanto tu borrador se queda guardado, completo.`
-      : estado === "suspendida"
-        ? `Tu expediente de ${nombre.toLowerCase()} está suspendido, así que esa actividad no puede vender ` +
-          `hasta que se resuelva. Escríbenos y lo vemos.`
-        : `Para publicar esta experiencia hace falta el expediente de ${nombre.toLowerCase()}, ` +
-          `que son ${documentos} ${documentos === 1 ? "documento" : "documentos"} propios.`;
-
-  return { ok: false, motivo: "no_aprobada", actividad: slug, nombre, estado, documentos, mensaje };
+/**
+ * El expediente de arranque de una operadora: ¿está aprobado?, y si no, qué le
+ * falta, con nombre. Ante un error de lectura NO está listo: el candado muerde.
+ */
+async function arranqueDe(
+  sb: ReturnType<typeof createSupabaseAdminClient>,
+  operatorId: string,
+): Promise<{ listo: boolean; faltan: string[] }> {
+  const [{ data: docs, error: e1 }, { data: op, error: e2 }] = await Promise.all([
+    sb
+      .from("operator_documents")
+      .select("actividad, documento, estado, motivo, vence_at")
+      .eq("operator_id", operatorId)
+      .is("actividad", null),
+    sb.from("operators").select("tipo_persona").eq("id", operatorId).maybeSingle(),
+  ]);
+  if (e1 || e2) {
+    console.error("arranqueDe:", e1 ?? e2);
+    return { listo: false, faltan: [] };
+  }
+  const tipo = (op as { tipo_persona?: string } | null)?.tipo_persona;
+  const e = armarExpediente(
+    [],
+    (docs ?? []) as Parameters<typeof armarExpediente>[1],
+    undefined,
+    tipo === "fisica" || tipo === "moral" ? tipo : null,
+  );
+  const faltan = e.generales
+    .filter((d) => d.momento === "arranque" && !d.opcional)
+    .filter((d) => d.estado === "falta" || d.estado === "rechazado" || (d.diasParaVencer !== null && d.diasParaVencer < 0))
+    .map((d) => d.nombre.toLowerCase());
+  if (!e.tipoPersona) faltan.unshift("decir si eres persona física o moral");
+  return { listo: e.completo, faltan };
 }
 
 /**

@@ -43,6 +43,28 @@ export async function emailConfirmacionOperador(to: string, responsable: string 
   return enviar(to, "Recibimos tu solicitud para operar con Caminante", correo);
 }
 
+// A una salida tuya le faltan documentos (convenio v3.5, Anexo B; 23 nov 2026).
+// Las pólizas, la credencial del guía y los permisos ya no detienen la venta:
+// se entregan antes de la primera salida, y este correo es el que lo recuerda.
+// Sale a 14, 7, 3 y 1 día (`lib/operadores/para-salir.ts`).
+export async function emailFaltaParaSalir(
+  to: string,
+  responsable: string | null,
+  i: { experiencia: string; salida: string; dias: number; faltan: string[] },
+): Promise<boolean> {
+  const n = saludo(responsable);
+  const cuando = i.dias <= 0 ? "es hoy" : i.dias === 1 ? "es mañana" : `es en ${i.dias} días`;
+  const correo = shell([
+    h1(`A tu salida le faltan documentos${n}.`),
+    p(`<b>${esc(i.experiencia)}</b>${i.salida ? ` · ${esc(i.salida)}` : ""} ${cuando}, y en tu expediente todavía falta:`),
+    p(i.faltan.map((f) => `· ${esc(f)}`).join("<br>")),
+    p("Estos documentos se entregan <b>antes de que inicie la salida</b>: sin ellos la salida no se realiza. Subirlos toma unos minutos y los revisamos el mismo día."),
+    boton("Subirlos en mi expediente", `${SITE}/caminante/admin/mi-alta/expediente`),
+    p("Si ya los tienes y algo no te deja subirlos, respóndenos a este correo y lo resolvemos contigo."),
+  ]);
+  return enviar(to, `Faltan documentos para tu salida · ${i.experiencia}`, correo);
+}
+
 // 2 · Aviso interno. Trae las señales de riesgo arriba: son lo que se lee primero.
 export async function emailAvisoAdminOperador(i: {
   nombreOperadora: string;

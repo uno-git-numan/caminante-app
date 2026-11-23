@@ -18,7 +18,7 @@ import Link from "next/link";
 import { AQUI_ESTAS, FIRMADO_EL, LECTURA_PASO, PASOS, TODAVIA_NO, pasoDe } from "@/lib/operadores/pasos";
 import type { MiAlta as Datos } from "@/lib/operadores/mi-alta";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
-import { ACTIVIDADES, requisitosDe } from "@/lib/operadores/actividades";
+import { ACTIVIDADES, momentoDeGeneral, requisitosDe } from "@/lib/operadores/actividades";
 import { Declarar, Mandar, Quitar } from "./expediente/Expediente";
 import Copiar from "./Copiar";
 import ResumenTerminos from "./ResumenTerminos";
@@ -125,17 +125,19 @@ export default function MiAlta({
           </div>
           <div className="docs">
             {falta.map((f) => (
-              <div key={f.clave} className={"doc" + (f.toca === "operadora" ? " pend" : "")}>
+              <div key={f.clave} className={"doc" + (f.toca === "operadora" && f.detieneLaVenta !== false ? " pend" : "")}>
                 <SixIco ok={false} />
                 <span className="nm">
                   <b>{f.titulo}</b>
                   <small>{f.detalle}</small>
                 </span>
-                <span className="fl">{f.toca === "operadora" ? "Te toca a ti" : "Le toca a Caminante"}</span>
+                <span className="fl">
+                  {f.detieneLaVenta === false ? "No detiene tu venta" : f.toca === "operadora" ? "Te toca a ti" : "Le toca a Caminante"}
+                </span>
                 <span className="ac">
                   {f.href && f.accion ? (
                     <Link
-                      className={"btn btn-sm " + (f.toca === "operadora" ? "btn-orange" : "btn-ghost")}
+                      className={"btn btn-sm " + (f.toca === "operadora" && f.detieneLaVenta !== false ? "btn-orange" : "btn-ghost")}
                       href={ligaDeFalta(f.href)}
                     >
                       {f.accion}
@@ -863,7 +865,7 @@ function Expediente02({
   const genRev = e.generales.filter((d) => d.estado === "en_revision").length;
   const genK = e.faltanGenerales ? "inc" : genRev ? "rev" : "aprob";
   const genSub = e.faltanGenerales
-    ? `Faltan ${e.faltanGenerales} de los que tus actividades necesitan`
+    ? `Faltan ${e.faltanGenerales} para poder vender`
     : genRev
       ? `${genRev} en revisión · nos toca a nosotros`
       : e.porVencer.some((d) => e.generales.includes(d))
@@ -890,9 +892,9 @@ function Expediente02({
           <span className="g">
             <b>Tu expediente está en blanco, y así empieza el de todos</b>
             <span>
-              No hay nada mal. Son {obligatorios} documentos generales que se piden una vez, y después una
-              carpeta por cada actividad que quieras ofrecer. Súbelos en el orden que quieras, en
-              varias sesiones: lo que dejes a medias se guarda.
+              No hay nada mal. Para vender bastan dos documentos: tu constancia fiscal y tu
+              identificación. Lo demás se entrega antes de tu primera salida, en la carpeta de cada
+              actividad que quieras ofrecer.
             </span>
           </span>
         </div>
@@ -903,15 +905,20 @@ function Expediente02({
             <span className="g">
               <b>
                 {e.faltanTotal
-                  ? `Te ${e.faltanTotal === 1 ? "falta un documento" : "faltan " + e.faltanTotal + " documentos"} en total`
-                  : "No te falta ningún documento"}
+                  ? `Te ${e.faltanTotal === 1 ? "falta un documento" : "faltan " + e.faltanTotal + " documentos"} para poder vender`
+                  : e.completo
+                    ? "Por papeles ya puedes vender"
+                    : "Entregaste lo necesario para vender; lo estamos revisando"}
               </b>
               <span>
+                Para vender bastan tu constancia fiscal y tu identificación.{" "}
+                {e.paraSalir.faltan
+                  ? `Antes de tu primera salida ${e.paraSalir.faltan === 1 ? "falta un documento" : `faltan ${e.paraSalir.faltan} documentos`} (pólizas, credencial del guía, permisos). `
+                  : ""}
                 {aprobadas.length
-                  ? `${aprobadas.map((a) => a.nombre).join(", ")} ${aprobadas.length === 1 ? "está aprobada" : "están aprobadas"}.`
-                  : "Todavía ninguna actividad aprobada."}{" "}
+                  ? `${aprobadas.map((a) => a.nombre).join(", ")} ${aprobadas.length === 1 ? "ya tiene" : "ya tienen"} todo para salir. `
+                  : ""}
                 {enRevision.length ? `${enRevision.map((a) => a.nombre).join(", ")} en revisión. ` : ""}
-                Cada actividad se aprueba por separado: que una esté incompleta no detiene a las demás.
               </span>
             </span>
           </div>
@@ -1129,7 +1136,7 @@ function Expediente02({
                   <div className="hers">
                     {req.generales.map((g) => {
                       const d = porSlugGeneral.get(g.slug);
-                      return <Heredado key={g.slug} d={d ?? { slug: g.slug, nombre: g.nombre, porQue: g.porQue, estado: "falta", motivo: null, venceAt: null, diasParaVencer: null, cubiertoPorGeneral: true, caduca: false, vencePorAnio: false, opcional: g.opcional === true, id: null, archivoPath: null, archivoNombre: null, archivoBytes: null, subidoAt: null }} irGeneral={irGeneral} />;
+                      return <Heredado key={g.slug} d={d ?? { slug: g.slug, nombre: g.nombre, porQue: g.porQue, momento: momentoDeGeneral(g.slug), estado: "falta", motivo: null, venceAt: null, diasParaVencer: null, cubiertoPorGeneral: true, caduca: false, vencePorAnio: false, opcional: g.opcional === true, id: null, archivoPath: null, archivoNombre: null, archivoBytes: null, subidoAt: null }} irGeneral={irGeneral} />;
                     })}
                   </div>
                   <div className="salfoot">

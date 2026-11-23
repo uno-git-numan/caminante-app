@@ -1,18 +1,51 @@
-// «¿EL EXPEDIENTE ESTÁ COMPLETO?» — una sola respuesta para dos pantallas.
+// «¿EL EXPEDIENTE ALCANZA PARA VENDER?» — una sola respuesta para dos pantallas.
 //
 // Mi alta decide con ella en qué paso va la operadora, y el Pipeline de numan
-// en qué columna la pone. Antes el Pipeline no lo sabía, y ponía en
-// «Vendiendo» a quien vendía con dispensa sin un solo documento.
+// en qué columna la pone.
+//
+// TRES MOMENTOS (convenio v3.5, Anexo B; 23 nov 2026): `completo` y
+// `faltanTotal` hablan del expediente de ARRANQUE —constancia fiscal e
+// identificación—, que es lo que detiene la venta. Pólizas, credencial del
+// guía y permisos van en `paraSalir`; el registro de turismo en `rnt`; lo que
+// sólo se declara no se pide. `todoEntregado` es lo que antes era `completo`.
 import { describe, expect, it } from "vitest";
 import { armarExpediente } from "@/lib/operadores/expediente";
 import { pesoEnPalabras } from "@/lib/operadores/peso";
-import { GENERALES, generalesPara, requisitosDe } from "@/lib/operadores/actividades";
+import { ACTIVIDADES, GENERALES, generalesPara, momentoDeGeneral, momentoDePropio, requisitosDe } from "@/lib/operadores/actividades";
 
 const doc = (documento: string, actividad: string | null, estado = "aprobado") =>
   ({ actividad, documento, estado, motivo: null, vence_at: null });
 const generalesEntregados = GENERALES.map((g) => doc(g.slug, null));
+const deArranque = ["csf", "id-responsable"].map((g) => doc(g, null));
 const propiosDe = (act: string, estado = "aprobado") =>
   requisitosDe(act).propios.map((d) => doc(d.slug, act, estado));
+
+describe("los tres momentos del catálogo", () => {
+  it("para vender: constancia e identificación; antes de salir: las dos pólizas; en 30 días: el registro de turismo", () => {
+    expect(momentoDeGeneral("csf")).toBe("arranque");
+    expect(momentoDeGeneral("id-responsable")).toBe("arranque");
+    expect(momentoDeGeneral("poliza-rc")).toBe("salida");
+    expect(momentoDeGeneral("poliza-gm")).toBe("salida");
+    expect(momentoDeGeneral("rnt")).toBe("treinta-dias");
+  });
+
+  it("de lo propio se ENTREGAN la credencial del guía y los permisos; planes y bitácoras se declaran", () => {
+    expect(momentoDePropio("nom09-senderismo")).toBe("salida");
+    expect(momentoDePropio("permiso-anp")).toBe("salida");
+    expect(momentoDePropio("permiso-ejido")).toBe("salida");
+    expect(momentoDePropio("bitacora-epp")).toBe("declarado");
+    expect(momentoDePropio("plan-aclimatacion")).toBe("declarado");
+    expect(momentoDePropio("ratio-guias")).toBe("declarado");
+  });
+
+  it("toda actividad pide entregar al menos la credencial o licencia de quien conduce, y nada queda sin clasificar", () => {
+    for (const a of ACTIVIDADES) {
+      const r = requisitosDe(a.slug);
+      expect(r.propios.length, a.slug).toBeGreaterThan(0);
+      expect(r.propios.length + r.declarados.length, a.slug).toBe(a.documentos.length);
+    }
+  });
+});
 
 describe("armarExpediente", () => {
   it("EL CASO NOMÁDIKA: sin actividades y sin documentos ⇒ vacío, no completo", () => {
@@ -21,17 +54,28 @@ describe("armarExpediente", () => {
     expect(e.completo).toBe(false);
   });
 
-  it("EL CASO KÉNTRO: senderismo declarado, cero documentos ⇒ no completo, y cuenta lo que falta", () => {
+  it("EL CASO KÉNTRO: senderismo declarado, cero documentos ⇒ no alcanza para vender, y faltan DOS", () => {
     const e = armarExpediente([{ actividad: "senderismo", estado: "incompleta", motivo: null }], [], undefined, "fisica");
     expect(e.completo).toBe(false);
-    const obligatorios = generalesPara("fisica").filter((d) => !d.opcional).length;
-    expect(e.faltanTotal).toBe(obligatorios + requisitosDe("senderismo").propios.length);
+    // Para vender: constancia e identificación. Nada más.
+    expect(e.faltanTotal).toBe(2);
+    // Antes de salir: las dos pólizas y lo propio de senderismo.
+    expect(e.paraSalir.faltan).toBe(2 + requisitosDe("senderismo").propios.length);
+    expect(e.rnt?.estado).toBe("falta");
   });
 
-  it("todo entregado pero la actividad sin aprobar ⇒ no completo (está en revisión)", () => {
+  it("con constancia e identificación aprobadas YA alcanza para vender, sin pólizas ni credencial", () => {
+    const e = armarExpediente([{ actividad: "senderismo", estado: "incompleta", motivo: null }], deArranque, undefined, "fisica");
+    expect(e.completo).toBe(true);
+    expect(e.faltanTotal).toBe(0);
+    expect(e.todoEntregado).toBe(false);
+    expect(e.paraSalir.docs.map((d) => d.slug).sort()).toEqual(["nom09-senderismo", "poliza-gm", "poliza-rc"]);
+  });
+
+  it("arranque entregado pero sin aprobar ⇒ no falta nada por subir, y todavía no alcanza (está en revisión)", () => {
     const e = armarExpediente(
       [{ actividad: "senderismo", estado: "en_revision", motivo: null }],
-      [...generalesEntregados, ...propiosDe("senderismo", "en_revision")],
+      deArranque.map((d) => ({ ...d, estado: "en_revision" })),
       undefined,
       "fisica",
     );
@@ -39,7 +83,7 @@ describe("armarExpediente", () => {
     expect(e.completo).toBe(false);
   });
 
-  it("todo entregado y la actividad aprobada ⇒ completo", () => {
+  it("todo entregado y la actividad aprobada ⇒ completo y todoEntregado", () => {
     const e = armarExpediente(
       [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
       [...generalesEntregados, ...propiosDe("senderismo")],
@@ -47,6 +91,8 @@ describe("armarExpediente", () => {
       "moral",
     );
     expect(e.completo).toBe(true);
+    expect(e.todoEntregado).toBe(true);
+    expect(e.paraSalir.faltan).toBe(0);
   });
 
   it("sin decir si es física o moral el expediente no cierra, aunque todo esté entregado", () => {
@@ -64,20 +110,40 @@ describe("armarExpediente", () => {
     const moral = armarExpediente([], [], undefined, "moral");
     const acta = moral.generales.find((d) => d.slug === "acta-constitutiva")!;
     expect(acta.opcional).toBe(true);
-    // Lo opcional sin subir no cuenta como faltante.
-    const obligatorios = generalesPara("moral").filter((d) => !d.opcional).length;
-    expect(moral.faltanGenerales).toBe(obligatorios);
+    // Lo opcional sin subir no cuenta como faltante; para vender faltan los dos de arranque.
+    expect(moral.faltanGenerales).toBe(2);
+    // Y siguen siendo cinco los generales obligatorios, repartidos en sus momentos.
+    expect(generalesPara("moral").filter((d) => !d.opcional)).toHaveLength(5);
   });
 
-  it("todo entregado MENOS lo opcional ⇒ completo", () => {
-    const sinOpcionales = GENERALES.filter((g) => !g.opcional).map((g) => doc(g.slug, null));
+  it("una identificación vencida no cuenta como entregada: no alcanza para vender", () => {
+    const e = armarExpediente(
+      [],
+      [doc("csf", null), { ...doc("id-responsable", null), vence_at: "2020-12-31" }],
+      undefined,
+      "fisica",
+    );
+    expect(e.completo).toBe(false);
+  });
+
+  it("una póliza vencida no detiene la venta, pero sí cuenta entre lo que falta para salir", () => {
     const e = armarExpediente(
       [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
-      [...sinOpcionales, ...propiosDe("senderismo")],
+      [...deArranque, doc("poliza-gm", null), { ...doc("poliza-rc", null), vence_at: "2020-01-01" }, ...propiosDe("senderismo")],
       undefined,
-      "moral",
+      "fisica",
     );
     expect(e.completo).toBe(true);
+    expect(e.paraSalir.docs.map((d) => d.slug)).toEqual(["poliza-rc"]);
+  });
+
+  it("lo que sólo se declara no se pide: va en `declarados`, no en `propios`", () => {
+    const e = armarExpediente([{ actividad: "alta-montana", estado: "incompleta", motivo: null }], [], undefined, "fisica");
+    const a = e.actividades[0];
+    expect(a.propios.map((d) => d.slug)).toContain("rescate-montana");
+    expect(a.propios.map((d) => d.slug)).not.toContain("plan-aclimatacion");
+    expect(a.declarados.map((d) => d.slug)).toContain("plan-aclimatacion");
+    expect(a.faltan).toBe(a.propios.length);
   });
 
   it("la identificación pide su vigencia por AÑO y se llama según quién firma", () => {
@@ -96,15 +162,17 @@ describe("armarExpediente", () => {
     }
   });
 
-  it("un documento rechazado reabre el expediente", () => {
-    const [primero, ...resto] = generalesEntregados;
-    const e = armarExpediente(
-      [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
-      [{ ...primero, estado: "rechazado" }, ...resto, ...propiosDe("senderismo")],
-      undefined,
-      "fisica",
-    );
-    expect(e.completo).toBe(false);
+  it("la constancia rechazada reabre el arranque; una póliza rechazada, sólo lo de salir", () => {
+    const con = (slug: string) =>
+      armarExpediente(
+        [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
+        [...generalesEntregados.map((d) => (d.documento === slug ? { ...d, estado: "rechazado" } : d)), ...propiosDe("senderismo")],
+        undefined,
+        "fisica",
+      );
+    expect(con("csf").completo).toBe(false);
+    expect(con("poliza-gm").completo).toBe(true);
+    expect(con("poliza-gm").paraSalir.faltan).toBe(1);
   });
 });
 

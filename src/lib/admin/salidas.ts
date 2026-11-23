@@ -36,6 +36,7 @@ import { clausulaDeSalida, pisoDeConfirmacion, puedeCancelarPorCupo } from "@/li
 import { ESTADOS_PAGADOS } from "@/lib/cancelacion/cupo-servidor";
 import { cdmxDay, formatDiaMes } from "@/lib/admin/formato";
 import type { Experience } from "@/lib/experiences/types";
+import { claveDeSalida, faltaParaSalirDe } from "@/lib/operadores/para-salir";
 
 const TZ = "America/Mexico_City";
 
@@ -170,6 +171,12 @@ export type Salida = {
   reembolsables: PersonaReembolsable[];
   /** La cláusula de cupo mínimo de esta salida (D26). La ven la casa y la operadora. */
   grupoMinimo: GrupoMinimoDeSalida;
+  /**
+   * Los documentos que le faltan a la operadora para que ESTA salida se realice
+   * (convenio v3.5, Anexo B: pólizas, credencial del guía, permisos). Vacío =
+   * nada falta. `null` = no aplica (salida pasada, de la casa o sin actividad).
+   */
+  paraSalir: string[] | null;
 
   // ── encuesta ──
   encuestaArmada: boolean;
@@ -267,7 +274,7 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
 
   const [{ data: expsRaw }, { data: slotsRaw }, { data: resvsRaw }, { data: regsRaw }, { data: fbsRaw }] =
     await Promise.all([
-      sb.from("experiences").select("id, slug, status, data, operator_id"),
+      sb.from("experiences").select("id, slug, status, data, operator_id, actividad"),
       sb
         .from("experience_slots")
         .select(
@@ -313,7 +320,10 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       ])
     : [{ data: null }, { data: null }];
 
-  type ExpRow = { id: string; slug: string; status: string; data: Partial<Experience> | null; operator_id: string | null };
+  type ExpRow = { id: string; slug: string; status: string; data: Partial<Experience> | null; operator_id: string | null; actividad: string | null };
+  // Las salidas FUTURAS de una operadora: a cada una se le pregunta después qué
+  // documentos le faltan para realizarse (para-salir.ts).
+  const paraPreguntar = new Map<string, { operatorId: string; actividad: string | null; fecha: string | null }>();
   let exps = (expsRaw ?? []) as ExpRow[];
 
   // ⚠️ LA PODA VA AQUÍ: justo después de traer las filas y ANTES de la primera
@@ -567,8 +577,12 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
       sinReserva: !f.reservation_id,
     }));
 
+    if (!pasada && exp.operator_id) {
+      paraPreguntar.set(s.id, { operatorId: exp.operator_id, actividad: exp.actividad, fecha: s.starts_at ? cdmxDay(s.starts_at) : null });
+    }
     (vacia ? vacias : salidas).push({
       id: s.id,
+      paraSalir: null,
       slug: exp.slug,
       experienceId: exp.id,
       experiencia: experienceTitle(data, exp.slug),
@@ -669,6 +683,17 @@ export async function fetchSalidas(): Promise<LineaDeSalidas> {
   proximas.sort((a, b) => (fechaDe.get(a.id) ?? "").localeCompare(fechaDe.get(b.id) ?? ""));
   pasadas.sort((a, b) => (fechaDe.get(b.id) ?? "").localeCompare(fechaDe.get(a.id) ?? ""));
   vacias.sort((a, b) => (fechaDe.get(a.id) ?? "").localeCompare(fechaDe.get(b.id) ?? ""));
+
+  // El candado movido a la salida: qué le falta a cada una para realizarse.
+  if (paraPreguntar.size) {
+    const falta = await faltaParaSalirDe([...paraPreguntar.values()]);
+    for (const lista of [salidas, vacias]) {
+      for (const sal of lista) {
+        const p = paraPreguntar.get(sal.id);
+        if (p) sal.paraSalir = falta.get(claveDeSalida(p)) ?? null;
+      }
+    }
+  }
 
   const diasProxima = proximas.length ? diasHasta(fechaDe.get(proximas[0].id) ?? null) : null;
   const reparto = proximas

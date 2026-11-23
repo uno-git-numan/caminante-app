@@ -419,6 +419,46 @@ ${fila("Fecha de confirmación", fecha)}
   });
 }
 
+// ── A una salida le faltan documentos para realizarse (convenio v3.5, Anexo B) ─
+// Desde el 23 nov de 2026 las pólizas, la credencial del guía y los permisos ya
+// no detienen la publicación: detienen la SALIDA. Este aviso es el otro lado de
+// ese candado: sale a 14, 7, 3 y 1 día de cada salida de una operadora a la que
+// le falte algo. Sólo correo. Si la salida se cancela por esto, es causa de
+// quien opera (100 % más la bonificación del 20 %).
+
+export type FaltaParaSalirInfo = {
+  operadora: string;
+  experiencia: string;
+  salida: string;
+  dias: number;
+  faltan: string[];
+};
+
+export async function notifyFaltaParaSalir(info: FaltaParaSalirInfo): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const cuando = info.dias <= 0 ? "HOY" : info.dias === 1 ? "mañana" : `en ${info.dias} días`;
+  const fila = (k: string, v: string) =>
+    `<tr><td style="padding:6px 12px;color:#637154;font-size:13px;">${k}</td><td style="padding:6px 12px;font-size:14px;font-weight:600;color:#20211c;">${v}</td></tr>`;
+  const html = `<body style="margin:0;background:#fbfbf7;padding:24px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<div style="max-width:480px;margin:0 auto;background:#fff;border:1px solid rgba(32,33,28,.13);border-radius:16px;overflow:hidden;">
+<div style="background:#20392b;color:#fff;padding:16px 20px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Caminante · Faltan documentos para salir</div>
+<div style="padding:16px 20px 4px;font-size:14px;color:#20211c;">Esta salida es ${cuando} y a la operadora le faltan documentos que el convenio pide <b>antes de que inicie</b>. Sin ellos la salida no se realiza. A ella ya se le avisó por correo.</div>
+<table style="width:100%;border-collapse:collapse;">
+${fila("Operadora", info.operadora)}
+${fila("Experiencia", info.experiencia)}
+${fila("Salida", info.salida || "—")}
+${info.faltan.map((f) => fila("Falta", f)).join("")}
+</table>
+<div style="padding:14px 20px 20px;"><a href="https://caminante.numanhub.com/caminante/admin/salidas" style="display:inline-block;background:#ff5d36;color:#fff;text-decoration:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:600;">Ver en Salidas</a></div>
+</div></body>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "User-Agent": "caminante-notify/1.0", Accept: "application/json" },
+    body: JSON.stringify({ from: FROM, to: [ADMIN_EMAIL], subject: `Faltan documentos para salir ${cuando} · ${info.operadora} · ${info.experiencia}`, html }),
+  });
+}
+
 export async function notifyCupoHonesto(info: CupoHonestoInfo): Promise<void> {
   const r = await Promise.allSettled([correoCupo(info), whatsappCupo(info)]);
   for (const x of r) if (x.status === "rejected") console.error("notifyCupoHonesto:", x.reason);

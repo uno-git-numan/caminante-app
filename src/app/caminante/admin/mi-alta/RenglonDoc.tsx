@@ -24,6 +24,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DocEnPantalla } from "@/lib/operadores/expediente";
 import { pesoEnPalabras } from "@/lib/operadores/peso";
+import { ETIQUETA_MOMENTO } from "@/lib/operadores/actividades";
 import { prepararSubida, quitarDocumento, registrarSubida } from "@/lib/operadores/expediente-actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
@@ -148,7 +149,7 @@ export default function RenglonDoc({
         {ico}
         <span className="nm">
           <b>{d.nombre}</b>
-          <small>{d.porQue}</small>
+          <small><b>{ETIQUETA_MOMENTO[d.momento]}.</b> {d.porQue}</small>
         </span>
         <span className="fl">
           <span className="mut">{d.estado === "falta" ? "Todavía no lo has subido" : estadoTxt[k]}</span>

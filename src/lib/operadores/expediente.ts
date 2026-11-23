@@ -6,6 +6,14 @@ import "server-only";
 // BASE (`operator_activities` y `operator_documents`, que dicen qué entregó).
 // La pantalla no vuelve a razonar nada: pinta lo que sale de aquí.
 //
+// ⚠️ TRES MOMENTOS (convenio v3.5, Anexo B; 23 nov 2026). No todo se pide para
+// lo mismo. Para PUBLICAR Y VENDER basta el expediente de arranque —constancia
+// fiscal e identificación—; pólizas, credencial del guía y permisos se entregan
+// antes de la PRIMERA SALIDA; el registro de turismo, en 30 días; y lo que la
+// norma obliga a tener pero no a entregar se DECLARA en el anexo. Por eso aquí
+// `completo` y `faltanTotal` hablan del ARRANQUE (lo que detiene la venta), y
+// lo demás tiene sus propios campos (`paraSalir`, `rnt`, `todoEntregado`).
+//
 // ⚠️ LA REGLA QUE LE DA FORMA: un documento GENERAL se sube una vez. En la base
 // eso es `actividad IS NULL`. Al abrir una actividad se listan sus documentos
 // propios MÁS los generales que necesita, marcados como ya cubiertos — se
@@ -16,7 +24,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resumenCsf, type AnalisisCsf } from "./csf";
 import { resumenRevision, type RevisionIa } from "./revision-ia";
-import { ACTIVIDADES, GENERALES, generalesPara, requisitosDe, nombreDeActividad, type Documento } from "./actividades";
+import { ACTIVIDADES, GENERALES, generalesPara, momentoDeGeneral, requisitosDe, nombreDeActividad, type Documento, type Momento } from "./actividades";
 
 export type EstadoDoc = "falta" | "en_revision" | "aprobado" | "rechazado";
 export type EstadoActividad = "incompleta" | "en_revision" | "aprobada" | "suspendida";
@@ -53,6 +61,8 @@ export type DocEnPantalla = {
   vencePorAnio: boolean;
   /** Se ofrece pero no cuenta como pendiente. */
   opcional: boolean;
+  /** Para qué momento se pide (ver `Momento` en `actividades.ts`). */
+  momento: Momento;
   /**
    * Lo que la plataforma leyó del documento (hoy sólo la CSF, `csf.ts`), ya
    * dicho en una línea. `satUrl` es la liga del validador del SAT para quien
@@ -71,7 +81,12 @@ export type ActividadEnPantalla = {
   propios: DocEnPantalla[];
   /** Los generales que esta actividad vuelve críticos, ya cubiertos. */
   generales: DocEnPantalla[];
-  /** Cuántos de los SUYOS faltan o están rechazados. */
+  /**
+   * Lo que la actividad obliga a TENER pero no a entregar (planes, bitácoras,
+   * protocolos): se declara en su anexo. No se sube ni cuenta como pendiente.
+   */
+  declarados: { slug: string; nombre: string; porQue: string }[];
+  /** Cuántos de los SUYOS faltan o están rechazados (se piden antes de la primera salida). */
   faltan: number;
 };
 
@@ -83,16 +98,32 @@ export type Expediente = {
   tipoPersona: TipoPersona;
   generales: DocEnPantalla[];
   actividades: ActividadEnPantalla[];
-  /** Generales sin entregar o rechazados. */
+  /** Generales DE ARRANQUE sin entregar o rechazados: lo que detiene la venta. */
   faltanGenerales: number;
+  /** Lo que falta PARA VENDER. Hoy es igual a `faltanGenerales`: el arranque es general. */
   faltanTotal: number;
+  /**
+   * Lo que falta ANTES DE LA PRIMERA SALIDA (y vigente en cada una): las dos
+   * pólizas y lo propio de cada actividad declarada, sin entregar, rechazado o
+   * vencido. No detiene la venta; detiene la salida.
+   */
+  paraSalir: { faltan: number; docs: DocEnPantalla[] };
+  /** El Registro Nacional de Turismo, que tiene 30 días desde la firma. */
+  rnt: DocEnPantalla | null;
   /** El que vence antes, para el aviso de arriba. Ya vencidos primero. */
   proximo: DocEnPantalla | null;
   vencidos: DocEnPantalla[];
   porVencer: DocEnPantalla[];
   /** Sin una sola actividad declarada la pantalla dice otra cosa. */
   vacio: boolean;
+  /**
+   * EL EXPEDIENTE DE ARRANQUE ESTÁ APROBADO: se puede publicar y vender (falta
+   * aún el convenio y el anexo de la actividad, que son otros candados). Hasta
+   * el 23 nov de 2026 esto exigía TODOS los documentos de todo.
+   */
   completo: boolean;
+  /** Todo entregado y aprobado, de los tres momentos. Informativo. */
+  todoEntregado: boolean;
 };
 
 /** Días entre hoy y una fecha `YYYY-MM-DD`, en días naturales. */
@@ -123,7 +154,8 @@ function pintar(
   d: Documento,
   fila: Fila | undefined,
   cubierto: boolean,
-  tamanos?: Map<string, number>,
+  tamanos: Map<string, number> | undefined,
+  momento: Momento,
 ): DocEnPantalla {
   const estado = (fila?.estado as EstadoDoc) ?? "falta";
   const path = fila?.archivo_path ?? null;
@@ -149,6 +181,7 @@ function pintar(
     caduca: d.vence,
     vencePorAnio: d.vencePor === "anio",
     opcional: d.opcional === true,
+    momento,
   };
 }
 
@@ -159,6 +192,9 @@ function pintar(
  */
 const pendiente = (d: DocEnPantalla) =>
   d.estado === "rechazado" || (d.estado === "falta" && !d.opcional);
+
+/** Entregado pero ya vencido: para vender y para salir, no cuenta como entregado. */
+const vencido = (d: DocEnPantalla) => d.estado !== "falta" && d.diasParaVencer !== null && d.diasParaVencer < 0;
 
 const tipoDe = (v: unknown): TipoPersona => (v === "fisica" || v === "moral" ? v : null);
 
@@ -226,8 +262,8 @@ async function tamanosDe(operatorId: string): Promise<Map<string, number>> {
 }
 
 /**
- * Si el expediente de cada operadora está COMPLETO, en dos consultas para
- * todas. Lo usa el tablero de la plataforma, que antes no lo sabía y ponía en
+ * Si el expediente DE ARRANQUE de cada operadora está aprobado (o sea, si por
+ * papeles ya puede vender), en dos consultas para todas. Lo usa el tablero de la plataforma, que antes no lo sabía y ponía en
  * «Vendiendo» a quien vendía con dispensa sin un solo documento.
  *
  * ⚠️ NO TIENE SU PROPIA REGLA: arma cada expediente con `armarExpediente`, la
@@ -274,7 +310,7 @@ export function armarExpediente(
 
   // Sólo los que le tocan a su tipo de persona: el acta ni se le enseña a una
   // persona física.
-  const generales = generalesPara(tipoPersona).map((d) => pintar(d, general(d.slug), false, tamanos));
+  const generales = generalesPara(tipoPersona).map((d) => pintar(d, general(d.slug), false, tamanos, momentoDeGeneral(d.slug)));
 
   // ⚠️ Se recorre lo DECLARADO en la base, no el catálogo entero. El catálogo
   // dice qué existe; la fila dice qué eligió esta operadora. Recorrer el
@@ -283,7 +319,7 @@ export function armarExpediente(
 
   const actividades: ActividadEnPantalla[] = declaradas.map((a) => {
     const req = requisitosDe(a.actividad);
-    const propios = req.propios.map((d) => pintar(d, porClave.get(`${a.actividad}|${d.slug}`), false, tamanos));
+    const propios = req.propios.map((d) => pintar(d, porClave.get(`${a.actividad}|${d.slug}`), false, tamanos, "salida"));
     return {
       slug: a.actividad,
       nombre: nombreDeActividad(a.actividad),
@@ -292,7 +328,8 @@ export function armarExpediente(
       propios,
       generales: req.generales
         .filter((d) => !d.soloPara || d.soloPara === tipoPersona)
-        .map((d) => pintar({ ...d, nombre: (tipoPersona && d.nombrePara?.[tipoPersona]) || d.nombre }, general(d.slug), true, tamanos)),
+        .map((d) => pintar({ ...d, nombre: (tipoPersona && d.nombrePara?.[tipoPersona]) || d.nombre }, general(d.slug), true, tamanos, momentoDeGeneral(d.slug))),
+      declarados: req.declarados.map((d) => ({ slug: d.slug, nombre: d.nombre, porQue: d.porQue })),
       faltan: propios.filter(pendiente).length,
     };
   });
@@ -305,8 +342,23 @@ export function armarExpediente(
     .filter((d) => (d.diasParaVencer ?? 99) >= 0 && (d.diasParaVencer ?? 99) <= AVISO_DIAS)
     .sort((x, y) => (x.diasParaVencer ?? 0) - (y.diasParaVencer ?? 0));
 
-  const faltanGenerales = generales.filter(pendiente).length;
-  const faltanTotal = faltanGenerales + actividades.reduce((n, a) => n + a.faltan, 0);
+  // ── PARA VENDER: el expediente de arranque ───────────────────────────────
+  const deArranque = generales.filter((d) => d.momento === "arranque");
+  const faltanGenerales = deArranque.filter(pendiente).length;
+  const faltanTotal = faltanGenerales;
+  const arranqueAprobado =
+    deArranque.filter((d) => !d.opcional).every((d) => d.estado === "aprobado" && !vencido(d)) &&
+    // Un opcional rechazado es un papel equivocado en el expediente: se corrige o se quita.
+    !deArranque.some((d) => d.opcional && d.estado === "rechazado");
+
+  // ── PARA SALIR: pólizas y lo propio de cada actividad declarada ──────────
+  const noSirveParaSalir = (d: DocEnPantalla) => pendiente(d) || vencido(d);
+  const docsParaSalir = [
+    ...generales.filter((d) => d.momento === "salida").filter(noSirveParaSalir),
+    ...actividades.flatMap((a) => a.propios.filter(noSirveParaSalir)),
+  ];
+
+  const todos = [...generales, ...actividades.flatMap((a) => a.propios)];
 
   return {
     tipoPersona,
@@ -314,15 +366,18 @@ export function armarExpediente(
     actividades,
     faltanGenerales,
     faltanTotal,
+    paraSalir: { faltan: docsParaSalir.length, docs: docsParaSalir },
+    rnt: generales.find((d) => d.slug === "rnt") ?? null,
     // Vencido pesa más que «vence pronto»: uno ya te impide vender.
     proximo: vencidos[0] ?? porVencer[0] ?? null,
     vencidos,
     porVencer,
     vacio: actividades.length === 0 && generales.every((d) => d.estado === "falta"),
-    completo:
+    completo: tipoPersona !== null && arranqueAprobado,
+    todoEntregado:
       tipoPersona !== null &&
       actividades.length > 0 &&
-      faltanTotal === 0 &&
+      todos.filter((d) => !d.opcional).every((d) => d.estado === "aprobado") &&
       vencidos.length === 0 &&
       actividades.every((a) => a.estado === "aprobada"),
   };

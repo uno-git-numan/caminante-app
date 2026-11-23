@@ -293,13 +293,13 @@ function Traido({ t, generales, operadora }: { t: BorradorDelCandado; generales:
         <s>{"//"}</s>
         <span>
           <b>Te trajimos aquí porque quisiste publicar una experiencia de {t.nombreActividad.toLowerCase()}</b>
-          Tu borrador «{t.titulo}» se guardó completo y te está esperando. Para publicarlo hace falta el
-          expediente de {t.nombreActividad.toLowerCase()}, que son {req.propios.length}{" "}
-          {req.propios.length === 1 ? "documento" : "documentos"} propios
-          {nuevos.length
-            ? ` y ${nuevos.length === 1 ? "uno" : nuevos.length} de Lo general que hoy no ${nuevos.length === 1 ? "tienes" : "tienes"}`
+          Tu borrador «{t.titulo}» se guardó completo y te está esperando. Para publicarlo basta tu expediente
+          de arranque —tu constancia fiscal y tu identificación— y firmar el anexo de{" "}
+          {t.nombreActividad.toLowerCase()}.{" "}
+          {req.propios.length
+            ? `${req.propios.length === 1 ? "Su documento propio se entrega" : `Sus ${req.propios.length} documentos propios se entregan`} antes de tu primera salida, no ahora. `
             : ""}
-          . Cuando esté aprobado, volvemos solos a tu borrador.
+          Cuando esté listo, volvemos solos a tu borrador.
         </span>
         <span className="ac">
           {/* El entregable lo dibuja como <button> y aquí también: `.btn-glass`
@@ -340,9 +340,9 @@ function Traido({ t, generales, operadora }: { t: BorradorDelCandado; generales:
                   <span className="g">
                     <b>Está en el catálogo y no la has declarado</b>
                     <span>
-                      Nadie te la va a pedir mientras no la quieras ofrecer. Si la declaras, te pedimos los{" "}
-                      {req.propios.length} documentos de abajo
-                      {nuevos.length ? `, y ${nuevos.length} de Lo general que hoy no necesitas` : ""}.
+                      Nadie te la va a pedir mientras no la quieras ofrecer. Si la declaras, firmas su anexo y ya
+                      puedes publicarla; {req.propios.length === 1 ? "el documento" : `los ${req.propios.length} documentos`} de abajo
+                      {nuevos.length ? ` y las pólizas de Lo general` : ""} se entregan antes de tu primera salida.
                     </span>
                   </span>
                 </p>
@@ -456,17 +456,21 @@ export default function Expediente({
               {datos.vacio
                 ? "Tu expediente está en blanco, y así empieza el de todos"
                 : datos.completo
-                  ? "Tu expediente está completo y tus actividades aprobadas"
-                  : datos.faltanTotal === 1
-                    ? "Te falta un documento"
-                    : `Te faltan ${datos.faltanTotal} documentos en total`}
+                  ? "Tu expediente de arranque está aprobado: por papeles ya puedes vender"
+                  : datos.faltanTotal === 0
+                    ? "Entregaste lo necesario para vender; lo estamos revisando"
+                    : datos.faltanTotal === 1
+                      ? "Te falta un documento para poder vender"
+                      : `Te faltan ${datos.faltanTotal} documentos para poder vender`}
             </b>
             <span>
               {datos.vacio
-                ? `No hay nada mal. Son ${obligatorios} documentos generales que se piden una vez, y después una carpeta por cada actividad que ofrezcas. Puedes subirlos en el orden que quieras, en varias sesiones, y lo que dejes a medias se guarda.`
+                ? `No hay nada mal. Para vender bastan dos documentos: tu constancia fiscal y tu identificación. Lo demás se entrega antes de tu primera salida, en la carpeta de cada actividad que ofrezcas. Puedes subirlos en el orden que quieras, en varias sesiones, y lo que dejes a medias se guarda.`
                 : datos.completo
-                  ? "Puedes publicar experiencias de todas las actividades que declaraste."
-                  : "Lo general se sube una sola vez y sirve para todas tus actividades; lo propio de cada una vive en su carpeta."}
+                  ? datos.paraSalir.faltan
+                    ? `Antes de tu primera salida ${datos.paraSalir.faltan === 1 ? "falta un documento" : `faltan ${datos.paraSalir.faltan} documentos`} (pólizas, credencial del guía, permisos): sin ellos la salida no se realiza.`
+                    : "Y ya entregaste lo que se pide antes de salir."
+                  : "Para vender bastan tu constancia fiscal y tu identificación. Las pólizas, la credencial del guía y los permisos se entregan antes de tu primera salida; el registro de turismo, en 30 días."}
             </span>
           </span>
         </div>
@@ -498,7 +502,7 @@ export default function Expediente({
             <span className="rt">
               <span className={"chip " + (datos.faltanGenerales ? "c-full" : "c-paid")}>
                 <span className="cd" />
-                {datos.faltanGenerales ? `Faltan ${datos.faltanGenerales}` : "Al corriente"}
+                {datos.faltanGenerales ? `Faltan ${datos.faltanGenerales} para vender` : "Para vender, al corriente"}
               </span>
               <span className="fr">{genListos} de {datos.generales.length}</span>
               <span className="chev2">▾</span>
@@ -506,9 +510,9 @@ export default function Expediente({
           </button>
           <div className="ab">
             <p className="gnhint">
-              Diez documentos que se piden <b>una sola vez</b> y sirven para todas tus
-              actividades. Si mañana declaras una actividad nueva, estos ya están: nada se
-              sube dos veces.
+              Se piden <b>una sola vez</b> y sirven para todas tus actividades. Cada uno dice para
+              cuándo: para vender bastan la constancia fiscal y la identificación; las pólizas se
+              entregan antes de tu primera salida y el registro de turismo en 30 días.
             </p>
             <div className="docs">
               {datos.generales.map((d) => <RenglonDoc operadora={operadora} key={d.slug} d={d} actividad={null} />)}

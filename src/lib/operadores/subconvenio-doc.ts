@@ -22,22 +22,44 @@ import { requisitosDe, nombreDeActividad, ACTIVIDADES, type Documento } from "./
 /**
  * Sube cuando cambia el MARCO. La versión del anexo es `${MARCO}.${catálogo}`.
  *
- * v2 (9 nov 2026): la declaración del botiquín y los seguros por salida. Luis
- * cambió tres archivos (protocolo de emergencia, inventario del botiquín,
- * bitácora) por una obligación de cada salida que la operadora ACEPTA aquí, y
- * pidió que el contrato diga que la póliza puede ser por integrante por día.
- * Son obligaciones nuevas: por eso se vuelve a firmar.
+ * v3 (23 nov 2026, D30 de legal): EL EXPEDIENTE EN TRES MOMENTOS. El convenio
+ * v3.5 (Anexo B) dice que para publicar y vender basta el expediente de
+ * arranque; lo propio de la actividad se parte en lo que se ENTREGA antes de
+ * la primera salida y lo que se DECLARA. El texto fijo es de legal, palabra
+ * por palabra (`design/legal/ANEXO-ACTIVIDAD-MARCO-v3-2026-11-23.md`); una
+ * prueba lo compara contra ese archivo. Código sólo genera las dos listas.
+ *
+ * v2 (9 nov 2026): la declaración del botiquín y los seguros por salida.
  */
-export const MARCO_ANEXO = "v2";
+export const MARCO_ANEXO = "v3";
 
-const lista = (docs: readonly Documento[]): string =>
-  docs
-    // Sin sangría: esto se convierte en un documento firmado, y tres espacios
-    // antes de un «1.» convierten la lista en un bloque de código en algunos
-    // renderizadores. Que se vea distinto de lo que se firmó es justo lo que no
-    // puede pasar.
-    .map((d, i) => `${i + 1}. **${d.nombre}** — ${d.porQue} ${d.vence ? "Debe estar vigente; se entrega con su fecha de vencimiento." : "No caduca; se actualiza cuando cambie."}`)
-    .join("\n");
+/** Lo que dice la cláusula cuando la actividad no tiene nada en esa lista (D30 §2). */
+export const SIN_DOCUMENTOS = "Esta actividad no pide documentos propios en este apartado.";
+
+// Sin sangría: esto se convierte en un documento firmado, y tres espacios antes
+// de un «1.» convierten la lista en un bloque de código en algunos
+// renderizadores. Que se vea distinto de lo que se firmó es justo lo que no
+// puede pasar.
+
+/** Lo que se ENTREGA antes de la primera salida: nombre, porqué y su vigencia. */
+export const listaDeEntrega = (docs: readonly Documento[]): string =>
+  docs.length
+    ? docs
+        .map((d, i) => `${i + 1}. **${d.nombre}** — ${d.porQue} ${d.vence ? "Debe estar vigente el día de cada salida; se entrega con su fecha de vencimiento." : "No caduca; se actualiza cuando cambie."}`)
+        .join("\n")
+    : SIN_DOCUMENTOS;
+
+/** Lo que se DECLARA: sólo el nombre y su porqué. */
+export const listaDeDeclarados = (docs: readonly Documento[]): string =>
+  docs.length ? docs.map((d, i) => `${i + 1}. **${d.nombre}** — ${d.porQue}`).join("\n") : SIN_DOCUMENTOS;
+
+/** La cláusula Segunda, con sus dos variantes: con norma propia y sin ella. */
+export const normaDelAnexo = (actividad: string): string => {
+  const norma = ACTIVIDADES.find((a) => a.slug === actividad)?.norma;
+  return norma
+    ? `${norma}, además de las normas oficiales mexicanas y disposiciones que resulten aplicables a la actividad.`
+    : "Esta actividad no tiene una norma oficial mexicana específica que la regule. Aplican las normas oficiales y disposiciones generales que resulten aplicables, y las obligaciones de la Cláusula Sexta del Convenio.";
+};
 
 /**
  * El texto íntegro del anexo de una actividad, listo para mostrarse y firmarse.
@@ -50,37 +72,43 @@ export function textoDelAnexo(actividad: string): string | null {
   if (!ACTIVIDADES.some((a) => a.slug === actividad)) return null;
   const nombre = nombreDeActividad(actividad);
   const req = requisitosDe(actividad);
-  const norma = ACTIVIDADES.find((a) => a.slug === actividad)!.norma;
-  const generales = req.generales.map((g) => g.nombre).join(", ");
+  const norma = normaDelAnexo(actividad);
+  const entregan = listaDeEntrega(req.propios);
+  const declaran = listaDeDeclarados(req.declarados);
 
+  // ⚠️ TEXTO DE LEGAL, GENERADO DESDE SU ARCHIVO. No se corrige aquí: se
+  // corrige allá y se vuelve a generar. La prueba `anexo-marco.test.ts` falla
+  // si una palabra se separa.
   return `# Anexo por actividad — ${nombre}
 del Convenio de operación en la plataforma Caminante
 
-**Primera. Objeto.** Este anexo precisa, para la actividad de ${nombre.toLowerCase()} y sólo para ella, lo que el Operador debe acreditar y mantener vigente para publicarla y venderla en la plataforma. Forma parte integrante del Convenio (Cláusula Sexta, «Anexos por actividad»).
+**Primera. Objeto.** Este anexo precisa, para la actividad de ${nombre.toLowerCase()} y sólo para ella, lo que el Operador debe acreditar, declarar y mantener vigente para publicarla, venderla y operarla en la plataforma. Forma parte integrante del Convenio (Cláusula Sexta, «Anexos por actividad»).
 
-**Segunda. Norma aplicable.** ${
-    norma
-      ? `${norma}, además de las normas oficiales mexicanas y disposiciones que resulten aplicables a la actividad.`
-      : "Esta actividad no tiene una norma oficial mexicana específica que la regule. Aplican las normas oficiales y disposiciones generales que resulten aplicables, y las obligaciones de la Cláusula Sexta del Convenio."
-  } El Operador declara conocerlas y cumplirlas.
+**Segunda. Norma aplicable.** ${norma} El Operador declara conocerlas y cumplirlas.
 
-**Tercera. Expediente de la actividad.** El Operador entregará y mantendrá vigentes los documentos siguientes. Cada uno se revisa uno por uno; ninguno se da por bueno por antigüedad ni por confianza.
+**Tercera. Para publicar y vender.** Para publicar y vender esta actividad basta el expediente de arranque del Anexo B del Convenio, que son la Constancia de Situación Fiscal y la identificación oficial, y la firma del Convenio y de este anexo. El Registro Nacional de Turismo se entrega dentro de los 30 días naturales siguientes a la firma del Convenio, con la constancia de inscripción o el acuse de su trámite.
 
-${lista(req.propios)}
+**Cuarta. Antes de la primera salida.** El Operador entregará los documentos siguientes antes del inicio de la primera salida de esta actividad y los mantendrá vigentes en cada salida. Cada uno se revisa uno por uno; ninguno se da por bueno por antigüedad ni por confianza. Sin ellos la salida no se realiza. Cuando un permiso no aplique a sus salidas, el Operador lo declara así en la plataforma, bajo protesta de decir verdad, y esa declaración forma parte de este anexo.
 
-**Cuarta. Del expediente general.** Además, esta actividad vuelve críticos los siguientes documentos generales, que se entregan una sola vez y sirven para todas las actividades del Operador: ${generales || "ninguno en particular"}.
+${entregan}
 
-**Quinta. Botiquín.** El Operador declara y acepta que en cada salida de esta actividad lleva un botiquín completo y adecuado a la actividad, al número de participantes y a la duración de la salida, revisado y con su contenido vigente, y que el guía responsable sabe usarlo. Esta declaración sustituye la entrega de un inventario: es una obligación de cada salida, no un papel que se entrega una vez.
+**Quinta. Lo que el Operador declara.** El Operador declara, bajo protesta de decir verdad, que cuenta con lo siguiente para esta actividad, que lo mantiene al día y que lo aplica en cada salida. No se entrega a la plataforma: el Operador lo conserva y lo exhibe a Caminante cuando se lo pida, y siempre después de un incidente.
 
-**Sexta. Seguros de cada salida.** La póliza de responsabilidad civil y la póliza colectiva de seguro de accidentes y enfermedades deben cubrir a todas las personas de cada salida, todos los días que dure. Vale una póliza anual o una contratada por integrante y por día. Si es por salida, el Operador la contrata antes de cada una, la conserva, y la entrega cuando Caminante se la pida. La póliza debe estar emitida por una aseguradora autorizada.
+${declaran}
 
-**Séptima. Vigencias.** Un documento vencido **no cuenta como entregado**. La plataforma avisa a 30 y a 7 días. Vencido un documento indispensable, esta actividad se suspende hasta regularizarlo: las salidas ya vendidas se operan y se honran, y lo que se detiene es publicar y vender lo nuevo.
+Declara además que cuenta con los manuales de seguridad y de atención de emergencias, el manual de operación para sus guías, el programa de capacitación de su personal y el reglamento interno que las normas aplicables le exijan.
 
-**Octava. Alcance.** Este anexo no autoriza ninguna otra actividad. Ofrecer una distinta exige su propio anexo y su propio expediente.
+**Sexta. Botiquín.** El Operador declara y acepta que en cada salida de esta actividad lleva un botiquín completo y adecuado a la actividad, al número de participantes y a la duración de la salida, revisado y con su contenido vigente, y que el guía responsable sabe usarlo. Esta declaración sustituye la entrega de un inventario: es una obligación de cada salida, no un papel que se entrega una vez.
 
-**Novena. Responsabilidad.** Nada en este anexo traslada a Caminante la operación, la seguridad ni el cumplimiento de la actividad, que son y siguen siendo responsabilidad exclusiva del Operador (Convenio, Cláusulas Primera y Novena).
+**Séptima. Seguros de cada salida.** La póliza de responsabilidad civil y la póliza colectiva de seguro de accidentes y enfermedades deben cubrir a todas las personas de cada salida, todos los días que dure, y estar emitidas por una aseguradora autorizada. Vale una póliza anual o una contratada por integrante y por día. En los dos casos, antes del inicio de cada salida debe constar en la plataforma una póliza vigente para los días de esa salida: la anual se sube una vez, con su fecha de vencimiento; la contratada por salida se sube antes de cada una.
 
-**Décima. Vigencia.** Este anexo entra en vigor al suscribirse y dura lo que dure el Convenio. Se versiona y se vuelve a firmar con el mismo procedimiento y los mismos plazos que el Convenio (Cláusula Décima segunda) y con la misma firma electrónica (Cláusula Décima sexta).
+**Octava. Vigencias.** Un documento vencido **no cuenta como entregado**. La plataforma avisa a 30 y a 7 días del vencimiento. Una salida sólo se realiza si los documentos de las Cláusulas Cuarta y Séptima están vigentes el día en que inicia. Si faltan o están vencidos, el Operador los regulariza antes de la salida; si no lo hace, la salida no se realiza y su cancelación le es imputable conforme a la Cláusula Quinta del Convenio. Mientras un documento esté vencido, Caminante puede suspender la publicación y la venta de nuevas salidas de esta actividad.
+
+**Novena. Alcance.** Este anexo no autoriza ninguna otra actividad. Ofrecer una distinta exige su propio anexo y su propio expediente.
+
+**Décima. Responsabilidad.** Nada en este anexo traslada a Caminante la operación, la seguridad ni el cumplimiento de la actividad, que son y siguen siendo responsabilidad exclusiva del Operador (Convenio, Cláusulas Primera y Novena).
+
+**Décima primera. Vigencia.** Este anexo entra en vigor al suscribirse y dura lo que dure el Convenio. Se versiona y se vuelve a firmar con el mismo procedimiento y los mismos plazos que el Convenio (Cláusula Décima segunda) y con la misma firma electrónica (Cláusula Décima sexta).
 `;
 }
 
@@ -98,7 +126,10 @@ export function versionDelAnexo(actividad: string): string | null {
   if (!ACTIVIDADES.some((a) => a.slug === actividad)) return null;
   // La huella es de los SLUGS y de si vencen: lo que cambia la obligación. Una
   // corrección de redacción del `porQue` no obliga a refirmar a nadie.
-  const huella = req.propios.map((d) => `${d.slug}${d.vence ? "!" : ""}`).join(",");
+  // Las DOS listas: pasar un documento de «se declara» a «se entrega» cambia la
+  // obligación, y por tanto la versión.
+  const huella =
+    req.propios.map((d) => `${d.slug}${d.vence ? "!" : ""}`).join(",") + "|" + req.declarados.map((d) => d.slug).join(",");
   let h = 0;
   for (let i = 0; i < huella.length; i++) h = (h * 31 + huella.charCodeAt(i)) >>> 0;
   return `${MARCO_ANEXO}.${h.toString(36)}`;

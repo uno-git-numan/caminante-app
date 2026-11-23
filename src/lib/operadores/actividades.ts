@@ -19,6 +19,25 @@
 // de cada actividad cuando el equipo lo confirme. Un número inventado aquí
 // terminaría cobrándose en una montaña.
 
+/**
+ * CUÁNDO SE ENTREGA CADA DOCUMENTO (convenio v3.5, Anexo B, «Cuándo se entrega
+ * cada documento»; D27 de legal, 19 nov 2026). La ley obliga a la operadora a
+ * TENER ciertas cosas para operar, no a entregarlas antes de vender:
+ *
+ *   arranque      para PUBLICAR Y VENDER: constancia fiscal e identificación
+ *                 (más el convenio y el anexo de la actividad firmados)
+ *   salida        antes del inicio de la PRIMERA SALIDA de cada actividad, y
+ *                 vigente en cada salida: pólizas, credencial del guía,
+ *                 autorización del sitio. Sin ellos la salida no se realiza.
+ *   treinta-dias  el Registro Nacional de Turismo: 30 días naturales desde la firma
+ *   declarado     NO se entrega: manuales, programas, bitácoras y reglamentos
+ *                 se declaran en el anexo y se exhiben si Caminante los pide
+ *
+ * ⚠️ El candado no desapareció, se MOVIÓ: lo que antes detenía la publicación
+ * ahora detiene la salida (`para-salir.ts`).
+ */
+export type Momento = "arranque" | "salida" | "treinta-dias" | "declarado";
+
 /** Un papel que hay que entregar. */
 export type Documento = {
   slug: string;
@@ -257,6 +276,76 @@ export const ACTIVIDADES: Actividad[] = [
     generalesRelevantes: ["poliza-rc", "poliza-gm"] },
 ];
 
+// ── Los momentos ─────────────────────────────────────────────────────────────
+
+const MOMENTO_GENERAL: Record<string, Momento> = {
+  csf: "arranque",
+  "id-responsable": "arranque",
+  // Opcionales: si se suben, acompañan al arranque.
+  "id-operacion": "arranque",
+  "acta-constitutiva": "arranque",
+  "poliza-rc": "salida",
+  "poliza-gm": "salida",
+  rnt: "treinta-dias",
+};
+
+/** Cómo se le dice a cada momento en pantalla, igual en todas. */
+export const ETIQUETA_MOMENTO: Record<Momento, string> = {
+  arranque: "Para vender",
+  salida: "Antes de tu primera salida",
+  "treinta-dias": "En 30 días desde que firmas",
+  declarado: "Se declara en el anexo",
+};
+
+/** En qué momento se entrega un documento GENERAL. */
+export const momentoDeGeneral = (slug: string): Momento => MOMENTO_GENERAL[slug] ?? "salida";
+
+/**
+ * Los documentos PROPIOS de una actividad que sí se entregan (antes de la
+ * primera salida). Todo lo demás del catálogo de esa actividad se declara.
+ *
+ * El Anexo B nombra tres: las pólizas, «la credencial del guía que conduce la
+ * salida» y «la autorización del sitio». El catálogo trae además cosas que no
+ * son manuales ni bitácoras. La regla es de legal (D30, 23 nov 2026,
+ * `design/legal/ANEXO-ACTIVIDAD-MARCO-v3-2026-11-23.md`): SE ENTREGA lo que
+ * acredita a una persona, un permiso de un tercero sobre el sitio, una póliza,
+ * o un certificado con vigencia que emite un tercero sobre una nave, un animal
+ * o un equipo del que depende la vida. SE DECLARA lo que produce la propia
+ * operadora. En la duda: si lo emite un tercero, se entrega. Un documento
+ * nuevo en el catálogo se clasifica con esa regla, y si no es evidente se le
+ * pregunta a legal antes de publicarlo. Nunca detienen la venta.
+ */
+const SE_ENTREGA_ANTES_DE_SALIR = new Set([
+  // La autorización del sitio.
+  "permiso-predio", "permiso-inah", "permiso-anp", "permiso-ejido",
+  // Certificaciones y licencias de quien conduce.
+  "rescate-montana", "rescate-aguas-rapidas", "cert-agencia", "cert-cuevas",
+  "licencia-fmp", "licencia-piloto", "guia-micologo", "empacador",
+  // Seguros específicos de la actividad.
+  "seguro-buceo", "seguro-paracaidismo",
+  // La nave, los animales y el equipo del que depende la vida, cuando lo
+  // certifica un TERCERO con vigencia (D30, inciso d).
+  "aeronavegabilidad", "embarcacion", "veterinario",
+  "hidrostatica-tanques", "analisis-aire", "mantenimiento-reguladores",
+]);
+
+/**
+ * PERMISOS QUE DEPENDEN DEL SITIO (D30 §1, «Dos precisiones»). El del INAH sólo
+ * existe si hay vestigios y el de área natural protegida sólo si la salida
+ * entra a una: exigirlos siempre le pediría a la operadora un permiso que no
+ * existe. Se ofrecen pero no cuentan como pendientes.
+ *
+ * ⚠️ PENDIENTE, y está dicho a legal: el anexo (Cuarta) pide que, cuando no
+ * aplique, la operadora lo DECLARE en la plataforma bajo protesta de decir
+ * verdad. Esa declaración todavía no tiene dónde guardarse (pide una columna
+ * nueva); mientras, no subirlo equivale a «no aplica» sin que quede escrito.
+ */
+const SOLO_SI_APLICA = new Set(["permiso-inah", "permiso-anp"]);
+
+/** En qué momento va un documento PROPIO de una actividad. */
+export const momentoDePropio = (slug: string): Momento =>
+  slug.startsWith("nom09-") || SE_ENTREGA_ANTES_DE_SALIR.has(slug) ? "salida" : "declarado";
+
 // ── Consultas ────────────────────────────────────────────────────────────────
 
 const PORSLUG = new Map(ACTIVIDADES.map((a) => [a.slug, a]));
@@ -271,15 +360,25 @@ export const nombreDeActividad = (slug: string): string => PORSLUG.get(slug)?.no
 /**
  * Todo lo que una actividad necesita, en el orden en que se pinta: primero lo
  * suyo, luego los generales que le tocan marcados como ya cubiertos.
+ *
+ * ⚠️ `propios` son SÓLO los que se entregan (antes de la primera salida). Lo
+ * que la actividad exige tener pero no entregar va en `declarados`: no se
+ * sube, no se revisa y no cuenta como pendiente. Todo lo que recorre
+ * `propios` —la pantalla, la revisión, la aprobación de la carpeta— hereda
+ * esa regla sin enterarse.
  */
 export function requisitosDe(slug: string): {
   propios: Documento[];
+  declarados: Documento[];
   generales: Documento[];
 } {
   const a = PORSLUG.get(slug);
-  if (!a) return { propios: [], generales: [] };
+  if (!a) return { propios: [], declarados: [], generales: [] };
   return {
-    propios: a.documentos,
+    propios: a.documentos
+      .filter((d) => momentoDePropio(d.slug) === "salida")
+      .map((d) => (SOLO_SI_APLICA.has(d.slug) ? { ...d, opcional: true } : d)),
+    declarados: a.documentos.filter((d) => momentoDePropio(d.slug) === "declarado"),
     generales: a.generalesRelevantes.map(generalPorSlug).filter((d): d is Documento => d !== null),
   };
 }

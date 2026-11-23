@@ -25,18 +25,25 @@ distingue por `operators.stripe_account_id`.
 
 ## ⚠️ Los tres candados de dinero — no se relajan
 
-**1 · La comisión sale de `commission_pct` y de ningún otro lado.** Existieron
-`platform_fee_pct` y `stripe_fee_bearer` duplicando ese dato sin que nadie las
-leyera; la **0037 las borró** justo para que no puedan usarse por error. Si Connect
-leyera una y el reporte de payout la otra, el checkout cobraría un porcentaje y el
-corte mostraría otro: un bug de dinero **silencioso**.
+**1 · La comisión es FIJA y sale de `lib/operadores/comision.ts`, de ningún otro
+lado (23 nov 2026).** 8 % si la operadora trajo al cliente, 12 % si lo trajo
+Caminante, sobre la base sin IVA; sin tramos ni mínimo. **Tarifa única**
+(convenio v3.5, Tercera §2): `operators.commission_pct` ya no se lee como
+«pactada» (`regla.ts`) y la firma congela siempre la tarifa de la casa. Un
+convenio firmado con porcentaje plano se respetaría, pero no existe ninguno.
+Quién trajo al cliente lo decide la cookie de atribución (portal
+`/caminante/o/<slug>`, primer toque, 60 días): con ella 8 %, sin ella 12 %. Los
+cobros que arma la casa (link especial, WhatsApp) van al 12 %. El origen queda
+en `reservations.escala_comision` (desde el 23 nov lo escribe también el cobro
+web; antes sólo vivía en la metadata de Stripe). Los nombres «escala» en el
+código y en la base son históricos: hoy quieren decir «cuál de las dos tasas».
 
-**`commission_pct` en NULL significa SIN DEFINIR, no cero.** `operadorListo` lo
-rechaza a propósito: con cargo directo el dinero entra a la cuenta del operador y
-lo único que retiene Numan es el `application_fee`. En NULL la venta saldría
-perfecta, el cliente viajaría contento y **Numan ganaría cero**, sin un error en
-pantalla. Y como la atribución se congela en la venta (0016), tampoco se puede
-cobrar hacia atrás.
+⚠️ **`commission_pct` en NULL no es «sin comisión»: es la tarifa de la casa.**
+Lo que deja el fee en cero es no tener `comision_desde`, que se escribe sola al
+firmar; `operadorListo` exige esa fecha.
+
+⚠️ **Falta el desglose por venta para la operadora** con origen y tasa
+(convenio, Tercera §7 y Cuarta §4). Hoy su panel sólo trae totales.
 
 **2 · El CSD son DOS archivos.** El SAT entrega `.cer` y `.key` y timbrar necesita
 ambos (`csd_cer_path` + `csd_key_path`, 0038). Con uno solo el expediente se ve
@@ -53,6 +60,42 @@ firma, y `api/payments/webhook` prueba `STRIPE_WEBHOOK_SECRET` y
 `STRIPE_WEBHOOK_SECRET_CONNECT`. Sin eso, **todo evento de cuenta conectada
 rebotaría con 400** y el gate seguiría creyendo que un operador puede cobrar
 cuando Stripe ya lo apagó.
+
+## El expediente en tres momentos (convenio v3.5, Anexo B; D27 y D30 de legal)
+
+Hasta el 23 nov de 2026 el candado de publicar exigía la carpeta COMPLETA de la
+actividad. La ley obliga a TENER los documentos, no a entregarlos antes de
+vender, y el convenio v3.5 lo dice así:
+
+- **Para publicar y vender:** constancia fiscal e identificación aprobadas y
+  vigentes («expediente de arranque»), convenio firmado y anexo de la actividad
+  firmado. `actividadListaParaPublicar` ya no mira el estado de la carpeta
+  (sólo si está `suspendida`); motivo nuevo `sin_arranque`. La dispensa sigue
+  abriendo cualquiera de sus candados.
+- **Antes de la primera salida, y vigente en cada una:** las dos pólizas, la
+  credencial del guía y lo demás que legal clasificó como «se entrega» (regla
+  de D30: lo que emite un tercero se entrega; lo que escribe la operadora se
+  declara). **El candado no desapareció, se movió a la salida**
+  (`lib/operadores/para-salir.ts`): un documento que vence antes del día de la
+  salida no la cubre. Se ve en Salidas («Faltan N documentos para que esta
+  salida se realice»), en la lista de Mi alta («Antes de tu primera salida»,
+  que no cuenta como bloqueo de venta) y llega por correo a la operadora y a la
+  casa a 14, 7, 3 y 1 día (cron diario `documentos-de-salida`, sin estado: un
+  umbral por día). Si la salida se cancela por eso, es causa de quien opera.
+- **Registro de turismo:** 30 días desde la firma. Hoy sólo se enseña.
+- **Lo que se declara** (planes, bitácoras, protocolos, equipo) ya no se sube:
+  `requisitosDe().declarados`. Las filas viejas no se borran.
+- **`operator_activities.estado = aprobada`** ahora quiere decir «tiene todo lo
+  propio para SALIR», no «puede publicar».
+- **El anexo es marco v3**, texto de legal generado desde
+  `design/legal/ANEXO-ACTIVIDAD-MARCO-v3-2026-11-23.md` (la prueba
+  `anexo-marco.test.ts` compara las 17 actividades y la clasificación de cada
+  documento). Kéntro firmó un anexo v1 de senderismo: tiene que volver a firmar.
+- **Crear una experiencia con el alta rápida declara la actividad** de la
+  operadora dueña.
+- ⚠️ **Pendiente:** la declaración «no aplica a mis salidas» de `permiso-inah`
+  y `permiso-anp` (anexo, Cuarta) no tiene dónde guardarse; hoy esos dos son
+  opcionales. Y nada BLOQUEA técnicamente una salida sin documentos: se avisa.
 
 ## El gate: `lib/operators/listo-para-vender.ts`
 

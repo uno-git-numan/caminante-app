@@ -47,6 +47,10 @@
     {
       "path": "/caminante/api/cron/confirmar-salidas",
       "schedule": "40 * * * *"
+    },
+    {
+      "path": "/caminante/api/cron/documentos-de-salida",
+      "schedule": "0 15 * * *"
     }
   ]
 }
