@@ -1,17 +1,21 @@
 import "server-only";
 
-// DE DÓNDE SALE LA COMISIÓN DE UN OPERADOR — una sola cadena de autoridad.
+// DE DÓNDE SALE LA COMISIÓN DE UN OPERADOR — tarifa única (23 nov 2026).
 //
-// El orden NO es un fallback cualquiera: va de lo más firmado a lo menos.
+// Convenio v3.5, Tercera §2: «Caminante no pacta con ningún Operador una
+// comisión distinta». La regla es la misma para todas: la tarifa de la casa,
+// 8 % si la operadora trajo al cliente y 12 % si lo trajo Caminante
+// (`comision.ts`). Cuál de las dos lo decide cada venta, no esta función.
 //
-//   1. EL CONVENIO FIRMADO. `operator_agreements.comision_pct` queda congelado al
-//      firmar y la tabla es append-only (0050). Si alguien edita
-//      `operators.commission_pct` de 20 a 18, lo que ese operador firmó sigue
-//      siendo 20 — y la calculadora tiene que decir 20, porque es lo que él va a
-//      reclamar cuando le llegue su corte.
-//   2. LO PACTADO SIN FIRMAR. `operators.commission_pct` — ya se acordó un número
-//      pero el convenio todavía no se firma.
-//   3. LA ESCALA DE LA CASA. Nadie pactó nada: aplica la tabla por tramos.
+//   1. UN CONVENIO FIRMADO CON PORCENTAJE PLANO se sigue respetando: lo firmado
+//      no se le cambia a nadie por un cambio de la casa. Hoy no existe ninguno
+//      (nadie firmó antes de la v3.5) y la firma ya no puede crear uno.
+//   2. TODO LO DEMÁS, la tarifa de la casa.
+//
+// ⚠️ `operators.commission_pct` YA NO SE LEE AQUÍ. Hasta el 23 nov un número en
+// esa columna era «lo pactado sin firmar» y se cobraba como plano: Kéntro traía
+// un 20. Con tarifa única eso sería cobrarle a una operadora —parte relacionada
+// además— algo distinto de lo que dice el convenio que va a firmar.
 //
 // ⚠️ SE RESUELVE POR EL OPERADOR DUEÑO DE LA EXPERIENCIA, no por quien tiene la
 // sesión abierta. Cuando la casa edita la experiencia de Kéntro, el precio que
@@ -25,6 +29,7 @@ import type { Escala, Regla } from "./comision";
 export type ReglaResuelta = {
   regla: Regla;
   /** De dónde salió, para poder decírselo a quien mira la pantalla. */
+  /** `pactada` ya no se produce (tarifa única); se conserva el nombre para las pantallas que lo leen. */
   origen: "convenio" | "pactada" | "escala";
 };
 
@@ -67,14 +72,6 @@ export async function reglaComisionDeOperador(
   if (f?.comision_pct != null) {
     return { regla: { tipo: "plano", pct: Number(f.comision_pct) }, origen: "convenio" };
   }
-
-  const { data: op } = await sb
-    .from("operators")
-    .select("commission_pct")
-    .eq("id", operatorId)
-    .maybeSingle();
-  const pactada = (op as { commission_pct: number | null } | null)?.commission_pct;
-  if (pactada != null) return { regla: { tipo: "plano", pct: Number(pactada) }, origen: "pactada" };
 
   return DE_LA_CASA();
 }

@@ -73,25 +73,16 @@ export default function ConvenioForm({
           gridTemplateColumns: "repeat(auto-fit, minmax(190px,1fr))",
         }}
       >
-        <label style={lbl}>
-          <span>Comisión de plataforma (%)</span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step="0.5"
-            style={inp}
-            value={pct}
-            onChange={(e) => setPct(e.target.value)}
-            placeholder="vacío"
-          />
-          {/* La distinción vacío/cero decide si el panel propone un depósito. */}
+        {/* TARIFA ÚNICA (convenio v3.5, Tercera §2): aquí se capturaba un
+            porcentaje por operadora. Ya no se pacta ninguno, así que se dice
+            cuál es y no se ofrece un campo que el cobro no leería. */}
+        <div style={lbl}>
+          <span>Comisión de plataforma</span>
+          <span style={{ fontSize: 13, color: "var(--ink)" }}>{FRASE_TARIFA}</span>
           <small className="mut" style={hint}>
-            <b>Déjalo vacío</b>: vacío es la comisión fija de la casa ({FRASE_TARIFA}). Un número aquí
-            es un trato distinto pactado con esta operadora, nunca más de 20. 0 = no se cobra comisión.
-            Se congela en cada venta: cambiarlo no toca las pasadas.
+            Fija e igual para todas las operadoras; no se pacta por separado. Se congela en cada venta.
           </small>
-        </label>
+        </div>
 
         <div style={lbl}>
           <span>Datos fiscales</span>

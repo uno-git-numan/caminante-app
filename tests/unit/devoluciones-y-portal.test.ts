@@ -104,7 +104,8 @@ describe("el consentimiento de la facturación desde el portal", () => {
   // del texto publicado en la base (lib/facturacion/uno-bis.ts).
   const VERSIONES_CONOCIDAS: Record<string, string> = {
     "32d3701eff720e8e0e24972f2834e034fb997c3da18a4c958f7ed2ac8383e978": "v3.3 · publicada el 12 nov 2026",
-    "52347e96688bdfad22777b826940e32b4de777b60ddcdd631be02257f568e4df": "v3.4 · preparada por legal el 19 nov 2026, sin publicar",
+    // La v3.4 (52347e96…) nunca se publicó: la v3.5 la absorbió con la comisión fija (D29).
+    "9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1": "v3.5 · comisión fija 12 % y 8 %, preparada por legal el 23 nov 2026",
   };
 
   it("el firmable del repo es una versión conocida del convenio (publicada o preparada)", () => {

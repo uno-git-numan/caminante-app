@@ -104,6 +104,14 @@ export async function finalizeSelfServeCheckout(
     .eq("experience_id", experienceId)
     .neq("status", "cancelled");
   q = slotId ? q.eq("slot_id", slotId) : q.is("slot_id", null);
+  // QUIÉN TRAJO AL CLIENTE (convenio v3.5, Tercera §7: «el desglose de cada
+  // venta indica su origen y la tasa aplicada»). El checkout lo decidió con la
+  // cookie de atribución y lo mandó en `comision_regla` («escala:venta» o
+  // «escala:plataforma»); hasta el 23 nov de 2026 ese dato se quedaba en la
+  // metadata de Stripe y la reserva no lo sabía. Sólo se escribe lo que viene
+  // dicho: sin él, la columna se queda como esté.
+  const origenDeVenta = /^escala:(venta|plataforma)$/.exec(session.metadata?.comision_regla ?? "")?.[1] ?? null;
+  const conOrigen = origenDeVenta ? { escala_comision: origenDeVenta } : {};
   // La política de cancelación que tuvo a la vista al pagar (D23, 0089).
   const politica = pruebaDeMetadata(session.metadata as Record<string, string | undefined> | null);
   const { data: existingResv } = await q.maybeSingle();
@@ -139,6 +147,8 @@ export async function finalizeSelfServeCheckout(
         channel: "web",
         operator_id: operatorId,
         commission_pct: commissionPct,
+        // En una compra adicional manda el origen de la PRIMERA: fue quien lo trajo.
+        ...(esCompraAdicional ? {} : conOrigen),
         ...(notas ? { notes: notas } : {}),
         ...conCodigo,
       })
@@ -159,6 +169,7 @@ export async function finalizeSelfServeCheckout(
         channel: "web",
         operator_id: operatorId,
         commission_pct: commissionPct,
+        ...conOrigen,
         ...(notas ? { notes: notas } : {}),
         ...conCodigo,
         ...(politica ?? {}),

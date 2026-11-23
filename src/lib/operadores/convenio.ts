@@ -169,16 +169,17 @@ export async function firmarConvenio(f: FirmaConvenio): Promise<{ ok: true } | {
   // (`escalaPara`). Escribirle un 20% plano a quien venía por escala le
   // cambiaría el trato hacia arriba —$566 de más en una venta de $21,000— el
   // día que firma, y en silencio. Ver la 0062.
-  const pactada = o.commission_pct == null ? null : Number(o.commission_pct);
-  // ⚠️ LA ESCALA ES EL TRATO POR OMISIÓN (Luis, 9 nov 2026). Aquí se negaba la
-  // firma si no había ni porcentaje pactado ni fecha de arranque, y como
-  // NINGUNA pantalla escribe `comision_desde` (sólo existía por el backfill de
-  // la 0047), toda operadora nueva quedaba esperando a que la casa tecleara
-  // algo para poder firmar. Ahora: sin trato negociado, firma la escala
-  // pública, y la comisión arranca EL DÍA QUE FIRMA. Una fecha que ya existía
-  // se respeta (Nomádika arrancó el 28 ago).
-  const desde = (o.comision_desde as string | null) ?? (pactada == null ? new Date().toISOString() : null);
-  const reglaFirmada = pactada != null ? "plano" : "escala";
+  // ⚠️ TARIFA ÚNICA (v3.5, Tercera §2; Luis, 23 nov 2026). Lo que se firma es
+  // SIEMPRE la tarifa de la casa —8 % y 12 %—, aunque `commission_pct` traiga
+  // un número viejo: el convenio dice que no se pacta una comisión distinta, y
+  // congelarle un plano a quien firma ese texto sería contradecirlo el mismo día.
+  //
+  // La comisión arranca EL DÍA QUE FIRMA (Luis, 9 nov 2026), salvo que ya
+  // tuviera fecha (Nomádika arrancó el 28 ago): ninguna pantalla escribe
+  // `comision_desde`, así que sin esto toda operadora nueva esperaría a la casa.
+  const pactada: number | null = null;
+  const desde = (o.comision_desde as string | null) ?? new Date().toISOString();
+  const reglaFirmada = "escala";
 
   const { error } = await sb.from("operator_agreements").insert({
     operator_id: f.operadorId,
