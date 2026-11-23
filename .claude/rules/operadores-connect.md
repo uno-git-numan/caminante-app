@@ -311,9 +311,16 @@ de Revolut. Lista completa y lo que falta: `design/operadores/ALTA-EN-15-MINUTOS
   si la constancia llega después (sólo mientras no cobre). El nombre de una
   persona física NO se manda: partirlo sería adivinar.
 - **La llamada es un interruptor** (`lib/operadores/llamada.ts`): obligatoria
-  por omisión (hoy). Con `ALTA_LLAMADA=opcional` en Vercel (y un redeploy) la
-  solicitud se aprueba sola al llegar (`lib/admin/aprobar-solicitud.ts`, el
-  núcleo sin guarda, FUERA del archivo `use server`).
+  por omisión en el código. **`ALTA_LLAMADA=opcional` está puesta en Vercel
+  (Production) desde el 23 nov 2026**: la solicitud se aprueba sola al llegar
+  (`lib/admin/aprobar-solicitud.ts`, el núcleo sin guarda, FUERA del archivo
+  `use server`), **salvo con menos de un año operando**, que siempre pasa por
+  llamada (`llamadaObligatoriaPara`).
+- **El alta son cinco pasos y armar es libre** (23 nov 2026, `pasos.ts`):
+  marca → experiencia → documentos → convenio → cuenta de cobro. Experiencias
+  se abre con el panel; publicar pide documentos de arranque, anexo y firma;
+  vender pide además la cuenta. La firma para publicar la vigila `candadosDe`
+  (`publicaLaOperadora`), no el menú. Ver CLAUDE.md.
 
 ## Dónde vive qué
 

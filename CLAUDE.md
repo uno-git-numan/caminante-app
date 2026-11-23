@@ -272,6 +272,39 @@ archivo; una prueba lo compara) · **0094** `operator_no_aplica` (la operadora
 declara que el permiso del INAH o de área protegida no aplica a sus salidas).
 Detalle en `.claude/rules/operadores-connect.md`.
 
+## El alta en cinco pasos: armar es libre (23 nov 2026)
+
+Luis, recorriendo el alta como operadora: primero lo suyo («un taste chingón
+de la página») y lo demás al final, «un tipo de freemium». La operadora nunca
+le paga a Caminante: sólo la comisión por venta.
+
+| Paso | Qué | Qué abre |
+|---|---|---|
+| 01 Tu marca | logo y colores (opcional) | su página con su cara |
+| 02 Tu experiencia | alta rápida + «Ver mi página» | nada: es libre |
+| 03 Tus documentos | constancia + identificación | — |
+| 04 El convenio | una firma | PUBLICAR |
+| 05 Tu cuenta de cobro | donde recibe su dinero | VENDER |
+
+- `lib/operadores/pasos.ts` (puro): `PASOS`, `pasosHechos`, `pasoActual`. Los
+  pasos NO son fila india: cada uno sabe solo si está hecho; «aquí estás» es
+  el primero que falta. La solicitud y la llamada ya no son un paso: son la
+  pantalla de quien espera respuesta y, después, un plegable al pie.
+- **Experiencias se abre con el panel**, no con la firma: el candado
+  `convenio` pasó de `bloquea: "armar"` a `"cobrar"` (`operadoras.ts`).
+- ⚠️ **La regla que cumplía el menú cerrado se mudó a la puerta**: una
+  operadora no se publica sola sin convenio (`candadosDe`,
+  `publicaLaOperadora`; sólo al publicar por PRIMERA vez, una dispensa la
+  abre). La casa sí puede publicar lo de una operadora sin convenio (D6).
+- **La llamada sólo es forzosa con menos de un año** (`ALTA_LLAMADA=opcional`
+  en Vercel desde el 23 nov; `llamadaObligatoriaPara`). Con un año o más la
+  solicitud se aprueba al llegar y entra directo a su panel.
+- **Al aprobar sale UN correo**, la bienvenida con el camino completo.
+  `emailConvenioPorFirmar` quedó sin disparador (pendiente: mandarlo con los
+  documentos aprobados y sin firma, o al publicar una versión nueva).
+- El riel de cinco columnas y el choque `.paso.sel` / `.adm .sel` viven en
+  `mi-alta/pasos-css.ts`, fuera de la hoja generada de la lámina.
+
 ## El espacio del grupo (27 oct 2026)
 
 Una salida privada tiene su **espacio** en `/caminante/g/<token>`: la anfitriona
