@@ -4,6 +4,7 @@ import Candados from "./Candados";
 import RevisarExpediente from "./RevisarExpediente";
 import Dispensas from "./Dispensas";
 import type { DispensaEnPantalla, PorRevisar } from "@/lib/operadores/expediente";
+import { FRASE_TARIFA, TASA_PCT } from "@/lib/operadores/comision";
 
 // LA BIBLIOTECA DE OPERADORAS — una sola pregunta por renglón: ¿puede vender hoy?
 //
@@ -180,7 +181,7 @@ export default function Operadoras({
                                 <s>Arranque de comisión</s>
                                 {o.comisionDesde ? (
                                   <>
-                                    <span>Su comisión del {o.comisionPct}% arranca el</span>
+                                    <span>Su comisión ({o.comisionPct != null ? `${o.comisionPct}%` : FRASE_TARIFA}) arranca el</span>
                                     <b>
                                       {new Date(o.comisionDesde).toLocaleDateString("es-MX", {
                                         day: "numeric",

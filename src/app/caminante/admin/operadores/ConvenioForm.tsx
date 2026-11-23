@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { saveOperatorConvenio, type OperadorLegal } from "@/lib/operators/convenio-actions";
+import { FRASE_TARIFA, TASA_PCT } from "@/lib/operadores/comision";
 
 export default function ConvenioForm({
   id,
@@ -82,12 +83,13 @@ export default function ConvenioForm({
             style={inp}
             value={pct}
             onChange={(e) => setPct(e.target.value)}
-            placeholder="10"
+            placeholder="vacío"
           />
           {/* La distinción vacío/cero decide si el panel propone un depósito. */}
           <small className="mut" style={hint}>
-            Lo que retiene Caminante por venta. <b>Vacío = por definir</b> (el panel no calcula neto).
-            0 = no se cobra comisión. Se congela en cada venta: cambiarlo no toca las pasadas.
+            <b>Déjalo vacío</b>: vacío es la comisión fija de la casa ({FRASE_TARIFA}). Un número aquí
+            es un trato distinto pactado con esta operadora, nunca más de 20. 0 = no se cobra comisión.
+            Se congela en cada venta: cambiarlo no toca las pasadas.
           </small>
         </label>
 

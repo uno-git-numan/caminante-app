@@ -134,7 +134,7 @@ function Firmar({ doc, datos, esAnexo }: { doc: DocFirmable; datos: DatosFirma; 
           <span className="f"><span>Firma por</span><b>{datos.operadora}</b></span>
           <span className="f"><span>RFC</span><b className="mono">{datos.rfc ?? "sin capturar"}</b></span>
           <span className="f"><span>Fecha</span><b className="mono">{fecha(new Date().toISOString())}</b></span>
-          <span className="f"><span>Comisión pactada</span><b>{datos.comision.texto}</b></span>
+          <span className="f"><span>Comisión</span><b>{datos.comision.texto}</b></span>
         </div>
         <Casilla nombre="aceptado" marcada={leido} onToggle={setLeido}>
           Leí {esAnexo ? "el anexo" : "el convenio"} completo y lo acepto a nombre de {datos.operadora}.

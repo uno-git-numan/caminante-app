@@ -10,6 +10,7 @@ import { useState } from "react";
 import { pedirLinkStripe, refrescarConexion, elegirRegimen, releerConstancia, guardarClabeAction } from "@/lib/payments/connect-actions";
 import type { FiscalPrivadoPanel } from "@/lib/operadores/fiscal-privado";
 import { REGIMENES } from "@/lib/facturacion/catalogos";
+import { FRASE_TARIFA, TASA_PCT } from "@/lib/operadores/comision";
 
 export type OperadorCobros = {
   id: string;
@@ -138,7 +139,7 @@ export default function CobrosPanel({
       {listo ? (
         <p className="mut" style={{ fontSize: 13, margin: "8px 0 0", color: "var(--forest)" }}>
           <b>Listo para vender a su nombre.</b> Sus cobros entran a su cuenta de cobro y Numan
-          retiene {o.commissionPct}% como comisión.
+          retiene {o.commissionPct != null ? `${o.commissionPct}%` : `${TASA_PCT.plataforma} % o ${TASA_PCT.venta} % (según quién traiga al cliente)`} como comisión.
         </p>
       ) : !o.stripeAccountId ? (
         <p className="mut" style={{ fontSize: 12.5, margin: "8px 0 0" }}>

@@ -18,6 +18,7 @@ import type { DocEnPantalla } from "@/lib/operadores/expediente";
 import { ANTIGUEDAD, PRIMEROS, TIPOS, etiqueta } from "@/lib/operadores/solicitud-opciones";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
 import MiPagina from "./MiPagina";
+import { FRASE_TARIFA, TASA_PCT } from "@/lib/operadores/comision";
 
 const PUB = <span className="pill pub">Público</span>;
 const INT = <span className="pill int">Interno</span>;
@@ -54,10 +55,10 @@ export default function MiPerfil({ datos, porOtra }: { datos: Datos; porOtra: st
   const general = (slug: string) => e?.generales.find((d) => d.slug === slug) ?? null;
   const vendiendo = datos.estado === "listo";
 
-  const comision =
-    op?.comisionPct !== null && op?.comisionPct !== undefined
-      ? `${op.comisionPct}%${op.comisionDesde ? ` · desde el ${diaEnPalabras(op.comisionDesde)}` : ""}`
-      : null;
+  // Sin porcentaje propio es la tarifa de la casa, no un renglón vacío.
+  const comision = op
+    ? `${op.comisionPct !== null && op.comisionPct !== undefined ? `${op.comisionPct}%` : FRASE_TARIFA}${op.comisionDesde ? ` · desde el ${diaEnPalabras(op.comisionDesde)}` : ""}`
+    : null;
 
   return (
     <div>

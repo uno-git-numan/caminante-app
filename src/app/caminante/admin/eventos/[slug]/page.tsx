@@ -13,6 +13,7 @@ import {
   setExperienceStatusAction,
   deleteExperienceAction,
 } from "@/lib/admin/eventos-actions";
+import { FRASE_TARIFA, TASA_PCT } from "@/lib/operadores/comision";
 
 export const dynamic = "force-dynamic";
 
@@ -268,9 +269,11 @@ export default async function FichaPage({
           <>
             <span className="subtitle">Tu trato</span>
             <div className="extrato">
-              <span className="pct">{ev.miComisionPct != null ? `${ev.miComisionPct}%` : "Por definir"}</span>
+              <span className="pct">{ev.miComisionPct != null ? `${ev.miComisionPct}%` : `${TASA_PCT.plataforma}% · ${TASA_PCT.venta}%`}</span>
               <div className="g">
-                Es la comisión que Caminante toma de cada venta de esta experiencia.{" "}
+                {ev.miComisionPct != null
+                  ? "Es la comisión que Caminante toma de cada venta de esta experiencia. "
+                  : `Es la comisión fija de Caminante: ${TASA_PCT.plataforma} % de cada venta que traes tú y ${TASA_PCT.venta} % de las que te trae Caminante. `}
                 <b style={{ color: "var(--charcoal)", fontWeight: 600 }}>Se congela en cada venta</b>: lo ya
                 vendido nunca cambia de porcentaje, y un ajuste aplica solo a ventas futuras.
               </div>

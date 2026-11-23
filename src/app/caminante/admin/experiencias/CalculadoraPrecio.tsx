@@ -79,10 +79,10 @@ export default function CalculadoraPrecio({
       ? origen === "convenio"
         ? `tu comisión de ${regla.pct}%, la que quedó congelada en tu convenio firmado`
         : `tu comisión pactada de ${regla.pct}%`
-      : "la escala de la casa por tramos (nadie ha pactado un porcentaje todavía)";
+      : "la comisión fija de la casa: 12 % si el cliente llega por Caminante y 8 % si lo traes tú";
 
-  // SI TÚ TRAES AL CLIENTE, TE CAE MÁS. Con la escala, quien trae al cliente paga
-  // la de plataforma —más barata— y por el mismo precio de etiqueta recibe más.
+  // SI TÚ TRAES AL CLIENTE, TE CAE MÁS. Quien trae al cliente paga 8 % y no
+  // 12 %, y por el mismo precio de etiqueta recibe más.
   // Con un porcentaje pactado no hay diferencia, y decirlo evita una expectativa.
   // Lo que factura cada quien. `aCaminante` se DERIVA del precio para que la
   // columna cierre al peso: redondear los dos por separado podía dejarla en
@@ -183,8 +183,8 @@ export default function CalculadoraPrecio({
               ) : null}
               <p className="mut" style={{ fontSize: 11.5, lineHeight: 1.6, marginTop: 8 }}>
                 La comisión se calcula sobre la base <b>sin IVA</b>: se cobra por el servicio, no por
-                un impuesto que se traslada. Entre más caro el ticket, más baja la tasa — por eso un
-                complemento barato paga un porcentaje más alto que el viaje al que se le pega.
+                un impuesto que se traslada. Es la misma tasa para el viaje y para cada complemento, sea
+                cual sea su precio.
               </p>
             </div>
           ) : null}

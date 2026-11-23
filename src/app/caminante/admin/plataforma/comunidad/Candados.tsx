@@ -45,7 +45,7 @@ export function LlaveDeDuenos() {
   return (
     <div className="ownkey">
       <span className="yo">
-        <b>Yo</b>Lo hace la casa: definir comisión, prender el panel, publicarle su experiencia y
+        <b>Yo</b>Lo hace la casa: prender el panel, publicarle su experiencia y
         habilitar Connect.
       </span>
       <span className="el">

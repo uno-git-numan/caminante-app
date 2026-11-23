@@ -56,13 +56,13 @@ export default async function AplicarOperadorPage({
               <div className="opa-oknext">
                 <div className="r"><span className="k">Ahora</span><div><b>Ya tienes tu panel</b><p>Te llegó la bienvenida con la liga para entrar, con este mismo correo.</p></div></div>
                 <div className="r"><span className="k">Hoy</span><div><b>Subes tu expediente</b><p>Tu constancia, tu identificación, tus pólizas. Los leemos al subirlos: no tecleas lo que ya dicen.</p></div></div>
-                <div className="r"><span className="k">Después</span><div><b>Firmas y cobras</b><p>Tu comisión es la escala pública. Si quieres platicar, agendamos una llamada de bienvenida.</p></div></div>
+                <div className="r"><span className="k">Después</span><div><b>Firmas y cobras</b><p>Tu comisión es fija: 8 % si tú traes al cliente y 12 % si te lo traemos nosotros. Si quieres platicar, agendamos una llamada de bienvenida.</p></div></div>
               </div>
             ) : (
             <div className="opa-oknext">
               <div className="r"><span className="k">Ahora</span><div><b>La leemos</b><p>Nos importan tres respuestas: seguro, primeros auxilios y cómo manejaste un incidente.</p></div></div>
               <div className="r"><span className="k">En días</span><div><b>Te escribimos para agendar 30 minutos</b><p>Si encajas, buscamos fecha para la llamada. Si por ahora no, también te lo decimos, y por qué.</p></div></div>
-              <div className="r"><span className="k">Después</span><div><b>Entras a tu panel y subes tu expediente</b><p>En la llamada te contamos qué existe hoy y qué está en camino. Tu comisión es la escala pública, salvo que la platiquemos.</p></div></div>
+              <div className="r"><span className="k">Después</span><div><b>Entras a tu panel y subes tu expediente</b><p>En la llamada te contamos qué existe hoy y qué está en camino. Tu comisión es fija: 8 % si tú traes al cliente y 12 % si te lo traemos nosotros.</p></div></div>
             </div>
             )}
             <div className="cta" style={{ marginTop: 26 }}>

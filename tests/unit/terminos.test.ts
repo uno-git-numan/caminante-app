@@ -6,7 +6,7 @@
 // 2026); estas pruebas fijan lo que no se puede perder en ningún formato.
 import { describe, expect, it } from "vitest";
 import { terminosDe } from "@/lib/operadores/terminos";
-import { tablaDeComisiones } from "@/lib/operadores/comision";
+import { TASA_PCT } from "@/lib/operadores/comision";
 
 const HOY = new Date("2026-09-24T12:00:00Z");
 const base = { responsable: null, operadora: "Kéntro", llamada: null, actividades: [] as string[], rangoPrecio: null };
@@ -19,10 +19,17 @@ describe("terminosDe", () => {
     expect(aviso && "titulo" in aviso ? aviso.titulo : "").toBe("Esto no es el convenio.");
   });
 
-  it("la tabla de comisiones sale de la comisión, no de un número tecleado", () => {
+  it("la comisión son las dos tasas del motor, no un número tecleado", () => {
     const filas = terminosDe(base, HOY).filter((b) => b.t === "fila" && !b.encabezado);
-    // Sin rango de precio no hay tabla de «tu caso»: todas las filas son de la escala.
-    expect(filas).toHaveLength(tablaDeComisiones().length);
+    // Sin rango de precio no hay tabla de «tu caso»: la única fila es la de la comisión.
+    expect(filas).toHaveLength(1);
+    expect(JSON.stringify(filas[0])).toContain(`${TASA_PCT.venta}%`);
+    expect(JSON.stringify(filas[0])).toContain(`${TASA_PCT.plataforma}%`);
+  });
+
+  it("ya no habla de tramos, escalas ni mínimos", () => {
+    const texto = JSON.stringify(terminosDe({ ...base, rangoPrecio: "$5,001 a $15,000 MXN" }, HOY)).toLowerCase();
+    for (const palabra of ["tramo", "escala ", "escalas", "mínimo $"]) expect(texto).not.toContain(palabra);
   });
 
   it("con un rango legible agrega «tu caso»; con uno ilegible, no inventa ejemplo", () => {

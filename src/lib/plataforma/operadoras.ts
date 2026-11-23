@@ -2,6 +2,10 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { convenioAlDia, leerEstado, versionesConvenio } from "@/lib/operadores/convenio";
 import { etapaDe, type Candado, type Etapa } from "./etapas";
+import { TASA_PCT } from "@/lib/operadores/comision";
+
+/** Cómo se le dice a la tarifa de la casa en la ficha: «8 % · 12 % si lo traemos nosotros». */
+const TARIFA_DE_LA_CASA = `${TASA_PCT.plataforma} % · ${TASA_PCT.venta} % si lo traemos nosotros`;
 import { expedientesCompletos } from "@/lib/operadores/expediente";
 import { faltanDeMarca, marcaLista } from "@/lib/operators/marca";
 import type { OperatorBranding } from "@/lib/operators/branding";
@@ -171,8 +175,8 @@ export async function fetchOperadorasPlataforma(): Promise<OperadoraPlataforma[]
           o.commission_pct != null
             ? `${o.commission_pct}% pactado`
             : o.comision_desde
-              ? "Escala pública"
-              : "Escala pública · arranca al firmar",
+              ? TARIFA_DE_LA_CASA
+              : `${TARIFA_DE_LA_CASA} · arranca al firmar`,
         toca: "casa",
         bloquea: "cobrar",
       },

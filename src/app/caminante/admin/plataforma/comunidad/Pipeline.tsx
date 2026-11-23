@@ -9,6 +9,7 @@ import Candados, { LlaveDeDuenos } from "./Candados";
 import SolicitudEnCajon from "./SolicitudEnCajon";
 import { AsgCtl, LoLleva } from "../../ui/asignar/Asignar";
 import { claveTit, objetoDeOperadora as objetoDe, type PersonaParaAsignar, type Titularidad, type Yo } from "@/lib/equipo/atribucion-reglas";
+import { FRASE_TARIFA, TASA_PCT } from "@/lib/operadores/comision";
 
 // EL PIPELINE DE ALTAS — el mismo tablero del CRM de Caminante, otra unidad.
 //
@@ -72,7 +73,7 @@ export default function Pipeline({ ops, tits, equipo, yo }: { ops: OperadoraPlat
                     <span className="sal">{sel.comisionPct}%</span>
                   </>
                 ) : (
-                  " · sin comisión definida"
+                  ` · comisión fija ${TASA_PCT.plataforma} %/${TASA_PCT.venta} %`
                 )}
               </>
             ),

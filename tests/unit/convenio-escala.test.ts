@@ -1,54 +1,38 @@
-// FIRMAR LA ESCALA NO ES FIRMAR UN 20%.
+// FIRMAR LA TARIFA DE LA CASA NO ES FIRMAR UN PORCENTAJE.
 //
-// El convenio congela lo que se cobra. Hasta hoy sólo sabía congelar un
-// NÚMERO, y por eso `firmarConvenio` se negaba en cuanto `commission_pct`
-// venía en NULL — dando por hecho que NULL significa «sin comisión». Es falso
-// desde que existe la escala, y dejaba sin poder firmar justo a la única
-// operadora que ya generó comisión.
+// El convenio congela lo que se cobra. Hasta la 0062 sólo sabía congelar un
+// NÚMERO, y `firmarConvenio` se negaba en cuanto `commission_pct` venía en
+// NULL — dando por hecho que NULL significa «sin comisión». Es falso: NULL es
+// «la tarifa de la casa», que desde el 23 nov de 2026 son DOS tasas fijas
+// (8 % si la operadora trae al cliente, 12 % si lo trae Caminante).
 //
-// Lo que estas pruebas afirman es POR QUÉ no bastaba con escribirle un 20: la
-// escala es marginal por tramos, así que un plano 20% coincide sólo en el
-// primer tramo y de ahí cobra de más. Los números salen del motor que cobra,
-// no de esta prueba.
+// Lo que estas pruebas afirman es POR QUÉ no basta con escribirle un número:
+// un plano no distingue quién trajo al cliente. Los números salen del motor
+// que cobra, no de esta prueba.
 import { describe, expect, it } from "vitest";
-import { comisionDeVenta, sinIva, IVA, tramosPara } from "@/lib/operadores/comision";
+import { comisionDeVenta, sinIva, TASA_PCT } from "@/lib/operadores/comision";
 import { escalaPara } from "@/lib/operadores/atribucion";
 
-const r2 = (x: number) => Math.round(x * 100) / 100;
 const uno = (precio: number) => ({ viaje: { precioUnitario: sinIva(precio), cantidad: 1 } });
-const porEscala = (precio: number) =>
-  comisionDeVenta(uno(precio), { tipo: "escala", escala: "venta" }).monto;
+const porTarifa = (precio: number, escala: "venta" | "plataforma") =>
+  comisionDeVenta(uno(precio), { tipo: "escala", escala }).monto;
 const porPlano = (precio: number, pct: number) =>
   comisionDeVenta(uno(precio), { tipo: "plano", pct }).monto;
 
-describe("la escala y un 20% plano no son lo mismo", () => {
-  it("en el primer tramo coinciden — y por eso el error se ve inofensivo", () => {
-    // $1,750 es el precio de `corral-de-piedra`, las 12 ventas de Nomádika.
-    expect(porEscala(1750)).toBe(porPlano(1750, 20));
-    expect(porEscala(1750)).toBe(301.72);
+describe("la tarifa de la casa y un porcentaje plano no son lo mismo", () => {
+  it("un plano de 8 coincide cuando ella trae al cliente, y cobra de menos cuando lo trae Caminante", () => {
+    expect(porPlano(1750, TASA_PCT.plataforma)).toBe(porTarifa(1750, "plataforma"));
+    expect(porPlano(1750, TASA_PCT.plataforma)).toBeLessThan(porTarifa(1750, "venta"));
   });
 
-  it("arriba del primer tramo, el plano cobra de más, y crece", () => {
-    const deMas = (precio: number) => r2(porPlano(precio, 20) - porEscala(precio));
-    expect(deMas(6000)).toBe(43.45);
-    expect(deMas(12000)).toBe(193.8);
-    expect(deMas(21000)).toBe(566.21);
-    // Lo que de verdad sale del bolsillo de la operadora lleva IVA encima: la
-    // retención de Stripe es comisión × 1.16.
-    expect(r2(deMas(21000) * (1 + IVA))).toBe(656.8);
-  });
-
-  it("la escala BAJA por tramos; un plano es una recta", () => {
-    const tasas = tramosPara("venta").map((t) => t.pct);
-    expect(tasas[0]).toBeGreaterThan(tasas[tasas.length - 1]);
-    // Y por eso el porcentaje efectivo de la escala baja conforme sube el precio.
-    const efectivo = (precio: number) => porEscala(precio) / sinIva(precio);
-    expect(efectivo(21000)).toBeLessThan(efectivo(1750));
+  it("un plano de 12 le cobraría de más cada vez que ella trae a su propio cliente", () => {
+    expect(porPlano(12000, TASA_PCT.venta)).toBe(porTarifa(12000, "venta"));
+    expect(porPlano(12000, TASA_PCT.venta)).toBeGreaterThan(porTarifa(12000, "plataforma"));
   });
 });
 
-describe("cuál escala aplica NO es del operador, es de cada venta", () => {
-  // Por eso el convenio congela el TIPO de trato y no una de las dos tablas:
+describe("cuál de las dos tasas aplica NO es del operador, es de cada venta", () => {
+  // Por eso el convenio congela el TIPO de trato y no una de las dos tasas:
   // fijar «plataforma» en el papel sería prometer algo que el cobro no cumple.
   const OP = "op-1";
 
@@ -65,7 +49,7 @@ describe("cuál escala aplica NO es del operador, es de cada venta", () => {
     expect(escalaPara(null, OP)).toBe("venta");
   });
 
-  it("y las dos tablas dan números distintos para la misma venta", () => {
+  it("y las dos tasas dan números distintos para la misma venta", () => {
     const v = comisionDeVenta(uno(12000), { tipo: "escala", escala: "venta" }).monto;
     const p = comisionDeVenta(uno(12000), { tipo: "escala", escala: "plataforma" }).monto;
     expect(v).not.toBe(p);

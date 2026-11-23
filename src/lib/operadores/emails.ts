@@ -37,7 +37,7 @@ export async function emailConfirmacionOperador(to: string, responsable: string 
   const correo = shell([
     h1(`Recibimos tu solicitud${n}.`),
     p("Gracias por querer operar con nosotros. El programa es curado: leemos cada solicitud con calma, sobre todo el paso de cómo cuidas a la gente."),
-    p("Si hace clic, te escribimos para agendar una llamada de 30 minutos. Ahí cerramos números y te decimos con claridad qué existe hoy en la plataforma y qué está en camino."),
+    p("Si hace clic, te escribimos para agendar una llamada de 30 minutos. Ahí resolvemos tus dudas y te decimos con claridad qué existe hoy en la plataforma y qué está en camino."),
     p("Si no es por ahora, también te lo decimos — no dejamos a nadie en visto."),
   ]);
   return enviar(to, "Recibimos tu solicitud para operar con Caminante", correo);
@@ -117,13 +117,13 @@ export async function emailInvitacionLlamada(
   // correos distintos con el mismo asunto, según con qué lo abrieras.
   const cuerpo = mensaje.trim()
     ? parrafosDe(mensaje)
-    : [p("Son 30 minutos por video: nos cuentas cómo operas, cerramos números y te decimos con claridad qué existe hoy en la plataforma y qué está en camino.")];
+    : [p("Son 30 minutos por video: nos cuentas cómo operas, resolvemos tus dudas y te decimos con claridad qué existe hoy en la plataforma y qué está en camino.")];
   const correo = shell([
     h1(`Nos vemos el ${esc(cuandoTxt)}${n}.`),
     p(`<b>${esc(cuandoTxt)}</b>, hora del centro de México. Te adjuntamos el evento para que se meta a tu calendario.`),
     ...cuerpo,
     boton("Entrar a la llamada", meetUrl),
-    p("Va adjunto un <b>resumen de términos</b> de dos páginas: la tabla de comisiones con tus propios números, qué te vamos a pedir y cómo se te paga. <b>Léelo antes y anota tus dudas</b> — la llamada rinde mucho más si llegas con las preguntas escritas. No es el convenio: ese es otro documento y se firma después."),
+    p("Va adjunto un <b>resumen de términos</b> de dos páginas: la comisión (fija) con tus propios números, qué te vamos a pedir y cómo se te paga. <b>Léelo antes y anota tus dudas</b> — la llamada rinde mucho más si llegas con las preguntas escritas. No es el convenio: ese es otro documento y se firma después."),
     p("La liga también vive en tu panel, en «Mi alta»: si borras este correo, la llamada no se pierde. Si esa hora no te queda, respóndenos y la movemos."),
   ]);
 

@@ -19,7 +19,7 @@
 //
 // ⚠️ NO ES EL CONVENIO, y lo dice en su primer bloque. Ver `terminos-pdf.ts`.
 
-import { IVA, MINIMO_POR_RESERVA, TOPE, comisionPara, pesos, tablaDeComisiones } from "./comision";
+import { IVA, TASA_PCT, comisionPara } from "./comision";
 import { ACTIVIDADES, GENERALES, nombreDeActividad, requisitosDe } from "./actividades";
 
 export type DatosTerminos = {
@@ -168,25 +168,17 @@ export function terminosDe(d: DatosTerminos, hoy: Date = new Date()): BloqueTerm
 
   b.titulo("La comisión");
   b.parrafo(
-    "Se calcula por tramos sobre el precio de cada boleto, sin IVA, y no es una tasa plana: cada pedazo del " +
-      "precio paga su tasa. Hay dos escalas, y lo que las separa es quién trajo al cliente.",
+    "Es fija y es la misma para todas las operadoras. Son dos tasas, y lo único que las separa es quién " +
+      "trajo al cliente. Se calcula sobre el precio de cada boleto, sin IVA.",
     { color: "olivo", size: 10 },
   );
   b.espacio(6);
-  b.fila("Tramo del precio por persona", "Te lo traemos", "Lo traes tú", { encabezado: true });
-  // ⚠️ `tablaDeComisiones()` y no `tramosPara()`: la segunda fusiona los tramos
-  // de tasa igual y una tabla de dos columnas armada con eso sale con huecos.
-  for (const t of tablaDeComisiones()) {
-    b.fila(
-      t.hasta ? `De ${miles(t.desde)} a ${miles(t.hasta)}` : `De ${miles(t.desde)} en adelante`,
-      `${Math.round(t.venta * 100)}%`,
-      `${Math.round(t.plataforma * 100)}%`,
-    );
-  }
+  b.fila("", "Te lo traemos", "Lo traes tú", { encabezado: true });
+  b.fila("Comisión sobre cada venta", `${TASA_PCT.venta}%`, `${TASA_PCT.plataforma}%`);
   b.espacio(6);
   b.parrafo(
-    `Todos los montos en pesos mexicanos. Mínimo ${pesos(MINIMO_POR_RESERVA)} por reserva, y nunca más del ${Math.round(TOPE * 100)}% de lo cobrado — ` +
-      `el mínimo no puede volverse una tasa alta en una venta chica. Más IVA (${Math.round(IVA * 100)}%) sobre la comisión.`,
+    "No hay escalones ni mínimo por reserva: la misma tasa para una caminata de un día que para una travesía. " +
+      `El cobro con tarjeta va incluido, no se te descuenta aparte. Más IVA (${Math.round(IVA * 100)}%) sobre la comisión.`,
     { size: 9.5, color: "olivo" },
   );
 
@@ -205,11 +197,7 @@ export function terminosDe(d: DatosTerminos, hoy: Date = new Date()): BloqueTerm
         miles(precio - cp.monto),
       );
     }
-    b.parrafo(
-      "Sobre el precio sin IVA y antes de tus propios costos. La comisión efectiva baja conforme sube el " +
-        "boleto, porque los tramos de arriba pagan menos.",
-      { size: 9.5, color: "olivo" },
-    );
+    b.parrafo("Sobre el precio sin IVA y antes de tus propios costos.", { size: 9.5, color: "olivo" });
   }
 
   b.titulo("Cómo se te paga");
@@ -251,7 +239,7 @@ export function terminosDe(d: DatosTerminos, hoy: Date = new Date()): BloqueTerm
   );
   b.espacio(4);
   for (const q of [
-    "¿Quién trae a mis clientes, y por lo tanto qué escala me aplica?",
+    "¿Quién trae a mis clientes, y por lo tanto cuál de las dos tasas me aplica?",
     "¿Qué pasa si una salida se cancela o alguien pide reembolso?",
     "¿Quién factura al viajero, y quién factura la comisión?",
     "¿Cuánto tarda en revisarse mi expediente, y qué pasa mientras tanto?",

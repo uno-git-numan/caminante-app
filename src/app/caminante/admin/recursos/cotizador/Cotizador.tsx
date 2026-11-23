@@ -52,7 +52,7 @@ export default function Cotizador({
 
   const op = operadores.find((o) => o.id === operatorId);
 
-  // La regla sale del operador; el interruptor solo elige ESCALA, y solo cuando
+  // La regla sale del operador; el interruptor solo elige TASA (8 o 12), y solo cuando
   // no hay número pactado. Con convenio firmado el % está congelado y ninguna
   // casilla de esta pantalla puede moverlo — decirlo en voz alta abajo.
   const regla: Regla = useMemo(() => {
@@ -140,10 +140,10 @@ export default function Cotizador({
             <span className="h">
               {op
                 ? op.origen === "convenio"
-                  ? `convenio firmado · ${op.regla.tipo === "plano" ? op.regla.pct + "%" : "escala"} congelado`
+                  ? `convenio firmado · ${op.regla.tipo === "plano" ? op.regla.pct + "% congelado" : "comisión fija de la casa"}`
                   : op.origen === "pactada"
-                    ? `pactado sin firmar · ${op.regla.tipo === "plano" ? op.regla.pct + "%" : "escala"}`
-                    : "sin convenio · aplica la escala de la casa"
+                    ? `pactado sin firmar · ${op.regla.tipo === "plano" ? op.regla.pct + "%" : "comisión fija de la casa"}`
+                    : "sin convenio · aplica la comisión fija de la casa"
                 : "la venta es de Caminante"}
             </span>
           </label>
@@ -479,7 +479,7 @@ export default function Cotizador({
             <div className="v">{mx(c.comision)}</div>
             <div className="g">
               {pct(c.pctComision)} efectivo ·{" "}
-              {regla.tipo === "plano" ? `${regla.pct}% pactado` : `escala ${regla.escala}`}
+              {regla.tipo === "plano" ? `${regla.pct}% pactado` : regla.escala === "venta" ? "lo trae Caminante" : "lo trae la operadora"}
             </div>
           </div>
           <div>

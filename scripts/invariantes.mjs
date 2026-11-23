@@ -575,109 +575,66 @@ const REGLAS = [
       const src = leer("src/lib/operadores/comision.ts");
       if (!src) return "Falta src/lib/operadores/comision.ts — es el ÚNICO lugar donde vive una tasa de comisión.";
 
-      // Cada tramo se escribe `[8_000, 0.18]` o `[Infinity, 0.14]`.
-      const tramos = [...src.matchAll(/\[\s*(?:Infinity|[\d_]+)\s*,\s*(0?\.\d+)\s*\]/g)].map((m) =>
-        Number(m[1]),
-      );
-      if (!tramos.length) return "No se encontró ni un tramo en comision.ts: o cambió el formato de la tabla o la tabla desapareció. Revísalo a mano.";
+      // Desde el 23 nov de 2026 la comisión es FIJA: dos tasas en `TASA`,
+      // `venta: 0.12` y `plataforma: 0.08`. Antes era una tabla de tramos.
+      const tasas = tasasDeComision(src);
+      if (!tasas) return "No pude leer las dos tasas de `TASA` en comision.ts: o cambió el formato o desaparecieron. Revísalo a mano.";
 
       const TOPE = 0.2;
-      const pasados = tramos.filter((t) => t > TOPE + 1e-9);
-      if (pasados.length) {
+      const pasadas = Object.entries(tasas).filter(([, t]) => t > TOPE + 1e-9);
+      if (pasadas.length) {
         return [
-          `Hay ${pasados.length} tasa(s) por encima del 20%: ${pasados.map((t) => (t * 100).toFixed(0) + "%").join(", ")}.`,
+          `Hay tasa(s) por encima del 20%: ${pasadas.map(([k, t]) => `${k} ${(t * 100).toFixed(0)}%`).join(", ")}.`,
           "",
-          "El tope de 20% es una decisión de Luis, no una preferencia.",
+          "El tope de 20% es una decisión de Luis y una obligación del convenio",
+          "(Tercera §4), no una preferencia.",
           "",
           "Ya estuvo roto entre el 18 ago y el 3 sep de 2026 sin que nadie lo viera:",
-          "la tabla nació del research de mercado con 25% y 22% arriba, y cuando se",
-          "fijó el tope nadie la corrigió. No se notaba porque el porcentaje siempre",
-          "se miraba contra el ticket completo —una travesía de $32,197 sale en",
-          "19.71% y parece que respeta el tope— y solo salió al tarifar POR OBJETO:",
-          "un complemento de $6,778 caía en los dos primeros tramos y pagaba 23.33%.",
+          "la tabla de entonces nació con 25% y 22% arriba, y cuando se fijó el tope",
+          "nadie la corrigió.",
           "",
           "Si de verdad hay que subir el tope, cámbialo AQUÍ y en comision.ts a la vez.",
         ].join("\n");
-      }
-
-      // Las tasas de cada escala tienen que ir de mayor a menor. Si una subiera,
-      // la tasa efectiva dejaría de bajar con el precio y «entre más cara, más
-      // baja» se volvería mentira — el discurso que se le vende al operador.
-      for (const nombre of ["VENTA", "PLATAFORMA"]) {
-        // Del `const NOMBRE` hasta su PRIMER `];`. Sin ese corte, el bloque de
-        // VENTA se tragaba el de PLATAFORMA y la comprobación de monotonía leía
-        // el salto entre las dos escalas como si fuera un tramo que sube.
-        const desde = src.indexOf(`const ${nombre}`);
-        if (desde < 0) continue;
-        const hasta = src.indexOf("];", desde);
-        const bloque = src.slice(desde, hasta < 0 ? undefined : hasta);
-        const tasas = [...bloque.matchAll(/,\s*(0?\.\d+)\s*\]/g)].map((m) => Number(m[1]));
-        for (let i = 1; i < tasas.length; i++) {
-          if (tasas[i] > tasas[i - 1]) {
-            return `En la escala ${nombre} la tasa SUBE del tramo ${i} al ${i + 1} (${tasas[i - 1]} → ${tasas[i]}). Con tramos marginales eso rompe «entre más cara la venta, más baja la tasa», que es justo lo que se le promete al operador.`;
-          }
-        }
       }
       return null;
     },
   },
   {
-    nombre: "La escala de plataforma nunca cobra más que la de venta",
+    nombre: "La comisión es fija, y traer al cliente nunca cuesta más",
     comprueba() {
       const src = leer("src/lib/operadores/comision.ts");
       if (!src) return null; // ya lo reporta la regla del tope
+      const tasas = tasasDeComision(src);
+      if (!tasas) return null; // ídem
 
-      // Cada escala, de su `const NOMBRE` hasta su PRIMER `];`. Mismo corte que
-      // usa la regla del tope, y por la misma razón: sin él, VENTA se traga el
-      // bloque de PLATAFORMA.
-      const escala = (nombre) => {
-        const desde = src.indexOf(`const ${nombre}`);
-        if (desde < 0) return null;
-        const hasta = src.indexOf("];", desde);
-        const bloque = src.slice(desde, hasta < 0 ? undefined : hasta);
-        return [...bloque.matchAll(/\[\s*(Infinity|[\d_]+)\s*,\s*(0?\.\d+)\s*\]/g)].map((m) => ({
-          tope: m[1] === "Infinity" ? Infinity : Number(m[1].replace(/_/g, "")),
-          tasa: Number(m[2]),
-        }));
-      };
-
-      const venta = escala("VENTA");
-      const plataforma = escala("PLATAFORMA");
-      if (!venta?.length || !plataforma?.length) {
-        return "No se pudieron leer las dos escalas de comision.ts. O cambió el formato de las tablas o una desapareció; revísalo a mano antes de deployar.";
+      // 1 · La operadora que trae a su cliente nunca paga más que cuando se lo
+      // trae Caminante.
+      if (tasas.plataforma > tasas.venta + 1e-9) {
+        return [
+          `PLATAFORMA cobra ${(tasas.plataforma * 100).toFixed(0)}% y VENTA ${(tasas.venta * 100).toFixed(0)}%.`,
+          "",
+          "Eso está al revés. VENTA se cobra cuando Caminante ENTREGA el cliente —su",
+          "audiencia, su contenido, su canal— y PLATAFORMA cuando la operadora trae",
+          "al suyo y solo usa los rieles. Si la segunda cobra más, traer clientes",
+          "propios se castiga.",
+        ].join("\n");
       }
 
-      // Los cortes tienen que ser los MISMOS en las dos escalas. Si no, comparar
-      // renglón contra renglón no significa nada — y el convenio, que las
-      // presenta como una sola tabla de dos columnas, estaría mintiendo.
-      if (venta.length !== plataforma.length) {
-        return `VENTA tiene ${venta.length} tramos y PLATAFORMA ${plataforma.length}. Las dos escalas tienen que compartir cortes: el convenio las publica como UNA tabla de dos columnas, y con cortes distintos ese renglón no existe.`;
-      }
-      for (let i = 0; i < venta.length; i++) {
-        if (venta[i].tope !== plataforma[i].tope) {
-          const f = (n) => (Number.isFinite(n) ? "$" + n.toLocaleString("es-MX") : "infinito");
-          return `El corte ${i + 1} no coincide: VENTA hasta ${f(venta[i].tope)} y PLATAFORMA hasta ${f(plataforma[i].tope)}. Las dos escalas comparten cortes a propósito.`;
-        }
-      }
-
-      // Y la de plataforma nunca puede cobrar más que la de venta.
-      for (let i = 0; i < venta.length; i++) {
-        if (plataforma[i].tasa > venta[i].tasa + 1e-9) {
-          return [
-            `En el tramo ${i + 1} PLATAFORMA cobra ${(plataforma[i].tasa * 100).toFixed(0)}% y VENTA ${(venta[i].tasa * 100).toFixed(0)}%.`,
-            "",
-            "Eso está al revés y le quita el sentido a tener dos escalas. VENTA se",
-            "cobra cuando Caminante ENTREGA el cliente —su audiencia, su contenido,",
-            "su canal— y PLATAFORMA cuando el operador trae al suyo y solo usa los",
-            "rieles. Si la segunda cobra igual o más, traer clientes propios deja de",
-            "premiarse y el operador no tiene por qué hacerlo.",
-            "",
-            "Ya pasó, y en silencio: hasta el 8 sep 2026 las dos escalas arrancaban",
-            "en 20% y solo se separaban 1.2 puntos en el ticket promedio. Nadie lo",
-            "vio porque cada tabla se revisaba sola; el problema solo aparece al",
-            "ponerlas una junto a la otra. Por eso este guardián las compara.",
-          ].join("\n");
-        }
+      // 2 · Fija quiere decir sin tramos. Un `[8_000, 0.18]` en este archivo es
+      // la escala de antes volviendo por la puerta de atrás: el convenio, la
+      // página de operadoras, el resumen de términos y la carátula de firma
+      // dicen «8 % y 12 %», y con tramos todos mentirían a la vez.
+      const sinComentarios = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+      const tramos = [...sinComentarios.matchAll(/\[\s*(?:Infinity|[\d_]+)\s*,\s*0?\.\d+\s*\]/g)];
+      if (tramos.length) {
+        return [
+          `comision.ts volvió a tener ${tramos.length} tramo(s) (${tramos[0][0]}…).`,
+          "",
+          "Luis, 23 nov 2026: «que no se quede la comisión escalonada y sea fija del",
+          "8% para todos parejo». Si la decisión cambió, hay que cambiar a la vez el",
+          "convenio (lo redacta legal), la página /caminante/operadores, el resumen",
+          "de términos, la carátula de firma y este guardián.",
+        ].join("\n");
       }
       return null;
     },
@@ -931,6 +888,24 @@ const REGLAS = [
 
 // ── Autoprueba: comprobar que las reglas SÍ detectan lo que dicen detectar ────
 // Sin esto un guardián puede quedarse callado para siempre y nadie se entera.
+/**
+ * Las dos tasas fijas de `comision.ts`, leídas del bloque `export const TASA`.
+ * Devuelve null si no encuentra las dos: quien llama decide qué decir.
+ */
+function tasasDeComision(src) {
+  const desde = src.indexOf("export const TASA");
+  if (desde < 0) return null;
+  const hasta = src.indexOf("};", desde);
+  const bloque = src.slice(desde, hasta < 0 ? undefined : hasta);
+  const de = (clave) => {
+    const m = bloque.match(new RegExp(`\\b${clave}:\\s*(0?\\.\\d+)`));
+    return m ? Number(m[1]) : null;
+  };
+  const venta = de("venta");
+  const plataforma = de("plataforma");
+  return venta == null || plataforma == null ? null : { venta, plataforma };
+}
+
 function autoprueba() {
   const casos = [
     {

@@ -16,7 +16,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { OPA_CSS } from "@/lib/operadores/opa-css";
-import { tramosPara, comisionPara, type Escala } from "@/lib/operadores/comision";
+import { TASA_PCT, type Escala } from "@/lib/operadores/comision";
 
 export const metadata: Metadata = {
   title: "Caminante · Para operadores",
@@ -181,58 +181,35 @@ export default function OperadoresPage() {
           <div className="opa-narrow">
             <span className="opa-eyb neg"><i>{"//"}</i> Cómo ganas</span>
             <h2 className="opa-h2" style={{ color: "#fff", margin: "12px 0 14px" }}>
-              Entre más cara la experiencia, <em>más baja nuestra comisión.</em>
+              Una comisión fija, <em>y más baja si tú traes al cliente.</em>
             </h2>
             <p className="opa-lead neg">
-              La escala es inversa al precio por persona. Tres escalones, sin letra chica escondida.
+              Dos tasas y nada más. Sin escalones ni mínimos: la misma para una caminata de un día que para una travesía.
             </p>
             {/*
-              DOS escalas, no una. Se muestran las dos porque la diferencia es
-              la palanca más grande que tiene el operador, y esconderla haría
-              que la llamada empezara con una sorpresa.
-              Los porcentajes salen de `lib/operadores/comision.ts` — jamás se
-              escriben a mano aquí.
+              LAS DOS tasas, una junto a la otra: la diferencia es la palanca
+              más grande que tiene la operadora, y esconderla haría que la
+              llamada empezara con una sorpresa. Los porcentajes salen de
+              `lib/operadores/comision.ts` — jamás se escriben a mano aquí.
             */}
-            {(["venta", "plataforma"] as Escala[]).map((escala) => (
-              <div key={escala} className="opa-glass" style={{ marginTop: 24, padding: "6px 20px" }}>
-                <div className="opa-tramos neg">
-                  <div className="opa-tramo" style={{ borderBottom: "none" }}>
+            <div className="opa-glass" style={{ marginTop: 24, padding: "6px 20px" }}>
+              <div className="opa-tramos neg">
+                {(["plataforma", "venta"] as Escala[]).map((escala) => (
+                  <div className="opa-tramo" key={escala}>
                     <span className="rng">
-                      <small>{escala === "venta" ? "Nosotros vendemos" : "Tú traes a tu cliente"}</small>
-                      {escala === "venta"
-                        ? "Te llenamos la salida"
-                        : "Solo usas la plataforma"}
+                      <small>{escala === "venta" ? "Nosotros te lo traemos" : "Tú traes a tu cliente"}</small>
+                      {escala === "venta" ? "Llega por Caminante" : "Sólo usas la plataforma"}
                     </span>
+                    <span className="pct">{TASA_PCT[escala]}%</span>
                   </div>
-                  {tramosPara(escala).map((t) => (
-                    <div className="opa-tramo" key={t.desde}>
-                      <span className="rng">
-                        <small>Precio por persona</small>
-                        {t.hasta === null
-                          ? `Más de $${t.desde.toLocaleString("es-MX")} MXN`
-                          : t.desde === 0
-                            ? `Hasta $${t.hasta.toLocaleString("es-MX")} MXN`
-                            : `$${(t.desde + 1).toLocaleString("es-MX")} – $${t.hasta.toLocaleString("es-MX")} MXN`}
-                      </span>
-                      <span className="pct">{Math.round(t.pct * 100)}%</span>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
             <div className="opa-notes neg">
-              <div>
-                <s>{"//"}</s>
-                <span>
-                  La tasa aplica por tramo, no al total — como el ISR. Un viaje de{" "}
-                  ${(16_500).toLocaleString("es-MX")} paga{" "}
-                  {Math.round(comisionPara(16_500, "plataforma").pctEfectivo * 100)}% si tú
-                  traes al cliente.
-                </span>
-              </div>
+              <div><s>{"//"}</s><span>Sobre el precio sin IVA. El cobro con tarjeta va incluido: no se te descuenta aparte.</span></div>
+              <div><s>{"//"}</s><span>Es la misma para todas las operadoras.</span></div>
               <div><s>{"//"}</s><span>La comisión se congela en cada venta: lo ya vendido nunca cambia.</span></div>
               <div><s>{"//"}</s><span>Te pagamos a los 7 días del regreso.</span></div>
-              <div><s>{"//"}</s><span>El porcentaje exacto se cierra en el convenio.</span></div>
             </div>
           </div>
         </div>
@@ -266,7 +243,7 @@ export default function OperadoresPage() {
           <h2 className="opa-h2" style={{ color: "#fff", margin: "12px 0 14px" }}>Cuatro pasos, <em>en orden.</em></h2>
           <div className="opa-grid" style={{ marginTop: 24 }}>
             <article className="opa-glass"><span className="k">Paso 01</span><h3>Aplicas</h3><p>Quince campos. Ni un documento todavía; lo suficiente para saber si vale la llamada.</p></article>
-            <article className="opa-glass"><span className="k">Paso 02</span><h3>Hablamos 30 minutos</h3><p>Aquí se cierra la comisión y te decimos con claridad qué existe y qué está en camino.</p></article>
+            <article className="opa-glass"><span className="k">Paso 02</span><h3>Hablamos 30 minutos</h3><p>Resolvemos tus dudas y te decimos con claridad qué existe y qué está en camino.</p></article>
             <article className="opa-glass"><span className="k">Paso 03</span><h3>Nos compartes tus documentos</h3><p>Un link privado con la lista completa: póliza, fiscal, certificados, protocolo, permisos.</p></article>
             <article className="opa-glass"><span className="k">Paso 04</span><h3>Publicamos tu primera experiencia juntos</h3><p>La armamos contigo y la primera salida va acompañada.</p></article>
           </div>

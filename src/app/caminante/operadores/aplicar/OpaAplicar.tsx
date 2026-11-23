@@ -380,7 +380,7 @@ export default function OpaAplicar({ duplicada }: { duplicada: boolean }) {
               <option>$5,001 a $15,000 MXN</option>
               <option>Más de $15,000 MXN</option>
             </select>
-            <p className="help">Este dato define tu escalón de comisión: entre más cara la experiencia, más baja.</p>
+            <p className="help">Nos ayuda a enseñarte cuánto te queda con tus propios números. La comisión es la misma para cualquier precio.</p>
             <p className="errmsg">{"//"} Elige un rango de la lista</p>
           </div>
         </section>

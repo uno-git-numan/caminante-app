@@ -181,7 +181,7 @@ export function operadorListo(
   // la operadora no genera comisión sobre nada (0047). Eso es lo que se exige.
   if (op?.commission_pct == null && !op?.comision_desde?.trim()) {
     faltantes.push(
-      "El operador no genera comisión todavía: no tiene un porcentaje pactado ni fecha de arranque. Con el cobro a su nombre, Numan no retendría nada. Se define en su ficha antes de vender.",
+      "El operador no genera comisión todavía: le falta la fecha de arranque, que se escribe sola al firmar el convenio. Con el cobro a su nombre, Numan no retendría nada.",
     );
   }
 

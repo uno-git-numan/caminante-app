@@ -38,15 +38,25 @@ describe("planDeCobro", () => {
   const base = sinIva(1750);
   const comision = comisionDeVenta({ viaje: { precioUnitario: base, cantidad: 1 } }, { tipo: "escala", escala: "venta" }).monto;
 
-  it("una venta de $1,750: comisión $350, retención $158.40, a la operadora $1,241.60", () => {
+  it("una venta de $1,750 que trajo Caminante: se separan $209.99, retención $158.40, a la operadora $1,381.61", () => {
     const p = planDeCobro(lista, comision, 1750, EN_2026);
     expect(p.canal).toBe("connect");
     if (p.canal === "connect") {
       expect(p.cuenta).toBe("acct_operadora");
-      expect(p.retenidoMxn).toBe(350);
+      expect(p.retenidoMxn).toBe(209.99); // 12 % = $181.03, más su IVA
       expect(p.retencion.isr).toBe(37.71); // truncado (M15)
       expect(p.retencion.iva).toBe(120.69);
-      expect(p.transferCentavos).toBe(124160);
+      expect(p.transferCentavos).toBe(138161);
+    }
+  });
+
+  it("la misma venta, traída por la operadora: se separan $140.00 y le llegan $1,451.60", () => {
+    const suya = comisionDeVenta({ viaje: { precioUnitario: base, cantidad: 1 } }, { tipo: "escala", escala: "plataforma" }).monto;
+    const p = planDeCobro(lista, suya, 1750, EN_2026);
+    expect(p.canal).toBe("connect");
+    if (p.canal === "connect") {
+      expect(p.retenidoMxn).toBe(140); // 8 % = $120.69, más su IVA
+      expect(p.transferCentavos).toBe(145160);
     }
   });
 
@@ -86,12 +96,12 @@ describe("planDeCobro", () => {
     const dos = comisionDeVenta({ viaje: { precioUnitario: base, cantidad: 2 } }, { tipo: "escala", escala: "venta" }).monto;
     const p = planDeCobro(lista, dos, 3500, EN_2026);
     if (p.canal === "connect") {
-      expect(dos).toBe(603.44);
-      // 603.44 × 1.16 = 699.9904 → $699.99, no $700. El centavo se pierde
+      expect(dos).toBe(362.06);
+      // 362.06 × 1.16 = 419.9896 → $419.99, no $420. El centavo se pierde
       // porque la comisión YA venía redondeada a centavos por cabeza
-      // (301.72 × 2), y el IVA se aplica sobre esa suma. Es el mismo criterio
+      // (181.03 × 2), y el IVA se aplica sobre esa suma. Es el mismo criterio
       // que usa el CFDI: se factura sobre lo cobrado, no sobre un ideal.
-      expect(p.retenidoMxn).toBe(699.99);
+      expect(p.retenidoMxn).toBe(419.99);
     }
   });
 });

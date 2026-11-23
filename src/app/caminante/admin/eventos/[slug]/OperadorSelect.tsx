@@ -47,7 +47,7 @@ export default function OperadorSelect({
         {operadores.map((o) => (
           <option key={o.id} value={o.id}>
             {o.name}
-            {o.commissionPct == null ? " · % por definir" : ` · ${o.commissionPct}%`}
+            {o.commissionPct == null ? " · comisión fija" : ` · ${o.commissionPct}% pactado`}
           </option>
         ))}
       </select>

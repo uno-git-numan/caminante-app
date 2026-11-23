@@ -9,6 +9,7 @@ import "server-only";
 // script, sin reescribirlo: es lo que decide qué texto se firma y con qué
 // comisión, y una segunda copia es la que un día firma otra cosa.
 
+import { TASA_PCT } from "./comision";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { versionesConvenio, leerEstado } from "./convenio";
 import { estadoDeAnexos, documentoDelAnexo } from "./subconvenio";
@@ -83,19 +84,20 @@ export async function datosDeFirma(operatorId: string): Promise<DatosFirma> {
   // cobrado a Nomádika sus 12 ventas. La única operadora que ya generó comisión
   // era justo la que no podía firmar. Ver la 0062.
   const pct = o.commission_pct == null ? null : Number(o.commission_pct);
-  const arranca = !!(o.comision_desde as string | null);
+  // Sin porcentaje propio firma la tarifa de la casa, con o sin fecha de
+  // arranque: `firmarConvenio` la escribe al firmar (9 nov 2026). Antes una
+  // operadora nueva leía aquí «sin definir todavía» y un aviso de que faltaba
+  // acordar su comisión, cuando no había nada que acordar.
   const comision: DatosFirma["comision"] =
     pct != null
       ? { tipo: "plano", texto: `${pct}% sobre cada venta cobrada` }
-      : arranca
-        ? {
-            tipo: "escala",
-            // No se promete una sola escala: cuál aplica lo decide cada venta,
-            // según quién trajo al cliente. Decir «15%» aquí sería prometer un
-            // número que el cobro no cumple.
-            texto: "la tabla de la casa, por tramos — baja conforme sube el precio",
-          }
-        : { tipo: "sin-definir", texto: "sin definir todavía" };
+      : {
+          tipo: "escala",
+          // Las DOS tasas, no una: cuál aplica lo decide cada venta, según
+          // quién trajo al cliente. Decir sólo «8 %» sería prometer un número
+          // que el cobro no cumple cuando el cliente llega por Caminante.
+          texto: `${TASA_PCT.plataforma} % de cada venta que traigas tú y ${TASA_PCT.venta} % de las que te traiga Caminante`,
+        };
 
   const datos: DatosFirma = {
     operadora: (o.razon_social as string) || (o.name as string) || "tu operadora",
