@@ -52,15 +52,17 @@ encuentro. El editor completo (17 secciones, 134 campos) sigue en
   operadora con convenio firmado; la casa no la tiene confirmada) y **menores**
   (según la edad mínima). El renglón «Seguro de accidentes durante la salida»
   de la página sigue la misma variante: no se promete un seguro que no hay.
-  **Una actividad sin adicionales escritas** (hoy espeleísmo, ciclismo de
-  montaña, observación de naturaleza y paracaidismo) nace con el deslinde
-  apagado y no se publica hasta que legal las escriba. Código no redacta
-  cláusulas ni copia las de otra experiencia.
+  Las 17 actividades del catálogo tienen sus adicionales **menos
+  paracaidismo, a propósito**: legal no leyó la regulación aeronáutica y esa
+  experiencia sólo se publica con la carta propia de la operadora fusionada
+  (editor completo); en el alta rápida nace con el deslinde apagado. Código no
+  redacta cláusulas ni copia las de otra experiencia.
 - **El documento de una experiencia nueva lleva el marco corregido**
   (`registration.marco = 2`, `seccionesDelMarco2`): el encabezado nombra a
   quien vende según D22 (`renglonesDeQuienOrganiza`), la sección de seguro
-  sigue la cláusula 9 y «Deslinde de responsabilidad» pasa a «Asunción de
-  riesgos y responsabilidad». **Las publicadas conservan el marco de siempre**:
+  sigue la cláusula 9, «Deslinde de responsabilidad» pasa a «Asunción de
+  riesgos y responsabilidad» y «Datos personales» es la sección nueva de legal
+  (salud con consentimiento expreso, correo del aviso de privacidad). **Las publicadas conservan el marco de siempre**:
   cambiarlo pide versión nueva de su deslinde y aprobación de Luis (D28 §4).
 - La hoja de estilos y las piezas del formulario (`form-base.ts`,
   `form-piezas.tsx`) se sacaron del editor completo para que las dos pantallas

@@ -93,7 +93,8 @@ describe("qué actividades del catálogo ya tienen deslinde", () => {
 
   it("las que faltan están declaradas aquí: si legal escribe una, esta lista se achica", () => {
     const faltan = ACTIVIDADES.map((a) => a.slug).filter((s) => !tieneDeslindeEstandar(s));
-    expect(faltan.sort()).toEqual(["ciclismo-montana", "espeleismo", "observacion-naturaleza", "paracaidismo"]);
+    // Paracaidismo queda fuera a propósito: sólo se publica con la carta de la operadora fusionada.
+    expect(faltan.sort()).toEqual(["paracaidismo"]);
   });
 });
 
@@ -122,10 +123,17 @@ describe("el marco corregido del documento (D28 §3)", () => {
     expect(sin[0]).toBe(SECCIONES_GENERICAS[0].paras[0]);
   });
 
-  it("uso de imagen nombra al Organizador; el correo de derechos es el del aviso de privacidad", () => {
-    const m = seccionesDelMarco2(false);
-    expect(m[2].paras[0]).toContain("redes sociales del Organizador, Caminante y Numan");
-    expect(m[4].paras[0]).toContain("Derechos ARCO: caminante@numanhub.com.");
+  it("uso de imagen nombra al Organizador", () => {
+    expect(seccionesDelMarco2(false)[2].paras[0]).toContain("redes sociales del Organizador, Caminante y Numan");
+  });
+
+  it("datos personales es la sección de legal completa: salud con consentimiento expreso y el correo del aviso", () => {
+    const datos = seccionesDelMarco2(false)[4];
+    expect(datos.titulo).toBe("Datos personales");
+    expect(datos.paras).toHaveLength(1);
+    expect(legal).toContain(`**Datos personales.** ${datos.paras[0]}`);
+    expect(datos.paras[0]).toMatch(/consiente de manera expresa que se traten y se compartan con el Organizador y sus guías/);
+    expect(datos.paras[0]).toMatch(/caminante@numanhub\.com\.$/);
   });
 
   it("el marco de siempre no cambió: las experiencias publicadas siguen firmando el mismo documento", () => {

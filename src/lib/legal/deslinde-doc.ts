@@ -100,19 +100,25 @@ const ASUNCION = {
   ],
 };
 
+/** La sección de datos personales del marco corregido (D28 §3 d): sustituye completa a la de siempre. */
+const DATOS_PERSONALES_2 = {
+  titulo: "Datos personales",
+  paras: [
+    "Los datos recabados en el registro los trata NUMAN HUB, S.A. de C.V., responsable de la plataforma Caminante, conforme a su Aviso de Privacidad, únicamente para gestionar la participación en la experiencia, cuidar la seguridad del participante, contactar a quien señaló en caso de emergencia y, sólo con su consentimiento expreso, enviarle información de futuras experiencias. Los datos de salud son datos personales sensibles: el participante consiente de manera expresa que se traten y se compartan con el Organizador y sus guías, con la única finalidad de cuidar su seguridad durante la experiencia y atenderlo en una emergencia, y se suprimen al concluir la salida, salvo obligación legal de conservarlos. Los demás datos no se comparten con terceros, salvo los estrictamente necesarios para operar la salida (transporte, alimentación, hospedaje y aseguradora) o por requerimiento legal. Derechos de acceso, rectificación, cancelación y oposición: caminante@numanhub.com.",
+  ],
+};
+
 const seccion = (titulo: string) => SECCIONES_GENERICAS.find((x) => x.titulo === titulo) as { titulo: string; paras: string[] };
 
 /** Las secciones del marco corregido, con la variante de seguro que le toca a la experiencia. */
 export function seccionesDelMarco2(conSeguro: boolean): { titulo: string; paras: string[] }[] {
   const imagen = seccion("Uso de imagen");
-  const datos = seccion("Datos personales");
   return [
     conSeguro ? SEGURO_CON : SEGURO_SIN,
     ASUNCION,
     { titulo: imagen.titulo, paras: imagen.paras.map((t) => t.replace("de Caminante y Numan", "del Organizador, Caminante y Numan")) },
     seccion("Menores de edad (si aplica)"),
-    // El correo para ejercer derechos es el del aviso de privacidad.
-    { titulo: datos.titulo, paras: datos.paras.map((t) => t.replace("Derechos ARCO: uno@numanhub.com.", "Derechos ARCO: caminante@numanhub.com.")) },
+    DATOS_PERSONALES_2,
     seccion("Aceptación"),
   ];
 }

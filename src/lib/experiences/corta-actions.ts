@@ -89,7 +89,11 @@ export async function crearExperienciaRapida(c: ExperienciaCorta, salida: Primer
 
   const avisos: string[] = [];
   if (!clausulas) {
-    avisos.push("El deslinde quedó apagado: para esta actividad todavía no hay un deslinde estándar. Avísanos y lo escribimos; mientras, no se puede publicar.");
+    avisos.push(
+      c.actividad.trim() === "paracaidismo"
+        ? "El deslinde quedó apagado: el paracaidismo se publica sólo con tu propia carta de deslinde. Súbela en «Agregar más detalle» y se une con la nuestra."
+        : "El deslinde quedó apagado: para esta actividad todavía no hay un deslinde estándar. Avísanos y lo escribimos; mientras, no se puede publicar.",
+    );
   }
 
   let conFecha = false;

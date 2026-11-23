@@ -19,6 +19,11 @@
 // Una actividad que no esté en `POR_ACTIVIDAD` no tiene adicionales escritas:
 // `clausulasEstandar` devuelve null y la experiencia nace con el deslinde
 // apagado, hasta que legal las escriba. No se publica un deslinde a medias.
+//
+// ⚠️ PARACAIDISMO queda fuera A PROPÓSITO. Legal escribió su cláusula pero sin
+// leer la regulación aeronáutica: esa experiencia sólo se publica con la carta
+// propia de la operadora fusionada, y la fusión vive en el editor completo. En
+// el alta rápida nace con el deslinde apagado y se completa allá.
 
 import type { Clausula } from "@/lib/legal/clausulas";
 
@@ -110,6 +115,15 @@ export const POR_ACTIVIDAD: Record<string, string[]> = {
   ],
   micologia: [
     "Recolectarás hongos silvestres con fines educativos. Entiendes que hay especies tóxicas y mortales: no consumirás ni te llevarás ningún hongo sin la validación expresa de los guías especialistas, y sólo comerás los alimentos preparados por el equipo. Informaste tus alergias alimentarias en el registro.",
+  ],
+  espeleismo: [
+    "Entrarás a una cueva. Aceptas los riesgos de la oscuridad y los espacios cerrados, de resbalones, caídas y caída de rocas, de la hipotermia, de las crecidas de agua por lluvia, del aire viciado y de enfermedades por hongos del guano. Informaste si padeces claustrofobia o una condición respiratoria. Te comprometes a llevar el casco y la luz puestos en todo momento y a no separarte del grupo.",
+  ],
+  "ciclismo-montana": [
+    "Rodarás en bicicleta por terreno de montaña. Aceptas los riesgos de caídas a velocidad, de golpes contra piedras, árboles y otros ciclistas, de fallas mecánicas y de los vehículos en tramos compartidos. Informaste con verdad tu nivel y tu experiencia. Te comprometes a llevar el casco puesto, a revisar tu bicicleta con el guía antes de salir, a controlar tu velocidad y a no rebasar al guía.",
+  ],
+  "observacion-naturaleza": [
+    "Observarás fauna en su hábitat. Entiendes que los animales silvestres son impredecibles y que el avistamiento no está garantizado: no verlos no da derecho a reembolso. Te comprometes a guardar la distancia y el silencio que indique el guía, a no usar flash ni reproducir sonidos para atraerlos, y a no alimentarlos ni tocarlos.",
   ],
 };
 
