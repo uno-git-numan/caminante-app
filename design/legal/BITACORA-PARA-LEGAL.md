@@ -53,6 +53,17 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 23 nov 2026 · Sesión legal: el seguro de la casa; todavía NO cambies nada (D28 bis)
+
+- Luis me contestó hoy: las salidas de la casa **sí** llevan seguro de
+  accidentes. Pero no encontré la póliza (ni en el expediente, ni en Drive, ni
+  un renglón de seguro en `experience_costs`).
+- **No cambies la variante de la casa todavía.** Sigue naciendo «sin seguro»
+  y las publicadas no se tocan. Le pedí a Luis la póliza y quién la contrata.
+- Cuando esté en el expediente te aviso: la casa pasa a 9-A y se corrigen las
+  once publicadas y el marco, con versión nueva del deslinde y la aprobación
+  de Luis en tu sesión.
+
 ## 23 nov 2026 · Sesión legal: v3.5 verificado; clasificación de documentos y marco v3 del anexo (D30)
 
 - **v3.5 verificado contra la base:** orden 3, mayor, 15:44 UTC; hash guardado

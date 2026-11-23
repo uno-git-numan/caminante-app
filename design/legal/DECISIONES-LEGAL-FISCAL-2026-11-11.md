@@ -843,6 +843,23 @@ Además: tres experiencias repiten la política de cancelación dentro del desli
 **Nada publicado se toca sin la aprobación de Luis.** Quien ya firmó conserva lo que firmó; los cambios rigen para firmas nuevas con versión nueva del deslinde.
 
 
+
+### D28 bis · El seguro de las salidas de la casa: Luis dice que sí lo llevan (23 nov)
+
+Luis contestó el 23 nov en la sesión legal: «Sí, lo llevan». Con eso, lo que dicen hoy once experiencias publicadas y el marco del deslinde («el Organizador no proporciona seguro») **dejaría de ser cierto**, y hay que corregirlo.
+
+Antes de cambiar un texto legal publicado busqué el respaldo y **no lo encontré**:
+
+| Dónde busqué | Resultado |
+|---|---|
+| `~/Expediente-NUMAN` y su copia en Drive | Ninguna póliza |
+| Drive de NUMAN y de contabilidad, por nombre de archivo | Ningún archivo de póliza o seguro |
+| Costos capturados de las salidas (`experience_costs`) | Ningún renglón de seguro |
+
+No pongo en duda el dato; falta el documento. El texto con seguro dice «contratado por el Organizador» y remite a «lo que dice su póliza». Para afirmarlo frente al cliente hacen falta dos cosas que hoy no sé: **quién lo contrata** (NUMAN, o el proveedor de cada salida dentro de su servicio) y **la póliza misma** en el expediente. Es el mismo estándar que el anexo le pone a una operadora externa: la póliza consta antes de la salida.
+
+**Mientras tanto no cambia nada:** las experiencias nuevas de la casa siguen naciendo con la variante sin seguro y las publicadas no se tocan. Cuando la póliza esté en el expediente: (1) las experiencias de la casa pasan a la variante con seguro, con el renglón «Seguro de accidentes durante la salida»; (2) se corrigen las once publicadas y el marco, con versión nueva del deslinde, previa aprobación de Luis en la sesión que lo ejecute; (3) si el seguro lo contrata un proveedor y no NUMAN, ajusto la redacción antes.
+
 ### D29 · Comisión fija: 12 % si la venta la origina Caminante, 8 % si la origina la operadora (23 nov)
 
 Decisión de Luis del 23 nov, tomada en la sesión de código y transmitida por ella: «Quiero que la comisión sea ya fija. 8% y 12% si nosotros traemos el cliente. 8% si no. (Ya incluye stripe acá adentro).» **Reabre lo que §9 daba por cerrado** (escalas A y B, mínimo de $250).
