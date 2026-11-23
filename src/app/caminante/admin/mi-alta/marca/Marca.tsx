@@ -8,6 +8,7 @@
 import { useState, useTransition } from "react";
 import { guardarMarca } from "@/lib/operadores/marca-actions";
 import { color } from "@/lib/operators/marca";
+import { subirImagen } from "../../experiencias/form-piezas";
 
 export type MarcaInicial = {
   logoUrl: string;
@@ -18,12 +19,70 @@ export type MarcaInicial = {
   footerLine: string;
 };
 
+// EL LOGO SE SUBE, NO SE PEGA (23 nov 2026). Este campo era sólo «liga https a
+// .png»: se copió del formulario público de solicitud, que no acepta archivos
+// A PROPÓSITO (un endpoint de carga sin sesión es una puerta al bucket). Aquí
+// SÍ hay sesión, y una operadora tiene su logo en un archivo, no en una liga.
+// Sube por el mismo camino que las fotos de una experiencia (`subirImagen`,
+// que además le recorta el aire transparente). La liga sigue sirviendo.
+function SubirLogo({ onUrl, disabled }: { onUrl: (url: string) => void; disabled: boolean }) {
+  const [subiendo, setSubiendo] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <label className="btn btn-ghost btn-sm" style={{ cursor: disabled || subiendo ? "default" : "pointer" }}>
+        {subiendo ? "Subiendo…" : "Subir archivo"}
+        <input
+          type="file"
+          accept="image/png,image/svg+xml,image/jpeg,image/webp"
+          hidden
+          disabled={disabled || subiendo}
+          onChange={async (e) => {
+            const archivo = e.target.files?.[0];
+            e.target.value = "";
+            if (!archivo) return;
+            setSubiendo(true);
+            setError(null);
+            const r = await subirImagen(archivo, { logo: true });
+            if (r.ok) onUrl(r.url);
+            else setError(r.error);
+            setSubiendo(false);
+          }}
+        />
+      </label>
+      {error ? <small style={{ color: "var(--orange)" }}>{error}</small> : null}
+    </span>
+  );
+}
+
+/** El color se elige con el selector del sistema o se teclea: los dos mueven el mismo valor. */
+function CampoColor({
+  nombre, etiqueta, valor, porOmision, onChange, disabled,
+}: {
+  nombre: string; etiqueta: string; valor: string; porOmision: string; onChange: (v: string) => void; disabled: boolean;
+}) {
+  return (
+    <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <input
+        type="color"
+        aria-label={`${etiqueta}: elegir`}
+        value={color(valor) ?? porOmision}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        style={{ width: 44, height: 38, padding: 2, flex: "0 0 auto", cursor: "pointer" }}
+      />
+      <input name={nombre} aria-label={etiqueta} value={valor} onChange={(e) => onChange(e.target.value)} placeholder={porOmision} disabled={disabled} style={{ flex: 1 }} />
+    </span>
+  );
+}
+
 export default function Marca({ inicial, operadora }: { inicial: MarcaInicial; operadora: string | null }) {
   const [pendiente, arranca] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [primary, setPrimary] = useState(inicial.primary);
   const [accent, setAccent] = useState(inicial.accent);
   const [logo, setLogo] = useState(inicial.logoUrl);
+  const [logoOscuro, setLogoOscuro] = useState(inicial.logoDarkUrl);
 
   const p = color(primary);
   const a = color(accent);
@@ -68,22 +127,24 @@ export default function Marca({ inicial, operadora }: { inicial: MarcaInicial; o
       <div className="docs" style={{ display: "grid", gap: 12, maxWidth: 560 }}>
         <p className="gnhint" style={{ display: "grid", gap: 4 }}>
           <b>Color principal</b>
-          <input name="marcaPrimary" aria-label="Color principal" value={primary} onChange={(e) => setPrimary(e.target.value)} placeholder="#637154" disabled={pendiente} />
-          <small>Botones, ligas y títulos. Hex de 6 dígitos.</small>
+          <CampoColor nombre="marcaPrimary" etiqueta="Color principal" valor={primary} porOmision="#637154" onChange={setPrimary} disabled={pendiente} />
+          <small>Botones, ligas y títulos. Elígelo en el cuadro o escribe su código.</small>
         </p>
         <p className="gnhint" style={{ display: "grid", gap: 4 }}>
           <b>Color de acento</b>
-          <input name="marcaAccent" aria-label="Color de acento" value={accent} onChange={(e) => setAccent(e.target.value)} placeholder="#ff5d36" disabled={pendiente} />
+          <CampoColor nombre="marcaAccent" etiqueta="Color de acento" valor={accent} porOmision="#ff5d36" onChange={setAccent} disabled={pendiente} />
           <small>Llamadas a la acción y énfasis.</small>
         </p>
         <p className="gnhint" style={{ display: "grid", gap: 4 }}>
-          <b>Logo (liga https a .png, .svg, .jpg o .webp)</b>
-          <input name="marcaLogo" aria-label="Logo" value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…/logo.png" disabled={pendiente} />
-          <small>Opcional. Sobre fondo claro. Sin logo va tu nombre en texto.</small>
+          <b>Logo</b>
+          <SubirLogo onUrl={setLogo} disabled={pendiente} />
+          <input name="marcaLogo" aria-label="Logo" value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="…o pega su liga: https://…/logo.png" disabled={pendiente} />
+          <small>Opcional. PNG, SVG, JPG o WEBP, para fondo claro. Sin logo va tu nombre en texto.</small>
         </p>
         <p className="gnhint" style={{ display: "grid", gap: 4 }}>
           <b>Logo para fondo oscuro o sobre foto</b>
-          <input name="marcaLogoOscuro" aria-label="Logo para fondo oscuro" defaultValue={inicial.logoDarkUrl} placeholder="https://…/logo-blanco.png" disabled={pendiente} />
+          <SubirLogo onUrl={setLogoOscuro} disabled={pendiente} />
+          <input name="marcaLogoOscuro" aria-label="Logo para fondo oscuro" value={logoOscuro} onChange={(e) => setLogoOscuro(e.target.value)} placeholder="…o pega su liga: https://…/logo-blanco.png" disabled={pendiente} />
           <small>Opcional. Si falta, se usa el de arriba.</small>
         </p>
         <p className="gnhint" style={{ display: "grid", gap: 4 }}>
