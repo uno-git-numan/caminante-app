@@ -25,6 +25,9 @@ export default function SuEspacio({ g, abrir = false }: { g: ResumenDelEspacio; 
   const [minimo, setMinimo] = useState(g.minimo != null ? String(g.minimo) : "");
   const [aviso, setAviso] = useState<string | null>(null);
   const [pendiente, start] = useTransition();
+  // Vencida = la fecha GUARDADA ya pasó (día de la Ciudad de México).
+  const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date());
+  const vencida = !!g.fechaLimite && g.fechaLimite.slice(0, 10) < hoy;
   const router = useRouter();
   const copiar = () => navigator.clipboard?.writeText(g.liga).then(() => { setOk(true); setTimeout(() => setOk(false), 1500); });
   const [avisoLiga, setAvisoLiga] = useState<string | null>(null);
@@ -68,12 +71,33 @@ export default function SuEspacio({ g, abrir = false }: { g: ResumenDelEspacio; 
         <dt>Lugares</dt>
         <dd>{g.cupo != null ? `${g.apartados} de ${g.cupo} apartados` : `${g.apartados} apartados`}</dd>
       </dl>
-      <div className="mini-form">
-        <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} aria-label="Fecha límite" />
-        <input type="number" value={minimo} onChange={(e) => setMinimo(e.target.value)} min={1} max={g.cupo ?? undefined} aria-label="Mínimo" style={{ width: 76 }} />
-        <button type="button" className="btn btn-ghost btn-sm" disabled={pendiente} onClick={guardar}>Guardar</button>
-        <span className="mut" style={{ fontSize: 12 }}>{aviso ?? "Fecha límite · mínimo de lugares"}</span>
+      {/* LA FECHA LÍMITE PARA PAGAR, CON SU NOMBRE (Luis, 23 nov 2026: «debería
+          de ser sencillo de hacer en el UI»). Eran dos campos sin rótulo y una
+          leyenda gris al lado; el grupo del Izta llevaba nueve días con la
+          fecha vencida y nadie podía pagar sin que esta pantalla lo dijera. */}
+      <p className="xh4">Hasta cuándo pueden pagar</p>
+      {vencida ? (
+        <p className="mut" style={{ fontSize: 12.5, color: "#b33517", marginTop: 0 }}>
+          La fecha límite ya pasó ({diaLargo(g.fechaLimite!)}): hoy nadie del grupo puede apartar ni pagar. Muévela aquí abajo.
+        </p>
+      ) : null}
+      <div className="mini-form" style={{ marginTop: 0 }}>
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Fecha límite para pagar{" "}
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} aria-label="Fecha límite" />
+        </label>
+        <label className="mut" style={{ fontSize: 12.5 }}>
+          Mínimo de lugares{" "}
+          <input type="number" value={minimo} onChange={(e) => setMinimo(e.target.value)} min={1} max={g.cupo ?? undefined} aria-label="Mínimo" style={{ width: 76 }} />
+        </label>
+        <button type="button" className="btn btn-orange btn-sm" disabled={pendiente} onClick={guardar}>
+          {pendiente ? "Guardando…" : "Guardar"}
+        </button>
+        {aviso ? <span className="mut" style={{ fontSize: 12 }}>{aviso}</span> : null}
       </div>
+      <p className="mut" style={{ fontSize: 12, marginTop: 6 }}>
+        Pasada esa fecha ya nadie del grupo puede apartar ni pagar. Se puede mover hasta el día de la salida.
+      </p>
       <p className="xh4">Quién entró · {g.gente.length}</p>
       {g.gente.length === 0 ? (
         <p className="mut" style={{ fontSize: 12.5 }}>Nadie ha entrado todavía. Cuando alguien entre por la liga, aparece aquí.</p>
