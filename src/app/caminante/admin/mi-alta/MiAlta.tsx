@@ -28,6 +28,7 @@ import Convenio, { type DatosFirma } from "./convenio/Convenio";
 import { guardarTipoPersona } from "@/lib/payments/connect-actions";
 import type { SolicitudEnviada } from "@/lib/operadores/mi-alta";
 import { ANTIGUEDAD, PRIMEROS, SEGURO, TIPOS, etiqueta } from "@/lib/operadores/solicitud-opciones";
+import { RUTAS_CON_OPERADORA, loQueFalta, tituloDeLoQueFalta } from "@/lib/operadores/lo-que-falta";
 
 
 const hora = (iso: string) =>
@@ -42,8 +43,11 @@ export default function MiAlta({
   datos,
   porOtra = null,
   firma = null,
+  cobroEnPlataforma = false,
 }: {
   datos: Datos;
+  /** El alta de la cuenta de cobro dentro de la plataforma está prendida. */
+  cobroEnPlataforma?: boolean;
   /** Lo que se firma en el paso 03, y si ya se firmó. `null` actuando por otra. */
   firma?: DatosFirma | null;
   /**
@@ -86,8 +90,64 @@ export default function MiAlta({
       </details>
     ) : null;
 
+  // «ESTO TE FALTA PARA VENDER», en una sola lista y arriba de los cuatro
+  // pasos (23 nov 2026). Sólo con fila de operadora: en el embudo no hay nada
+  // que ella pueda adelantar. Sale de los mismos candados que ve la casa
+  // (`lib/operadores/lo-que-falta.ts`); se viste con `.docs`/`.doc` de la
+  // lámina, las mismas piezas del expediente.
+  const falta =
+    datos.operadora && datos.estado !== "no_esta_vez" && datos.estado !== "suspendida"
+      ? loQueFalta({
+          candados: datos.candados,
+          expediente: datos.expediente,
+          conDispensa: datos.dispensas.length > 0,
+          borradores: datos.experiencias.filter((e) => e.estado !== "published").length,
+          cobroEnPlataforma,
+        })
+      : [];
+  const cumplidos = datos.candados.filter((c) => c.cumplido).length;
+  const ligaDeFalta = (href: string) => (RUTAS_CON_OPERADORA.includes(href) ? liga(href) : href);
+
   return (
     <>
+      {falta.length ? (
+        <div style={{ marginBottom: 22 }} id="falta">
+          {/* `.docbar` es la barra de avance de la lámina (título · barra · n de
+              m); la cuenta es la de los seis candados, la misma del paso 04. */}
+          <div className="docbar">
+            <b>{tituloDeLoQueFalta(falta)}</b>
+            <span className="bar">
+              <i style={{ width: `${Math.round((cumplidos / datos.candados.length) * 100)}%` }} />
+            </span>
+            <span className="fr">
+              {cumplidos} de {datos.candados.length}
+            </span>
+          </div>
+          <div className="docs">
+            {falta.map((f) => (
+              <div key={f.clave} className={"doc" + (f.toca === "operadora" ? " pend" : "")}>
+                <SixIco ok={false} />
+                <span className="nm">
+                  <b>{f.titulo}</b>
+                  <small>{f.detalle}</small>
+                </span>
+                <span className="fl">{f.toca === "operadora" ? "Te toca a ti" : "Le toca a Caminante"}</span>
+                <span className="ac">
+                  {f.href && f.accion ? (
+                    <Link
+                      className={"btn btn-sm " + (f.toca === "operadora" ? "btn-orange" : "btn-ghost")}
+                      href={ligaDeFalta(f.href)}
+                    >
+                      {f.accion}
+                    </Link>
+                  ) : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="pasos" id="pasos">
         {PASOS.map((p, i) => {
           // ⚠️ `done`, NO `hecho`. El único `.hecho` del CSS es

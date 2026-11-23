@@ -20,6 +20,7 @@ import { nombreDeOperadora } from "@/lib/operadores/expediente";
 import { sombreroPuesto } from "@/lib/auth/sombrero";
 import { datosDeFirma } from "@/lib/operadores/datos-firma";
 import MiAlta from "./MiAlta";
+import { altaCobroEnPlataforma } from "@/lib/payments/alta-cobro";
 import { pasoDe } from "@/lib/operadores/pasos";
 
 export const dynamic = "force-dynamic";
@@ -208,7 +209,7 @@ export default async function MiAltaPage({
           ) : null}
         </div>
       </div>
-      <MiAlta datos={datos} porOtra={porOtra?.id ?? null} firma={firma} />
+      <MiAlta datos={datos} porOtra={porOtra?.id ?? null} firma={firma} cobroEnPlataforma={altaCobroEnPlataforma()} />
     </AdminShell>
   );
 }
