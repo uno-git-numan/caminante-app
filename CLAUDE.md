@@ -139,6 +139,14 @@ Luego **promover desde la UI de Vercel** (menú «…» → Promote to Productio
   `uno-1425s-projects/caminante-app`.
 - **Vercel captura las env vars al construir**: tras guardar una key nueva, rebuild
   antes de promover.
+- **Las funciones corren en `pdx1`** (`vercel.json` → `regions`, 24 nov 2026).
+  La base de Supabase vive en **us-west-2 (Oregón)** y las funciones corrían en
+  Virginia: cada consulta cruzaba el país, y el panel hace varias rondas por
+  pantalla (Mi alta → documentos medía 2.2 s de servidor por carga). Si la base
+  se muda de región, esto se muda con ella. Para ver cuántas rondas hace una
+  pantalla: un `--require` que envuelva `fetch` y escriba cada llamada a
+  Supabase con su duración; lo que no depende de lo anterior va en un
+  `Promise.all`.
 
 ## Verificar
 
