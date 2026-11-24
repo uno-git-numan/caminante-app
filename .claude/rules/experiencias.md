@@ -68,13 +68,17 @@ encuentro. El editor completo (17 secciones, 134 campos) sigue en
   variantes que salen de un HECHO: **seguro** y **menores** (según la edad
   mínima). El renglón «Seguro de accidentes durante la salida» de la página
   sigue la misma variante: no se promete un seguro que no hay.
-  ⚠️ **Desde el 24 nov 2026 toda experiencia nueva nace «sin seguro»**
-  (`quienCrea` en `corta-actions.ts`). La regla era «con póliza si la crea una
-  operadora con convenio firmado», porque el convenio la obligaba a la póliza
-  de accidentes y la plataforma se la pedía; Luis quitó esa póliza del
-  expediente y, sin verla, no se le afirma al cliente. La variante «con» sigue
-  escrita (es texto de legal): vuelve a usarse cuando legal diga cómo se
-  acredita un seguro (D28 bis, 9-C).
+  ⚠️ **Desde el 24 nov 2026 toda experiencia de una operadora nace «con
+  seguro», y las de la casa «sin»** (`quienCrea` en `corta-actions.ts`).
+  Decisión de Luis: el seguro se asume por la norma de turismo («no se puede
+  tener el NOM TUR sin una póliza»), y la póliza de responsabilidad civil y
+  gastos médicos —la que la plataforma sí pide antes de la primera salida—
+  cubre los accidentes; por eso ese mismo día salió del expediente la póliza
+  de accidentes aparte. Ya no depende de `convenio_firmado_at`: con el alta
+  en cinco pasos la experiencia se arma antes de firmar y esa condición
+  dejaba «sin seguro» a la primera de toda operadora. ⚠️ Legal había fijado
+  horas antes «nadie nace con seguro» (D31, Sexta §2 bis de la v3.6
+  preparada): lo de Luis es posterior y manda; los textos los alinea legal.
   Las 17 actividades del catálogo tienen sus adicionales **menos
   paracaidismo, a propósito**: legal no leyó la regulación aeronáutica y esa
   experiencia sólo se publica con la carta propia de la operadora fusionada

@@ -10,13 +10,15 @@
 // · «El texto debe estirarse y cubrir el espacio en blanco.» `.gnhint` trae
 //   `max-width:52ch`, pensado para una nota al pie; dentro de una carpeta que
 //   ocupa todo el ancho dejaba el párrafo arrinconado a la izquierda.
-// · «Agregar una actividad» es una carpeta más (`.actv.mas`), cerrada.
+// · «Agregar una actividad» es una carpeta más (`.actv.mas`), cerrada, con su
+//   «+» naranja delante (el mismo de los mosaicos de adentro).
 export const EXPEDIENTE_AJUSTES_CSS = `
 .adm .actv>.ah .rt .chev2{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--charcoal);font-size:15px;line-height:1;margin-left:2px;flex:0 0 auto}
 .adm .actv>.ah:hover .rt .chev2{border-color:var(--olive);color:var(--olive-d)}
 .adm .actv.open>.ah .rt .chev2{background:var(--charcoal);border-color:var(--charcoal);color:#fff}
 .adm .actv .ab .gnhint{max-width:none}
 .adm .actv.mas>.ah .g b{font-weight:500}
+.adm .actv.mas>.ah .g b .pl{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--orange);margin-right:10px}
 .adm .actv.mas>.ab{padding-top:14px}
 .adm .actv.mas>.ab>.gnhint{margin:0 0 12px}
 `;

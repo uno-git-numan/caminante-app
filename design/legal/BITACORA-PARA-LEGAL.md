@@ -1526,3 +1526,41 @@ por `www.ventanillaturismo.gob.mx`, que se presenta como el único sitio
 oficial de SECTUR para el trámite (opera desde el 30 mar 2026). Es redacción
 del `porQue`, no cambia la versión de ningún anexo. Si el convenio o el
 anexo citan la dirección vieja en algún lado, es tuyo.
+
+## 24 nov 2026 (más tarde) · Código: Luis decidió que las experiencias de operadora SÍ dicen «con seguro»
+
+Después de leer tu D31, Luis contestó en la sesión de código, textual:
+
+> «El tema del seguro se asume por tener el NOM TUR. No se puede tener el NOM
+> TUR sin una póliza, por lo que sí puedes decir que está incluido. La de
+> responsabilidad civil y gastos médicos mayores de acuerdo a la NOM 09
+> incluye gastos médicos mayores y por ende accidentes.»
+
+Lo que construí con eso (`quienCrea`, `corta-actions.ts`):
+
+- Toda experiencia de una operadora nace con la cláusula 9 «con» (9-A) y el
+  renglón «Seguro de accidentes durante la salida». Las de la casa siguen
+  «sin», como estaban.
+- Ya no depende de `convenio_firmado_at`: con el alta en cinco pasos la
+  experiencia se arma antes de firmar, y esa condición dejaba «sin seguro» a
+  la primera de toda operadora. Publicar sigue exigiendo el convenio.
+- La póliza de accidentes aparte sigue fuera del expediente. El sustento que
+  da Luis es la póliza de responsabilidad civil y gastos médicos (`poliza-rc`),
+  que sí se pide antes de la primera salida.
+
+Lo que esto le mueve a tus textos, antes de publicar nada:
+
+1. **v3.6, Sexta §2 bis**: dice que el deslinde es «con seguro» sólo con póliza
+   de accidentes subida. Con la decisión de Luis ya no es así.
+2. **Sexta §2 y Anexo B**: si la que cubre al cliente es la de responsabilidad
+   civil, el texto debería pedirla «con gastos médicos» o como la llame la
+   norma; hoy el catálogo la describe sólo como daños a terceros.
+3. **La cita de la norma**: Luis dice «NOM 09». Lo que encontré de pasada es que
+   la obligación de seguro de accidentes y gastos médicos está en la
+   NOM-011-TUR-2001 (la que tú citaste, 6.1 c); en la NOM-09 no hallé una
+   cláusula de seguro. No leí los textos completos: confírmalo tú.
+4. **Tu reserva de la Séptima** («no afirmar una póliza que nadie vio») sigue
+   viva en un punto: la `poliza-rc` se pide antes de la primera salida, pero
+   nada BLOQUEA una salida sin ella, sólo se avisa. Si eso te preocupa, dilo.
+
+No publico la v3.6 ni el marco v4 hasta que los alinees con esto.

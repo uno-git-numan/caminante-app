@@ -55,17 +55,27 @@ async function quienCrea(operatorId: string | null): Promise<{ dueno?: ContactoD
     existe: true,
     esLaCasa: data.es_la_casa === true,
     dueno: { email: data.email ?? undefined, instagram: data.instagram ?? undefined, whatsapp: data.whatsapp ?? undefined },
-    // ⚠️ NADIE NACE «CON SEGURO» (24 nov 2026). La regla era: operadora con
-    // convenio firmado ⇒ la salida lleva seguro de accidentes, porque el
-    // convenio la obligaba a la póliza y la plataforma se la pedía. Luis quitó
-    // esa póliza del expediente; sin verla, decirle al cliente «esta salida
-    // cuenta con un seguro de accidentes» sería afirmar algo que nadie
-    // comprobó (es la razón que dio legal para pedirla: anexo v3, Séptima).
-    // Queda la variante «sin seguro», que es la prudente. Quien sí asegura a
-    // sus clientes lo dice con su propia carta, que se fusiona con la nuestra.
-    // Si legal define cómo se acredita un seguro (D28 bis, variante 9-C), el
-    // hecho vuelve a salir de aquí.
-    conSeguro: false,
+    // ⚠️ TODA EXPERIENCIA DE UNA OPERADORA NACE «CON SEGURO» (Luis, 24 nov
+    // 2026). Su razón, con sus palabras: «El tema del seguro se asume por tener
+    // el NOM TUR. No se puede tener el NOM TUR sin una póliza, por lo que sí
+    // puedes decir que está incluido. La de responsabilidad civil y gastos
+    // médicos mayores […] incluye gastos médicos mayores y por ende
+    // accidentes.» O sea: no hace falta una póliza de accidentes aparte (por
+    // eso salió del expediente ese mismo día); la que cubre al cliente es la
+    // de responsabilidad civil y gastos médicos, que la norma de turismo de
+    // aventura le exige a quien opera y que la plataforma SÍ pide antes de la
+    // primera salida (`poliza-rc`).
+    //
+    // Ya no depende de `convenio_firmado_at`: desde el alta en cinco pasos la
+    // experiencia se arma ANTES de firmar, así que esa condición dejaba «sin
+    // seguro» a la primera experiencia de toda operadora. Publicarla sí exige
+    // el convenio (`candadosDe`), que es donde se obliga a la póliza.
+    //
+    // La casa sigue «sin seguro» mientras Luis no confirme que sus salidas
+    // llevan póliza. Esta mañana la regla fue «nadie», por la razón de legal
+    // (no afirmar una póliza que nadie vio); la decisión de Luis es posterior
+    // y manda. Legal tiene que alinear la Sexta §2 bis de su v3.6.
+    conSeguro: data.es_la_casa !== true,
   };
 }
 

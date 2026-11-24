@@ -1131,7 +1131,7 @@ function Expediente02({
           <div className={"actv mas" + (agregando ? " open" : "")}>
           <button className="ah" type="button" onClick={() => setAgregando((v) => !v)} aria-expanded={agregando}>
             <span className="g">
-              <b>Agregar una actividad</b>
+              <b><span className="pl">+</span>Agregar una actividad</b>
               <small>Las que no has declarado. Ninguna te pide nada hasta que la eliges</small>
             </span>
             <span className="rt">
