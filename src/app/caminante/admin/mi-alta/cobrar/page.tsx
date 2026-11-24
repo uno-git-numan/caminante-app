@@ -119,7 +119,7 @@ export default async function CobrarPage({
       <div className="sec-head" style={{ marginBottom: 18 }}>
         <div>
           <span className="eyebrow">
-            <span className="sl">{"//"}</span> {porOtra ? `Cobros de ${porOtra.nombre}` : "Paso 04 · Cobrar"}
+            <span className="sl">{"//"}</span> {porOtra ? `Cobros de ${porOtra.nombre}` : "Paso 05 · Tu cuenta de cobro"}
           </span>
           <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
             Tu cuenta de cobro <em className="ac">y tus datos fiscales.</em>

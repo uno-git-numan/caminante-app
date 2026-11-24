@@ -33,13 +33,13 @@ export default async function ConvenioPage() {
       <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS }} />
       <div className="sec-head" style={{ marginBottom: 18 }}>
         <div>
-          <span className="eyebrow"><span className="sl">{"//"}</span> Paso 03 · Tu convenio</span>
+          <span className="eyebrow"><span className="sl">{"//"}</span> Paso 04 · Tu convenio</span>
           <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
             El marco una vez, <em className="ac">y un anexo por actividad.</em>
           </h2>
           <p className="desc">
-            Es lo único de todo el camino que bloquea lo que viene: al firmarlo se abre tu catálogo
-            el mismo día. Guardamos el documento exacto que leíste en pantalla, no una liga.
+            Con tu firma tu experiencia ya se puede publicar; después sólo falta tu cuenta de
+            cobro. Guardamos el documento exacto que leíste en pantalla, no una liga.
           </p>
           <p className="desc" style={{ marginTop: 10 }}>
             <Link href="/caminante/admin/mi-alta">Volver a Mi alta</Link>
@@ -47,6 +47,15 @@ export default async function ConvenioPage() {
         </div>
       </div>
       <Convenio datos={datos} />
+      {/* CADA PASO DICE QUÉ SIGUE (Luis, 23 nov 2026: «debería de haber un
+          botón para continuar»). Mi alta abre sola en el primero que falta. */}
+      {false ? null : (
+        <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 26 }}>
+          <Link className="btn btn-orange" href="/caminante/admin/mi-alta">
+            Continuar con mi alta
+          </Link>
+        </div>
+      )}
     </AdminShell>
   );
 }

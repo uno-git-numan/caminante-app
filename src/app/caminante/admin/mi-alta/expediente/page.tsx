@@ -74,15 +74,19 @@ export default async function ExpedientePage({
       <div className="sec-head" style={{ marginBottom: 18 }}>
         <div>
           <span className="eyebrow">
-            <span className="sl">{"//"}</span> Paso 02 · Tu expediente
+            <span className="sl">{"//"}</span> Paso 03 · Tus documentos
           </span>
           <h2 className="display" style={{ fontSize: 30, marginTop: 8 }}>
-            Lo general una vez, <em className="ac">y una carpeta por actividad.</em>
+            Dos documentos para vender, <em className="ac">y el resto antes de tu primera salida.</em>
           </h2>
           <p className="desc">
-            De este expediente depende que nadie se lastime en una montaña, así que se pide
-            completo y se revisa uno por uno. Lo que sirve para todo se sube una sola vez; lo
-            que es propio de una actividad vive en su carpeta. Nada se sube dos veces.
+            {/* El texto era de cuando se pedía la carpeta COMPLETA antes de
+                vender («se pide completo»). Desde el convenio v3.5 son tres
+                momentos (ver CLAUDE.md), y aquí se dice así. */}
+            Para publicar y vender bastan tu constancia fiscal y tu identificación. Las pólizas,
+            la credencial del guía y los permisos se entregan antes de tu primera salida: de
+            ellos depende que nadie se lastime en una montaña, y se revisan uno por uno. Nada se
+            sube dos veces.
           </p>
           <p className="desc" style={{ marginTop: 10 }}>
             {porOtra ? (
@@ -94,6 +98,15 @@ export default async function ExpedientePage({
         </div>
       </div>
       <Expediente datos={datos} operadoraId={operatorId} traido={traido} porOtra={porOtra} />
+      {/* CADA PASO DICE QUÉ SIGUE (Luis, 23 nov 2026: «debería de haber un
+          botón para continuar»). Mi alta abre sola en el primero que falta. */}
+      {porOtra ? null : (
+        <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 26 }}>
+          <Link className="btn btn-orange" href="/caminante/admin/mi-alta">
+            Continuar con mi alta
+          </Link>
+        </div>
+      )}
     </AdminShell>
   );
 }
