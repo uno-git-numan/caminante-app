@@ -12,6 +12,7 @@ import ExperienceTemplate from "../../../experiencias/[slug]/ExperienceTemplate"
 import ExperienceTemplateV2 from "../../../experiencias/[slug]/ExperienceTemplateV2";
 import WhiteLabelStyles, { wlDoc } from "../../../ui/wl/WhiteLabelStyles";
 import { fetchThemeForExperience } from "@/lib/operators/branding";
+import { marcaDePagina } from "@/lib/operators/marca";
 import { fetchOperatorChipForExperience, fetchOperatorContactoForExperience } from "@/lib/operators/public";
 import { candadoDeAlta } from "@/lib/operadores/nav-alta-servidor";
 
@@ -102,7 +103,7 @@ export default async function PreviewPage({
       </div>
       <div className={wlDoc(tema)}>
         {e.design === "v2" ? (
-          <ExperienceTemplateV2 experience={e} slots={slots} operatorChip={operatorChip} contactoOperador={contactoOperador} />
+          <ExperienceTemplateV2 experience={e} slots={slots} operatorChip={operatorChip} contactoOperador={contactoOperador} marca={marcaDePagina(tema)} />
         ) : (
           <ExperienceTemplate experience={e} />
         )}

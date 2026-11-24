@@ -26,6 +26,7 @@ import type {
 } from "@/lib/experiences/types";
 import type { SlotAvailabilityPublic } from "@/lib/experiences/availability";
 import type { OperatorChip, ContactoOperador } from "@/lib/operators/public";
+import type { MarcaDePagina } from "@/lib/operators/marca";
 import Script from "next/script";
 import { TEMPLATE_V2_CSS } from "@/lib/experiences/template-v2-css";
 import { MOVIL_FIXES_CSS } from "@/lib/experiences/movil-fixes-css";
@@ -827,6 +828,25 @@ const NUMBERED = new Set(["split", "itinerary", "tariff", "checklist", "packing"
 
 // CSS suplementario (aditivo, no toca los tokens bespoke): tira de logos en el
 // hero (chips claros sobre la foto) + banda de logos en fondo claro.
+// LA CABECERA Y EL PIE DE UNA OPERADORA CON MARCA (23 nov 2026). Aditivo: la
+// hoja de la plantilla es verbatim y no se toca. El logo cambia con la
+// cabecera igual que el de Caminante: uno sobre la foto, otro cuando la barra
+// ya es clara (`.nav.scrolled`, que pone el script de la plantilla).
+const MARCA_CSS = `
+.nav .opbrand{display:flex;align-items:center;min-height:34px;text-decoration:none;}
+.nav .oplogo{height:36px;width:auto;max-width:210px;object-fit:contain;display:block;}
+.nav .oplogo.claro{display:none;}
+.nav.scrolled .oplogo.claro{display:block;}
+.nav.scrolled .oplogo.foto{display:none;}
+.nav .opnombre{font-size:17px;font-weight:600;letter-spacing:.01em;color:#fff;transition:color .3s ease;}
+.nav.scrolled .opnombre{color:var(--charcoal);}
+.footer .oplogo{height:46px;width:auto;max-width:280px;object-fit:contain;display:block;margin-bottom:26px;}
+.footer .opnombre{font-size:26px;font-weight:500;letter-spacing:-.01em;margin-bottom:10px;}
+.footer .powered{margin-top:22px;font-family:var(--mono,ui-monospace,monospace);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);}
+.footer .powered.visible{font-size:13px;color:rgba(255,255,255,.7);}
+.footer .powered a{color:inherit;text-decoration:underline;}
+`;
+
 const COLLAB_CSS = `
 .collab-strip{margin-top:36px;display:flex;flex-direction:column;gap:12px;}
 .collab-strip .lbl{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.72);}
@@ -860,6 +880,7 @@ export default function ExperienceTemplateV2({
   sessionRole,
   operatorChip,
   contactoOperador,
+  marca,
 }: {
   experience: Experience;
   slots: SlotAvailabilityPublic[];
@@ -873,7 +894,32 @@ export default function ExperienceTemplateV2({
   // Contacto del operador dueño. null = la experiencia es de la casa y el
   // bloque de cierre usa lo que trae guardado.
   contactoOperador?: ContactoOperador | null;
+  /**
+   * La marca de quien opera (`marcaDePagina`). Con ella, la cabecera y el pie
+   * son SUYOS: su logo, su nombre, su contacto, y «Operado con Caminante» al
+   * final. null = la página es de Caminante, como siempre.
+   */
+  marca?: MarcaDePagina | null;
 }) {
+  // El menú de la cabecera. El de Caminante lleva a las secciones de NUESTRO
+  // sitio; bajo el logo de una operadora eso sería sacar a su cliente a otra
+  // casa, así que el suyo se queda en su página.
+  const menu = marca
+    ? [
+        { href: "#experiencia", texto: "La experiencia" },
+        { href: "#fechas", texto: "Fechas" },
+        ...(operatorChip ? [{ href: `/caminante/o/${operatorChip.slug}`, texto: "Más experiencias" }] : []),
+      ]
+    : [
+        { href: "/caminante", texto: "Inicio" },
+        { href: "/caminante#proximos", texto: "Calendario" },
+        { href: "/caminante#aprende", texto: "Aprende" },
+        { href: "/caminante#quees", texto: "Nosotros" },
+      ];
+  // El contacto del pie: el de la operadora, sólo lo que tiene.
+  const contactoDelPie = marca
+    ? [contactoOperador?.email, contactoOperador?.instagram ? "@" + contactoOperador.instagram.replace(/^@/, "") : null].filter(Boolean).join(" · ")
+    : "";
   // El cupo, UNA sola vez y derivado: lo enseñan la tarifa y las fechas.
   const cupoTexto = textoDeCupo(cupoDe(experience));
   const slug = experience.slug;
@@ -925,18 +971,34 @@ export default function ExperienceTemplateV2({
       />
       <style dangerouslySetInnerHTML={{ __html: TEMPLATE_V2_CSS + MOVIL_FIXES_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: COLLAB_CSS }} />
+      {marca ? <style dangerouslySetInnerHTML={{ __html: MARCA_CSS }} /> : null}
 
       {/* NAV */}
       <nav className="nav" id="nav">
-        <a href="/caminante" className="brand" aria-label="Caminante — inicio">
-          <span className="logo-word" data-word />
-          <span className="logo-mark" data-mark />
-        </a>
+        {marca ? (
+          <a href="#top" className="brand opbrand" aria-label={marca.nombre}>
+            {marca.logoOscuro ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="oplogo foto" src={marca.logoOscuro} alt={marca.nombre} />
+            ) : null}
+            {marca.logoClaro ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="oplogo claro" src={marca.logoClaro} alt="" aria-hidden="true" />
+            ) : null}
+            {!marca.logoOscuro && !marca.logoClaro ? <span className="opnombre">{marca.nombre}</span> : null}
+          </a>
+        ) : (
+          <a href="/caminante" className="brand" aria-label="Caminante — inicio">
+            <span className="logo-word" data-word />
+            <span className="logo-mark" data-mark />
+          </a>
+        )}
         <div className="nav-links">
-          <a href="/caminante">Inicio</a>
-          <a href="/caminante#proximos">Calendario</a>
-          <a href="/caminante#aprende">Aprende</a>
-          <a href="/caminante#quees">Nosotros</a>
+          {menu.map((m) => (
+            <a key={m.href} href={m.href}>
+              {m.texto}
+            </a>
+          ))}
           <a href={cuentaHref}>{cuentaLabel}</a>
         </div>
         <div className="nav-cta">
@@ -952,18 +1014,12 @@ export default function ExperienceTemplateV2({
       </nav>
 
       <div className="drawer" id="drawer">
-        <a href="/caminante">
-          <span className="sl">{"//"}</span>Inicio
-        </a>
-        <a href="/caminante#proximos">
-          <span className="sl">{"//"}</span>Calendario
-        </a>
-        <a href="/caminante#aprende">
-          <span className="sl">{"//"}</span>Aprende
-        </a>
-        <a href="/caminante#quees">
-          <span className="sl">{"//"}</span>Nosotros
-        </a>
+        {menu.map((m) => (
+          <a key={m.href} href={m.href}>
+            <span className="sl">{"//"}</span>
+            {m.texto}
+          </a>
+        ))}
         <a href={cuentaHref}>
           <span className="sl">{"//"}</span>{cuentaLabel}
         </a>
@@ -1026,17 +1082,41 @@ export default function ExperienceTemplateV2({
       {/* FOOTER */}
       <footer className="footer">
         <div className="container">
-          <div className="word" data-word aria-label="Caminante" />
-          <div className="tagline">Caminante · Naturaleza en movimiento</div>
-          <div className="sub">Una expansión de NUMAN al mundo natural</div>
-          <p className="desc">
-            Caminante lleva la educación encarnada de NUMAN a paisajes reales. Una parte de cada
-            experiencia se destina a la conservación del lugar que la hace posible.
-          </p>
-          <div className="fbottom">
-            <span>© 2026 Caminante</span>
-            <span>uno@numanhub.com · @somos.caminante</span>
-          </div>
+          {marca ? (
+            // EL PIE ES DE LA OPERADORA: su logo (o su nombre), su línea, su
+            // contacto. Caminante aparece como lo que es aquí —quien opera la
+            // plataforma—, en un renglón, tan visible como ella haya elegido.
+            <>
+              {marca.logoOscuro ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="oplogo" src={marca.logoOscuro} alt={marca.nombre} />
+              ) : (
+                <div className="opnombre">{marca.nombre}</div>
+              )}
+              {marca.pie || marca.logoOscuro ? <div className="tagline">{marca.pie || marca.nombre}</div> : null}
+              <div className="fbottom">
+                <span>© 2026 {marca.nombre}</span>
+                {contactoDelPie ? <span>{contactoDelPie}</span> : null}
+              </div>
+              <p className={"powered" + (marca.poweredBy === "visible" ? " visible" : "")}>
+                Operado con <a href="/caminante">Caminante</a>
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="word" data-word aria-label="Caminante" />
+              <div className="tagline">Caminante · Naturaleza en movimiento</div>
+              <div className="sub">Una expansión de NUMAN al mundo natural</div>
+              <p className="desc">
+                Caminante lleva la educación encarnada de NUMAN a paisajes reales. Una parte de cada
+                experiencia se destina a la conservación del lugar que la hace posible.
+              </p>
+              <div className="fbottom">
+                <span>© 2026 Caminante</span>
+                <span>uno@numanhub.com · @somos.caminante</span>
+              </div>
+            </>
+          )}
           {/* Identidad, domicilio y medios de reclamación (D25 de legal). */}
           <p style={{ marginTop: 14, fontSize: 11, lineHeight: 1.6, opacity: 0.7, textAlign: "center" }}>
             {RAZON_SOCIAL_NUMAN} · {DOMICILIO_NUMAN}. Reclamaciones y aclaraciones: WhatsApp {CONTACTO_CAMINANTE.whatsapp} ·{" "}

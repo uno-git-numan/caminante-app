@@ -121,3 +121,48 @@ export function faltanDeMarca(b: OperatorBranding | null | undefined): string[] 
     !b?.logoUrl ? "logo" : null,
   ].filter((x): x is string => !!x);
 }
+
+// ── LA MARCA EN LA PÁGINA DE UNA EXPERIENCIA (23 nov 2026) ─────────────────
+//
+// Luis, viendo la página de la operadora de prueba con su marca puesta: «Acá
+// no se ve el logo de su marca, se ve nuestro logo». La marca cambiaba los
+// colores y dejaba la cabecera y el pie con el logotipo, el menú y el texto de
+// Caminante: un cliente llegaba a la experiencia de una operadora y leía el
+// nombre de otra casa arriba y abajo.
+//
+// Esto dice QUÉ se pinta. Con logo, el logo; sin logo pero con sus dos colores,
+// su nombre en texto (lo que el formulario de marca ya prometía: «Sin logo va
+// tu nombre en texto»). Sin ninguna de las dos cosas devuelve null y la página
+// queda exactamente como era: de Caminante.
+export type MarcaDePagina = {
+  nombre: string;
+  /** El logo sobre fondo claro (la cabecera ya desplazada). Null = va el nombre. */
+  logoClaro: string | null;
+  /** El logo sobre foto o fondo oscuro (la cabecera arriba y el pie). */
+  logoOscuro: string | null;
+  /** Su línea del pie, si la escribió. */
+  pie: string | null;
+  /** Qué tanto se dice «Operado con Caminante». */
+  poweredBy: "discreto" | "visible";
+};
+
+export function marcaDePagina(
+  t: { name: string; branding: OperatorBranding | null } | null | undefined,
+): MarcaDePagina | null {
+  if (!t) return null;
+  const b = t.branding;
+  const claro = logoUrl(b?.logoUrl);
+  const oscuro = logoUrl(b?.logoDarkUrl);
+  if (!claro && !oscuro && !marcaLista(b)) return null;
+  const nombre = (t.name ?? "").trim();
+  if (!nombre) return null;
+  return {
+    nombre,
+    // Si sólo subió uno, ése va en los dos lados: mejor su logo sobre un fondo
+    // que no le favorece que el nombre de otra marca.
+    logoClaro: claro ?? oscuro,
+    logoOscuro: oscuro ?? claro,
+    pie: (b?.footerLine ?? "").trim() || null,
+    poweredBy: b?.poweredBy === "visible" ? "visible" : "discreto",
+  };
+}

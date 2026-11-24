@@ -7,6 +7,7 @@ import {
 import { cleanGrupoToken, fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import { fetchOperatorChipForExperience, fetchOperatorContactoForExperience } from "@/lib/operators/public";
 import { fetchThemeForExperience } from "@/lib/operators/branding";
+import { marcaDePagina } from "@/lib/operators/marca";
 import { fetchExperienceRatings } from "@/lib/experiences/ratings";
 import { getCurrentRole } from "@/lib/auth/authorization";
 import PubStyles from "../../ui/pub/PubStyles";
@@ -71,6 +72,7 @@ export default async function ExperiencePage({ params, searchParams }: Params) {
             sessionRole={sessionRole}
             operatorChip={operatorChip}
             contactoOperador={contactoOperador}
+            marca={marcaDePagina(tema)}
           />
         </div>
         <PubShell buypad scope={wlDoc(tema)}>
