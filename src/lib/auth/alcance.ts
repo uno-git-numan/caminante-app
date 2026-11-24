@@ -105,28 +105,28 @@ export const alcanceActual = cache(async (): Promise<Alcance | null> => {
 
   const sb = createSupabaseAdminClient();
 
+  // ⚠️ LAS TRES PREGUNTAS SALEN JUNTAS, Y SE CONTESTAN EN EL ORDEN DE SIEMPRE
+  // (24 nov 2026). Iban una tras otra —casa, equipo, operador— y cada una
+  // esperaba a la anterior: tres viajes a la base antes de pintar nada, en
+  // CADA pantalla del panel. La base vive en Oregón; una operadora pagaba los
+  // tres aunque sólo le importara el último. Ahora viajan a la vez y la
+  // precedencia se aplica al leer las respuestas, idéntica: la casa manda,
+  // luego el equipo, luego el operador.
+  const [{ data: wl, error: wlErr }, eq, { data: op, error: opErr }] = await Promise.all([
+    sb.from("admin_whitelist").select("email").eq("email", email).eq("is_active", true).maybeSingle(),
+    equipoDe(email),
+    sb.from("operators").select("id, name, slug").eq("email", email).eq("panel_activo", true).maybeSingle(),
+  ]);
+
   // 1 · La casa manda.
-  const { data: wl, error: wlErr } = await sb
-    .from("admin_whitelist")
-    .select("email")
-    .eq("email", email)
-    .eq("is_active", true)
-    .maybeSingle();
   // ⚠️ Ante un error de lectura NO se asume casa: se sigue al paso 2 y, si
   // tampoco hay operador, esta sesión no ve nada. El menor privilegio.
   if (!wlErr && wl) return { tipo: "casa" };
 
   // 2 · ¿Es del equipo? (0070). Antes que operador, igual que el rol.
-  const eq = await equipoDe(email);
   if (eq) return alcanceDeEquipo(eq);
 
   // 3 · ¿Es un operador vivo?
-  const { data: op, error: opErr } = await sb
-    .from("operators")
-    .select("id, name, slug")
-    .eq("email", email)
-    .eq("panel_activo", true)
-    .maybeSingle();
   if (opErr || !op) return null;
 
   const r = op as { id: string; name: string | null; slug: string | null };

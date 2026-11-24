@@ -53,12 +53,26 @@ export async function roleForClient(
 
   const email = user.email.toLowerCase();
 
-  const { data, error } = await supabase
-    .from("admin_whitelist")
-    .select("email")
-    .eq("email", email)
-    .eq("is_active", true)
-    .maybeSingle();
+  // ⚠️ LAS TRES PREGUNTAS SALEN JUNTAS (24 nov 2026) y se contestan en el orden
+  // de siempre: casa, equipo, operador. Iban una tras otra, y el rol se pide
+  // varias veces por pantalla. Ver el mismo cambio en `alcanceActual`.
+  //
+  // ⚠️ LA DE OPERADORES VA CON EL CLIENTE DE SERVICIO, NO CON EL DE LA SESIÓN, y
+  // no es una comodidad: `operators` tiene RLS que solo expone las filas
+  // `is_public = true` (son los perfiles públicos de operador). Kéntro está en
+  // pausa como perfil, así que con el cliente del usuario la fila NO APARECE y
+  // el rol caía a «caminante» — el operador se quedaba fuera de su propio panel
+  // sin un solo error, solo un `?error=not_admin` en la home. Medido en el
+  // preview el 24 ago 2026.
+  //
+  // Es seguro: el correo NO viene del cliente, sale de `getUser()`, que ya
+  // validó el token. Aquí solo se pregunta si ese correo tiene panel.
+  const servicio = createSupabaseAdminClient();
+  const [{ data, error }, { data: st, error: stErr }, { data: op, error: opErr }] = await Promise.all([
+    supabase.from("admin_whitelist").select("email").eq("email", email).eq("is_active", true).maybeSingle(),
+    servicio.from("staff").select("id").eq("email", email).eq("activo", true).maybeSingle(),
+    servicio.from("operators").select("id").eq("email", email).eq("panel_activo", true).maybeSingle(),
+  ]);
 
   if (error) {
     // Ante duda, el menor privilegio: tratamos como caminante (NO admin).
@@ -72,30 +86,8 @@ export async function roleForClient(
   // El equipo (0070). Un error de lectura —la tabla aún no existe, red— NO da
   // asiento: se sigue a operador. Fallar cerrado para el rol nuevo, sin tocar
   // el viejo.
-  const { data: st, error: stErr } = await createSupabaseAdminClient()
-    .from("staff")
-    .select("id")
-    .eq("email", email)
-    .eq("activo", true)
-    .maybeSingle();
   if (!stErr && st) return "equipo";
 
-  // ⚠️ ESTA CONSULTA VA CON EL CLIENTE DE SERVICIO, NO CON EL DE LA SESIÓN, y no
-  // es una comodidad: `operators` tiene RLS que solo expone las filas
-  // `is_public = true` (son los perfiles públicos de operador). Kéntro está en
-  // pausa como perfil, así que con el cliente del usuario la fila NO APARECE y
-  // el rol caía a «caminante» — el operador se quedaba fuera de su propio panel
-  // sin un solo error, solo un `?error=not_admin` en la home. Medido en el
-  // preview el 24 ago 2026.
-  //
-  // Es seguro: el correo NO viene del cliente, sale de `getUser()`, que ya
-  // validó el token. Aquí solo se pregunta si ese correo tiene panel.
-  const { data: op, error: opErr } = await createSupabaseAdminClient()
-    .from("operators")
-    .select("id")
-    .eq("email", email)
-    .eq("panel_activo", true)
-    .maybeSingle();
   if (opErr) return "caminante";
 
   return op ? "operador" : "caminante";

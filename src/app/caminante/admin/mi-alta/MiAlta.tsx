@@ -890,7 +890,9 @@ function Expediente02({
   // el 24 sep 2026 esto era una sola tarjeta con todo corrido bajo subtítulos
   // (Luis lo vio en producción): el CSS de Mi alta venía de la lámina anterior,
   // que no tenía acordeones, y el paso se escribió a la medida de lo que había.
-  const [abierto, setAbierto] = useState<string | null>("general");
+  // Cerradas al entrar, igual que en la pantalla del expediente (24 nov 2026).
+  const [abierto, setAbierto] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
   const [previa, setPrevia] = useState<string | null>(null);
   const refGeneral = useRef<HTMLDivElement>(null);
   const irGeneral = () => {
@@ -1121,10 +1123,21 @@ function Expediente02({
 
       {noDeclaradas.length > 0 ? (
         <>
-          <p className="xh4" style={{ marginTop: 28 }}>Agregar una actividad</p>
-          <p className="gnhint" style={{ maxWidth: "74ch", margin: "0 0 12px" }}>
-            Las que no has declarado. Ninguna te pide nada hasta que la eliges, y antes de elegirla ves
-            exactamente qué documentos lleva.
+          <div className="acts" style={{ marginTop: 14 }}>
+          <div className={"actv mas" + (agregando ? " open" : "")}>
+          <button className="ah" type="button" onClick={() => setAgregando((v) => !v)} aria-expanded={agregando}>
+            <span className="g">
+              <b>Agregar una actividad</b>
+              <small>Las que no has declarado. Ninguna te pide nada hasta que la eliges</small>
+            </span>
+            <span className="rt">
+              <span className="fr">{noDeclaradas.length} por elegir</span>
+              <span className="chev2">▾</span>
+            </span>
+          </button>
+          <div className="ab">
+          <p className="gnhint">
+            Antes de elegirla ves exactamente qué documentos lleva.
           </p>
           <div className="cat">
             {noDeclaradas.map((c) => (
@@ -1191,6 +1204,9 @@ function Expediente02({
               </div>
             );
           })() : null}
+          </div>
+          </div>
+          </div>
         </>
       ) : null}
     </>

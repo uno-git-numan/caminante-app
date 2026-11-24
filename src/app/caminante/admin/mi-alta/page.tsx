@@ -23,6 +23,7 @@ import MiAlta from "./MiAlta";
 import { altaCobroEnPlataforma } from "@/lib/payments/alta-cobro";
 import { ORDINALES, PASOS, pasoActual } from "@/lib/operadores/pasos";
 import { CINCO_PASOS_CSS } from "./pasos-css";
+import { EXPEDIENTE_AJUSTES_CSS } from "./expediente-ajustes-css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -173,6 +174,7 @@ export default async function MiAltaPage({
     <AdminShell active="panorama">
       <style dangerouslySetInnerHTML={{ __html: MI_ALTA_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: CINCO_PASOS_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: EXPEDIENTE_AJUSTES_CSS }} />
       <div className="sec-head">
         <div>
           <span className="eyebrow">

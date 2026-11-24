@@ -182,6 +182,9 @@ export async function guardarTipoPersona(
   if (error) return { ok: false, error: error.message };
   revalidatePath(RUTA);
   revalidatePath("/caminante/admin/mi-alta");
+  // Se elige en la pantalla del expediente: con ella revalidada, la respuesta
+  // de esta acción ya la trae al día y el botón no tiene que pedirla otra vez.
+  revalidatePath("/caminante/admin/mi-alta/expediente");
   return { ok: true };
 }
 

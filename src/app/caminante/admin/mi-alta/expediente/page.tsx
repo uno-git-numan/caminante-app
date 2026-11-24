@@ -18,6 +18,7 @@ import { fetchMiAlta } from "@/lib/operadores/mi-alta";
 import { alcanceActual } from "@/lib/auth/alcance";
 import { fetchExpediente, fetchBorradorDelCandado, nombreDeOperadora } from "@/lib/operadores/expediente";
 import Expediente from "./Expediente";
+import { EXPEDIENTE_AJUSTES_CSS } from "../expediente-ajustes-css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -61,16 +62,24 @@ export default async function ExpedientePage({
     operatorId = propia;
   }
 
-  const datos = await fetchExpediente(operatorId);
-
+  // ⚠️ EL EXPEDIENTE DE LA OPERADORA YA VIENE EN `fetchMiAlta` (24 nov 2026).
+  // Esta página lo pedía OTRA VEZ, entero: las mismas seis lecturas dos veces
+  // por carga, y la pantalla se vuelve a cargar con cada documento que se sube
+  // (Luis, subiendo los suyos: «tarda mucho»). Sólo se pide aparte cuando la
+  // casa mira el de otra, que es el único caso en que `alta` no lo trae.
+  //
   // ⚠️ EL BORRADOR SE RESUELVE CONTRA LA BASE Y CONTRA EL DUEÑO. El slug llega
   // por query string, o sea que lo puede escribir cualquiera: sin filtrar por
   // `operator_id` esta pantalla diría el título de una experiencia ajena.
-  const traido = await fetchBorradorDelCandado(operatorId, q.borrador, q.actividad);
+  const [datos, traido] = await Promise.all([
+    !porOtra && alta?.expediente ? alta.expediente : fetchExpediente(operatorId),
+    fetchBorradorDelCandado(operatorId, q.borrador, q.actividad),
+  ]);
 
   return (
     <AdminShell active="panorama">
       <style dangerouslySetInnerHTML={{ __html: EXPEDIENTE_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: EXPEDIENTE_AJUSTES_CSS }} />
       <div className="sec-head" style={{ marginBottom: 18 }}>
         <div>
           <span className="eyebrow">

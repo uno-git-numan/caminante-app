@@ -100,7 +100,7 @@ export type Actividad = {
 // subió y la casa no los tira sin preguntar. El expediente ya no las cuenta.
 export const GENERALES: Documento[] = [
   { slug: "rnt", nombre: "Registro Nacional de Turismo (SECTUR) vigente",
-    porQue: "Es lo que habilita legalmente a operar como prestador de servicios turísticos. Se tramita gratis en rnt.sectur.gob.mx.", vence: true },
+    porQue: "Es lo que habilita legalmente a operar como prestador de servicios turísticos. Se tramita gratis en www.ventanillaturismo.gob.mx.", vence: true },
   { slug: "id-responsable", nombre: "Identificación oficial",
     nombrePara: { fisica: "Tu identificación oficial", moral: "Identificación oficial del representante legal" },
     porQue: "INE por los dos lados o pasaporte. Es de quien firma el convenio.", vence: true, vencePor: "anio" },

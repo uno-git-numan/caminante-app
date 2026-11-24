@@ -28,6 +28,7 @@ import { ETIQUETA_MOMENTO } from "@/lib/operadores/actividades";
 import { declararNoAplica, prepararSubida, quitarDocumento, registrarSubida, retirarNoAplica } from "@/lib/operadores/expediente-actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CDMX, diaEnPalabras } from "@/lib/fecha/zona";
+import ConLigas from "./ConLigas";
 
 // `subido_at` es un instante (timestamptz), no una fecha: se lee en la zona de
 // México, no en UTC, o una subida de las 8 de la noche saldría con el día
@@ -130,9 +131,16 @@ export default function RenglonDoc({
         if (eSubida) return setError("No se pudo subir el archivo. Revisa tu conexión e intenta de nuevo.");
         const r = await registrarSubida({ ...base, path: p.path, nombre: f.name });
         if (!r.ok) return setError(r.error);
-        // La acción revalida el expediente; Mi alta es otra ruta y hay que
-        // pedirle al servidor que la vuelva a dibujar.
-        router.refresh();
+        // ⚠️ SIN `router.refresh()` AQUÍ (24 nov 2026). La acción revalida las
+        // dos pantallas que enseñan el renglón y su respuesta ya las trae al
+        // día; pedirlas otra vez era cargar la pantalla dos veces por archivo
+        // (Luis, subiendo los suyos: «tarda mucho en subir los pdf»).
+        //
+        // Lo que sí falta es el VEREDICTO: la lectura automática corre después
+        // de contestar (unos diez segundos) y aprueba sola lo que sale limpio.
+        // Sin volver a preguntar, el renglón se quedaría en «En revisión»
+        // hasta que la operadora recargara por su cuenta.
+        setTimeout(() => router.refresh(), 14_000);
       } catch {
         setError("No se pudo subir el archivo. Revisa tu conexión e intenta de nuevo.");
       }
@@ -165,7 +173,7 @@ export default function RenglonDoc({
         {ico}
         <span className="nm">
           <b>{d.nombre}</b>
-          <small><b>{ETIQUETA_MOMENTO[d.momento]}.</b> {d.porQue}</small>
+          <small><b>{ETIQUETA_MOMENTO[d.momento]}.</b> <ConLigas texto={d.porQue} /></small>
         </span>
         <span className="fl">
           <span className="mut">{d.estado === "falta" ? "Todavía no lo has subido" : estadoTxt[k]}</span>
@@ -184,7 +192,7 @@ export default function RenglonDoc({
         <IcoOK />
         <span className="nm">
           <b>{d.nombre}</b>
-          <small><b>{ETIQUETA_MOMENTO[d.momento]}.</b> {d.porQue}</small>
+          <small><b>{ETIQUETA_MOMENTO[d.momento]}.</b> <ConLigas texto={d.porQue} /></small>
         </span>
         <span className="fl">
           <span className="mut" style={{ fontFamily: "'Geist',system-ui,sans-serif" }}>
@@ -213,7 +221,7 @@ export default function RenglonDoc({
       <span className="nm">
         <b>{d.nombre}</b>
         <small>
-          <b>{ETIQUETA_MOMENTO[d.momento]}.</b> {d.porQue}
+          <b>{ETIQUETA_MOMENTO[d.momento]}.</b> <ConLigas texto={d.porQue} />
           {d.opcional ? " · opcional" : ""}
         </small>
       </span>

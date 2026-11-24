@@ -234,7 +234,11 @@ export async function registrarSubida(input: {
     });
   }
 
+  // Las DOS pantallas que enseñan este renglón: el expediente y Mi alta. Con
+  // las dos aquí, la respuesta de esta acción ya trae la pantalla al día y el
+  // renglón no tiene que pedirla otra vez (era una carga doble por archivo).
   revalidatePath(RUTA);
+  revalidatePath("/caminante/admin/mi-alta");
   return { ok: true };
 }
 

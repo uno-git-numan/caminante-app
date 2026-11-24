@@ -62,7 +62,11 @@ function Marca({ estado }: { estado: DocEnPantalla["estado"] }) {
 // el botón a la vista— y subir costaba cuatro pasos.
 
 function Carpeta({ a, operadora }: { a: ActividadEnPantalla; operadora: string | null }) {
-  const [abierta, setAbierta] = useState(a.estado !== "aprobada");
+  // CERRADAS AL ENTRAR (Luis, 24 nov 2026: «que se vean así cerrados, no
+  // abiertos cuando entras a la página»). Abiertas todas, la pantalla era una
+  // lista de veinte renglones y no se veía de un vistazo qué carpeta falta: eso
+  // lo dicen el título, la pastilla y el «2 de 6» de cada una.
+  const [abierta, setAbierta] = useState(false);
   const clase = a.estado === "aprobada" ? " aprob" : " inc";
   const total = a.propios.length;
   const listos = total - a.faltan;
@@ -431,7 +435,8 @@ export default function Expediente({
   porOtra?: { id: string; nombre: string } | null;
 }) {
   const operadora = porOtra?.id ?? null;
-  const [abiertoGen, setAbiertoGen] = useState(true);
+  const [abiertoGen, setAbiertoGen] = useState(false);
+  const [agregando, setAgregando] = useState(false);
   const yaDeclaradas = new Set(datos.actividades.map((a) => a.slug));
   const genListos = datos.generales.length - datos.faltanGenerales;
   const obligatorios = datos.generales.filter((d) => !d.opcional).length;
@@ -457,8 +462,11 @@ export default function Expediente({
       {traido ? <Traido operadora={operadora} t={traido} generales={datos.generales} /> : null}
 
       <div className="expbar">
-        <div className={"verdict " + (datos.completo ? "casa" : datos.vacio ? "casa" : "no")}>
-          <span className="n">{datos.vacio ? "//" : datos.completo ? "//" : datos.faltanTotal}</span>
+        {/* Rojo y con número SÓLO cuando falta algo de ella. Con todo entregado
+            y en revisión salía un «0» en rojo junto a «lo estamos revisando»:
+            una alarma para decir que no hay nada que hacer. */}
+        <div className={"verdict " + (datos.completo || datos.vacio || datos.faltanTotal === 0 ? "casa" : "no")}>
+          <span className="n">{datos.vacio || datos.completo || datos.faltanTotal === 0 ? "//" : datos.faltanTotal}</span>
           <span className="g">
             <b>
               {datos.vacio
@@ -531,22 +539,42 @@ export default function Expediente({
         {datos.actividades.map((a) => <Carpeta operadora={operadora} key={a.slug} a={a} />)}
       </div>
 
-      <p className="xh4">Agregar una actividad</p>
-      <p className="gnhint">
-        Cada actividad tiene su propio expediente y se aprueba por separado. Que una esté
-        incompleta no detiene a las demás: lo aprobado sigue vendiendo.
-      </p>
-      <div className="cat">
-        {ACTIVIDADES.map((c) =>
-          yaDeclaradas.has(c.slug) ? (
-            <button key={c.slug} className="cati ya" disabled>
-              <span className="pl">✓</span>
-              <span><b>{c.nombre}</b><small>Ya la declaraste</small></span>
-            </button>
-          ) : (
-            <Mosaico operadora={operadora} key={c.slug} slug={c.slug} nombre={c.nombre} documentos={c.documentos.length} />
-          ),
-        )}
+      {/* «Agregar una actividad» es una carpeta más, cerrada (Luis, 24 nov
+          2026): diecisiete mosaicos siempre a la vista empujaban el botón de
+          continuar fuera de la pantalla, y casi nadie viene a agregar. */}
+      <div className="acts" style={{ marginTop: 10 }}>
+        <div className={"actv mas" + (agregando ? " open" : "")}>
+          <button className="ah" type="button" onClick={() => setAgregando((v) => !v)} aria-expanded={agregando}>
+            <span className="g">
+              <b>Agregar una actividad</b>
+              <small>Cada actividad tiene su propio expediente y se aprueba por separado</small>
+            </span>
+            <span className="rt">
+              <span className="fr">
+                {ACTIVIDADES.length - yaDeclaradas.size} por elegir
+              </span>
+              <span className="chev2">▾</span>
+            </span>
+          </button>
+          <div className="ab">
+            <p className="gnhint">
+              Elige la que quieras ofrecer. Que una esté incompleta no detiene a las demás: lo aprobado
+              sigue vendiendo.
+            </p>
+            <div className="cat">
+              {ACTIVIDADES.map((c) =>
+                yaDeclaradas.has(c.slug) ? (
+                  <button key={c.slug} className="cati ya" disabled>
+                    <span className="pl">✓</span>
+                    <span><b>{c.nombre}</b><small>Ya la declaraste</small></span>
+                  </button>
+                ) : (
+                  <Mosaico operadora={operadora} key={c.slug} slug={c.slug} nombre={c.nombre} documentos={c.documentos.length} />
+                ),
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );

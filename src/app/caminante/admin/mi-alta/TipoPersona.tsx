@@ -11,7 +11,6 @@
 // misma pregunta, ahora en el lugar donde decide algo.
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { guardarTipoPersona } from "@/lib/payments/connect-actions";
 
 export default function TipoPersona({
@@ -26,14 +25,22 @@ export default function TipoPersona({
 }) {
   const [pendiente, arranca] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const elegir = (t: "fisica" | "moral") =>
+  // Cuál se acaba de elegir: el botón lo dice («Guardando…») mientras el
+  // servidor contesta. Antes los dos se apagaban sin decir nada y la pantalla
+  // parecía trabada (Luis, 24 nov 2026).
+  const [eligiendo, setEligiendo] = useState<"fisica" | "moral" | null>(null);
+  const elegir = (t: "fisica" | "moral") => {
+    if (t === tipo) return;
+    setEligiendo(t);
     arranca(async () => {
       setError(null);
+      // La acción revalida esta pantalla y su respuesta ya la trae al día: no
+      // hace falta pedirla otra vez.
       const r = await guardarTipoPersona(operadoraId, t);
-      if (r.ok) router.refresh();
-      else setError(r.error ?? "No se pudo guardar.");
+      if (!r.ok) setError(r.error ?? "No se pudo guardar.");
+      setEligiendo(null);
     });
+  };
 
   return (
     <div style={{ marginBottom: compacto ? 14 : 22 }}>
@@ -54,12 +61,12 @@ export default function TipoPersona({
           <button
             key={v}
             type="button"
-            className={"opt" + (tipo === v ? " on" : "")}
+            className={"opt" + ((pendiente && eligiendo ? eligiendo === v : tipo === v) ? " on" : "")}
             disabled={pendiente}
             onClick={() => elegir(v)}
           >
             <i />
-            {t}
+            {pendiente && eligiendo === v ? "Guardando…" : t}
           </button>
         ))}
       </div>

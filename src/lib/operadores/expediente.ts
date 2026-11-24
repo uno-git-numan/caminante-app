@@ -209,7 +209,11 @@ const tipoDe = (v: unknown): TipoPersona => (v === "fisica" || v === "moral" ? v
 
 export async function fetchExpediente(operatorId: string): Promise<Expediente> {
   const sb = createSupabaseAdminClient();
-  const [{ data: acts }, { data: docs }, { data: op }] = await Promise.all([
+  // TODO JUNTO (24 nov 2026). El peso de los archivos, las declaraciones de «no
+  // aplica» y lo leído de cada documento se pedían DESPUÉS de las tres primeras
+  // lecturas, uno tras otro: cuatro viajes a la base para una pantalla que se
+  // vuelve a pintar en cada subida. Ninguno depende de otro; van en uno.
+  const [{ data: acts }, { data: docs }, { data: op }, tamanos, noAplica, { data: leidos, error: eLeida }] = await Promise.all([
     sb
       .from("operator_activities")
       .select("actividad, estado, motivo")
@@ -219,21 +223,23 @@ export async function fetchExpediente(operatorId: string): Promise<Expediente> {
       .select("id, actividad, documento, estado, motivo, vence_at, archivo_path, archivo_nombre, subido_at")
       .eq("operator_id", operatorId),
     sb.from("operators").select("tipo_persona").eq("id", operatorId).maybeSingle(),
+    tamanosDe(operatorId),
+    declaracionesDeNoAplica([operatorId]),
+    // Lo que se LEYÓ de cada documento (csf.ts y revision-ia.ts) va en su propia
+    // consulta: si la columna faltara, esto falla SOLO, sin tumbar el expediente.
+    sb
+      .from("operator_documents")
+      .select("id, documento, estado, analisis")
+      .eq("operator_id", operatorId)
+      .not("analisis", "is", null),
   ]);
   const e = armarExpediente(
     (acts ?? []) as { actividad: string; estado: string; motivo: string | null }[],
     (docs ?? []) as Fila[],
-    await tamanosDe(operatorId),
+    tamanos,
     tipoDe((op as { tipo_persona?: string } | null)?.tipo_persona),
-    (await declaracionesDeNoAplica([operatorId])).get(operatorId),
+    noAplica.get(operatorId),
   );
-  // Lo que se LEYÓ de cada documento (csf.ts y revision-ia.ts) va en su propia
-  // consulta: si la columna faltara, esto falla SOLO, sin tumbar el expediente.
-  const { data: leidos, error: eLeida } = await sb
-    .from("operator_documents")
-    .select("id, documento, estado, analisis")
-    .eq("operator_id", operatorId)
-    .not("analisis", "is", null);
   if (!eLeida) {
     const porId = new Map(
       ((leidos ?? []) as { id: string; documento: string; estado: string; analisis: AnalisisCsf | RevisionIa }[]).map((x) => [x.id, x]),

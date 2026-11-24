@@ -83,7 +83,7 @@ ilegible y habría que reabrirlo cada vez que se agregue una. En su lugar:
 ## 4 · De dónde salen estos documentos
 
 - **RNT** — Registro Nacional de Turismo, SECTUR. Es el trámite que habilita
-  legalmente a operar; gratuito, en `rnt.sectur.gob.mx`.
+  legalmente a operar; gratuito, en `www.ventanillaturismo.gob.mx` (la ventanilla única de SECTUR desde el 30 mar 2026; `rnt.sectur.gob.mx` ya no existe).
 - **NOM-09-TUR-2002** — acredita guías especializados **por modalidad**:
   naturaleza y aventura, incluyendo buceo, buceo en cavernas, descenso de ríos,
   kayak, senderismo, alta montaña, escalada, ciclismo de montaña, cañonismo y
