@@ -110,11 +110,30 @@ describe("la experiencia que sale", () => {
     expect(tres.images[0].big).toBe(true);
 
     expect(de(4).split.media.images).toHaveLength(4);
-    expect(de(4).cierre.bg.url).toBe("");
+    // Sin quinta foto, el cierre va sobre la portada: nunca en gris.
+    expect(de(4).cierre.bg.url).toBe(completa.portada);
+    expect(de(0).cierre.bg.url).toBe(completa.portada);
 
     const cinco = de(5);
     expect(cinco.split.media.images).toHaveLength(4);
     expect(cinco.cierre.bg.url).toBe("https://fotos.test/e.jpg");
+  });
+
+  // Lo que se vio en la página de la operadora de prueba el 23 nov 2026.
+  it("el cupo se dice una vez en la tarifa, y el renglón de las fechas lleva el precio delante", () => {
+    const tarifa = exp.page?.blocks.find((b) => b.type === "tariff") as unknown as { availK?: string; availV?: string };
+    expect(tarifa.availK ?? "").toBe(""); // la plantilla lo deriva de `capacity`: aquí lo duplicaba
+    expect(exp.capacity).toBeGreaterThan(0);
+    const fechas = exp.page?.blocks.find((b) => b.type === "dates") as unknown as { priceLine?: string };
+    expect(fechas.priceLine).toMatch(/^\$[\d,]+ MXN por persona$/);
+  });
+
+  it("una operadora sin Instagram NO invita a seguir el de la casa: sólo sale el contacto que ella tiene", () => {
+    const sinIg = experienciaDesdeCorta(completa, { clausulas, dueno: { email: "hola@operadora.test", whatsapp: "+52 55 0000 0000" } });
+    const cierre = sinIg.page?.blocks.find((b) => b.type === "closing") as unknown as { contacts: { lbl: string; val: string }[] };
+    expect(cierre.contacts.map((c) => c.lbl)).toEqual(["WhatsApp", "Email"]);
+    expect(JSON.stringify(cierre.contacts)).not.toContain("somos.caminante");
+    expect(sinIg.instagram).toBe("");
   });
 
   it("el contacto es el de quien la crea", () => {

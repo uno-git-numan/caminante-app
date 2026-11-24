@@ -254,9 +254,24 @@ export function experienciaDesdeCorta(
     // si eran 3 o 4, y con menos se perdían sin avisar.
     mosaic: fotos.slice(0, 4).map((url) => ({ url, alt: titulo })),
   };
-  // La quinta es el fondo del cierre («Nos vemos»): se piden «hasta cinco» y
-  // las cinco tienen que salir en algún lado.
-  if (fotos[4]) v2.closing = { ...v2.closing, bg: { url: fotos[4], alt: titulo } };
+  // El cierre («Nos vemos») va sobre foto: la quinta si la subieron —se piden
+  // «hasta cinco» y las cinco salen en algún lado—, y si no, la portada. Sin
+  // foto el bloque quedaba en un degradado gris, el único hueco de la página.
+  v2.closing = { ...v2.closing, bg: { url: fotos[4] || exp.heroImageUrl, alt: titulo } };
+
+  // ⚠️ EL CONTACTO ES EL DE QUIEN OPERA, O NO VA. `emptyExperience` rellena lo
+  // que la operadora no tiene con lo de la casa (el WhatsApp de Caminante,
+  // @somos.caminante): una operadora sin Instagram salía invitando a seguir el
+  // de otra marca. Con dueña, sólo lo que ELLA tiene; lo demás no se pinta.
+  if (opts.dueno) {
+    const suyo: Record<string, boolean> = {
+      WhatsApp: !!limpio(opts.dueno.whatsapp),
+      Email: !!limpio(opts.dueno.email),
+      Instagram: !!limpio(opts.dueno.instagram),
+    };
+    if (!suyo.Instagram) exp.instagram = "";
+    v2.closing = { ...v2.closing, contacts: v2.closing.contacts.filter((x) => suyo[x.lbl] !== false) };
+  }
   v2.itinerary = { ...v2.itinerary, on: false };
   v2.tariff = {
     ...v2.tariff,
@@ -265,9 +280,16 @@ export function experienciaDesdeCorta(
     tier: "Por persona",
     price: precioTxt,
     priceCur: "MXN · por persona",
-    availK: cupo ? "Cupo" : "",
-    availV: cupo ? `${cupo} personas` : "",
+    // ⚠️ SIN «Cupo» AQUÍ. La plantilla ya pinta el cupo, derivado de
+    // `capacity` (lib/experiences/cupo.ts); este renglón es para lo que NO es
+    // cupo («IVA incluido», «Grupo mínimo»). Con los dos, la tarjeta decía
+    // «Cupo · 12 personas» dos veces, una debajo de la otra.
+    availK: "",
+    availV: "",
   };
+  // El renglón bajo las fechas: la plantilla le pega «cupo N personas» al
+  // final; sin precio delante quedaba esa frase sola, en minúsculas.
+  v2.dates = { ...v2.dates, priceLine: `${precioTxt} MXN por persona` };
   v2.checklist = { ...v2.checklist, yesItems: yes, noItems: lista(c.noIncluye) };
   v2.packing = { ...v2.packing, on: false };
 
