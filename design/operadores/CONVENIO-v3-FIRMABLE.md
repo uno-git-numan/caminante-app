@@ -144,9 +144,7 @@ La penalización es una pena convencional, de al menos **$500 MXN** y de a lo m�
 
 1. Contar con **Registro Nacional de Turismo** vigente y mantenerlo en su expediente.
 
-2. Mantener vigente una **póliza de responsabilidad civil**, emitida por una aseguradora autorizada, que cubra cada salida todos los días que dure. Vale una póliza anual o una contratada por integrante y por día de salida; si es por salida, el Operador la contrata antes de cada una, la conserva y la entrega cuando Caminante se la pida.
-
-2 bis. Contar con los **seguros contra accidentes y gastos médicos** que la norma aplicable a su actividad le exija para las personas de cada salida. Puede contratarlos el Operador o quien opere la salida en campo. No son un documento obligatorio del expediente: el Operador los conserva y los exhibe cuando Caminante se los pida, y siempre después de un incidente. El Operador puede subir su póliza a la plataforma. Mientras conste una póliza vigente para los días de una salida, el deslinde y la ficha de esa salida informan al cliente que cuenta con seguro de accidentes. Cuando no conste, le informan que el Organizador no proporciona ese seguro y que debe contar con uno propio.
+2. Mantener vigente una **póliza de responsabilidad civil que incluya los gastos médicos por accidente de las personas de cada salida**, emitida por una aseguradora autorizada, que cubra cada salida todos los días que dure. Si su póliza de responsabilidad civil no incluye esa cobertura, el Operador mantiene además una póliza de accidentes que la dé. Vale una póliza anual o una contratada por integrante y por día de salida; si es por salida, el Operador la contrata antes de cada una, la conserva y la entrega cuando Caminante se la pida. Con base en esta obligación, el deslinde y la ficha de cada salida informan al cliente que cuenta con un seguro de accidentes contratado por el Operador; el Operador responde de que así sea.
 
 3. Operar cada actividad con guías acreditados conforme a la norma oficial que le corresponda (NOM-09-TUR-2002 y las demás aplicables), en la modalidad de que se trate, y conforme a lo que exija el anexo de esa actividad.
 
@@ -312,19 +310,17 @@ El expediente se integra en la plataforma según el tipo de persona del Operador
 
 3. Constancia de Situación Fiscal, reciente al subirla (90 días o menos), que la plataforma lee y valida (Cláusula Décima tercera, punto 7).
 
-4. Póliza de responsabilidad civil vigente: anual, o contratada por integrante por día de salida.
+4. Póliza de responsabilidad civil vigente que incluya los gastos médicos por accidente de los participantes, o esa póliza y una de accidentes que los cubra: anual, o contratada por integrante por día de salida.
 
 **Opcionales:**
 
-5. Póliza de seguro de accidentes y gastos médicos de las personas de cada salida, emitida por una aseguradora autorizada (Cláusula Sexta, punto 2 bis).
+5. Identificación oficial de quien opera en campo, cuando sea una persona distinta de quien firma.
 
-6. Identificación oficial de quien opera en campo, cuando sea una persona distinta de quien firma.
-
-7. Sólo para personas morales: acta constitutiva y poder del representante legal.
+6. Sólo para personas morales: acta constitutiva y poder del representante legal.
 
 **Por actividad:** la credencial de guía SECTUR (NOM-09-TUR-2002) de la modalidad y los requisitos técnicos de cada actividad constan en su anexo (Anexo E).
 
-**Cuándo se entrega cada documento.** Para publicar y vender bastan los documentos 2 y 3, la firma de este convenio y la del anexo de la actividad: ése es el **expediente de arranque**. El documento 4, la credencial del guía que conduce la salida y, cuando aplique, la autorización del sitio se entregan **antes del inicio de la primera salida** de cada actividad y se mantienen vigentes en cada salida; sin ellos la salida no se realiza. El documento 5 es voluntario y surte los efectos de la Cláusula Sexta, punto 2 bis. El documento 1 se entrega dentro de los **30 días naturales** siguientes a la firma, con la constancia de inscripción o el acuse de su trámite; vencido ese plazo sin entregarlo, Caminante puede suspender la publicación y la venta. Los manuales, programas, bitácoras y reglamentos que la norma de cada actividad exige al Operador no se entregan: el Operador declara en el anexo que cuenta con ellos y los exhibe cuando Caminante se los pida.
+**Cuándo se entrega cada documento.** Para publicar y vender bastan los documentos 2 y 3, la firma de este convenio y la del anexo de la actividad: ése es el **expediente de arranque**. El documento 4, la credencial del guía que conduce la salida y, cuando aplique, la autorización del sitio se entregan **antes del inicio de la primera salida** de cada actividad y se mantienen vigentes en cada salida; sin ellos la salida no se realiza. El documento 1 se entrega dentro de los **30 días naturales** siguientes a la firma, con la constancia de inscripción o el acuse de su trámite; vencido ese plazo sin entregarlo, Caminante puede suspender la publicación y la venta. Los manuales, programas, bitácoras y reglamentos que la norma de cada actividad exige al Operador no se entregan: el Operador declara en el anexo que cuenta con ellos y los exhibe cuando Caminante se los pida.
 
 ## Anexo C · Política de cancelación
 

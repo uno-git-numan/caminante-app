@@ -7,10 +7,10 @@ obligatorios y cuándo, qué datos debe llevar la oferta, y en qué orden se
 prenden los interruptores. Es el mínimo, no el ideal. Todo lo citado se leyó en
 su texto vigente el 19 nov (fuentes al final).
 
-> **Corregido el 24 nov 2026 (D31).** La póliza de accidentes y gastos médicos
-> ya no se entrega: Luis la quitó del expediente. Es documento opcional, y el
-> renglón «Incluye seguro de accidentes durante la salida» sólo aparece cuando
-> hay una póliza vigente en la plataforma. Lo demás de este documento sigue.
+> **Corregido el 24 nov 2026 (D31).** Ya no son dos pólizas: es una, la de
+> responsabilidad civil con gastos médicos por accidente de los participantes.
+> El renglón «Incluye seguro de accidentes durante la salida» aparece en toda
+> experiencia de una operadora (decisión de Luis). Lo demás sigue.
 
 ## 1 · El expediente, en tres momentos
 

@@ -1,11 +1,10 @@
-# El anexo por actividad, marco v4: la póliza de accidentes ya no se entrega (D31)
+# El anexo por actividad, marco v4: una sola póliza, con gastos médicos (D31)
 
 **24 nov 2026 · Sesión legal y fiscal, para código.** Sustituye al marco v3
 (`ANEXO-ACTIVIDAD-MARCO-v3-2026-11-23.md`) **cuando se publique el convenio
-v3.6**, no antes: la Séptima nueva cita la Cláusula Sexta, punto 2 bis, que
-sólo existe en la v3.6. Cambia **una sola cláusula, la Séptima**. Todo lo
-demás es idéntico al v3, letra por letra. La clasificación de los 54
-documentos del catálogo no cambia.
+v3.6**, no antes. Cambia **una sola cláusula, la Séptima**. Todo lo demás es
+idéntico al v3, letra por letra. La clasificación de los 54 documentos del
+catálogo no cambia.
 
 ## 1 · Qué se entrega y qué se declara
 
@@ -24,12 +23,6 @@ si lo emite un tercero, se entrega; si lo escribe ella, se declara.
 Fundamento: la norma obliga a «contar con» manuales, bitácoras y programas
 (NOM-011-TUR-2001, 6.1 y 6.2), no a entregarlos; y pide permisos, guías
 acreditados y seguros para operar (6.1 c, 6.3 g; convenio, Sexta §2 a §4).
-
-**Excepción al inciso c), desde el 24 nov (D31).** La póliza de accidentes y
-gastos médicos de los participantes ya no se entrega: Luis la quitó del
-expediente. Queda como documento **opcional**. Los seguros específicos de
-buceo y de paracaidismo y la póliza de responsabilidad civil se siguen
-entregando.
 
 **La propuesta de código, revisada.** De acuerdo con todo lo que puso en «se
 entregan». **Tres pasan de «se declaran» a «se entregan»**, por el inciso d):
@@ -127,17 +120,18 @@ con sus dos variantes), `{lista_entregan}` y `{lista_declaran}`.
 > un papel que se entrega una vez.
 >
 > **Séptima. Seguros de cada salida.** La póliza de responsabilidad civil
-> debe cubrir cada salida, todos los días que dure, y estar emitida por una
-> aseguradora autorizada. Vale una póliza anual o una contratada por
+> debe incluir los gastos médicos por accidente de todas las personas de cada
+> salida, cubrir todos los días que dure y estar emitida por una aseguradora
+> autorizada. Si no incluye esa cobertura, el Operador entrega además una
+> póliza de accidentes que la dé. Vale una póliza anual o una contratada por
 > integrante y por día. En los dos casos, antes del inicio de cada salida
 > debe constar en la plataforma una póliza vigente para los días de esa
 > salida: la anual se sube una vez, con su fecha de vencimiento; la
-> contratada por salida se sube antes de cada una. Los seguros contra
-> accidentes y gastos médicos de las personas de cada salida se rigen por la
-> Cláusula Sexta, punto 2 bis, del Convenio: el Operador cuenta con los que
-> la norma le exija y no los entrega; la plataforma sólo informa al cliente
-> que una salida cuenta con seguro de accidentes mientras conste en ella una
-> póliza vigente para los días de esa salida.
+> contratada por salida se sube antes de cada una. Con base en esta
+> obligación la plataforma informa al cliente que la salida cuenta con un
+> seguro de accidentes contratado por el Operador; si la póliza falta, está
+> vencida o no incluye esa cobertura, el Operador lo avisa a Caminante antes
+> de la salida y responde de lo informado.
 >
 > **Octava. Vigencias.** Un documento vencido **no cuenta como entregado**.
 > La plataforma avisa a 30 y a 7 días del vencimiento. Una salida sólo se
@@ -165,33 +159,38 @@ con sus dos variantes), `{lista_entregan}` y `{lista_declaran}`.
 
 | Cláusula | Cambio |
 |---|---|
-| Séptima | Sólo la póliza de responsabilidad civil debe constar en la plataforma antes de cada salida. Los seguros contra accidentes y gastos médicos se rigen por el convenio (Sexta, punto 2 bis): no se entregan |
+| Séptima | Ya no pide dos pólizas. Pide la de responsabilidad civil **con gastos médicos por accidente de los participantes** (o acompañada de una de accidentes). Añade que con base en ella se le informa al cliente que la salida lleva seguro, y que el Operador avisa si falta |
 
 **Por qué.** El 24 nov Luis quitó del expediente la póliza colectiva de
-accidentes y enfermedades. El marco v3 obligaba a que constara en la
-plataforma antes de cada salida, y la plataforma ya no tiene dónde subirla
-como obligatoria. La obligación de tener ese seguro no desaparece: la pone la
-norma (NOM-011-TUR-2001, 6.1 c), no Caminante.
+accidentes y enfermedades y decidió que las experiencias de una operadora
+digan «con seguro», con sustento en la póliza de responsabilidad civil y
+gastos médicos. Para que esa frase sea cierta, el contrato tiene que pedir
+esa cobertura por su nombre: una póliza de responsabilidad civil no la
+incluye siempre.
 
 **Para código:**
 
 - **Versión.** Es marco nuevo: quien haya firmado un anexo con el v3 vuelve a
   firmar.
-- **Orden.** Primero el convenio v3.6, luego este marco. Mientras no se
-  publiquen, lo vigente es v3.5 con marco v3, que pide una póliza que ya no se
-  puede subir como obligatoria. Lo mejor es que ninguna operadora firme el
-  anexo en ese intervalo; si alguna firma, vuelve a firmar el v4.
-- **La Octava no cambia.** «Los documentos de las Cláusulas Cuarta y Séptima»
-  ahora son, de la Séptima, sólo la póliza de responsabilidad civil.
-- **La póliza opcional.** Para que una operadora pueda decirle a sus clientes
-  que la salida lleva seguro, necesita dónde subir la póliza de accidentes
-  como documento **opcional** con fecha de vencimiento (puede ser el mismo
-  renglón `poliza-gm`, que conserva las filas ya subidas). La regla está en
-  `DESLINDE-ESTANDAR-2026-11-19.md`, «Seguro (cláusula 9)».
+- **Orden.** Primero el convenio v3.6, luego este marco.
+- **La Octava no cambia.** Sigue diciendo que sin los documentos de la Cuarta
+  y la Séptima vigentes «la salida no se realiza».
+- **El renglón del catálogo.** `poliza-rc` debería llamarse «Póliza de
+  responsabilidad civil con gastos médicos de los participantes», y su porqué
+  decir que cubre los daños a terceros **y** los gastos médicos por accidente
+  de quienes viajan. Si la operadora tiene las dos coberturas en dos pólizas,
+  sube las dos en ese renglón.
+- **La revisión.** Quien aprueba esa póliza comprueba en la carátula tres
+  cosas: que esté vigente, que la actividad esté cubierta, y que aparezca la
+  cobertura de gastos médicos o de accidentes de los participantes. Sin la
+  tercera no se aprueba.
 
 ## Fuentes
 
-- Convenio v3.6 preparado (sin publicar): Sexta, puntos 2 y 2 bis, y Anexo B.
+- Convenio v3.6 preparado (sin publicar): Sexta, punto 2, y Anexo B.
 - NOM-011-TUR-2001, 6.1, 6.2 y 6.3 (releída el 24 nov).
-- Catálogo `src/lib/operadores/actividades.ts` tras el commit 60e1ea8.
+- NOM-09-TUR-2002 (leída completa el 24 nov): no pide póliza para la
+  credencial (4.2); sólo menciona el seguro como dato de la solicitud de
+  servicio (8.1).
+- Catálogo `src/lib/operadores/actividades.ts` tras el commit 21d5288.
 - No leí la NOM-05-TUR-2003 de buceo ni la regulación aeronáutica.

@@ -922,37 +922,46 @@ Sobre la propuesta de código, tres documentos de buceo pasan a «se entregan»:
 
 El estado intermedio (candado de publicar ya relajado, marco todavía v2) puede quedar así mientras código transcribe el v3: nadie ha firmado anexos. Condición: el candado de la salida existe antes de la primera salida de una operadora con convenio.
 
-### D31 · La póliza de accidentes sale del expediente: la obligación se queda, el documento no (24 nov)
+### D31 · Una sola póliza: responsabilidad civil con gastos médicos; las experiencias de operadora dicen «con seguro» (24 nov)
 
-**Qué pasó.** El 24 nov Luis, recorriendo el alta como operadora, pidió en la sesión de código quitar la «Póliza colectiva de seguro de accidentes y enfermedades»: «quitar esta póliza, ésta no es necesaria». Código la quitó del expediente ese día (commit 60e1ea8) y dejó toda experiencia nueva con el texto «sin seguro». Quedaron tres textos de legal diciendo lo contrario: el convenio v3.5 (Sexta §2 y Anexo B), el anexo por actividad (Séptima) y la regla de la cláusula 9 del deslinde.
+**Qué decidió Luis (24 nov, en la sesión de código).** Primero, frente al renglón «Póliza colectiva de seguro de accidentes y enfermedades» del expediente: «quitar esta póliza, ésta no es necesaria». Después, al leer el primer criterio de legal: «El tema del seguro se asume por tener el NOM TUR. No se puede tener el NOM TUR sin una póliza, por lo que sí puedes decir que está incluido. La de responsabilidad civil y gastos médicos mayores de acuerdo a la NOM 09 incluye gastos médicos mayores y por ende accidentes.» Código lo construyó así: la póliza de accidentes aparte ya no se pide, y toda experiencia de una operadora nace con la cláusula «con seguro» (commits 60e1ea8 y 21d5288).
 
-**Lo que dice la norma.** Quien presta turismo de aventura debe «contar con» «seguros contra accidentes y gastos médicos» (NOM-011-TUR-2001, 6.1 c; releída el 24 nov). La norma obliga a tenerlos, no a entregarlos a un tercero. Esa obligación no nace del convenio y el convenio no puede dispensarla.
+**Lo que legal cotejó contra las fuentes, el mismo día.**
 
-**La decisión.**
+| Lo que se dijo | Lo que dice la fuente |
+|---|---|
+| La credencial de guía no se obtiene sin póliza | **No.** La NOM-09-TUR-2002, leída completa, lista once requisitos para la credencial (4.2) y ninguno es una póliza. Su única mención del seguro es un dato de la solicitud de servicio: «Tipo de seguro: Viajero ( ), Responsabilidad civil ( )» (8.1) |
+| El registro de turismo no se obtiene sin póliza | **No necesariamente.** El formato único de inscripción pide a la «operadora de aventura-naturaleza» **alguno** de tres documentos: manuales de seguridad, manuales de operación para guías, o la carátula de la póliza de responsabilidad civil. Se puede inscribir sin póliza. Leí la copia que publica la Secretaría de Turismo de Oaxaca, con fecha DOF 27-02-2025; no comprobé si la ventanilla nueva de 2026 lo cambió |
+| La obligación de asegurar al turista | Está en la **NOM-011-TUR-2001, 6.1 c)**: quien presta turismo de aventura debe «contar con» «seguros contra accidentes y gastos médicos» |
+| La póliza de responsabilidad civil incluye gastos médicos y accidentes | **Depende de la póliza.** La responsabilidad civil cubre los daños por los que el asegurado responde frente a terceros. Los gastos médicos del participante son una cobertura que algunas pólizas traen y otras no. Ninguna de las normas leídas dice que la incluya |
+
+**Conclusión.** Tener la credencial o el registro no prueba que haya póliza. Lo que sí sostiene la decisión de Luis es la póliza misma: una de responsabilidad civil **que incluya los gastos médicos por accidente de los participantes**. Por eso el convenio la pide por su nombre y la revisión la comprueba.
+
+**Cómo queda.**
 
 | Punto | Queda así |
 |---|---|
-| Expediente | La póliza de accidentes **no es documento obligatorio**. Es decisión de Luis y la norma no la impide |
-| Convenio | La operadora sigue obligada a contar con los seguros que la norma de su actividad le exija. No los entrega: los conserva y los exhibe cuando Caminante los pida, y siempre después de un incidente. Puede contratarlos ella o quien opere en campo |
-| Documento opcional | La operadora **puede** subir su póliza de accidentes. Es la única forma de que su deslinde y su ficha digan que la salida lleva seguro |
-| Lo que se le dice al cliente | «Esta salida cuenta con un seguro de accidentes» sólo cuando hay una póliza vigente en la plataforma para los días de esa salida. Sin póliza a la vista: «El Organizador no proporciona seguro… Es tu responsabilidad contar con uno propio» |
-| Responsabilidad civil | Sin cambio: se entrega antes de la primera salida y consta en la plataforma antes de cada una |
+| Expediente | Una sola póliza: responsabilidad civil con gastos médicos por accidente de los participantes. Si la operadora tiene las dos coberturas en dos pólizas, sube las dos en el mismo renglón |
+| Cuándo | Antes de la primera salida, y vigente en cada una (sin cambio) |
+| Revisión | Quien la aprueba comprueba en la carátula la vigencia, la actividad y la cobertura de gastos médicos o accidentes de los participantes. Sin la tercera no se aprueba |
+| Deslinde y ficha de una operadora | «Con seguro» (9-A) desde que nace la experiencia. Decisión de Luis |
+| Deslinde y ficha de la casa | Sin cambio: «sin seguro», y «con seguro del proveedor» cuando conste su póliza (D28 bis) |
 
-**Por qué no se quita la obligación del convenio.** Tres razones. La pone la norma, no Caminante. La cláusula que saca a Caminante en paz y a salvo cubre «la falta de los permisos y seguros previstos en la Cláusula Sexta» (Novena): si el seguro sale de la Sexta, esa protección se pierde justo en el caso de un accidente sin seguro. Y la norma alcanza también a quien intermedia (campo de aplicación, numeral 2).
-
-**Por qué no se presume el seguro.** Es el mismo estándar que ya vale para las salidas de la casa (D28 bis): no se le afirma al cliente un seguro que Caminante no ha visto. El error contrario cuesta menos: a quien se le dice que no hay seguro y sí lo había, no se le quita nada.
+**El riesgo que queda, dicho claro.** El cliente firma «esta salida cuenta con un seguro de accidentes» antes de que alguien haya visto la póliza, y hoy nada impide que una salida salga sin ella: la plataforma avisa a 14, 7, 3 y 1 día, pero no bloquea. Si una salida sale sin póliza y hay un accidente, la frase firmada es falsa y la plataforma la escribió (LFPC 32). Lo que lo reduce: la revisión de la póliza antes de la primera salida; el aviso; la regla de que, si a 3 días no hay póliza, la casa detiene la salida o le avisa a quienes firmaron antes de que salgan; y la cláusula por la que la operadora responde de lo informado. Bloquear la salida es más seguro que avisar. Es decisión de producto de Luis.
 
 **Los textos.**
 
-- **Convenio v3.6**, preparado y **sin publicar**. Sexta §2 se parte en §2 (responsabilidad civil) y §2 bis (seguros contra accidentes y gastos médicos). Anexo B: el documento 5 pasa a opcional. Es mayor. Huella del firmable `9796342ab338afe70ca71a7e84fdada1c025f15d00af6cc0776d73ac77f987ca`; SQL en `design/operadores/CONVENIO-v3.6-PUBLICAR.sql`.
-- **Anexo por actividad, marco v4**, en `ANEXO-ACTIVIDAD-MARCO-v4-2026-11-24.md`. Cambia sólo la Séptima. Se publica después del convenio v3.6, porque lo cita.
-- **Deslinde estándar, cláusula 9.** Los tres textos no cambian. Cambia cuándo aplica cada uno: 9-A si la operadora subió su póliza; 9-C si la casa tiene la del proveedor; 9-B en lo demás. Las reglas de vencimiento de la 9-C valen igual para la 9-A.
+- **Convenio v3.6**, preparado y **sin publicar** (mayor). Sexta §2: póliza de responsabilidad civil que incluya los gastos médicos por accidente de las personas de cada salida, o acompañada de una de accidentes; con base en ella se informa al cliente y la operadora responde de que así sea. Anexo B: desaparece la póliza de accidentes como documento aparte. Huella del firmable `fc0ad034dc07061f6ea0cc281fa65bd65bfa8abaffcf9514e5b2b8254e2832ee`; SQL en `design/operadores/CONVENIO-v3.6-PUBLICAR.sql`.
+- **Anexo por actividad, marco v4**, en `ANEXO-ACTIVIDAD-MARCO-v4-2026-11-24.md`. Cambia sólo la Séptima. Se publica después del convenio.
+- **Deslinde estándar, cláusula 9.** Los tres textos no cambian. Cambia la regla de cuándo aplica la 9-A y sus tres condiciones.
 
-**Estado.** Hasta que Luis apruebe y se publique la v3.6, lo vigente es la v3.5 con el marco v3, que obligan a entregar una póliza que la plataforma ya no recibe. Nadie ha firmado ninguna versión del convenio (verificado el 24 nov), así que no le cae encima a nadie; conviene que ninguna operadora firme antes de publicar.
+**Estado.** Hasta que Luis apruebe y se publique la v3.6, lo vigente es la v3.5 con el marco v3, que piden dos pólizas. Nadie ha firmado ninguna versión del convenio (verificado el 24 nov).
 
-**Dos correcciones a lo dicho antes.** D27 ponía la póliza de accidentes entre lo que se entrega antes de la primera salida: ya no. D28 decía que toda experiencia de una operadora con convenio nace «con seguro»: ya no, nace «sin seguro» y cambia cuando sube su póliza.
+**Lo que quedó sin efecto.** Esa mañana legal había preparado una v3.6 distinta (huella `9796342a…87ca`): la póliza de accidentes como documento opcional y «con seguro» sólo con póliza a la vista. Luis decidió otra cosa y esa redacción no se publicó.
 
-**Aparte.** Código cambió la dirección del Registro Nacional de Turismo que enseña la pantalla: `rnt.sectur.gob.mx` ya no resuelve (lo comprobé el 24 nov). El convenio y el anexo no citan ninguna dirección.
+**Dos correcciones a lo dicho antes.** D27 ponía dos pólizas antes de la primera salida: ahora es una. D28 ataba la 9-A a tener convenio firmado: ahora toda experiencia de una operadora nace con ella, porque la experiencia se arma antes de firmar y publicar sigue exigiendo el convenio.
+
+**Aparte.** Código cambió la dirección del registro de turismo que enseña la pantalla: `rnt.sectur.gob.mx` ya no resuelve (lo comprobé el 24 nov). El convenio y el anexo no citan ninguna dirección.
 
 ## 5 · El convenio, cerrado (v3.2 → v3.3)
 
@@ -1109,7 +1118,8 @@ va con IVA (M11).
 - Aprobar en la sesión de producto el cambio del corte al 1 nov.
 - **Aprobar el convenio v3.6 y el marco v4 del anexo (D31, 24 nov)** en la
   sesión de código, que es la que publica. Huella del convenio:
-  `9796342a…87ca`.
+  `fc0ad034…32ee`. Y revisar que la póliza propia de responsabilidad civil
+  diga en su carátula que cubre los gastos médicos de los participantes.
 - ~~Aprobar el convenio v3.3 (menor).~~ Aprobado y **publicado el 12 nov 2026
   (03:38 UTC)**, orden 2, hash `32d3701e…e978`, verificado contra la base. Queda
   el texto de consentimiento del panel (producto).

@@ -20,9 +20,10 @@ lo nombra en su encabezado (§3).
    cada salida (Sexta §2). Para las salidas de la casa **falta un dato que
    sólo Luis tiene**: si hoy llevan póliza de accidentes. El texto tiene que
    decir la verdad, así que hay dos variantes (cláusula 9).
-   **Actualizado el 24 nov (D31):** Luis quitó esa póliza del expediente. La
-   operadora sigue obligada por la norma, pero ya no la entrega, así que la
-   variante «con seguro» sale sólo de una póliza que la plataforma haya visto.
+   **Actualizado el 24 nov (D31):** Luis quitó del expediente la póliza de
+   accidentes aparte. La que cubre al cliente es la de responsabilidad civil
+   con gastos médicos, y con ella las experiencias de una operadora dicen
+   «con seguro».
 2. **Quién es el Organizador.** El marco nombra siempre a NUMAN HUB. Cuando
    vende una operadora con convenio, el Organizador es ella (D22), y un
    deslinde que libera a otra persona no la protege. El encabezado y el marco
@@ -68,32 +69,39 @@ Todas son `obligatoria: true`, `origen: "casa"`, salvo las dos opcionales.
 
 **Seguro (cláusula 9).** Depende de un hecho, no de una preferencia.
 
-**La regla, desde el 24 nov (D31).** A un cliente sólo se le dice «esta
-salida cuenta con un seguro de accidentes» cuando hay una póliza de accidentes
-**vigente en poder de la plataforma** para los días de esa salida. Quién la
-sube decide la variante: la operadora con convenio (9-A) o la casa, con la
-póliza de su proveedor (9-C). Sin póliza a la vista, 9-B. Antes la 9-A salía
-de que el convenio obligaba a entregar la póliza; el 24 nov Luis la quitó del
-expediente y quedó como documento opcional, así que ya no se presume.
+**La regla, desde el 24 nov (D31; decisión de Luis).** La experiencia de una
+operadora nace con la 9-A. La que vende la casa nace con la 9-B y pasa a la
+9-C cuando consta la póliza de su proveedor.
 
-- **9-A, con seguro del Organizador.** Para la experiencia de una operadora
-  con convenio firmado que **subió su póliza de accidentes** (documento
-  opcional del expediente, con fecha de vencimiento). Ella es el Organizador.
-  Si no la sube, su experiencia lleva la 9-B, y la plataforma se lo dice antes
-  de publicar: «Como no has subido tu póliza de accidentes, tu deslinde le
-  dirá al cliente que la salida no incluye seguro. Si tus salidas van
-  aseguradas, súbela y cambia.» El seguro específico de buceo o de
-  paracaidismo no activa la 9-A por sí solo; si esa póliza cubre accidentes de
-  los participantes, la operadora la sube también como póliza de accidentes.
+- **9-A, con seguro del Organizador.** Para toda experiencia de una
+  operadora: ella es el Organizador. Se apoya en el convenio (v3.6, Sexta §2),
+  que la obliga a mantener una póliza de responsabilidad civil **que incluya
+  los gastos médicos por accidente de quienes viajan**, a entregarla antes de
+  la primera salida y a tenerla vigente en cada una. Tres condiciones hacen
+  que la frase sea cierta:
+
+  1. **La revisión.** Quien aprueba la póliza comprueba en la carátula que
+     esté la cobertura de gastos médicos o de accidentes de los participantes.
+     Una póliza de responsabilidad civil sin esa cobertura no se aprueba. Si
+     la operadora no la tiene ni la contrata, sus experiencias pasan a la 9-B
+     (versión nueva del deslinde).
+  2. **Cada salida.** El anexo dice que sin póliza vigente la salida no se
+     realiza (Octava). Hoy la plataforma sólo avisa. Mientras sea así: si a
+     3 días del inicio no consta una póliza vigente para esa salida, la casa
+     decide. O la salida se detiene, o se le avisa a quienes ya firmaron,
+     antes de que salgan, que la salida no cuenta con el seguro informado.
+  3. **Antes de la primera salida.** La experiencia se vende con la 9-A aunque
+     la póliza aún no se haya entregado. La frase habla de la salida, y la
+     comprobación ocurre antes de que salga.
 
   > «Esta salida cuenta con un seguro de accidentes contratado por el
   > Organizador. Cubre lo que dice su póliza, con sus límites y exclusiones;
   > lo que no cubra o exceda corre por tu cuenta. Te recomendamos contar
   > además con un seguro propio de gastos médicos.»
 
-- **9-B, sin seguro.** Es la variante con la que nace **toda** experiencia,
-  de la casa o de una operadora, y en la que se queda mientras no conste una
-  póliza.
+- **9-B, sin seguro.** Es la variante con la que nace toda experiencia que
+  vende la casa (propia o de una operadora sin convenio), y en la que se queda
+  mientras no conste una póliza.
 
   > «El Organizador no proporciona seguro de accidentes ni de gastos médicos
   > a tu favor. Es tu responsabilidad contar con uno propio que cubra esta
@@ -139,15 +147,15 @@ que alguien firma. Por eso:
 - Si la casa se entera de que una póliza se canceló antes de tiempo, lo marca,
   y le avisa a quienes ya firmaron para esa salida antes de que salgan.
 
-**Las mismas reglas valen para la 9-A (24 nov, D31).** La póliza que sube la
-operadora se comprueba por salida, el texto no cambia solo y la plataforma
-avisa a la operadora y a la casa 30 y 7 días antes del vencimiento. Al vencer,
-la operadora elige: sube la renovación o pasa su experiencia a la 9-B (versión
-nueva del deslinde). Mientras no elija, no se venden las salidas posteriores
-al vencimiento.
+**La 9-A y el vencimiento (24 nov, D31).** La póliza de la operadora se
+comprueba por salida: una que vence antes del día de la salida no la cubre. El
+texto no cambia solo. Lo firmado no se toca.
 
-Es un solo estándar para la casa y para las operadoras: no se le afirma al
-cliente un seguro que Caminante no ha visto.
+**La diferencia entre la casa y las operadoras** es decisión de Luis (24 nov).
+Para la operadora la frase se apoya en una obligación del convenio que se
+comprueba antes de cada salida. Para la casa, en una póliza del proveedor que
+la casa ya vio. En los dos casos la regla de fondo es la misma: ninguna salida
+sale diciendo «con seguro» sin que alguien haya visto la póliza que la cubre.
 
 **Menores (cláusula 13).** Sale de la edad mínima de la experiencia.
 

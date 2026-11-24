@@ -1,17 +1,19 @@
 # Convenio de operación en la plataforma Caminante — v3 (documento de trabajo)
 
-### v3.6 · PREPARADO el 24 nov 2026 · SIN PUBLICAR · mayor · hash `9796342ab338afe70ca71a7e84fdada1c025f15d00af6cc0776d73ac77f987ca`
+### v3.6 · PREPARADO el 24 nov 2026 · SIN PUBLICAR · mayor · hash `fc0ad034dc07061f6ea0cc281fa65bd65bfa8abaffcf9514e5b2b8254e2832ee`
 
-> **v3.6 = la v3.5 con un solo cambio (D31): la póliza de accidentes deja de
-> ser documento obligatorio.** Sexta §2 se parte en §2 (responsabilidad civil,
-> se sigue entregando) y §2 bis (seguros contra accidentes y gastos médicos:
-> el Operador cumple la norma, no se entregan, y si sube la póliza la
-> plataforma se lo informa al cliente). Anexo B: el documento 5 pasa a
-> opcional y «Cuándo se entrega» habla sólo del documento 4. Es **mayor**
-> (toca obligaciones). Al 24 nov nadie ha firmado ninguna versión
-> (`operator_agreements` vacía, verificado). **Hasta que Luis apruebe y se
-> publique, la vigente es la v3.5**, cuyo texto exacto está en la base y en
-> `CONVENIO-v3.5-PUBLICAR.sql`. SQL de ésta: `CONVENIO-v3.6-PUBLICAR.sql`.
+> **v3.6 = la v3.5 con un solo cambio (D31): una sola póliza, la de
+> responsabilidad civil con gastos médicos.** Sexta §2: la póliza de
+> responsabilidad civil incluye los gastos médicos por accidente de quienes
+> viajan (o se acompaña de una de accidentes), y con base en ella el deslinde
+> y la ficha dicen que la salida cuenta con seguro. Anexo B: desaparece la
+> póliza colectiva de accidentes como documento aparte; los opcionales pasan
+> a ser el 5 y el 6. Es **mayor** (toca obligaciones). Al 24 nov nadie ha
+> firmado ninguna versión (`operator_agreements` vacía, verificado). **Hasta
+> que Luis apruebe y se publique, la vigente es la v3.5**, cuyo texto exacto
+> está en la base y en `CONVENIO-v3.5-PUBLICAR.sql`. SQL de ésta:
+> `CONVENIO-v3.6-PUBLICAR.sql`. Una primera redacción de la v3.6 de esa
+> misma mañana (huella `9796342a…87ca`, póliza opcional) quedó sin efecto.
 
 ### v3.5 · PUBLICADO el 23 nov 2026 (15:44 UTC) · mayor · orden 3 · hash `9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1`
 
@@ -335,11 +337,9 @@ La penalización es una pena convencional, de al menos **$500 MXN** y de a lo m�
 
 1. Contar con **Registro Nacional de Turismo** vigente y mantenerlo en su expediente.
 
-2. Mantener vigente una **póliza de responsabilidad civil**, emitida por una aseguradora autorizada, que cubra cada salida todos los días que dure. Vale una póliza anual o una contratada por integrante y por día de salida; si es por salida, el Operador la contrata antes de cada una, la conserva y la entrega cuando Caminante se la pida.
+2. Mantener vigente una **póliza de responsabilidad civil que incluya los gastos médicos por accidente de las personas de cada salida**, emitida por una aseguradora autorizada, que cubra cada salida todos los días que dure. Si su póliza de responsabilidad civil no incluye esa cobertura, el Operador mantiene además una póliza de accidentes que la dé. Vale una póliza anual o una contratada por integrante y por día de salida; si es por salida, el Operador la contrata antes de cada una, la conserva y la entrega cuando Caminante se la pida. Con base en esta obligación, el deslinde y la ficha de cada salida informan al cliente que cuenta con un seguro de accidentes contratado por el Operador; el Operador responde de que así sea.
 
-2 bis. Contar con los **seguros contra accidentes y gastos médicos** que la norma aplicable a su actividad le exija para las personas de cada salida. Puede contratarlos el Operador o quien opere la salida en campo. No son un documento obligatorio del expediente: el Operador los conserva y los exhibe cuando Caminante se los pida, y siempre después de un incidente. El Operador puede subir su póliza a la plataforma. Mientras conste una póliza vigente para los días de una salida, el deslinde y la ficha de esa salida informan al cliente que cuenta con seguro de accidentes. Cuando no conste, le informan que el Organizador no proporciona ese seguro y que debe contar con uno propio.
-
-> **Decidido (legal, 24 nov; D31).** Luis quitó la póliza de accidentes del expediente el 24 nov. La obligación de tenerla no nace del convenio sino de la norma (NOM-011-TUR-2001, 6.1 c), y el convenio no puede dispensarla: por eso se queda como deber de cumplir la norma y deja de ser documento obligatorio. Lo que se le dice al cliente sale de un hecho: hay póliza vigente en la plataforma o no la hay.
+> **Decidido (Luis, 24 nov; D31).** Luis quitó del expediente la póliza de accidentes aparte: la que cubre al cliente es la de responsabilidad civil con gastos médicos, y con ella las experiencias de una operadora dicen «con seguro». Legal lo alinea: el convenio pide esa cobertura por su nombre, porque una póliza de responsabilidad civil no la incluye siempre, y ni la credencial de guía (NOM-09-TUR-2002, 4.2) ni el registro de turismo exigen póliza para obtenerse. La norma que obliga a tener seguros contra accidentes y gastos médicos es la NOM-011-TUR-2001, 6.1 c).
 
 3. Operar cada actividad con guías acreditados conforme a la norma oficial que le corresponda (NOM-09-TUR-2002 y las demás aplicables), en la modalidad de que se trate, y conforme a lo que exija el anexo de esa actividad.
 
@@ -523,19 +523,17 @@ El expediente se integra en la plataforma según el tipo de persona del Operador
 
 3. Constancia de Situación Fiscal, reciente al subirla (90 días o menos), que la plataforma lee y valida (Cláusula Décima tercera, punto 7).
 
-4. Póliza de responsabilidad civil vigente: anual, o contratada por integrante por día de salida.
+4. Póliza de responsabilidad civil vigente que incluya los gastos médicos por accidente de los participantes, o esa póliza y una de accidentes que los cubra: anual, o contratada por integrante por día de salida.
 
 **Opcionales:**
 
-5. Póliza de seguro de accidentes y gastos médicos de las personas de cada salida, emitida por una aseguradora autorizada (Cláusula Sexta, punto 2 bis).
+5. Identificación oficial de quien opera en campo, cuando sea una persona distinta de quien firma.
 
-6. Identificación oficial de quien opera en campo, cuando sea una persona distinta de quien firma.
-
-7. Sólo para personas morales: acta constitutiva y poder del representante legal.
+6. Sólo para personas morales: acta constitutiva y poder del representante legal.
 
 **Por actividad:** la credencial de guía SECTUR (NOM-09-TUR-2002) de la modalidad y los requisitos técnicos de cada actividad constan en su anexo (Anexo E).
 
-**Cuándo se entrega cada documento.** Para publicar y vender bastan los documentos 2 y 3, la firma de este convenio y la del anexo de la actividad: ése es el **expediente de arranque**. El documento 4, la credencial del guía que conduce la salida y, cuando aplique, la autorización del sitio se entregan **antes del inicio de la primera salida** de cada actividad y se mantienen vigentes en cada salida; sin ellos la salida no se realiza. El documento 5 es voluntario y surte los efectos de la Cláusula Sexta, punto 2 bis. El documento 1 se entrega dentro de los **30 días naturales** siguientes a la firma, con la constancia de inscripción o el acuse de su trámite; vencido ese plazo sin entregarlo, Caminante puede suspender la publicación y la venta. Los manuales, programas, bitácoras y reglamentos que la norma de cada actividad exige al Operador no se entregan: el Operador declara en el anexo que cuenta con ellos y los exhibe cuando Caminante se los pida.
+**Cuándo se entrega cada documento.** Para publicar y vender bastan los documentos 2 y 3, la firma de este convenio y la del anexo de la actividad: ése es el **expediente de arranque**. El documento 4, la credencial del guía que conduce la salida y, cuando aplique, la autorización del sitio se entregan **antes del inicio de la primera salida** de cada actividad y se mantienen vigentes en cada salida; sin ellos la salida no se realiza. El documento 1 se entrega dentro de los **30 días naturales** siguientes a la firma, con la constancia de inscripción o el acuse de su trámite; vencido ese plazo sin entregarlo, Caminante puede suspender la publicación y la venta. Los manuales, programas, bitácoras y reglamentos que la norma de cada actividad exige al Operador no se entregan: el Operador declara en el anexo que cuenta con ellos y los exhibe cuando Caminante se los pida.
 
 > **Decidido (legal, 19 nov; D27).** La ley obliga a tener, no a entregar antes de vender: Ley General de Turismo 48 (30 días naturales para el registro), NOM-011-TUR-2001 6.1 y 6.3 (seguros, manuales y permisos para operar). El candado pasa de la publicación a la salida.
 

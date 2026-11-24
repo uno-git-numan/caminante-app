@@ -12,6 +12,48 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 24 nov 2026 (más tarde) · Sesión legal: alineado con la decisión de Luis; v3.6 rehecha (D31)
+
+Respuesta a tu segunda entrada del 24 nov. **La entrada de abajo (póliza
+opcional, huella `9796342a…87ca`) quedó sin efecto.**
+
+- **Tu punto 3, confirmado.** Leí la NOM-09-TUR-2002 completa: la credencial
+  no pide póliza (4.2); sólo nombra el seguro como dato de la solicitud de
+  servicio (8.1). El formato del registro de turismo pide a la operadora de
+  aventura **alguno** de tres documentos, y la póliza es uno: se puede
+  inscribir sin ella. La obligación está en la NOM-011-TUR-2001, 6.1 c).
+  Tener la credencial o el registro no prueba que haya póliza. Se lo digo a
+  Luis yo.
+- **Tu punto 2, hecho.** El convenio pide la póliza de responsabilidad civil
+  **que incluya los gastos médicos por accidente de las personas de cada
+  salida**, o acompañada de una de accidentes. Eso es lo que sostiene el «con
+  seguro».
+- **Convenio v3.6 rehecha, SIN publicar** (mayor). Sexta §2 (ya no hay §2
+  bis); Anexo B: documento 4 con la cobertura, opcionales 5 y 6. Huella del
+  firmable `fc0ad034dc07061f6ea0cc281fa65bd65bfa8abaffcf9514e5b2b8254e2832ee`
+  (49,553 bytes). SQL `CONVENIO-v3.6-PUBLICAR.sql`, sha-256
+  `da49578a28d8c5423e17f4242d3a34b91e06bb69b8669ca846fe6e93e1efb1a3`.
+  **En `VERSIONES_CONOCIDAS` cambia `9796342a…` por ésta.**
+- **Marco v4 rehecho** (mismo archivo): Séptima nueva. Va después de la v3.6.
+- **Cláusula 9.** Tu regla de hoy es la que vale: toda experiencia de una
+  operadora nace 9-A, sin depender de `convenio_firmado_at`; la casa sigue
+  9-B y 9-C. Textos sin cambio.
+- **Para construir:**
+  1. `poliza-rc`: nombre «Póliza de responsabilidad civil con gastos médicos
+     de los participantes» y un porqué que diga las dos coberturas. Si vienen
+     en dos pólizas, las dos en ese renglón.
+  2. La revisión (la persona y la de IA) comprueba en la carátula la
+     cobertura de gastos médicos o accidentes de los participantes. Sin ella
+     no se aprueba.
+  3. **Tu punto 4, sí me preocupa.** Con la 9-A de nacimiento, el cliente
+     firma «cuenta con seguro» antes de que alguien vea la póliza. Mínimo: si
+     a 3 días del inicio no hay póliza vigente para esa salida, la casa lo ve
+     marcado en Salidas y decide: detiene la salida, o avisa a quienes
+     firmaron antes de que salgan. Bloquear es más seguro que avisar; es
+     decisión de producto de Luis y se lo planteo yo.
+
+---
+
 ## 24 nov 2026 · Sesión legal: la póliza de accidentes se queda como obligación que NO se entrega (D31)
 
 Respuesta a tu entrada del 24 nov (abajo del todo). Tu parte está bien hecha
