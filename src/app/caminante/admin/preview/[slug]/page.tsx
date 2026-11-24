@@ -12,6 +12,7 @@ import ExperienceTemplate from "../../../experiencias/[slug]/ExperienceTemplate"
 import ExperienceTemplateV2 from "../../../experiencias/[slug]/ExperienceTemplateV2";
 import WhiteLabelStyles, { wlDoc } from "../../../ui/wl/WhiteLabelStyles";
 import { fetchThemeForExperience } from "@/lib/operators/branding";
+import { fetchOperatorChipForExperience, fetchOperatorContactoForExperience } from "@/lib/operators/public";
 import { candadoDeAlta } from "@/lib/operadores/nav-alta-servidor";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,12 @@ export default async function PreviewPage({
   // veía su experiencia con los de Caminante. Es la primera vez que ve «lo
   // suyo»: tiene que ser lo que de verdad verá su cliente.
   const tema = await fetchThemeForExperience(slug);
+  // Lo mismo que recibe la página pública: el chip «Operada por» (sólo si su
+  // perfil ya es público) y el contacto de quien opera en el bloque de cierre.
+  const [operatorChip, contactoOperador] = await Promise.all([
+    fetchOperatorChipForExperience((row as { id: string }).id),
+    fetchOperatorContactoForExperience((row as { id: string }).id),
+  ]);
   // Quien sigue en su alta vuelve a Mi alta, no al editor: ver su página es
   // un paso del recorrido, y el que sigue son sus documentos.
   const candado = await candadoDeAlta();
@@ -95,7 +102,7 @@ export default async function PreviewPage({
       </div>
       <div className={wlDoc(tema)}>
         {e.design === "v2" ? (
-          <ExperienceTemplateV2 experience={e} slots={slots} />
+          <ExperienceTemplateV2 experience={e} slots={slots} operatorChip={operatorChip} contactoOperador={contactoOperador} />
         ) : (
           <ExperienceTemplate experience={e} />
         )}
