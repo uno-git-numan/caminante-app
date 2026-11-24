@@ -56,6 +56,13 @@ export default function RevisarExpediente({ cola }: { cola: PorRevisar | undefin
                 Ver el archivo
               </a>
               <br />
+              {d.queRevisar ? (
+                <>
+                  <span style={{ display: "block", fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", margin: "4px 0 6px", maxWidth: "62ch" }}>
+                    {d.queRevisar}
+                  </span>
+                </>
+              ) : null}
               <button
                 className="btn btn-ghost btn-sm"
                 disabled={pendiente}

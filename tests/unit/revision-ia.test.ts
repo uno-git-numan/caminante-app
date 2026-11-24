@@ -40,6 +40,31 @@ describe("veredicto", () => {
   it("vencido ⇒ dudoso", () => {
     expect(veredicto({ ...limpio, venceAt: "2026-01-01" }, ctx).razones).toContain("Ya está vencido.");
   });
+  // LA PÓLIZA (D31, 24 nov 2026): con base en ella se le dice al cliente que
+  // la salida va asegurada, así que sola sólo se aprueba con sus dos coberturas.
+  describe("la póliza de responsabilidad civil con gastos médicos", () => {
+    const poliza = { ...ctx, esPoliza: true };
+    it("con gastos médicos de los participantes y la actividad cubierta ⇒ se aprueba sola", () => {
+      expect(veredicto({ ...limpio, cubreGastosMedicos: true, cubreActividad: true }, poliza).veredicto).toBe("aprobado");
+    });
+    it("sólo daños a terceros ⇒ dudoso, y lo dice", () => {
+      const r = veredicto({ ...limpio, cubreGastosMedicos: false, cubreActividad: true }, poliza);
+      expect(r.veredicto).toBe("dudoso");
+      expect(r.razones.join(" ")).toMatch(/gastos médicos/);
+    });
+    it("si no se alcanza a ver la cobertura (null) ⇒ dudoso: la duda no aprueba", () => {
+      expect(veredicto({ ...limpio, cubreGastosMedicos: null, cubreActividad: true }, poliza).veredicto).toBe("dudoso");
+      expect(veredicto({ ...limpio, cubreActividad: true }, poliza).veredicto).toBe("dudoso");
+    });
+    it("no cubre la actividad ⇒ dudoso", () => {
+      const r = veredicto({ ...limpio, cubreGastosMedicos: true, cubreActividad: false }, poliza);
+      expect(r.razones.join(" ")).toMatch(/actividades/);
+    });
+    it("a los demás documentos no se les pide: sin esas respuestas siguen aprobándose", () => {
+      expect(veredicto(limpio, ctx).veredicto).toBe("aprobado");
+    });
+  });
+
   it("caduca y no se leyó la fecha ⇒ dudoso", () => {
     expect(veredicto({ ...limpio, venceAt: null }, ctx).razones).toContain("No se leyó la fecha de vencimiento.");
   });

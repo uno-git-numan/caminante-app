@@ -112,8 +112,13 @@ export const GENERALES: Documento[] = [
     vence: false, soloPara: "moral", opcional: true },
   { slug: "csf", nombre: "Constancia de Situación Fiscal",
     porQue: "No vence. La leemos al subirla para revisar que sea reciente y que sus datos coincidan con los tuyos.", vence: false },
-  { slug: "poliza-rc", nombre: "Póliza de responsabilidad civil vigente",
-    porQue: "Cubre los daños que la operación pueda causar a terceros. Sirve la anual o la que se contrata por integrante por día de salida: lo que importa es que cubra a todos, todos los días.", vence: true },
+  // UNA SOLA PÓLIZA, CON LAS DOS COBERTURAS (legal, D31, 24 nov 2026; convenio
+  // v3.6, Sexta §2). Con base en ella el deslinde y la ficha le dicen al cliente
+  // que la salida va asegurada: por eso la revisión —la automática y la de una
+  // persona— comprueba en la carátula la cobertura de gastos médicos de los
+  // participantes (`revision-ia.ts`, `QUE_REVISAR`). El slug no cambia.
+  { slug: "poliza-rc", nombre: "Póliza de responsabilidad civil con gastos médicos de los participantes",
+    porQue: "Cubre dos cosas: los daños que la operación pueda causar a terceros y los gastos médicos por accidente de quienes viajan contigo. Sirve la anual o la que se contrata por integrante por día de salida. Si las dos coberturas vienen en pólizas separadas, súbelas juntas en un solo archivo.", vence: true },
   // ⚠️ LA PÓLIZA DE ACCIDENTES Y ENFERMEDADES SALIÓ (Luis, 24 nov 2026,
   // recorriendo sus documentos como operadora: «quitar esta póliza, ésta no es
   // necesaria»). Era `poliza-gm`. Las filas que alguien ya subió NO se borran;
@@ -295,6 +300,16 @@ const MOMENTO_GENERAL: Record<string, Momento> = {
   "acta-constitutiva": "arranque",
   "poliza-rc": "salida",
   rnt: "treinta-dias",
+};
+
+/**
+ * Lo que quien revisa tiene que comprobar en el papel, además de que sea el
+ * que se pide. Lo lee la revisión automática (va al mensaje de la IA) y lo ve
+ * la casa junto al botón de aprobar. Sólo para los documentos donde legal fijó
+ * qué mirar.
+ */
+export const QUE_REVISAR: Record<string, string> = {
+  "poliza-rc": "En la carátula: que esté vigente, que cubra las actividades de la operadora y que incluya gastos médicos o accidentes de los participantes. Sin esa cobertura no se aprueba.",
 };
 
 /** Cómo se le dice a cada momento en pantalla, igual en todas. */

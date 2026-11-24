@@ -24,7 +24,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resumenCsf, type AnalisisCsf } from "./csf";
 import { resumenRevision, type RevisionIa } from "./revision-ia";
-import { ACTIVIDADES, GENERALES, generalesPara, momentoDeGeneral, puedeNoAplicar, requisitosDe, nombreDeActividad, type Documento, type Momento } from "./actividades";
+import { ACTIVIDADES, GENERALES, QUE_REVISAR, generalesPara, momentoDeGeneral, puedeNoAplicar, requisitosDe, nombreDeActividad, type Documento, type Momento } from "./actividades";
 
 export type EstadoDoc = "falta" | "en_revision" | "aprobado" | "rechazado";
 export type EstadoActividad = "incompleta" | "en_revision" | "aprobada" | "suspendida";
@@ -450,6 +450,8 @@ export type PorRevisar = {
     nombre: string;
     archivoPath: string;
     subidoAt: string;
+    /** Lo que hay que comprobar en el papel antes de aprobar (`QUE_REVISAR`). */
+    queRevisar: string | null;
   }[];
   /** Actividades que ya pidieron revisión. */
   actividades: { actividad: string; nombre: string }[];
@@ -503,6 +505,7 @@ export async function fetchPorRevisar(): Promise<Map<string, PorRevisar>> {
       nombre: nombreDoc(d.actividad, d.documento),
       archivoPath: d.archivo_path,
       subidoAt: d.subido_at,
+      queRevisar: d.actividad === null ? (QUE_REVISAR[d.documento] ?? null) : null,
     });
   }
   for (const a of (acts ?? []) as { operator_id: string; actividad: string }[]) {

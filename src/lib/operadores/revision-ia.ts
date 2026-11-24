@@ -47,6 +47,13 @@ export type RevisionIa = {
   venceAt: string | null;
   alertas: string[];
   resumen: string | null;
+  /**
+   * Sólo en la póliza (`poliza-rc`, D31): si la carátula cubre las actividades
+   * de la operadora y si incluye gastos médicos o accidentes de los
+   * participantes. En los demás documentos no se pregunta y quedan sin valor.
+   */
+  cubreActividad?: boolean | null;
+  cubreGastosMedicos?: boolean | null;
   /** Lo que se decidió con eso. */
   veredicto: "aprobado" | "dudoso";
   /** Por qué quedó dudoso, en palabras para una persona. Vacío si se aprobó. */
@@ -54,7 +61,7 @@ export type RevisionIa = {
   error?: string;
 };
 
-type Leido = Pick<RevisionIa, "esLoQueSePide" | "legible" | "titular" | "coincideTitular" | "venceAt" | "alertas" | "resumen">;
+type Leido = Pick<RevisionIa, "esLoQueSePide" | "legible" | "titular" | "coincideTitular" | "venceAt" | "alertas" | "resumen" | "cubreActividad" | "cubreGastosMedicos">;
 
 const ESQUEMA = {
   type: "object",
@@ -66,12 +73,17 @@ const ESQUEMA = {
     venceAt: { type: ["string", "null"] },
     alertas: { type: "array", items: { type: "string" } },
     resumen: { type: ["string", "null"] },
+    cubreActividad: { type: ["boolean", "null"] },
+    cubreGastosMedicos: { type: ["boolean", "null"] },
   },
-  required: ["esLoQueSePide", "legible", "titular", "coincideTitular", "venceAt", "alertas", "resumen"],
+  required: ["esLoQueSePide", "legible", "titular", "coincideTitular", "venceAt", "alertas", "resumen", "cubreActividad", "cubreGastosMedicos"],
   additionalProperties: false,
 };
 
-function sistema(doc: Documento, nombres: string[], hoy: string): string {
+function sistema(doc: Documento, nombres: string[], hoy: string, actividades: string[] = []): string {
+  // La póliza es el único documento con dos preguntas propias (D31): de ella
+  // depende que al cliente se le diga que la salida va asegurada.
+  const dePoliza = doc.slug === "poliza-rc";
   return `Revisas un documento del expediente de una operadora de turismo de naturaleza en México.
 Se le pidió: «${doc.nombre}». Para qué sirve: ${doc.porQue}
 Hoy es ${hoy}.
@@ -83,10 +95,16 @@ Extrae SOLO lo que está en el documento. Lo que no aparezca va en null: no lo d
 - venceAt: la fecha de fin de vigencia que trae el documento, en YYYY-MM-DD. Si sólo trae el año (como la INE: «VIGENCIA 2031»), usa el 31 de diciembre de ese año. null si no trae.
 - alertas: SÓLO señales de que el archivo fue alterado o no es auténtico (tipografías distintas en datos clave, recortes, empalmes, datos que no cuadran entre sí), o de que el documento ya está vencido. Una frase por señal. Lista vacía si no ves ninguna.
 - resumen: una frase corta de lo que es el documento (p. ej. «Póliza de RC de GNP, vigente al 3 de marzo de 2027»).
+${
+  dePoliza
+    ? `- cubreActividad: ${actividades.length ? `true si la póliza cubre expresamente estas actividades de turismo de naturaleza o aventura: ${actividades.map((a) => `«${a}»`).join(", ")}; false si las excluye o es una póliza genérica que no las menciona` : "true si la póliza cubre expresamente actividades de turismo de naturaleza o aventura; false si las excluye"}; null si el documento no deja saberlo.
+- cubreGastosMedicos: true sólo si el documento dice expresamente que cubre gastos médicos o accidentes personales de los PARTICIPANTES o pasajeros (no sólo daños a terceros, y no sólo al personal); false si sólo trae responsabilidad civil por daños a terceros; null si no se alcanza a saber.`
+    : "- cubreActividad y cubreGastosMedicos: null (no aplican a este documento)."
+}
 NO copies números de identificación, CURP, domicilios ni datos de salud.`;
 }
 
-async function leer(bytes: ArrayBuffer, tipo: string, doc: Documento, nombres: string[]): Promise<Leido | { error: string }> {
+async function leer(bytes: ArrayBuffer, tipo: string, doc: Documento, nombres: string[], actividades: string[] = []): Promise<Leido | { error: string }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { error: "Falta ANTHROPIC_API_KEY." };
   const data = Buffer.from(bytes).toString("base64");
@@ -105,7 +123,7 @@ async function leer(bytes: ArrayBuffer, tipo: string, doc: Documento, nombres: s
       model: MODEL,
       max_tokens: 1500,
       system:
-        sistema(doc, nombres, hoy) +
+        sistema(doc, nombres, hoy, actividades) +
         "\n\nRESPONDE ÚNICAMENTE con un objeto JSON válido — sin markdown ni texto alrededor — que cumpla este JSON Schema:\n" +
         JSON.stringify(ESQUEMA),
       messages: [{ role: "user", content: [bloque, { type: "text", text: "Revisa este documento." }] }],
@@ -129,6 +147,8 @@ async function leer(bytes: ArrayBuffer, tipo: string, doc: Documento, nombres: s
       venceAt: fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha : null,
       alertas: Array.isArray(c.alertas) ? c.alertas.filter((x): x is string => typeof x === "string").slice(0, 8) : [],
       resumen: t(c.resumen),
+      cubreActividad: b(c.cubreActividad),
+      cubreGastosMedicos: b(c.cubreGastosMedicos),
     };
   } catch {
     return { error: "La lectura no se pudo interpretar." };
@@ -141,7 +161,11 @@ async function leer(bytes: ArrayBuffer, tipo: string, doc: Documento, nombres: s
  */
 export function veredicto(
   l: Leido,
-  ctx: { caduca: boolean; venceEscrita: string | null; hoy: string; pideTitular: boolean },
+  ctx: {
+    caduca: boolean; venceEscrita: string | null; hoy: string; pideTitular: boolean;
+    /** Es la póliza (`poliza-rc`): se exigen además sus dos coberturas (D31). */
+    esPoliza?: boolean;
+  },
 ): { veredicto: "aprobado" | "dudoso"; razones: string[] } {
   const razones: string[] = [];
   if (l.esLoQueSePide !== true) razones.push("No parece ser el documento que se pide.");
@@ -149,6 +173,26 @@ export function veredicto(
   if (ctx.pideTitular && l.coincideTitular === false) razones.push(`Está a nombre de ${l.titular ?? "otra persona"}, no de la operadora.`);
   if (ctx.pideTitular && l.coincideTitular === null) razones.push("No se pudo confirmar a nombre de quién está.");
   for (const a of l.alertas) razones.push(a);
+  // LA PÓLIZA SE APRUEBA SOLA ÚNICAMENTE SI SE LEEN SUS DOS COBERTURAS (D31).
+  // Con base en ella se le dice al cliente «esta salida cuenta con un seguro»:
+  // una póliza que sólo cubre daños a terceros no respalda esa frase, y una
+  // genérica suele excluir el turismo de aventura. La duda (null) no aprueba.
+  if (ctx.esPoliza) {
+    if (l.cubreGastosMedicos !== true) {
+      razones.push(
+        l.cubreGastosMedicos === false
+          ? "Sólo cubre daños a terceros: no trae gastos médicos ni accidentes de los participantes."
+          : "No se alcanza a ver en la carátula la cobertura de gastos médicos o accidentes de los participantes.",
+      );
+    }
+    if (l.cubreActividad !== true) {
+      razones.push(
+        l.cubreActividad === false
+          ? "No cubre las actividades de la operadora, o las excluye."
+          : "No se pudo confirmar en la carátula que cubra las actividades de la operadora.",
+      );
+    }
+  }
   if (ctx.caduca) {
     const vence = l.venceAt ?? ctx.venceEscrita;
     if (!vence) razones.push("No se leyó la fecha de vencimiento.");
@@ -200,7 +244,15 @@ export async function revisarDocumento(docId: string): Promise<void> {
     const { data: archivo, error: eDescarga } = await sb.storage.from(BUCKET).download(f.archivo_path);
 
     const at = new Date().toISOString();
-    const leido = eDescarga || !archivo ? { error: "No se pudo abrir el archivo." } : await leer(await archivo.arrayBuffer(), tipo, doc, nombres);
+    // Para la póliza, las actividades que declaró: la carátula tiene que cubrirlas.
+    const esPoliza = f.actividad === null && f.documento === "poliza-rc";
+    let actividades: string[] = [];
+    if (esPoliza) {
+      const { data: acts } = await sb.from("operator_activities").select("actividad").eq("operator_id", f.operator_id);
+      actividades = ((acts ?? []) as { actividad: string }[]).map((a) => nombreDeActividad(a.actividad));
+    }
+    const leido =
+      eDescarga || !archivo ? { error: "No se pudo abrir el archivo." } : await leer(await archivo.arrayBuffer(), tipo, doc, nombres, actividades);
 
     let analisis: RevisionIa;
     if ("error" in leido) {
@@ -214,6 +266,7 @@ export async function revisarDocumento(docId: string): Promise<void> {
         venceEscrita: f.vence_at?.slice(0, 10) ?? null,
         hoy: at.slice(0, 10),
         pideTitular: f.actividad === null && A_SU_NOMBRE.has(f.documento) && nombres.length > 0,
+        esPoliza,
       });
       analisis = { v: 1, tipo: "revision", at, ...leido, ...v };
     }

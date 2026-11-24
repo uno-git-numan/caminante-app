@@ -106,9 +106,11 @@ describe("el consentimiento de la facturación desde el portal", () => {
     "32d3701eff720e8e0e24972f2834e034fb997c3da18a4c958f7ed2ac8383e978": "v3.3 · publicada el 12 nov 2026",
     // La v3.4 (52347e96…) nunca se publicó: la v3.5 la absorbió con la comisión fija (D29).
     "9848238bf8a7908285b024069dc4b8147fdbd9af76804e2294b8d41f00bd76d1": "v3.5 · comisión fija 12 % y 8 %, preparada por legal el 23 nov 2026",
-    // v3.6 (D31): la póliza de accidentes deja de ser documento obligatorio
-    // (Sexta §2 bis, Anexo B punto 5 opcional). Preparada, SIN publicar.
-    "9796342ab338afe70ca71a7e84fdada1c025f15d00af6cc0776d73ac77f987ca": "v3.6 · póliza de accidentes opcional, preparada por legal el 24 nov 2026",
+    // v3.6 (D31): UNA sola póliza, responsabilidad civil con los gastos
+    // médicos de los participantes (Sexta §2, Anexo B documento 4). Preparada,
+    // SIN publicar. La primera v3.6 de ese día (9796342a…, póliza de accidentes
+    // opcional) quedó sin efecto cuando Luis decidió que el seguro se afirma.
+    "fc0ad034dc07061f6ea0cc281fa65bd65bfa8abaffcf9514e5b2b8254e2832ee": "v3.6 · una póliza: responsabilidad civil con gastos médicos, preparada por legal el 24 nov 2026",
   };
 
   it("el firmable del repo es una versión conocida del convenio (publicada o preparada)", () => {

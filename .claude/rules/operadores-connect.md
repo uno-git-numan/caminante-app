@@ -76,11 +76,17 @@ vender, y el convenio v3.5 lo dice así:
   firmado. `actividadListaParaPublicar` ya no mira el estado de la carpeta
   (sólo si está `suspendida`); motivo nuevo `sin_arranque`. La dispensa sigue
   abriendo cualquiera de sus candados.
-- **Antes de la primera salida, y vigente en cada una:** la póliza de
-  responsabilidad civil (⚠️ la de accidentes y enfermedades, `poliza-gm`,
-  **salió del catálogo el 24 nov 2026** por decisión de Luis; el convenio v3.5
-  —Sexta §2 y Anexo B punto 5— y la Séptima del anexo todavía la nombran, y
-  eso lo corrige legal con versión nueva, no código), la
+- **Antes de la primera salida, y vigente en cada una:** UNA póliza, la de
+  **responsabilidad civil con gastos médicos de los participantes**
+  (`poliza-rc`; D31, 24 nov 2026). La de accidentes aparte (`poliza-gm`) salió
+  del catálogo ese día por decisión de Luis. Con base en esa póliza el
+  deslinde y la ficha de toda experiencia de operadora dicen «con seguro»,
+  así que la revisión —la automática y la de la casa— comprueba en la
+  carátula vigencia, actividad cubierta y gastos médicos o accidentes de los
+  participantes (`QUE_REVISAR`, `veredicto` con `esPoliza`); sin lo último no
+  se aprueba sola. ⚠️ El convenio **v3.6** y el **marco v4** del anexo que lo
+  dicen así están PREPARADOS, sin publicar: la vigente es la v3.5, que todavía
+  pide dos pólizas. Además: la
   credencial del guía y lo demás que legal clasificó como «se entrega» (regla
   de D30: lo que emite un tercero se entrega; lo que escribe la operadora se
   declara). **El candado no desapareció, se movió a la salida**
