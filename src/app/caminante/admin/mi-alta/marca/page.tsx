@@ -103,7 +103,17 @@ export default async function MarcaPage({
           </p>
         </div>
       </div>
-      <Marca inicial={inicial} operadora={porOtra?.id ?? null} />
+      <Marca
+        inicial={inicial}
+        operadora={porOtra?.id ?? null}
+        siguiente={
+          porOtra
+            ? { href: `/caminante/admin/mi-alta?operadora=${encodeURIComponent(porOtra.id)}`, texto: "Volver a su alta" }
+            : (alta?.experiencias.length ?? 0) === 0
+              ? { href: "/caminante/admin/experiencias/nueva", texto: "Continuar: armar mi primera experiencia" }
+              : { href: "/caminante/admin/mi-alta", texto: "Continuar con mi alta" }
+        }
+      />
     </AdminShell>
   );
 }

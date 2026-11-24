@@ -10,6 +10,9 @@ import type { Experience } from "@/lib/experiences/types";
 import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import ExperienceTemplate from "../../../experiencias/[slug]/ExperienceTemplate";
 import ExperienceTemplateV2 from "../../../experiencias/[slug]/ExperienceTemplateV2";
+import WhiteLabelStyles, { wlDoc } from "../../../ui/wl/WhiteLabelStyles";
+import { fetchThemeForExperience } from "@/lib/operators/branding";
+import { candadoDeAlta } from "@/lib/operadores/nav-alta-servidor";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +41,20 @@ export default async function PreviewPage({
       ? await fetchOpenSlotsForTemplate((row as { id: string }).id, { includePrivate: true })
       : [];
 
+  // CON LA MARCA DE QUIEN LA OPERA (23 nov 2026). La página pública se viste
+  // con el tema de la operadora (white-label F1); esta vista previa no lo
+  // pedía, así que una operadora que acababa de poner su logo y sus colores
+  // veía su experiencia con los de Caminante. Es la primera vez que ve «lo
+  // suyo»: tiene que ser lo que de verdad verá su cliente.
+  const tema = await fetchThemeForExperience(slug);
+  // Quien sigue en su alta vuelve a Mi alta, no al editor: ver su página es
+  // un paso del recorrido, y el que sigue son sus documentos.
+  const candado = await candadoDeAlta();
+  const enAlta = !!candado && candado.estado !== "abierto";
+
   return (
     <div>
+      <WhiteLabelStyles theme={tema} />
       <div
         style={{
           position: "sticky", top: 0, zIndex: 200, display: "flex",
@@ -61,12 +76,25 @@ export default async function PreviewPage({
         >
           Seguir editando
         </Link>
+        {enAlta ? (
+          <Link
+            href="/caminante/admin/mi-alta"
+            style={{
+              color: "#20392b", background: "#fbfbf7", border: "1px solid #fbfbf7",
+              borderRadius: 999, padding: "3px 14px", textDecoration: "none", fontWeight: 600,
+            }}
+          >
+            Continuar con mi alta
+          </Link>
+        ) : null}
       </div>
-      {e.design === "v2" ? (
-        <ExperienceTemplateV2 experience={e} slots={slots} />
-      ) : (
-        <ExperienceTemplate experience={e} />
-      )}
+      <div className={wlDoc(tema)}>
+        {e.design === "v2" ? (
+          <ExperienceTemplateV2 experience={e} slots={slots} />
+        ) : (
+          <ExperienceTemplate experience={e} />
+        )}
+      </div>
     </div>
   );
 }

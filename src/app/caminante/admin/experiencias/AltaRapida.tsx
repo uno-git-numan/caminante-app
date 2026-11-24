@@ -27,6 +27,7 @@ const MAX_FOTOS = 5;
 
 export default function AltaRapida({
   operadoras,
+  enAlta = false,
 }: {
   /**
    * Sólo cuando crea la CASA: de entre cuáles elige a la dueña. Sin elegida
@@ -34,6 +35,13 @@ export default function AltaRapida({
    * congela al vender (invariante #22). Una operadora no lo recibe.
    */
   operadoras?: { id: string; nombre: string }[];
+  /**
+   * La crea una operadora que SIGUE EN SU ALTA (23 nov 2026). Cambia a dónde
+   * se regresa y qué se ofrece al guardar: el Panorama y Salidas le están
+   * cerrados todavía (mandarla ahí es rebotarla), y lo que sigue para ella no
+   * es publicar sino ver su página y continuar con sus documentos.
+   */
+  enAlta?: boolean;
 }) {
   const [c, setC] = useState<ExperienciaCorta>(CORTA_VACIA);
   const [duena, setDuena] = useState("");
@@ -81,14 +89,14 @@ export default function AltaRapida({
     <header className="ahead">
       <div className="brand">
         {/* El logo REGRESA al panel (regla app-first: siempre hay camino de vuelta). */}
-        <a className="logo" href="/caminante/admin" aria-label="Volver al panel" title="Volver al panel" dangerouslySetInnerHTML={{ __html: MARK }} />
+        <a className="logo" href={enAlta ? "/caminante/admin/mi-alta" : "/caminante/admin"} aria-label={enAlta ? "Volver a Mi alta" : "Volver al panel"} title={enAlta ? "Volver a Mi alta" : "Volver al panel"} dangerouslySetInnerHTML={{ __html: MARK }} />
         <span className="ctx">
           Admin · <b>Crear experiencia</b>
         </span>
       </div>
       <div className="head-actions">
-        <a className="btn btn-ghost btn-sm" href="/caminante/admin">
-          Volver al panel
+        <a className="btn btn-ghost btn-sm" href={enAlta ? "/caminante/admin/mi-alta" : "/caminante/admin"}>
+          {enAlta ? "Volver a Mi alta" : "Volver al panel"}
         </a>
       </div>
     </header>
@@ -111,6 +119,9 @@ export default function AltaRapida({
                 <p className="desc">
                   Quedó como <b>borrador</b>{guardada.conFecha ? ", con su primera fecha" : ", todavía sin fecha"}. Nadie la ve en el sitio
                   hasta que la publiques.
+                  {enAlta
+                    ? " Mírala como la verá tu cliente y sigue con tu alta: para publicarla faltan tus dos documentos, tu firma y tu cuenta de cobro."
+                    : ""}
                 </p>
               </div>
               {guardada.avisos.map((a, i) => (
@@ -119,18 +130,26 @@ export default function AltaRapida({
                 </p>
               ))}
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <a className="btn btn-ghost" href={`/caminante/admin/preview/${guardada.slug}`} target="_blank" rel="noopener noreferrer">
-                  Ver cómo se ve
+                <a className={"btn " + (enAlta ? "btn-orange" : "btn-ghost")} href={`/caminante/admin/preview/${guardada.slug}`} target="_blank" rel="noopener noreferrer">
+                  {enAlta ? "Ver mi página" : "Ver cómo se ve"}
                 </a>
-                <button className="btn btn-orange" type="button" disabled={!!ocupado || publicada?.ok === true} onClick={publicar}>
-                  {ocupado === "publicar" ? "Publicando…" : publicada?.ok ? "Publicada" : "Publicar"}
-                </button>
+                {enAlta ? (
+                  <a className="btn btn-orange" href="/caminante/admin/mi-alta">
+                    Continuar con mi alta
+                  </a>
+                ) : (
+                  <button className="btn btn-orange" type="button" disabled={!!ocupado || publicada?.ok === true} onClick={publicar}>
+                    {ocupado === "publicar" ? "Publicando…" : publicada?.ok ? "Publicada" : "Publicar"}
+                  </button>
+                )}
                 <a className="btn btn-ghost" href={`/caminante/admin/experiencias/${guardada.slug}`}>
                   Agregar más detalle
                 </a>
-                <a className="btn btn-ghost" href="/caminante/admin/salidas">
-                  Ir a Salidas
-                </a>
+                {enAlta ? null : (
+                  <a className="btn btn-ghost" href="/caminante/admin/salidas">
+                    Ir a Salidas
+                  </a>
+                )}
               </div>
               {publicada ? (
                 <p className={publicada.ok ? "desc" : "err"} style={{ marginTop: 14 }}>

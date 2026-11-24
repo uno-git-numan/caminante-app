@@ -8,6 +8,7 @@ import type { ContactoDueno } from "@/lib/experiences/empty";
 import { experienciasCopiables } from "@/lib/experiences/copiar";
 import ExperienceForm from "../ExperienceForm";
 import AltaRapida from "../AltaRapida";
+import { candadoDeAlta } from "@/lib/operadores/nav-alta-servidor";
 
 export const metadata = { title: "Crear experiencia · Admin" };
 
@@ -36,7 +37,11 @@ export default async function NuevaExperienciaPage({ searchParams }: { searchPar
         .filter((o) => o.estado !== "baja")
         .map((o) => ({ id: o.id, nombre: o.name || "Operadora" }));
     }
-    return <AltaRapida operadoras={operadoras} />;
+    // ¿La crea una operadora que sigue en su alta? Entonces el Panorama y
+    // Salidas le están cerrados: el formulario la regresa a Mi alta y, al
+    // guardar, le ofrece ver su página y continuar (no «Ir a Salidas»).
+    const candado = operadoras ? null : await candadoDeAlta();
+    return <AltaRapida operadoras={operadoras} enAlta={!!candado && candado.estado !== "abierto"} />;
   }
 
   // Si quien crea es un operador externo, su contacto siembra el bloque de

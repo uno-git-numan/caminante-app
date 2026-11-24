@@ -5,6 +5,7 @@
 // guarde creyendo que ya quedó.
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { guardarMarca } from "@/lib/operadores/marca-actions";
 import { color, logoUrl } from "@/lib/operators/marca";
 import { subirImagen } from "../../experiencias/form-piezas";
@@ -232,7 +233,21 @@ function CampoColor({
   );
 }
 
-export default function Marca({ inicial, operadora }: { inicial: MarcaInicial; operadora: string | null }) {
+export default function Marca({
+  inicial,
+  operadora,
+  siguiente,
+}: {
+  inicial: MarcaInicial;
+  operadora: string | null;
+  /**
+   * A dónde se sigue después de este paso. Luis, 23 nov 2026, al guardar su
+   * marca: «¿qué pico? Debería de haber un botón para continuar». La pantalla
+   * guardaba, decía «Guardada» y se quedaba ahí: el único camino era «Volver a
+   * Mi alta», arriba, y de ahí adivinar el paso que sigue.
+   */
+  siguiente: { href: string; texto: string };
+}) {
   const [pendiente, arranca] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [primary, setPrimary] = useState(inicial.primary);
@@ -243,6 +258,15 @@ export default function Marca({ inicial, operadora }: { inicial: MarcaInicial; o
   const p = color(primary);
   const a = color(accent);
   const completa = !!(p && a);
+  // ¿El botón de seguir va al frente? Sí en cuanto se guarda, y también si la
+  // marca ya estaba completa al entrar (quien vuelve a esta pantalla no tiene
+  // que guardar de nuevo para poder continuar).
+  const seguir = msg?.ok === true || !!(color(inicial.primary) && color(inicial.accent));
+  // Con cambios sin guardar, lo que va al frente es Guardar: un solo botón
+  // naranja a la vez, para que siempre se sepa cuál es el que toca.
+  const [guardado, setGuardado] = useState({ primary: inicial.primary, accent: inicial.accent, logo: inicial.logoUrl, logoOscuro: inicial.logoDarkUrl });
+  const cambios = primary !== guardado.primary || accent !== guardado.accent || logo !== guardado.logo || logoOscuro !== guardado.logoOscuro;
+  const tocaSeguir = seguir && !cambios;
 
   return (
     <form
@@ -250,6 +274,7 @@ export default function Marca({ inicial, operadora }: { inicial: MarcaInicial; o
         arranca(async () => {
           fd.set("operadora", operadora ?? "");
           const r = await guardarMarca(fd);
+          if (r.ok) setGuardado({ primary, accent, logo, logoOscuro });
           setMsg(
             r.ok
               ? { ok: true, texto: r.completa ? "Guardada. Tu portal y tu funnel ya se ven tuyos." : "Guardada. Faltan los dos colores para que se vea tuya." }
@@ -323,10 +348,18 @@ export default function Marca({ inicial, operadora }: { inicial: MarcaInicial; o
       </div>
 
       <div className="mk-guardar">
-        <button className="btn btn-orange btn-sm" disabled={pendiente}>
+        <button className={"btn btn-sm " + (tocaSeguir ? "btn-ghost" : "btn-orange")} disabled={pendiente}>
           {pendiente ? "Guardando…" : "Guardar mi marca"}
         </button>
         {msg ? <span className="aviso" style={msg.ok ? undefined : { color: "var(--orange)" }}>{msg.texto}</span> : null}
+      </div>
+
+      {/* El paso es opcional: se puede seguir sin guardar. Guardada, el botón
+          de seguir pasa al frente. */}
+      <div className="mk-guardar" style={{ marginTop: 12 }}>
+        <Link className={"btn btn-sm " + (tocaSeguir ? "btn-orange" : "btn-ghost")} href={siguiente.href}>
+          {seguir ? siguiente.texto : "Saltar este paso por ahora"}
+        </Link>
       </div>
     </form>
   );
