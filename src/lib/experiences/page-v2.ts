@@ -204,7 +204,20 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
   // experiencia
   const points = d.experiencia.points.filter((p) => has(p));
   if (d.experiencia.on && (has(d.experiencia.title) || points.length)) {
-    const mosaic = cleanImgs(d.experiencia.mosaic).map((im, i) => (i === 0 && cleanImgs(d.experiencia.mosaic).length === 3 ? { ...im, big: true } : im));
+    // ⚠️ TODA FOTO SUBIDA SE DIBUJA (23 nov 2026). El mosaico de la plantilla
+    // es de 3 o 4 fotos, y con 1 o 2 se pintaba cojo —media rejilla vacía—,
+    // así que el alta rápida las TIRABA: Luis subió portada y una foto más, y
+    // en su página salió una sola. Una foto es `photo` (la misma pieza que usan
+    // las secciones de guías); dos van lado a lado en una sola fila; tres y
+    // cuatro, el mosaico de siempre.
+    const fotos = cleanImgs(d.experiencia.mosaic);
+    const mosaic = fotos.map((im, i) => (i === 0 && fotos.length === 3 ? { ...im, big: true } : im));
+    const media: V2Split["media"] =
+      fotos.length === 1
+        ? { kind: "photo", side: "right", images: fotos }
+        : fotos.length === 2
+          ? { kind: "mosaic", side: "right", images: fotos, rows: "420px" }
+          : { kind: "mosaic", side: "right", images: mosaic };
     blocks.push({
       type: "split",
       frame: "xp",
@@ -214,7 +227,7 @@ export function buildBlocks(d: V2Draft): PageBlock[] {
       title: d.experiencia.title,
       ...(has(d.experiencia.titleAccent) ? { titleAccent: d.experiencia.titleAccent } : {}),
       ...(points.length ? { points } : {}),
-      media: { kind: "mosaic", side: "right", images: mosaic },
+      media,
     });
   }
 

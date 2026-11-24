@@ -67,15 +67,10 @@ export default async function PreviewPage({
           👁️ Vista previa {esBorrador ? "del BORRADOR" : "(ya publicada)"} — así la verá el
           viajero{esBorrador ? " cuando la publiques. Solo tú puedes ver esta página." : "."}
         </span>
-        <Link
-          href={`/caminante/admin/experiencias/${slug}`}
-          style={{
-            color: "#fbfbf7", border: "1px solid rgba(251,251,247,.4)",
-            borderRadius: 999, padding: "3px 14px", textDecoration: "none",
-          }}
-        >
-          Seguir editando
-        </Link>
+        {/* ⚠️ EN SU ALTA, LA ÚNICA SALIDA ES CONTINUAR. «Seguir editando» abre
+            el editor completo —17 secciones—: Luis lo picó a media alta y cayó
+            en una pantalla que no tiene nada que ver con lo que estaba
+            haciendo. Fuera del alta, el editor es justo a donde se vuelve. */}
         {enAlta ? (
           <Link
             href="/caminante/admin/mi-alta"
@@ -86,7 +81,17 @@ export default async function PreviewPage({
           >
             Continuar con mi alta
           </Link>
-        ) : null}
+        ) : (
+          <Link
+            href={`/caminante/admin/experiencias/${slug}`}
+            style={{
+              color: "#fbfbf7", border: "1px solid rgba(251,251,247,.4)",
+              borderRadius: 999, padding: "3px 14px", textDecoration: "none",
+            }}
+          >
+            Seguir editando
+          </Link>
+        )}
       </div>
       <div className={wlDoc(tema)}>
         {e.design === "v2" ? (

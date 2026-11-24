@@ -158,13 +158,20 @@ export default function AltaRapida({
                     {ocupado === "publicar" ? "Publicando…" : publicada?.ok ? "Publicada" : "Publicar"}
                   </button>
                 )}
-                <a className="btn btn-ghost" href={`/caminante/admin/experiencias/${guardada.slug}`}>
-                  Agregar más detalle
-                </a>
+                {/* ⚠️ EN SU ALTA, SÓLO DOS CAMINOS: ver su página y continuar.
+                    «Agregar más detalle» lleva al editor completo —17
+                    secciones—, que a media alta es un callejón: Luis cayó ahí
+                    desde «Seguir editando» y pidió que no pase. El editor
+                    sigue disponible desde Experiencias cuando termine. */}
                 {enAlta ? null : (
-                  <a className="btn btn-ghost" href="/caminante/admin/salidas">
-                    Ir a Salidas
-                  </a>
+                  <>
+                    <a className="btn btn-ghost" href={`/caminante/admin/experiencias/${guardada.slug}`}>
+                      Agregar más detalle
+                    </a>
+                    <a className="btn btn-ghost" href="/caminante/admin/salidas">
+                      Ir a Salidas
+                    </a>
+                  </>
                 )}
               </div>
               {publicada ? (
@@ -175,8 +182,9 @@ export default function AltaRapida({
             </section>
             <p className="form-intro">
               <span className="sl">Más detalle, cuando quieras</span>
-              Itinerario día por día, guías, qué llevar, preguntas frecuentes y más fotos se agregan en «Agregar más detalle». Nada de eso
-              hace falta para vender.
+              {enAlta
+                ? "Itinerario día por día, guías, qué llevar y preguntas frecuentes se agregan después, desde Experiencias. Nada de eso hace falta para vender."
+                : "Itinerario día por día, guías, qué llevar, preguntas frecuentes y más fotos se agregan en «Agregar más detalle». Nada de eso hace falta para vender."}
             </p>
           </div>
         </div>
@@ -281,7 +289,7 @@ export default function AltaRapida({
                 <Uploader value={c.portada} onChange={(url) => set("portada", url)} />
               </div>
             </Field>
-            <Field label="Más fotos" hint={`hasta ${MAX_FOTOS}; con 3 o más se arma el mosaico`}>
+            <Field label="Más fotos" hint={`hasta ${MAX_FOTOS}; salen junto a la descripción de tu página`}>
               {c.fotos.map((f, i) => (
                 <div key={i} className="rep-row" style={{ marginBottom: 8 }}>
                   <div className="grow">

@@ -82,11 +82,39 @@ describe("la experiencia que sale", () => {
     expect(listaParaPublicar(conEstandar).ok).toBe(true);
   });
 
-  it("con tres fotos arma el mosaico; con dos, la sección va sin fotos", () => {
-    const con = exp.page?.blocks.find((b) => b.type === "split") as { media: { images: unknown[] } };
-    expect(con.media.images).toHaveLength(3);
-    const sin = experienciaDesdeCorta({ ...completa, fotos: completa.fotos.slice(0, 2) }, { clausulas }).page?.blocks.find((b) => b.type === "split") as { media: { images: unknown[] } };
-    expect(sin.media.images).toHaveLength(0);
+  // TODA FOTO SUBIDA SE DIBUJA (23 nov 2026). Antes sólo se usaban si eran 3 o
+  // 4: Luis subió portada y UNA foto más, y en su página salió una sola.
+  it("ninguna foto se pierde: una va sola, dos lado a lado, tres y cuatro en mosaico, la quinta al cierre", () => {
+    type Split = { media: { kind: string; images: { url: string; big?: boolean }[]; rows?: string } };
+    const de = (n: number) => {
+      const fotos = ["a", "b", "c", "d", "e"].slice(0, n).map((x) => `https://fotos.test/${x}.jpg`);
+      const bloques = experienciaDesdeCorta({ ...completa, fotos }, { clausulas }).page?.blocks ?? [];
+      return {
+        split: bloques.find((b) => b.type === "split") as unknown as Split,
+        cierre: bloques.find((b) => b.type === "closing") as unknown as { bg: { url: string } },
+      };
+    };
+    expect(de(0).split.media.images).toHaveLength(0);
+
+    const una = de(1).split.media;
+    expect(una.kind).toBe("photo");
+    expect(una.images.map((i) => i.url)).toEqual(["https://fotos.test/a.jpg"]);
+
+    const dos = de(2).split.media;
+    expect(dos.kind).toBe("mosaic");
+    expect(dos.images).toHaveLength(2);
+    expect(dos.rows).toBe("420px"); // una sola fila: sin media rejilla vacía
+
+    const tres = de(3).split.media;
+    expect(tres.images).toHaveLength(3);
+    expect(tres.images[0].big).toBe(true);
+
+    expect(de(4).split.media.images).toHaveLength(4);
+    expect(de(4).cierre.bg.url).toBe("");
+
+    const cinco = de(5);
+    expect(cinco.split.media.images).toHaveLength(4);
+    expect(cinco.cierre.bg.url).toBe("https://fotos.test/e.jpg");
   });
 
   it("el contacto es el de quien la crea", () => {

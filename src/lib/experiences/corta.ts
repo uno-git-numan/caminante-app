@@ -249,9 +249,14 @@ export function experienciaDesdeCorta(
     titleAccent: "vivir.",
     // Cada párrafo de la descripción es un punto; así no hay que escribirla dos veces.
     points: parrafos.length ? parrafos.slice(0, 4) : [descripcion],
-    // El mosaico se arma con 3 o 4 fotos; con menos, la sección va sin fotos.
-    mosaic: (fotos.length >= 4 ? fotos.slice(0, 4) : fotos.length === 3 ? fotos : []).map((url) => ({ url, alt: titulo })),
+    // Las primeras cuatro van junto a la descripción: una sola, dos lado a
+    // lado, o el mosaico de tres o cuatro (`buildBlocks`). Antes sólo se usaban
+    // si eran 3 o 4, y con menos se perdían sin avisar.
+    mosaic: fotos.slice(0, 4).map((url) => ({ url, alt: titulo })),
   };
+  // La quinta es el fondo del cierre («Nos vemos»): se piden «hasta cinco» y
+  // las cinco tienen que salir en algún lado.
+  if (fotos[4]) v2.closing = { ...v2.closing, bg: { url: fotos[4], alt: titulo } };
   v2.itinerary = { ...v2.itinerary, on: false };
   v2.tariff = {
     ...v2.tariff,
