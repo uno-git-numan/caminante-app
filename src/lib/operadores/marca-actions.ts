@@ -36,10 +36,10 @@ export async function guardarMarca(formData: FormData): Promise<Res> {
 
   const logoCrudo = t("marcaLogo");
   const logo = logoCrudo ? logoUrl(logoCrudo) : "";
-  if (logoCrudo && !logo) return { ok: false, error: "El logo tiene que ser una liga https a un .png, .jpg, .svg o .webp." };
+  if (logoCrudo && !logo) return { ok: false, error: "No pudimos leer tu logo. Súbelo de nuevo con «Subir archivo» (PNG, JPG, SVG o WEBP)." };
   const logoOscuroCrudo = t("marcaLogoOscuro");
   const logoOscuro = logoOscuroCrudo ? logoUrl(logoOscuroCrudo) : "";
-  if (logoOscuroCrudo && !logoOscuro) return { ok: false, error: "El logo para fondo oscuro tiene que ser una liga https a una imagen." };
+  if (logoOscuroCrudo && !logoOscuro) return { ok: false, error: "No pudimos leer tu logo para fondo oscuro. Súbelo de nuevo con «Subir archivo»." };
 
   const poweredBy = t("poweredBy") === "visible" ? "visible" : "discreto";
   const footerLine = t("marcaPie").replace(/\s+/g, " ").slice(0, 200);

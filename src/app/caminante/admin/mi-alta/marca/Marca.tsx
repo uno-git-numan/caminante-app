@@ -6,7 +6,7 @@
 
 import { useState, useTransition } from "react";
 import { guardarMarca } from "@/lib/operadores/marca-actions";
-import { color } from "@/lib/operators/marca";
+import { color, logoUrl } from "@/lib/operators/marca";
 import { subirImagen } from "../../experiencias/form-piezas";
 
 export type MarcaInicial = {
@@ -48,6 +48,9 @@ const MARCA_CSS = `
 .adm .mk .logo .muestra.oscura{background:var(--charcoal);border-color:var(--charcoal)}
 .adm .mk .logo .muestra img{height:42px;max-width:160px;object-fit:contain;display:block}
 .adm .mk .logo .quitar{font:inherit;font-size:12.5px;color:var(--ink-soft);text-decoration:underline;background:none;border:0;cursor:pointer;padding:0}
+.adm .mk .logo.suelta{outline:2px dashed var(--olive);outline-offset:6px;border-radius:12px}
+.adm .mk .enlace{font:inherit;font-size:12.5px;color:var(--ink-soft);text-decoration:underline;background:none;border:0;cursor:pointer;padding:0;justify-self:start}
+.adm .mk .nota{font-size:12.5px;line-height:1.5;color:var(--orange)}
 .adm .mk-guardar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}
 .adm .mk-guardar .aviso{font-size:13px;color:var(--ink-soft)}
 `;
@@ -57,57 +60,136 @@ const MARCA_CSS = `
 // A PROPÓSITO (un endpoint de carga sin sesión es una puerta al bucket). Aquí
 // SÍ hay sesión, y una operadora tiene su logo en un archivo, no en una liga.
 // Sube por el mismo camino que las fotos de una experiencia (`subirImagen`,
-// que además le recorta el aire transparente). La liga sigue sirviendo.
-function SubirLogo({
+// que además le recorta el aire transparente).
+//
+// ⚠️ SUBIR ES EL ÚNICO CAMINO A LA VISTA. La primera versión dejaba, justo
+// debajo del botón, una caja de texto «…o pega su liga». Luis, probándolo como
+// operadora, escribió ahí el NOMBRE del archivo: la pantalla lo aceptó, enseñó
+// un recuadro vacío con «Cambiar archivo» como si hubiera subido algo, y al
+// guardar contestó «tiene que ser una liga https». Una caja de texto debajo de
+// la palabra «Logo» se llena con texto. Ahora:
+//   · la liga es una opción que hay que pedir («Tengo mi logo en una liga»);
+//   · la muestra sólo aparece si lo que hay ES una imagen enlazable;
+//   · lo que se manda al servidor es la liga válida o nada, nunca lo tecleado;
+//   · y si se escribe algo que no es liga, se dice ahí mismo qué hacer.
+function CampoLogo({
+  nombre,
+  etiqueta,
   valor,
-  onUrl,
+  onChange,
   disabled,
   oscura,
 }: {
+  nombre: string;
+  etiqueta: string;
   valor: string;
-  onUrl: (url: string) => void;
+  onChange: (v: string) => void;
   disabled: boolean;
   /** La muestra va sobre fondo oscuro: es el logo para fotos y fondos oscuros. */
   oscura?: boolean;
 }) {
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [conLiga, setConLiga] = useState(false);
+  const [sobre, setSobre] = useState(false);
+  const valido = logoUrl(valor);
+  const ocupado = disabled || subiendo;
+
+  const subir = async (archivo: File | undefined) => {
+    if (!archivo) return;
+    if (!/^image\/(png|svg\+xml|jpeg|webp)$/.test(archivo.type)) {
+      setError("Ese archivo no es una imagen. Tu logo tiene que ser PNG, SVG, JPG o WEBP.");
+      return;
+    }
+    setSubiendo(true);
+    setError(null);
+    const r = await subirImagen(archivo, { logo: true });
+    if (r.ok) {
+      onChange(r.url);
+      setConLiga(false);
+    } else setError(r.error);
+    setSubiendo(false);
+  };
+
   return (
     <>
-      <span className="logo">
-        {valor ? (
+      {/* Lo que viaja al servidor: la liga válida, o nada. */}
+      <input type="hidden" name={nombre} value={valido ?? ""} />
+      <span
+        className={"logo" + (sobre ? " suelta" : "")}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!ocupado) setSobre(true);
+        }}
+        onDragLeave={() => setSobre(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setSobre(false);
+          if (!ocupado) void subir(e.dataTransfer.files?.[0]);
+        }}
+      >
+        {valido ? (
           <span className={"muestra" + (oscura ? " oscura" : "")}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={valor} alt="" />
+            <img src={valido} alt="" />
           </span>
         ) : null}
-        <label className="btn btn-ghost btn-sm" style={{ cursor: disabled || subiendo ? "default" : "pointer" }}>
-          {subiendo ? "Subiendo…" : valor ? "Cambiar archivo" : "Subir archivo"}
+        <label className={"btn btn-sm " + (valido ? "btn-ghost" : "btn-orange")} style={{ cursor: ocupado ? "default" : "pointer" }}>
+          {subiendo ? "Subiendo…" : valido ? "Cambiar archivo" : "Subir archivo"}
           <input
             type="file"
+            aria-label={`${etiqueta}: subir archivo`}
             accept="image/png,image/svg+xml,image/jpeg,image/webp"
             hidden
-            disabled={disabled || subiendo}
-            onChange={async (e) => {
+            disabled={ocupado}
+            onChange={(e) => {
               const archivo = e.target.files?.[0];
               e.target.value = "";
-              if (!archivo) return;
-              setSubiendo(true);
-              setError(null);
-              const r = await subirImagen(archivo, { logo: true });
-              if (r.ok) onUrl(r.url);
-              else setError(r.error);
-              setSubiendo(false);
+              void subir(archivo);
             }}
           />
         </label>
-        {valor ? (
-          <button type="button" className="quitar" onClick={() => onUrl("")} disabled={disabled || subiendo}>
+        {valido ? (
+          <button
+            type="button"
+            className="quitar"
+            disabled={ocupado}
+            onClick={() => {
+              onChange("");
+              setConLiga(false);
+              setError(null);
+            }}
+          >
             Quitar
           </button>
         ) : null}
       </span>
-      {error ? <small style={{ color: "var(--orange)" }}>{error}</small> : null}
+      {error ? <span className="nota">{error}</span> : null}
+
+      {!valido && !conLiga ? (
+        <button type="button" className="enlace" onClick={() => setConLiga(true)} disabled={ocupado}>
+          Tengo mi logo en una liga
+        </button>
+      ) : null}
+      {!valido && conLiga ? (
+        <>
+          <input
+            type="text"
+            aria-label={`${etiqueta}: liga`}
+            value={valor}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="https://tusitio.com/logo.png"
+            disabled={ocupado}
+            autoFocus
+          />
+          {valor.trim() ? (
+            <span className="nota">
+              Eso no es una liga a una imagen. Tiene que empezar con https:// y terminar en .png, .svg, .jpg o .webp. Si
+              tu logo está en tu computadora, usa «Subir archivo».
+            </span>
+          ) : null}
+        </>
+      ) : null}
     </>
   );
 }
@@ -157,11 +239,6 @@ export default function Marca({ inicial, operadora }: { inicial: MarcaInicial; o
   const [accent, setAccent] = useState(inicial.accent);
   const [logo, setLogo] = useState(inicial.logoUrl);
   const [logoOscuro, setLogoOscuro] = useState(inicial.logoDarkUrl);
-  // ¿Se enseña el campo para pegar la liga? Sólo mientras no hay logo SUBIDO.
-  // Va aparte del valor: si dependiera de «hay texto», el campo desaparecería
-  // con la primera letra que alguien tecleara en él.
-  const [pegaLogo, setPegaLogo] = useState(!inicial.logoUrl);
-  const [pegaOscuro, setPegaOscuro] = useState(!inicial.logoDarkUrl);
 
   const p = color(primary);
   const a = color(accent);
@@ -220,25 +297,13 @@ export default function Marca({ inicial, operadora }: { inicial: MarcaInicial; o
 
         <div className="c">
           <b>Logo</b>
-          <SubirLogo valor={logo} onUrl={(u) => { setLogo(u); setPegaLogo(!u); }} disabled={pendiente} />
-          {/* Con logo puesto, la liga viaja escondida: la dirección larga del
-              almacenamiento no le dice nada a nadie. Sin logo, se puede pegar. */}
-          {!pegaLogo ? (
-            <input type="hidden" name="marcaLogo" value={logo} />
-          ) : (
-            <input type="text" name="marcaLogo" aria-label="Logo" value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="…o pega su liga: https://…/logo.png" disabled={pendiente} />
-          )}
-          <small>Opcional. PNG, SVG, JPG o WEBP, para fondo claro. Sin logo va tu nombre en texto.</small>
+          <CampoLogo nombre="marcaLogo" etiqueta="Logo" valor={logo} onChange={setLogo} disabled={pendiente} />
+          <small>Opcional. PNG, SVG, JPG o WEBP, para fondo claro: súbelo o arrástralo aquí. Sin logo va tu nombre en texto.</small>
         </div>
 
         <div className="c">
           <b>Logo para fondo oscuro o sobre foto</b>
-          <SubirLogo valor={logoOscuro} onUrl={(u) => { setLogoOscuro(u); setPegaOscuro(!u); }} disabled={pendiente} oscura />
-          {!pegaOscuro ? (
-            <input type="hidden" name="marcaLogoOscuro" value={logoOscuro} />
-          ) : (
-            <input type="text" name="marcaLogoOscuro" aria-label="Logo para fondo oscuro" value={logoOscuro} onChange={(e) => setLogoOscuro(e.target.value)} placeholder="…o pega su liga: https://…/logo-blanco.png" disabled={pendiente} />
-          )}
+          <CampoLogo nombre="marcaLogoOscuro" etiqueta="Logo para fondo oscuro" valor={logoOscuro} onChange={setLogoOscuro} disabled={pendiente} oscura />
           <small>Opcional. Si falta, se usa el de arriba.</small>
         </div>
 
