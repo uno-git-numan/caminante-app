@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { puedeEntrarAlPanel } from "@/lib/auth/authorization";
 import { prellenarExperiencia, type ArchivoEntrada } from "@/lib/ai/prellenar";
+import { prellenarCorta } from "@/lib/ai/prellenar-corta";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,6 +62,10 @@ export async function POST(request: Request) {
 
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
   const notas = String(form.get("notas") ?? "");
+  // `forma=corta`: lo pide el ALTA RÁPIDA (23 nov 2026). Mismos archivos, misma
+  // puerta y mismos límites; cambia quién lee: 16 datos en vez de la página
+  // entera. Devuelve `campos` crudos; el formulario decide qué entra.
+  const corta = form.get("forma") === "corta";
 
   // Vale con documentos O con texto pegado en indicaciones.
   if (!files.length && !notas.trim()) {
@@ -68,6 +73,11 @@ export async function POST(request: Request) {
       { ok: false, error: "Sube un documento (PDF/imagen) o pega el texto del itinerario." },
       { status: 400 },
     );
+  }
+  if (corta && !files.length) {
+    const r = await prellenarCorta([], notas);
+    if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 502 });
+    return NextResponse.json({ ok: true, campos: r.campos });
   }
   // Solo-texto: el texto pegado ES el contenido → mándalo como documento.
   if (!files.length) {
@@ -112,6 +122,12 @@ export async function POST(request: Request) {
         { status: 415 },
       );
     }
+  }
+
+  if (corta) {
+    const r = await prellenarCorta(archivos, notas);
+    if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 502 });
+    return NextResponse.json({ ok: true, campos: r.campos });
   }
 
   const res = await prellenarExperiencia(archivos, notas);

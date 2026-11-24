@@ -42,6 +42,14 @@ encuentro. El editor completo (17 secciones, 134 campos) sigue en
   el renglón «Seguro de accidentes durante la salida», los títulos de bloque.
 - **`datosOferta`** (hora, exigencia, edad mínima) vive en la experiencia y la
   ficha lo enseña junto a las fechas, en escritorio y móvil.
+- **El flyer llena el formulario** (23 nov 2026): la primera tarjeta es
+  «¿Ya tienes tu flyer o tu itinerario?» (`LlenarConFlyer.tsx`). Sube PDF o
+  imagen, o pega el texto; `lib/ai/prellenar-corta.ts` lee 16 datos con salida
+  estructurada (unos 10 s; mismo endpoint que el pre-llenado largo, con
+  `forma=corta`) y `lib/experiences/prellenado-corta.ts` (puro, con pruebas)
+  decide qué entra: **sólo campos vacíos, sólo con la forma que el formulario
+  exige, nunca inventa**, y dice qué llenó y qué falta. Las fotos no salen del
+  flyer: se suben aparte.
 - **`corta-actions.ts`** sólo encadena: `saveExperience` → `crearSalida`.
   Publicar pasa por `setExperienceStatus` y los candados de siempre.
 - ⚠️ **La casa ELIGE de qué operadora es** (23 nov 2026): la primera tarjeta

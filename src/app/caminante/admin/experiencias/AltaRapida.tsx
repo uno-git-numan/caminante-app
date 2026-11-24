@@ -22,6 +22,8 @@ import { ESTADOS } from "@/lib/experiences/estados";
 import { resumenPolitica, VENTANAS, type Variante } from "@/lib/cancelacion/politica";
 import { CORTA_VACIA, EXIGENCIA, esExigencia, faltantesDeCorta, type ExperienciaCorta, type Exigencia, type FaltanteDeCorta } from "@/lib/experiences/corta";
 import { crearExperienciaRapida, publicarExperienciaRapida, type PrimeraSalida } from "@/lib/experiences/corta-actions";
+import { aplicarPrellenadoCorta, type CortaDeIA } from "@/lib/experiences/prellenado-corta";
+import LlenarConFlyer, { type ResumenFlyer } from "./LlenarConFlyer";
 
 const MAX_FOTOS = 5;
 
@@ -56,6 +58,20 @@ export default function AltaRapida({
   const set = <K extends keyof ExperienciaCorta>(k: K, v: ExperienciaCorta[K]) => setC((p) => ({ ...p, [k]: v }));
   const falta = (k: keyof ExperienciaCorta) => faltan.find((f) => f.campo === k)?.mensaje;
   const marca = (k: keyof ExperienciaCorta) => (falta(k) ? { borderColor: "#c43d2a" } : undefined);
+
+  // LO QUE LEYÓ LA IA DEL FLYER entra aquí. Sólo llena lo vacío y nunca
+  // inventa (`prellenado-corta.ts`); devuelve qué llenó y qué falta para que
+  // la tarjeta del flyer lo cuente. «Hoy» es el día de México: una fecha que
+  // ya pasó no se propone como primera salida.
+  function llenarDesdeFlyer(campos: CortaDeIA): ResumenFlyer {
+    const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+    const r = aplicarPrellenadoCorta(c, salida, campos, hoy);
+    setC(r.corta);
+    setSalida(r.salida);
+    setFaltan([]);
+    setError("");
+    return { llenados: r.llenados, faltan: r.faltan, notas: r.notas };
+  }
 
   async function guardar() {
     setError("");
@@ -188,6 +204,9 @@ export default function AltaRapida({
             </a>
             .
           </p>
+
+          {/* 0 · EL ATAJO: el flyer llena el formulario */}
+          <LlenarConFlyer onCampos={llenarDesdeFlyer} />
 
           {/* 1 · QUÉ ES */}
           <section className="card">

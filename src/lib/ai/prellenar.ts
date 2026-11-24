@@ -14,6 +14,10 @@ import { DESLINDE_MAESTRO } from "@/lib/legal/deslinde-maestro";
 const MODEL = "claude-opus-4-8";
 const API = "https://api.anthropic.com/v1/messages";
 
+/** Para `prellenar-corta.ts`: la lectura del flyer usa el mismo modelo y la misma API. */
+export const MODELO_IA = MODEL;
+export const API_IA = API;
+
 export type ArchivoEntrada = {
   name: string;
   mediaType: string; // application/pdf | image/* | text/*

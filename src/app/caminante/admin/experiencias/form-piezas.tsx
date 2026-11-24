@@ -20,7 +20,7 @@ export function Field({ label, hint, auto, children }: { label: React.ReactNode;
 // así que las fotos de cámara (4–12 MB) morían en silencio. Aquí se
 // redimensionan a máx 2560px (sobra para web) y se recomprimen a JPEG antes
 // de subir: una foto de 10 MB queda en ~1 MB. Además el sitio carga más rápido.
-async function comprimirImagen(file: File, maxLado = 2560, calidad = 0.82): Promise<Blob | null> {
+export async function comprimirImagen(file: File, maxLado = 2560, calidad = 0.82): Promise<Blob | null> {
   try {
     const bmp = await createImageBitmap(file, { imageOrientation: "from-image" } as ImageBitmapOptions);
     const esc = Math.min(1, maxLado / Math.max(bmp.width, bmp.height));
