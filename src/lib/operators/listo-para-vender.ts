@@ -109,7 +109,14 @@ export function operadorListo(
   // Ya no se usa desde que el CSD salió del gate (9 nov 2026); se conserva la
   // firma para no tocar a quien la llama con fecha.
   _hoy = new Date(),
+  // A QUIÉN SE LE DICE (24 nov 2026). Los faltantes se escribieron para la
+  // casa, hablando DE la operadora («su cuenta», «el operador»). La operadora
+  // lee la misma lista en su paso 05, y ahí le hablaban de ella en tercera
+  // persona. Con "operadora" los mismos cinco candados se dicen de tú y en
+  // sus palabras. Qué falta no cambia: sólo cómo se dice.
+  voz: "casa" | "operadora" = "casa",
 ): OperadorFlujo {
+  const tu = voz === "operadora";
   // Sin operador o sin Connect: no aplica este gate. La experiencia propia de
   // Caminante no tiene por qué traer CSD ni convenio para venderse.
   if (!requiereConnect(op)) return { ok: true, faltantes: [] };
@@ -121,7 +128,9 @@ export function operadorListo(
   // significa que ya pueda cobrar — el KYC puede seguir incompleto.
   if (!op?.stripe_charges_enabled) {
     faltantes.push(
-      "Su cuenta de cobro todavía no está verificada: le falta completar la verificación (sección “Conecta tu cuenta”).",
+      tu
+        ? "Tu cuenta de cobro todavía no está verificada: falta terminar la verificación, aquí abajo."
+        : "Su cuenta de cobro todavía no está verificada: le falta completar la verificación (sección “Conecta tu cuenta”).",
     );
   }
 
@@ -142,8 +151,12 @@ export function operadorListo(
   if (fiscales.some((v) => !v?.trim())) {
     faltantes.push(
       op?.rfc?.trim() && !op?.regimen_fiscal?.trim()
-        ? "Su constancia fiscal trae más de un régimen de negocio: falta decidir con cuál se le factura la comisión."
-        : "Falta su Constancia de Situación Fiscal confirmada con el SAT: de ahí salen sus datos fiscales para facturarle la comisión.",
+        ? tu
+          ? "Tu constancia fiscal trae más de un régimen de negocio: elige aquí abajo con cuál te facturamos la comisión."
+          : "Su constancia fiscal trae más de un régimen de negocio: falta decidir con cuál se le factura la comisión."
+        : tu
+          ? "Falta tu constancia fiscal confirmada con el SAT: de ahí salen tus datos fiscales, con los que te facturamos la comisión."
+          : "Falta su Constancia de Situación Fiscal confirmada con el SAT: de ahí salen sus datos fiscales para facturarle la comisión.",
     );
   }
 
@@ -152,14 +165,20 @@ export function operadorListo(
   // deja a Numan expuesta como corresponsable solidaria.
   if (!op?.tipo_persona?.trim()) {
     faltantes.push(
-      "Falta indicar si el operador es persona física o moral: de eso depende si hay retención de ISR e IVA.",
+      tu
+        ? "Falta decir si operas como persona física o como empresa: se elige en Tus documentos."
+        : "Falta indicar si el operador es persona física o moral: de eso depende si hay retención de ISR e IVA.",
     );
   }
 
   // 4 · Convenio firmado. El gate lee la fecha de firma del expediente, no una
   // casilla que alguien marcó de buena fe.
   if (!op?.convenio_firmado_at?.trim()) {
-    faltantes.push("El convenio con el operador no está firmado. Sin él la comisión y las responsabilidades no son exigibles.");
+    faltantes.push(
+      tu
+        ? "Falta firmar tu convenio."
+        : "El convenio con el operador no está firmado. Sin él la comisión y las responsabilidades no son exigibles.",
+    );
   }
 
   // 5 · Comisión RESUELTA. ⚠️ ESTE ES EL CANDADO QUE MÁS DINERO CUIDA.
@@ -180,9 +199,15 @@ export function operadorListo(
   // Lo que sí deja el fee en cero es no tener `comision_desde`: sin esa fecha
   // la operadora no genera comisión sobre nada (0047). Eso es lo que se exige.
   if (op?.commission_pct == null && !op?.comision_desde?.trim()) {
-    faltantes.push(
-      "El operador no genera comisión todavía: le falta la fecha de arranque, que se escribe sola al firmar el convenio. Con el cobro a su nombre, Numan no retendría nada.",
-    );
+    // A la operadora sólo se le dice si YA firmó: sin firma, el renglón de
+    // arriba ya le dijo qué hacer y éste sería el mismo pendiente dos veces.
+    if (!tu) {
+      faltantes.push(
+        "El operador no genera comisión todavía: le falta la fecha de arranque, que se escribe sola al firmar el convenio. Con el cobro a su nombre, Numan no retendría nada.",
+      );
+    } else if (op?.convenio_firmado_at?.trim()) {
+      faltantes.push("Tu convenio está firmado pero tu comisión no quedó registrada. Esto lo arregla Caminante: escríbenos.");
+    }
   }
 
   return { ok: faltantes.length === 0, faltantes };

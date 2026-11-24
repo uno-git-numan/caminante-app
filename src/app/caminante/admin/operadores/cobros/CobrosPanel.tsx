@@ -128,6 +128,17 @@ export default function CobrosPanel({
 
   const listo = faltantes.length === 0 && Boolean(o.stripeAccountId);
 
+  // LA VOZ (24 nov 2026). Este panel se escribió para la casa, que habla DE la
+  // operadora: «sus datos fiscales», «todavía no está en Connect». La
+  // operadora mira el mismo panel en su paso 05 y leía eso sobre sí misma, con
+  // palabras de la casa. Cuando es ella quien mira (`sinEnlaceExterno`), cada
+  // frase va de tú y sin jerga. `v(casa, propia)` deja las dos juntas para que
+  // no se separen.
+  const v = (casa: string, propia: string) => (sinEnlaceExterno ? propia : casa);
+  const expedienteHref = sinEnlaceExterno
+    ? "/caminante/admin/mi-alta/expediente"
+    : `/caminante/admin/mi-alta/expediente?operadora=${encodeURIComponent(o.id)}`;
+
   return (
     <div className="card pad" style={{ marginBottom: 24 }}>
       <span className="subtitle" style={{ margin: 0 }}>
@@ -138,18 +149,29 @@ export default function CobrosPanel({
           faltante dice qué hacer y en qué paso. */}
       {listo ? (
         <p className="mut" style={{ fontSize: 13, margin: "8px 0 0", color: "var(--forest)" }}>
-          <b>Listo para vender a su nombre.</b> Sus cobros entran a su cuenta de cobro y Numan
-          retiene {o.commissionPct != null ? `${o.commissionPct}%` : `${TASA_PCT.plataforma} % o ${TASA_PCT.venta} % (según quién traiga al cliente)`} como comisión.
+          {sinEnlaceExterno ? (
+            <>
+              <b>Lista para vender.</b> Lo de cada venta llega a tu cuenta de cobro, menos la comisión de
+              Caminante ({FRASE_TARIFA}).
+            </>
+          ) : (
+            <>
+              <b>Listo para vender a su nombre.</b> Sus cobros entran a su cuenta de cobro y Numan
+              retiene {o.commissionPct != null ? `${o.commissionPct}%` : `${TASA_PCT.plataforma} % o ${TASA_PCT.venta} % (según quién traiga al cliente)`} como comisión.
+            </>
+          )}
         </p>
       ) : !o.stripeAccountId ? (
         <p className="mut" style={{ fontSize: 12.5, margin: "8px 0 0" }}>
-          Todavía no está en Connect. Sus ventas cobran por el camino de siempre (el dinero entra a
-          NUMAN HUB y se le transfiere a mano) — que es exactamente lo que pasa hoy.
+          {v(
+            "Todavía no está en Connect. Sus ventas cobran por el camino de siempre (el dinero entra a NUMAN HUB y se le transfiere a mano) — que es exactamente lo que pasa hoy.",
+            "Todavía no tienes tu cuenta de cobro. Es lo último que falta para vender: ahí llega el dinero de tus ventas.",
+          )}
         </p>
       ) : (
         <div style={{ margin: "10px 0 0" }}>
           <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
-            <b>Todavía no puede vender a su nombre.</b> Falta:
+            <b>{v("Todavía no puede vender a su nombre.", "Todavía no puedes vender.")}</b> Falta:
           </p>
           <ul style={{ fontSize: 12.5, margin: "6px 0 0", paddingLeft: 18 }}>
             {faltantes.map((f) => (
@@ -165,17 +187,20 @@ export default function CobrosPanel({
           teclea: los escribe la lectura de la constancia cuando el SAT la
           confirma. Aquí sólo se enseñan, y quedan dos botones para lo que una
           persona todavía puede tener que hacer. */}
-      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>Sus datos fiscales</h3>
+      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>{v("Sus datos fiscales", "Tus datos fiscales")}</h3>
       {o.rfc && o.regimenFiscal ? (
         <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
           {o.razonSocial} · RFC {o.rfc} · régimen {etiquetaRegimen(o.regimenFiscal)} · C.P. {o.cpFiscal}.{" "}
-          Salen de su constancia fiscal confirmada con el SAT.
+          {v("Salen de su constancia fiscal confirmada con el SAT.", "Salen de tu constancia fiscal confirmada con el SAT.")}
         </p>
       ) : o.rfc && o.constancia.ok && o.constancia.regimenes.length > 1 ? (
         <>
           <p className="mut" style={{ fontSize: 12.5, margin: "0 0 8px" }}>
-            {o.razonSocial} · RFC {o.rfc}. Su constancia trae más de un régimen de negocio: ¿con cuál
-            le facturamos la comisión?
+            {o.razonSocial} · RFC {o.rfc}.{" "}
+            {v(
+              "Su constancia trae más de un régimen de negocio: ¿con cuál le facturamos la comisión?",
+              "Tu constancia trae más de un régimen de negocio: ¿con cuál te facturamos la comisión?",
+            )}
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {o.constancia.regimenes.map((c) => (
@@ -187,13 +212,14 @@ export default function CobrosPanel({
         </>
       ) : !o.constancia.subida ? (
         <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
-          Salen solos de su Constancia de Situación Fiscal: súbela en el{" "}
-          <a href={`/caminante/admin/mi-alta/expediente?operadora=${encodeURIComponent(o.id)}`}>expediente</a> y aquí aparecen en un minuto.
+          {v("Salen solos de su Constancia de Situación Fiscal: súbela en el", "Salen solos de tu constancia fiscal: súbela en")}{" "}
+          <a href={expedienteHref}>{v("expediente", "Tus documentos")}</a> y aquí aparecen en un minuto.
         </p>
       ) : (
         <>
           <p className="mut" style={{ fontSize: 12.5, margin: "0 0 8px" }}>
-            Su constancia está subida pero todavía no da sus datos: {o.constancia.porque ?? "falta leerla."}
+            {v("Su constancia está subida pero todavía no da sus datos:", "Tu constancia está subida pero todavía no da tus datos:")}{" "}
+            {o.constancia.porque ?? "falta leerla."}
           </p>
           <button type="button" className="btn btn-sm" onClick={releer} disabled={ocupado !== ""}>
             {ocupado === "releer" ? "Leyendo…" : "Volver a leer la constancia"}
@@ -209,18 +235,18 @@ export default function CobrosPanel({
         <div style={{ margin: "10px 0 0" }}>
           <p className="mut" style={{ fontSize: 12.5, margin: "0 0 6px" }}>
             {o.tipoPersona === "fisica" ? (
-              <>CURP: {o.privado?.curp ? "✓ de su constancia" : "pendiente (sale de su constancia)"} · </>
+              <>CURP: {o.privado?.curp ? v("✓ de su constancia", "✓ de tu constancia") : v("pendiente (sale de su constancia)", "pendiente (sale de tu constancia)")} · </>
             ) : null}
-            Domicilio fiscal: {o.privado?.domicilio ?? "pendiente (sale de su constancia)"}
+            Domicilio fiscal: {o.privado?.domicilio ?? v("pendiente (sale de su constancia)", "pendiente (sale de tu constancia)")}
           </p>
           {o.privado?.clabe ? (
             <p className="mut" style={{ fontSize: 12.5, margin: 0 }}>
-              CLABE para sus depósitos: {o.privado.clabe} · {o.privado.banco}
+              {v("CLABE para sus depósitos:", "CLABE para tus depósitos:")} {o.privado.clabe} · {o.privado.banco}
             </p>
           ) : (
             <form onSubmit={guardarLaClabe} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <label className="mut" style={{ fontSize: 12.5 }}>
-                CLABE donde recibe sus depósitos{" "}
+                {v("CLABE donde recibe sus depósitos", "CLABE donde recibes tus depósitos")}{" "}
                 <input
                   value={clabe}
                   onChange={(e) => setClabe(e.target.value)}
@@ -242,14 +268,17 @@ export default function CobrosPanel({
           )}
           {o.tipoPersona === "fisica" && o.regimenFiscal === "626" ? (
             <p className="mut" style={{ fontSize: 12, margin: "6px 0 0" }}>
-              Está en RESICO: Caminante le retiene ISR e IVA por cada venta. Que lo revise con su contador.
+              {v(
+                "Está en RESICO: Caminante le retiene ISR e IVA por cada venta. Que lo revise con su contador.",
+                "Estás en RESICO: Caminante te retiene ISR e IVA por cada venta. Revísalo con tu contador.",
+              )}
             </p>
           ) : null}
         </div>
       ) : null}
 
       {/* ── Paso 1 · Conecta tu cuenta ─────────────────────────────── */}
-      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>1 · Conecta su cuenta de cobro</h3>
+      <h3 style={{ fontSize: 14, margin: "22px 0 6px" }}>{v("1 · Conecta su cuenta de cobro", "1 · Tu cuenta de cobro")}</h3>
       {altaEnPlataforma ? (
         altaEnPlataforma
       ) : sinEnlaceExterno && !o.chargesEnabled ? (

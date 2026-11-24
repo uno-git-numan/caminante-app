@@ -158,7 +158,7 @@ export default async function CobrarPage({
           constancia: constanciaParaPanel(constancias.get(r.id)),
                 privado: privados.get(r.id) ?? null,
         }}
-        faltantes={operadorListo(r).faltantes}
+        faltantes={operadorListo(r, new Date(), porOtra ? "casa" : "operadora").faltantes}
         sinEnlaceExterno={!porOtra}
         facturacion={
           r.es_la_casa ? undefined : (
