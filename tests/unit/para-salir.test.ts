@@ -16,20 +16,21 @@ const arranque = [doc("csf", null), doc("id-responsable", null, "aprobado", "209
 const SENDERISMO = [{ actividad: "senderismo", estado: "incompleta", motivo: null }];
 
 describe("faltaParaSalir", () => {
-  it("con sólo el arranque puede vender, y a la salida le faltan las dos pólizas y la credencial del guía", () => {
+  it("con sólo el arranque puede vender, y a la salida le faltan la póliza de responsabilidad civil y la credencial del guía", () => {
     const e = armarExpediente(SENDERISMO, arranque, undefined, "fisica");
     expect(e.completo).toBe(true);
     const f = faltaParaSalir(e, "senderismo", "2027-03-13");
-    expect(f).toHaveLength(3);
+    expect(f).toHaveLength(2);
     expect(f.join(" ")).toMatch(/responsabilidad civil/);
-    expect(f.join(" ")).toMatch(/accidentes/);
+    // La póliza de accidentes salió del catálogo el 24 nov 2026.
+    expect(f.join(" ")).not.toMatch(/accidentes/);
     expect(f.join(" ")).toMatch(/Credencial de guía/);
   });
 
   it("con todo entregado y vigente, no falta nada", () => {
     const e = armarExpediente(
       SENDERISMO,
-      [...arranque, doc("poliza-rc", null, "aprobado", "2027-12-31"), doc("poliza-gm", null, "aprobado", "2027-12-31"), doc("nom09-senderismo", "senderismo", "aprobado", "2028-01-01")],
+      [...arranque, doc("poliza-rc", null, "aprobado", "2027-12-31"), doc("nom09-senderismo", "senderismo", "aprobado", "2028-01-01")],
       undefined,
       "fisica",
     );
@@ -39,7 +40,7 @@ describe("faltaParaSalir", () => {
   it("una póliza que vence ANTES del día de la salida no la cubre, aunque hoy esté vigente", () => {
     const e = armarExpediente(
       SENDERISMO,
-      [...arranque, doc("poliza-rc", null, "aprobado", "2027-03-01"), doc("poliza-gm", null, "aprobado", "2027-12-31"), doc("nom09-senderismo", "senderismo", "aprobado", "2028-01-01")],
+      [...arranque, doc("poliza-rc", null, "aprobado", "2027-03-01"), doc("nom09-senderismo", "senderismo", "aprobado", "2028-01-01")],
       undefined,
       "fisica",
     );
@@ -53,7 +54,7 @@ describe("faltaParaSalir", () => {
   it("un documento rechazado cuenta como faltante; uno en revisión no (nos toca a nosotros)", () => {
     const e = armarExpediente(
       SENDERISMO,
-      [...arranque, doc("poliza-rc", null, "rechazado"), doc("poliza-gm", null, "en_revision", "2027-12-31"), doc("nom09-senderismo", "senderismo", "aprobado", "2028-01-01")],
+      [...arranque, doc("poliza-rc", null, "rechazado"), doc("nom09-senderismo", "senderismo", "aprobado", "2028-01-01")],
       undefined,
       "fisica",
     );

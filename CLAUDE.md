@@ -265,7 +265,7 @@ vender:
 | Momento | Qué | Qué detiene |
 |---|---|---|
 | **Arranque** | constancia fiscal + identificación (y convenio y anexo firmados) | publicar y vender |
-| **Antes de la primera salida** | pólizas, credencial del guía, permisos, certificados de terceros | la SALIDA, no la venta |
+| **Antes de la primera salida** | póliza de responsabilidad civil, credencial del guía, permisos, certificados de terceros (la póliza de accidentes salió el 24 nov; ver `rules/operadores-connect.md`) | la SALIDA, no la venta |
 | **30 días desde la firma** | Registro Nacional de Turismo | nada todavía (Caminante puede suspender) |
 | **Se declara en el anexo** | planes, protocolos, bitácoras, equipo | nada: no se sube |
 

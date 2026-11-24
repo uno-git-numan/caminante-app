@@ -224,7 +224,7 @@ export function loQueFalta(d: ParaLoQueFalta): Falta[] {
       titulo: "Antes de tu primera salida",
       detalle:
         `${plural(e.paraSalir.faltan, "Falta", "Faltan")} ${e.paraSalir.faltan} ${plural(e.paraSalir.faltan, "documento", "documentos")}: ` +
-        "pólizas, credencial del guía o permisos. Ya puedes vender sin ellos, pero sin ellos la salida no se realiza.",
+        "póliza de responsabilidad civil, credencial del guía o permisos. Ya puedes vender sin ellos, pero sin ellos la salida no se realiza.",
       toca: "operadora",
       href: RUTA.expediente,
       accion: "Subir",

@@ -10,10 +10,12 @@
 // existían conservan la suya; corregirlas es una decisión de Luis (D28 §4).
 //
 // Dos cláusulas tienen variante, y las dos salen de un HECHO, no de un gusto:
-//   · 9 · Seguro. «Con seguro» en toda experiencia de una operadora con
-//     convenio firmado (la póliza de accidentes es obligatoria por convenio).
-//     «Sin seguro» en las de la casa mientras Luis no confirme que sus salidas
-//     llevan póliza. El texto tiene que decir la verdad.
+//   · 9 · Seguro. La regla de legal era «con seguro» en toda experiencia de
+//     una operadora con convenio firmado (la póliza de accidentes era
+//     obligatoria por convenio y se pedía en el expediente). Desde el 24 nov
+//     2026 la plataforma ya no pide esa póliza (decisión de Luis), así que
+//     hoy NADIE nace «con seguro»: el hecho lo decide `quienCrea`
+//     (experiences/corta-actions.ts). El texto tiene que decir la verdad.
 //   · 13 · Menores. Sale de la edad mínima de la experiencia.
 //
 // Una actividad que no esté en `POR_ACTIVIDAD` no tiene adicionales escritas:

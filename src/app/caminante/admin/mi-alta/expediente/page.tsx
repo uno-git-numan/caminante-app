@@ -92,10 +92,10 @@ export default async function ExpedientePage({
             {/* El texto era de cuando se pedía la carpeta COMPLETA antes de
                 vender («se pide completo»). Desde el convenio v3.5 son tres
                 momentos (ver CLAUDE.md), y aquí se dice así. */}
-            Para publicar y vender bastan tu constancia fiscal y tu identificación. Las pólizas,
-            la credencial del guía y los permisos se entregan antes de tu primera salida: de
-            ellos depende que nadie se lastime en una montaña, y se revisan uno por uno. Nada se
-            sube dos veces.
+            Para publicar y vender bastan tu constancia fiscal y tu identificación. Tu póliza de
+            responsabilidad civil, la credencial del guía y los permisos se entregan antes de tu
+            primera salida: de ellos depende que nadie se lastime en una montaña, y se revisan uno
+            por uno. Nada se sube dos veces.
           </p>
           <p className="desc" style={{ marginTop: 10 }}>
             {porOtra ? (

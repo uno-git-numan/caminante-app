@@ -952,7 +952,7 @@ function Expediente02({
               <span>
                 Para vender bastan tu constancia fiscal y tu identificación.{" "}
                 {e.paraSalir.faltan
-                  ? `Antes de tu primera salida ${e.paraSalir.faltan === 1 ? "falta un documento" : `faltan ${e.paraSalir.faltan} documentos`} (pólizas, credencial del guía, permisos). `
+                  ? `Antes de tu primera salida ${e.paraSalir.faltan === 1 ? "falta un documento" : `faltan ${e.paraSalir.faltan} documentos`} (póliza de responsabilidad civil, credencial del guía, permisos). `
                   : ""}
                 {aprobadas.length
                   ? `${aprobadas.map((a) => a.nombre).join(", ")} ${aprobadas.length === 1 ? "ya tiene" : "ya tienen"} todo para salir. `
@@ -1105,13 +1105,17 @@ function Expediente02({
             nos lo enseñas si te lo pedimos.
           </p>
         ) : null}
-                  <div className="subh">
-                    <b>De Lo general, que esta actividad necesita</b>
-                    <small>Se leen aquí para ver el expediente completo de la actividad, y no se vuelven a subir.</small>
-                  </div>
-                  <div className="hers">
-                    {a.generales.map((d) => <Heredado key={d.slug} d={d} irGeneral={irGeneral} />)}
-                  </div>
+                  {a.generales.length ? (
+                    <>
+                      <div className="subh">
+                        <b>De Lo general, que esta actividad necesita</b>
+                        <small>Se leen aquí para ver el expediente completo de la actividad, y no se vuelven a subir.</small>
+                      </div>
+                      <div className="hers">
+                        {a.generales.map((d) => <Heredado key={d.slug} d={d} irGeneral={irGeneral} />)}
+                      </div>
+                    </>
+                  ) : null}
                   {a.estado === "incompleta" ? <Mandar operadora={porOtra} a={a} /> : null}
                   {a.estado !== "aprobada" ? <Quitar operadora={porOtra} a={a} /> : null}
                 </div>

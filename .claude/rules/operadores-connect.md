@@ -76,7 +76,11 @@ vender, y el convenio v3.5 lo dice así:
   firmado. `actividadListaParaPublicar` ya no mira el estado de la carpeta
   (sólo si está `suspendida`); motivo nuevo `sin_arranque`. La dispensa sigue
   abriendo cualquiera de sus candados.
-- **Antes de la primera salida, y vigente en cada una:** las dos pólizas, la
+- **Antes de la primera salida, y vigente en cada una:** la póliza de
+  responsabilidad civil (⚠️ la de accidentes y enfermedades, `poliza-gm`,
+  **salió del catálogo el 24 nov 2026** por decisión de Luis; el convenio v3.5
+  —Sexta §2 y Anexo B punto 5— y la Séptima del anexo todavía la nombran, y
+  eso lo corrige legal con versión nueva, no código), la
   credencial del guía y lo demás que legal clasificó como «se entrega» (regla
   de D30: lo que emite un tercero se entrega; lo que escribe la operadora se
   declara). **El candado no desapareció, se movió a la salida**

@@ -21,11 +21,13 @@ const propiosDe = (act: string, estado = "aprobado") =>
   requisitosDe(act).propios.map((d) => doc(d.slug, act, estado));
 
 describe("los tres momentos del catálogo", () => {
-  it("para vender: constancia e identificación; antes de salir: las dos pólizas; en 30 días: el registro de turismo", () => {
+  it("para vender: constancia e identificación; antes de salir: la póliza de responsabilidad civil; en 30 días: el registro de turismo", () => {
     expect(momentoDeGeneral("csf")).toBe("arranque");
     expect(momentoDeGeneral("id-responsable")).toBe("arranque");
     expect(momentoDeGeneral("poliza-rc")).toBe("salida");
-    expect(momentoDeGeneral("poliza-gm")).toBe("salida");
+    // La de accidentes salió del catálogo el 24 nov 2026: ya no tiene momento
+    // propio y cae en el de omisión, sin contarse en ningún lado.
+    expect(generalesPara("fisica").map((d) => d.slug)).not.toContain("poliza-gm");
     expect(momentoDeGeneral("rnt")).toBe("treinta-dias");
   });
 
@@ -59,17 +61,17 @@ describe("armarExpediente", () => {
     expect(e.completo).toBe(false);
     // Para vender: constancia e identificación. Nada más.
     expect(e.faltanTotal).toBe(2);
-    // Antes de salir: las dos pólizas y lo propio de senderismo.
-    expect(e.paraSalir.faltan).toBe(2 + requisitosDe("senderismo").propios.length);
+    // Antes de salir: la póliza de responsabilidad civil y lo propio de senderismo.
+    expect(e.paraSalir.faltan).toBe(1 + requisitosDe("senderismo").propios.length);
     expect(e.rnt?.estado).toBe("falta");
   });
 
-  it("con constancia e identificación aprobadas YA alcanza para vender, sin pólizas ni credencial", () => {
+  it("con constancia e identificación aprobadas YA alcanza para vender, sin póliza ni credencial", () => {
     const e = armarExpediente([{ actividad: "senderismo", estado: "incompleta", motivo: null }], deArranque, undefined, "fisica");
     expect(e.completo).toBe(true);
     expect(e.faltanTotal).toBe(0);
     expect(e.todoEntregado).toBe(false);
-    expect(e.paraSalir.docs.map((d) => d.slug).sort()).toEqual(["nom09-senderismo", "poliza-gm", "poliza-rc"]);
+    expect(e.paraSalir.docs.map((d) => d.slug).sort()).toEqual(["nom09-senderismo", "poliza-rc"]);
   });
 
   it("arranque entregado pero sin aprobar ⇒ no falta nada por subir, y todavía no alcanza (está en revisión)", () => {
@@ -112,8 +114,9 @@ describe("armarExpediente", () => {
     expect(acta.opcional).toBe(true);
     // Lo opcional sin subir no cuenta como faltante; para vender faltan los dos de arranque.
     expect(moral.faltanGenerales).toBe(2);
-    // Y siguen siendo cinco los generales obligatorios, repartidos en sus momentos.
-    expect(generalesPara("moral").filter((d) => !d.opcional)).toHaveLength(5);
+    // Cuatro generales obligatorios, repartidos en sus momentos (eran cinco
+    // hasta que salió la póliza de accidentes, el 24 nov 2026).
+    expect(generalesPara("moral").filter((d) => !d.opcional)).toHaveLength(4);
   });
 
   it("una identificación vencida no cuenta como entregada: no alcanza para vender", () => {
@@ -129,7 +132,7 @@ describe("armarExpediente", () => {
   it("una póliza vencida no detiene la venta, pero sí cuenta entre lo que falta para salir", () => {
     const e = armarExpediente(
       [{ actividad: "senderismo", estado: "aprobada", motivo: null }],
-      [...deArranque, doc("poliza-gm", null), { ...doc("poliza-rc", null), vence_at: "2020-01-01" }, ...propiosDe("senderismo")],
+      [...deArranque, { ...doc("poliza-rc", null), vence_at: "2020-01-01" }, ...propiosDe("senderismo")],
       undefined,
       "fisica",
     );
@@ -171,8 +174,8 @@ describe("armarExpediente", () => {
         "fisica",
       );
     expect(con("csf").completo).toBe(false);
-    expect(con("poliza-gm").completo).toBe(true);
-    expect(con("poliza-gm").paraSalir.faltan).toBe(1);
+    expect(con("poliza-rc").completo).toBe(true);
+    expect(con("poliza-rc").paraSalir.faltan).toBe(1);
   });
 });
 

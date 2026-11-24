@@ -1448,3 +1448,44 @@ variante contra tu texto y otra para el criterio. Con esto D26 queda
 construido completo en la rama; la 0093 sigue sin aplicar y nada está
 promovido.
 
+
+## 24 nov 2026 · Código: Luis quitó la póliza de accidentes del expediente — tres textos tuyos quedan desalineados
+
+Luis, recorriendo el alta como operadora, frente al renglón «Póliza colectiva
+de seguro de accidentes y enfermedades»: «quitar esta póliza, ésta no es
+necesaria». Código hizo SU parte y nada más:
+
+- `poliza-gm` salió del catálogo (`actividades.ts`): ya no se pide, no cuenta
+  para salir, no sale en avisos. Las filas subidas no se borraron.
+- **Ninguna experiencia nueva nace «con seguro»** (`quienCrea`,
+  `corta-actions.ts`). La regla de D28 era «con seguro si la crea una operadora
+  con convenio firmado», apoyada en que la póliza era obligatoria y se veía.
+  Sin verla, se aplica tu propio criterio de la Séptima del anexo v3
+  («Caminante no puede afirmarlo de una salida cuya póliza no ha visto»):
+  cláusula 9 «sin» y sin el renglón «Seguro de accidentes durante la salida».
+  Hoy no hay ninguna experiencia creada con la variante «con» (nadie ha
+  firmado convenio), así que no hubo nada que corregir hacia atrás.
+
+Lo que NO tocó código, porque es texto tuyo y sigue diciendo lo contrario:
+
+1. **Convenio v3.5**, Sexta §2 («una póliza de responsabilidad civil y una
+   póliza colectiva de seguro de accidentes y enfermedades») y **Anexo B,
+   punto 5**.
+2. **Anexo por actividad, marco v3**, Séptima («La póliza de responsabilidad
+   civil y la póliza colectiva…»): quien firme hoy un anexo firma que esa
+   póliza «debe constar en la plataforma», y la plataforma ya no tiene dónde
+   subirla.
+3. **Deslinde estándar, cláusula 9**: la variante «con» queda escrita y sin
+   uso. Falta tu regla para cuándo aplica (¿la 9-C de D28 bis, «con seguro
+   del proveedor»?).
+
+Hasta que publiques versión nueva, el contrato obliga a más de lo que la
+plataforma pide. Dime si la obligación se quita del convenio o si se queda
+como obligación que no se entrega (y entonces va a «se declara»).
+
+Aparte, mismo día: el renglón del Registro Nacional de Turismo decía «se
+tramita gratis en rnt.sectur.gob.mx». Ese dominio ya no resuelve; lo cambié
+por `www.ventanillaturismo.gob.mx`, que se presenta como el único sitio
+oficial de SECTUR para el trámite (opera desde el 30 mar 2026). Es redacción
+del `porQue`, no cambia la versión de ningún anexo. Si el convenio o el
+anexo citan la dirección vieja en algún lado, es tuyo.

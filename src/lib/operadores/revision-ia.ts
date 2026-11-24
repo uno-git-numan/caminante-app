@@ -161,7 +161,7 @@ export function veredicto(
 }
 
 /** Documentos que van a nombre de la operadora o de quien la representa. */
-const A_SU_NOMBRE = new Set(["id-responsable", "rnt", "poliza-rc", "poliza-gm", "acta-constitutiva"]);
+const A_SU_NOMBRE = new Set(["id-responsable", "rnt", "poliza-rc", "acta-constitutiva"]);
 
 /**
  * Lee el documento `docId`, guarda lo leído y, si todo sale limpio, lo aprueba.

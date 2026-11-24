@@ -114,8 +114,17 @@ export const GENERALES: Documento[] = [
     porQue: "No vence. La leemos al subirla para revisar que sea reciente y que sus datos coincidan con los tuyos.", vence: false },
   { slug: "poliza-rc", nombre: "Póliza de responsabilidad civil vigente",
     porQue: "Cubre los daños que la operación pueda causar a terceros. Sirve la anual o la que se contrata por integrante por día de salida: lo que importa es que cubra a todos, todos los días.", vence: true },
-  { slug: "poliza-gm", nombre: "Póliza colectiva de seguro de accidentes y enfermedades",
-    porQue: "Cubre a quienes viajan contigo. Tiene que estar emitida por una aseguradora autorizada: con la póliza verificamos con ella que estás asegurado.", vence: true },
+  // ⚠️ LA PÓLIZA DE ACCIDENTES Y ENFERMEDADES SALIÓ (Luis, 24 nov 2026,
+  // recorriendo sus documentos como operadora: «quitar esta póliza, ésta no es
+  // necesaria»). Era `poliza-gm`. Las filas que alguien ya subió NO se borran;
+  // el expediente deja de contarlas, como con lo que salió el 9 nov.
+  //
+  // Tres textos de LEGAL todavía la nombran y código no los toca: el convenio
+  // v3.5 (Sexta §2 y Anexo B, punto 5), el anexo por actividad (Séptima) y la
+  // cláusula 9 del deslinde estándar. Mientras legal no publique su versión,
+  // el contrato obliga a más de lo que la plataforma pide. Y como ya nadie ve
+  // esa póliza, ninguna experiencia nueva afirma que la salida lleva seguro de
+  // accidentes (`quienCrea` en corta-actions.ts).
 ];
 
 /** Los generales que le tocan a un tipo de persona. Sin tipo, todos los que no dependen de él. */
@@ -149,19 +158,19 @@ export const ACTIVIDADES: Actividad[] = [
     documentos: [cred("senderismo"),
       { slug: "ratio-guias", nombre: "Ratio guía / participantes declarado", porQue: "Cuánta gente lleva un guía. Define si el grupo es manejable.", vence: false },
       { slug: "comunicacion", nombre: "Medio de comunicación en zona sin señal", porQue: "Cómo se pide ayuda donde no hay teléfono.", vence: false }],
-    generalesRelevantes: ["poliza-gm"] },
+    generalesRelevantes: [] },
 
   { slug: "alta-montana", nombre: "Alta montaña y alpinismo", norma: NOM09,
     documentos: [cred("alta montaña"), bitacoraEpp,
       { slug: "rescate-montana", nombre: "Certificación de rescate en montaña", porQue: "A esa altura la ayuda externa tarda horas. El rescate empieza con el guía.", vence: true },
       { slug: "comunicacion-satelital", nombre: "Comunicación satelital", porQue: "Arriba no hay señal celular.", vence: false },
       { slug: "plan-aclimatacion", nombre: "Plan de aclimatación", porQue: "El mal de montaña se previene con perfil de ascenso, no con voluntad.", vence: false }],
-    generalesRelevantes: ["poliza-gm", "poliza-rc"] },
+    generalesRelevantes: ["poliza-rc"] },
 
   { slug: "escalada", nombre: "Escalada en roca", norma: NOM09,
     documentos: [cred("escalada"), bitacoraEpp,
       { slug: "revision-anclajes", nombre: "Revisión de anclajes fijos", porQue: "Un anclaje que lleva años puesto no es un anclaje vigente.", vence: true }],
-    generalesRelevantes: ["poliza-gm"] },
+    generalesRelevantes: [] },
 
   { slug: "rappel", nombre: "Rappel", norma: NOM09,
     documentos: [cred("rappel"), bitacoraEpp,
@@ -173,7 +182,7 @@ export const ACTIVIDADES: Actividad[] = [
       { slug: "neopreno", nombre: "Trajes de neopreno y su estado", porQue: "La hipotermia es el riesgo silencioso del cañón.", vence: false },
       { slug: "pronostico-hidrologico", nombre: "Consulta de pronóstico hidrológico el día de la salida", porQue: "Una crecida río arriba llega sin avisar. Se consulta el mismo día, no la semana anterior.", vence: false },
       { slug: "plan-escape", nombre: "Plan de escape por tramo", porQue: "Por dónde se sale si el cañón deja de ser transitable.", vence: false }],
-    generalesRelevantes: ["poliza-gm"] },
+    generalesRelevantes: [] },
 
   { slug: "rafting", nombre: "Descenso de ríos (rafting)", norma: NOM09,
     documentos: [cred("descenso de ríos"),
@@ -181,14 +190,14 @@ export const ACTIVIDADES: Actividad[] = [
       { slug: "chalecos", nombre: "Chalecos salvavidas certificados y su bitácora", porQue: "La flotación se degrada con el sol y el uso.", vence: false },
       { slug: "revision-balsas", nombre: "Revisión de balsas", porQue: "Cámaras, amarres y línea de vida. Una balsa que pierde aire a medio rápido no se repara ahí.", vence: false },
       { slug: "clase-rio", nombre: "Clasificación declarada del río", porQue: "Un río clase IV no admite al mismo grupo que un clase II.", vence: false }],
-    generalesRelevantes: ["poliza-gm", "poliza-rc"] },
+    generalesRelevantes: ["poliza-rc"] },
 
   { slug: "kayak", nombre: "Kayak de mar o lago", norma: NOM09,
     documentos: [cred("kayak"),
       { slug: "chalecos", nombre: "Chalecos salvavidas certificados", porQue: "Con talla adecuada a cada persona: un chaleco grande de más se sale por la cabeza.", vence: false },
       { slug: "radio-vhf", nombre: "Radio VHF", porQue: "Es el canal por el que se pide ayuda en el agua.", vence: false },
       { slug: "plan-mareas", nombre: "Plan de mareas y viento", porQue: "El viento de la tarde decide si se puede volver remando.", vence: false }],
-    generalesRelevantes: ["poliza-gm"] },
+    generalesRelevantes: [] },
 
   // Snorkel y apnea (buceo libre): nadar con cardúmenes, marlin, móbulas o
   // ballenas desde una panga, sin tanque. Nació el 29 sep 2026 con el Sardine
@@ -202,7 +211,7 @@ export const ACTIVIDADES: Actividad[] = [
       { slug: "plan-mar", nombre: "Plan de mar: clima, corrientes y punto de retorno", porQue: "El viento y la corriente deciden si se entra al agua y hasta dónde. Se consulta el mismo día, no la semana anterior.", vence: false },
       { slug: "embarcacion", nombre: "Matrícula de la embarcación y libreta de mar del capitán", porQue: "La panga y quien la lleva tienen que estar registrados ante la autoridad marítima.", vence: true },
       { slug: "protocolo-agua", nombre: "Protocolo de conteo y rescate en el agua", porQue: "Cuántos entran, cuántos salen, quién vigila desde la panga y cómo se recupera a alguien en apuros.", vence: false }],
-    generalesRelevantes: ["poliza-gm"] },
+    generalesRelevantes: [] },
 
   { slug: "buceo", nombre: "Buceo autónomo", norma: "NOM-05-TUR-2003 y NOM-012-TUR",
     documentos: [cred("buceo"),
@@ -213,14 +222,14 @@ export const ACTIVIDADES: Actividad[] = [
       { slug: "oxigeno-emergencia", nombre: "Oxígeno de emergencia", porQue: "Es el primer tratamiento de un accidente de descompresión.", vence: false },
       { slug: "camara-hiperbarica", nombre: "Plan con la cámara hiperbárica más cercana", porQue: "Dónde está, cuánto se tarda en llegar y a quién se le avisa.", vence: false },
       { slug: "seguro-buceo", nombre: "Seguro específico de buceo", porQue: "Los gastos médicos generales suelen excluir la actividad subacuática.", vence: true }],
-    generalesRelevantes: ["poliza-rc", "poliza-gm"] },
+    generalesRelevantes: ["poliza-rc"] },
 
   { slug: "buceo-cavernas", nombre: "Buceo en cavernas", norma: "NOM-05-TUR-2003 y NOM-012-TUR",
     documentos: [cred("buceo en cavernas"),
       { slug: "cert-cuevas", nombre: "Certificación específica de cuevas", porQue: "En caverna no existe el ascenso directo a superficie.", vence: true },
       { slug: "lineas-guia", nombre: "Líneas guía y carretes", porQue: "La línea es el único camino de vuelta si se pierde visibilidad.", vence: false },
       { slug: "regla-tercios", nombre: "Regla de tercios documentada", porQue: "Un tercio para entrar, uno para salir, uno de reserva.", vence: false }],
-    generalesRelevantes: ["poliza-rc", "poliza-gm"] },
+    generalesRelevantes: ["poliza-rc"] },
 
   { slug: "espeleismo", nombre: "Espeleísmo", norma: NOM09,
     documentos: [cred("espeleísmo"),
@@ -235,7 +244,7 @@ export const ACTIVIDADES: Actividad[] = [
       { slug: "cascos", nombre: "Cascos certificados", porQue: "Con fecha de fabricación visible: el poliestireno se degrada aunque el casco se vea entero.", vence: false },
       { slug: "mantenimiento-mecanico", nombre: "Bitácora de mantenimiento mecánico", porQue: "Frenos y transmisión revisados antes de cada salida.", vence: false },
       { slug: "vehiculo-apoyo", nombre: "Vehículo de apoyo", porQue: "Para sacar a quien no pueda seguir pedaleando.", vence: false }],
-    generalesRelevantes: ["poliza-gm"] },
+    generalesRelevantes: [] },
 
   { slug: "cabalgata", nombre: "Cabalgata",
     documentos: [
@@ -243,7 +252,7 @@ export const ACTIVIDADES: Actividad[] = [
       { slug: "monturas", nombre: "Revisión de monturas", porQue: "Cinchas y estribos. Una cincha floja tira al jinete y lastima al animal.", vence: false },
       { slug: "cascos-jinete", nombre: "Cascos para jinetes", porQue: "La caída de caballo es la lesión más común de la actividad y casi siempre es de cabeza.", vence: false },
       { slug: "manejo-animal", nombre: "Plan de manejo animal", porQue: "Carga de trabajo, descanso y sombra de los animales.", vence: false }],
-    generalesRelevantes: ["poliza-rc", "poliza-gm"] },
+    generalesRelevantes: ["poliza-rc"] },
 
   { slug: "observacion-naturaleza", nombre: "Observación de naturaleza", norma: NOM09,
     documentos: [cred("turismo de naturaleza"),
@@ -273,7 +282,7 @@ export const ACTIVIDADES: Actividad[] = [
       { slug: "licencia-piloto", nombre: "Licencia vigente del piloto", porQue: "Con la habilitación para la aeronave que opera y su certificado médico al día.", vence: true },
       { slug: "empacador", nombre: "Empacador certificado y bitácora del paracaídas de reserva", porQue: "La reserva es el último recurso y sólo sirve si alguien certificado la dobló y lo anotó.", vence: true },
       { slug: "seguro-paracaidismo", nombre: "Seguro específico de la actividad", porQue: "Casi todas las pólizas generales excluyen el vuelo.", vence: true }],
-    generalesRelevantes: ["poliza-rc", "poliza-gm"] },
+    generalesRelevantes: ["poliza-rc"] },
 ];
 
 // ── Los momentos ─────────────────────────────────────────────────────────────
@@ -285,7 +294,6 @@ const MOMENTO_GENERAL: Record<string, Momento> = {
   "id-operacion": "arranque",
   "acta-constitutiva": "arranque",
   "poliza-rc": "salida",
-  "poliza-gm": "salida",
   rnt: "treinta-dias",
 };
 

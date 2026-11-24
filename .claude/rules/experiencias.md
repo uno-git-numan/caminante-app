@@ -65,10 +65,16 @@ encuentro. El editor completo (17 secciones, 134 campos) sigue en
   `lib/legal/clausulas-estandar.ts`, transcrito de
   `design/legal/DESLINDE-ESTANDAR-2026-11-19.md` y comparado por una prueba):
   16 obligatorias + 2 opcionales + las adicionales de la actividad. Dos
-  variantes que salen de un HECHO: **seguro** (con póliza sólo si la crea una
-  operadora con convenio firmado; la casa no la tiene confirmada) y **menores**
-  (según la edad mínima). El renglón «Seguro de accidentes durante la salida»
-  de la página sigue la misma variante: no se promete un seguro que no hay.
+  variantes que salen de un HECHO: **seguro** y **menores** (según la edad
+  mínima). El renglón «Seguro de accidentes durante la salida» de la página
+  sigue la misma variante: no se promete un seguro que no hay.
+  ⚠️ **Desde el 24 nov 2026 toda experiencia nueva nace «sin seguro»**
+  (`quienCrea` en `corta-actions.ts`). La regla era «con póliza si la crea una
+  operadora con convenio firmado», porque el convenio la obligaba a la póliza
+  de accidentes y la plataforma se la pedía; Luis quitó esa póliza del
+  expediente y, sin verla, no se le afirma al cliente. La variante «con» sigue
+  escrita (es texto de legal): vuelve a usarse cuando legal diga cómo se
+  acredita un seguro (D28 bis, 9-C).
   Las 17 actividades del catálogo tienen sus adicionales **menos
   paracaidismo, a propósito**: legal no leyó la regulación aeronáutica y esa
   experiencia sólo se publica con la carta propia de la operadora fusionada

@@ -209,7 +209,7 @@ export async function actividadListaParaPublicar(
         documentos: arranque.faltan.length,
         mensaje: arranque.faltan.length
           ? `Para publicar falta en tu expediente: ${arranque.faltan.join(" y ")}. ` +
-            `Lo demás (pólizas, credencial del guía, permisos) se entrega antes de tu primera salida.`
+            `Lo demás (póliza de responsabilidad civil, credencial del guía, permisos) se entrega antes de tu primera salida.`
           : `Ya entregaste lo necesario para publicar y lo estamos revisando. En cuanto quede aprobado ` +
             `puedes publicar; mientras tanto tu borrador se queda guardado, completo.`,
       }

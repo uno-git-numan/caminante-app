@@ -354,7 +354,7 @@ function Traido({ t, generales, operadora }: { t: BorradorDelCandado; generales:
                     <span>
                       Nadie te la va a pedir mientras no la quieras ofrecer. Si la declaras, firmas su anexo y ya
                       puedes publicarla; {req.propios.length === 1 ? "el documento" : `los ${req.propios.length} documentos`} de abajo
-                      {nuevos.length ? ` y las pólizas de Lo general` : ""} se entregan antes de tu primera salida.
+                      {nuevos.length ? ` y la póliza de Lo general` : ""} se entregan antes de tu primera salida.
                     </span>
                   </span>
                 </p>
@@ -484,9 +484,9 @@ export default function Expediente({
                 ? `No hay nada mal. Para vender bastan dos documentos: tu constancia fiscal y tu identificación. Lo demás se entrega antes de tu primera salida, en la carpeta de cada actividad que ofrezcas. Puedes subirlos en el orden que quieras, en varias sesiones, y lo que dejes a medias se guarda.`
                 : datos.completo
                   ? datos.paraSalir.faltan
-                    ? `Antes de tu primera salida ${datos.paraSalir.faltan === 1 ? "falta un documento" : `faltan ${datos.paraSalir.faltan} documentos`} (pólizas, credencial del guía, permisos): sin ellos la salida no se realiza.`
+                    ? `Antes de tu primera salida ${datos.paraSalir.faltan === 1 ? "falta un documento" : `faltan ${datos.paraSalir.faltan} documentos`} (póliza de responsabilidad civil, credencial del guía, permisos): sin ellos la salida no se realiza.`
                     : "Y ya entregaste lo que se pide antes de salir."
-                  : "Para vender bastan tu constancia fiscal y tu identificación. Las pólizas, la credencial del guía y los permisos se entregan antes de tu primera salida; el registro de turismo, en 30 días."}
+                  : "Para vender bastan tu constancia fiscal y tu identificación. Tu póliza de responsabilidad civil, la credencial del guía y los permisos se entregan antes de tu primera salida; el registro de turismo, en 30 días."}
             </span>
           </span>
         </div>
@@ -527,8 +527,8 @@ export default function Expediente({
           <div className="ab">
             <p className="gnhint">
               Se piden <b>una sola vez</b> y sirven para todas tus actividades. Cada uno dice para
-              cuándo: para vender bastan la constancia fiscal y la identificación; las pólizas se
-              entregan antes de tu primera salida y el registro de turismo en 30 días.
+              cuándo: para vender bastan la constancia fiscal y la identificación; la póliza de
+              responsabilidad civil se entrega antes de tu primera salida y el registro de turismo en 30 días.
             </p>
             <div className="docs">
               {datos.generales.map((d) => <RenglonDoc operadora={operadora} key={d.slug} d={d} actividad={null} />)}

@@ -248,7 +248,7 @@ export default function OperadoresPage() {
                 van en una sola tarjeta. */}
             <article className="opa-glass"><span className="k">Paso 01</span><h3>Aplicas</h3><p>Quince campos y ni un documento. Si llevas menos de un año operando, primero platicamos 30 minutos.</p></article>
             <article className="opa-glass"><span className="k">Paso 02</span><h3>Armas tu marca y tu experiencia</h3><p>Entras a tu panel, pones tu logo y tus colores y armas tu primera experiencia. Ves tu página como la verá tu cliente. No cuesta nada.</p></article>
-            <article className="opa-glass"><span className="k">Paso 03</span><h3>Dos documentos y una firma</h3><p>Para vender bastan tu constancia fiscal, tu identificación y la firma del convenio, en línea. Pólizas y credencial del guía, antes de tu primera salida.</p></article>
+            <article className="opa-glass"><span className="k">Paso 03</span><h3>Dos documentos y una firma</h3><p>Para vender bastan tu constancia fiscal, tu identificación y la firma del convenio, en línea. Tu póliza de responsabilidad civil y la credencial del guía, antes de tu primera salida.</p></article>
             <article className="opa-glass"><span className="k">Paso 04</span><h3>Conectas tu cuenta y vendes</h3><p>Lo que vendas entra a tu cuenta, a tu nombre. Nunca nos pagas por estar: sólo una comisión por venta.</p></article>
           </div>
           <div className="opa-end">

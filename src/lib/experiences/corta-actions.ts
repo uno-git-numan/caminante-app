@@ -47,7 +47,7 @@ async function quienCrea(operatorId: string | null): Promise<{ dueno?: ContactoD
   // operadora recién dada de alta todavía no lo es.
   const { data } = await createSupabaseAdminClient()
     .from("operators")
-    .select("email, instagram, whatsapp, es_la_casa, convenio_firmado_at, estado")
+    .select("email, instagram, whatsapp, es_la_casa, estado")
     .eq("id", operatorId)
     .maybeSingle();
   if (!data || data.estado === "baja") return { conSeguro: false, existe: false };
@@ -55,7 +55,17 @@ async function quienCrea(operatorId: string | null): Promise<{ dueno?: ContactoD
     existe: true,
     esLaCasa: data.es_la_casa === true,
     dueno: { email: data.email ?? undefined, instagram: data.instagram ?? undefined, whatsapp: data.whatsapp ?? undefined },
-    conSeguro: data.es_la_casa !== true && !!data.convenio_firmado_at,
+    // ⚠️ NADIE NACE «CON SEGURO» (24 nov 2026). La regla era: operadora con
+    // convenio firmado ⇒ la salida lleva seguro de accidentes, porque el
+    // convenio la obligaba a la póliza y la plataforma se la pedía. Luis quitó
+    // esa póliza del expediente; sin verla, decirle al cliente «esta salida
+    // cuenta con un seguro de accidentes» sería afirmar algo que nadie
+    // comprobó (es la razón que dio legal para pedirla: anexo v3, Séptima).
+    // Queda la variante «sin seguro», que es la prudente. Quien sí asegura a
+    // sus clientes lo dice con su propia carta, que se fusiona con la nuestra.
+    // Si legal define cómo se acredita un seguro (D28 bis, variante 9-C), el
+    // hecho vuelve a salir de aquí.
+    conSeguro: false,
   };
 }
 
