@@ -18,12 +18,20 @@ import { HeadFloat } from "@/app/caminante/ui/pub/atoms";
 import { usePubUI } from "@/app/caminante/ui/pub/PubShell";
 
 /** Cabecera flotante con el menú del shell cableado. */
-export function ExpHead() {
+export function ExpHead({
+  marca,
+  portal,
+}: {
+  /** La marca de quien opera: su logo va en la cabecera en vez del de Caminante. */
+  marca?: { nombre: string; logoClaro: string | null; logoOscuro: string | null } | null;
+  /** Su portal público, si lo tiene: ahí regresa la flecha en vez del catálogo de Caminante. */
+  portal?: string | null;
+} = {}) {
   const ui = usePubUI();
   // Regreso SIEMPRE visible y SIEMPRE dentro del sitio (regla app-first): esta
   // página recibe tráfico directo de redes, donde `router.back()` saldría de
   // Caminante. El padre es el índice de experiencias.
-  return <HeadFloat back backHref="/caminante/experiencias" onMenu={() => ui.abrirHoja("menu")} />;
+  return <HeadFloat back backHref={portal || "/caminante/experiencias"} onMenu={() => ui.abrirHoja("menu")} marca={marca} />;
 }
 
 export type BuyBar = {

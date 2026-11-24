@@ -11,12 +11,30 @@ import { fetchOpenSlotsForTemplate } from "@/lib/experiences/availability";
 import ExperienceTemplate from "../../../experiencias/[slug]/ExperienceTemplate";
 import ExperienceTemplateV2 from "../../../experiencias/[slug]/ExperienceTemplateV2";
 import WhiteLabelStyles, { wlDoc } from "../../../ui/wl/WhiteLabelStyles";
+import PubStyles from "../../../ui/pub/PubStyles";
+import PubShell from "../../../ui/pub/PubShell";
+import ExpMovil from "../../../experiencias/[slug]/ExpMovil";
 import { fetchThemeForExperience } from "@/lib/operators/branding";
 import { marcaDePagina } from "@/lib/operators/marca";
 import { fetchOperatorChipForExperience, fetchOperatorContactoForExperience } from "@/lib/operators/public";
 import { candadoDeAlta } from "@/lib/operadores/nav-alta-servidor";
 
 export const dynamic = "force-dynamic";
+
+// La barra de la vista previa. En escritorio es un listón pegado arriba; en
+// teléfono la página pública ocupa la pantalla entera (100dvh) y un listón le
+// robaría alto y la haría brincar, así que ahí es una pastilla flotante. Va
+// ABAJO, encima de la barra de compra: arriba tapaba el logo de la cabecera,
+// que es justo lo que se viene a ver.
+const BARRA_CSS = `
+.pv-barra{position:sticky;top:0;z-index:300;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:10px 16px;background:#20392b;color:#fbfbf7;font-size:13px;font-family:system-ui,sans-serif}
+.pv-barra .corto{display:none}
+@media(max-width:699px){
+.pv-barra{position:fixed;top:auto;bottom:calc(92px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 20px);flex-wrap:nowrap;gap:10px;padding:6px 6px 6px 14px;border-radius:999px;font-size:12px;box-shadow:0 10px 26px -12px rgba(0,0,0,.7)}
+.pv-barra .largo{display:none}
+.pv-barra .corto{display:inline;white-space:nowrap}
+}
+`;
 
 export default async function PreviewPage({
   params,
@@ -63,18 +81,14 @@ export default async function PreviewPage({
   return (
     <div>
       <WhiteLabelStyles theme={tema} />
-      <div
-        style={{
-          position: "sticky", top: 0, zIndex: 200, display: "flex",
-          alignItems: "center", justifyContent: "center", gap: 14,
-          padding: "10px 16px", background: "#20392b", color: "#fbfbf7",
-          fontSize: 13, fontFamily: "system-ui, sans-serif", flexWrap: "wrap",
-        }}
-      >
-        <span>
+      <style dangerouslySetInnerHTML={{ __html: BARRA_CSS }} />
+      {e.design === "v2" ? <PubStyles /> : null}
+      <div className="pv-barra">
+        <span className="largo">
           👁️ Vista previa {esBorrador ? "del BORRADOR" : "(ya publicada)"} — así la verá el
           viajero{esBorrador ? " cuando la publiques. Solo tú puedes ver esta página." : "."}
         </span>
+        <span className="corto">Vista previa</span>
         {/* ⚠️ EN SU ALTA, LA ÚNICA SALIDA ES CONTINUAR. «Seguir editando» abre
             el editor completo —17 secciones—: Luis lo picó a media alta y cayó
             en una pantalla que no tiene nada que ver con lo que estaba
@@ -101,13 +115,26 @@ export default async function PreviewPage({
           </Link>
         )}
       </div>
-      <div className={wlDoc(tema)}>
-        {e.design === "v2" ? (
-          <ExperienceTemplateV2 experience={e} slots={slots} operatorChip={operatorChip} contactoOperador={contactoOperador} marca={marcaDePagina(tema)} />
-        ) : (
+      {e.design === "v2" ? (
+        // LOS DOS MARCADOS, IGUAL QUE LA PÁGINA PÚBLICA (23 nov 2026). La
+        // pública pinta una plantilla para escritorio y OTRA para teléfono, y
+        // el CSS elige (corte en 700 px). Esta vista previa sólo pintaba la de
+        // escritorio: en un teléfono enseñaba esa misma, encogida, que no es lo
+        // que ve el cliente. «Así la verá el viajero» tiene que ser cierto
+        // también en el teléfono, que es donde más se abre.
+        <>
+          <div className={wlDoc(tema) ? `pub-no ${wlDoc(tema)}` : "pub-no"}>
+            <ExperienceTemplateV2 experience={e} slots={slots} operatorChip={operatorChip} contactoOperador={contactoOperador} marca={marcaDePagina(tema)} />
+          </div>
+          <PubShell buypad scope={wlDoc(tema)}>
+            <ExpMovil experience={e} slots={slots} operatorChip={operatorChip} rating={null} marca={marcaDePagina(tema)} />
+          </PubShell>
+        </>
+      ) : (
+        <div className={wlDoc(tema)}>
           <ExperienceTemplate experience={e} />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

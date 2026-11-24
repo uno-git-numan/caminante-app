@@ -49,6 +49,7 @@ import type {
 } from "@/lib/experiences/types";
 import type { SlotAvailabilityPublic } from "@/lib/experiences/availability";
 import type { OperatorChip } from "@/lib/operators/public";
+import type { MarcaDePagina } from "@/lib/operators/marca";
 import type { ExperienceRating } from "@/lib/experiences/card";
 
 // --- markup inline del contenido v2: **negrita** y *itálica* ---
@@ -205,6 +206,29 @@ function CuerpoSplit({ b }: { b: V2Split }) {
         <p style={{ marginTop: 12, color: "var(--ink-soft)", fontSize: 14.5 }}>{inline(b.lead)}</p>
       ) : null}
       <Foto im={b.media?.images?.[0]} />
+      {/* ⚠️ LAS DEMÁS FOTOS TAMBIÉN (23 nov 2026). El escritorio arma un mosaico
+          con todas; aquí sólo se pintaba la primera, así que quien subía cuatro
+          veía una en el teléfono —que es donde más se abre la página—. Van
+          debajo, en dos columnas. */}
+      {(b.media?.images?.length ?? 0) > 1 ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+          {b.media.images.slice(1).map((im, i, resto) =>
+            im.url ? (
+              <div
+                key={i}
+                style={{
+                  borderRadius: 16, overflow: "hidden", height: 124, boxShadow: "var(--shadow)",
+                  // Si quedan impares, la última ocupa el ancho completo.
+                  ...(resto.length % 2 === 1 && i === resto.length - 1 ? { gridColumn: "1 / -1", height: 150 } : {}),
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={im.url} alt={im.alt || ""} style={imgStyle(im)} />
+              </div>
+            ) : null,
+          )}
+        </div>
+      ) : null}
     </>
   );
 }
@@ -217,12 +241,19 @@ export default function ExpMovil({
   grupoToken,
   operatorChip,
   rating,
+  marca,
 }: {
   experience: Experience;
   slots: SlotAvailabilityPublic[];
   grupoToken?: string | null;
   operatorChip?: OperatorChip | null;
   rating?: ExperienceRating | null;
+  /**
+   * La marca de quien opera (`marcaDePagina`). Su logo va en la cabecera, donde
+   * iba el de Caminante, y al final va su nombre con «Operado con Caminante».
+   * null = la página es de Caminante.
+   */
+  marca?: MarcaDePagina | null;
 }) {
   const slug = experience.slug;
   const q = grupoToken ? `?grupo=${grupoToken}` : "";
@@ -606,7 +637,10 @@ export default function ExpMovil({
 
   return (
     <div className="pub-screen">
-      <ExpHead />
+      <ExpHead
+        marca={marca ? { nombre: marca.nombre, logoClaro: marca.logoClaro, logoOscuro: marca.logoOscuro } : null}
+        portal={marca && operatorChip ? `/caminante/o/${operatorChip.slug}` : null}
+      />
 
       {hero ? (
         <div className="pub-hero">
@@ -618,7 +652,7 @@ export default function ExpMovil({
           ) : null}
           <div className="veil" />
           <div className="inner" style={{ paddingBottom: 22 }}>
-            <Eyeb neg>{hero.eyebrow}</Eyeb>
+            {hero.eyebrow?.trim() ? <Eyeb neg>{hero.eyebrow}</Eyeb> : null}
             <h1>
               {hero.title}
               {hero.titleAccent ? (
@@ -668,6 +702,19 @@ export default function ExpMovil({
           ) : null}
         </Fragment>
       ))}
+
+      {marca ? (
+        <div style={{ padding: "30px 22px 36px", textAlign: "center" }}>
+          {marca.logoClaro ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={marca.logoClaro} alt={marca.nombre} style={{ height: 32, width: "auto", maxWidth: 170, objectFit: "contain", margin: "0 auto", display: "block" }} />
+          ) : null}
+          <div style={{ marginTop: marca.logoClaro ? 10 : 0, fontSize: 14, fontWeight: 600, color: "var(--charcoal)" }}>{marca.pie || marca.nombre}</div>
+          <div className="pub-mono" style={{ marginTop: 8, fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--ink-soft)" }}>
+            Operado con Caminante
+          </div>
+        </div>
+      ) : null}
 
       <ExpChrome secs={secciones.map((s) => s.label)} buy={buy} />
     </div>

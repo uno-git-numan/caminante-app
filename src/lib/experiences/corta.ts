@@ -21,6 +21,7 @@
 // acción que guarda y las pruebas.
 
 import { emptyExperience, slugify, type ContactoDueno } from "./empty";
+import { nombreDeActividad } from "@/lib/operadores/actividades";
 import { buildBlocks, emptyV2Draft } from "./page-v2";
 import type { Experience } from "./types";
 import type { ClausulaGuardada } from "@/lib/legal/clausulas";
@@ -242,7 +243,10 @@ export function experienciaDesdeCorta(
   };
 
   const v2 = emptyV2Draft(exp);
-  v2.hero = { eyebrow: "", metaEst: lugar, title: titulo, titleAccent: "", sub: exp.subtitle, bg: { url: exp.heroImageUrl, alt: titulo } };
+  // El antetítulo es «qué es · dónde», los dos datos que ya dio: sin él la
+  // portada abría con un «//» suelto arriba del nombre.
+  const antetitulo = [exp.actividad ? nombreDeActividad(exp.actividad) : "", exp.estado].filter(Boolean).join(" · ");
+  v2.hero = { eyebrow: antetitulo, metaEst: lugar, title: titulo, titleAccent: "", sub: exp.subtitle, bg: { url: exp.heroImageUrl, alt: titulo } };
   v2.experiencia = {
     ...v2.experiencia,
     title: "Lo que vas a",

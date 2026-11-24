@@ -189,8 +189,14 @@ function HeroBlock({
       <div className="veil" />
       <div className="container">
         <div className="hero-top">
+          {/* Sin antetítulo no se pinta el «//» solo. El `span` se conserva
+              vacío para que el dato de la derecha no se recorra a la izquierda. */}
           <span className="eyebrow">
-            <span className="sl">{"//"}</span> {b.eyebrow}
+            {b.eyebrow?.trim() ? (
+              <>
+                <span className="sl">{"//"}</span> {b.eyebrow}
+              </>
+            ) : null}
           </span>
           {b.metaEst ? <span className="meta-est">{b.metaEst}</span> : null}
         </div>

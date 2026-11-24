@@ -85,6 +85,7 @@ export default async function ExperiencePage({ params, searchParams }: Params) {
             grupoToken={grupoToken}
             operatorChip={operatorChip}
             rating={ratings.get(row.id) ?? null}
+            marca={marcaDePagina(tema)}
           />
         </PubShell>
       </>

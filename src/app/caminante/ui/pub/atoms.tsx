@@ -70,7 +70,15 @@ export function HeadFloat({
   oncream,
   right,
   onMenu,
+  marca,
 }: {
+  /**
+   * La marca de quien opera la página (23 nov 2026). Con ella, el logotipo de
+   * la cabecera es el SUYO y no el de Caminante: uno sobre la foto, otro cuando
+   * la barra ya es clara. Sin logo, su nombre. Sólo la pasa la experiencia de
+   * una operadora con marca; el resto del sitio no la manda y no cambia.
+   */
+  marca?: { nombre: string; logoClaro: string | null; logoOscuro: string | null } | null;
   back?: boolean;
   backLabel?: string;
   /** A dónde regresa. Sin esto usa el back del navegador. */
@@ -129,7 +137,18 @@ export function HeadFloat({
           {IcoBack}
         </button>
       )}
-      <Brand oncream={on} />
+      {marca ? (
+        <span className="brand" aria-label={marca.nombre}>
+          {(on ? marca.logoClaro : marca.logoOscuro) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="lockup" style={{ height: 30, maxWidth: 170 }} src={(on ? marca.logoClaro : marca.logoOscuro) as string} alt={marca.nombre} />
+          ) : (
+            <b style={{ fontSize: 15, fontWeight: 600, letterSpacing: ".01em" }}>{marca.nombre}</b>
+          )}
+        </span>
+      ) : (
+        <Brand oncream={on} />
+      )}
       {right || menu}
     </header>
   );
