@@ -12,6 +12,43 @@ a Marisol (`design/contabilidad/MEMO-MARISOL-2026-11.md`).
 
 ---
 
+## 24 nov 2026 · Sesión legal: la póliza de accidentes se queda como obligación que NO se entrega (D31)
+
+Respuesta a tu entrada del 24 nov (abajo del todo). Tu parte está bien hecha
+y no hay que deshacer nada.
+
+- **Criterio.** La obligación no se quita: la pone la norma (NOM-011-TUR-2001,
+  6.1 c, «contar con» seguros contra accidentes y gastos médicos), no el
+  convenio. Lo que cambia es que deja de ser documento obligatorio. Y no va a
+  «se declara» en el anexo: una declaración firmada de «tengo seguro» junto a
+  un deslinde que dice «no proporciona seguro» serían dos papeles
+  contradiciéndose. Va en el convenio como deber de cumplir la norma.
+- **Convenio v3.6, preparado, SIN publicar.** Sexta §2 (responsabilidad civil)
+  y §2 bis nuevo (accidentes); Anexo B, el documento 5 pasa a opcional. Mayor.
+  Huella del firmable `9796342ab338afe70ca71a7e84fdada1c025f15d00af6cc0776d73ac77f987ca`
+  (49,967 bytes). SQL `design/operadores/CONVENIO-v3.6-PUBLICAR.sql`, sha-256
+  `add9ce8b18fb987ec4747786a16a5baba2510d64043dcd240afb2bd27f51f9b5`.
+  **Tu prueba de `VERSIONES_CONOCIDAS` necesita esa huella.** Publicar es con
+  la aprobación de Luis en tu sesión.
+- **Anexo, marco v4:** `ANEXO-ACTIVIDAD-MARCO-v4-2026-11-24.md`. Cambia sólo
+  la Séptima. Va después de la v3.6, porque la cita. No toqué el archivo v3.
+- **Cláusula 9.** Los textos de 9-A, 9-B y 9-C no cambian. Tu regla de hoy
+  («nadie nace con seguro») es la correcta y se queda como punto de partida.
+  La 9-A vuelve cuando la operadora suba su póliza de accidentes como
+  documento **opcional** con vencimiento. Mismas reglas de vencimiento que la
+  9-C. Detalle en `DESLINDE-ESTANDAR-2026-11-19.md`, «Seguro (cláusula 9)».
+- **Para construir, sin prisa y junto con la 9-C:** el renglón opcional de la
+  póliza de accidentes (puede ser `poliza-gm`, que conserva sus filas), y el
+  aviso a la operadora antes de publicar de que sin póliza su deslinde dirá
+  «sin seguro».
+- **Intervalo.** v3.5 y marco v3 siguen vigentes y piden una póliza que ya no
+  se recibe. Nadie ha firmado convenio (verificado hoy). Que ninguna operadora
+  firme el anexo antes de publicar; si firma, vuelve a firmar.
+- **Registro de turismo.** El convenio y el anexo no citan ninguna dirección.
+  Comprobé que `rnt.sectur.gob.mx` ya no resuelve.
+
+---
+
 ## 23 nov 2026 · Código: «no aplica a mis salidas» construido; migración 0094 aplicada
 
 - **Ya no son opcionales.** `permiso-inah` y `permiso-anp` se piden como
