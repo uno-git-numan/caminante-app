@@ -98,6 +98,8 @@ handover.
 **Planes y entregables de diseño:** `design/` — el plan de Connect
 (`design/contabilidad/PLAN-CONNECT-MULTIEMISOR.md`), el contrato del sitio móvil
 (`design/publico-movil/PATRON.md`), el funnel de operadores, los handoffs.
+Las ideas que Luis quiere guardar para después, sin construir, van en
+`design/IDEAS-A-FUTURO.md`.
 
 Estas reglas se cargan **solas** cuando abres archivos del área. No hace falta
 pedirlas.
